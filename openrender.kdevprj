@@ -294,11 +294,11 @@ type=DATA
 
 [openrender/libribrender/Makefile.am]
 dist=true
-files=openrender/libribrender/colour.cpp,openrender/libribrender/colour.h,openrender/libribrender/matrix4D.cpp,openrender/libribrender/matrix4D.h,openrender/libribrender/vector3D.cpp,openrender/libribrender/vector3D.h,openrender/libribrender/Makefile.am
+files=openrender/libribrender/colour.cpp,openrender/libribrender/colour.h,openrender/libribrender/matrix4D.cpp,openrender/libribrender/matrix4D.h,openrender/libribrender/vector3D.cpp,openrender/libribrender/vector3D.h,openrender/libribrender/Makefile.am,openrender/libribrender/utils.h,openrender/libribrender/utils.cpp,openrender/libribrender/primitive.cpp,openrender/libribrender/primitive.h
 install=false
 install_location=
 sub_dirs=
-type=DATA
+type=static_library
 
 [openrender/libribrender/colour.cpp]
 dist=true
@@ -319,6 +319,30 @@ install_location=
 type=SOURCE
 
 [openrender/libribrender/matrix4D.h]
+dist=true
+install=false
+install_location=
+type=HEADER
+
+[openrender/libribrender/primitive.cpp]
+dist=true
+install=false
+install_location=
+type=SOURCE
+
+[openrender/libribrender/primitive.h]
+dist=true
+install=false
+install_location=
+type=HEADER
+
+[openrender/libribrender/utils.cpp]
+dist=true
+install=false
+install_location=
+type=SOURCE
+
+[openrender/libribrender/utils.h]
 dist=true
 install=false
 install_location=

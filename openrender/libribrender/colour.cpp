@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.3 2002/10/21 02:16:36 juvenal Exp $
+//  $Id: colour.cpp,v 1.4 2002/10/28 15:33:20 juvenal Exp $
 //
 
 // C includes
@@ -43,9 +43,10 @@ colour::colour ( void) {
 }
 
 colour::colour ( float c1, float c2, float c3) {
-  this->R = c1;
-  this->G = c2;
-  this->B = c3;
+  // Clamp values on assign
+  this->R = util::clampVal ( c1, 0, 1);
+  this->G = util::clampVal ( c2, 0, 1);
+  this->B = util::clampVal ( c3, 0, 1);
 }
 
 // Member Functions
@@ -94,18 +95,18 @@ vector3D colour::getCMY ( void) {
 
 // Set colour to RGB values (default)
 bool colour::setRGB ( vector3D &v) {
-  this->R = v.getxcomp();
-  this->G = v.getycomp();
-  this->B = v.getzcomp();
+  this->R = util::clampVal ( v.getxcomp(), 0, 1);
+  this->G = util::clampVal ( v.getycomp(), 0, 1);
+  this->B = util::clampVal ( v.getzcomp(), 0, 1);
 
   return true;
 }
 
 // Set colour to
 bool colour::setHLS ( vector3D &v) {
-  this->R = 0;
-  this->G = 0;
-  this->B = 0;
+  this->R = util::clampVal ( 0, 0, 1);
+  this->G = util::clampVal ( 0, 0, 1);
+  this->B = util::clampVal ( 0, 0, 1);
 
   return true;
 }
@@ -123,9 +124,7 @@ bool colour::setHSV ( vector3D &v) {
 
   // If saturation is 0, RGB is 0,0,0
   if ( S == 0) {
-    this->R = S;
-    this->G = S;
-    this->B = S;
+    this->R = this->G = this->B = S;
   }
   else {
     if ( H == 360) {
@@ -175,27 +174,27 @@ bool colour::setHSV ( vector3D &v) {
 
 // Set colour to
 bool colour::setYIQ ( vector3D &v) {
-  this->R = 1 * v.getxcomp() + 0.956 * v.getycomp() + 0.621 * v.getzcomp();
-  this->G = 1 * v.getxcomp() - 0.272 * v.getycomp() - 0.647 * v.getzcomp();
-  this->B = 1 * v.getxcomp() - 1.105 * v.getycomp() + 1.702 * v.getzcomp();
+  this->R = util::clampVal ( 1 * v.getxcomp() + 0.956 * v.getycomp() + 0.621 * v.getzcomp(), 0, 1);
+  this->G = util::clampVal ( 1 * v.getxcomp() - 0.272 * v.getycomp() - 0.647 * v.getzcomp(), 0, 1);
+  this->B = util::clampVal ( 1 * v.getxcomp() - 1.105 * v.getycomp() + 1.702 * v.getzcomp(), 0, 1);
 
   return true;
 }
 
 // Set colour to
 bool colour::setYUV ( vector3D &v) {
-  this->R = 1 * v.getxcomp() + 0 * v.getycomp() + 1.140 * v.getzcomp();
-  this->G = 1 * v.getxcomp() - 0.394 * v.getycomp() - 0.581 * v.getzcomp();
-  this->B = 1 * v.getxcomp() + 2.028 * v.getycomp() + 0 * v.getzcomp();
+  this->R = util::clampVal ( 1 * v.getxcomp() + 0.000 * v.getycomp() + 1.140 * v.getzcomp(), 0, 1);
+  this->G = util::clampVal ( 1 * v.getxcomp() - 0.394 * v.getycomp() - 0.581 * v.getzcomp(), 0, 1);
+  this->B = util::clampVal ( 1 * v.getxcomp() + 2.028 * v.getycomp() + 0.000 * v.getzcomp(), 0, 1);
 
   return true;
 }
 
 // Set colour to
 bool colour::setCMY ( vector3D &v) {
-  this->R = 1 - v.getxcomp();
-  this->G = 1 - v.getycomp();
-  this->B = 1 - v.getzcomp();
+  this->R = util::clampVal ( 1 - v.getxcomp(), 0, 1);
+  this->G = util::clampVal ( 1 - v.getycomp(), 0, 1);
+  this->B = util::clampVal ( 1 - v.getzcomp(), 0, 1);
 
   return true;
 }
@@ -206,9 +205,9 @@ bool colour::setCMY ( vector3D &v) {
 colour colour::operator += ( colour a) {
   float _R, _G, _B;
 
-  _R = ( ( this->R + a.R) > 1) ? 1 : this->R + a.R;
-  _G = ( ( this->G + a.G) > 1) ? 1 : this->G + a.G;
-  _B = ( ( this->B + a.B) > 1) ? 1 : this->B + a.B;
+  _R = util::clampVal ( this->R + a.R, 0, 1);
+  _G = util::clampVal ( this->G + a.G, 0, 1);
+  _B = util::clampVal ( this->B + a.B, 0, 1);
 
   return colour ( _R, _G, _B);
 }
@@ -217,41 +216,121 @@ colour colour::operator += ( colour a) {
 colour colour::operator -= ( colour a) {
   float _R, _G, _B;
 
-  _R = ( ( this->R - a.R) < 0) ? 0 : this->R - a.R;
-  _G = ( ( this->G - a.G) < 0) ? 0 : this->G - a.G;
-  _B = ( ( this->B - a.B) < 0) ? 0 : this->B - a.B;
+  _R = util::clampVal ( this->R - a.R, 0, 1);
+  _G = util::clampVal ( this->G - a.G, 0, 1);
+  _B = util::clampVal ( this->B - a.B, 0, 1);
+
+  return colour ( _R, _G, _B);
+}
+
+// Common multiply
+colour colour::operator *= ( colour a) {
+  float _R, _G, _B;
+
+  _R = util::clampVal ( this->R * a.R, 0, 1);
+  _G = util::clampVal ( this->G * a.G, 0, 1);
+  _B = util::clampVal ( this->B * a.B, 0, 1);
+
+  return colour ( _R, _G, _B);
+}
+
+// Common division
+colour colour::operator /= ( colour a) {
+  float _R, _G, _B;
+
+  _R = util::clampVal ( this->R / a.R, 0, 1);
+  _G = util::clampVal ( this->G / a.G, 0, 1);
+  _B = util::clampVal ( this->B / a.B, 0, 1);
 
   return colour ( _R, _G, _B);
 }
 
 // Addition
 colour operator + ( colour a, colour b) {
-  return colour ( a.R + b.R, a.G + b.G, a.B + b.B);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( a.R + b.R, 0, 1);
+  _G = util::clampVal ( a.G + b.G, 0, 1);
+  _B = util::clampVal ( a.B + b.B, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
 // Subtraction
 colour operator - ( colour a, colour b) {
-  return colour ( a.R - b.R, a.G - b.G, a.B - b.B);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( a.R - b.R, 0, 1);
+  _G = util::clampVal ( a.G - b.G, 0, 1);
+  _B = util::clampVal ( a.B - b.B, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
 // Multiplication
 colour operator * ( colour a, colour b) {
-  return colour ( a.R * b.R, a.G * b.G, a.B * b.B);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( a.R * b.R, 0, 1);
+  _G = util::clampVal ( a.G * b.G, 0, 1);
+  _B = util::clampVal ( a.B * b.B, 0, 1);
+
+  return colour ( _R, _G, _B);
+}
+
+// Division
+colour operator / ( colour a, colour b) {
+  float _R, _G, _B;
+
+  _R = util::clampVal ( a.R / b.R, 0, 1);
+  _G = util::clampVal ( a.G / b.G, 0, 1);
+  _B = util::clampVal ( a.B / b.B, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
 // Scale 1
 colour operator * ( float s, colour c) {
-  return colour ( s * c.R, s * c.G, s * c.B);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( s * c.R, 0, 1);
+  _G = util::clampVal ( s * c.G, 0, 1);
+  _B = util::clampVal ( s * c.B, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
 // Scale 2
 colour operator * ( colour c, float s) {
-  return colour ( c.R * s, c.G * s, c.B * s);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( s * c.R, 0, 1);
+  _G = util::clampVal ( s * c.G, 0, 1);
+  _B = util::clampVal ( s * c.B, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
-// Inverse scale
+// Inverse scale 1
 colour operator / ( colour c, float s) {
-  return colour ( c.R / s, c.G / s, c.B / s);
+  float _R, _G, _B;
+
+  _R = util::clampVal ( c.R / s, 0, 1);
+  _G = util::clampVal ( c.G / s, 0, 1);
+  _B = util::clampVal ( c.B / s, 0, 1);
+
+  return colour ( _R, _G, _B);
+}
+
+// Inverse scale 2
+colour operator / ( float s, colour c) {
+  float _R, _G, _B;
+
+  _R = util::clampVal ( c.R / s, 0, 1);
+  _G = util::clampVal ( c.G / s, 0, 1);
+  _B = util::clampVal ( c.B / s, 0, 1);
+
+  return colour ( _R, _G, _B);
 }
 
 // Not like
