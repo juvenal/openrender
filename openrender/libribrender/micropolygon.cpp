@@ -1,15 +1,14 @@
-//  openRender
 //
-//  microgrid.cpp - {Summary}
+//  micropolygon.cpp - {Summary}
 //
 //  Description:
 //    {Description}
 //
 //  Creation:
-//    Fri Nov 15 2002
+//    Sun Jun 8 2003
 //
 //  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2003 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,20 +18,12 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.cpp,v 1.2 2003/06/08 19:13:51 juvenal Exp $
+//  $Id
 //
 
-// C++ includes
-#include <iostream>
-#include <iomanip>
+#include "micropolygon.h"
 
-// Private includes
-#include "microgrid.h"
-
-// Constructor code
-microgrid::microgrid () {
+microPolygon::microPolygon(){
 }
-
-// Destructor code
-microgrid::~microgrid () {
+microPolygon::~microPolygon(){
 }

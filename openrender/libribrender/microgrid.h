@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.1 2003/05/30 16:46:43 juvenal Exp $
+//  $Id: microgrid.h,v 1.2 2003/06/08 19:13:51 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
@@ -32,28 +32,32 @@ class microgrid {
     // Destructor
     ~microgrid ();
     // Member functions
-    void allocate ( int width, int height);
-    void free ();
-
-    bool extractMicroPolygon ( microPolygon &m, int u, int v); // Extract micro-polygon from grid
-
-    int width (){return width;}
-    int height (){return height;}
-
-    void setSize ( int width, int height);  // Change size and re-initialise microgrid
-    void setTextureCoords ( float _umin, float _vmin, float _umax, float _vmax)
+    void  allocate ( int width, int height);
+    void  free ();
+    bool  extractMicroPolygon ( microPolygon &m, int u, int v); // Extract micro-polygon from grid
+    int   width () {return width;}
+    int   height () {return height;}
+    void  setSize ( int width, int height);  // Change size and re-initialise microgrid
+    void  setTextureCoords ( float _umin, float _vmin, float _umax, float _vmax)
         {umin=_umin; vmin=_vmin; umax=_umax; vmax=_vmax;}
-
-    void ComputeNormals ();
-    void Shade ( list<Light*> &lights);
-    void Displace ();
-    void Statistics ( float &zmin, float &zmax, float &maxusize, float &maxvsize);
+    void  computeNormals ();
+    void  shade ( list<Light*> &lights);
+    void  displace ();
+    void  statistics ( float &zmin, float &zmax, float &maxusize, float &maxvsize);
     // Stream input/output
     friend ostream &operator << ( ostream &io, const MicroGrid &m);
-
-
-      
+  protected:
+    int     width,height;    //
+    float   umin,vmin;       //
+    float   umax,vmax;       //
+    Point3  **point;         // 2D array of points
+    Colour  **colour;        // 2D array of micro-polygon colours
+    Opacity **opacity;       // 2D array of micro-polygon opacity
+    Vector3 **normal;        // 2D array of normals
 };
+
+
+
 
 // Reyes includes
 #include "point3D.h"

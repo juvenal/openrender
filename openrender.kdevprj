@@ -120,7 +120,7 @@ files=AUTHORS,ChangeLog,configure.in,COPYING,INSTALL,Makefile.am,openrender.kdev
 install=false
 install_location=
 sub_dirs=openrender,config
-type=DATA
+type=static_library
 
 [NEWS]
 dist=true
@@ -294,7 +294,7 @@ type=DATA
 
 [openrender/libribrender/Makefile.am]
 dist=true
-files=openrender/libribrender/colour.cpp,openrender/libribrender/colour.h,openrender/libribrender/matrix4D.cpp,openrender/libribrender/matrix4D.h,openrender/libribrender/vector3D.cpp,openrender/libribrender/vector3D.h,openrender/libribrender/Makefile.am,openrender/libribrender/utils.h,openrender/libribrender/utils.cpp,openrender/libribrender/primitive.cpp,openrender/libribrender/primitive.h,openrender/libribrender/point3D.h,openrender/libribrender/point3D.cpp,openrender/libribrender/microgrid.cpp,openrender/libribrender/microgrid.h
+files=openrender/libribrender/colour.cpp,openrender/libribrender/colour.h,openrender/libribrender/matrix4D.cpp,openrender/libribrender/matrix4D.h,openrender/libribrender/vector3D.cpp,openrender/libribrender/vector3D.h,openrender/libribrender/Makefile.am,openrender/libribrender/utils.h,openrender/libribrender/utils.cpp,openrender/libribrender/primitive.cpp,openrender/libribrender/primitive.h,openrender/libribrender/point3D.h,openrender/libribrender/point3D.cpp,openrender/libribrender/microgrid.cpp,openrender/libribrender/microgrid.h,openrender/libribrender/micropolygon.cpp,openrender/libribrender/micropolygon.h
 install=false
 install_location=
 sub_dirs=
@@ -331,6 +331,18 @@ install_location=
 type=SOURCE
 
 [openrender/libribrender/microgrid.h]
+dist=true
+install=false
+install_location=
+type=HEADER
+
+[openrender/libribrender/micropolygon.cpp]
+dist=true
+install=false
+install_location=
+type=SOURCE
+
+[openrender/libribrender/micropolygon.h]
 dist=true
 install=false
 install_location=
@@ -588,21 +600,9 @@ install_location=
 type=SOURCE
 
 [openrender/templates/Makefile.am]
-files=openrender/templates/header_template,openrender/templates/cpp_template,
+files=
 sub_dirs=
 type=normal
-
-[openrender/templates/cpp_template]
-dist=true
-install=false
-install_location=
-type=DATA
-
-[openrender/templates/header_template]
-dist=true
-install=false
-install_location=
-type=DATA
 
 [openrender/test/Makefile.am]
 dist=true

@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: primitive.h,v 1.1 2003/05/30 16:46:43 juvenal Exp $
+//  $Id: primitive.h,v 1.2 2003/06/08 19:13:51 juvenal Exp $
 //
 
 #ifndef PRIMITIVE_H
