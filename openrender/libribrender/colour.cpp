@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.5 2002/10/28 16:11:24 juvenal Exp $
+//  $Id: colour.cpp,v 1.6 2002/10/28 16:25:08 juvenal Exp $
 //
 
 // C includes
@@ -305,9 +305,9 @@ colour operator * ( float s, colour c) {
 colour operator * ( colour c, float s) {
   float _R, _G, _B;
 
-  _R = util::clampVal ( s * c.R, 0, 1);
-  _G = util::clampVal ( s * c.G, 0, 1);
-  _B = util::clampVal ( s * c.B, 0, 1);
+  _R = util::clampVal ( c.R * s, 0, 1);
+  _G = util::clampVal ( c.G * s, 0, 1);
+  _B = util::clampVal ( c.B * s, 0, 1);
 
   return colour ( _R, _G, _B);
 }
@@ -327,9 +327,9 @@ colour operator / ( colour c, float s) {
 colour operator / ( float s, colour c) {
   float _R, _G, _B;
 
-  _R = util::clampVal ( c.R / s, 0, 1);
-  _G = util::clampVal ( c.G / s, 0, 1);
-  _B = util::clampVal ( c.B / s, 0, 1);
+  _R = util::clampVal ( s / c.R, 0, 1);
+  _G = util::clampVal ( s / c.G, 0, 1);
+  _B = util::clampVal ( s / c.B, 0, 1);
 
   return colour ( _R, _G, _B);
 }
