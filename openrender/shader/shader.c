@@ -1,5 +1,5 @@
 //
-//  main.c - {Summary}
+//  shader.c - {Summary}
 //
 //  Description:
 //    {Description}
@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: main.c,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: shader.c,v 1.1 2002/10/23 13:34:54 juvenal Exp $
 //
 
 // C includes
