@@ -1,5 +1,5 @@
 //
-//  opacity.cpp - {Summary}
+//  framebuffer.h - {Summary}
 //
 //  Description:
 //    {Description}
@@ -18,21 +18,21 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: opacity.cpp,v 1.2 2003/12/06 00:45:01 juvenal Exp $
+//  $Id: framebuffer.h,v 1.1 2003/12/06 00:45:00 juvenal Exp $
 //
 
-// Private includes
-#include "opacity.h"
+#ifndef FRAMEBUFFER_H
+#define FRAMEBUFFER_H
 
-// Constructors
-opacity::opacity () {
-  this->R = 1;
-  this->G = 1;
-  this->B = 1;
-}
+// Define the framebuffer class
+class frameBuffer {
+  public:
+    // Constructor
+    frameBuffer ();
+    // Member functions
+    
+    // Destructor
+    ~frameBuffer ();
+};
 
-opacity::opacity ( float _r = 1, float _g = 1, float _b = 1) {
-  this->R = _r;
-  this->G = _g;
-  this->B = _b;
-}
+#endif // FRAMEBUFFER_H

@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: primitive.cpp,v 1.2 2003/06/08 19:13:51 juvenal Exp $
+//  $Id: primitive.cpp,v 1.3 2003/12/06 00:45:01 juvenal Exp $
 //
 
 // C++ includes
@@ -70,7 +70,7 @@ bool primitive::eyeBound ( boundBox &bb) {
 // Common methods to all primitives (not virtual methods)
 // =======================================================================
 void primitive::dice ( microGrid &microgrid, float xscale, float yscale) {
-  int us,vs;
+  int us, vs;
 
   estimateGridSize ( xscale, yscale, us, vs);
   doDice ( microgrid, us, vs);
@@ -98,7 +98,7 @@ void primitive::estimateGridSize ( float xscale, float yscale, int &us, int &vs)
   vs = MAX ( 4, ( int) ( 10 * yscale * maxvsize / ( RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.ySamplingRate)));
   // Make size a power of 2
   us = 1 << ( int) ( logn ( 2, us));
-  vs = 1 << ( int) ( logn ( 2, us));
+  vs = 1 << ( int) ( logn ( 2, vs));
   us = MAX ( us, vs);
   vs = MAX ( us, vs);
 }

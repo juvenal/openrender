@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.3 2003/06/10 02:10:55 juvenal Exp $
+//  $Id: microgrid.h,v 1.4 2003/12/06 00:45:00 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
@@ -51,9 +51,9 @@ class microGrid {
     float    umin, vmin;     // Minimum values of u,v coordinates on grid
     float    umax, vmax;     // Maximum values of u,v coordinates on grid
     point3D  **point;        // 2D array of points
+    vector3D **normal;       // 2D array of normals
     colour   **colour;       // 2D array of micro-polygon colours
     opacity  **opacity;      // 2D array of micro-polygon opacity
-    vector3D **normal;       // 2D array of normals
 };
 
 

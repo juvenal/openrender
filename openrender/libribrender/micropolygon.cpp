@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id
+//  $Id: micropolygon.cpp,v 1.3 2003/12/06 00:45:01 juvenal Exp $
 //
 
 // C++ includes

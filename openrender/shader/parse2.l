@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: parse2.l,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: parse2.l,v 1.2 2003/12/06 00:45:01 juvenal Exp $
 //
 
 // C includes
@@ -72,7 +72,7 @@ char cppFilename[1024],
 "while"         return(WHILE);
 "for"           return(FOR);
 "break"         return(BREAK);
-"continue"      return (CONTINUE);
+"continue"      return(CONTINUE);
 
 float           {yylval='f';return(VARTYPE);};
 point           {yylval='p';return(VARTYPE);};

@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: functions.c,v 1.2 2002/10/22 12:13:06 juvenal Exp $
+//  $Id: functions.c,v 1.3 2003/12/06 00:45:01 juvenal Exp $
 //
 
 // C includes
@@ -146,7 +146,7 @@ struct functionTemplate_t functions[] = {
             {"cellnoise",       "ff",   "pointcellnoiseff", 'v'},
             {"cellnoise",       "v",    "pointcellnoisev",  'v'},
             {"cellnoise",       "p",    "pointcellnoisev",  'v'},
-            {NULL, NULL, NULL, NULL}
+            {(char *)NULL, (char *)NULL, (char *)NULL, (char)NULL}
 };
 
 // Define array with

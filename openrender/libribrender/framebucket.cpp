@@ -1,11 +1,11 @@
 //
-//  opacity.cpp - {Summary}
+//  framebucket.cpp - {Summary}
 //
 //  Description:
 //    {Description}
 //
 //  Creation:
-//    Sun Jun 8 2003
+//    Thu Jun 12 2003
 //
 //  Original Development:
 //    (C) 2003 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
@@ -18,21 +18,16 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: opacity.cpp,v 1.2 2003/12/06 00:45:01 juvenal Exp $
+//  $Id: framebucket.cpp,v 1.1 2003/12/06 00:45:00 juvenal Exp $
 //
 
 // Private includes
-#include "opacity.h"
+#include "framebucket.h"
 
 // Constructors
-opacity::opacity () {
-  this->R = 1;
-  this->G = 1;
-  this->B = 1;
+frameBucket::frameBucket(){
 }
 
-opacity::opacity ( float _r = 1, float _g = 1, float _b = 1) {
-  this->R = _r;
-  this->G = _g;
-  this->B = _b;
+// Destructor
+frameBucket::~frameBucket(){
 }

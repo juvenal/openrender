@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id
+//  $Id: micropolygon.h,v 1.3 2003/12/06 00:45:01 juvenal Exp $
 //
 
 #ifndef MICROPOLYGON_H
@@ -37,7 +37,7 @@ class microPolygon {
     void rasterize ( frameBuffer &fb);
     // Friend functions
     friend ostream &operator<<(ostream &io,const MicroPolygon &m);
-  private:
+  protected:
     point3D  point[4];    // screen-space with Z in eye-space
     colour   colour;      // Micropolygon color
     opacity  opacity;     // Micropolygon opacity
