@@ -19,27 +19,27 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.2 2003/06/08 19:13:51 juvenal Exp $
+//  $Id: microgrid.h,v 1.3 2003/06/10 02:10:55 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
 #define MICROGRID_H
 
-class microgrid {
+// Define the grid for micropolygons (microgrid)
+class microGrid {
   public: 
     // Constructor
-    microgrid ( int width = 1, int height = 1);
+    microGrid ( int _width = 1, int _height = 1);
     // Destructor
-    ~microgrid ();
+    ~microGrid ();
     // Member functions
-    void  allocate ( int width, int height);
+    void  allocate ( int _width, int _height);
     void  free ();
-    bool  extractMicroPolygon ( microPolygon &m, int u, int v); // Extract micro-polygon from grid
-    int   width () {return width;}
-    int   height () {return height;}
-    void  setSize ( int width, int height);  // Change size and re-initialise microgrid
-    void  setTextureCoords ( float _umin, float _vmin, float _umax, float _vmax)
-        {umin=_umin; vmin=_vmin; umax=_umax; vmax=_vmax;}
+    bool  extractMicroPolygon ( microPolygon &m, int _u, int _v); // Extract micro-polygon from grid
+    int   width ();
+    int   height ();
+    void  setSize ( int _width, int _height);  // Change size and re-initialise microgrid
+    void  setTextureCoords ( float _umin, float _vmin, float _umax, float _vmax);
     void  computeNormals ();
     void  shade ( list<Light*> &lights);
     void  displace ();
@@ -47,13 +47,13 @@ class microgrid {
     // Stream input/output
     friend ostream &operator << ( ostream &io, const MicroGrid &m);
   protected:
-    int     width,height;    //
-    float   umin,vmin;       //
-    float   umax,vmax;       //
-    Point3  **point;         // 2D array of points
-    Colour  **colour;        // 2D array of micro-polygon colours
-    Opacity **opacity;       // 2D array of micro-polygon opacity
-    Vector3 **normal;        // 2D array of normals
+    int      width, height;  // Size of microgrid in micropolygon units
+    float    umin, vmin;     // Minimum values of u,v coordinates on grid
+    float    umax, vmax;     // Maximum values of u,v coordinates on grid
+    point3D  **point;        // 2D array of points
+    colour   **colour;       // 2D array of micro-polygon colours
+    opacity  **opacity;      // 2D array of micro-polygon opacity
+    vector3D **normal;       // 2D array of normals
 };
 
 

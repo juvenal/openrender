@@ -19,11 +19,14 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.h,v 1.2 2003/06/08 19:13:51 juvenal Exp $
+//  $Id: point3D.h,v 1.3 2003/06/10 02:10:55 juvenal Exp $
 //
 
 #ifndef POINT3D_H
 #define POINT3D_H
+
+// Superclass include
+#include "vector3D.h"
 
 // Define basic type vector3D
 class point3D: public vector3D {

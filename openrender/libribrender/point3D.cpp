@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.cpp,v 1.2 2003/06/08 19:13:51 juvenal Exp $
+//  $Id: point3D.cpp,v 1.3 2003/06/10 02:10:55 juvenal Exp $
 //
 
 // C++ includes
@@ -27,7 +27,6 @@
 #include <iomanip>
 
 // Private includes
-#include "vector3D.h"
 #include "point3D.h"
 
 // point3D implementations

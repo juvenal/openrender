@@ -24,15 +24,23 @@
 #ifndef MICROPOLYGON_H
 #define MICROPOLYGON_H
 
-
-/**
-  *@author Juvenal A. Silva Jr.
-  */
-
+// Define micropolygon class
 class microPolygon {
-public: 
-	microPolygon();
-	~microPolygon();
+  public:
+    // Constructors
+    microPolygon ();
+    microPolygon ( point3D &p1, point3D &p2, point3D &p3, point3D &p4,
+                   colour &colour, opacity &opacity);
+    // Member functions
+    void transformToScreenSpace ( matrix4D &transform);
+    bool sample ( float sx, float sy, float &z, colour &colour, opacity &opacity);
+    void rasterize ( frameBuffer &fb);
+    // Friend functions
+    friend ostream &operator<<(ostream &io,const MicroPolygon &m);
+  private:
+    point3D  point[4];    // screen-space with Z in eye-space
+    colour   colour;      // Micropolygon color
+    opacity  opacity;     // Micropolygon opacity
 };
 
-#endif
+#endif // MICROPOLYGON_H
