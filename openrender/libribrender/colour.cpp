@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: colour.cpp,v 1.3 2002/10/21 02:16:36 juvenal Exp $
 //
 
 // C includes
@@ -213,7 +213,7 @@ colour colour::operator += ( colour a) {
   return colour ( _R, _G, _B);
 }
 
-// Common multiply
+// Common subtraction
 colour colour::operator -= ( colour a) {
   float _R, _G, _B;
 
@@ -271,7 +271,7 @@ bool operator == ( colour a, colour b) {
 // Stream output
 // ========================================================
 std::ostream &operator << ( std::ostream &io, const colour &c) {
-  //io.setf ( std::ios::showpoint: + std::ios::right: + std::ios::fixed:);
+  //io.setf ( std::ios::showpoint + std::ios::right + std::ios::fixed);
   io.setf ( std::ios::showpoint);
   io.setf ( std::ios::right);
   io.setf ( std::ios::fixed);

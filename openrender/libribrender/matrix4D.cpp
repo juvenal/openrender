@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.3 2002/10/21 02:16:36 juvenal Exp $
 //
 
 // C includes
@@ -147,6 +147,7 @@ vector3D operator * ( matrix4D m, vector3D v) {
   return r;
 
 }
+
 matrix4D operator * ( matrix4D a, matrix4D b) {
   int i,j,k;
   matrix4D r;

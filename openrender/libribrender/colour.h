@@ -19,11 +19,10 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.h,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: colour.h,v 1.3 2002/10/21 02:16:36 juvenal Exp $
 //
 
 #ifndef COLOUR_H
-
 #define COLOUR_H
 
 // Define basic type colour
