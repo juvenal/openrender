@@ -1,5 +1,5 @@
 //
-//  main.cpp - {Summary}
+//  shadertell.cpp - {Summary}
 //
 //  Description:
 //    {Description}
@@ -18,5 +18,5 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: main.cpp,v 1.1 2002/10/22 11:49:33 juvenal Exp $
+//  $Id: shadertell.cpp,v 1.1 2002/10/23 13:40:37 juvenal Exp $
 //
