@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.h,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: colour.h,v 1.2 2002/10/21 00:27:51 juvenal Exp $
 //
 
 #ifndef COLOUR_H
@@ -60,7 +60,7 @@ class colour {
     friend bool   operator == ( colour a, colour b);
     friend bool   operator != ( colour a, colour b);
     // Stream output
-    friend ostream &operator << ( ostream &io, const colour &c);
+    friend std::ostream &operator << ( std::ostream &io, const colour &c);
   private:
     // Private data
     float R, G, B;

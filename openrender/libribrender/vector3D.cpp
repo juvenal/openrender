@@ -19,15 +19,15 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.cpp,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: vector3D.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
 //
 
 // C includes
 #include <math.h>
 
 // C++ includes
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 
 // Private includes
 #include "vector3D.h"
@@ -155,14 +155,16 @@ bool operator == ( vector3D a, vector3D b) {
 
 // Stream output
 // ========================================================
-ostream &operator << ( ostream &io, const vector3D &v) {
-  io.setf ( ios::showpoint + ios::right + ios::fixed);
+std::ostream &operator << ( std::ostream &io, const vector3D &v) {
+  io.setf ( std::ios::showpoint);
+  io.setf ( std::ios::right);
+  io.setf ( std::ios::fixed);
   io << "( ";
-  io << setprecision ( 2) << v.x;
+  io << std::setprecision ( 2) << v.x;
   io << " ,";
-  io << setprecision ( 2) << v.y;
+  io << std::setprecision ( 2) << v.y;
   io << " ,";
-  io << setprecision ( 2) << v.z;
+  io << std::setprecision ( 2) << v.z;
   io << ")";
   return io;
 }

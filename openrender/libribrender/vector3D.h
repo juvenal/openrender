@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.h,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: vector3D.h,v 1.2 2002/10/21 00:27:51 juvenal Exp $
 //
 
 #ifndef VECTOR3D_H
@@ -56,7 +56,7 @@ class vector3D {
     friend bool     operator != ( vector3D a, vector3D b);
     friend bool     operator == ( vector3D a, vector3D b);
     // Stream output
-    friend ostream& operator << ( ostream& io, const vector3D& v);
+    friend std::ostream& operator << ( std::ostream& io, const vector3D& v);
   private:
     // Private data
     float x, y, z;

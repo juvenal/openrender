@@ -19,15 +19,15 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: colour.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
 //
 
 // C includes
 #include <math.h>
 
 // C++ includes
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 
 // Private includes
 #include "vector3D.h"
@@ -270,14 +270,17 @@ bool operator == ( colour a, colour b) {
 
 // Stream output
 // ========================================================
-ostream &operator << ( ostream &io, const colour &c) {
-  io.setf ( ios::showpoint + ios::right + ios::fixed);
+std::ostream &operator << ( std::ostream &io, const colour &c) {
+  //io.setf ( std::ios::showpoint: + std::ios::right: + std::ios::fixed:);
+  io.setf ( std::ios::showpoint);
+  io.setf ( std::ios::right);
+  io.setf ( std::ios::fixed);
   io << "( ";
-  io << setprecision ( 2) << c.R;
+  io << std::setprecision ( 2) << c.R;
   io << " ,";
-  io << setprecision ( 2) << c.G;
+  io << std::setprecision ( 2) << c.G;
   io << " ,";
-  io << setprecision ( 2) << c.B;
+  io << std::setprecision ( 2) << c.B;
   io << ")";
   return io;
 }

@@ -19,15 +19,15 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
 //
 
 // C includes
 #include <math.h>
 
 // C++ includes
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 
 // Private includes
 #include "vector3D.h"
@@ -164,17 +164,17 @@ matrix4D operator * ( matrix4D a, matrix4D b) {
 
 // Stream output
 // ========================================================
-ostream &operator << ( ostream &io, matrix4D &m) {
+std::ostream &operator << ( std::ostream &io, matrix4D &m) {
   int i, j;
 
   for ( i = 0; i < 4; i++) {
-    cout << "[";
+    std::cout << "[";
     for ( j = 0; j < 4; j++) {
-      cout << m[i][j];
+      std::cout << m[i][j];
       if ( j < 3)
-        cout << " ";
+        std::cout << " ";
     }
-    cout << "]\n";
+    std::cout << "]\n";
   }
   return io;
 }
