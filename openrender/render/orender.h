@@ -19,13 +19,13 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: orender.h,v 1.1 2004/03/21 03:09:31 juvenal Exp $
+//  $Id: orender.h,v 1.2 2004/05/11 10:48:53 juvenal Exp $
 //
 
 #ifndef _ORENDER_H
 #define _ORENDER_H
 
-class oRender: public openRender {
+class oRender: public openRenderCLI {
     public:
         oRender();
         int processRequest(int argc, char *argv[]);
@@ -36,7 +36,17 @@ class oRender: public openRender {
         static const int APP_EXTRA_NUMBER = 0;
         static const String APP_MSG_NAME("orender");
         static const String APP_MSG_DESC("Stand alone renderer for RIB files.");
-        Options prepareOptions();
+        static const String APP_MSG_COPY("(c) Copyright 2002 Juvenal A. Silva Jr.\nAll Rights Reserved.");
+        static const char OPTION_STATISTICS= 's';
+        static const char OPTION_LASTFRAME= 'e';
+        static const char OPTION_FIRSTFRAME= 'f';
+        static const char OPTION_FRAMEBUFFER= 'd';
+        static const char OPTION_VERSION= 'v';
+        static const char OPTION_HELP= 'h';
+        static const char OPTION_PROGRESS= 'p';
+        static const char OPTION_QUALITY = 'q';
+        // Internal member functions
+        optionsCLI prepareOptions();
         void printHeader();
         void printUsage();
         void printVersion();

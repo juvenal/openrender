@@ -19,15 +19,13 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: openrender.h,v 1.1 2004/03/21 03:09:31 juvenal Exp $
+//  $Id: openrender.h,v 1.2 2004/05/11 10:48:53 juvenal Exp $
 //
  
 #ifndef _OPENRENDER_H
 #define _OPENRENDER_H
 
-class openRender {
-    public:
-        openRender();
+class openRenderCLI {
     protected:
         static const int PKG_MAJOR_NUMBER = 0;
         static const int PKG_MIDLE_NUMBER = 1;
@@ -45,6 +43,7 @@ class openRender {
     
 }
 
+/*
 openRender 1.0 Release 1 linux (Adheres to the RenderMan Standard)
 (c) Copyright 2002 Juvenal A. Silva Jr.  Portions (c) Ian Stephenson.
 All Rights Reserved.
@@ -52,7 +51,7 @@ All Rights Reserved.
 The RenderMan (R) Interface Procedures and RIB Protocol are:
 Copyright 1988,1989, Pixar. All Rights Reserved.
 RenderMan (R) is a registered trademark of Pixar.
- 
+*/
 
 
 #endif /* _OPENRENDER_H */
