@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id
+//  $Id: sloargs.h,v 1.2 2002/10/22 12:13:06 juvenal Exp $
 //
 
 #ifndef SLOARGS_H
