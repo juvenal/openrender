@@ -147,7 +147,7 @@ install_location=
 type=DATA
 
 [config/Makefile.am]
-files=config/config.guess,config/config.sub,config/install-sh,config/ltmain.sh,config/missing,config/mkinstalldirs,config/depcomp
+files=config/config.guess,config/config.sub,config/install-sh,config/ltmain.sh,config/missing,config/mkinstalldirs
 sub_dirs=
 type=normal
 
@@ -158,12 +158,6 @@ install_location=
 type=DATA
 
 [config/config.sub]
-dist=true
-install=false
-install_location=
-type=DATA
-
-[config/depcomp]
 dist=true
 install=false
 install_location=
