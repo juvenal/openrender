@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.5 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: microgrid.h,v 1.6 2004/05/14 21:44:53 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
@@ -59,7 +59,7 @@ class microGrid {
 
 #endif // MICROGRID_H
 
-
+/*
 // Reyes includes
 #include "point3D.h"
 #include "micropolygon.h"
@@ -105,3 +105,4 @@ class MicroGrid
     float umin,vmin;
     float umax,vmax;
 };
+*/

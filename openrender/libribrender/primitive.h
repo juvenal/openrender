@@ -19,14 +19,14 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: primitive.h,v 1.3 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: primitive.h,v 1.4 2004/05/14 21:44:53 juvenal Exp $
 //
 
 #ifndef PRIMITIVE_H
 #define PRIMITIVE_H
 
 // Define the virtual basic primitive class
-class Primitive {
+class primitive {
     public:
         virtual void dump ()
         virtual bool transformToEyeSpace (matrix4D t_position, matrix4D t_vector)
