@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.h,v 1.3 2002/10/21 02:16:36 juvenal Exp $
+//  $Id: colour.h,v 1.4 2002/10/28 16:11:24 juvenal Exp $
 //
 
 #ifndef COLOUR_H
@@ -49,13 +49,17 @@ class colour {
     // Arithmetic operations
     colour operator += ( colour c);
     colour operator -= ( colour c);
+    colour operator *= ( colour c);
+    colour operator /= ( colour c);
     // Friend operators and functions
     friend colour operator +  ( colour a, colour b);
     friend colour operator -  ( colour a, colour b);
     friend colour operator *  ( colour a, colour b);
     friend colour operator *  ( float s, colour c);
     friend colour operator *  ( colour c, float s);
+    friend colour operator /  ( colour a, colour b);
     friend colour operator /  ( colour c, float s);
+    friend colour operator /  ( float s, colour c); 
     friend bool   operator == ( colour a, colour b);
     friend bool   operator != ( colour a, colour b);
     // Stream output

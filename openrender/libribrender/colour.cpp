@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.4 2002/10/28 15:33:20 juvenal Exp $
+//  $Id: colour.cpp,v 1.5 2002/10/28 16:11:24 juvenal Exp $
 //
 
 // C includes
@@ -30,6 +30,7 @@
 #include <iomanip>
 
 // Private includes
+#include "utils.h"
 #include "vector3D.h"
 #include "matrix4D.h"
 #include "colour.h"

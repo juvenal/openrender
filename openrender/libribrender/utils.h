@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.h,v 1.1 2002/10/28 15:33:20 juvenal Exp $
+//  $Id: utils.h,v 1.2 2002/10/28 16:11:24 juvenal Exp $
 //
 
 #ifndef UTILS_H
@@ -31,3 +31,4 @@ namespace util {
 } // namespace util
 
 #endif // UTILS_H
+
