@@ -18,16 +18,16 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: framebucket.cpp,v 1.1 2003/12/06 00:45:00 juvenal Exp $
+//  $Id: framebucket.cpp,v 1.2 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // Private includes
 #include "framebucket.h"
 
 // Constructors
-frameBucket::frameBucket(){
+FrameBucket::FrameBucket(){
 }
 
 // Destructor
-frameBucket::~frameBucket(){
+FrameBucket::~FrameBucket(){
 }

@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: point3D.cpp,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C++ includes
@@ -33,13 +33,13 @@
 // *******************************
 // Constructors
 // ========================================================
-point3D::point3D (float _x, float _y, float _z) {
+Point3D::Point3D (float _x, float _y, float _z) {
     this->x = _x;
     this->y = _y;
     this->z = _z;
 }
 
-point3D::point3D (vector3D v) {
+Point3D::Point3D (Vector3D v) {
     this->x = v.getxcomp ();
     this->y = v.getycomp ();
     this->z = v.getzcomp ();

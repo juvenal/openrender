@@ -18,21 +18,21 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: framebuffer.h,v 1.2 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: framebuffer.h,v 1.3 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
 // Define the framebuffer class
-class frameBuffer {
+class FrameBuffer {
     public:
         // Constructor
-        frameBuffer ();
+        FrameBuffer ();
         // Member functions
         
         // Destructor
-        ~frameBuffer ();
+        ~FrameBuffer ();
 };
 
 #endif // FRAMEBUFFER_H

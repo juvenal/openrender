@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.h,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: matrix4D.h,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef MATRIX4D_H
@@ -29,23 +29,23 @@
 #define DEGTORAD 0.017453293
 
 // Define basic type matrix4D
-class matrix4D {
+class Matrix4D {
     public:
         // Constructors
-        matrix4D ();
+        Matrix4D ();
         // Member functions
         bool     identity ();
-        bool     scale (vector3D s);
-        bool     translate (vector3D t);
-        bool     rotate (vector3D r);
+        bool     scale (Vector3D s);
+        bool     translate (Vector3D t);
+        bool     rotate (Vector3D r);
         float*   operator [] (int row) { return element[row];}
-        matrix4D inverse ();
+        Matrix4D inverse ();
         // Arithmetic operations
         // Friend operators and functions
-        friend vector3D operator * (matrix4D m, vector3D v);
-        friend matrix4D operator * (matrix4D a, matrix4D b);
+        friend Vector3D operator * (Matrix4D m, Vector3D v);
+        friend Matrix4D operator * (Matrix4D a, Matrix4D b);
         // Stream output
-        friend std::ostream &operator << (std::ostream &io, matrix4D &m);
+        friend std::ostream &operator << (std::ostream &io, Matrix4D &m);
     protected:
         // Protected data
         float element[4][4];

@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: primitive.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: primitive.cpp,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C++ includes
@@ -41,42 +41,42 @@
 
 // Basic virtual implementations (must be overriden by real primitives)
 // =======================================================================
-void primitive::dump () {
+void Primitive::dump () {
     std::cout << "dump(): Unknown primitive!" << std::endl;
 }
 
-bool primitive::transformToEyeSpace ( matrix4D t_position, matrix4D t_vector) {
+bool Primitive::transformToEyeSpace (Matrix4D t_position, Matrix4D t_vector) {
     std::cout << "transformToEyeSpace(): Unknown primitive!" << std::endl;
 }
 
-void primitive::doDice ( microGrid &microgrid, int us, int vs) {
+void Primitive::doDice (MicroGrid &microgrid, int us, int vs) {
     std::cout << "doDice(): Unknown primitive!" << std::endl;
 }
 
-bool primitive::splitable () {
+bool Primitive::splitable () {
     std::cout << "splitable(): Unknown primitive!" << std::endl;
     return false;
 }
 
-void primitive::split ( list<primitive*> &primlist) {
+void Primitive::split (list<Primitive*> &primlist) {
     std::cout << "split(): Unknown primitive!" << std::endl;
 }
 
-bool primitive::eyeBound ( boundBox &bb) {
+bool Primitive::eyeBound (BoundBox &bb) {
     std::cout << "eyeBound(): Unknown primitive!" << std::endl;
     return false;
 }
 
 // Common methods to all primitives (not virtual methods)
 // =======================================================================
-void primitive::dice (microGrid &microgrid, float xscale, float yscale) {
+void Primitive::dice (MicroGrid &microgrid, float xscale, float yscale) {
     int us, vs;
 
     estimateGridSize (xscale, yscale, us, vs);
     doDice (microgrid, us, vs);
 }
 
-bool primitive::diceable (float xscale, float yscale) {
+bool Primitive::diceable (float xscale, float yscale) {
     int us, vs;
 
     estimateGridSize (xscale, yscale, us, vs);
@@ -88,8 +88,8 @@ bool primitive::diceable (float xscale, float yscale) {
     }
 }
 
-void primitive::estimateGridSize (float xscale, float yscale, int &us, int &vs) {
-    microGrid microgrid;
+void Primitive::estimateGridSize (float xscale, float yscale, int &us, int &vs) {
+    MicroGrid microgrid;
     float zmin, zmax, maxusize, maxvsize;
 
     doDice (microgrid, 10, 10);
@@ -102,3 +102,4 @@ void primitive::estimateGridSize (float xscale, float yscale, int &us, int &vs) 
     us = MAX (us, vs);
     vs = MAX (us, vs);
 }
+

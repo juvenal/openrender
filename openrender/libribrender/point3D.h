@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.h,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: point3D.h,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef POINT3D_H
@@ -29,13 +29,13 @@
 #include "vector3D.h"
 
 // Define basic type vector3D
-class point3D: public vector3D {
+class Point3D: public Vector3D {
     public:
         // Constructors
-        point3D (float _x = 0,
+        Point3D (float _x = 0,
                  float _y = 0,
                  float _z = 0);
-        point3D (vector3D v);
+        Point3D (Vector3D v);
         // All the other methods inherited from
         // parent superclass vector3D
 };

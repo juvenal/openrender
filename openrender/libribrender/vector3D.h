@@ -19,17 +19,17 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.h,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: vector3D.h,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef VECTOR3D_H
 #define VECTOR3D_H
 
 // Define basic type vector3D
-class vector3D {
+class Vector3D {
     public:
         // Constructors
-        vector3D (float _x = 0,
+        Vector3D (float _x = 0,
                   float _y = 0,
                   float _z = 0);
         // Member functions
@@ -42,22 +42,22 @@ class vector3D {
         bool     normalise ();
         float    length ();
         // Aritmetic operations
-        vector3D operator += (vector3D a);
-        vector3D operator -= (vector3D a);
+        Vector3D operator += (Vector3D a);
+        Vector3D operator -= (Vector3D a);
         // Friend operators and functions
-        friend vector3D operator + (vector3D a, vector3D b);
-        friend vector3D operator - (vector3D a, vector3D b);
-        friend vector3D operator - (vector3D v);
-        friend vector3D operator ^ (vector3D a, vector3D b);
-        friend float    operator * (vector3D a, vector3D b);
-        friend vector3D operator * (vector3D v, float s);
-        friend vector3D operator * (float s, vector3D v);
-        friend vector3D operator / (vector3D v, float s);
-        friend vector3D operator / (float s, vector3D v);
-        friend bool     operator != (vector3D a, vector3D b);
-        friend bool     operator == (vector3D a, vector3D b);
+        friend Vector3D operator + (Vector3D a, Vector3D b);
+        friend Vector3D operator - (Vector3D a, Vector3D b);
+        friend Vector3D operator - (Vector3D v);
+        friend Vector3D operator ^ (Vector3D a, Vector3D b);
+        friend float    operator * (Vector3D a, Vector3D b);
+        friend Vector3D operator * (Vector3D v, float s);
+        friend Vector3D operator * (float s, Vector3D v);
+        friend Vector3D operator / (Vector3D v, float s);
+        friend Vector3D operator / (float s, Vector3D v);
+        friend bool     operator != (Vector3D a, Vector3D b);
+        friend bool     operator == (Vector3D a, Vector3D b);
         // Stream output
-        friend std::ostream& operator << (std::ostream& io, const vector3D& v);
+        friend std::ostream& operator << (std::ostream &io, const Vector3D &v);
     protected:
         // Protected data
         float x, y, z;

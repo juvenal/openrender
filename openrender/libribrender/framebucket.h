@@ -18,31 +18,31 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: framebucket.h,v 1.2 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: framebucket.h,v 1.3 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef FRAMEBUCKET_H
 #define FRAMEBUCKET_H
 
 // Define basic frame buckets
-class frameBucket {
+class FrameBucket {
     public: 
         // Constructor
-        frameBucket();
+        FrameBucket();
         // Member functions
-        bool    writePixel (int x, int y, float z, colour c, opacity o);
-        bool    writeColour (int x, int y, colour c);
-        bool    writeOpacity (int x, int y, opacity o);
+        bool    writePixel (int x, int y, float z, Colour c, Opacity o);
+        bool    writeColour (int x, int y, Colour c);
+        bool    writeOpacity (int x, int y, Opacity o);
         bool    writeDepth (int x, int y, float z);
-        colour  getColour (int x, int y);
-        opacity getOpacity (int x, int y);
+        Colour  getColour (int x, int y);
+        Opacity getOpacity (int x, int y);
         float   getDepth (int x, int y);
         // Complete the bucket process
         bool    processBucket();
         // Destructor
-        ~frameBucket();
+        ~FrameBucket();
     protected:
-        hidder *
+        Hidder *
 };
 
 #endif // FRAMEBUCKET_H

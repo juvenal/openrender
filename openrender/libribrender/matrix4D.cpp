@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.5 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.6 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C includes
@@ -35,13 +35,13 @@
 
 // Constructors
 // ========================================================
-matrix4D::matrix4D () {
+Matrix4D::Matrix4D () {
     identity ();
 }
 
 // Member Functions
 // ========================================================
-bool matrix4D::identity () {
+bool Matrix4D::identity () {
     int i, j;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
@@ -51,8 +51,8 @@ bool matrix4D::identity () {
     return true;
 }
 
-bool matrix4D::scale (vector3D s) {
-    matrix4D m;
+bool Matrix4D::scale (Vector3D s) {
+    Matrix4D m;
     m[0][0] = s.getxcomp();
     m[1][1] = s.getycomp();
     m[2][2] = s.getzcomp();
@@ -60,8 +60,8 @@ bool matrix4D::scale (vector3D s) {
     return true;
 }
 
-bool matrix4D::translate (vector3D t) {
-    matrix4D m;
+bool Matrix4D::translate (Vector3D t) {
+    Matrix4D m;
     m[0][3] = t.getxcomp();
     m[1][3] = t.getycomp();
     m[2][3] = t.getzcomp();
@@ -69,8 +69,8 @@ bool matrix4D::translate (vector3D t) {
     return true;
 }
 
-bool matrix4D::rotate (vector3D r) {
-    matrix4D m;
+bool Matrix4D::rotate (Vector3D r) {
+    Matrix4D m;
     // Get axis angles in radians
     float rx = DEGTORAD * r.getxcomp();
     float ry = DEGTORAD * r.getycomp();
@@ -98,9 +98,9 @@ bool matrix4D::rotate (vector3D r) {
     return true;
 }
 
-matrix4D matrix4D::inverse () {
-    matrix4D r;
-    matrix4D t = *this;
+Matrix4D Matrix4D::inverse () {
+    Matrix4D r;
+    Matrix4D t = *this;
     int i, j, k;
     float scale;
     // Get zero's in non-identity positions
@@ -128,8 +128,8 @@ matrix4D matrix4D::inverse () {
 
 // Friend Functions - Arithmetic
 // ========================================================
-vector3D operator * (matrix4D m, vector3D v) {
-    vector3D r;
+Vector3D operator * (Matrix4D m, Vector3D v) {
+    Vector3D r;
     r.setxcomp ((m[0][0] * v.getxcomp()) + (m[0][1] * v.getycomp()) +
                 (m[0][2] * v.getzcomp()) + m[0][3]);
     r.setycomp ((m[1][0] * v.getxcomp()) + (m[1][1] * v.getycomp()) +
@@ -139,9 +139,9 @@ vector3D operator * (matrix4D m, vector3D v) {
     return r;
 }
 
-matrix4D operator * (matrix4D a, matrix4D b) {
+Matrix4D operator * (Matrix4D a, Matrix4D b) {
     int i,j,k;
-    matrix4D r;
+    Matrix4D r;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
             r[i][j] = 0;
@@ -155,7 +155,7 @@ matrix4D operator * (matrix4D a, matrix4D b) {
 
 // Stream output
 // ========================================================
-std::ostream &operator << (std::ostream &io, matrix4D &m) {
+std::ostream &operator << (std::ostream &io, Matrix4D &m) {
     int i, j;
     for (i = 0; i < 4; i++) {
         std::cout << "[";
@@ -169,3 +169,4 @@ std::ostream &operator << (std::ostream &io, matrix4D &m) {
     }
     return io;
 }
+

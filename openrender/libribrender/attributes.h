@@ -19,14 +19,14 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: attributes.h,v 1.1 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: attributes.h,v 1.2 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef ATTRIBUTES_H
 #define ATTRIBUTES_H
 
 // Define basic class attributes
-class attributes {
+class Attributes {
 
 
 }

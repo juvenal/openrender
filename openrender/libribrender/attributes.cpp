@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: attributes.cpp,v 1.1 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: attributes.cpp,v 1.2 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C includes
@@ -33,7 +33,7 @@
 #include "utils.h"
 #include "vector3D.h"
 #include "matrix4D.h"
-#include "colour.h"
+#include "color.h"
 
 // Constructors
 // ========================================================

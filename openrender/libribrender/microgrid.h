@@ -19,23 +19,23 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.6 2004/05/14 21:44:53 juvenal Exp $
+//  $Id: microgrid.h,v 1.7 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
 #define MICROGRID_H
 
 // Define the grid for micropolygons (microgrid)
-class microGrid {
+class MicroGrid {
     public: 
         // Constructor
-        microGrid (int _width = 1, int _height = 1);
+        MicroGrid (int _width = 1, int _height = 1);
         // Destructor
-        ~microGrid ();
+        ~MicroGrid ();
         // Member functions
         void  allocate (int _width, int _height);
         void  free ();
-        bool  extractMicroPolygon (microPolygon &m, int _u, int _v); // Extract micro-polygon from grid
+        bool  extractMicroPolygon (MicroPolygon &m, int _u, int _v); // Extract micro-polygon from grid
         int   width ();
         int   height ();
         void  setSize (int _width, int _height);  // Change size and re-initialise microgrid
@@ -50,10 +50,10 @@ class microGrid {
         int      width, height;  // Size of microgrid in micropolygon units
         float    umin, vmin;     // Minimum values of u,v coordinates on grid
         float    umax, vmax;     // Maximum values of u,v coordinates on grid
-        point3D  **point;        // 2D array of points
-        vector3D **normal;       // 2D array of normals
-        colour   **colour;       // 2D array of micro-polygon colours
-        opacity  **opacity;      // 2D array of micro-polygon opacity
+        Point3D  **point;        // 2D array of points
+        Vector3D **normal;       // 2D array of normals
+        Colour   **colour;       // 2D array of micro-polygon colours
+        Opacity  **opacity;      // 2D array of micro-polygon opacity
 };
 
 

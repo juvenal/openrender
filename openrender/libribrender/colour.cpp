@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.8 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: colour.cpp,v 1.9 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C includes
@@ -37,13 +37,13 @@
 
 // Constructors
 // ========================================================
-colour::colour (void) {
+Colour::Colour (void) {
     this->R = 0;
     this->G = 0;
     this->B = 0;
 }
 
-colour::colour (float c1, float c2, float c3) {
+Colour::Colour (float c1, float c2, float c3) {
     // Clamp values on assign
     this->R = util::clampVal (c1, 0, 1);
     this->G = util::clampVal (c2, 0, 1);
@@ -52,11 +52,11 @@ colour::colour (float c1, float c2, float c3) {
 
 // Member Functions
 // ========================================================
-vector3D colour::getRGB (void) {
-    return vector3D (this->R, this->G, this->B);
+Vector3D Colour::getRGB (void) {
+    return Vector3D (this->R, this->G, this->B);
 }
 
-vector3D colour::getHLS (void) {
+Vector3D Colour::getHLS (void) {
     float maxVal, minVal, diff, rD, gD, bD, H, L, S;
     const float minDif = 0.0000001;
     // Main function
@@ -89,10 +89,10 @@ vector3D colour::getHLS (void) {
             H = ((H * 60) < 0) ? (H * 60) + 360 : H * 60;
         }
     }
-    return vector3D (H, L, S);
+    return Vector3D (H, L, S);
 }
 
-vector3D colour::getHSV (void) {
+Vector3D Colour::getHSV (void) {
     float maxVal, minVal, diff, rD, gD, bD, H, S, V;
     // Main function
     maxVal = util::maxOf (this->R, this->G, this->B);
@@ -119,38 +119,38 @@ vector3D colour::getHSV (void) {
         S = 0;
         H = INFINITY;
     }
-    return vector3D (H, S, V);
+    return Vector3D (H, S, V);
 }
 
-vector3D colour::getYIQ (void) {
+Vector3D Colour::getYIQ (void) {
     float Y, I, Q;
     // Linear transform
     Y = 0.299 * this->R + 0.587 * this->G + 0.114 * this->B;
     I = 0.596 * this->R - 0.274 * this->G - 0.322 * this->B;
     Q = 0.212 * this->R - 0.523 * this->G - 0.311 * this->B;
-    return vector3D (Y, I, Q);
+    return Vector3D (Y, I, Q);
 }
 
-vector3D colour::getYUV (void) {
+Vector3D Colour::getYUV (void) {
     float Y, U, V;
     // Linear transform
     Y =  0.299 * this->R + 0.587 * this->G + 0.114 * this->B;
     U = -0.147 * this->R - 0.289 * this->G + 0.437 * this->B;
     V =  0.615 * this->R - 0.515 * this->G - 0.100 * this->B;
-    return vector3D (Y, U, V);
+    return Vector3D (Y, U, V);
 }
 
-vector3D colour::getCMY (void) {
+Vector3D Colour::getCMY (void) {
     float C, M, Y;
     // Linear transform
     C = 1 - R;
     M = 1 - G;
     Y = 1 - B;
-    return vector3D (C, M, Y);
+    return Vector3D (C, M, Y);
 }
 
 // Set colour to RGB values (default)
-bool colour::setRGB (vector3D &v) {
+bool Colour::setRGB (Vector3D &v) {
     this->R = util::clampVal (v.getxcomp(), 0, 1);
     this->G = util::clampVal (v.getycomp(), 0, 1);
     this->B = util::clampVal (v.getzcomp(), 0, 1);
@@ -158,7 +158,7 @@ bool colour::setRGB (vector3D &v) {
 }
 
 // Set colour from HLS to RGB
-bool colour::setHLS (vector3D &v) {
+bool Colour::setHLS (Vector3D &v) {
     float p1, p2, H, L, S;
     // Get the values
     H = v.getxcomp ();
@@ -185,7 +185,7 @@ bool colour::setHLS (vector3D &v) {
 }
 
 // Set colour from HSV to RGB
-bool colour::setHSV (vector3D &v) {
+bool Colour::setHSV (Vector3D &v) {
     float f, p, q, t, H, S, V;
     int   i;
     // Copy some values
@@ -244,7 +244,7 @@ bool colour::setHSV (vector3D &v) {
 }
 
 // Set colour from YIQ to RGB
-bool colour::setYIQ (vector3D &v) {
+bool Colour::setYIQ (Vector3D &v) {
     this->R = util::clampVal (1 * v.getxcomp() + 0.956 * v.getycomp() + 0.621 * v.getzcomp(), 0, 1);
     this->G = util::clampVal (1 * v.getxcomp() - 0.272 * v.getycomp() - 0.647 * v.getzcomp(), 0, 1);
     this->B = util::clampVal (1 * v.getxcomp() - 1.105 * v.getycomp() + 1.702 * v.getzcomp(), 0, 1);
@@ -252,7 +252,7 @@ bool colour::setYIQ (vector3D &v) {
 }
 
 // Set colour from YUV to RGB
-bool colour::setYUV (vector3D &v) {
+bool Colour::setYUV (Vector3D &v) {
     this->R = util::clampVal (1 * v.getxcomp() + 0.000 * v.getycomp() + 1.140 * v.getzcomp(), 0, 1);
     this->G = util::clampVal (1 * v.getxcomp() - 0.394 * v.getycomp() - 0.581 * v.getzcomp(), 0, 1);
     this->B = util::clampVal (1 * v.getxcomp() + 2.028 * v.getycomp() + 0.000 * v.getzcomp(), 0, 1);
@@ -260,7 +260,7 @@ bool colour::setYUV (vector3D &v) {
 }
 
 // Set colour from CMY to RGB
-bool colour::setCMY (vector3D &v) {
+bool Colour::setCMY (Vector3D &v) {
     this->R = util::clampVal (1 - v.getxcomp(), 0, 1);
     this->G = util::clampVal (1 - v.getycomp(), 0, 1);
     this->B = util::clampVal (1 - v.getzcomp(), 0, 1);
@@ -270,122 +270,122 @@ bool colour::setCMY (vector3D &v) {
 // Arithmetic
 // ========================================================
 // Common addition
-colour colour::operator += (colour a) {
+Colour Colour::operator += (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R + a.R, 0, 1);
     _G = util::clampVal (this->G + a.G, 0, 1);
     _B = util::clampVal (this->B + a.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Common subtraction
-colour colour::operator -= (colour a) {
+Colour Colour::operator -= (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R - a.R, 0, 1);
     _G = util::clampVal (this->G - a.G, 0, 1);
     _B = util::clampVal (this->B - a.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Common multiply
-colour colour::operator *= (colour a) {
+Colour Colour::operator *= (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R * a.R, 0, 1);
     _G = util::clampVal (this->G * a.G, 0, 1);
     _B = util::clampVal (this->B * a.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Common division
-colour colour::operator /= (colour a) {
+Colour Colour::operator /= (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R / a.R, 0, 1);
     _G = util::clampVal (this->G / a.G, 0, 1);
     _B = util::clampVal (this->B / a.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Addition
-colour operator + (colour a, colour b) {
+Colour operator + (Colour a, Colour b) {
     float _R, _G, _B;
     _R = util::clampVal (a.R + b.R, 0, 1);
     _G = util::clampVal (a.G + b.G, 0, 1);
     _B = util::clampVal (a.B + b.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Subtraction
-colour operator - (colour a, colour b) {
+Colour operator - (Colour a, Colour b) {
     float _R, _G, _B;
     _R = util::clampVal (a.R - b.R, 0, 1);
     _G = util::clampVal (a.G - b.G, 0, 1);
     _B = util::clampVal (a.B - b.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Multiplication
-colour operator * (colour a, colour b) {
+Colour operator * (Colour a, Colour b) {
     float _R, _G, _B;
     _R = util::clampVal (a.R * b.R, 0, 1);
     _G = util::clampVal (a.G * b.G, 0, 1);
     _B = util::clampVal (a.B * b.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Division
-colour operator / (colour a, colour b) {
+Colour operator / (Colour a, Colour b) {
     float _R, _G, _B;
     _R = util::clampVal (a.R / b.R, 0, 1);
     _G = util::clampVal (a.G / b.G, 0, 1);
     _B = util::clampVal (a.B / b.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Scale 1
-colour operator * (float s, colour c) {
+Colour operator * (float s, Colour c) {
     float _R, _G, _B;
     _R = util::clampVal (s * c.R, 0, 1);
     _G = util::clampVal (s * c.G, 0, 1);
     _B = util::clampVal (s * c.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Scale 2
-colour operator * (colour c, float s) {
+Colour operator * (Colour c, float s) {
     float _R, _G, _B;
     _R = util::clampVal (c.R * s, 0, 1);
     _G = util::clampVal (c.G * s, 0, 1);
     _B = util::clampVal (c.B * s, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Inverse scale 1
-colour operator / (colour c, float s) {
+Colour operator / (Colour c, float s) {
     float _R, _G, _B;
     _R = util::clampVal (c.R / s, 0, 1);
     _G = util::clampVal (c.G / s, 0, 1);
     _B = util::clampVal (c.B / s, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Inverse scale 2
-colour operator / (float s, colour c) {
+Colour operator / (float s, Colour c) {
     float _R, _G, _B;
     _R = util::clampVal (s / c.R, 0, 1);
     _G = util::clampVal (s / c.G, 0, 1);
     _B = util::clampVal (s / c.B, 0, 1);
-    return colour (_R, _G, _B);
+    return Colour (_R, _G, _B);
 }
 
 // Not like
-bool operator != (colour a, colour b) {
+bool operator != (Colour a, Colour b) {
   return ((a.R != b.R) ||
           (a.G != b.G) ||
           (a.B != b.B));
 }
 
 // Like
-bool operator == (colour a, colour b) {
+bool operator == (Colour a, Colour b) {
   return ((a.R == b.R) &&
           (a.G == b.G) &&
           (a.B == b.B));
@@ -393,7 +393,7 @@ bool operator == (colour a, colour b) {
 
 // Stream output
 // ========================================================
-std::ostream &operator << (std::ostream &io, const colour &c) {
+std::ostream &operator << (std::ostream &io, const Colour &c) {
     io.setf (std::ios::showpoint);
     io.setf (std::ios::right);
     io.setf (std::ios::fixed);
@@ -409,7 +409,7 @@ std::ostream &operator << (std::ostream &io, const colour &c) {
 
 // Private helper methods
 // ========================================================
-float colour::getChannel (float q1, float q2, float hue) {
+float Colour::getChannel (float q1, float q2, float hue) {
     float channel;
     // Fix out of range values of hue
     if (hue > 360) hue -= 360;

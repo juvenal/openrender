@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: micropolygon.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: micropolygon.cpp,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C++ includes
@@ -29,17 +29,17 @@
 #include "micropolygon.h"
 
 // Constructor code
-microPolygon::microPolygon () {
-    this->point[0] = point3D (0, 0, 0);
-    this->point[1] = point3D (0, 0, 0);
-    this->point[2] = point3D (0, 0, 0);
-    this->point[3] = point3D (0, 0, 0);
-    this->colour   = colour (0, 0, 0);
-    this->opacity  = opacity (1, 1, 1);
+MicroPolygon::MicroPolygon () {
+    this->point[0] = Point3D (0, 0, 0);
+    this->point[1] = Point3D (0, 0, 0);
+    this->point[2] = Point3D (0, 0, 0);
+    this->point[3] = Point3D (0, 0, 0);
+    this->colour   = Colour (0, 0, 0);
+    this->opacity  = Opacity (1, 1, 1);
 }
 
-microPolygon::microPolygon (point3D &p1, point3D &p2, point3D &p3, point3D &p4
-                            colour &colour, opacity &opacity) {
+MicroPolygon::MicroPolygon (Point3D &p1, Point3D &p2, Point3D &p3, Point3D &p4
+                            Colour &colour, Opacity &opacity) {
     this->point[0] = p1;
     this->point[1] = p2;
     this->point[2] = p3;
@@ -48,7 +48,7 @@ microPolygon::microPolygon (point3D &p1, point3D &p2, point3D &p3, point3D &p4
     this->opacity  = opacity;
 }
 
-void microPolygon::transformToScreenSpace (matrix4D &transform) {
+void MicroPolygon::transformToScreenSpace (Matrix4D &transform) {
     int index;
 
     for (index = 0; index < 4; index++) {
@@ -62,7 +62,7 @@ void microPolygon::transformToScreenSpace (matrix4D &transform) {
     }
 }
 
-bool microPolygon::sample (float sx, float sy, float &z, colour &colour, opacity &opacity) {
+bool MicroPolygon::sample (float sx, float sy, float &z, Colour &colour, Opacity &opacity) {
     // Local variables
     float ax, ay, bx, by, r;
     int   index, inside = 0;
@@ -89,11 +89,11 @@ bool microPolygon::sample (float sx, float sy, float &z, colour &colour, opacity
     }
 }
 
-void microPolygon::rasterize (frameBuffer &fb) {
+void MicroPolygon::rasterize (FrameBuffer &fb) {
 
 }
 
 
 // Destructor code
-microPolygon::~microPolygon () {
+MicroPolygon::~MicroPolygon () {
 }

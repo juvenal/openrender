@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: microgrid.cpp,v 1.5 2004/07/14 18:55:46 juvenal Exp $
 //
 
 // C++ includes
@@ -30,23 +30,23 @@
 #include "microgrid.h"
 
 // Constructor code
-microGrid::microGrid (_width, _height) {
+MicroGrid::MicroGrid (_width, _height) {
     this->allocate(_width, _height);
     this->setTextureCoords(0, 0, 1, 1);
 }
 
 // Destructor code
-microGrid::~microGrid () {
+MicroGrid::~MicroGrid () {
     this->free();
 }
 
-void microGrid::allocate (int _width, int _height) {
+void MicroGrid::allocate (int _width, int _height) {
     // Set the values of microgrid
     this->width  = _width;
     this->height = _height;
     // Create 2D array of points
-    this->point = new (point3D*)[_width + 1];
-    point_block = new point3D[(_width + 1) * (_height + 1)];
+    this->point = new (Point3D*)[_width + 1];
+    point_block = new Point3D[(_width + 1) * (_height + 1)];
     if (!point_block) {
         RiError("Cannot reserve memory for point grid %d x %d", width + 1, height + 1);
     }
@@ -54,8 +54,8 @@ void microGrid::allocate (int _width, int _height) {
         this->point[x] = &point_block[x * (_height + 1)];
     }
     // Create 2D array of colors
-    this->colour = new (colour*)[_width];
-    colour_block = new colour[_width * _height];
+    this->colour = new (Colour*)[_width];
+    colour_block = new Colour[_width * _height];
     if (!point_block) {
         RiError("Cannot reserve memory for colour grid %d x %d", width, height);
     }
@@ -63,8 +63,8 @@ void microGrid::allocate (int _width, int _height) {
         this->colour[x] = &colour_block[x * _height];
     }
     // Create 2D array of opacities
-    this->opacity = new (opacity*)[_width];
-    opacity_block = new opacity[_width * _height];
+    this->opacity = new (Opacity*)[_width];
+    opacity_block = new Opacity[_width * _height];
     if (!opacity_block) {
         RiError("Cannot reserve memory for opacity grid %d x %d", width, height);
     }
@@ -72,8 +72,8 @@ void microGrid::allocate (int _width, int _height) {
         this->opacity[x] = &opacity_block[x * _height];
     }
     // Create 2D array of normals
-    this->normal = new (vector3D*)[_width];
-    normal_block = new vector3D[(_width + 1) * (_height + 1)];
+    this->normal = new (Vector3D*)[_width];
+    normal_block = new Vector3D[(_width + 1) * (_height + 1)];
     if (!normal_block) {
         RiError("Cannot reserve memory for normal grid %d x %d", width, height);
     }
@@ -82,7 +82,7 @@ void microGrid::allocate (int _width, int _height) {
     }
 }
 
-void microGrid::free () {
+void MicroGrid::free () {
     if (point) {
         delete[] point[0];
         delete[] point;
@@ -105,10 +105,10 @@ void microGrid::free () {
     }
 }
 
-bool microGrid::extractMicroPolygon (microPolygon &m, int _u, int _v) {
+bool MicroGrid::extractMicroPolygon (MicroPolygon &m, int _u, int _v) {
     // If not culled
     if ((this->normal[_u][_v] * this->point[_u][_v]) < 0) {
-        m = microPolygon(point[_u][_v], point[_u + 1][_v],
+        m = MicroPolygon(point[_u][_v], point[_u + 1][_v],
                          point[_u + 1][_v + 1], point[_u][_v + 1],
                          colour[_u][_v], opacity[_u][_v]);
         return true;
@@ -116,7 +116,7 @@ bool microGrid::extractMicroPolygon (microPolygon &m, int _u, int _v) {
     else {
         // If culled but double sided
         if (RiCurrent.geometryAttributes.sides == 2) {
-            m = microPolygon(point[_u][_v], point[_u][_v + 1],
+            m = MicroPolygon(point[_u][_v], point[_u][_v + 1],
                              point[_u + 1][_v + 1], point[_u + 1][_v],
                              colour[_u][_v], opacity[_u][_v]);
             return true;
@@ -126,36 +126,36 @@ bool microGrid::extractMicroPolygon (microPolygon &m, int _u, int _v) {
     return false;
 }
 
-int microGrid::width () {
+int MicroGrid::width () {
     return width;
 }
 
-int microGrid::height () {
+int MicroGrid::height () {
     return height;
 }
 
-void microGrid::setSize (int _width, int _height) {
+void MicroGrid::setSize (int _width, int _height) {
     this->free();
     this->allocate(_width, _height);
 }
 
-void microGrid::setTextureCoords (float _umin, float _vmin, float _umax, float _vmax) {
+void MicroGrid::setTextureCoords (float _umin, float _vmin, float _umax, float _vmax) {
     umin = _umin;
     vmin = _vmin;
     umax = _umax;
     vmax = _vmax;
 }
 
-void microGrid::computeNormals () {
+void MicroGrid::computeNormals () {
 }
 
-void microGrid::shade (list<Light*> &lights) {
+void MicroGrid::shade (list<Light*> &lights) {
 }
 
-void microGrid::displace () {
+void MicroGrid::displace () {
 }
 
-void microGrid::statistics (float &zmin, float &zmax, float &maxusize, float &maxvsize) {
+void MicroGrid::statistics (float &zmin, float &zmax, float &maxusize, float &maxvsize) {
 }
 
 // Stream input/output

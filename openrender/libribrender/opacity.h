@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: opacity.h,v 1.3 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: opacity.h,v 1.4 2004/07/14 18:55:46 juvenal Exp $
 //
 
 #ifndef OPACITY_H
@@ -28,11 +28,11 @@
 #include "colour.h"
 
 // Define basic type opacity
-class opacity : public colour {
+class Opacity : public Colour {
     public:
         // Constructors
-        opacity ();
-        opacity ( float _r = 1, float _g = 1, float _b = 1);
+        Opacity ();
+        Opacity (float _r = 1, float _g = 1, float _b = 1);
         // All the other methods inherited from parent superclass
 };
 
