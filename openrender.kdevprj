@@ -76,20 +76,20 @@ cflags=
 cppflags=
 cxxflags=\s-O0
 ldadd=
-ldflags=\s
+ldflags=\s\s
 libtool_dir=
 path_to_bin_program=.
 
 [General]
 AMChanged=false
-author=juvenal
+author=Juvenal A. Silva Jr.
 configure_args=\s--build=i386-linux --host=i386-linux --target=i386-linux --prefix=/usr\s
 dir_where_make_will_be_called=./
 email=juvenal@v2-home.com.br
 kdevprj_version=1.3
 lfv_open_groups=
 make_options=\s-j1
-makefiles=./Makefile.am,openrender/Makefile.am,openrender/test/Makefile.am,openrender/shadertell/Makefile.am,openrender/shader-src/Makefile.am,openrender/shader/Makefile.am,openrender/shadeops/Makefile.am,openrender/render/Makefile.am,openrender/netrender/Makefile.am,openrender/libsloargs/Makefile.am,openrender/libribrender/Makefile.am,openrender/libribout/Makefile.am,openrender/geometry/Makefile.am,openrender/extdisplay/Makefile.am,openrender/doc/Makefile.am,openrender/templates/Makefile.am,Makefile.am,openrender/config/Makefile.am,openrender/doc/eng/Makefile.am,config/Makefile.am
+makefiles=./Makefile.am,openrender/Makefile.am,openrender/test/Makefile.am,openrender/shadertell/Makefile.am,openrender/shader-src/Makefile.am,openrender/shader/Makefile.am,openrender/shadeops/Makefile.am,openrender/render/Makefile.am,openrender/netrender/Makefile.am,openrender/libsloargs/Makefile.am,openrender/libribrender/Makefile.am,openrender/libribout/Makefile.am,openrender/geometry/Makefile.am,openrender/extdisplay/Makefile.am,openrender/doc/Makefile.am,openrender/templates/Makefile.am,Makefile.am,openrender/config/Makefile.am,openrender/doc/eng/Makefile.am,config/Makefile.am,openrender/includes/Makefile.am
 modifyMakefiles=true
 project_name=openrender
 project_type=normal_empty
@@ -228,7 +228,7 @@ dist=true
 files=openrender/Makefile.am
 install=false
 install_location=
-sub_dirs=templates,doc,extdisplay,geometry,libribout,libribrender,libsloargs,netrender,render,shadeops,shader,shader-src,shadertell,test,config
+sub_dirs=templates,doc,extdisplay,geometry,libribout,libribrender,libsloargs,netrender,render,shadeops,shader,shader-src,shadertell,test,config,includes
 type=DATA
 
 [openrender/config/Makefile.am]
@@ -272,6 +272,17 @@ install=false
 install_location=
 sub_dirs=
 type=DATA
+
+[openrender/includes/Makefile.am]
+files=openrender/includes/sloargs.h
+sub_dirs=
+type=normal
+
+[openrender/includes/sloargs.h]
+dist=true
+install=false
+install_location=
+type=HEADER
 
 [openrender/libribout/Makefile.am]
 dist=true
@@ -327,11 +338,17 @@ type=HEADER
 
 [openrender/libsloargs/Makefile.am]
 dist=true
-files=openrender/libsloargs/Makefile.am
+files=openrender/libsloargs/Makefile.am,openrender/libsloargs/sloargs.cpp
 install=false
 install_location=
 sub_dirs=
-type=DATA
+type=static_library
+
+[openrender/libsloargs/sloargs.cpp]
+dist=true
+install=false
+install_location=
+type=SOURCE
 
 [openrender/netrender/Makefile.am]
 dist=true
@@ -510,11 +527,17 @@ type=DATA
 
 [openrender/shadertell/Makefile.am]
 dist=true
-files=openrender/shadertell/Makefile.am
+files=openrender/shadertell/Makefile.am,openrender/shadertell/main.cpp
 install=false
 install_location=
 sub_dirs=
-type=DATA
+type=static_library
+
+[openrender/shadertell/main.cpp]
+dist=true
+install=false
+install_location=
+type=SOURCE
 
 [openrender/templates/Makefile.am]
 files=openrender/templates/header_template,openrender/templates/cpp_template,
