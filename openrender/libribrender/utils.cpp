@@ -19,45 +19,49 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.cpp,v 1.2 2003/05/30 16:46:43 juvenal Exp $
+//  $Id: utils.cpp,v 1.3 2004/01/07 11:33:19 juvenal Exp $
 //
 
 // Private includes
 #include "utils.h"
 
-// Define the maxOf entity of util namespace
-float util::maxOf ( float v1, float v2, float v3) {
-  float max;
-
-  max = ( v1 > v2) ? v1 : v2;
-  max = ( v3 > max) ? v3 : max;
-
-  return max;
+// Define the max of two values
+float util::max (float v1, float v2) {
+    return (v1 > v2) ? v1 : v2;
 }
 
-// Define the minOf entity of util namespace
-float util::minOf ( float v1, float v2, float v3) {
-  float min;
-
-  min = ( v1 < v2) ? v1 : v2;
-  min = ( v3 < min) ? v3 : min;
-
-  return min;
+// Define the min of two values
+float util::min (float v1, float v2) {
+    return (v1 < v2) ? v1 : v2;
 }
 
-// Define the clampVal entity of util namespace
-float util::clampVal ( float value, float min, float max) {
-  float retval;
+// Define the maxOf tree values
+float util::maxOf (float v1, float v2, float v3) {
+    float max;
+    max = (v1 > v2) ? v1 : v2;
+    max = (v3 > max) ? v3 : max;
+    return max;
+}
 
-  if ( value < min) {
-    retval = min;
-  }
-  else if ( value > max) {
-    retval = max;
-  }
-  else {
-    retval = value;
-  }
+// Define the minOf tree values
+float util::minOf (float v1, float v2, float v3) {
+    float min;
+    min = (v1 < v2) ? v1 : v2;
+    min = (v3 < min) ? v3 : min;
+    return min;
+}
 
-  return retval;
+// Define the clampVal for a given value within a min, max range
+float util::clampVal (float value, float min, float max) {
+    float retval;
+    if (value < min) {
+        retval = min;
+    }
+    else if (value > max) {
+        retval = max;
+    }
+    else {
+        retval = value;
+    }
+    return retval;
 }

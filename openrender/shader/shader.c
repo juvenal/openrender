@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: shader.c,v 1.1 2002/10/23 13:34:54 juvenal Exp $
+//  $Id: shader.c,v 1.2 2004/01/07 11:33:19 juvenal Exp $
 //
 
 // C includes
@@ -131,25 +131,25 @@ main ( int argc, char *argv[]) {
   while ( ( next_option = getopt_long ( argc, argv, short_options,
                                         long_options, &long_index)) != -1) {
     switch ( next_option) {
-      case 'h':              // help (-h or --help)
-        print_usage ( stdout, 0);
-        break;
-      case 'd':              // debug (-d or --debug)
-        debug = 1;
-        break;
-      case 'q':              // quiet mode (-q or --quiet)
-        quiet   = 1;
-        verbose = 0;
-        break;
-      case 'v':              // verbose mode (-v or --verbose)
-        verbose = 1;
-        quiet   = 0;
-        break;
-      case 'o':              // output file (-o or --output)
-        output_file = optarg;
-        break;
-      default:               // invalid option (abort)
-        print_abort ( stderr, 1, "");
+        case 'h':              // help (-h or --help)
+            print_usage ( stdout, 0);
+            break;
+        case 'd':              // debug (-d or --debug)
+            debug = 1;
+            break;
+        case 'q':              // quiet mode (-q or --quiet)
+            quiet   = 1;
+            verbose = 0;
+            break;
+        case 'v':              // verbose mode (-v or --verbose)
+            verbose = 1;
+            quiet   = 0;
+            break;
+        case 'o':              // output file (-o or --output)
+            output_file = optarg;
+            break;
+        default:               // invalid option (abort)
+            print_abort ( stderr, 1, "");
     }
   }
 

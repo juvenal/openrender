@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.4 2003/12/06 00:45:00 juvenal Exp $
+//  $Id: microgrid.h,v 1.5 2004/01/07 11:33:19 juvenal Exp $
 //
 
 #ifndef MICROGRID_H
@@ -27,36 +27,37 @@
 
 // Define the grid for micropolygons (microgrid)
 class microGrid {
-  public: 
-    // Constructor
-    microGrid ( int _width = 1, int _height = 1);
-    // Destructor
-    ~microGrid ();
-    // Member functions
-    void  allocate ( int _width, int _height);
-    void  free ();
-    bool  extractMicroPolygon ( microPolygon &m, int _u, int _v); // Extract micro-polygon from grid
-    int   width ();
-    int   height ();
-    void  setSize ( int _width, int _height);  // Change size and re-initialise microgrid
-    void  setTextureCoords ( float _umin, float _vmin, float _umax, float _vmax);
-    void  computeNormals ();
-    void  shade ( list<Light*> &lights);
-    void  displace ();
-    void  statistics ( float &zmin, float &zmax, float &maxusize, float &maxvsize);
-    // Stream input/output
-    friend ostream &operator << ( ostream &io, const MicroGrid &m);
-  protected:
-    int      width, height;  // Size of microgrid in micropolygon units
-    float    umin, vmin;     // Minimum values of u,v coordinates on grid
-    float    umax, vmax;     // Maximum values of u,v coordinates on grid
-    point3D  **point;        // 2D array of points
-    vector3D **normal;       // 2D array of normals
-    colour   **colour;       // 2D array of micro-polygon colours
-    opacity  **opacity;      // 2D array of micro-polygon opacity
+    public: 
+        // Constructor
+        microGrid (int _width = 1, int _height = 1);
+        // Destructor
+        ~microGrid ();
+        // Member functions
+        void  allocate (int _width, int _height);
+        void  free ();
+        bool  extractMicroPolygon (microPolygon &m, int _u, int _v); // Extract micro-polygon from grid
+        int   width ();
+        int   height ();
+        void  setSize (int _width, int _height);  // Change size and re-initialise microgrid
+        void  setTextureCoords (float _umin, float _vmin, float _umax, float _vmax);
+        void  computeNormals ();
+        void  shade (list<Light*> &lights);
+        void  displace ();
+        void  statistics (float &zmin, float &zmax, float &maxusize, float &maxvsize);
+        // Stream input/output
+        friend ostream &operator << (ostream &io, const MicroGrid &m);
+    protected:
+        int      width, height;  // Size of microgrid in micropolygon units
+        float    umin, vmin;     // Minimum values of u,v coordinates on grid
+        float    umax, vmax;     // Maximum values of u,v coordinates on grid
+        point3D  **point;        // 2D array of points
+        vector3D **normal;       // 2D array of normals
+        colour   **colour;       // 2D array of micro-polygon colours
+        opacity  **opacity;      // 2D array of micro-polygon opacity
 };
 
 
+#endif // MICROGRID_H
 
 
 // Reyes includes
@@ -104,6 +105,3 @@ class MicroGrid
     float umin,vmin;
     float umax,vmax;
 };
-
-
-#endif // MICROGRID_H

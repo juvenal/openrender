@@ -1,15 +1,15 @@
 //  openRender
 //
-//  point3D.cpp - {Summary}
+//  attributes.cpp - {Summary}
 //
 //  Description:
 //    {Description}
 //
 //  Creation:
-//    Fri Nov 15 2002
+//    Sun Dec 28 2003
 //
 //  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2003 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,28 +19,30 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
+//  $Id: attributes.cpp,v 1.1 2004/01/07 11:33:19 juvenal Exp $
 //
+
+// C includes
+#include <math.h>
 
 // C++ includes
 #include <iostream>
 #include <iomanip>
 
 // Private includes
-#include "point3D.h"
+#include "utils.h"
+#include "vector3D.h"
+#include "matrix4D.h"
+#include "colour.h"
 
-// point3D implementations
-// *******************************
 // Constructors
 // ========================================================
-point3D::point3D (float _x, float _y, float _z) {
-    this->x = _x;
-    this->y = _y;
-    this->z = _z;
-}
 
-point3D::point3D (vector3D v) {
-    this->x = v.getxcomp ();
-    this->y = v.getycomp ();
-    this->z = v.getzcomp ();
-}
+// Member Functions
+// ========================================================
+
+// Arithmetic
+// ========================================================
+
+// Stream output
+// ========================================================

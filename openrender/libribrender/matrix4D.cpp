@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.4 2003/05/30 16:46:43 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.5 2004/01/07 11:33:19 juvenal Exp $
 //
 
 // C includes
@@ -36,149 +36,136 @@
 // Constructors
 // ========================================================
 matrix4D::matrix4D () {
-  identity ();
+    identity ();
 }
 
 // Member Functions
 // ========================================================
 bool matrix4D::identity () {
-  int i, j;
-
-  for ( i = 0; i < 4; i++) {
-    for ( j = 0; j < 4; j++) {
-      element[i][j] = ( i == j) ? 1 : 0;
+    int i, j;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            element[i][j] = (i == j) ? 1 : 0;
+        }
     }
-  }
-
-  return true;
+    return true;
 }
 
-bool matrix4D::scale ( vector3D s) {
-  matrix4D m;
-
-  m[0][0] = s.getxcomp();
-  m[1][1] = s.getycomp();
-  m[2][2] = s.getzcomp();
-  *this = ( *this) * m;
-
-  return true;
+bool matrix4D::scale (vector3D s) {
+    matrix4D m;
+    m[0][0] = s.getxcomp();
+    m[1][1] = s.getycomp();
+    m[2][2] = s.getzcomp();
+    *this = (*this) * m;
+    return true;
 }
 
-bool matrix4D::translate ( vector3D t) {
-  matrix4D m;
-
-  m[0][3] = t.getxcomp();
-  m[1][3] = t.getycomp();
-  m[2][3] = t.getzcomp();
-  *this = ( *this) * m;
-
-  return true;
+bool matrix4D::translate (vector3D t) {
+    matrix4D m;
+    m[0][3] = t.getxcomp();
+    m[1][3] = t.getycomp();
+    m[2][3] = t.getzcomp();
+    *this = (*this) * m;
+    return true;
 }
 
-bool matrix4D::rotate ( vector3D r) {
-  matrix4D m;
-  float rx = DEGTORAD * r.getxcomp();
-  float ry = DEGTORAD * r.getycomp();
-  float rz = DEGTORAD * r.getzcomp();
-
-  m[1][1] = cos ( rx);
-  m[1][2] = sin ( rx);
-  m[2][1] = -sin ( rx);
-  m[2][2] = cos ( rx);
-  *this = ( *this) * m;
-
-  m.identity ();
-  m[0][0] = cos ( ry);
-  m[0][1] = sin ( ry);
-  m[2][1] = -sin ( ry);
-  m[2][2] = cos ( ry);
-  *this = ( *this) * m;
-
-  m.identity ();
-  m[0][0] = cos ( rz);
-  m[0][1] = sin ( rz);
-  m[1][0] = -sin ( rz);
-  m[1][1] = cos ( rz);
-  *this = ( *this) * m;
-
-  return true;
+bool matrix4D::rotate (vector3D r) {
+    matrix4D m;
+    // Get axis angles in radians
+    float rx = DEGTORAD * r.getxcomp();
+    float ry = DEGTORAD * r.getycomp();
+    float rz = DEGTORAD * r.getzcomp();
+    // Apply X axis angle
+    m[1][1] = cos (rx);
+    m[1][2] = sin (rx);
+    m[2][1] = -sin (rx);
+    m[2][2] = cos (rx);
+    *this = (*this) * m;
+    // Apply Y axis angle
+    m.identity ();
+    m[0][0] = cos (ry);
+    m[0][1] = sin (ry);
+    m[2][1] = -sin (ry);
+    m[2][2] = cos (ry);
+    *this = (*this) * m;
+    // Apply Z axis angle
+    m.identity ();
+    m[0][0] = cos (rz);
+    m[0][1] = sin (rz);
+    m[1][0] = -sin (rz);
+    m[1][1] = cos (rz);
+    *this = (*this) * m;
+    return true;
 }
 
 matrix4D matrix4D::inverse () {
-  matrix4D r;
-  matrix4D t = *this;
-  int i, j, k;
-  float scale;
-
-  // Get zero's in non-identity positions
-  for ( k = 0; k < 4; k++) {
-    for ( j = 0; j < 4; j++) {
-      if ( j != k) {
-        scale = -t[j][k] / t[k][k];
-        for ( i = 0; i < 4; i++) {
-          t[j][i] += scale * t[k][i];
-          r[j][i] += scale * r[k][i];
+    matrix4D r;
+    matrix4D t = *this;
+    int i, j, k;
+    float scale;
+    // Get zero's in non-identity positions
+    for (k = 0; k < 4; k++) {
+        for (j = 0; j < 4; j++) {
+            if (j != k) {
+                scale = -t[j][k] / t[k][k];
+                for (i = 0; i < 4; i++) {
+                    t[j][i] += scale * t[k][i];
+                    r[j][i] += scale * r[k][i];
+                }
+            }
         }
-      }
     }
-  }
-
-  // Now scale each row so diagonal elements are 1
-  for ( j = 0; j < 4; j++) {
-    scale = 1 / t[j][j];
-    for ( i = 0; i < 4; i++) {
-      t[j][i] = t[j][i] * scale;
-      r[j][i] = r[j][i] * scale;
+    // Now scale each row so diagonal elements are 1
+    for (j = 0; j < 4; j++) {
+        scale = 1 / t[j][j];
+        for (i = 0; i < 4; i++) {
+            t[j][i] = t[j][i] * scale;
+            r[j][i] = r[j][i] * scale;
+        }
     }
-  }
-
-  return r;
+    return r;
 }
 
 // Friend Functions - Arithmetic
 // ========================================================
-vector3D operator * ( matrix4D m, vector3D v) {
-  vector3D r;
-
-  r.setxcomp (( m[0][0] * v.getxcomp()) + ( m[0][1] * v.getycomp()) +
-              ( m[0][2] * v.getzcomp()) + m[0][3]);
-  r.setycomp (( m[1][0] * v.getxcomp()) + ( m[1][1] * v.getycomp()) +
-              ( m[1][2] * v.getzcomp()) + m[1][3]);
-  r.setzcomp (( m[2][0] * v.getxcomp()) + ( m[2][1] * v.getycomp()) +
-              ( m[2][2] * v.getzcomp()) + m[2][3]);
-  return r;
-
+vector3D operator * (matrix4D m, vector3D v) {
+    vector3D r;
+    r.setxcomp ((m[0][0] * v.getxcomp()) + (m[0][1] * v.getycomp()) +
+                (m[0][2] * v.getzcomp()) + m[0][3]);
+    r.setycomp ((m[1][0] * v.getxcomp()) + (m[1][1] * v.getycomp()) +
+                (m[1][2] * v.getzcomp()) + m[1][3]);
+    r.setzcomp ((m[2][0] * v.getxcomp()) + (m[2][1] * v.getycomp()) +
+                (m[2][2] * v.getzcomp()) + m[2][3]);
+    return r;
 }
 
-matrix4D operator * ( matrix4D a, matrix4D b) {
-  int i,j,k;
-  matrix4D r;
-
-  for ( i = 0; i < 4; i++) {
-    for ( j = 0; j < 4; j++) {
-      r[i][j] = 0;
-      for ( k = 0; k < 4; k++) {
-        r[i][j] += a[i][k] * b[k][j];
-      }
+matrix4D operator * (matrix4D a, matrix4D b) {
+    int i,j,k;
+    matrix4D r;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            r[i][j] = 0;
+            for (k = 0; k < 4; k++) {
+                r[i][j] += a[i][k] * b[k][j];
+            }
+        }
     }
-  }
-  return r;
+    return r;
 }
 
 // Stream output
 // ========================================================
-std::ostream &operator << ( std::ostream &io, matrix4D &m) {
-  int i, j;
-
-  for ( i = 0; i < 4; i++) {
-    std::cout << "[";
-    for ( j = 0; j < 4; j++) {
-      std::cout << m[i][j];
-      if ( j < 3) {
-        std::cout << " ";
-      }
+std::ostream &operator << (std::ostream &io, matrix4D &m) {
+    int i, j;
+    for (i = 0; i < 4; i++) {
+        std::cout << "[";
+        for (j = 0; j < 4; j++) {
+            std::cout << m[i][j];
+            if (j < 3) {
+                std::cout << " ";
+            }
+        }
+        std::cout << "]\n";
     }
-    std::cout << "]\n";
-  }
-  return io;
+    return io;
 }

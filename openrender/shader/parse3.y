@@ -21,7 +21,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: parse3.y,v 1.1 2002/10/18 20:19:44 juvenal Exp $
+//  $Id: parse3.y,v 1.2 2004/01/07 11:33:19 juvenal Exp $
 //
 
 // C includes
@@ -821,7 +821,7 @@ statement:
                                     $$ = ( int) getNode ( string, ' ');
                                     freeNode ( ( struct node_t *) $2);
                                     freeNode ( ( struct node_t *) $3);
-                                  };
+                                  }
         | IF LBRACKET expression RBRACKET statement
                                   {
                                     if ( S ( $3) != 'f') {

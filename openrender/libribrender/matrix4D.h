@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.h,v 1.3 2003/05/30 16:46:43 juvenal Exp $
+//  $Id: matrix4D.h,v 1.4 2004/01/07 11:33:19 juvenal Exp $
 //
 
 #ifndef MATRIX4D_H
@@ -30,25 +30,25 @@
 
 // Define basic type matrix4D
 class matrix4D {
-  public:
-    // Constructors
-    matrix4D ();
-    // Member functions
-    bool     identity ();
-    bool     scale ( vector3D s);
-    bool     translate ( vector3D t);
-    bool     rotate ( vector3D r);
-    float*   operator [] ( int row) { return element[row];}
-    matrix4D inverse ();
-    // Arithmetic operations
-    // Friend operators and functions
-    friend vector3D operator * ( matrix4D m, vector3D v);
-    friend matrix4D operator * ( matrix4D a, matrix4D b);
-    // Stream output
-    friend std::ostream &operator << ( std::ostream &io, matrix4D &m);
-  protected:
-    // Protected data
-    float element[4][4];
+    public:
+        // Constructors
+        matrix4D ();
+        // Member functions
+        bool     identity ();
+        bool     scale (vector3D s);
+        bool     translate (vector3D t);
+        bool     rotate (vector3D r);
+        float*   operator [] (int row) { return element[row];}
+        matrix4D inverse ();
+        // Arithmetic operations
+        // Friend operators and functions
+        friend vector3D operator * (matrix4D m, vector3D v);
+        friend matrix4D operator * (matrix4D a, matrix4D b);
+        // Stream output
+        friend std::ostream &operator << (std::ostream &io, matrix4D &m);
+    protected:
+        // Protected data
+        float element[4][4];
 };
 
 #endif // MATRIX4D_H

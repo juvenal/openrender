@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: primitive.cpp,v 1.3 2003/12/06 00:45:01 juvenal Exp $
+//  $Id: primitive.cpp,v 1.4 2004/01/07 11:33:19 juvenal Exp $
 //
 
 // C++ includes
@@ -42,63 +42,63 @@
 // Basic virtual implementations (must be overriden by real primitives)
 // =======================================================================
 void primitive::dump () {
-  std::cout << "dump(): Unknown primitive!" << std::endl;
+    std::cout << "dump(): Unknown primitive!" << std::endl;
 }
 
 bool primitive::transformToEyeSpace ( matrix4D t_position, matrix4D t_vector) {
-  std::cout << "transformToEyeSpace(): Unknown primitive!" << std::endl;
+    std::cout << "transformToEyeSpace(): Unknown primitive!" << std::endl;
 }
 
 void primitive::doDice ( microGrid &microgrid, int us, int vs) {
-  std::cout << "doDice(): Unknown primitive!" << std::endl;
+    std::cout << "doDice(): Unknown primitive!" << std::endl;
 }
 
 bool primitive::splitable () {
-  std::cout << "splitable(): Unknown primitive!" << std::endl;
-  return false;
+    std::cout << "splitable(): Unknown primitive!" << std::endl;
+    return false;
 }
 
 void primitive::split ( list<primitive*> &primlist) {
-  std::cout << "split(): Unknown primitive!" << std::endl;
+    std::cout << "split(): Unknown primitive!" << std::endl;
 }
 
 bool primitive::eyeBound ( boundBox &bb) {
-  std::cout << "eyeBound(): Unknown primitive!" << std::endl;
-  return false;
+    std::cout << "eyeBound(): Unknown primitive!" << std::endl;
+    return false;
 }
 
 // Common methods to all primitives (not virtual methods)
 // =======================================================================
-void primitive::dice ( microGrid &microgrid, float xscale, float yscale) {
-  int us, vs;
+void primitive::dice (microGrid &microgrid, float xscale, float yscale) {
+    int us, vs;
 
-  estimateGridSize ( xscale, yscale, us, vs);
-  doDice ( microgrid, us, vs);
+    estimateGridSize (xscale, yscale, us, vs);
+    doDice (microgrid, us, vs);
 }
 
-bool primitive::diceable ( float xscale, float yscale) {
-  int us, vs;
+bool primitive::diceable (float xscale, float yscale) {
+    int us, vs;
 
-  estimateGridSize ( xscale, yscale, us, vs);
-  if ( us * vs <= RiGlobal.options.maxMicroGridSize) {
-    return true;
-  }
-  else {
-    return false;
-  }
+    estimateGridSize (xscale, yscale, us, vs);
+    if (us * vs <= RiGlobal.options.maxMicroGridSize) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
-void primitive::estimateGridSize ( float xscale, float yscale, int &us, int &vs) {
-  microGrid microgrid;
-  float zmin, zmax, maxusize, maxvsize;
+void primitive::estimateGridSize (float xscale, float yscale, int &us, int &vs) {
+    microGrid microgrid;
+    float zmin, zmax, maxusize, maxvsize;
 
-  doDice ( microgrid, 10, 10);
-  microgrid.Statistics ( zmin, zmax, maxusize, maxvsize);
-  us = MAX ( 4, ( int) ( 10 * xscale * maxusize / ( RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.xSamplingRate)));
-  vs = MAX ( 4, ( int) ( 10 * yscale * maxvsize / ( RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.ySamplingRate)));
-  // Make size a power of 2
-  us = 1 << ( int) ( logn ( 2, us));
-  vs = 1 << ( int) ( logn ( 2, vs));
-  us = MAX ( us, vs);
-  vs = MAX ( us, vs);
+    doDice (microgrid, 10, 10);
+    microgrid.Statistics (zmin, zmax, maxusize, maxvsize);
+    us = MAX (4, (int) (10 * xscale * maxusize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.xSamplingRate)));
+    vs = MAX (4, (int) (10 * yscale * maxvsize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.ySamplingRate)));
+    // Make size a power of 2
+    us = 1 << (int) (logn (2, us));
+    vs = 1 << (int) (logn (2, vs));
+    us = MAX (us, vs);
+    vs = MAX (us, vs);
 }
