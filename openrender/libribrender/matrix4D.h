@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.h,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: matrix4D.h,v 1.3 2003/05/30 16:46:43 juvenal Exp $
 //
 
 #ifndef MATRIX4D_H
@@ -46,8 +46,8 @@ class matrix4D {
     friend matrix4D operator * ( matrix4D a, matrix4D b);
     // Stream output
     friend std::ostream &operator << ( std::ostream &io, matrix4D &m);
-  private:
-    // Private data
+  protected:
+    // Protected data
     float element[4][4];
 };
 

@@ -19,16 +19,36 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.cpp,v 1.1 2002/10/28 15:33:20 juvenal Exp $
+//  $Id: utils.cpp,v 1.2 2003/05/30 16:46:43 juvenal Exp $
 //
 
 // Private includes
 #include "utils.h"
 
+// Define the maxOf entity of util namespace
+float util::maxOf ( float v1, float v2, float v3) {
+  float max;
+
+  max = ( v1 > v2) ? v1 : v2;
+  max = ( v3 > max) ? v3 : max;
+
+  return max;
+}
+
+// Define the minOf entity of util namespace
+float util::minOf ( float v1, float v2, float v3) {
+  float min;
+
+  min = ( v1 < v2) ? v1 : v2;
+  min = ( v3 < min) ? v3 : min;
+
+  return min;
+}
+
 // Define the clampVal entity of util namespace
 float util::clampVal ( float value, float min, float max) {
   float retval;
-  
+
   if ( value < min) {
     retval = min;
   }

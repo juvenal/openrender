@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.3 2002/10/21 02:16:36 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.4 2003/05/30 16:46:43 juvenal Exp $
 //
 
 // C includes
@@ -44,9 +44,11 @@ matrix4D::matrix4D () {
 bool matrix4D::identity () {
   int i, j;
 
-  for ( i = 0; i < 4; i++)
-    for ( j = 0; j < 4; j++)
+  for ( i = 0; i < 4; i++) {
+    for ( j = 0; j < 4; j++) {
       element[i][j] = ( i == j) ? 1 : 0;
+    }
+  }
 
   return true;
 }
@@ -172,8 +174,9 @@ std::ostream &operator << ( std::ostream &io, matrix4D &m) {
     std::cout << "[";
     for ( j = 0; j < 4; j++) {
       std::cout << m[i][j];
-      if ( j < 3)
+      if ( j < 3) {
         std::cout << " ";
+      }
     }
     std::cout << "]\n";
   }

@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.cpp,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: vector3D.cpp,v 1.3 2003/05/30 16:46:43 juvenal Exp $
 //
 
 // C includes
@@ -32,12 +32,14 @@
 // Private includes
 #include "vector3D.h"
 
+// vector3D implementations
+// *******************************
 // Constructors
 // ========================================================
-vector3D::vector3D ( float x, float y, float z) {
-  this->x = x;
-  this->y = y;
-  this->z = z;
+vector3D::vector3D ( float _x, float _y, float _z) {
+  this->x = _x;
+  this->y = _y;
+  this->z = _z;
 }
 
 // Member Functions
@@ -124,9 +126,14 @@ vector3D operator * ( vector3D v, float s) {
   return vector3D ( s * v.x, s * v.y, s * v.z);
 }
 
-// Inverse Scale
+// Inverse Scale 1
 vector3D operator / ( vector3D v, float s) {
   return vector3D ( v.x / s, v.y / s, v.z / s);
+}
+
+// Inverse Scale 2
+vector3D operator / ( float s, vector3D v) {
+  return vector3D ( s / v.x, s / v.y, s / v.z);
 }
 
 // Common Addition

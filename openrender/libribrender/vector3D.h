@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.h,v 1.2 2002/10/21 00:27:51 juvenal Exp $
+//  $Id: vector3D.h,v 1.3 2003/05/30 16:46:43 juvenal Exp $
 //
 
 #ifndef VECTOR3D_H
@@ -29,13 +29,13 @@
 class vector3D {
   public:
     // Constructors
-    vector3D ( float x = 0,
-               float y = 0,
-               float z = 0);
+    vector3D ( float _x = 0,
+               float _y = 0,
+               float _z = 0);
     // Member functions
-    bool     setxcomp ( float x);
-    bool     setycomp ( float y);
-    bool     setzcomp ( float z);
+    bool     setxcomp ( float _x);
+    bool     setycomp ( float _y);
+    bool     setzcomp ( float _z);
     float    getxcomp ();
     float    getycomp ();
     float    getzcomp ();
@@ -53,12 +53,13 @@ class vector3D {
     friend vector3D operator * ( vector3D v, float s);
     friend vector3D operator * ( float s, vector3D v);
     friend vector3D operator / ( vector3D v, float s);
+    friend vector3D operator / ( float s, vector3D v);
     friend bool     operator != ( vector3D a, vector3D b);
     friend bool     operator == ( vector3D a, vector3D b);
     // Stream output
     friend std::ostream& operator << ( std::ostream& io, const vector3D& v);
-  private:
-    // Private data
+  protected:
+    // Protected data
     float x, y, z;
 };
 
