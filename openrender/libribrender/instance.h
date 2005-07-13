@@ -20,7 +20,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: instance.h,v 1.1 2004/07/14 18:55:46 juvenal Exp $
+//  $Id: instance.h,v 1.2 2005/07/13 13:09:10 juvenal Exp $
 //
  
 #ifndef _INSTANCE_H
@@ -121,7 +121,7 @@ class Instance {
         void            pushAttributes();
         void            popAttributes();
         void            newObjectInstance(int objectID);
-        objectInstance  getObjectInstance(int objectID);
+        ObjectInstance  getObjectInstance(int objectID);
         // Internal Data members
         int             firstFrame       = -1;
         int             lastFrame        = -1;
