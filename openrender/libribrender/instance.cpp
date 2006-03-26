@@ -1,12 +1,13 @@
 //  openRender
 //
-//  utils.h - {Summary}
+//  instance.cpp - Implementations for the Instance class
 //
 //  Description:
-//    {Description}
+//    This class is reponsible for the initialization of the render instance,
+//    and to perform the calls made on the RiCalls lib entries.
 //
 //  Creation:
-//    Mon Oct 28 2002
+//    Sat Mar 25 2006
 //
 //  Original Development:
 //    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
@@ -19,18 +20,5 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.h,v 1.5 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: instance.cpp,v 1.1 2006/03/26 15:51:23 juvenal.silva Exp $
 //
-
-#ifndef UTILS_H
-#define UTILS_H
-
-namespace util {
-    float max (float v1, float v2);
-    float min (float v1, float v2);
-    float maxOf (float v1, float v2, float v3);
-    float minOf (float v1, float v2, float v3);
-    float clampVal (float value, float min, float max);
-} // namespace util
-
-#endif // UTILS_H

@@ -9,7 +9,7 @@
 //    Sat Sep 28 2002
 //
 //  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.6 2004/07/14 18:55:46 juvenal Exp $
+//  $Id: matrix4D.cpp,v 1.7 2006/03/26 15:51:23 juvenal.silva Exp $
 //
 
 // C includes
@@ -35,13 +35,13 @@
 
 // Constructors
 // ========================================================
-Matrix4D::Matrix4D () {
-    identity ();
+Matrix4D::Matrix4D() {
+    identity();
 }
 
 // Member Functions
 // ========================================================
-bool Matrix4D::identity () {
+bool Matrix4D::identity() {
     int i, j;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
@@ -51,7 +51,7 @@ bool Matrix4D::identity () {
     return true;
 }
 
-bool Matrix4D::scale (Vector3D s) {
+bool Matrix4D::scale(Vector3D s) {
     Matrix4D m;
     m[0][0] = s.getxcomp();
     m[1][1] = s.getycomp();
@@ -60,7 +60,7 @@ bool Matrix4D::scale (Vector3D s) {
     return true;
 }
 
-bool Matrix4D::translate (Vector3D t) {
+bool Matrix4D::translate(Vector3D t) {
     Matrix4D m;
     m[0][3] = t.getxcomp();
     m[1][3] = t.getycomp();
@@ -69,36 +69,37 @@ bool Matrix4D::translate (Vector3D t) {
     return true;
 }
 
-bool Matrix4D::rotate (Vector3D r) {
+bool Matrix4D::rotate(Vector3D r) {
     Matrix4D m;
     // Get axis angles in radians
     float rx = DEGTORAD * r.getxcomp();
     float ry = DEGTORAD * r.getycomp();
     float rz = DEGTORAD * r.getzcomp();
     // Apply X axis angle
-    m[1][1] = cos (rx);
-    m[1][2] = sin (rx);
-    m[2][1] = -sin (rx);
-    m[2][2] = cos (rx);
+    m.identity();
+    m[1][1] = cos(rx);
+    m[1][2] = sin(rx);
+    m[2][1] = -sin(rx);
+    m[2][2] = cos(rx);
     *this = (*this) * m;
     // Apply Y axis angle
-    m.identity ();
-    m[0][0] = cos (ry);
-    m[0][1] = sin (ry);
-    m[2][1] = -sin (ry);
-    m[2][2] = cos (ry);
+    m.identity();
+    m[0][0] = cos(ry);
+    m[0][1] = sin(ry);
+    m[2][1] = -sin(ry);
+    m[2][2] = cos(ry);
     *this = (*this) * m;
     // Apply Z axis angle
-    m.identity ();
-    m[0][0] = cos (rz);
-    m[0][1] = sin (rz);
-    m[1][0] = -sin (rz);
-    m[1][1] = cos (rz);
+    m.identity();
+    m[0][0] = cos(rz);
+    m[0][1] = sin(rz);
+    m[1][0] = -sin(rz);
+    m[1][1] = cos(rz);
     *this = (*this) * m;
     return true;
 }
 
-Matrix4D Matrix4D::inverse () {
+Matrix4D Matrix4D::inverse() {
     Matrix4D r;
     Matrix4D t = *this;
     int i, j, k;

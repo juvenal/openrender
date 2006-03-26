@@ -9,7 +9,7 @@
 //    Mon Dec 29 2003
 //
 //  Original Development:
-//    (C) 2003 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: bound3D.h,v 1.2 2004/07/14 18:55:46 juvenal Exp $
+//  $Id: bound3D.h,v 1.3 2006/03/26 15:51:23 juvenal.silva Exp $
 //
 
 #ifndef BOUND3D_H

@@ -9,7 +9,7 @@
 //    Sat Sep 28 2002
 //
 //  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.h,v 1.5 2004/07/14 18:55:46 juvenal Exp $
+//  $Id: matrix4D.h,v 1.6 2006/03/26 15:51:23 juvenal.silva Exp $
 //
 
 #ifndef MATRIX4D_H
@@ -32,14 +32,14 @@
 class Matrix4D {
     public:
         // Constructors
-        Matrix4D ();
+        Matrix4D();
         // Member functions
-        bool     identity ();
-        bool     scale (Vector3D s);
-        bool     translate (Vector3D t);
-        bool     rotate (Vector3D r);
-        float*   operator [] (int row) { return element[row];}
-        Matrix4D inverse ();
+        bool     identity();
+        bool     scale(Vector3D s);
+        bool     translate(Vector3D t);
+        bool     rotate(Vector3D r);
+        float*   operator[] (int row) { return element[row];}
+        Matrix4D inverse();
         // Arithmetic operations
         // Friend operators and functions
         friend Vector3D operator * (Matrix4D m, Vector3D v);

@@ -9,7 +9,7 @@
 //    Sun Dec 28 2003
 //
 //  Original Development:
-//    (C) 2003 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
 //
 //  Contributions:
 //
@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: bound3D.cpp,v 1.2 2004/07/14 18:55:46 juvenal Exp $
+//  $Id: bound3D.cpp,v 1.3 2006/03/26 15:51:23 juvenal.silva Exp $
 //
 
 // C includes
@@ -55,7 +55,7 @@ Bound3D::Bound3D (float _xMin, float _xMax, float _yMin, float _yMax, float _zMi
 Bound3D operator * (Matrix4D transform, Bound3D bound) {
     Point3D vertex[8];
     int count;
-    
+
     vertex[0] = Point3D(bound.pMin.getxcomp(), bound.pMin.getycomp(), bound.pMin.getzcomp());
     vertex[1] = Point3D(bound.pMin.getxcomp(), bound.pMin.getycomp(), bound.pMax.getzcomp());
     vertex[2] = Point3D(bound.pMin.getxcomp(), bound.pMax.getycomp(), bound.pMin.getzcomp());
