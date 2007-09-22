@@ -19,33 +19,36 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.h,v 1.8 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: colour.h,v 1.9 2007/09/22 21:57:50 juvenal.silva Exp $
 //
 
-#ifndef COLOUR_H
-#define COLOUR_H
+#ifndef _COLOUR_H
+#define _COLOUR_H
 
 // Define basic type colour
 class Colour {
     public:
         // Constructors
-        Colour (void);
-        Colour (float c1, float c2, float c3);
+        Colour(void);
+        Colour(float c1, float c2, float c3);
+        Colour(float c);
+        Colour(const Vector3D &From);
+        Colour(const float From[3]);
         // Member functions
         // Get colour values
-        Vector3D getRGB (void);
-        Vector3D getHLS (void);
-        Vector3D getHSV (void);
-        Vector3D getYIQ (void);
-        Vector3D getYUV (void);
-        Vector3D getCMY (void);
+        Vector3D getRGB(void);
+        Vector3D getHLS(void);
+        Vector3D getHSV(void);
+        Vector3D getYIQ(void);
+        Vector3D getYUV(void);
+        Vector3D getCMY(void);
         // Set colour values
-        bool setRGB (Vector3D &v);
-        bool setHLS (Vector3D &v);
-        bool setHSV (Vector3D &v);
-        bool setYIQ (Vector3D &v);
-        bool setYUV (Vector3D &v);
-        bool setCMY (Vector3D &v);
+        bool setRGB(Vector3D &v);
+        bool setHLS(Vector3D &v);
+        bool setHSV(Vector3D &v);
+        bool setYIQ(Vector3D &v);
+        bool setYUV(Vector3D &v);
+        bool setCMY(Vector3D &v);
         // Arithmetic operations
         Colour operator += (Colour c);
         Colour operator -= (Colour c);

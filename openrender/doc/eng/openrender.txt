@@ -9,7 +9,6 @@ Dec. 26, 2001 Juvenal A. Silva Jr.
 Warning: This is a preliminary specification.
 
 
-
 The openRender program is a scanline render based on the Reyes
 architecture, an algorithm used to render complex images. It works on
 the assumption that every geometric primitive can be reduced to a common
@@ -98,10 +97,11 @@ the initial render already (please refer to the RenderMan Spec 3.1 or
 - Trim Curves;
 - Ray Tracing;
 - Radiosity;
+- Photon mapping;
 - Level of Detail;
 - Spectral Colors;
 - Deformations;
 - Special Camera Projections
 
 Also the main goal of the project is to produce the fastest and most
-flexible open render engine available.
+flexible open source render engine available.
