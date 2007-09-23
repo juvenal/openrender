@@ -1,0 +1,154 @@
+# Anjuta Version 1.2.4a 
+Compatibility Level: 1 
+
+<PROJECT_DESCRIPTION_START>
+The openRender project is a collection of rendering tools compatible with the RenderMan
+standard from Pixar.<PROJECT_DESCRIPTION_END>
+<CONFIG_PROGS_START>
+<CONFIG_PROGS_END>
+<CONFIG_LIBS_START>
+<CONFIG_LIBS_END>
+<CONFIG_HEADERS_START>
+<CONFIG_HEADERS_END>
+<CONFIG_CHARACTERISTICS_START>
+<CONFIG_CHARACTERISTICS_END>
+<CONFIG_LIB_FUNCS_START>
+<CONFIG_LIB_FUNCS_END>
+<CONFIG_ADDITIONAL_START>
+<CONFIG_ADDITIONAL_END>
+<CONFIG_FILES_START>
+<CONFIG_FILES_END>
+<MAKEFILE_AM_START>
+<MAKEFILE_AM_END>
+
+props.file.type=project
+
+anjuta.version=1.2.4a
+anjuta.compatibility.level=1
+
+project.name=openRender
+project.type=GENERIC
+project.target.type=EXECUTABLE
+project.version=1.0
+project.author=Juvenal A. Silva Jr.
+project.source.target=openrender
+project.has.gettext=1
+project.gui.command=
+project.programming.language=C_C++
+project.excluded.modules=intl
+
+project.config.extra.modules.before=
+project.config.extra.modules.after=
+project.config.blocked=1
+project.config.disable.overwriting=1 1 1 1 1 1 1 1 1 
+
+project.menu.entry=openRender Version 1.0
+project.menu.group=Application
+project.menu.comment=openRender Version 1.0
+project.menu.icon=
+project.menu.need.terminal=0
+
+project.configure.options=
+anjuta.program.arguments=
+preferences.build.option.jobs=0
+preferences.build.option.silent=0
+preferences.build.option.autosave=0
+preferences.make=make
+preferences.build.option.keep.going=1
+preferences.build.option.warn.undef=0
+preferences.autoformat.custom.style=-bap -br -brs -i4 -lp -npcs -nprs -npsl -nsob -nut -saf -sai -saw -ts8 -sc
+preferences.indent.opening=1
+preferences.autoformat.disable=1
+preferences.indent.automatic=1
+preferences.use.tabs=0
+preferences.indent.size=4
+preferences.tabsize=4
+preferences.indent.closing=1
+
+module.include.name=.
+module.include.type=
+module.include.files=\
+	openrender/includes/openrender.h\
+	openrender/includes/sloargs.h\
+	openrender/libribrender/attributes.h\
+	openrender/libribrender/bound3D.h\
+	openrender/libribrender/colour.h\
+	openrender/libribrender/framebucket.h\
+	openrender/libribrender/framebuffer.h\
+	openrender/libribrender/instance.h\
+	openrender/libribrender/matrix4D.h\
+	openrender/libribrender/microgrid.h\
+	openrender/libribrender/micropolygon.h\
+	openrender/libribrender/opacity.h\
+	openrender/libribrender/point3D.h\
+	openrender/libribrender/primitive.h\
+	openrender/libribrender/utils.h\
+	openrender/libribrender/vector3D.h\
+	openrender/render/orender.h\
+	openrender/shader/functions.h
+
+module.source.name=.
+module.source.type=
+module.source.files=\
+	openrender/libribrender/attributes.cpp\
+	openrender/libribrender/bound3D.cpp\
+	openrender/libribrender/colour.cpp\
+	openrender/libribrender/framebucket.cpp\
+	openrender/libribrender/framebuffer.cpp\
+	openrender/libribrender/matrix4D.cpp\
+	openrender/libribrender/microgrid.cpp\
+	openrender/libribrender/micropolygon.cpp\
+	openrender/libribrender/opacity.cpp\
+	openrender/libribrender/point3D.cpp\
+	openrender/libribrender/primitive.cpp\
+	openrender/libribrender/utils.cpp\
+	openrender/libribrender/vector3D.cpp\
+	openrender/libsloargs/sloargs.cpp\
+	openrender/render/orender.cpp\
+	openrender/shader/functions.c\
+	openrender/shader/shader.c\
+	openrender/shadertell/shadertell.cpp
+
+module.pixmap.name=.
+module.pixmap.type=
+module.pixmap.files=
+
+module.data.name=.
+module.data.type=
+module.data.files=
+
+module.help.name=.
+module.help.type=
+module.help.files=
+
+module.doc.name=.
+module.doc.type=
+module.doc.files=\
+	AUTHORS\
+	COPYING\
+	ChangeLog\
+	INSTALL\
+	NEWS\
+	README\
+	TODO
+
+module.po.files=
+
+compiler.options.supports=
+compiler.options.include.paths=\
+	.\
+	..
+compiler.options.library.paths=
+compiler.options.libraries=
+compiler.options.libraries.selected=
+compiler.options.defines=\
+	HAVE_CONFIG_H
+compiler.options.defines.selected=
+compiler.options.warning.buttons=0 0 1 1 0 1 0 0 0 0 0 0 0 1 0 0 
+compiler.options.optimize.buttons=0 0 1 0 
+compiler.options.other.buttons=1 0 
+compiler.options.other.c.flags=
+compiler.options.other.l.flags=
+compiler.options.other.l.libs=
+
+project.src.paths=

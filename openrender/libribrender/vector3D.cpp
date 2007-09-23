@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: vector3D.cpp,v 1.6 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: vector3D.cpp,v 1.7 2007/09/23 06:07:13 juvenal.silva Exp $
 //
 
 // C includes
@@ -73,7 +73,7 @@ float Vector3D::getzcomp () {
 
 bool Vector3D::normalise () {
     float d;
-    d = length ();
+    d = length();
     if (d > 0) {
         this->x = this->x / d;
         this->y = this->y / d;

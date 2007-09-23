@@ -1,0 +1,28 @@
+
+[executer]
+RunInTerminal=true
+
+[Project State]
+clean before build=false
+
+[File View]
+filter.file.unmatch=*.so *.o *.a *.la
+filter.file.ignore.hidden=0
+filter.dir.ignore.hidden=0
+
+[filelist]
+0=/home/juvenal.silva.fc4/Documents/Projetos/Codigo/in-cvs/openrender/openrender/libribrender/vector3D.cpp
+
+[filenumbers]
+0=1
+
+[filemarkers]
+0=
+
+[Project Tree]
+0=0
+1=0:0
+2=0:1
+
+[File Tree]
+0=0
