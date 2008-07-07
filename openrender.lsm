@@ -3,12 +3,12 @@ Title:          OpenRender
 Version:        1.0
 Entered-date:   09-30-2002
 Description:    RenderMan compliant rendering tools
-Keywords:       RenderMan, REYES, Raytrace, Radiosity,
+Keywords:       RenderMan, REYES, Raytrace, Radiosity, Photon-Mapping
 Author:         Juvenal A. Silva Jr. <juvenal@v2-home.com.br> 
 Maintained-by:  Juvenal A. Silva Jr. <juvenal@v2-home.com.br> 
 Primary-site:   http://openrender.sourceforge.net/
 Home-page:      http://openrender.sourceforge.net/
 Original-site:  http://openrender.sourceforge.net/
-Platforms:      Linux and other Unices
+Platforms:      Linux, MacOS X and other Unices
 Copying-policy: GNU Public License
 End

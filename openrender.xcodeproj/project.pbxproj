@@ -1,0 +1,365 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 44;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CF2DE18E0E22554B00E879F3 /* colour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B8B0CA7CCA7006B18E7 /* colour.cpp */; };
+		CF2DE18F0E22554B00E879F3 /* colour.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B8C0CA7CCA7006B18E7 /* colour.h */; };
+		CF2DE1960E22554B00E879F3 /* matrix4D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B930CA7CCA8006B18E7 /* matrix4D.cpp */; };
+		CF2DE1970E22554B00E879F3 /* matrix4D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B940CA7CCA8006B18E7 /* matrix4D.h */; };
+		CF2DE19C0E22554B00E879F3 /* opacity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B990CA7CCA8006B18E7 /* opacity.cpp */; };
+		CF2DE19D0E22554B00E879F3 /* opacity.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B9A0CA7CCA8006B18E7 /* opacity.h */; };
+		CF2DE19E0E22554B00E879F3 /* point3D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B9B0CA7CCA8006B18E7 /* point3D.cpp */; };
+		CF2DE19F0E22554B00E879F3 /* point3D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B9C0CA7CCA8006B18E7 /* point3D.h */; };
+		CF2DE1A20E22554B00E879F3 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B9F0CA7CCA8006B18E7 /* utils.cpp */; };
+		CF2DE1A30E22554B00E879F3 /* utils.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2BA00CA7CCA8006B18E7 /* utils.h */; };
+		CF2DE1A40E22554B00E879F3 /* vector3D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2BA10CA7CCA8006B18E7 /* vector3D.cpp */; };
+		CF2DE1A50E22554B00E879F3 /* vector3D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2BA20CA7CCA8006B18E7 /* vector3D.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		CF2DE1850E22529400E879F3 /* liblibribrender.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; name = liblibribrender.dylib; path = "/Users/juvenal/Documents/Projects/in-cvs/openrender/build/Debug/liblibribrender.dylib"; sourceTree = "<absolute>"; };
+		CFFA2B850CA7CC60006B18E7 /* openrender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openrender.h; sourceTree = "<group>"; };
+		CFFA2B860CA7CC60006B18E7 /* sloargs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sloargs.h; sourceTree = "<group>"; };
+		CFFA2B870CA7CCA7006B18E7 /* attributes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = attributes.cpp; sourceTree = "<group>"; };
+		CFFA2B880CA7CCA7006B18E7 /* attributes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = attributes.h; sourceTree = "<group>"; };
+		CFFA2B890CA7CCA7006B18E7 /* bound3D.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bound3D.cpp; sourceTree = "<group>"; };
+		CFFA2B8A0CA7CCA7006B18E7 /* bound3D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bound3D.h; sourceTree = "<group>"; };
+		CFFA2B8B0CA7CCA7006B18E7 /* colour.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = colour.cpp; sourceTree = "<group>"; };
+		CFFA2B8C0CA7CCA7006B18E7 /* colour.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = colour.h; sourceTree = "<group>"; };
+		CFFA2B8D0CA7CCA8006B18E7 /* framebucket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = framebucket.cpp; sourceTree = "<group>"; };
+		CFFA2B8E0CA7CCA8006B18E7 /* framebucket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = framebucket.h; sourceTree = "<group>"; };
+		CFFA2B8F0CA7CCA8006B18E7 /* framebuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = framebuffer.cpp; sourceTree = "<group>"; };
+		CFFA2B900CA7CCA8006B18E7 /* framebuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = framebuffer.h; sourceTree = "<group>"; };
+		CFFA2B910CA7CCA8006B18E7 /* instance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = instance.cpp; sourceTree = "<group>"; };
+		CFFA2B920CA7CCA8006B18E7 /* instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = instance.h; sourceTree = "<group>"; };
+		CFFA2B930CA7CCA8006B18E7 /* matrix4D.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = matrix4D.cpp; sourceTree = "<group>"; };
+		CFFA2B940CA7CCA8006B18E7 /* matrix4D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = matrix4D.h; sourceTree = "<group>"; };
+		CFFA2B950CA7CCA8006B18E7 /* microgrid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = microgrid.cpp; sourceTree = "<group>"; };
+		CFFA2B960CA7CCA8006B18E7 /* microgrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = microgrid.h; sourceTree = "<group>"; };
+		CFFA2B970CA7CCA8006B18E7 /* micropolygon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = micropolygon.cpp; sourceTree = "<group>"; };
+		CFFA2B980CA7CCA8006B18E7 /* micropolygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = micropolygon.h; sourceTree = "<group>"; };
+		CFFA2B990CA7CCA8006B18E7 /* opacity.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = opacity.cpp; sourceTree = "<group>"; };
+		CFFA2B9A0CA7CCA8006B18E7 /* opacity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = opacity.h; sourceTree = "<group>"; };
+		CFFA2B9B0CA7CCA8006B18E7 /* point3D.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = point3D.cpp; sourceTree = "<group>"; };
+		CFFA2B9C0CA7CCA8006B18E7 /* point3D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = point3D.h; sourceTree = "<group>"; };
+		CFFA2B9D0CA7CCA8006B18E7 /* primitive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = primitive.cpp; sourceTree = "<group>"; };
+		CFFA2B9E0CA7CCA8006B18E7 /* primitive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = primitive.h; sourceTree = "<group>"; };
+		CFFA2B9F0CA7CCA8006B18E7 /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
+		CFFA2BA00CA7CCA8006B18E7 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
+		CFFA2BA10CA7CCA8006B18E7 /* vector3D.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vector3D.cpp; sourceTree = "<group>"; };
+		CFFA2BA20CA7CCA8006B18E7 /* vector3D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vector3D.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CF2DE1830E22529400E879F3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CF2DE1860E22529400E879F3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CFFA2B650CA76F06006B18E7 = {
+			isa = PBXGroup;
+			children = (
+				CFFA2B720CA76F7A006B18E7 /* openrender */,
+				CF2DE1860E22529400E879F3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CFFA2B720CA76F7A006B18E7 /* openrender */ = {
+			isa = PBXGroup;
+			children = (
+				CFFA2B730CA76FB8006B18E7 /* extdisplay */,
+				CFFA2B740CA76FDA006B18E7 /* geometry */,
+				CFFA2B840CA7CC24006B18E7 /* includes */,
+				CFFA2B750CA76FE7006B18E7 /* libribout */,
+				CFFA2B760CA77000006B18E7 /* libribrender */,
+				CFFA2B770CA77010006B18E7 /* libsloargs */,
+				CFFA2B780CA77020006B18E7 /* netrender */,
+				CFFA2B790CA7702C006B18E7 /* render */,
+				CFFA2B830CA77413006B18E7 /* shadeops */,
+				CFFA2B7B0CA77041006B18E7 /* shader */,
+				CFFA2B7C0CA7704B006B18E7 /* shader-src */,
+				CFFA2B7D0CA77059006B18E7 /* shadertell */,
+			);
+			path = openrender;
+			sourceTree = "<group>";
+		};
+		CFFA2B730CA76FB8006B18E7 /* extdisplay */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = extdisplay;
+			sourceTree = "<group>";
+		};
+		CFFA2B740CA76FDA006B18E7 /* geometry */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = geometry;
+			sourceTree = "<group>";
+		};
+		CFFA2B750CA76FE7006B18E7 /* libribout */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = libribout;
+			sourceTree = "<group>";
+		};
+		CFFA2B760CA77000006B18E7 /* libribrender */ = {
+			isa = PBXGroup;
+			children = (
+				CFFA2B870CA7CCA7006B18E7 /* attributes.cpp */,
+				CFFA2B880CA7CCA7006B18E7 /* attributes.h */,
+				CFFA2B890CA7CCA7006B18E7 /* bound3D.cpp */,
+				CFFA2B8A0CA7CCA7006B18E7 /* bound3D.h */,
+				CFFA2B8B0CA7CCA7006B18E7 /* colour.cpp */,
+				CFFA2B8C0CA7CCA7006B18E7 /* colour.h */,
+				CFFA2B8D0CA7CCA8006B18E7 /* framebucket.cpp */,
+				CFFA2B8E0CA7CCA8006B18E7 /* framebucket.h */,
+				CFFA2B8F0CA7CCA8006B18E7 /* framebuffer.cpp */,
+				CFFA2B900CA7CCA8006B18E7 /* framebuffer.h */,
+				CFFA2B910CA7CCA8006B18E7 /* instance.cpp */,
+				CFFA2B920CA7CCA8006B18E7 /* instance.h */,
+				CFFA2B930CA7CCA8006B18E7 /* matrix4D.cpp */,
+				CFFA2B940CA7CCA8006B18E7 /* matrix4D.h */,
+				CFFA2B950CA7CCA8006B18E7 /* microgrid.cpp */,
+				CFFA2B960CA7CCA8006B18E7 /* microgrid.h */,
+				CFFA2B970CA7CCA8006B18E7 /* micropolygon.cpp */,
+				CFFA2B980CA7CCA8006B18E7 /* micropolygon.h */,
+				CFFA2B990CA7CCA8006B18E7 /* opacity.cpp */,
+				CFFA2B9A0CA7CCA8006B18E7 /* opacity.h */,
+				CFFA2B9B0CA7CCA8006B18E7 /* point3D.cpp */,
+				CFFA2B9C0CA7CCA8006B18E7 /* point3D.h */,
+				CFFA2B9D0CA7CCA8006B18E7 /* primitive.cpp */,
+				CFFA2B9E0CA7CCA8006B18E7 /* primitive.h */,
+				CFFA2B9F0CA7CCA8006B18E7 /* utils.cpp */,
+				CFFA2BA00CA7CCA8006B18E7 /* utils.h */,
+				CFFA2BA10CA7CCA8006B18E7 /* vector3D.cpp */,
+				CFFA2BA20CA7CCA8006B18E7 /* vector3D.h */,
+			);
+			path = libribrender;
+			sourceTree = "<group>";
+		};
+		CFFA2B770CA77010006B18E7 /* libsloargs */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = libsloargs;
+			sourceTree = "<group>";
+		};
+		CFFA2B780CA77020006B18E7 /* netrender */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = netrender;
+			sourceTree = "<group>";
+		};
+		CFFA2B790CA7702C006B18E7 /* render */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = render;
+			sourceTree = "<group>";
+		};
+		CFFA2B7B0CA77041006B18E7 /* shader */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = shader;
+			sourceTree = "<group>";
+		};
+		CFFA2B7C0CA7704B006B18E7 /* shader-src */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = "shader-src";
+			sourceTree = "<group>";
+		};
+		CFFA2B7D0CA77059006B18E7 /* shadertell */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = shadertell;
+			sourceTree = "<group>";
+		};
+		CFFA2B830CA77413006B18E7 /* shadeops */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = shadeops;
+			sourceTree = "<group>";
+		};
+		CFFA2B840CA7CC24006B18E7 /* includes */ = {
+			isa = PBXGroup;
+			children = (
+				CFFA2B850CA7CC60006B18E7 /* openrender.h */,
+				CFFA2B860CA7CC60006B18E7 /* sloargs.h */,
+			);
+			path = includes;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		CF2DE1810E22529400E879F3 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF2DE18F0E22554B00E879F3 /* colour.h in Headers */,
+				CF2DE1970E22554B00E879F3 /* matrix4D.h in Headers */,
+				CF2DE19D0E22554B00E879F3 /* opacity.h in Headers */,
+				CF2DE19F0E22554B00E879F3 /* point3D.h in Headers */,
+				CF2DE1A30E22554B00E879F3 /* utils.h in Headers */,
+				CF2DE1A50E22554B00E879F3 /* vector3D.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		CF2DE1840E22529400E879F3 /* ribrender */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CF2DE1890E22529600E879F3 /* Build configuration list for PBXNativeTarget "ribrender" */;
+			buildPhases = (
+				CF2DE1810E22529400E879F3 /* Headers */,
+				CF2DE1820E22529400E879F3 /* Sources */,
+				CF2DE1830E22529400E879F3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ribrender;
+			productName = libribrender;
+			productReference = CF2DE1850E22529400E879F3 /* liblibribrender.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CFFA2B670CA76F06006B18E7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+			};
+			buildConfigurationList = CFFA2B680CA76F06006B18E7 /* Build configuration list for PBXProject "openrender" */;
+			compatibilityVersion = "Xcode 3.0";
+			hasScannedForEncodings = 0;
+			mainGroup = CFFA2B650CA76F06006B18E7;
+			productRefGroup = CF2DE1860E22529400E879F3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CF2DE1840E22529400E879F3 /* ribrender */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CF2DE1820E22529400E879F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF2DE18E0E22554B00E879F3 /* colour.cpp in Sources */,
+				CF2DE1960E22554B00E879F3 /* matrix4D.cpp in Sources */,
+				CF2DE19C0E22554B00E879F3 /* opacity.cpp in Sources */,
+				CF2DE19E0E22554B00E879F3 /* point3D.cpp in Sources */,
+				CF2DE1A20E22554B00E879F3 /* utils.cpp in Sources */,
+				CF2DE1A40E22554B00E879F3 /* vector3D.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		CF2DE1870E22529600E879F3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(NATIVE_ARCH)";
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/lib;
+				PREBINDING = NO;
+				PRODUCT_NAME = libribrender;
+				VALID_ARCHS = "ppc64 ppc7400 ppc970 i386 x86_64 ppc";
+				ZERO_LINK = YES;
+			};
+			name = Debug;
+		};
+		CF2DE1880E22529600E879F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(NATIVE_ARCH)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/lib;
+				PREBINDING = NO;
+				PRODUCT_NAME = libribrender;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		CFFA2B690CA76F06006B18E7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+			};
+			name = Debug;
+		};
+		CFFA2B6A0CA76F06006B18E7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CF2DE1890E22529600E879F3 /* Build configuration list for PBXNativeTarget "ribrender" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF2DE1870E22529600E879F3 /* Debug */,
+				CF2DE1880E22529600E879F3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CFFA2B680CA76F06006B18E7 /* Build configuration list for PBXProject "openrender" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFFA2B690CA76F06006B18E7 /* Debug */,
+				CFFA2B6A0CA76F06006B18E7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CFFA2B670CA76F06006B18E7 /* Project object */;
+}

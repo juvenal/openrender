@@ -19,24 +19,24 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.cpp,v 1.4 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: utils.cpp,v 1.5 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 // Private includes
 #include "utils.h"
 
 // Define the max of two values
-float util::max (float v1, float v2) {
+float util::max(float v1, float v2) {
     return (v1 > v2) ? v1 : v2;
 }
 
 // Define the min of two values
-float util::min (float v1, float v2) {
+float util::min(float v1, float v2) {
     return (v1 < v2) ? v1 : v2;
 }
 
 // Define the maxOf tree values
-float util::maxOf (float v1, float v2, float v3) {
+float util::maxOf(float v1, float v2, float v3) {
     float max;
     max = (v1 > v2) ? v1 : v2;
     max = (v3 > max) ? v3 : max;
@@ -44,7 +44,7 @@ float util::maxOf (float v1, float v2, float v3) {
 }
 
 // Define the minOf tree values
-float util::minOf (float v1, float v2, float v3) {
+float util::minOf(float v1, float v2, float v3) {
     float min;
     min = (v1 < v2) ? v1 : v2;
     min = (v3 < min) ? v3 : min;
@@ -52,7 +52,7 @@ float util::minOf (float v1, float v2, float v3) {
 }
 
 // Define the clampVal for a given value within a min, max range
-float util::clampVal (float value, float min, float max) {
+float util::clampVal(float value, float min, float max) {
     float retval;
     if (value < min) {
         retval = min;

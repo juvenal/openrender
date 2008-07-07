@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.h,v 1.8 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: microgrid.h,v 1.9 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef MICROGRID_H
@@ -27,6 +27,14 @@
 
 // Define the grid for micropolygons (microgrid)
 class MicroGrid {
+    protected:
+        int      width, height;  // Size of microgrid in micropolygon units
+        float    umin, vmin;     // Minimum values of u,v coordinates on grid
+        float    umax, vmax;     // Maximum values of u,v coordinates on grid
+        Point3D  **point;        // 2D array of points
+        Vector3D **normal;       // 2D array of normals
+        Colour   **colour;       // 2D array of micro-polygon colours
+        Opacity  **opacity;      // 2D array of micro-polygon opacity
     public:
         // Constructor
         MicroGrid (int _width = 1, int _height = 1);
@@ -46,14 +54,6 @@ class MicroGrid {
         void  statistics (float &zmin, float &zmax, float &maxusize, float &maxvsize);
         // Stream input/output
         friend ostream &operator << (ostream &io, const MicroGrid &m);
-    protected:
-        int      width, height;  // Size of microgrid in micropolygon units
-        float    umin, vmin;     // Minimum values of u,v coordinates on grid
-        float    umax, vmax;     // Maximum values of u,v coordinates on grid
-        Point3D  **point;        // 2D array of points
-        Vector3D **normal;       // 2D array of normals
-        Colour   **colour;       // 2D array of micro-polygon colours
-        Opacity  **opacity;      // 2D array of micro-polygon opacity
 };
 
 

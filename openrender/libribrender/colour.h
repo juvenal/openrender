@@ -19,21 +19,32 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.h,v 1.9 2007/09/22 21:57:50 juvenal.silva Exp $
+//  $Id: colour.h,v 1.10 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef _COLOUR_H
 #define _COLOUR_H
 
+// Private includes
+#include "utils.h"
+#include "vector3D.h"
+#include "matrix4D.h"
+
 // Define basic type colour
 class Colour {
+    protected:
+        // Protected data
+        float R, G, B;
+        // Protected member functions
+        float getChannel(float q1, float q2, float hue);
     public:
-        // Constructors
+        // Constructors & Destructor
         Colour(void);
         Colour(float c1, float c2, float c3);
         Colour(float c);
         Colour(const Vector3D &From);
         Colour(const float From[3]);
+        ~Colour();
         // Member functions
         // Get colour values
         Vector3D getRGB(void);
@@ -43,35 +54,27 @@ class Colour {
         Vector3D getYUV(void);
         Vector3D getCMY(void);
         // Set colour values
-        bool setRGB(Vector3D &v);
-        bool setHLS(Vector3D &v);
-        bool setHSV(Vector3D &v);
-        bool setYIQ(Vector3D &v);
-        bool setYUV(Vector3D &v);
-        bool setCMY(Vector3D &v);
+        void setRGB(Vector3D &v);
+        void setHLS(Vector3D &v);
+        void setHSV(Vector3D &v);
+        void setYIQ(Vector3D &v);
+        void setYUV(Vector3D &v);
+        void setCMY(Vector3D &v);
         // Arithmetic operations
-        Colour operator += (Colour c);
-        Colour operator -= (Colour c);
-        Colour operator *= (Colour c);
-        Colour operator /= (Colour c);
-        // Friend operators and functions
-        friend Colour operator +  (Colour a, Colour b);
-        friend Colour operator -  (Colour a, Colour b);
-        friend Colour operator *  (Colour a, Colour b);
-        friend Colour operator *  (float s, Colour c);
-        friend Colour operator *  (Colour c, float s);
-        friend Colour operator /  (Colour a, Colour b);
-        friend Colour operator /  (Colour c, float s);
-        friend Colour operator /  (float s, Colour c);
-        friend bool   operator == (Colour a, Colour b);
-        friend bool   operator != (Colour a, Colour b);
-        // Stream output
-        friend std::ostream &operator << (std::ostream &io, const Colour &c);
-    protected:
-        // Protected member functions
-        float getChannel (float q1, float q2, float hue);
-        // Protected data
-        float R, G, B;
+        Colour& operator += (Colour c);
+        Colour& operator -= (Colour c);
+        Colour& operator *= (Colour c);
+        Colour& operator /= (Colour c);
+        Colour  operator +  (Colour a);
+        Colour  operator -  (Colour a);
+        Colour  operator *  (Colour a);
+        Colour  operator *  (float s);
+        Colour  operator /  (Colour a);
+        Colour  operator /  (float s);
+        bool    operator == (Colour a);
+        bool    operator != (Colour a);
+        // Friend stream output
+        friend  std::ostream &operator << (std::ostream &io, const Colour &c);
 };
 
 #endif // COLOUR H

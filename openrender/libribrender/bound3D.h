@@ -19,27 +19,27 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: bound3D.h,v 1.3 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: bound3D.h,v 1.4 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef BOUND3D_H
 #define BOUND3D_H
 
 class Bound3D {
-    public:
-        // Constructors
-        Bound3D (point3D _pMin, point3D _pMax);
-        Bound3D (float _xMin, float _xMax, float _yMin, float _yMax, float _zMin, float _zMax);
-        // Member functions
-        float getMixZ ();
-        bool intersects (Bound3D other);
-        bool contains (Point3D point);
-        Bound3D getBoundingBox ();
-        void sortMinMax ();
-        friend Bound3D operator * (Matrix4D transform, Bound3D bound);
     protected:
         Point3D pMin;
         Point3D pMax;
+    public:
+        // Constructors
+        Bound3D(Point3D _pMin, Point3D _pMax);
+        Bound3D(float _xMin, float _xMax, float _yMin, float _yMax, float _zMin, float _zMax);
+        // Member functions
+        float   getMixZ();
+        bool    intersects(Bound3D other);
+        bool    contains(Point3D point);
+        Bound3D getBoundingBox();
+        void    sortMinMax();
+        friend Bound3D operator * (Matrix4D transform, Bound3D bound);
 };
 
 #endif // BOUND3D_H

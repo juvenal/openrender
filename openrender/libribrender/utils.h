@@ -19,18 +19,18 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: utils.h,v 1.5 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: utils.h,v 1.6 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef UTILS_H
 #define UTILS_H
 
 namespace util {
-    float max (float v1, float v2);
-    float min (float v1, float v2);
-    float maxOf (float v1, float v2, float v3);
-    float minOf (float v1, float v2, float v3);
-    float clampVal (float value, float min, float max);
+    float max(float v1, float v2);
+    float min(float v1, float v2);
+    float maxOf(float v1, float v2, float v3);
+    float minOf(float v1, float v2, float v3);
+    float clampVal(float value, float min, float max);
 } // namespace util
 
 #endif // UTILS_H

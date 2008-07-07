@@ -18,7 +18,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: opacity.cpp,v 1.5 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: opacity.cpp,v 1.6 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 // Private includes
@@ -26,12 +26,12 @@
 
 // Constructors
 Opacity::Opacity () {
-    this->R = 1;
-    this->G = 1;
-    this->B = 1;
+    this->R = 1.0f;
+    this->G = 1.0f;
+    this->B = 1.0f;
 }
 
-Opacity::Opacity (float _r = 1, float _g = 1, float _b = 1) {
+Opacity::Opacity (float _r = 1.0f, float _g = 1.0f, float _b = 1.0f) {
     this->R = _r;
     this->G = _g;
     this->B = _b;

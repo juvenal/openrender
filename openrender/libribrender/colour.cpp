@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: colour.cpp,v 1.11 2007/09/22 21:57:50 juvenal.silva Exp $
+//  $Id: colour.cpp,v 1.12 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 // C includes
@@ -30,9 +30,6 @@
 #include <iomanip>
 
 // Private includes
-#include "utils.h"
-#include "vector3D.h"
-#include "matrix4D.h"
 #include "colour.h"
 
 // Constructors
@@ -166,15 +163,14 @@ Vector3D Colour::getCMY (void) {
 }
 
 // Set colour to RGB values (default)
-bool Colour::setRGB(Vector3D &v) {
+void Colour::setRGB(Vector3D &v) {
     this->R = util::clampVal(v.getxcomp(), 0, 1);
     this->G = util::clampVal(v.getycomp(), 0, 1);
     this->B = util::clampVal(v.getzcomp(), 0, 1);
-    return true;
 }
 
 // Set colour from HLS to RGB
-bool Colour::setHLS(Vector3D &v) {
+void Colour::setHLS(Vector3D &v) {
     float p1, p2, H, L, S;
     // Get the values
     H = v.getxcomp();
@@ -197,11 +193,10 @@ bool Colour::setHLS(Vector3D &v) {
         this->G = util::clampVal(this->getChannel(p1, p2, H), 0.0f, 1.0f);
         this->B = util::clampVal(this->getChannel(p1, p2, H - 120), 0.0f, 1.0f);
     }
-    return true;
 }
 
 // Set colour from HSV to RGB
-bool Colour::setHSV(Vector3D &v) {
+void Colour::setHSV(Vector3D &v) {
     float f, p, q, t, H, S, V;
     int   i;
     // Copy some values
@@ -256,37 +251,65 @@ bool Colour::setHSV(Vector3D &v) {
                 break;
         }
     }
-    return true;
 }
 
 // Set colour from YIQ to RGB
-bool Colour::setYIQ(Vector3D &v) {
+void Colour::setYIQ(Vector3D &v) {
     this->R = util::clampVal(1 * v.getxcomp() + 0.956 * v.getycomp() + 0.621 * v.getzcomp(), 0.0f, 1.0f);
     this->G = util::clampVal(1 * v.getxcomp() - 0.272 * v.getycomp() - 0.647 * v.getzcomp(), 0.0f, 1.0f);
     this->B = util::clampVal(1 * v.getxcomp() - 1.105 * v.getycomp() + 1.702 * v.getzcomp(), 0.0f, 1.0f);
-    return true;
 }
 
 // Set colour from YUV to RGB
-bool Colour::setYUV(Vector3D &v) {
+void Colour::setYUV(Vector3D &v) {
     this->R = util::clampVal(1 * v.getxcomp() + 0.000 * v.getycomp() + 1.140 * v.getzcomp(), 0.0f, 1.0f);
     this->G = util::clampVal(1 * v.getxcomp() - 0.394 * v.getycomp() - 0.581 * v.getzcomp(), 0.0f, 1.0f);
     this->B = util::clampVal(1 * v.getxcomp() + 2.028 * v.getycomp() + 0.000 * v.getzcomp(), 0.0f, 1.0f);
-    return true;
 }
 
 // Set colour from CMY to RGB
-bool Colour::setCMY(Vector3D &v) {
+void Colour::setCMY(Vector3D &v) {
     this->R = util::clampVal(1 - v.getxcomp(), 0.0f, 1.0f);
     this->G = util::clampVal(1 - v.getycomp(), 0.0f, 1.0f);
     this->B = util::clampVal(1 - v.getzcomp(), 0.0f, 1.0f);
-    return true;
 }
 
 // Arithmetic
 // ========================================================
 // Common addition
-Colour Colour::operator += (Colour a) {
+Colour& Colour::operator += (Colour a) {
+    this->R = util::clampVal(this->R + a.R, 0, 1);
+    this->G = util::clampVal(this->G + a.G, 0, 1);
+    this->B = util::clampVal(this->B + a.B, 0, 1);
+    return *this;
+}
+
+// Common subtraction
+Colour& Colour::operator -= (Colour a) {
+    this->R = util::clampVal(this->R - a.R, 0, 1);
+    this->G = util::clampVal(this->G - a.G, 0, 1);
+    this->B = util::clampVal(this->B - a.B, 0, 1);
+    return *this;
+}
+
+// Common multiply
+Colour& Colour::operator *= (Colour a) {
+    this->R = util::clampVal(this->R * a.R, 0, 1);
+    this->G = util::clampVal(this->G * a.G, 0, 1);
+    this->B = util::clampVal(this->B * a.B, 0, 1);
+    return *this;
+}
+
+// Common division
+Colour& Colour::operator /= (Colour a) {
+    this->R = util::clampVal (this->R / a.R, 0, 1);
+    this->G = util::clampVal (this->G / a.G, 0, 1);
+    this->B = util::clampVal (this->B / a.B, 0, 1);
+    return *this;
+}
+
+// Addition
+Colour Colour::operator + (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R + a.R, 0, 1);
     _G = util::clampVal (this->G + a.G, 0, 1);
@@ -294,8 +317,8 @@ Colour Colour::operator += (Colour a) {
     return Colour (_R, _G, _B);
 }
 
-// Common subtraction
-Colour Colour::operator -= (Colour a) {
+// Subtraction
+Colour Colour::operator - (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R - a.R, 0, 1);
     _G = util::clampVal (this->G - a.G, 0, 1);
@@ -303,8 +326,8 @@ Colour Colour::operator -= (Colour a) {
     return Colour (_R, _G, _B);
 }
 
-// Common multiply
-Colour Colour::operator *= (Colour a) {
+// Multiplication
+Colour Colour::operator * (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R * a.R, 0, 1);
     _G = util::clampVal (this->G * a.G, 0, 1);
@@ -312,8 +335,17 @@ Colour Colour::operator *= (Colour a) {
     return Colour (_R, _G, _B);
 }
 
-// Common division
-Colour Colour::operator /= (Colour a) {
+// Scalar multiplication (scale)
+Colour Colour::operator * (float s) {
+    float _R, _G, _B;
+    _R = util::clampVal (this->R * s, 0, 1);
+    _G = util::clampVal (this->G * s, 0, 1);
+    _B = util::clampVal (this->B * s, 0, 1);
+    return Colour (_R, _G, _B);
+}
+
+// Division
+Colour Colour::operator / (Colour a) {
     float _R, _G, _B;
     _R = util::clampVal (this->R / a.R, 0, 1);
     _G = util::clampVal (this->G / a.G, 0, 1);
@@ -321,95 +353,32 @@ Colour Colour::operator /= (Colour a) {
     return Colour (_R, _G, _B);
 }
 
-// Addition
-Colour operator + (Colour a, Colour b) {
+// Inverse scale
+Colour Colour::operator / (float s) {
     float _R, _G, _B;
-    _R = util::clampVal (a.R + b.R, 0, 1);
-    _G = util::clampVal (a.G + b.G, 0, 1);
-    _B = util::clampVal (a.B + b.B, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Subtraction
-Colour operator - (Colour a, Colour b) {
-    float _R, _G, _B;
-    _R = util::clampVal (a.R - b.R, 0, 1);
-    _G = util::clampVal (a.G - b.G, 0, 1);
-    _B = util::clampVal (a.B - b.B, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Multiplication
-Colour operator * (Colour a, Colour b) {
-    float _R, _G, _B;
-    _R = util::clampVal (a.R * b.R, 0, 1);
-    _G = util::clampVal (a.G * b.G, 0, 1);
-    _B = util::clampVal (a.B * b.B, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Division
-Colour operator / (Colour a, Colour b) {
-    float _R, _G, _B;
-    _R = util::clampVal (a.R / b.R, 0, 1);
-    _G = util::clampVal (a.G / b.G, 0, 1);
-    _B = util::clampVal (a.B / b.B, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Scale 1
-Colour operator * (float s, Colour c) {
-    float _R, _G, _B;
-    _R = util::clampVal (s * c.R, 0, 1);
-    _G = util::clampVal (s * c.G, 0, 1);
-    _B = util::clampVal (s * c.B, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Scale 2
-Colour operator * (Colour c, float s) {
-    float _R, _G, _B;
-    _R = util::clampVal (c.R * s, 0, 1);
-    _G = util::clampVal (c.G * s, 0, 1);
-    _B = util::clampVal (c.B * s, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Inverse scale 1
-Colour operator / (Colour c, float s) {
-    float _R, _G, _B;
-    _R = util::clampVal (c.R / s, 0, 1);
-    _G = util::clampVal (c.G / s, 0, 1);
-    _B = util::clampVal (c.B / s, 0, 1);
-    return Colour (_R, _G, _B);
-}
-
-// Inverse scale 2
-Colour operator / (float s, Colour c) {
-    float _R, _G, _B;
-    _R = util::clampVal (s / c.R, 0, 1);
-    _G = util::clampVal (s / c.G, 0, 1);
-    _B = util::clampVal (s / c.B, 0, 1);
+    _R = util::clampVal (this->R / s, 0, 1);
+    _G = util::clampVal (this->G / s, 0, 1);
+    _B = util::clampVal (this->B / s, 0, 1);
     return Colour (_R, _G, _B);
 }
 
 // Not like
-bool operator != (Colour a, Colour b) {
-  return ((a.R != b.R) ||
-          (a.G != b.G) ||
-          (a.B != b.B));
+bool Colour::operator != (Colour a) {
+    return ((this->R != a.R) ||
+            (this->G != a.G) ||
+            (this->B != a.B));
 }
 
 // Like
-bool operator == (Colour a, Colour b) {
-  return ((a.R == b.R) &&
-          (a.G == b.G) &&
-          (a.B == b.B));
+bool Colour::operator == (Colour a) {
+    return ((this->R == a.R) &&
+            (this->G == a.G) &&
+            (this->B == a.B));
 }
 
 // Stream output
 // ========================================================
-std::ostream & operator << (std::ostream &io, const Colour &c) {
+std::ostream &operator << (std::ostream &io, const Colour &c) {
     io.setf (std::ios::showpoint);
     io.setf (std::ios::right);
     io.setf (std::ios::fixed);

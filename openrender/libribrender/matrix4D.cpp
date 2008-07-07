@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: matrix4D.cpp,v 1.7 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: matrix4D.cpp,v 1.8 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 // C includes
@@ -127,34 +127,32 @@ Matrix4D Matrix4D::inverse() {
     return r;
 }
 
-// Friend Functions - Arithmetic
-// ========================================================
-Vector3D operator * (Matrix4D m, Vector3D v) {
+Vector3D Matrix4D::operator * (Vector3D v) {
     Vector3D r;
-    r.setxcomp ((m[0][0] * v.getxcomp()) + (m[0][1] * v.getycomp()) +
-                (m[0][2] * v.getzcomp()) + m[0][3]);
-    r.setycomp ((m[1][0] * v.getxcomp()) + (m[1][1] * v.getycomp()) +
-                (m[1][2] * v.getzcomp()) + m[1][3]);
-    r.setzcomp ((m[2][0] * v.getxcomp()) + (m[2][1] * v.getycomp()) +
-                (m[2][2] * v.getzcomp()) + m[2][3]);
+    r.setxcomp((this->element[0][0] * v.getxcomp()) + (this->element[0][1] * v.getycomp()) +
+               (this->element[0][2] * v.getzcomp()) + this->element[0][3]);
+    r.setycomp((this->element[1][0] * v.getxcomp()) + (this->element[1][1] * v.getycomp()) +
+               (this->element[1][2] * v.getzcomp()) + this->element[1][3]);
+    r.setzcomp((this->element[2][0] * v.getxcomp()) + (this->element[2][1] * v.getycomp()) +
+               (this->element[2][2] * v.getzcomp()) + this->element[2][3]);
     return r;
 }
 
-Matrix4D operator * (Matrix4D a, Matrix4D b) {
-    int i,j,k;
+Matrix4D Matrix4D::operator * (Matrix4D a) {
+    int i, j, k;
     Matrix4D r;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
             r[i][j] = 0;
             for (k = 0; k < 4; k++) {
-                r[i][j] += a[i][k] * b[k][j];
+                r[i][j] += this->element[i][k] * a[k][j];
             }
         }
     }
     return r;
 }
 
-// Stream output
+// Friend stream output
 // ========================================================
 std::ostream &operator << (std::ostream &io, Matrix4D &m) {
     int i, j;

@@ -20,7 +20,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: instance.h,v 1.3 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: instance.h,v 1.4 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef _INSTANCE_H
@@ -28,6 +28,32 @@
 
 // Define the instance class
 class Instance {
+    protected:
+        // Internal Data members
+        int             firstFrame       = -1;
+        int             lastFrame        = -1;
+        bool            inAreaLight      = false;
+        bool            inObject         = false;
+        String          name;
+        World           renderWorld      = new World();
+        Frame           renderFrame      = new Frame();
+        Renderer        mainRenderer     = new Renderer();
+        Attributes      renderAttributes = new Attributes();
+        ActiveState     renderState      = ActiveState.OUTSIDE;
+        stack           attributeStack;
+        stack           transformStack;
+        stack           worldStack;
+        stack           frameStack;
+        stack           stateStack;
+        map             objectInstances  = new map<>;
+        ObjectInstance  currentObjectInstance;
+        // Internal methods
+        void            pushState(activeState state);
+        void            popState();
+        void            pushAttributes();
+        void            popAttributes();
+        void            newObjectInstance(int objectID);
+        ObjectInstance  getObjectInstance(int objectID);
     public:
         Attributes      getAttributes();
         void            attributeBegin();
@@ -113,33 +139,6 @@ class Instance {
         void            addPointsPolygon(float nVertices[], float vertices[], ParameterList parameters);
         void            addPolygon(ParameterList parameters);
         void            addPoints(ParameterList parameters);
-
-    protected:
-        // Internal methods
-        void            pushState(activeState state);
-        void            popState();
-        void            pushAttributes();
-        void            popAttributes();
-        void            newObjectInstance(int objectID);
-        ObjectInstance  getObjectInstance(int objectID);
-        // Internal Data members
-        int             firstFrame       = -1;
-        int             lastFrame        = -1;
-        bool            inAreaLight      = false;
-        bool            inObject         = false;
-        String          name;
-        World           renderWorld      = new World();
-        Frame           renderFrame      = new Frame();
-        Renderer        mainRenderer     = new Renderer();
-        Attributes      renderAttributes = new Attributes();
-        ActiveState     renderState      = ActiveState.OUTSIDE;
-        stack           attributeStack;
-        stack           transformStack;
-        stack           worldStack;
-        stack           frameStack;
-        stack           stateStack;
-        map             objectInstances  = new map<>;
-        ObjectInstance  currentObjectInstance;
 };
 
 #endif /* _INSTANCE_H */

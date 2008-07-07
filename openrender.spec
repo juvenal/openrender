@@ -16,8 +16,10 @@ BuildRoot: /var/tmp/openrender-root
 
 %description
 Open Source Renderer compliant with the RenderMan 3.2 spec from PIXAR.
-RenderMan is a high quality 3D renderer most used on film production on Hollywood.
-The 3.2 spec from PIXAR covers the minimum capabilities that a renderer must have.
+RenderMan is a high quality 3D renderer most used on film production on
+Hollywood.
+The 3.2 spec from PIXAR covers the minimum capabilities that a renderer must
+have.
 
 %prep
 %setup

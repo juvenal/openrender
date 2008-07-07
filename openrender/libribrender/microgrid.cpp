@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: microgrid.cpp,v 1.6 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: microgrid.cpp,v 1.7 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 // C++ includes
@@ -30,7 +30,7 @@
 #include "microgrid.h"
 
 // Constructor code
-MicroGrid::MicroGrid (_width, _height) {
+MicroGrid::MicroGrid (int _width, int _height) {
     this->allocate(_width, _height);
     this->setTextureCoords(0, 0, 1, 1);
 }

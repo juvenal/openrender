@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: point3D.h,v 1.6 2006/03/26 15:51:23 juvenal.silva Exp $
+//  $Id: point3D.h,v 1.7 2008/07/07 20:17:29 juvenal.silva Exp $
 //
 
 #ifndef POINT3D_H
@@ -32,10 +32,8 @@
 class Point3D: public Vector3D {
     public:
         // Constructors
-        Point3D (float _x = 0,
-                 float _y = 0,
-                 float _z = 0);
-        Point3D (Vector3D v);
+        Point3D(Vector3D v);
+        Point3D(float _x = 0, float _y = 0, float _z = 0);
         // All the other methods inherited from
         // parent superclass vector3D
 };
