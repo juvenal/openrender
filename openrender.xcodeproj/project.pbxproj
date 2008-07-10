@@ -8,21 +8,86 @@
 
 /* Begin PBXBuildFile section */
 		CF2DE18E0E22554B00E879F3 /* colour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B8B0CA7CCA7006B18E7 /* colour.cpp */; };
-		CF2DE18F0E22554B00E879F3 /* colour.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B8C0CA7CCA7006B18E7 /* colour.h */; };
 		CF2DE1960E22554B00E879F3 /* matrix4D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B930CA7CCA8006B18E7 /* matrix4D.cpp */; };
-		CF2DE1970E22554B00E879F3 /* matrix4D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B940CA7CCA8006B18E7 /* matrix4D.h */; };
 		CF2DE19C0E22554B00E879F3 /* opacity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B990CA7CCA8006B18E7 /* opacity.cpp */; };
-		CF2DE19D0E22554B00E879F3 /* opacity.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B9A0CA7CCA8006B18E7 /* opacity.h */; };
 		CF2DE19E0E22554B00E879F3 /* point3D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B9B0CA7CCA8006B18E7 /* point3D.cpp */; };
-		CF2DE19F0E22554B00E879F3 /* point3D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B9C0CA7CCA8006B18E7 /* point3D.h */; };
 		CF2DE1A20E22554B00E879F3 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B9F0CA7CCA8006B18E7 /* utils.cpp */; };
-		CF2DE1A30E22554B00E879F3 /* utils.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2BA00CA7CCA8006B18E7 /* utils.h */; };
 		CF2DE1A40E22554B00E879F3 /* vector3D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2BA10CA7CCA8006B18E7 /* vector3D.cpp */; };
-		CF2DE1A50E22554B00E879F3 /* vector3D.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2BA20CA7CCA8006B18E7 /* vector3D.h */; };
+		CF2DE27F0E22B52D00E879F3 /* orender.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */; };
+		CF2DE2830E22B56300E879F3 /* openrender.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B850CA7CC60006B18E7 /* openrender.h */; };
+		CF2DE2850E22B5A900E879F3 /* sloargs.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B860CA7CC60006B18E7 /* sloargs.h */; };
+		CF2DE29E0E22B83300E879F3 /* shader.c in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE2600E22B33300E879F3 /* shader.c */; };
+		CF2DE29F0E22B84000E879F3 /* functions.c in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25C0E22B33300E879F3 /* functions.c */; };
+		CF2DE2A10E22B84000E879F3 /* parse2.l in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25E0E22B33300E879F3 /* parse2.l */; };
+		CF2DE2A20E22B84000E879F3 /* parse3.y in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25F0E22B33300E879F3 /* parse3.y */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXBuildRule section */
+		CF2DE2B30E22D10100E879F3 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.lex;
+			fileType = sourcecode.lex;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+		CF2DE2B40E22D10100E879F3 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.yacc;
+			fileType = sourcecode.yacc;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+		CF2DE2B50E22D10100E879F3 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.gcc;
+			fileType = sourcecode.c;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+		CF2DE2B60E22D1C400E879F3 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.gcc;
+			fileType = sourcecode.cpp;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+/* End PBXBuildRule section */
+
 /* Begin PBXFileReference section */
-		CF2DE1850E22529400E879F3 /* liblibribrender.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; name = liblibribrender.dylib; path = "/Users/juvenal/Documents/Projects/in-cvs/openrender/build/Debug/liblibribrender.dylib"; sourceTree = "<absolute>"; };
+		CF0024660E23A74900C4098F /* libribrender.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; name = libribrender.dylib; path = build/Debug/libribrender.dylib; sourceTree = "<group>"; };
+		CF0024670E23A74900C4098F /* orender */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = orender; path = build/Debug/orender; sourceTree = "<group>"; };
+		CF0024690E23A74900C4098F /* oshader */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = oshader; path = build/Debug/oshader; sourceTree = "<group>"; };
+		CF2DE2590E22B25D00E879F3 /* sloargs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sloargs.cpp; sourceTree = "<group>"; };
+		CF2DE25A0E22B28500E879F3 /* orender.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = orender.cpp; sourceTree = "<group>"; };
+		CF2DE25B0E22B28500E879F3 /* orender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = orender.h; sourceTree = "<group>"; };
+		CF2DE25C0E22B33300E879F3 /* functions.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = functions.c; sourceTree = "<group>"; };
+		CF2DE25D0E22B33300E879F3 /* functions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = functions.h; sourceTree = "<group>"; };
+		CF2DE25E0E22B33300E879F3 /* parse2.l */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.lex; path = parse2.l; sourceTree = "<group>"; };
+		CF2DE25F0E22B33300E879F3 /* parse3.y */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.yacc; path = parse3.y; sourceTree = "<group>"; };
+		CF2DE2600E22B33300E879F3 /* shader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shader.c; sourceTree = "<group>"; };
+		CF2DE2610E22B36700E879F3 /* ambientlight.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ambientlight.sl; sourceTree = "<group>"; };
+		CF2DE2620E22B36700E879F3 /* background.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = background.sl; sourceTree = "<group>"; };
+		CF2DE2630E22B36700E879F3 /* bumpy.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bumpy.sl; sourceTree = "<group>"; };
+		CF2DE2640E22B36700E879F3 /* constant.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = constant.sl; sourceTree = "<group>"; };
+		CF2DE2650E22B36700E879F3 /* defaultlight.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = defaultlight.sl; sourceTree = "<group>"; };
+		CF2DE2660E22B36700E879F3 /* defaultsurface.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = defaultsurface.sl; sourceTree = "<group>"; };
+		CF2DE2670E22B36700E879F3 /* depthcue.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = depthcue.sl; sourceTree = "<group>"; };
+		CF2DE2680E22B36700E879F3 /* distantlight.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = distantlight.sl; sourceTree = "<group>"; };
+		CF2DE2690E22B36700E879F3 /* exposure.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = exposure.sl; sourceTree = "<group>"; };
+		CF2DE26A0E22B36700E879F3 /* fog.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = fog.sl; sourceTree = "<group>"; };
+		CF2DE26B0E22B36700E879F3 /* matte.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = matte.sl; sourceTree = "<group>"; };
+		CF2DE26C0E22B36700E879F3 /* metal.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = metal.sl; sourceTree = "<group>"; };
+		CF2DE26D0E22B36700E879F3 /* paintedplastic.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = paintedplastic.sl; sourceTree = "<group>"; };
+		CF2DE26E0E22B36700E879F3 /* plastic.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = plastic.sl; sourceTree = "<group>"; };
+		CF2DE26F0E22B36700E879F3 /* pointlight.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = pointlight.sl; sourceTree = "<group>"; };
+		CF2DE2700E22B36700E879F3 /* ripple.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ripple.sl; sourceTree = "<group>"; };
+		CF2DE2710E22B36700E879F3 /* shinymetal.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shinymetal.sl; sourceTree = "<group>"; };
+		CF2DE2720E22B36700E879F3 /* spotlight.sl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = spotlight.sl; sourceTree = "<group>"; };
+		CF2DE2730E22B38F00E879F3 /* shadertell.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shadertell.cpp; sourceTree = "<group>"; };
 		CFFA2B850CA7CC60006B18E7 /* openrender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openrender.h; sourceTree = "<group>"; };
 		CFFA2B860CA7CC60006B18E7 /* sloargs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sloargs.h; sourceTree = "<group>"; };
 		CFFA2B870CA7CCA7006B18E7 /* attributes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = attributes.cpp; sourceTree = "<group>"; };
@@ -63,21 +128,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF2DE2760E22B48E00E879F3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF2DE2970E22B7CB00E879F3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		CF2DE1860E22529400E879F3 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		CFFA2B650CA76F06006B18E7 = {
 			isa = PBXGroup;
 			children = (
 				CFFA2B720CA76F7A006B18E7 /* openrender */,
-				CF2DE1860E22529400E879F3 /* Products */,
+				CF0024660E23A74900C4098F /* libribrender.dylib */,
+				CF0024670E23A74900C4098F /* orender */,
+				CF0024690E23A74900C4098F /* oshader */,
 			);
 			sourceTree = "<group>";
 		};
@@ -159,6 +233,7 @@
 		CFFA2B770CA77010006B18E7 /* libsloargs */ = {
 			isa = PBXGroup;
 			children = (
+				CF2DE2590E22B25D00E879F3 /* sloargs.cpp */,
 			);
 			path = libsloargs;
 			sourceTree = "<group>";
@@ -173,6 +248,8 @@
 		CFFA2B790CA7702C006B18E7 /* render */ = {
 			isa = PBXGroup;
 			children = (
+				CF2DE25A0E22B28500E879F3 /* orender.cpp */,
+				CF2DE25B0E22B28500E879F3 /* orender.h */,
 			);
 			path = render;
 			sourceTree = "<group>";
@@ -180,6 +257,11 @@
 		CFFA2B7B0CA77041006B18E7 /* shader */ = {
 			isa = PBXGroup;
 			children = (
+				CF2DE25C0E22B33300E879F3 /* functions.c */,
+				CF2DE25D0E22B33300E879F3 /* functions.h */,
+				CF2DE25E0E22B33300E879F3 /* parse2.l */,
+				CF2DE25F0E22B33300E879F3 /* parse3.y */,
+				CF2DE2600E22B33300E879F3 /* shader.c */,
 			);
 			path = shader;
 			sourceTree = "<group>";
@@ -187,6 +269,24 @@
 		CFFA2B7C0CA7704B006B18E7 /* shader-src */ = {
 			isa = PBXGroup;
 			children = (
+				CF2DE2610E22B36700E879F3 /* ambientlight.sl */,
+				CF2DE2620E22B36700E879F3 /* background.sl */,
+				CF2DE2630E22B36700E879F3 /* bumpy.sl */,
+				CF2DE2640E22B36700E879F3 /* constant.sl */,
+				CF2DE2650E22B36700E879F3 /* defaultlight.sl */,
+				CF2DE2660E22B36700E879F3 /* defaultsurface.sl */,
+				CF2DE2670E22B36700E879F3 /* depthcue.sl */,
+				CF2DE2680E22B36700E879F3 /* distantlight.sl */,
+				CF2DE2690E22B36700E879F3 /* exposure.sl */,
+				CF2DE26A0E22B36700E879F3 /* fog.sl */,
+				CF2DE26B0E22B36700E879F3 /* matte.sl */,
+				CF2DE26C0E22B36700E879F3 /* metal.sl */,
+				CF2DE26D0E22B36700E879F3 /* paintedplastic.sl */,
+				CF2DE26E0E22B36700E879F3 /* plastic.sl */,
+				CF2DE26F0E22B36700E879F3 /* pointlight.sl */,
+				CF2DE2700E22B36700E879F3 /* ripple.sl */,
+				CF2DE2710E22B36700E879F3 /* shinymetal.sl */,
+				CF2DE2720E22B36700E879F3 /* spotlight.sl */,
 			);
 			path = "shader-src";
 			sourceTree = "<group>";
@@ -194,6 +294,7 @@
 		CFFA2B7D0CA77059006B18E7 /* shadertell */ = {
 			isa = PBXGroup;
 			children = (
+				CF2DE2730E22B38F00E879F3 /* shadertell.cpp */,
 			);
 			path = shadertell;
 			sourceTree = "<group>";
@@ -221,12 +322,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF2DE18F0E22554B00E879F3 /* colour.h in Headers */,
-				CF2DE1970E22554B00E879F3 /* matrix4D.h in Headers */,
-				CF2DE19D0E22554B00E879F3 /* opacity.h in Headers */,
-				CF2DE19F0E22554B00E879F3 /* point3D.h in Headers */,
-				CF2DE1A30E22554B00E879F3 /* utils.h in Headers */,
-				CF2DE1A50E22554B00E879F3 /* vector3D.h in Headers */,
+				CF2DE2850E22B5A900E879F3 /* sloargs.h in Headers */,
+				CF2DE2830E22B56300E879F3 /* openrender.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,8 +344,44 @@
 			);
 			name = ribrender;
 			productName = libribrender;
-			productReference = CF2DE1850E22529400E879F3 /* liblibribrender.dylib */;
+			productReference = CF0024660E23A74900C4098F /* libribrender.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
+		};
+		CF2DE2770E22B48E00E879F3 /* orender */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CF2DE27E0E22B4BB00E879F3 /* Build configuration list for PBXNativeTarget "orender" */;
+			buildPhases = (
+				CF2DE2750E22B48E00E879F3 /* Sources */,
+				CF2DE2760E22B48E00E879F3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = orender;
+			productName = orender;
+			productReference = CF0024670E23A74900C4098F /* orender */;
+			productType = "com.apple.product-type.tool";
+		};
+		CF2DE2980E22B7CB00E879F3 /* oshader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CF2DE29D0E22B7D900E879F3 /* Build configuration list for PBXNativeTarget "oshader" */;
+			buildPhases = (
+				CF2DE2960E22B7CB00E879F3 /* Sources */,
+				CF2DE2970E22B7CB00E879F3 /* Frameworks */,
+			);
+			buildRules = (
+				CF2DE2B40E22D10100E879F3 /* PBXBuildRule */,
+				CF2DE2B30E22D10100E879F3 /* PBXBuildRule */,
+				CF2DE2B50E22D10100E879F3 /* PBXBuildRule */,
+				CF2DE2B60E22D1C400E879F3 /* PBXBuildRule */,
+			);
+			dependencies = (
+			);
+			name = oshader;
+			productName = oshader;
+			productReference = CF0024690E23A74900C4098F /* oshader */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -262,11 +395,13 @@
 			compatibilityVersion = "Xcode 3.0";
 			hasScannedForEncodings = 0;
 			mainGroup = CFFA2B650CA76F06006B18E7;
-			productRefGroup = CF2DE1860E22529400E879F3 /* Products */;
+			productRefGroup = CFFA2B650CA76F06006B18E7;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				CF2DE1840E22529400E879F3 /* ribrender */,
+				CF2DE2770E22B48E00E879F3 /* orender */,
+				CF2DE2980E22B7CB00E879F3 /* oshader */,
 			);
 		};
 /* End PBXProject section */
@@ -285,6 +420,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF2DE2750E22B48E00E879F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF2DE27F0E22B52D00E879F3 /* orender.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF2DE2960E22B7CB00E879F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF2DE29F0E22B84000E879F3 /* functions.c in Sources */,
+				CF2DE2A10E22B84000E879F3 /* parse2.l in Sources */,
+				CF2DE2A20E22B84000E879F3 /* parse3.y in Sources */,
+				CF2DE29E0E22B83300E879F3 /* shader.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -300,7 +454,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INSTALL_PATH = /usr/local/lib;
 				PREBINDING = NO;
-				PRODUCT_NAME = libribrender;
+				PRODUCT_NAME = ribrender;
 				VALID_ARCHS = "ppc64 ppc7400 ppc970 i386 x86_64 ppc";
 				ZERO_LINK = YES;
 			};
@@ -317,7 +471,65 @@
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/lib;
 				PREBINDING = NO;
-				PRODUCT_NAME = libribrender;
+				PRODUCT_NAME = ribrender;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		CF2DE27A0E22B48F00E879F3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = orender;
+				ZERO_LINK = YES;
+			};
+			name = Debug;
+		};
+		CF2DE27B0E22B48F00E879F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = orender;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		CF2DE29B0E22B7CB00E879F3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = oshader;
+				ZERO_LINK = YES;
+			};
+			name = Debug;
+		};
+		CF2DE29C0E22B7CB00E879F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = oshader;
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -346,6 +558,24 @@
 			buildConfigurations = (
 				CF2DE1870E22529600E879F3 /* Debug */,
 				CF2DE1880E22529600E879F3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CF2DE27E0E22B4BB00E879F3 /* Build configuration list for PBXNativeTarget "orender" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF2DE27A0E22B48F00E879F3 /* Debug */,
+				CF2DE27B0E22B48F00E879F3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CF2DE29D0E22B7D900E879F3 /* Build configuration list for PBXNativeTarget "oshader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF2DE29B0E22B7CB00E879F3 /* Debug */,
+				CF2DE29C0E22B7CB00E879F3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
