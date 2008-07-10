@@ -19,24 +19,23 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: orender.h,v 1.2 2004/05/11 10:48:53 juvenal Exp $
+//  $Id: orender.h,v 1.3 2008/07/10 14:39:58 juvenal.silva Exp $
 //
 
 #ifndef _ORENDER_H
 #define _ORENDER_H
 
+#include "../includes/openrender.h"
+
 class oRender: public openRenderCLI {
-    public:
-        oRender();
-        int processRequest(int argc, char *argv[]);
     protected:
         static const int APP_MAJOR_NUMBER = 0;
         static const int APP_MIDLE_NUMBER = 1;
         static const int APP_MINOR_NUMBER = 0;
         static const int APP_EXTRA_NUMBER = 0;
-        static const String APP_MSG_NAME("orender");
-        static const String APP_MSG_DESC("Stand alone renderer for RIB files.");
-        static const String APP_MSG_COPY("(c) Copyright 2002 Juvenal A. Silva Jr.\nAll Rights Reserved.");
+        char static const *APP_MSG_NAME; // = "orender";
+        char static const *APP_MSG_DESC; // = "Stand alone renderer for RIB files.";
+        char static const *APP_MSG_COPY; // = "(c) Copyright 2002 Juvenal A. Silva Jr.\nAll Rights Reserved.";
         static const char OPTION_STATISTICS= 's';
         static const char OPTION_LASTFRAME= 'e';
         static const char OPTION_FIRSTFRAME= 'f';
@@ -46,9 +45,13 @@ class oRender: public openRenderCLI {
         static const char OPTION_PROGRESS= 'p';
         static const char OPTION_QUALITY = 'q';
         // Internal member functions
-        optionsCLI prepareOptions();
+        // optionsCLI prepareOptions();
         void printHeader();
         void printUsage();
         void printVersion();
-}
+    public:
+        oRender();
+        int processRequest(int argc, char *argv[]);
+};
+
 #endif /* _ORENDER_H */

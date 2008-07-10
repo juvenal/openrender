@@ -19,7 +19,7 @@
 //    the Free Software Foundation; either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: parse2.l,v 1.2 2003/12/06 00:45:01 juvenal Exp $
+//  $Id: parse2.l,v 1.3 2008/07/10 14:39:58 juvenal.silva Exp $
 //
 
 // C includes
@@ -29,7 +29,7 @@
 #include <string.h>
 
 // Private includes
-#include "parse3.h"
+#include "y.tab.h"
 
 int  debug = 0,
      line  = 1,
@@ -98,10 +98,10 @@ illuminance     return(ILLUMINANCE);
 fresnel         return(FRESNEL);
 return          return(RETURN);
 
-texture         {yylval='t';return(TEXTURE);};
-environment     {yylval='e';return(TEXTURE);};
-bump            {yylval='b';return(TEXTURE);};
-shadow          {yylval='s';return(TEXTURE);};
+texture         { yylval='t'; return(TEXTURE); };
+environment     { yylval='e'; return(TEXTURE); };
+bump            { yylval='b'; return(TEXTURE); };
+shadow          { yylval='s'; return(TEXTURE); };
 
 PI              {
                   yylval = ( int) malloc ( 100);
