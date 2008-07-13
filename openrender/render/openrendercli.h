@@ -19,7 +19,7 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: openrender.h,v 1.1 2008/07/13 20:14:01 juvenal.silva Exp $
+//  $Id: openrendercli.h,v 1.1 2008/07/13 20:15:08 juvenal.silva Exp $
 //
  
 #ifndef _OPENRENDER_H
