@@ -19,13 +19,13 @@
 //    the Free Software Foundation, either version 2 of the License, or
 //    (at your option) any later version.
 //
-//  $Id: orender.h,v 1.3 2008/07/10 14:39:58 juvenal.silva Exp $
+//  $Id: orender.h,v 1.4 2008/07/13 20:38:31 juvenal.silva Exp $
 //
 
 #ifndef _ORENDER_H
 #define _ORENDER_H
 
-#include "../includes/openrender.h"
+#include "openrendercli.h"
 
 class oRender: public openRenderCLI {
     protected:

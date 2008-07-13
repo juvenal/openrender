@@ -1,25 +1,26 @@
-//
-//  sloargs.h - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Tue Oct 22 2002
-//
-//  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software; you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation; either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: sloargs.h,v 1.2 2002/10/22 12:13:06 juvenal Exp $
-//
+/*
+ *  sloargs.h
+ *  openrender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Tue Oct 22 2002
+ *
+ *  Original Development:
+ *    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software; you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation; either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: sloargs.h,v 1.3 2008/07/13 20:38:31 juvenal.silva Exp $
+ */
 
 #ifndef SLOARGS_H
 #define SLOARGS_H
@@ -55,3 +56,5 @@ class sloArgs {
       
     }
 }
+
+#endif /* SLOARGS_H */
