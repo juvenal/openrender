@@ -1,26 +1,26 @@
-//  openRender
-//
-//  vector3D.cpp - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Sat Sep 28 2002
-//
-//  Original Development:
-//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software, you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: vector3D.cpp,v 1.8 2008/07/07 20:17:29 juvenal.silva Exp $
-//
+/*
+ *  vector3D.cpp
+ *  openRender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Sat Sep 28 2002
+ *
+ *  Original Development:
+ *    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software, you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation, either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: vector3D.cpp,v 1.9 2008/07/15 03:24:58 juvenal.silva Exp $
+ */
 
 // C includes
 #include <math.h>

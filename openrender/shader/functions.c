@@ -1,25 +1,26 @@
-//
-//  functions.c - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Tue Oct 01 2002
-//
-//  Original Development:
-//    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software; you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation; either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: functions.c,v 1.3 2003/12/06 00:45:01 juvenal Exp $
-//
+/*
+ *  functions.c
+ *  openRender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Tue Oct 01 2002
+ *
+ *  Original Development:
+ *    (C) 2002 by Juvenal A. Silva Jr. <juvenal@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software; you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation; either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: functions.c,v 1.4 2008/07/15 03:24:58 juvenal.silva Exp $
+ */
 
 // C includes
 #include <stdio.h>
@@ -177,70 +178,60 @@ int tcount = 10;
 
 
 
-char
-t ( char n) {
-  if ( n == 'c' || n == 'f' || n == 's') {
+char t(char n) {
+    if ( n == 'c' || n == 'f' || n == 's') {
+        return n;
+    }
+    else {
+        return 'v';
+    }
+}
+
+
+struct list_t* getList() {
+    struct list_t *l;
+    l = (struct list_t*) malloc(sizeof(struct list_t));
+    l->count = 0;
+    l->stack[l->count] = 0;
+    return l;
+}
+
+
+void appendToList(struct node_t *n, struct list_t *l) {
+    l->code[l->count] = (char*) malloc(strlen(n->code) + 1);
+    strcpy(l->code[l->count], n->code);
+    l->stack[l->count] = n->stack;
+    l->count++;
+    l->stack[l->count] = 0;
+}
+
+
+void freeList(struct list_t *l) {
+    int i;
+
+    for (i = 0; i < l->count; i++) {
+        free(l->code[i]);
+    }
+    free(l);
+}
+
+
+struct node_t* getNode(char *cs, char ss) {
+    struct node_t *n;
+
+    //printf("getting: %s, %c\n", cs, ss);
+    n = (struct node_t*) malloc(sizeof(struct node_t));
+    n->code = (char*) malloc(strlen(cs) + 1);
+    strcpy(n->code, cs);
+    n->stack = ss;
     return n;
-  }
-  else {
-    return 'v';
-  }
 }
 
 
-struct list_t*
-getList () {
-  struct list_t *l;
-  l = ( struct list_t*) malloc ( sizeof ( struct list_t));
-  l->count = 0;
-  l->stack[l->count] = 0;
-
-  return l;
-}
-
-
-void
-appendToList ( struct node_t *n, struct list_t *l) {
-  l->code[l->count] = ( char*) malloc ( strlen ( n->code) + 1);
-  strcpy ( l->code[l->count], n->code);
-  l->stack[l->count] = n->stack;
-  l->count++;
-  l->stack[l->count] = 0;
-}
-
-
-void
-freeList ( struct list_t *l) {
-  int i;
-
-  for ( i = 0; i < l->count; i++) {
-    free ( l->code[i]);
-  }
-  free ( l);
-}
-
-
-struct node_t*
-getNode ( char *cs, char ss) {
-  struct node_t *n;
-
-  //printf ( "getting: %s, %c\n", cs, ss);
-  n = ( struct node_t*) malloc ( sizeof ( struct node_t));
-
-  n->code = ( char*) malloc ( strlen ( cs) + 1);
-  strcpy ( n->code, cs);
-
-  n->stack = ss;
-
-  return n;
-}
-
-
-void
-freeNode ( struct node_t *n) {
-  //printf ( "Freeing: %s\n", n->code);
-  free ( n->code);
-  free ( n);
+void freeNode(struct node_t *n) {
+    //printf("Freeing: %s\n", n->code);
+    free(n->code);
+    free(n);
 }
 
 

@@ -1,29 +1,29 @@
-//  openRender
-//
-//  point3D.h - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Fri Nov 15 2002
-//
-//  Original Development:
-//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software, you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: point3D.h,v 1.7 2008/07/07 20:17:29 juvenal.silva Exp $
-//
+/*
+ *  point3D.h
+ *  openRender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Fri Nov 15 2002
+ *
+ *  Original Development:
+ *    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software, you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation, either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: point3D.h,v 1.8 2008/07/15 03:24:58 juvenal.silva Exp $
+ */
 
-#ifndef POINT3D_H
-#define POINT3D_H
+#ifndef _POINT3D_H
+#define _POINT3D_H
 
 // Superclass include
 #include "vector3D.h"
@@ -38,4 +38,4 @@ class Point3D: public Vector3D {
         // parent superclass vector3D
 };
 
-#endif // POINT3D_H
+#endif /* _POINT3D_H */

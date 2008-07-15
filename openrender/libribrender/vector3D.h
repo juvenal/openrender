@@ -1,29 +1,29 @@
-//  openRender
-//
-//  vector3D.h - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Sat Sep 28 2002
-//
-//  Original Development:
-//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software, you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: vector3D.h,v 1.7 2008/07/07 20:17:29 juvenal.silva Exp $
-//
+/*
+ *  vector3D.h
+ *  openRender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Sat Sep 28 2002
+ *
+ *  Original Development:
+ *    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software, you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation, either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: vector3D.h,v 1.8 2008/07/15 03:24:58 juvenal.silva Exp $
+ */
 
-#ifndef VECTOR3D_H
-#define VECTOR3D_H
+#ifndef _VECTOR3D_H
+#define _VECTOR3D_H
 
 // C includes
 #include <math.h>
@@ -39,16 +39,16 @@ class Vector3D {
         float x, y, z;
     public:
         // Constructors
-        Vector3D (float _x = 0, float _y = 0, float _z = 0);
+        Vector3D(float _x = 0, float _y = 0, float _z = 0);
         // Member functions
-        void   setxcomp (float _x);
-        void   setycomp (float _y);
-        void   setzcomp (float _z);
-        float  getxcomp ();
-        float  getycomp ();
-        float  getzcomp ();
-        void   normalise ();
-        float  length ();
+        void   setxcomp(float _x);
+        void   setycomp(float _y);
+        void   setzcomp(float _z);
+        float  getxcomp();
+        float  getycomp();
+        float  getzcomp();
+        void   normalise();
+        float  length();
         // Aritmetic operations
         Vector3D operator += (Vector3D a);
         Vector3D operator -= (Vector3D a);
@@ -66,4 +66,4 @@ class Vector3D {
         friend std::ostream& operator << (std::ostream &io, const Vector3D &v);
 };
 
-#endif // VECTOR3D_H
+#endif /* _VECTOR3D_H */

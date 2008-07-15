@@ -1,6 +1,6 @@
 /*
  *  sloargs.h
- *  openrender
+ *  openRender
  *
  *  Description:
  *    {Description}
@@ -19,11 +19,11 @@
  *    the Free Software Foundation; either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: sloargs.h,v 1.3 2008/07/13 20:38:31 juvenal.silva Exp $
+ *  $Id: sloargs.h,v 1.4 2008/07/15 03:24:57 juvenal.silva Exp $
  */
 
-#ifndef SLOARGS_H
-#define SLOARGS_H
+#ifndef _SLOARGS_H
+#define _SLOARGS_H
 
 class sloArgs {
   public:
@@ -57,4 +57,4 @@ class sloArgs {
     }
 }
 
-#endif /* SLOARGS_H */
+#endif /* _SLOARGS_H */

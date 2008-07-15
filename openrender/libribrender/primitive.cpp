@@ -1,26 +1,26 @@
-//  openRender
-//
-//  primitive.cpp - {Summary}
-//
-//  Description:
-//    {Description}
-//
-//  Creation:
-//    Sun Oct 27 2002
-//
-//  Original Development:
-//    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
-//
-//  Contributions:
-//
-//  Statement:
-//    This program is free software, you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 2 of the License, or
-//    (at your option) any later version.
-//
-//  $Id: primitive.cpp,v 1.6 2006/03/26 15:51:23 juvenal.silva Exp $
-//
+/*
+ *  primitive.cpp
+ *  openRender
+ *
+ *  Description:
+ *    {Description}
+ *
+ *  Creation:
+ *    Sun Oct 27 2002
+ *
+ *  Original Development:
+ *    (C) 2006 by Juvenal A. Silva Jr. <juvenal.silva@v2-home.com.br>
+ *
+ *  Contributions:
+ *
+ *  Statement:
+ *    This program is free software, you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation, either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *  $Id: primitive.cpp,v 1.7 2008/07/15 03:24:58 juvenal.silva Exp $
+ */
 
 // C++ includes
 #include <iostream>
@@ -41,45 +41,45 @@
 
 // Basic virtual implementations (must be overriden by real primitives)
 // =======================================================================
-void Primitive::dump () {
+void Primitive::dump() {
     std::cout << "dump(): Unknown primitive!" << std::endl;
 }
 
-bool Primitive::transformToEyeSpace (Matrix4D t_position, Matrix4D t_vector) {
+bool Primitive::transformToEyeSpace(Matrix4D t_position, Matrix4D t_vector) {
     std::cout << "transformToEyeSpace(): Unknown primitive!" << std::endl;
 }
 
-void Primitive::doDice (MicroGrid &microgrid, int us, int vs) {
+void Primitive::doDice(MicroGrid &microgrid, int us, int vs) {
     std::cout << "doDice(): Unknown primitive!" << std::endl;
 }
 
-bool Primitive::splitable () {
+bool Primitive::splitable() {
     std::cout << "splitable(): Unknown primitive!" << std::endl;
     return false;
 }
 
-void Primitive::split (list<Primitive*> &primlist) {
+void Primitive::split(list<Primitive*> &primlist) {
     std::cout << "split(): Unknown primitive!" << std::endl;
 }
 
-bool Primitive::eyeBound (BoundBox &bb) {
+bool Primitive::eyeBound(BoundBox &bb) {
     std::cout << "eyeBound(): Unknown primitive!" << std::endl;
     return false;
 }
 
 // Common methods to all primitives (not virtual methods)
 // =======================================================================
-void Primitive::dice (MicroGrid &microgrid, float xscale, float yscale) {
+void Primitive::dice(MicroGrid &microgrid, float xscale, float yscale) {
     int us, vs;
 
-    estimateGridSize (xscale, yscale, us, vs);
-    doDice (microgrid, us, vs);
+    estimateGridSize(xscale, yscale, us, vs);
+    doDice(microgrid, us, vs);
 }
 
-bool Primitive::diceable (float xscale, float yscale) {
+bool Primitive::diceable(float xscale, float yscale) {
     int us, vs;
 
-    estimateGridSize (xscale, yscale, us, vs);
+    estimateGridSize(xscale, yscale, us, vs);
     if (us * vs <= RiGlobal.options.maxMicroGridSize) {
         return true;
     }
@@ -88,18 +88,18 @@ bool Primitive::diceable (float xscale, float yscale) {
     }
 }
 
-void Primitive::estimateGridSize (float xscale, float yscale, int &us, int &vs) {
+void Primitive::estimateGridSize(float xscale, float yscale, int &us, int &vs) {
     MicroGrid microgrid;
     float zmin, zmax, maxusize, maxvsize;
 
-    doDice (microgrid, 10, 10);
-    microgrid.Statistics (zmin, zmax, maxusize, maxvsize);
-    us = MAX (4, (int) (10 * xscale * maxusize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.xSamplingRate)));
-    vs = MAX (4, (int) (10 * yscale * maxvsize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.ySamplingRate)));
+    doDice(microgrid, 10, 10);
+    microgrid.Statistics(zmin, zmax, maxusize, maxvsize);
+    us = MAX(4, (int) (10 * xscale * maxusize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.xSamplingRate)));
+    vs = MAX(4, (int) (10 * yscale * maxvsize / (RiCurrent.shadingAttributes.shadingRate * RiGlobal.display.ySamplingRate)));
     // Make size a power of 2
     us = 1 << (int) (logn (2, us));
     vs = 1 << (int) (logn (2, vs));
-    us = MAX (us, vs);
-    vs = MAX (us, vs);
+    us = MAX(us, vs);
+    vs = MAX(us, vs);
 }
 

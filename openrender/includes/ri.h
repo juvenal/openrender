@@ -1,6 +1,6 @@
 /*
  *  ri.h
- *  openrender
+ *  openRender
  *
  *  Description:
  *    {Description}
@@ -19,11 +19,11 @@
  *    the Free Software Foundation; either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: ri.h,v 1.1 2008/07/13 20:38:31 juvenal.silva Exp $
+ *  $Id: ri.h,v 1.2 2008/07/15 03:24:58 juvenal.silva Exp $
  */
 
-#ifndef RI_H
-#define RI_H
+#ifndef _RI_H
+#define _RI_H
 
 
 
@@ -32,4 +32,4 @@
 
 
 
-#endif /* RI_H */
+#endif /* _RI_H */
