@@ -19,7 +19,7 @@
  *    the Free Software Foundation, either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: orender.cpp,v 1.3 2008/07/15 03:24:58 juvenal.silva Exp $
+ *  $Id: orender.cpp,v 1.4 2008/07/17 20:08:11 juvenal.silva Exp $
  */
 
 // C includes
@@ -31,12 +31,18 @@
 #include <iomanip>
 
 // Private includes
-//#include "../includes/openrender.h"
 #include "orender.h"
 
+// implementation of member functions
+oRender::oRender() {}
+void oRender::printHeader() {}
+void oRender::printUsage() {}
+void oRender::printVersion() {}
+int oRender::processRequest(int argc, char *argv[]) {}
+oRender::~oRender() {}
 
-// Main execution for openrender render command.
+// Main execution for orender command.
 int main(int argc, char *argv[]) {
-    // oRender *orender = new oRender();
-    // return orender->processRequest(argc, argv);
+    oRender *orender = new oRender();
+    return orender->processRequest(argc, argv);
 }

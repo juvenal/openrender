@@ -7,8 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CF0024CB0E2A9B9D00C4098F /* ri.h in Headers */ = {isa = PBXBuildFile; fileRef = CF0024CA0E2A9B9000C4098F /* ri.h */; };
+		CF0024CB0E2A9B9D00C4098F /* ri.h in Headers */ = {isa = PBXBuildFile; fileRef = CF0024CA0E2A9B9000C4098F /* ri.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CF0025250E2AD94C00C4098F /* libribrender.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CF0025220E2AD8FA00C4098F /* libribrender.dylib */; };
+		CF0025490E2FCDE600C4098F /* openrender.h in Headers */ = {isa = PBXBuildFile; fileRef = CF0025440E2FCC4D00C4098F /* openrender.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CF2DE18E0E22554B00E879F3 /* colour.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B8B0CA7CCA7006B18E7 /* colour.cpp */; };
 		CF2DE1960E22554B00E879F3 /* matrix4D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B930CA7CCA8006B18E7 /* matrix4D.cpp */; };
 		CF2DE19C0E22554B00E879F3 /* opacity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B990CA7CCA8006B18E7 /* opacity.cpp */; };
@@ -16,7 +17,7 @@
 		CF2DE1A20E22554B00E879F3 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2B9F0CA7CCA8006B18E7 /* utils.cpp */; };
 		CF2DE1A40E22554B00E879F3 /* vector3D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFFA2BA10CA7CCA8006B18E7 /* vector3D.cpp */; };
 		CF2DE27F0E22B52D00E879F3 /* orender.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */; };
-		CF2DE2850E22B5A900E879F3 /* sloargs.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B860CA7CC60006B18E7 /* sloargs.h */; };
+		CF2DE2850E22B5A900E879F3 /* sloargs.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFA2B860CA7CC60006B18E7 /* sloargs.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CF2DE29E0E22B83300E879F3 /* shader.c in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE2600E22B33300E879F3 /* shader.c */; };
 		CF2DE29F0E22B84000E879F3 /* functions.c in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25C0E22B33300E879F3 /* functions.c */; };
 		CF2DE2A10E22B84000E879F3 /* parse2.l in Sources */ = {isa = PBXBuildFile; fileRef = CF2DE25E0E22B33300E879F3 /* parse2.l */; };
@@ -61,9 +62,9 @@
 /* Begin PBXFileReference section */
 		CF0024670E23A74900C4098F /* orender */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = orender; path = build/Debug/orender; sourceTree = "<group>"; };
 		CF0024690E23A74900C4098F /* oshader */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = oshader; path = build/Debug/oshader; sourceTree = "<group>"; };
-		CF0024C90E2A9AEB00C4098F /* openrendercli.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openrendercli.h; sourceTree = "<group>"; };
 		CF0024CA0E2A9B9000C4098F /* ri.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ri.h; sourceTree = "<group>"; };
 		CF0025220E2AD8FA00C4098F /* libribrender.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libribrender.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF0025440E2FCC4D00C4098F /* openrender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openrender.h; sourceTree = "<group>"; };
 		CF2DE2590E22B25D00E879F3 /* sloargs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sloargs.cpp; sourceTree = "<group>"; };
 		CF2DE25A0E22B28500E879F3 /* orender.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = orender.cpp; sourceTree = "<group>"; };
 		CF2DE25B0E22B28500E879F3 /* orender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = orender.h; sourceTree = "<group>"; };
@@ -251,7 +252,6 @@
 		CFFA2B790CA7702C006B18E7 /* render */ = {
 			isa = PBXGroup;
 			children = (
-				CF0024C90E2A9AEB00C4098F /* openrendercli.h */,
 				CF2DE25A0E22B28500E879F3 /* orender.cpp */,
 				CF2DE25B0E22B28500E879F3 /* orender.h */,
 			);
@@ -315,6 +315,7 @@
 			children = (
 				CFFA2B860CA7CC60006B18E7 /* sloargs.h */,
 				CF0024CA0E2A9B9000C4098F /* ri.h */,
+				CF0025440E2FCC4D00C4098F /* openrender.h */,
 			);
 			path = includes;
 			sourceTree = "<group>";
@@ -326,6 +327,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF0025490E2FCDE600C4098F /* openrender.h in Headers */,
 				CF0024CB0E2A9B9D00C4098F /* ri.h in Headers */,
 				CF2DE2850E22B5A900E879F3 /* sloargs.h in Headers */,
 			);

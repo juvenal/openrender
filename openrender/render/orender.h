@@ -19,26 +19,26 @@
  *    the Free Software Foundation, either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: orender.h,v 1.5 2008/07/15 03:24:58 juvenal.silva Exp $
+ *  $Id: orender.h,v 1.6 2008/07/17 20:08:11 juvenal.silva Exp $
  */
 
 #ifndef _ORENDER_H
 #define _ORENDER_H
 
-#include "openrendercli.h"
+#include <openrender.h>
 
-class oRender: public openRenderCLI {
+class oRender: public openRender {
     protected:
-        static const int APP_MAJOR_NUMBER = 0;
-        static const int APP_MIDLE_NUMBER = 1;
-        static const int APP_MINOR_NUMBER = 0;
-        static const int APP_EXTRA_NUMBER = 0;
-        char static const *APP_MSG_NAME; // = "orender";
-        char static const *APP_MSG_DESC; // = "Stand alone renderer for RIB files.";
-        char static const *APP_MSG_COPY; // = "(c) Copyright 2002 Juvenal A. Silva Jr.\nAll Rights Reserved.";
+        static const int APP_MAJOR_VERSION = 0;
+        static const int APP_MIDLE_VERSION = 1;
+        static const int APP_MINOR_VERSION = 0;
+        static const int APP_EXTRA_RELEASE = 0;
+        static const char *APP_MSG_NAME;
+        static const char *APP_MSG_DESC;
+        static const char *APP_MSG_COPY;
         static const char OPTION_STATISTICS= 's';
+        static const char OPTION_FIRSTFRAME= 'b';
         static const char OPTION_LASTFRAME= 'e';
-        static const char OPTION_FIRSTFRAME= 'f';
         static const char OPTION_FRAMEBUFFER= 'd';
         static const char OPTION_VERSION= 'v';
         static const char OPTION_HELP= 'h';
@@ -52,6 +52,12 @@ class oRender: public openRenderCLI {
     public:
         oRender();
         int processRequest(int argc, char *argv[]);
+        ~oRender();
 };
+
+// Fill the static constants
+const char *oRender::APP_MSG_NAME = "orender";
+const char *oRender::APP_MSG_DESC = "Stand alone renderer for RIB files.";
+const char *oRender::APP_MSG_COPY = "(c) Copyright 2008 Juvenal A. Silva Jr.\nAll Rights Reserved.";
 
 #endif /* _ORENDER_H */
