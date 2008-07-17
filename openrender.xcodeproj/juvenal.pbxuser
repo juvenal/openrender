@@ -7,12 +7,13 @@
 		argumentStrings = (
 		);
 		autoAttachOnCrash = 1;
-		breakpointsEnabled = 1;
+		breakpointsEnabled = 0;
 		configStateDict = {
 		};
 		customDataFormattersEnabled = 1;
 		debuggerPlugin = GDBDebugging;
 		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
 		enableDebugStr = 1;
 		environmentEntries = (
 		);
@@ -152,8 +153,8 @@
 	CFFA2B670CA76F06006B18E7 /* Project object */ = {
 		activeArchitecture = i386;
 		activeBuildConfigurationName = Debug;
-		activeExecutable = CF0024680E23A74900C4098F /* orender */;
-		activeTarget = CF2DE2770E22B48E00E879F3 /* orender */;
+		activeExecutable = CF00246A0E23A74900C4098F /* oshader */;
+		activeTarget = CF2DE2980E22B7CB00E879F3 /* oshader */;
 		addToTargets = (
 		);
 		codeSenseManager = CFFA2B6C0CA76F06006B18E7 /* Code sense */;
