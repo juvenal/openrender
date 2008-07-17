@@ -60,8 +60,8 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
-		CF0024670E23A74900C4098F /* orender */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = orender; path = build/Debug/orender; sourceTree = "<group>"; };
-		CF0024690E23A74900C4098F /* oshader */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = oshader; path = build/Debug/oshader; sourceTree = "<group>"; };
+		CF0024670E23A74900C4098F /* orender */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = orender; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF0024690E23A74900C4098F /* oshader */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = oshader; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF0024CA0E2A9B9000C4098F /* ri.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ri.h; sourceTree = "<group>"; };
 		CF0025220E2AD8FA00C4098F /* libribrender.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libribrender.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF0025440E2FCC4D00C4098F /* openrender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openrender.h; sourceTree = "<group>"; };
