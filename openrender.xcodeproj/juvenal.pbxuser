@@ -154,7 +154,7 @@
 		activeArchitecture = i386;
 		activeBuildConfigurationName = Debug;
 		activeExecutable = CF00246A0E23A74900C4098F /* oshader */;
-		activeTarget = CF2DE2980E22B7CB00E879F3 /* oshader */;
+		activeTarget = CF2DE1840E22529400E879F3 /* ribrender */;
 		addToTargets = (
 		);
 		codeSenseManager = CFFA2B6C0CA76F06006B18E7 /* Code sense */;
@@ -165,6 +165,20 @@
 		ignoreBreakpointsInProjectsDict = {
 		};
 		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXErrorsWarningsDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXErrorsWarningsDataSource_LocationID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					300,
+					183,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXErrorsWarningsDataSource_TypeID,
+					PBXErrorsWarningsDataSource_MessageID,
+					PBXErrorsWarningsDataSource_LocationID,
+				);
+			};
 			PBXConfiguration.PBXFileTableDataSource3.PBXExecutablesDataSource = {
 				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
 				PBXFileTableDataSourceColumnSortingKey = PBXExecutablesDataSource_NameID;

@@ -19,7 +19,7 @@
  *    the Free Software Foundation, either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: orender.cpp,v 1.4 2008/07/17 20:08:11 juvenal.silva Exp $
+ *  $Id: orender.cpp,v 1.5 2008/07/17 21:25:52 juvenal.silva Exp $
  */
 
 // C includes
@@ -35,6 +35,7 @@
 
 // implementation of member functions
 oRender::oRender() {}
+void oRender::prepareOptions() {}
 void oRender::printHeader() {}
 void oRender::printUsage() {}
 void oRender::printVersion() {}
