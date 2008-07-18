@@ -19,13 +19,17 @@
  *    the Free Software Foundation, either version 2 of the License, or
  *    (at your option) any later version.
  *
- *  $Id: orender.h,v 1.7 2008/07/17 21:25:52 juvenal.silva Exp $
+ *  $Id: orender.h,v 1.8 2008/07/18 17:17:50 juvenal.silva Exp $
  */
 
 #ifndef _ORENDER_H
 #define _ORENDER_H
 
+// Public project include
 #include <openrender.h>
+
+// Private project include
+#include "optionsCLI.h"
 
 class oRender: public openRender {
     protected:
@@ -36,16 +40,17 @@ class oRender: public openRender {
         static const char *APP_MSG_NAME;
         static const char *APP_MSG_DESC;
         static const char *APP_MSG_COPY;
-        static const char OPTION_STATISTICS= 's';
-        static const char OPTION_FIRSTFRAME= 'b';
-        static const char OPTION_LASTFRAME= 'e';
-        static const char OPTION_FRAMEBUFFER= 'd';
-        static const char OPTION_VERSION= 'v';
-        static const char OPTION_HELP= 'h';
-        static const char OPTION_PROGRESS= 'p';
+        static const char OPTION_STATISTICS = 's';
+        static const char OPTION_FIRSTFRAME = 'b';
+        static const char OPTION_LASTFRAME = 'e';
+        static const char OPTION_FRAMEBUFFER = 'd';
+        static const char OPTION_VERSION = 'v';
+        static const char OPTION_HELP = 'h';
+        static const char OPTION_PROGRESS = 'p';
         static const char OPTION_QUALITY = 'q';
+        optionsCLI activeOptions;
         // Internal member functions
-        void prepareOptions();
+        void prepareOptions(int argc, char *argv[]);
         void printHeader();
         void printUsage();
         void printVersion();

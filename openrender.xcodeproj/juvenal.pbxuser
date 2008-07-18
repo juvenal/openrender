@@ -31,7 +31,7 @@
 		argumentStrings = (
 		);
 		autoAttachOnCrash = 1;
-		breakpointsEnabled = 1;
+		breakpointsEnabled = 0;
 		configStateDict = {
 		};
 		customDataFormattersEnabled = 1;
@@ -76,17 +76,17 @@
 	};
 	CF2DE25A0E22B28500E879F3 /* orender.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {691, 686}}";
-			sepNavSelRange = "{734, 0}";
-			sepNavVisRange = "{396, 732}";
-			sepNavWindowFrame = "{{87, 155}, {750, 558}}";
+			sepNavIntBoundsRect = "{{0, 0}, {452, 966}}";
+			sepNavSelRange = "{914, 0}";
+			sepNavVisRange = "{652, 333}";
+			sepNavWindowFrame = "{{117, 69}, {750, 558}}";
 		};
 	};
 	CF2DE25B0E22B28500E879F3 /* orender.h */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {691, 896}}";
-			sepNavSelRange = "{865, 0}";
-			sepNavVisRange = "{791, 1151}";
+			sepNavIntBoundsRect = "{{0, 0}, {608, 896}}";
+			sepNavSelRange = "{1793, 3}";
+			sepNavVisRange = "{1385, 412}";
 			sepNavWindowFrame = "{{496, 140}, {750, 558}}";
 		};
 	};
@@ -150,12 +150,317 @@
 			CF00246A0E23A74900C4098F /* oshader */,
 		);
 	};
+	CF3B79290E2FEC1F000812A7 /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+	};
+	CF3B792A0E2FEF20000812A7 /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+	};
+	CF3B792E0E2FF075000812A7 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 64";
+		rLen = 0;
+		rLoc = 2074;
+		rType = 0;
+		vrLen = 1190;
+		vrLoc = 743;
+	};
+	CF3B79310E2FF075000812A7 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 50";
+		rLen = 0;
+		rLoc = 1402;
+		rType = 0;
+		vrLen = 841;
+		vrLoc = 321;
+	};
+	CFCD75A30E2FF43000A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 64";
+		rLen = 0;
+		rLoc = 2074;
+		rType = 0;
+		vrLen = 1190;
+		vrLoc = 743;
+	};
+	CFCD75A40E2FF43000A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 50";
+		rLen = 0;
+		rLoc = 1402;
+		rType = 0;
+		vrLen = 766;
+		vrLoc = 396;
+	};
+	CFCD75A70E2FF4DC00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 1151;
+		rType = 0;
+		vrLen = 716;
+		vrLoc = 468;
+	};
+	CFCD75A80E2FF4DC00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 46";
+		rLen = 0;
+		rLoc = 1515;
+		rType = 0;
+		vrLen = 1164;
+		vrLoc = 791;
+	};
+	CFCD75AB0E30D97D00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "error: making 'APP_MAJOR_VERSION' static";
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		rLen = 1;
+		rLoc = 35;
+		rType = 1;
+	};
+	CFCD75AC0E30DD1300A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 52";
+		rLen = 0;
+		rLoc = 793;
+		rType = 0;
+		vrLen = 999;
+		vrLoc = 734;
+	};
+	CFCD75AD0E30DD1300A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 32";
+		rLen = 0;
+		rLoc = 819;
+		rType = 0;
+		vrLen = 1028;
+		vrLoc = 244;
+	};
+	CFCD75B10E30DE5D00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "error: uninitialized member 'oRender::APP_MAJOR_VERSION' with 'const' type 'const int'";
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		rLen = 1;
+		rLoc = 36;
+		rType = 1;
+	};
+	CFCD75B30E30E5CD00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 46";
+		rLen = 0;
+		rLoc = 1455;
+		rType = 0;
+		vrLen = 869;
+		vrLoc = 394;
+	};
+	CFCD75B40E30E5CD00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 52";
+		rLen = 0;
+		rLoc = 793;
+		rType = 0;
+		vrLen = 982;
+		vrLoc = 672;
+	};
+	CFCD75B70E30EDB100A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "error: expected `;' before string constant";
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		rLen = 1;
+		rLoc = 41;
+		rType = 1;
+	};
+	CFCD75B80E30EDC200A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 914;
+		rType = 0;
+		vrLen = 635;
+		vrLoc = 321;
+	};
+	CFCD75B90E30EDC200A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 44";
+		rLen = 0;
+		rLoc = 1355;
+		rType = 0;
+		vrLen = 876;
+		vrLoc = 52;
+	};
+	CFCD75BC0E30EE7B00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 43";
+		rLen = 0;
+		rLoc = 982;
+		rType = 0;
+		vrLen = 692;
+		vrLoc = 321;
+	};
+	CFCD75BD0E30EE7B00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 47";
+		rLen = 0;
+		rLoc = 1515;
+		rType = 0;
+		vrLen = 1126;
+		vrLoc = 644;
+	};
+	CFCD75BF0E30EEB700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 62";
+		rLen = 0;
+		rLoc = 1208;
+		rType = 0;
+		vrLen = 530;
+		vrLoc = 692;
+	};
+	CFCD75C00E30EEB700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 47";
+		rLen = 0;
+		rLoc = 1515;
+		rType = 0;
+		vrLen = 1126;
+		vrLoc = 644;
+	};
+	CFCD75C40E30F10100A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 916;
+		rType = 0;
+		vrLen = 540;
+		vrLoc = 692;
+	};
+	CFCD75C50E30F10100A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 46";
+		rLen = 0;
+		rLoc = 1442;
+		rType = 0;
+		vrLen = 1126;
+		vrLoc = 644;
+	};
+	CFCD75C60E30F1B300A78CD5 /* optionsCLI.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {691, 448}}";
+			sepNavSelRange = "{651, 0}";
+			sepNavVisRange = "{0, 653}";
+			sepNavWindowFrame = "{{57, 204}, {750, 558}}";
+		};
+	};
+	CFCD75C70E30F1B300A78CD5 /* optionsCLI.cpp */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {691, 430}}";
+			sepNavSelRange = "{21, 0}";
+			sepNavVisRange = "{0, 611}";
+			sepNavWindowFrame = "{{38, 194}, {750, 558}}";
+		};
+	};
+	CFCD75CA0E30F28700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 32";
+		rLen = 0;
+		rLoc = 819;
+		rType = 0;
+		vrLen = 366;
+		vrLoc = 511;
+	};
+	CFCD75CB0E30F28700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "error: 'endl' was not declared in this scope";
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		rLen = 1;
+		rLoc = 41;
+		rType = 1;
+	};
+	CFCD75CC0E30F28700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 32";
+		rLen = 0;
+		rLoc = 819;
+		rType = 0;
+		vrLen = 366;
+		vrLoc = 511;
+	};
+	CFCD75CD0E30F28700A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 914;
+		rType = 0;
+		vrLen = 333;
+		vrLoc = 652;
+	};
+	CFCD75D40E31073A00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 914;
+		rType = 0;
+		vrLen = 333;
+		vrLoc = 652;
+	};
+	CFCD75D50E31073A00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "error: multiple types in one declaration";
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		rLen = 1;
+		rLoc = 60;
+		rType = 1;
+	};
+	CFCD75D60E31073A00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25A0E22B28500E879F3 /* orender.cpp */;
+		name = "orender.cpp: 42";
+		rLen = 0;
+		rLoc = 914;
+		rType = 0;
+		vrLen = 333;
+		vrLoc = 652;
+	};
+	CFCD75D70E31073A00A78CD5 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = CF2DE25B0E22B28500E879F3 /* orender.h */;
+		name = "orender.h: 61";
+		rLen = 3;
+		rLoc = 1793;
+		rType = 0;
+		vrLen = 412;
+		vrLoc = 1385;
+	};
 	CFFA2B670CA76F06006B18E7 /* Project object */ = {
 		activeArchitecture = i386;
 		activeBuildConfigurationName = Debug;
 		activeExecutable = CF00246A0E23A74900C4098F /* oshader */;
-		activeTarget = CF2DE1840E22529400E879F3 /* ribrender */;
+		activeTarget = CF2DE2770E22B48E00E879F3 /* orender */;
 		addToTargets = (
+			CF2DE2770E22B48E00E879F3 /* orender */,
 		);
 		codeSenseManager = CFFA2B6C0CA76F06006B18E7 /* Code sense */;
 		executables = (
@@ -277,8 +582,41 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 238019334;
-			PBXWorkspaceStateSaveDate = 238019334;
+			PBXPerProjectTemplateStateSaveDate = 238023658;
+			PBXWorkspaceStateSaveDate = 238023658;
+		};
+		perUserProjectItems = {
+			CF3B79290E2FEC1F000812A7 = CF3B79290E2FEC1F000812A7 /* PBXBookmark */;
+			CF3B792A0E2FEF20000812A7 = CF3B792A0E2FEF20000812A7 /* PBXBookmark */;
+			CF3B792E0E2FF075000812A7 = CF3B792E0E2FF075000812A7 /* PBXTextBookmark */;
+			CF3B79310E2FF075000812A7 = CF3B79310E2FF075000812A7 /* PBXTextBookmark */;
+			CFCD75A30E2FF43000A78CD5 /* PBXTextBookmark */ = CFCD75A30E2FF43000A78CD5 /* PBXTextBookmark */;
+			CFCD75A40E2FF43000A78CD5 /* PBXTextBookmark */ = CFCD75A40E2FF43000A78CD5 /* PBXTextBookmark */;
+			CFCD75A70E2FF4DC00A78CD5 /* PBXTextBookmark */ = CFCD75A70E2FF4DC00A78CD5 /* PBXTextBookmark */;
+			CFCD75A80E2FF4DC00A78CD5 /* PBXTextBookmark */ = CFCD75A80E2FF4DC00A78CD5 /* PBXTextBookmark */;
+			CFCD75AB0E30D97D00A78CD5 /* PBXTextBookmark */ = CFCD75AB0E30D97D00A78CD5 /* PBXTextBookmark */;
+			CFCD75AC0E30DD1300A78CD5 /* PBXTextBookmark */ = CFCD75AC0E30DD1300A78CD5 /* PBXTextBookmark */;
+			CFCD75AD0E30DD1300A78CD5 /* PBXTextBookmark */ = CFCD75AD0E30DD1300A78CD5 /* PBXTextBookmark */;
+			CFCD75B10E30DE5D00A78CD5 /* PBXTextBookmark */ = CFCD75B10E30DE5D00A78CD5 /* PBXTextBookmark */;
+			CFCD75B30E30E5CD00A78CD5 /* PBXTextBookmark */ = CFCD75B30E30E5CD00A78CD5 /* PBXTextBookmark */;
+			CFCD75B40E30E5CD00A78CD5 /* PBXTextBookmark */ = CFCD75B40E30E5CD00A78CD5 /* PBXTextBookmark */;
+			CFCD75B70E30EDB100A78CD5 /* PBXTextBookmark */ = CFCD75B70E30EDB100A78CD5 /* PBXTextBookmark */;
+			CFCD75B80E30EDC200A78CD5 /* PBXTextBookmark */ = CFCD75B80E30EDC200A78CD5 /* PBXTextBookmark */;
+			CFCD75B90E30EDC200A78CD5 /* PBXTextBookmark */ = CFCD75B90E30EDC200A78CD5 /* PBXTextBookmark */;
+			CFCD75BC0E30EE7B00A78CD5 /* PBXTextBookmark */ = CFCD75BC0E30EE7B00A78CD5 /* PBXTextBookmark */;
+			CFCD75BD0E30EE7B00A78CD5 /* PBXTextBookmark */ = CFCD75BD0E30EE7B00A78CD5 /* PBXTextBookmark */;
+			CFCD75BF0E30EEB700A78CD5 /* PBXTextBookmark */ = CFCD75BF0E30EEB700A78CD5 /* PBXTextBookmark */;
+			CFCD75C00E30EEB700A78CD5 /* PBXTextBookmark */ = CFCD75C00E30EEB700A78CD5 /* PBXTextBookmark */;
+			CFCD75C40E30F10100A78CD5 /* PBXTextBookmark */ = CFCD75C40E30F10100A78CD5 /* PBXTextBookmark */;
+			CFCD75C50E30F10100A78CD5 /* PBXTextBookmark */ = CFCD75C50E30F10100A78CD5 /* PBXTextBookmark */;
+			CFCD75CA0E30F28700A78CD5 /* PBXTextBookmark */ = CFCD75CA0E30F28700A78CD5 /* PBXTextBookmark */;
+			CFCD75CB0E30F28700A78CD5 /* PBXTextBookmark */ = CFCD75CB0E30F28700A78CD5 /* PBXTextBookmark */;
+			CFCD75CC0E30F28700A78CD5 /* PBXTextBookmark */ = CFCD75CC0E30F28700A78CD5 /* PBXTextBookmark */;
+			CFCD75CD0E30F28700A78CD5 /* PBXTextBookmark */ = CFCD75CD0E30F28700A78CD5 /* PBXTextBookmark */;
+			CFCD75D40E31073A00A78CD5 /* PBXTextBookmark */ = CFCD75D40E31073A00A78CD5 /* PBXTextBookmark */;
+			CFCD75D50E31073A00A78CD5 /* PBXTextBookmark */ = CFCD75D50E31073A00A78CD5 /* PBXTextBookmark */;
+			CFCD75D60E31073A00A78CD5 /* PBXTextBookmark */ = CFCD75D60E31073A00A78CD5 /* PBXTextBookmark */;
+			CFCD75D70E31073A00A78CD5 /* PBXTextBookmark */ = CFCD75D70E31073A00A78CD5 /* PBXTextBookmark */;
 		};
 		sourceControlManager = CFFA2B6B0CA76F06006B18E7 /* Source Control */;
 		userBuildSettings = {
