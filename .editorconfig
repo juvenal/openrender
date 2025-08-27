@@ -1,0 +1,39 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Set default file settings
+[**]
+charset = utf-8
+tab_width = 8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Set my default for Python
+[*.py]
+indent_size = 4
+indent_style = space
+
+# Set my Golang defaults
+[*.go]
+indent_size = 4
+indent_style = tab
+
+# My web files and XML
+[*.{html,css,xml}]
+indent_size = 2
+indent_style = space
+
+# Default for Makefiles
+[Makefile]
+indent_size = 8
+indent_style = tab
+
+# Matches the exact files either package.json or .travis.yml
+[{package.json,.travis.yml}]
+indent_size = 2
+indent_style = space
