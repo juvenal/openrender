@@ -1,49 +1,69 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.15)
 
-project(Pixie)
+project(Pixie
+    VERSION 2.2.6
+    DESCRIPTION "Open-source RenderMan-compliant renderer"
+    LANGUAGES C CXX
+)
 
-set(PIXIE_VERSION_MAJOR "2")
-set(PIXIE_VERSION_MINOR "2")
-set(PIXIE_VERSION_PATCH "6")
-set(PIXIE_VERSION ${PIXIE_VERSION_MAJOR}.${PIXIE_VERSION_MINOR}.${PIXIE_VERSION_PATCH})
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(PIXIE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(PIXIE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(PIXIE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(PIXIE_VERSION ${PROJECT_VERSION})
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 
 
-set(PIXIE_INSTALL_PREFIX "/usr/local/Pixie" CACHE PATH "Prefix prepended to install directories")
-set(CMAKE_INSTALL_PREFIX "${PIXIE_INSTALL_PREFIX}" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+# Use standard CMAKE_INSTALL_PREFIX and GNUInstallDirs
+include(GNUInstallDirs)
 
 # ###########################################################################
 # ########## Options 
 # ###########################################################################
-option(USE_FLEX_BISON "" ON)
+option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(BUILD_SHOW "Build the show program" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
-if(APPLE)
-	option(USE_STAGING_TIFF_LIB "Set this option to ON to build with the TIFF libs from xcode subdir. Set to OFF to build with system installed libs instead (Fink/MacPorts)" OFF)
-	option(USE_STAGING_OPENEXR_LIB "Set this option to ON to build with the OpenEXR libs from xcode subdir. Set to OFF to build with system installed libs instead (Fink/MacPorts)" OFF)
-endif(APPLE)
+# Remove obsolete staging options - we now use system package managers
 
 if(USE_FLEX_BISON)
 	include(CMake/PixieUseFlex.cmake)
 	include(CMake/PixieUseBison.cmake)
-endif(USE_FLEX_BISON)
+endif()
 
 
 # ###########################################################################
-# ########## User Overridable Variables
+# ########## Compiler Configuration
 # ###########################################################################
+
+# Modern compiler flags
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Platform-specific settings
 if(APPLE)
-	# this is required for Snow Leopard, gcc being configured as 64-bit by default
-	set(PIXIE_C_FLAGS "-arch i386" CACHE STRING "var")
-	set(PIXIE_CXX_FLAGS "-arch i386" CACHE STRING "var")
-else(APPLE)
-	set(PIXIE_C_FLAGS CACHE STRING "Pixie custom cflags")
-	set(PIXIE_CXX_FLAGS CACHE STRING "Pixie custom cxxflags")
-endif(APPLE)
+    # Support both Apple Silicon (arm64) and Intel (x86_64)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
+    # Use modern macOS deployment target
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version")
+endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PIXIE_C_FLAGS}" CACHE INTERNAL "Pixie custom cflags" FORCE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PIXIE_CXX_FLAGS}" CACHE INTERNAL "Pixie custom cxxflags" FORCE)
+# Create interface library for common flags
+add_library(pixie_common_flags INTERFACE)
+
+# Enable modern C++ warnings and optimizations
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(pixie_common_flags INTERFACE
+        -Wall -Wextra -Wpedantic
+        $<$<CONFIG:Debug>:-g -O0>
+        $<$<CONFIG:Release>:-O3 -DNDEBUG>
+    )
+endif()
 
 # ###########################################################################
 # ########## Making config.h for various platform
@@ -79,77 +99,128 @@ check_function_exists(logf							HAVE_LOGF)
 check_function_exists(fmodf							HAVE_FMODF)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-add_definitions(-DHAVE_CMAKE_CONFIG_H)
+# Make config.h available to all targets
+target_include_directories(pixie_common_flags INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(pixie_common_flags INTERFACE HAVE_CMAKE_CONFIG_H)
 
 # ###########################################################################
-# ########## Global Libraries Deps
-# ###########################################################################
-# Finding some dependency
-if(USE_STAGING_TIFF_LIB)
-	# on Apple systems, we can use the staging libs. Other option is to use macports / fink versions instead...
-	include_directories(xcode/PixieLibs/libtiff/STAGING/libtiff-i386/include)
-	find_library(pixietiff_lib pixietiff xcode/PixieLibs/libtiff/STAGING/libtiff NO_DEFAULT_PATH)
-	#message(STATUS "found ${pixietiff_lib}" )
-	find_library(pixietiffjpeg_lib jpeg xcode/PixieLibs/libtiff/STAGING/libjpeg/lib NO_DEFAULT_PATH)
-	#message(STATUS "found ${pixietiffjpeg_lib}" )
-	set(pixietiff_libs ${pixietiff_lib} ${pixietiffjpeg_lib})
-else(USE_STAGING_TIFF_LIB)
-	find_package(TIFF REQUIRED)
-	if(TIFF_FOUND)
-		include_directories(${TIFF_INCLUDE_DIR})
-		set(pixietiff_libs ${TIFF_LIBRARIES})
-	else(TIFF_FOUND)
-		message(FATAL_ERROR "Could not find TIFF library")
-	endif(TIFF_FOUND)
-endif(USE_STAGING_TIFF_LIB)
-
-# ###########################################################################
-# ########## Installation of built products
+# ########## Dependencies
 # ###########################################################################
 
+# Find required packages using modern CMake
+find_package(PkgConfig REQUIRED)
+
+# TIFF library
+find_package(TIFF REQUIRED)
+message(STATUS "Found TIFF: ${TIFF_VERSION}")
+
+# PNG library  
+find_package(PNG REQUIRED)
+message(STATUS "Found PNG: ${PNG_VERSION}")
+
+# ZLIB (may be keg-only on macOS)
+find_package(ZLIB REQUIRED)
+message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
+
+# Threads
+find_package(Threads REQUIRED)
+
+# Math library (Unix systems)
+if(UNIX AND NOT APPLE)
+    find_library(MATH_LIBRARY m REQUIRED)
+endif()
+
+# Dynamic loading library
+if(UNIX)
+    find_library(DL_LIBRARY dl REQUIRED)
+endif()
+
+# FLTK for GUI (use fltk-config as it doesn't provide pkg-config)
+if(BUILD_SHOW)
+    find_program(FLTK_CONFIG_EXECUTABLE NAMES fltk-config)
+    if(FLTK_CONFIG_EXECUTABLE)
+        execute_process(
+            COMMAND ${FLTK_CONFIG_EXECUTABLE} --version
+            OUTPUT_VARIABLE FLTK_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        execute_process(
+            COMMAND ${FLTK_CONFIG_EXECUTABLE} --cflags
+            OUTPUT_VARIABLE FLTK_CFLAGS
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        execute_process(
+            COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldflags
+            OUTPUT_VARIABLE FLTK_LDFLAGS
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        
+        # Create imported target for FLTK
+        add_library(FLTK::FLTK INTERFACE IMPORTED)
+        separate_arguments(FLTK_CFLAGS)
+        separate_arguments(FLTK_LDFLAGS)
+        set_target_properties(FLTK::FLTK PROPERTIES
+            INTERFACE_COMPILE_OPTIONS "${FLTK_CFLAGS}"
+            INTERFACE_LINK_OPTIONS "${FLTK_LDFLAGS}"
+        )
+        
+        message(STATUS "Found FLTK: ${FLTK_VERSION}")
+        set(HAVE_FLTK ON)
+    else()
+        message(WARNING "FLTK not found - show program will not be built")
+        set(BUILD_SHOW OFF)
+        set(HAVE_FLTK OFF)
+    endif()
+endif()
+
+# OpenEXR (optional)
+find_package(OpenEXR QUIET)
+if(OpenEXR_FOUND)
+    message(STATUS "Found OpenEXR: ${OpenEXR_VERSION}")
+    set(HAVE_OPENEXR ON)
+else()
+    message(WARNING "OpenEXR not found - OpenEXR display driver will not be built")
+    set(HAVE_OPENEXR OFF)
+endif()
+
+# ###########################################################################
+# ########## Installation Configuration
+# ###########################################################################
+
+# Set installation directories using modern CMake approach
 if(INSTALL_SELFCONTAINED)
-	set(datadir "share")
-	set(libdir "lib")
-	set(bindir "bin")
-	set(includedir "include")
-	set(mandir "man")
-	set(docdir "doc")
-	set(shaderdir "shaders")
-	set(ribdir "ribs")
-	set(texturedir "textures")
-	set(proceduraldir "procedurals")
-	set(displaysdir "displays")
-	set(modulesdir "modules")
-else(INSTALL_SELFCONTAINED)
-	set(datadir "share")
-	set(libdir "lib")
-	set(bindir "bin")
-	set(includedir "include/Pixie")
-	set(mandir "man")
-	set(docdir "${datadir}/Pixie/doc")
-	set(shaderdir "${datadir}/Pixie/shaders")
-	set(ribdir "${datadir}/Pixie/ribs")
-	set(texturedir "${datadir}/Pixie/textures")
-	set(proceduraldir "${libdir}/Pixie/procedurals")
-	set(displaysdir "${libdir}/Pixie/displays")
-	set(modulesdir "${libdir}/Pixie/modules")
-endif(INSTALL_SELFCONTAINED)
+	# Self-contained installation (all files under CMAKE_INSTALL_PREFIX)
+	set(PIXIE_DOCDIR ${CMAKE_INSTALL_DOCDIR})
+	set(PIXIE_SHADERDIR "shaders")
+	set(PIXIE_RIBDIR "ribs") 
+	set(PIXIE_TEXTUREDIR "textures")
+	set(PIXIE_PROCEDURALDIR "procedurals")
+	set(PIXIE_DISPLAYSDIR "displays")
+	set(PIXIE_MODULESDIR "modules")
+else()
+	# System installation (follows FHS)
+	set(PIXIE_DOCDIR ${CMAKE_INSTALL_DOCDIR}/Pixie)
+	set(PIXIE_SHADERDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/shaders)
+	set(PIXIE_RIBDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/ribs)
+	set(PIXIE_TEXTUREDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/textures)
+	set(PIXIE_PROCEDURALDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/procedurals)
+	set(PIXIE_DISPLAYSDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/displays)
+	set(PIXIE_MODULESDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/modules)
+endif()
 
 
-# install doc
+# Install documentation
 set(doc_files AUTHORS ChangeLog COPYING DEVNOTES INSTALL LICENSE NEWS README)
-install(FILES ${doc_files} DESTINATION "${docdir}")
+install(FILES ${doc_files} DESTINATION ${PIXIE_DOCDIR})
 
-# install man pages
+# Install man pages  
 file(GLOB man_files man/*.1)
-install(FILES ${man_files} DESTINATION "${mandir}/man1")
+install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-#install shaders
-file(GLOB shader_files shaders/*.sl)
-install(FILES ${shader_files} DESTINATION "${shaderdir}")
-file(GLOB shader_files shaders/*.sdr)
-install(FILES ${shader_files} DESTINATION "${shaderdir}")
+# Install shaders
+file(GLOB shader_sl_files shaders/*.sl)
+file(GLOB shader_sdr_files shaders/*.sdr)
+install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${PIXIE_SHADERDIR})
 
 
 # ###########################################################################
