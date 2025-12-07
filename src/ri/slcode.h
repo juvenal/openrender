@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: slcode.h
+ *
+ * Description:
+ *   This file defines the interface for slcode.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	slcode.h
@@ -32,27 +28,26 @@
 #ifndef SLCODE_H
 #define SLCODE_H
 
-#define	DEFOPCODE(name,text,nargs,expr_pre,expr,expr_update,expr_post,params)			OPCODE_##name ,
+#define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) OPCODE_##name,
 
-#define	DEFSHORTOPCODE(name,text,nargs,expr_pre,expr,expr_update,expr_post,params)		OPCODE_##name ,
+#define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) OPCODE_##name,
 
-#define	DEFLINKOPCODE(name,text,nargs)													OPCODE_##name ,
+#define DEFLINKOPCODE(name, text, nargs) OPCODE_##name,
 
-#define	DEFLINKFUNC(name,text,prototype,par)											FUNCTION_##name ,
+#define DEFLINKFUNC(name, text, prototype, par) FUNCTION_##name,
 
-#define	DEFFUNC(name,text,prototype,expre_pre,expr,expr_update,expr_post,par)			FUNCTION_##name ,
+#define DEFFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
-#define	DEFLIGHTFUNC(name,text,prototype,expre_pre,expr,expr_update,expr_post,par)		FUNCTION_##name ,
+#define DEFLIGHTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
-#define	DEFSHORTFUNC(name,text,prototype,expre_pre,expr,expr_update,expr_post,par)		FUNCTION_##name ,
+#define DEFSHORTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
 // Create an enumerated type of all the opcodes and functions
-typedef	enum	{
-#include "scriptOpcodes.h"
+typedef enum {
 #include "scriptFunctions.h"
-OPCODE_NOP
+#include "scriptOpcodes.h"
+    OPCODE_NOP
 } ESlCode;
-
 
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE
@@ -62,6 +57,4 @@ OPCODE_NOP
 #undef DEFLINKOPCODE
 #undef DEFLINKFUNC
 
-
 #endif
-

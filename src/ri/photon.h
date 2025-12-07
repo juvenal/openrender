@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: photon.h
+ *
+ * Description:
+ *   This file defines the interface for photon.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	photon.h
@@ -31,67 +27,68 @@
 #ifndef PHOTON_H
 #define PHOTON_H
 
-#include "common/global.h"		// The global header file
-#include "shading.h"
-#include "ray.h"
-#include "random.h"
 #include "attributes.h"
+#include "common/global.h" // The global header file
 #include "options.h"
+#include "random.h"
+#include "ray.h"
+#include "shading.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
 // Description			:	This class implements the photon hider
 // Comments				:
-class	CPhotonHider : public CShadingContext {
-public:
-									CPhotonHider(int thread,CAttributes *);
-			virtual					~CPhotonHider();
-			
-			static void				preDisplaySetup();
-			
-			// The main hider interface
-			// The following functions are commented out for we want the CShadingContext to handle those
-			void					renderingLoop();		// Right after world end to force rendering of the entire frame
+class CPhotonHider : public CShadingContext {
+    public:
+        CPhotonHider(int thread, CAttributes *);
+        virtual ~CPhotonHider();
 
-			// Since we're not doing any rasterization, the following functions are simple stubs
+        static void preDisplaySetup();
 
-			// Delayed rendering functions
-			void					drawObject(CObject *) { }
+        // The main hider interface
+        // The following functions are commented out for we want the CShadingContext to handle those
+        void renderingLoop(); // Right after world end to force rendering of the entire frame
 
-			// Primitive creation functions
-			void					drawGrid(CSurface *,int,int,float,float,float,float) { }
-			void					drawPoints(CSurface *,int) { }
-protected:
-			void					solarBegin(const float *,const float *);
-			void					solarEnd();
-			void					illuminateBegin(const float *,const float *,const float *);
-			void					illuminateEnd();
+        // Since we're not doing any rasterization, the following functions are simple stubs
 
-			int						numTracedPhotons;
-private:
-			void					tracePhoton(float *,float *,float *,float);
-	
-			float					bias;					// The initial intersection bias
+        // Delayed rendering functions
+        void drawObject(CObject *) {}
 
-			float					powerScale;				// The scaling factor for individual photon powers
-			float					minPower;				// The variables to find the range of the illumination
-			float					maxPower;				// for the current light
-			float					avgPower;
-			float					numPower;
+        // Primitive creation functions
+        void drawGrid(CSurface *, int, int, float, float, float, float) {}
+        void drawPoints(CSurface *, int) {}
 
-			float					photonPower;			// The scale factor for the current batch
+    protected:
+        void solarBegin(const float *, const float *);
+        void solarEnd();
+        void illuminateBegin(const float *, const float *, const float *);
+        void illuminateEnd();
 
-			CSobol<4>				gen4;					// 4D random number generator
-			CSobol<3>				gen3;					// 3D random number generator
-			CSobol<2>				gen2;					// 3D random number generator
+        int numTracedPhotons;
 
-			float					worldRadius;			// The radius of the world
-			vector					worldCenter;			// The center of the world
+    private:
+        void tracePhoton(float *, float *, float *, float);
 
-			CArray<CPhotonMap *>	balanceList;			// The list of photon maps that need re-balancing
+        float bias; // The initial intersection bias
 
-			CSurface				*phony;					// Phony object we used on the light sources
+        float powerScale; // The scaling factor for individual photon powers
+        float minPower;   // The variables to find the range of the illumination
+        float maxPower;   // for the current light
+        float avgPower;
+        float numPower;
+
+        float photonPower; // The scale factor for the current batch
+
+        CSobol<4> gen4; // 4D random number generator
+        CSobol<3> gen3; // 3D random number generator
+        CSobol<2> gen2; // 3D random number generator
+
+        float worldRadius;  // The radius of the world
+        vector worldCenter; // The center of the world
+
+        CArray<CPhotonMap *> balanceList; // The list of photon maps that need re-balancing
+
+        CSurface *phony; // Phony object we used on the light sources
 };
 
 #endif
-

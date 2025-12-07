@@ -1,4 +1,4 @@
-/*
+/**
  * Project: Pixie
  *
  * File: align.h
@@ -22,14 +22,14 @@
 #include "global.h"
 
 // Include the pointer types if necessary
-#ifdef __APPLE_CC__   // macOS
+#ifdef __APPLE_CC__ // macOS
 #include "inttypes.h"
 #else
-#ifndef _WINDOWS      // Not Windoze
+#ifndef _WINDOWS // Not Windoze
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
-#else                 // Windoze
+#else // Windoze
 #ifndef uint32_t
 #define uint32_t unsigned int
 #endif

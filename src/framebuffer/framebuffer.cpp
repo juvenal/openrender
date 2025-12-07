@@ -1,4 +1,4 @@
-/*
+/**
  * Project: Pixie
  *
  * File: framebuffer.cpp

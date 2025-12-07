@@ -1,3 +1,22 @@
+/**
+ * Project: Pixie
+ *
+ * File: file.h
+ *
+ * Description:
+ *   This file defines the interface for file.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 //////////////////////////////////////////////////////////////////////
 //
 //                             Pixie
@@ -30,7 +49,6 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-
 #ifndef FILE_H
 #define FILE_H
 
@@ -39,41 +57,38 @@
 // Description			:	Holds the framebuffer
 // Comments				:
 class CFileFramebuffer {
-public:
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CFileFramebuffer
-	// Method				:	CFileFramebuffer
-	// Description			:	Ctor
-	// Return Value			:	-
-	// Comments				:
-	CFileFramebuffer() { };
+    public:
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CFileFramebuffer
+        // Method				:	CFileFramebuffer
+        // Description			:	Ctor
+        // Return Value			:	-
+        // Comments				:
+        CFileFramebuffer() {};
 
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CFileFramebuffer
-	// Method				:	CFileFramebuffer
-	// Description			:	Dtor
-	// Return Value			:	-
-	// Comments				:
-	virtual ~CFileFramebuffer() { };
-	
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CFileFramebuffer
-	// Method				:	write
-	// Description			:	Write image data to the file
-	// Return Value			:	-
-	// Comments				:
-	virtual void write(int x,int y,int w,int h,float *data) { };
-	
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CFileFramebuffer
-	// Method				:	success
-	// Description			:	Returns True if constructor succeeded with file creation
-	// Return Value			:	-
-	// Comments				:
-	virtual bool success() { return false; };
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CFileFramebuffer
+        // Method				:	CFileFramebuffer
+        // Description			:	Dtor
+        // Return Value			:	-
+        // Comments				:
+        virtual ~CFileFramebuffer() {};
+
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CFileFramebuffer
+        // Method				:	write
+        // Description			:	Write image data to the file
+        // Return Value			:	-
+        // Comments				:
+        virtual void write(int x, int y, int w, int h, float *data) {};
+
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CFileFramebuffer
+        // Method				:	success
+        // Description			:	Returns True if constructor succeeded with file creation
+        // Return Value			:	-
+        // Comments				:
+        virtual bool success() { return false; };
 };
 
 #endif // FILE_H
-
-
-

@@ -1,3 +1,22 @@
+/**
+ * Project: Pixie
+ *
+ * File: rgbe.h
+ *
+ * Description:
+ *   This file defines the interface for rgbe.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 #ifndef _H_RGBE
 #define _H_RGBE
 /* THIS CODE CARRIES NO GUARANTEE OF USABILITY OR FITNESS FOR ANY PURPOSE.
@@ -11,20 +30,20 @@
 #include <stdio.h>
 
 typedef struct {
-  int valid;            /* indicate which fields are valid */
-  char programtype[16]; /* listed at beginning of file to identify it 
-                         * after "#?".  defaults to "RGBE" */ 
-  float gamma;          /* image has already been gamma corrected with 
-                         * given gamma.  defaults to 1.0 (no correction) */
-  float exposure;       /* a value of 1.0 in an image corresponds to
-			 * <exposure> watts/steradian/m^2. 
-			 * defaults to 1.0 */
+        int valid;            /* indicate which fields are valid */
+        char programtype[16]; /* listed at beginning of file to identify it
+                               * after "#?".  defaults to "RGBE" */
+        float gamma;          /* image has already been gamma corrected with
+                               * given gamma.  defaults to 1.0 (no correction) */
+        float exposure;       /* a value of 1.0 in an image corresponds to
+                               * <exposure> watts/steradian/m^2.
+                               * defaults to 1.0 */
 } rgbe_header_info;
 
 /* flags indicating which fields in an rgbe_header_info are valid */
 #define RGBE_VALID_PROGRAMTYPE 0x01
-#define RGBE_VALID_GAMMA       0x02
-#define RGBE_VALID_EXPOSURE    0x04
+#define RGBE_VALID_GAMMA 0x02
+#define RGBE_VALID_EXPOSURE 0x04
 
 /* return codes for rgbe routines */
 #define RGBE_RETURN_SUCCESS 0
@@ -42,10 +61,7 @@ int RGBE_ReadPixels(FILE *fp, float *data, int numpixels);
 
 /* read or write run length encoded files */
 /* must be called to read or write whole scanlines */
-int RGBE_WritePixels_RLE(FILE *fp, float *data, int scanline_width,
-			 int num_scanlines);
-int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width,
-			int num_scanlines);
+int RGBE_WritePixels_RLE(FILE *fp, float *data, int scanline_width, int num_scanlines);
+int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width, int num_scanlines);
 
 #endif /* _H_RGBE */
-

@@ -1,27 +1,23 @@
 %{
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: rib.y
+ *
+ * Description:
+ *   RIB Bindings
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	rib.y
@@ -227,7 +223,7 @@ static	int		parameterListCheck() {
 					// Not global, not inline, check the shaders
 					CAttributes	*attributes	=	CRenderer::context->getAttributes(FALSE);
 					var						=	attributes->findParameter(par->name);
-					
+
 					if (var != NULL) {
 						container	=	var->container;
 					} else {
@@ -282,7 +278,7 @@ static	int		parameterListCheck() {
 				var				=	&tmp;
 				container		=	var->container;
 			}
-		}	
+		}
 
 		if (var == NULL)	{
 			error(CODE_BADTOKEN,"Parameter \"%s\" is not declared\n",par->name);
@@ -293,7 +289,7 @@ static	int		parameterListCheck() {
 			error(CODE_MISSINGDATA,"Invalid number of items for the parameter \"%s\" (expecting n*%d, found %d)\n",par->name,var->numFloats,par->numItems);
 			return FALSE;
 		}
-		
+
 		// Type checking
 		if (var->type == TYPE_INTEGER) {
 			if (par->type == RT_FLOAT) {
@@ -305,7 +301,7 @@ static	int		parameterListCheck() {
 				// These assertions must be valid even on 64 bit platforms
 				assert(sizeof(T32) == 4);
 				assert(sizeof(float) == sizeof(int));
-				
+
 				for (j=par->numItems;j>0;j--,dest++) {
 					dest->integer	=	(int) dest->real;
 				}
@@ -763,7 +759,7 @@ ribParameter:	RIB_TEXT
 				|
 				RIB_TEXT
 				ribTextArray
-				{	
+				{
 					// Or a string array
 					parameters[numParameters].name			=	$1;
 					parameters[numParameters].type			=	RT_TEXT;
@@ -778,18 +774,18 @@ ribCommands:	ribCommands
 				{
 					// Save the line number in case we have an error
 					ribCommandLineno		=	ribLineno;
-					
+
 					// Reset the number of parameters
 					floatArgs.numItems		=	0;
 					intArgs.numItems		=	0;
 					stringArgs.numItems		=	0;
 					numParameters			=	0;
-					
+
 					// Restore the memory
 					memRestore(memoryCheckpoint,CRenderer::globalMemory);
 				}
 				ribComm
-				{	
+				{
 				}
 				|
 				;
@@ -829,19 +825,19 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				{
 					// Save the checkpoint
 					worldCheckpoint		=	memoryCheckpoint;
-					
+
 					// Call the worldbegin
 					RiWorldBegin();
-					
+
 					// Create a new checkpoint because we allocate some stuff in RiWorldBegin
 					memSave(memoryCheckpoint,CRenderer::globalMemory);
-					
+
 				}
 				|
 				RIB_WORLD_END
 				{
 					RiWorldEnd();
-					
+
 					// Restore the checkpoint to that before the world begin
 					memoryCheckpoint	=	worldCheckpoint;
 				}
@@ -1054,7 +1050,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_RELATIVE_DETAIL
 				RIB_FLOAT
 				{
-					RiRelativeDetail($2);	
+					RiRelativeDetail($2);
 				}
 				|
 				RIB_OPTION
@@ -1172,7 +1168,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	(int) $3;
 					nLight->name	=	NULL;
-					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);					
+					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
 				}
@@ -1185,7 +1181,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	0;
 					nLight->name	=	strdup($3);
-					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);					
+					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
 				}
@@ -1205,7 +1201,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	(int) $3;
 					nLight->name	=	NULL;
-					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);					
+					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
 				}
@@ -1218,7 +1214,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	0;
 					nLight->name	=	strdup($3);
-					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);					
+					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
 				}
@@ -1228,10 +1224,10 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_FLOAT
 				{
 					TLight	*cLight;
-					
+
 					for (cLight=lights;cLight!=NULL;cLight=cLight->next)
 						if (cLight->index == (int) $2)	break;
-						
+
 					if (cLight != NULL) {
 						RiIlluminate(cLight->handle,(int) $3);
 					} else {
@@ -1244,12 +1240,12 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_FLOAT
 				{
 					TLight	*cLight;
-					
+
 					for (cLight=lights;cLight!=NULL;cLight=cLight->next)
 						if (cLight->name != NULL) {
 							if (strcmp(cLight->name,$2) == 0) break;
 						}
-						
+
 					if (cLight != NULL) {
 						RiIlluminate(cLight->handle,(int) $3);
 					} else {
@@ -1631,7 +1627,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_POLYGON
 				ribPL
 				{
-					if (parameterListCheck()) {	
+					if (parameterListCheck()) {
 						if (sizeCheck(numVertex,0,0,1)) {
 							RiPolygonV(numVertex,numParameters,tokens,vals);
 						}
@@ -1762,7 +1758,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_FLOAT
 				RIB_FLOAT
 				RIB_FLOAT
-				RIB_ARRAY_END				
+				RIB_ARRAY_END
 				RIB_FLOAT
 				RIB_TEXT
 				RIB_FLOAT
@@ -1771,7 +1767,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 
 					if (getBasis(&argf2,$21)) {
 						RtBasis	tmp;
-					
+
 						tmp[0][0]	=	$3;
 						tmp[0][1]	=	$4;
 						tmp[0][2]	=	$5;
@@ -1788,7 +1784,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 						tmp[3][1]	=	$16;
 						tmp[3][2]	=	$17;
 						tmp[3][3]	=	$18;
-										
+
 						RiBasis(tmp,(int) $20,argf2[0],(int) $22);
 					}
 				}
@@ -1820,7 +1816,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 
 					if (getBasis(&argf1,$2)) {
 						RtBasis	tmp;
-					
+
 						tmp[0][0]	=	$5;
 						tmp[0][1]	=	$6;
 						tmp[0][2]	=	$7;
@@ -2532,10 +2528,10 @@ ribComm:		RIB_STRUCTURE_COMMENT
 
 					cData->bmin[COMP_X]	=	$5;
 					cData->bmax[COMP_X]	=	$6;
-					
+
 					cData->bmin[COMP_Y]	=	$7;
 					cData->bmax[COMP_Y]	=	$8;
-					
+
 					cData->bmin[COMP_Z]	=	$9;
 					cData->bmax[COMP_Z]	=	$10;
 
@@ -2592,7 +2588,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_FLOAT
 				{
 					TObject	*nObject	=	new TObject;
-					
+
 					nObject->handle		=	RiObjectBegin();
 					nObject->index		=	(int) $2;
 					nObject->name		=	NULL;
@@ -2604,7 +2600,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_TEXT
 				{
 					TObject	*nObject	=	new TObject;
-					
+
 					nObject->handle		=	RiObjectBegin();
 					nObject->index		=	-1;
 					nObject->name		=	strdup($2);
@@ -2621,11 +2617,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_FLOAT
 				{
 					TObject	*cObject;
-					
+
 					for (cObject=objects;cObject!=NULL;cObject=cObject->next) {
 						if (cObject->index == (int) $2)	break;
 					}
-					
+
 					if (cObject != NULL) {
 						RiObjectInstance(cObject->handle);
 					} else {
@@ -2637,11 +2633,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				RIB_TEXT
 				{
 					TObject	*cObject;
-					
+
 					for (cObject=objects;cObject!=NULL;cObject=cObject->next) {
 						if (strcmp(cObject->name,$2) == 0)	break;
 					}
-					
+
 					if (cObject != NULL) {
 						RiObjectInstance(cObject->handle);
 					} else {
@@ -2856,7 +2852,7 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 
 
 	if (fileName != NULL) {
-		
+
 
 		// Save the environment first
 		TLight				*savedLights						=	lights;
@@ -2873,12 +2869,12 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 		TRibFile			*savedRibStack						=	ribStack;
 		const char			*savedRibFile						=	ribFile;
 		FILE				*savedRibIn							=	ribin;
-	
-		// Guard against the depreciated fdopen on windoze	
+
+		// Guard against the depreciated fdopen on windoze
 #ifdef _WINDOWS
 #define fdopen _fdopen
 #endif
-		
+
 		// Init the environment
 		if (fileName[0] == '-') {
 			// Read from stdin
@@ -2893,7 +2889,7 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 			ribin			=	(FILE *) gzdopen(atoi(fileName+1),"rb");
 #else
 			ribin			=	fdopen(atoi(fileName+1),"r");
-#endif		
+#endif
 		} else {
 			// Read from file
 #ifdef HAVE_ZLIB
@@ -2911,20 +2907,20 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 		parameters			=	new TParameter[maxParameter];
 		tokens				=	new RtToken[maxParameter];
 		vals				=	new RtPointer[maxParameter];
-		
+
 		if ( ribDepth++ == 0) {
 			// outhermost
 		} else {
 			// create a new lex buffer and switch to it
-			
+
 			// Note: there are two stacking methods here,
 			//  one is explicitly handled when lexing for ReadArchive
 			//	the other uses the return stack (and increments ribDepth)
 
-			rib_switch_to_buffer(rib_create_buffer( ribin, YY_BUF_SIZE ) );	
+			rib_switch_to_buffer(rib_create_buffer( ribin, YY_BUF_SIZE ) );
 			ribStack		=	NULL;	// prevent falling out of current ReadArchive
 		}
-		
+
 		ribFile				=	fileName;
 		ribLineno			=	1;
 
@@ -2937,7 +2933,7 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 
 		// Restore the memory to the latest checkpoint
 		memRestore(memoryCheckpoint,CRenderer::globalMemory);
-		
+
 		if (ribin != NULL) {
 #ifdef HAVE_ZLIB
 			gzclose(ribin);
@@ -2953,7 +2949,7 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 			if (cLight->name != NULL)	free(cLight->name);
 			delete cLight;
 		}
-		
+
 		// Clear the objects
 		TObject	*cObject;
 		while((cObject=objects) != NULL) {
@@ -2961,12 +2957,12 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 			if (cObject->name != NULL)	free(cObject->name);
 			delete cObject;
 		}
-		
+
 		// Clear the parameters
 		delete [] parameters;
 		delete [] tokens;
 		delete [] vals;
-		
+
 
 		ribin				=	savedRibIn;
 		ribFile				=	savedRibFile;
@@ -2979,15 +2975,15 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 		objects				=	savedObjects;
 		ribLineno			=	savedRibLineno;
 		callback			=	savedCallback;
-		
+
 		if ((ribDepth = savedRibDepth) == 0) {
 			// outhermost
 		} else {
 			// We're done parsing an inner level, switch the lex buffer back
-			
+
 			rib_delete_buffer( YY_CURRENT_BUFFER );
 			rib_switch_to_buffer( savedLexState );
-			
+
 			ribStack 		= 	savedRibStack;
 		}
 	}

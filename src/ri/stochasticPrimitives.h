@@ -1,13548 +1,12767 @@
-//Internally generated header file.
-//Do not mess with it
+/**
+ * Project: Pixie
+ *
+ * File: stochasticPrimitives.h
+ *
+ * Description:
+ *   This file defines the interface for stochasticPrimitives.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
+// Internally generated header file.
+// Do not mess with it
 
 #ifdef DEFINE_STOCHASTIC_SWITCH
-switch((grid->flags & RASTER_GLOBAL_MASK) | ((CRenderer::depthFilter == DEPTH_MID) << RASTER_HIGHBITS_SHIFT)) {
+switch ((grid->flags & RASTER_GLOBAL_MASK) | ((CRenderer::depthFilter == DEPTH_MID) << RASTER_HIGHBITS_SHIFT)) {
 case 0:
-	drawQuadGridZmin(grid);
-	break;
+    drawQuadGridZmin(grid);
+    break;
 case 1:
-	drawQuadGridZminMoving(grid);
-	break;
+    drawQuadGridZminMoving(grid);
+    break;
 case 2:
-	drawQuadGridZminTransparent(grid);
-	break;
+    drawQuadGridZminTransparent(grid);
+    break;
 case 3:
-	drawQuadGridZminMovingTransparent(grid);
-	break;
+    drawQuadGridZminMovingTransparent(grid);
+    break;
 case 4:
-	drawPointGridZmin(grid);
-	break;
+    drawPointGridZmin(grid);
+    break;
 case 5:
-	drawPointGridZminMoving(grid);
-	break;
+    drawPointGridZminMoving(grid);
+    break;
 case 6:
-	drawPointGridZminTransparent(grid);
-	break;
+    drawPointGridZminTransparent(grid);
+    break;
 case 7:
-	drawPointGridZminMovingTransparent(grid);
-	break;
+    drawPointGridZminMovingTransparent(grid);
+    break;
 case 8:
-	drawQuadGridZminUnshaded(grid);
-	break;
+    drawQuadGridZminUnshaded(grid);
+    break;
 case 9:
-	drawQuadGridZminUnshadedMoving(grid);
-	break;
+    drawQuadGridZminUnshadedMoving(grid);
+    break;
 case 10:
-	break;
+    break;
 case 11:
-	break;
+    break;
 case 12:
-	drawPointGridZminUnshaded(grid);
-	break;
+    drawPointGridZminUnshaded(grid);
+    break;
 case 13:
-	drawPointGridZminUnshadedMoving(grid);
-	break;
+    drawPointGridZminUnshadedMoving(grid);
+    break;
 case 14:
-	break;
+    break;
 case 15:
-	break;
+    break;
 case 16:
-	drawQuadGridZminDepthBlur(grid);
-	break;
+    drawQuadGridZminDepthBlur(grid);
+    break;
 case 17:
-	drawQuadGridZminMovingDepthBlur(grid);
-	break;
+    drawQuadGridZminMovingDepthBlur(grid);
+    break;
 case 18:
-	drawQuadGridZminTransparentDepthBlur(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlur(grid);
+    break;
 case 19:
-	drawQuadGridZminMovingTransparentDepthBlur(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlur(grid);
+    break;
 case 20:
-	drawPointGridZminDepthBlur(grid);
-	break;
+    drawPointGridZminDepthBlur(grid);
+    break;
 case 21:
-	drawPointGridZminMovingDepthBlur(grid);
-	break;
+    drawPointGridZminMovingDepthBlur(grid);
+    break;
 case 22:
-	drawPointGridZminTransparentDepthBlur(grid);
-	break;
+    drawPointGridZminTransparentDepthBlur(grid);
+    break;
 case 23:
-	drawPointGridZminMovingTransparentDepthBlur(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlur(grid);
+    break;
 case 24:
-	drawQuadGridZminUnshadedDepthBlur(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlur(grid);
+    break;
 case 25:
-	drawQuadGridZminUnshadedMovingDepthBlur(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlur(grid);
+    break;
 case 26:
-	break;
+    break;
 case 27:
-	break;
+    break;
 case 28:
-	drawPointGridZminUnshadedDepthBlur(grid);
-	break;
+    drawPointGridZminUnshadedDepthBlur(grid);
+    break;
 case 29:
-	drawPointGridZminUnshadedMovingDepthBlur(grid);
-	break;
+    drawPointGridZminUnshadedMovingDepthBlur(grid);
+    break;
 case 30:
-	break;
+    break;
 case 31:
-	break;
+    break;
 case 32:
-	drawQuadGridZminExtraSamples(grid);
-	break;
+    drawQuadGridZminExtraSamples(grid);
+    break;
 case 33:
-	drawQuadGridZminMovingExtraSamples(grid);
-	break;
+    drawQuadGridZminMovingExtraSamples(grid);
+    break;
 case 34:
-	drawQuadGridZminTransparentExtraSamples(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamples(grid);
+    break;
 case 35:
-	drawQuadGridZminMovingTransparentExtraSamples(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamples(grid);
+    break;
 case 36:
-	drawPointGridZminExtraSamples(grid);
-	break;
+    drawPointGridZminExtraSamples(grid);
+    break;
 case 37:
-	drawPointGridZminMovingExtraSamples(grid);
-	break;
+    drawPointGridZminMovingExtraSamples(grid);
+    break;
 case 38:
-	drawPointGridZminTransparentExtraSamples(grid);
-	break;
+    drawPointGridZminTransparentExtraSamples(grid);
+    break;
 case 39:
-	drawPointGridZminMovingTransparentExtraSamples(grid);
-	break;
+    drawPointGridZminMovingTransparentExtraSamples(grid);
+    break;
 case 40:
-	drawQuadGridZminUnshadedExtraSamples(grid);
-	break;
+    drawQuadGridZminUnshadedExtraSamples(grid);
+    break;
 case 41:
-	drawQuadGridZminUnshadedMovingExtraSamples(grid);
-	break;
+    drawQuadGridZminUnshadedMovingExtraSamples(grid);
+    break;
 case 42:
-	break;
+    break;
 case 43:
-	break;
+    break;
 case 44:
-	drawPointGridZminUnshadedExtraSamples(grid);
-	break;
+    drawPointGridZminUnshadedExtraSamples(grid);
+    break;
 case 45:
-	drawPointGridZminUnshadedMovingExtraSamples(grid);
-	break;
+    drawPointGridZminUnshadedMovingExtraSamples(grid);
+    break;
 case 46:
-	break;
+    break;
 case 47:
-	break;
+    break;
 case 48:
-	drawQuadGridZminDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamples(grid);
+    break;
 case 49:
-	drawQuadGridZminMovingDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamples(grid);
+    break;
 case 50:
-	drawQuadGridZminTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamples(grid);
+    break;
 case 51:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamples(grid);
+    break;
 case 52:
-	drawPointGridZminDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminDepthBlurExtraSamples(grid);
+    break;
 case 53:
-	drawPointGridZminMovingDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminMovingDepthBlurExtraSamples(grid);
+    break;
 case 54:
-	drawPointGridZminTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurExtraSamples(grid);
+    break;
 case 55:
-	drawPointGridZminMovingTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurExtraSamples(grid);
+    break;
 case 56:
-	drawQuadGridZminUnshadedDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurExtraSamples(grid);
+    break;
 case 57:
-	drawQuadGridZminUnshadedMovingDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurExtraSamples(grid);
+    break;
 case 58:
-	break;
+    break;
 case 59:
-	break;
+    break;
 case 60:
-	drawPointGridZminUnshadedDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminUnshadedDepthBlurExtraSamples(grid);
+    break;
 case 61:
-	drawPointGridZminUnshadedMovingDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZminUnshadedMovingDepthBlurExtraSamples(grid);
+    break;
 case 62:
-	break;
+    break;
 case 63:
-	break;
+    break;
 case 64:
-	drawQuadGridZminMatte(grid);
-	break;
+    drawQuadGridZminMatte(grid);
+    break;
 case 65:
-	drawQuadGridZminMovingMatte(grid);
-	break;
+    drawQuadGridZminMovingMatte(grid);
+    break;
 case 66:
-	drawQuadGridZminTransparentMatte(grid);
-	break;
+    drawQuadGridZminTransparentMatte(grid);
+    break;
 case 67:
-	drawQuadGridZminMovingTransparentMatte(grid);
-	break;
+    drawQuadGridZminMovingTransparentMatte(grid);
+    break;
 case 68:
-	drawPointGridZminMatte(grid);
-	break;
+    drawPointGridZminMatte(grid);
+    break;
 case 69:
-	drawPointGridZminMovingMatte(grid);
-	break;
+    drawPointGridZminMovingMatte(grid);
+    break;
 case 70:
-	drawPointGridZminTransparentMatte(grid);
-	break;
+    drawPointGridZminTransparentMatte(grid);
+    break;
 case 71:
-	drawPointGridZminMovingTransparentMatte(grid);
-	break;
+    drawPointGridZminMovingTransparentMatte(grid);
+    break;
 case 72:
-	break;
+    break;
 case 73:
-	break;
+    break;
 case 74:
-	break;
+    break;
 case 75:
-	break;
+    break;
 case 76:
-	break;
+    break;
 case 77:
-	break;
+    break;
 case 78:
-	break;
+    break;
 case 79:
-	break;
+    break;
 case 80:
-	drawQuadGridZminDepthBlurMatte(grid);
-	break;
+    drawQuadGridZminDepthBlurMatte(grid);
+    break;
 case 81:
-	drawQuadGridZminMovingDepthBlurMatte(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurMatte(grid);
+    break;
 case 82:
-	drawQuadGridZminTransparentDepthBlurMatte(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurMatte(grid);
+    break;
 case 83:
-	drawQuadGridZminMovingTransparentDepthBlurMatte(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurMatte(grid);
+    break;
 case 84:
-	drawPointGridZminDepthBlurMatte(grid);
-	break;
+    drawPointGridZminDepthBlurMatte(grid);
+    break;
 case 85:
-	drawPointGridZminMovingDepthBlurMatte(grid);
-	break;
+    drawPointGridZminMovingDepthBlurMatte(grid);
+    break;
 case 86:
-	drawPointGridZminTransparentDepthBlurMatte(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurMatte(grid);
+    break;
 case 87:
-	drawPointGridZminMovingTransparentDepthBlurMatte(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurMatte(grid);
+    break;
 case 88:
-	break;
+    break;
 case 89:
-	break;
+    break;
 case 90:
-	break;
+    break;
 case 91:
-	break;
+    break;
 case 92:
-	break;
+    break;
 case 93:
-	break;
+    break;
 case 94:
-	break;
+    break;
 case 95:
-	break;
+    break;
 case 96:
-	drawQuadGridZminExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminExtraSamplesMatte(grid);
+    break;
 case 97:
-	drawQuadGridZminMovingExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesMatte(grid);
+    break;
 case 98:
-	drawQuadGridZminTransparentExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesMatte(grid);
+    break;
 case 99:
-	drawQuadGridZminMovingTransparentExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesMatte(grid);
+    break;
 case 100:
-	drawPointGridZminExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminExtraSamplesMatte(grid);
+    break;
 case 101:
-	drawPointGridZminMovingExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminMovingExtraSamplesMatte(grid);
+    break;
 case 102:
-	drawPointGridZminTransparentExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminTransparentExtraSamplesMatte(grid);
+    break;
 case 103:
-	drawPointGridZminMovingTransparentExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminMovingTransparentExtraSamplesMatte(grid);
+    break;
 case 104:
-	break;
+    break;
 case 105:
-	break;
+    break;
 case 106:
-	break;
+    break;
 case 107:
-	break;
+    break;
 case 108:
-	break;
+    break;
 case 109:
-	break;
+    break;
 case 110:
-	break;
+    break;
 case 111:
-	break;
+    break;
 case 112:
-	drawQuadGridZminDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesMatte(grid);
+    break;
 case 113:
-	drawQuadGridZminMovingDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesMatte(grid);
+    break;
 case 114:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 115:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 116:
-	drawPointGridZminDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminDepthBlurExtraSamplesMatte(grid);
+    break;
 case 117:
-	drawPointGridZminMovingDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminMovingDepthBlurExtraSamplesMatte(grid);
+    break;
 case 118:
-	drawPointGridZminTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 119:
-	drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 120:
-	break;
+    break;
 case 121:
-	break;
+    break;
 case 122:
-	break;
+    break;
 case 123:
-	break;
+    break;
 case 124:
-	break;
+    break;
 case 125:
-	break;
+    break;
 case 126:
-	break;
+    break;
 case 127:
-	break;
+    break;
 case 128:
-	drawQuadGridZminLOD(grid);
-	break;
+    drawQuadGridZminLOD(grid);
+    break;
 case 129:
-	drawQuadGridZminMovingLOD(grid);
-	break;
+    drawQuadGridZminMovingLOD(grid);
+    break;
 case 130:
-	drawQuadGridZminTransparentLOD(grid);
-	break;
+    drawQuadGridZminTransparentLOD(grid);
+    break;
 case 131:
-	drawQuadGridZminMovingTransparentLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentLOD(grid);
+    break;
 case 132:
-	drawPointGridZminLOD(grid);
-	break;
+    drawPointGridZminLOD(grid);
+    break;
 case 133:
-	drawPointGridZminMovingLOD(grid);
-	break;
+    drawPointGridZminMovingLOD(grid);
+    break;
 case 134:
-	drawPointGridZminTransparentLOD(grid);
-	break;
+    drawPointGridZminTransparentLOD(grid);
+    break;
 case 135:
-	drawPointGridZminMovingTransparentLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentLOD(grid);
+    break;
 case 136:
-	break;
+    break;
 case 137:
-	break;
+    break;
 case 138:
-	break;
+    break;
 case 139:
-	break;
+    break;
 case 140:
-	break;
+    break;
 case 141:
-	break;
+    break;
 case 142:
-	break;
+    break;
 case 143:
-	break;
+    break;
 case 144:
-	drawQuadGridZminDepthBlurLOD(grid);
-	break;
+    drawQuadGridZminDepthBlurLOD(grid);
+    break;
 case 145:
-	drawQuadGridZminMovingDepthBlurLOD(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurLOD(grid);
+    break;
 case 146:
-	drawQuadGridZminTransparentDepthBlurLOD(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurLOD(grid);
+    break;
 case 147:
-	drawQuadGridZminMovingTransparentDepthBlurLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurLOD(grid);
+    break;
 case 148:
-	drawPointGridZminDepthBlurLOD(grid);
-	break;
+    drawPointGridZminDepthBlurLOD(grid);
+    break;
 case 149:
-	drawPointGridZminMovingDepthBlurLOD(grid);
-	break;
+    drawPointGridZminMovingDepthBlurLOD(grid);
+    break;
 case 150:
-	drawPointGridZminTransparentDepthBlurLOD(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurLOD(grid);
+    break;
 case 151:
-	drawPointGridZminMovingTransparentDepthBlurLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurLOD(grid);
+    break;
 case 152:
-	break;
+    break;
 case 153:
-	break;
+    break;
 case 154:
-	break;
+    break;
 case 155:
-	break;
+    break;
 case 156:
-	break;
+    break;
 case 157:
-	break;
+    break;
 case 158:
-	break;
+    break;
 case 159:
-	break;
+    break;
 case 160:
-	drawQuadGridZminExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminExtraSamplesLOD(grid);
+    break;
 case 161:
-	drawQuadGridZminMovingExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesLOD(grid);
+    break;
 case 162:
-	drawQuadGridZminTransparentExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesLOD(grid);
+    break;
 case 163:
-	drawQuadGridZminMovingTransparentExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesLOD(grid);
+    break;
 case 164:
-	drawPointGridZminExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminExtraSamplesLOD(grid);
+    break;
 case 165:
-	drawPointGridZminMovingExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminMovingExtraSamplesLOD(grid);
+    break;
 case 166:
-	drawPointGridZminTransparentExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminTransparentExtraSamplesLOD(grid);
+    break;
 case 167:
-	drawPointGridZminMovingTransparentExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentExtraSamplesLOD(grid);
+    break;
 case 168:
-	break;
+    break;
 case 169:
-	break;
+    break;
 case 170:
-	break;
+    break;
 case 171:
-	break;
+    break;
 case 172:
-	break;
+    break;
 case 173:
-	break;
+    break;
 case 174:
-	break;
+    break;
 case 175:
-	break;
+    break;
 case 176:
-	drawQuadGridZminDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesLOD(grid);
+    break;
 case 177:
-	drawQuadGridZminMovingDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesLOD(grid);
+    break;
 case 178:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 179:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 180:
-	drawPointGridZminDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminDepthBlurExtraSamplesLOD(grid);
+    break;
 case 181:
-	drawPointGridZminMovingDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminMovingDepthBlurExtraSamplesLOD(grid);
+    break;
 case 182:
-	drawPointGridZminTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 183:
-	drawPointGridZminMovingTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 184:
-	break;
+    break;
 case 185:
-	break;
+    break;
 case 186:
-	break;
+    break;
 case 187:
-	break;
+    break;
 case 188:
-	break;
+    break;
 case 189:
-	break;
+    break;
 case 190:
-	break;
+    break;
 case 191:
-	break;
+    break;
 case 192:
-	drawQuadGridZminMatteLOD(grid);
-	break;
+    drawQuadGridZminMatteLOD(grid);
+    break;
 case 193:
-	drawQuadGridZminMovingMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingMatteLOD(grid);
+    break;
 case 194:
-	drawQuadGridZminTransparentMatteLOD(grid);
-	break;
+    drawQuadGridZminTransparentMatteLOD(grid);
+    break;
 case 195:
-	drawQuadGridZminMovingTransparentMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentMatteLOD(grid);
+    break;
 case 196:
-	drawPointGridZminMatteLOD(grid);
-	break;
+    drawPointGridZminMatteLOD(grid);
+    break;
 case 197:
-	drawPointGridZminMovingMatteLOD(grid);
-	break;
+    drawPointGridZminMovingMatteLOD(grid);
+    break;
 case 198:
-	drawPointGridZminTransparentMatteLOD(grid);
-	break;
+    drawPointGridZminTransparentMatteLOD(grid);
+    break;
 case 199:
-	drawPointGridZminMovingTransparentMatteLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentMatteLOD(grid);
+    break;
 case 200:
-	break;
+    break;
 case 201:
-	break;
+    break;
 case 202:
-	break;
+    break;
 case 203:
-	break;
+    break;
 case 204:
-	break;
+    break;
 case 205:
-	break;
+    break;
 case 206:
-	break;
+    break;
 case 207:
-	break;
+    break;
 case 208:
-	drawQuadGridZminDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZminDepthBlurMatteLOD(grid);
+    break;
 case 209:
-	drawQuadGridZminMovingDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurMatteLOD(grid);
+    break;
 case 210:
-	drawQuadGridZminTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurMatteLOD(grid);
+    break;
 case 211:
-	drawQuadGridZminMovingTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurMatteLOD(grid);
+    break;
 case 212:
-	drawPointGridZminDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZminDepthBlurMatteLOD(grid);
+    break;
 case 213:
-	drawPointGridZminMovingDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZminMovingDepthBlurMatteLOD(grid);
+    break;
 case 214:
-	drawPointGridZminTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurMatteLOD(grid);
+    break;
 case 215:
-	drawPointGridZminMovingTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurMatteLOD(grid);
+    break;
 case 216:
-	break;
+    break;
 case 217:
-	break;
+    break;
 case 218:
-	break;
+    break;
 case 219:
-	break;
+    break;
 case 220:
-	break;
+    break;
 case 221:
-	break;
+    break;
 case 222:
-	break;
+    break;
 case 223:
-	break;
+    break;
 case 224:
-	drawQuadGridZminExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminExtraSamplesMatteLOD(grid);
+    break;
 case 225:
-	drawQuadGridZminMovingExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesMatteLOD(grid);
+    break;
 case 226:
-	drawQuadGridZminTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 227:
-	drawQuadGridZminMovingTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 228:
-	drawPointGridZminExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminExtraSamplesMatteLOD(grid);
+    break;
 case 229:
-	drawPointGridZminMovingExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminMovingExtraSamplesMatteLOD(grid);
+    break;
 case 230:
-	drawPointGridZminTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 231:
-	drawPointGridZminMovingTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 232:
-	break;
+    break;
 case 233:
-	break;
+    break;
 case 234:
-	break;
+    break;
 case 235:
-	break;
+    break;
 case 236:
-	break;
+    break;
 case 237:
-	break;
+    break;
 case 238:
-	break;
+    break;
 case 239:
-	break;
+    break;
 case 240:
-	drawQuadGridZminDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 241:
-	drawQuadGridZminMovingDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 242:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 243:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 244:
-	drawPointGridZminDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 245:
-	drawPointGridZminMovingDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminMovingDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 246:
-	drawPointGridZminTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 247:
-	drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 248:
-	break;
+    break;
 case 249:
-	break;
+    break;
 case 250:
-	break;
+    break;
 case 251:
-	break;
+    break;
 case 252:
-	break;
+    break;
 case 253:
-	break;
+    break;
 case 254:
-	break;
+    break;
 case 255:
-	break;
+    break;
 case 256:
-	break;
+    break;
 case 257:
-	break;
+    break;
 case 258:
-	break;
+    break;
 case 259:
-	break;
+    break;
 case 260:
-	break;
+    break;
 case 261:
-	break;
+    break;
 case 262:
-	break;
+    break;
 case 263:
-	break;
+    break;
 case 264:
-	drawQuadGridZminUnshadedUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedUndercull(grid);
+    break;
 case 265:
-	drawQuadGridZminUnshadedMovingUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedMovingUndercull(grid);
+    break;
 case 266:
-	break;
+    break;
 case 267:
-	break;
+    break;
 case 268:
-	drawPointGridZminUnshadedUndercull(grid);
-	break;
+    drawPointGridZminUnshadedUndercull(grid);
+    break;
 case 269:
-	drawPointGridZminUnshadedMovingUndercull(grid);
-	break;
+    drawPointGridZminUnshadedMovingUndercull(grid);
+    break;
 case 270:
-	break;
+    break;
 case 271:
-	break;
+    break;
 case 272:
-	break;
+    break;
 case 273:
-	break;
+    break;
 case 274:
-	break;
+    break;
 case 275:
-	break;
+    break;
 case 276:
-	break;
+    break;
 case 277:
-	break;
+    break;
 case 278:
-	break;
+    break;
 case 279:
-	break;
+    break;
 case 280:
-	drawQuadGridZminUnshadedDepthBlurUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurUndercull(grid);
+    break;
 case 281:
-	drawQuadGridZminUnshadedMovingDepthBlurUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurUndercull(grid);
+    break;
 case 282:
-	break;
+    break;
 case 283:
-	break;
+    break;
 case 284:
-	drawPointGridZminUnshadedDepthBlurUndercull(grid);
-	break;
+    drawPointGridZminUnshadedDepthBlurUndercull(grid);
+    break;
 case 285:
-	drawPointGridZminUnshadedMovingDepthBlurUndercull(grid);
-	break;
+    drawPointGridZminUnshadedMovingDepthBlurUndercull(grid);
+    break;
 case 286:
-	break;
+    break;
 case 287:
-	break;
+    break;
 case 288:
-	break;
+    break;
 case 289:
-	break;
+    break;
 case 290:
-	break;
+    break;
 case 291:
-	break;
+    break;
 case 292:
-	break;
+    break;
 case 293:
-	break;
+    break;
 case 294:
-	break;
+    break;
 case 295:
-	break;
+    break;
 case 296:
-	drawQuadGridZminUnshadedExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedExtraSamplesUndercull(grid);
+    break;
 case 297:
-	drawQuadGridZminUnshadedMovingExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedMovingExtraSamplesUndercull(grid);
+    break;
 case 298:
-	break;
+    break;
 case 299:
-	break;
+    break;
 case 300:
-	drawPointGridZminUnshadedExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZminUnshadedExtraSamplesUndercull(grid);
+    break;
 case 301:
-	drawPointGridZminUnshadedMovingExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZminUnshadedMovingExtraSamplesUndercull(grid);
+    break;
 case 302:
-	break;
+    break;
 case 303:
-	break;
+    break;
 case 304:
-	break;
+    break;
 case 305:
-	break;
+    break;
 case 306:
-	break;
+    break;
 case 307:
-	break;
+    break;
 case 308:
-	break;
+    break;
 case 309:
-	break;
+    break;
 case 310:
-	break;
+    break;
 case 311:
-	break;
+    break;
 case 312:
-	drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 313:
-	drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 314:
-	break;
+    break;
 case 315:
-	break;
+    break;
 case 316:
-	drawPointGridZminUnshadedDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZminUnshadedDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 317:
-	drawPointGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 318:
-	break;
+    break;
 case 319:
-	break;
+    break;
 case 320:
-	break;
+    break;
 case 321:
-	break;
+    break;
 case 322:
-	break;
+    break;
 case 323:
-	break;
+    break;
 case 324:
-	break;
+    break;
 case 325:
-	break;
+    break;
 case 326:
-	break;
+    break;
 case 327:
-	break;
+    break;
 case 328:
-	break;
+    break;
 case 329:
-	break;
+    break;
 case 330:
-	break;
+    break;
 case 331:
-	break;
+    break;
 case 332:
-	break;
+    break;
 case 333:
-	break;
+    break;
 case 334:
-	break;
+    break;
 case 335:
-	break;
+    break;
 case 336:
-	break;
+    break;
 case 337:
-	break;
+    break;
 case 338:
-	break;
+    break;
 case 339:
-	break;
+    break;
 case 340:
-	break;
+    break;
 case 341:
-	break;
+    break;
 case 342:
-	break;
+    break;
 case 343:
-	break;
+    break;
 case 344:
-	break;
+    break;
 case 345:
-	break;
+    break;
 case 346:
-	break;
+    break;
 case 347:
-	break;
+    break;
 case 348:
-	break;
+    break;
 case 349:
-	break;
+    break;
 case 350:
-	break;
+    break;
 case 351:
-	break;
+    break;
 case 352:
-	break;
+    break;
 case 353:
-	break;
+    break;
 case 354:
-	break;
+    break;
 case 355:
-	break;
+    break;
 case 356:
-	break;
+    break;
 case 357:
-	break;
+    break;
 case 358:
-	break;
+    break;
 case 359:
-	break;
+    break;
 case 360:
-	break;
+    break;
 case 361:
-	break;
+    break;
 case 362:
-	break;
+    break;
 case 363:
-	break;
+    break;
 case 364:
-	break;
+    break;
 case 365:
-	break;
+    break;
 case 366:
-	break;
+    break;
 case 367:
-	break;
+    break;
 case 368:
-	break;
+    break;
 case 369:
-	break;
+    break;
 case 370:
-	break;
+    break;
 case 371:
-	break;
+    break;
 case 372:
-	break;
+    break;
 case 373:
-	break;
+    break;
 case 374:
-	break;
+    break;
 case 375:
-	break;
+    break;
 case 376:
-	break;
+    break;
 case 377:
-	break;
+    break;
 case 378:
-	break;
+    break;
 case 379:
-	break;
+    break;
 case 380:
-	break;
+    break;
 case 381:
-	break;
+    break;
 case 382:
-	break;
+    break;
 case 383:
-	break;
+    break;
 case 384:
-	break;
+    break;
 case 385:
-	break;
+    break;
 case 386:
-	break;
+    break;
 case 387:
-	break;
+    break;
 case 388:
-	break;
+    break;
 case 389:
-	break;
+    break;
 case 390:
-	break;
+    break;
 case 391:
-	break;
+    break;
 case 392:
-	break;
+    break;
 case 393:
-	break;
+    break;
 case 394:
-	break;
+    break;
 case 395:
-	break;
+    break;
 case 396:
-	break;
+    break;
 case 397:
-	break;
+    break;
 case 398:
-	break;
+    break;
 case 399:
-	break;
+    break;
 case 400:
-	break;
+    break;
 case 401:
-	break;
+    break;
 case 402:
-	break;
+    break;
 case 403:
-	break;
+    break;
 case 404:
-	break;
+    break;
 case 405:
-	break;
+    break;
 case 406:
-	break;
+    break;
 case 407:
-	break;
+    break;
 case 408:
-	break;
+    break;
 case 409:
-	break;
+    break;
 case 410:
-	break;
+    break;
 case 411:
-	break;
+    break;
 case 412:
-	break;
+    break;
 case 413:
-	break;
+    break;
 case 414:
-	break;
+    break;
 case 415:
-	break;
+    break;
 case 416:
-	break;
+    break;
 case 417:
-	break;
+    break;
 case 418:
-	break;
+    break;
 case 419:
-	break;
+    break;
 case 420:
-	break;
+    break;
 case 421:
-	break;
+    break;
 case 422:
-	break;
+    break;
 case 423:
-	break;
+    break;
 case 424:
-	break;
+    break;
 case 425:
-	break;
+    break;
 case 426:
-	break;
+    break;
 case 427:
-	break;
+    break;
 case 428:
-	break;
+    break;
 case 429:
-	break;
+    break;
 case 430:
-	break;
+    break;
 case 431:
-	break;
+    break;
 case 432:
-	break;
+    break;
 case 433:
-	break;
+    break;
 case 434:
-	break;
+    break;
 case 435:
-	break;
+    break;
 case 436:
-	break;
+    break;
 case 437:
-	break;
+    break;
 case 438:
-	break;
+    break;
 case 439:
-	break;
+    break;
 case 440:
-	break;
+    break;
 case 441:
-	break;
+    break;
 case 442:
-	break;
+    break;
 case 443:
-	break;
+    break;
 case 444:
-	break;
+    break;
 case 445:
-	break;
+    break;
 case 446:
-	break;
+    break;
 case 447:
-	break;
+    break;
 case 448:
-	break;
+    break;
 case 449:
-	break;
+    break;
 case 450:
-	break;
+    break;
 case 451:
-	break;
+    break;
 case 452:
-	break;
+    break;
 case 453:
-	break;
+    break;
 case 454:
-	break;
+    break;
 case 455:
-	break;
+    break;
 case 456:
-	break;
+    break;
 case 457:
-	break;
+    break;
 case 458:
-	break;
+    break;
 case 459:
-	break;
+    break;
 case 460:
-	break;
+    break;
 case 461:
-	break;
+    break;
 case 462:
-	break;
+    break;
 case 463:
-	break;
+    break;
 case 464:
-	break;
+    break;
 case 465:
-	break;
+    break;
 case 466:
-	break;
+    break;
 case 467:
-	break;
+    break;
 case 468:
-	break;
+    break;
 case 469:
-	break;
+    break;
 case 470:
-	break;
+    break;
 case 471:
-	break;
+    break;
 case 472:
-	break;
+    break;
 case 473:
-	break;
+    break;
 case 474:
-	break;
+    break;
 case 475:
-	break;
+    break;
 case 476:
-	break;
+    break;
 case 477:
-	break;
+    break;
 case 478:
-	break;
+    break;
 case 479:
-	break;
+    break;
 case 480:
-	break;
+    break;
 case 481:
-	break;
+    break;
 case 482:
-	break;
+    break;
 case 483:
-	break;
+    break;
 case 484:
-	break;
+    break;
 case 485:
-	break;
+    break;
 case 486:
-	break;
+    break;
 case 487:
-	break;
+    break;
 case 488:
-	break;
+    break;
 case 489:
-	break;
+    break;
 case 490:
-	break;
+    break;
 case 491:
-	break;
+    break;
 case 492:
-	break;
+    break;
 case 493:
-	break;
+    break;
 case 494:
-	break;
+    break;
 case 495:
-	break;
+    break;
 case 496:
-	break;
+    break;
 case 497:
-	break;
+    break;
 case 498:
-	break;
+    break;
 case 499:
-	break;
+    break;
 case 500:
-	break;
+    break;
 case 501:
-	break;
+    break;
 case 502:
-	break;
+    break;
 case 503:
-	break;
+    break;
 case 504:
-	break;
+    break;
 case 505:
-	break;
+    break;
 case 506:
-	break;
+    break;
 case 507:
-	break;
+    break;
 case 508:
-	break;
+    break;
 case 509:
-	break;
+    break;
 case 510:
-	break;
+    break;
 case 511:
-	break;
+    break;
 case 512:
-	drawQuadGridZminXtreme(grid);
-	break;
+    drawQuadGridZminXtreme(grid);
+    break;
 case 513:
-	drawQuadGridZminMovingXtreme(grid);
-	break;
+    drawQuadGridZminMovingXtreme(grid);
+    break;
 case 514:
-	drawQuadGridZminTransparentXtreme(grid);
-	break;
+    drawQuadGridZminTransparentXtreme(grid);
+    break;
 case 515:
-	drawQuadGridZminMovingTransparentXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentXtreme(grid);
+    break;
 case 516:
 case 517:
 case 518:
 case 519:
 case 520:
-	drawQuadGridZminUnshadedXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedXtreme(grid);
+    break;
 case 521:
-	drawQuadGridZminUnshadedMovingXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingXtreme(grid);
+    break;
 case 522:
-	break;
+    break;
 case 523:
-	break;
+    break;
 case 524:
 case 525:
 case 526:
-	break;
+    break;
 case 527:
-	break;
+    break;
 case 528:
-	drawQuadGridZminDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurXtreme(grid);
+    break;
 case 529:
-	drawQuadGridZminMovingDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurXtreme(grid);
+    break;
 case 530:
-	drawQuadGridZminTransparentDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurXtreme(grid);
+    break;
 case 531:
-	drawQuadGridZminMovingTransparentDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurXtreme(grid);
+    break;
 case 532:
 case 533:
 case 534:
 case 535:
 case 536:
-	drawQuadGridZminUnshadedDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurXtreme(grid);
+    break;
 case 537:
-	drawQuadGridZminUnshadedMovingDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurXtreme(grid);
+    break;
 case 538:
-	break;
+    break;
 case 539:
-	break;
+    break;
 case 540:
 case 541:
 case 542:
-	break;
+    break;
 case 543:
-	break;
+    break;
 case 544:
-	drawQuadGridZminExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminExtraSamplesXtreme(grid);
+    break;
 case 545:
-	drawQuadGridZminMovingExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesXtreme(grid);
+    break;
 case 546:
-	drawQuadGridZminTransparentExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesXtreme(grid);
+    break;
 case 547:
-	drawQuadGridZminMovingTransparentExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesXtreme(grid);
+    break;
 case 548:
 case 549:
 case 550:
 case 551:
 case 552:
-	drawQuadGridZminUnshadedExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedExtraSamplesXtreme(grid);
+    break;
 case 553:
-	drawQuadGridZminUnshadedMovingExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingExtraSamplesXtreme(grid);
+    break;
 case 554:
-	break;
+    break;
 case 555:
-	break;
+    break;
 case 556:
 case 557:
 case 558:
-	break;
+    break;
 case 559:
-	break;
+    break;
 case 560:
-	drawQuadGridZminDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 561:
-	drawQuadGridZminMovingDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 562:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 563:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 564:
 case 565:
 case 566:
 case 567:
 case 568:
-	drawQuadGridZminUnshadedDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 569:
-	drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 570:
-	break;
+    break;
 case 571:
-	break;
+    break;
 case 572:
 case 573:
 case 574:
-	break;
+    break;
 case 575:
-	break;
+    break;
 case 576:
-	drawQuadGridZminMatteXtreme(grid);
-	break;
+    drawQuadGridZminMatteXtreme(grid);
+    break;
 case 577:
-	drawQuadGridZminMovingMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingMatteXtreme(grid);
+    break;
 case 578:
-	drawQuadGridZminTransparentMatteXtreme(grid);
-	break;
+    drawQuadGridZminTransparentMatteXtreme(grid);
+    break;
 case 579:
-	drawQuadGridZminMovingTransparentMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentMatteXtreme(grid);
+    break;
 case 580:
 case 581:
 case 582:
 case 583:
 case 584:
-	break;
+    break;
 case 585:
-	break;
+    break;
 case 586:
-	break;
+    break;
 case 587:
-	break;
+    break;
 case 588:
-	break;
+    break;
 case 589:
-	break;
+    break;
 case 590:
-	break;
+    break;
 case 591:
-	break;
+    break;
 case 592:
-	drawQuadGridZminDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurMatteXtreme(grid);
+    break;
 case 593:
-	drawQuadGridZminMovingDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurMatteXtreme(grid);
+    break;
 case 594:
-	drawQuadGridZminTransparentDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurMatteXtreme(grid);
+    break;
 case 595:
-	drawQuadGridZminMovingTransparentDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurMatteXtreme(grid);
+    break;
 case 596:
 case 597:
 case 598:
 case 599:
 case 600:
-	break;
+    break;
 case 601:
-	break;
+    break;
 case 602:
-	break;
+    break;
 case 603:
-	break;
+    break;
 case 604:
-	break;
+    break;
 case 605:
-	break;
+    break;
 case 606:
-	break;
+    break;
 case 607:
-	break;
+    break;
 case 608:
-	drawQuadGridZminExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminExtraSamplesMatteXtreme(grid);
+    break;
 case 609:
-	drawQuadGridZminMovingExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesMatteXtreme(grid);
+    break;
 case 610:
-	drawQuadGridZminTransparentExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesMatteXtreme(grid);
+    break;
 case 611:
-	drawQuadGridZminMovingTransparentExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesMatteXtreme(grid);
+    break;
 case 612:
 case 613:
 case 614:
 case 615:
 case 616:
-	break;
+    break;
 case 617:
-	break;
+    break;
 case 618:
-	break;
+    break;
 case 619:
-	break;
+    break;
 case 620:
-	break;
+    break;
 case 621:
-	break;
+    break;
 case 622:
-	break;
+    break;
 case 623:
-	break;
+    break;
 case 624:
-	drawQuadGridZminDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 625:
-	drawQuadGridZminMovingDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 626:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 627:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 628:
 case 629:
 case 630:
 case 631:
 case 632:
-	break;
+    break;
 case 633:
-	break;
+    break;
 case 634:
-	break;
+    break;
 case 635:
-	break;
+    break;
 case 636:
-	break;
+    break;
 case 637:
-	break;
+    break;
 case 638:
-	break;
+    break;
 case 639:
-	break;
+    break;
 case 640:
-	drawQuadGridZminLODXtreme(grid);
-	break;
+    drawQuadGridZminLODXtreme(grid);
+    break;
 case 641:
-	drawQuadGridZminMovingLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingLODXtreme(grid);
+    break;
 case 642:
-	drawQuadGridZminTransparentLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentLODXtreme(grid);
+    break;
 case 643:
-	drawQuadGridZminMovingTransparentLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentLODXtreme(grid);
+    break;
 case 644:
 case 645:
 case 646:
 case 647:
 case 648:
-	break;
+    break;
 case 649:
-	break;
+    break;
 case 650:
-	break;
+    break;
 case 651:
-	break;
+    break;
 case 652:
-	break;
+    break;
 case 653:
-	break;
+    break;
 case 654:
-	break;
+    break;
 case 655:
-	break;
+    break;
 case 656:
-	drawQuadGridZminDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurLODXtreme(grid);
+    break;
 case 657:
-	drawQuadGridZminMovingDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurLODXtreme(grid);
+    break;
 case 658:
-	drawQuadGridZminTransparentDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurLODXtreme(grid);
+    break;
 case 659:
-	drawQuadGridZminMovingTransparentDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurLODXtreme(grid);
+    break;
 case 660:
 case 661:
 case 662:
 case 663:
 case 664:
-	break;
+    break;
 case 665:
-	break;
+    break;
 case 666:
-	break;
+    break;
 case 667:
-	break;
+    break;
 case 668:
-	break;
+    break;
 case 669:
-	break;
+    break;
 case 670:
-	break;
+    break;
 case 671:
-	break;
+    break;
 case 672:
-	drawQuadGridZminExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminExtraSamplesLODXtreme(grid);
+    break;
 case 673:
-	drawQuadGridZminMovingExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesLODXtreme(grid);
+    break;
 case 674:
-	drawQuadGridZminTransparentExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesLODXtreme(grid);
+    break;
 case 675:
-	drawQuadGridZminMovingTransparentExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesLODXtreme(grid);
+    break;
 case 676:
 case 677:
 case 678:
 case 679:
 case 680:
-	break;
+    break;
 case 681:
-	break;
+    break;
 case 682:
-	break;
+    break;
 case 683:
-	break;
+    break;
 case 684:
-	break;
+    break;
 case 685:
-	break;
+    break;
 case 686:
-	break;
+    break;
 case 687:
-	break;
+    break;
 case 688:
-	drawQuadGridZminDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 689:
-	drawQuadGridZminMovingDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 690:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 691:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 692:
 case 693:
 case 694:
 case 695:
 case 696:
-	break;
+    break;
 case 697:
-	break;
+    break;
 case 698:
-	break;
+    break;
 case 699:
-	break;
+    break;
 case 700:
-	break;
+    break;
 case 701:
-	break;
+    break;
 case 702:
-	break;
+    break;
 case 703:
-	break;
+    break;
 case 704:
-	drawQuadGridZminMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMatteLODXtreme(grid);
+    break;
 case 705:
-	drawQuadGridZminMovingMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingMatteLODXtreme(grid);
+    break;
 case 706:
-	drawQuadGridZminTransparentMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentMatteLODXtreme(grid);
+    break;
 case 707:
-	drawQuadGridZminMovingTransparentMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentMatteLODXtreme(grid);
+    break;
 case 708:
 case 709:
 case 710:
 case 711:
 case 712:
-	break;
+    break;
 case 713:
-	break;
+    break;
 case 714:
-	break;
+    break;
 case 715:
-	break;
+    break;
 case 716:
-	break;
+    break;
 case 717:
-	break;
+    break;
 case 718:
-	break;
+    break;
 case 719:
-	break;
+    break;
 case 720:
-	drawQuadGridZminDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurMatteLODXtreme(grid);
+    break;
 case 721:
-	drawQuadGridZminMovingDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurMatteLODXtreme(grid);
+    break;
 case 722:
-	drawQuadGridZminTransparentDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurMatteLODXtreme(grid);
+    break;
 case 723:
-	drawQuadGridZminMovingTransparentDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurMatteLODXtreme(grid);
+    break;
 case 724:
 case 725:
 case 726:
 case 727:
 case 728:
-	break;
+    break;
 case 729:
-	break;
+    break;
 case 730:
-	break;
+    break;
 case 731:
-	break;
+    break;
 case 732:
-	break;
+    break;
 case 733:
-	break;
+    break;
 case 734:
-	break;
+    break;
 case 735:
-	break;
+    break;
 case 736:
-	drawQuadGridZminExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminExtraSamplesMatteLODXtreme(grid);
+    break;
 case 737:
-	drawQuadGridZminMovingExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingExtraSamplesMatteLODXtreme(grid);
+    break;
 case 738:
-	drawQuadGridZminTransparentExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentExtraSamplesMatteLODXtreme(grid);
+    break;
 case 739:
-	drawQuadGridZminMovingTransparentExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentExtraSamplesMatteLODXtreme(grid);
+    break;
 case 740:
 case 741:
 case 742:
 case 743:
 case 744:
-	break;
+    break;
 case 745:
-	break;
+    break;
 case 746:
-	break;
+    break;
 case 747:
-	break;
+    break;
 case 748:
-	break;
+    break;
 case 749:
-	break;
+    break;
 case 750:
-	break;
+    break;
 case 751:
-	break;
+    break;
 case 752:
-	drawQuadGridZminDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 753:
-	drawQuadGridZminMovingDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 754:
-	drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 755:
-	drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 756:
 case 757:
 case 758:
 case 759:
 case 760:
-	break;
+    break;
 case 761:
-	break;
+    break;
 case 762:
-	break;
+    break;
 case 763:
-	break;
+    break;
 case 764:
-	break;
+    break;
 case 765:
-	break;
+    break;
 case 766:
-	break;
+    break;
 case 767:
-	break;
+    break;
 case 768:
-	break;
+    break;
 case 769:
-	break;
+    break;
 case 770:
-	break;
+    break;
 case 771:
-	break;
+    break;
 case 772:
-	break;
+    break;
 case 773:
-	break;
+    break;
 case 774:
-	break;
+    break;
 case 775:
-	break;
+    break;
 case 776:
-	drawQuadGridZminUnshadedUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedUndercullXtreme(grid);
+    break;
 case 777:
-	drawQuadGridZminUnshadedMovingUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingUndercullXtreme(grid);
+    break;
 case 778:
-	break;
+    break;
 case 779:
-	break;
+    break;
 case 780:
 case 781:
 case 782:
-	break;
+    break;
 case 783:
-	break;
+    break;
 case 784:
-	break;
+    break;
 case 785:
-	break;
+    break;
 case 786:
-	break;
+    break;
 case 787:
-	break;
+    break;
 case 788:
-	break;
+    break;
 case 789:
-	break;
+    break;
 case 790:
-	break;
+    break;
 case 791:
-	break;
+    break;
 case 792:
-	drawQuadGridZminUnshadedDepthBlurUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurUndercullXtreme(grid);
+    break;
 case 793:
-	drawQuadGridZminUnshadedMovingDepthBlurUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurUndercullXtreme(grid);
+    break;
 case 794:
-	break;
+    break;
 case 795:
-	break;
+    break;
 case 796:
 case 797:
 case 798:
-	break;
+    break;
 case 799:
-	break;
+    break;
 case 800:
-	break;
+    break;
 case 801:
-	break;
+    break;
 case 802:
-	break;
+    break;
 case 803:
-	break;
+    break;
 case 804:
-	break;
+    break;
 case 805:
-	break;
+    break;
 case 806:
-	break;
+    break;
 case 807:
-	break;
+    break;
 case 808:
-	drawQuadGridZminUnshadedExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedExtraSamplesUndercullXtreme(grid);
+    break;
 case 809:
-	drawQuadGridZminUnshadedMovingExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingExtraSamplesUndercullXtreme(grid);
+    break;
 case 810:
-	break;
+    break;
 case 811:
-	break;
+    break;
 case 812:
 case 813:
 case 814:
-	break;
+    break;
 case 815:
-	break;
+    break;
 case 816:
-	break;
+    break;
 case 817:
-	break;
+    break;
 case 818:
-	break;
+    break;
 case 819:
-	break;
+    break;
 case 820:
-	break;
+    break;
 case 821:
-	break;
+    break;
 case 822:
-	break;
+    break;
 case 823:
-	break;
+    break;
 case 824:
-	drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercullXtreme(grid);
+    break;
 case 825:
-	drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(grid);
+    break;
 case 826:
-	break;
+    break;
 case 827:
-	break;
+    break;
 case 828:
 case 829:
 case 830:
-	break;
+    break;
 case 831:
-	break;
+    break;
 case 832:
-	break;
+    break;
 case 833:
-	break;
+    break;
 case 834:
-	break;
+    break;
 case 835:
-	break;
+    break;
 case 836:
-	break;
+    break;
 case 837:
-	break;
+    break;
 case 838:
-	break;
+    break;
 case 839:
-	break;
+    break;
 case 840:
-	break;
+    break;
 case 841:
-	break;
+    break;
 case 842:
-	break;
+    break;
 case 843:
-	break;
+    break;
 case 844:
-	break;
+    break;
 case 845:
-	break;
+    break;
 case 846:
-	break;
+    break;
 case 847:
-	break;
+    break;
 case 848:
-	break;
+    break;
 case 849:
-	break;
+    break;
 case 850:
-	break;
+    break;
 case 851:
-	break;
+    break;
 case 852:
-	break;
+    break;
 case 853:
-	break;
+    break;
 case 854:
-	break;
+    break;
 case 855:
-	break;
+    break;
 case 856:
-	break;
+    break;
 case 857:
-	break;
+    break;
 case 858:
-	break;
+    break;
 case 859:
-	break;
+    break;
 case 860:
-	break;
+    break;
 case 861:
-	break;
+    break;
 case 862:
-	break;
+    break;
 case 863:
-	break;
+    break;
 case 864:
-	break;
+    break;
 case 865:
-	break;
+    break;
 case 866:
-	break;
+    break;
 case 867:
-	break;
+    break;
 case 868:
-	break;
+    break;
 case 869:
-	break;
+    break;
 case 870:
-	break;
+    break;
 case 871:
-	break;
+    break;
 case 872:
-	break;
+    break;
 case 873:
-	break;
+    break;
 case 874:
-	break;
+    break;
 case 875:
-	break;
+    break;
 case 876:
-	break;
+    break;
 case 877:
-	break;
+    break;
 case 878:
-	break;
+    break;
 case 879:
-	break;
+    break;
 case 880:
-	break;
+    break;
 case 881:
-	break;
+    break;
 case 882:
-	break;
+    break;
 case 883:
-	break;
+    break;
 case 884:
-	break;
+    break;
 case 885:
-	break;
+    break;
 case 886:
-	break;
+    break;
 case 887:
-	break;
+    break;
 case 888:
-	break;
+    break;
 case 889:
-	break;
+    break;
 case 890:
-	break;
+    break;
 case 891:
-	break;
+    break;
 case 892:
-	break;
+    break;
 case 893:
-	break;
+    break;
 case 894:
-	break;
+    break;
 case 895:
-	break;
+    break;
 case 896:
-	break;
+    break;
 case 897:
-	break;
+    break;
 case 898:
-	break;
+    break;
 case 899:
-	break;
+    break;
 case 900:
-	break;
+    break;
 case 901:
-	break;
+    break;
 case 902:
-	break;
+    break;
 case 903:
-	break;
+    break;
 case 904:
-	break;
+    break;
 case 905:
-	break;
+    break;
 case 906:
-	break;
+    break;
 case 907:
-	break;
+    break;
 case 908:
-	break;
+    break;
 case 909:
-	break;
+    break;
 case 910:
-	break;
+    break;
 case 911:
-	break;
+    break;
 case 912:
-	break;
+    break;
 case 913:
-	break;
+    break;
 case 914:
-	break;
+    break;
 case 915:
-	break;
+    break;
 case 916:
-	break;
+    break;
 case 917:
-	break;
+    break;
 case 918:
-	break;
+    break;
 case 919:
-	break;
+    break;
 case 920:
-	break;
+    break;
 case 921:
-	break;
+    break;
 case 922:
-	break;
+    break;
 case 923:
-	break;
+    break;
 case 924:
-	break;
+    break;
 case 925:
-	break;
+    break;
 case 926:
-	break;
+    break;
 case 927:
-	break;
+    break;
 case 928:
-	break;
+    break;
 case 929:
-	break;
+    break;
 case 930:
-	break;
+    break;
 case 931:
-	break;
+    break;
 case 932:
-	break;
+    break;
 case 933:
-	break;
+    break;
 case 934:
-	break;
+    break;
 case 935:
-	break;
+    break;
 case 936:
-	break;
+    break;
 case 937:
-	break;
+    break;
 case 938:
-	break;
+    break;
 case 939:
-	break;
+    break;
 case 940:
-	break;
+    break;
 case 941:
-	break;
+    break;
 case 942:
-	break;
+    break;
 case 943:
-	break;
+    break;
 case 944:
-	break;
+    break;
 case 945:
-	break;
+    break;
 case 946:
-	break;
+    break;
 case 947:
-	break;
+    break;
 case 948:
-	break;
+    break;
 case 949:
-	break;
+    break;
 case 950:
-	break;
+    break;
 case 951:
-	break;
+    break;
 case 952:
-	break;
+    break;
 case 953:
-	break;
+    break;
 case 954:
-	break;
+    break;
 case 955:
-	break;
+    break;
 case 956:
-	break;
+    break;
 case 957:
-	break;
+    break;
 case 958:
-	break;
+    break;
 case 959:
-	break;
+    break;
 case 960:
-	break;
+    break;
 case 961:
-	break;
+    break;
 case 962:
-	break;
+    break;
 case 963:
-	break;
+    break;
 case 964:
-	break;
+    break;
 case 965:
-	break;
+    break;
 case 966:
-	break;
+    break;
 case 967:
-	break;
+    break;
 case 968:
-	break;
+    break;
 case 969:
-	break;
+    break;
 case 970:
-	break;
+    break;
 case 971:
-	break;
+    break;
 case 972:
-	break;
+    break;
 case 973:
-	break;
+    break;
 case 974:
-	break;
+    break;
 case 975:
-	break;
+    break;
 case 976:
-	break;
+    break;
 case 977:
-	break;
+    break;
 case 978:
-	break;
+    break;
 case 979:
-	break;
+    break;
 case 980:
-	break;
+    break;
 case 981:
-	break;
+    break;
 case 982:
-	break;
+    break;
 case 983:
-	break;
+    break;
 case 984:
-	break;
+    break;
 case 985:
-	break;
+    break;
 case 986:
-	break;
+    break;
 case 987:
-	break;
+    break;
 case 988:
-	break;
+    break;
 case 989:
-	break;
+    break;
 case 990:
-	break;
+    break;
 case 991:
-	break;
+    break;
 case 992:
-	break;
+    break;
 case 993:
-	break;
+    break;
 case 994:
-	break;
+    break;
 case 995:
-	break;
+    break;
 case 996:
-	break;
+    break;
 case 997:
-	break;
+    break;
 case 998:
-	break;
+    break;
 case 999:
-	break;
+    break;
 case 1000:
-	break;
+    break;
 case 1001:
-	break;
+    break;
 case 1002:
-	break;
+    break;
 case 1003:
-	break;
+    break;
 case 1004:
-	break;
+    break;
 case 1005:
-	break;
+    break;
 case 1006:
-	break;
+    break;
 case 1007:
-	break;
+    break;
 case 1008:
-	break;
+    break;
 case 1009:
-	break;
+    break;
 case 1010:
-	break;
+    break;
 case 1011:
-	break;
+    break;
 case 1012:
-	break;
+    break;
 case 1013:
-	break;
+    break;
 case 1014:
-	break;
+    break;
 case 1015:
-	break;
+    break;
 case 1016:
-	break;
+    break;
 case 1017:
-	break;
+    break;
 case 1018:
-	break;
+    break;
 case 1019:
-	break;
+    break;
 case 1020:
-	break;
+    break;
 case 1021:
-	break;
+    break;
 case 1022:
-	break;
+    break;
 case 1023:
-	break;
+    break;
 case 1024:
-	drawQuadGridZmid(grid);
-	break;
+    drawQuadGridZmid(grid);
+    break;
 case 1025:
-	drawQuadGridZmidMoving(grid);
-	break;
+    drawQuadGridZmidMoving(grid);
+    break;
 case 1026:
-	drawQuadGridZmidTransparent(grid);
-	break;
+    drawQuadGridZmidTransparent(grid);
+    break;
 case 1027:
-	drawQuadGridZmidMovingTransparent(grid);
-	break;
+    drawQuadGridZmidMovingTransparent(grid);
+    break;
 case 1028:
-	drawPointGridZmid(grid);
-	break;
+    drawPointGridZmid(grid);
+    break;
 case 1029:
-	drawPointGridZmidMoving(grid);
-	break;
+    drawPointGridZmidMoving(grid);
+    break;
 case 1030:
-	drawPointGridZmidTransparent(grid);
-	break;
+    drawPointGridZmidTransparent(grid);
+    break;
 case 1031:
-	drawPointGridZmidMovingTransparent(grid);
-	break;
+    drawPointGridZmidMovingTransparent(grid);
+    break;
 case 1032:
-	drawQuadGridZmidUnshaded(grid);
-	break;
+    drawQuadGridZmidUnshaded(grid);
+    break;
 case 1033:
-	drawQuadGridZmidUnshadedMoving(grid);
-	break;
+    drawQuadGridZmidUnshadedMoving(grid);
+    break;
 case 1034:
-	break;
+    break;
 case 1035:
-	break;
+    break;
 case 1036:
-	drawPointGridZmidUnshaded(grid);
-	break;
+    drawPointGridZmidUnshaded(grid);
+    break;
 case 1037:
-	drawPointGridZmidUnshadedMoving(grid);
-	break;
+    drawPointGridZmidUnshadedMoving(grid);
+    break;
 case 1038:
-	break;
+    break;
 case 1039:
-	break;
+    break;
 case 1040:
-	drawQuadGridZmidDepthBlur(grid);
-	break;
+    drawQuadGridZmidDepthBlur(grid);
+    break;
 case 1041:
-	drawQuadGridZmidMovingDepthBlur(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlur(grid);
+    break;
 case 1042:
-	drawQuadGridZmidTransparentDepthBlur(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlur(grid);
+    break;
 case 1043:
-	drawQuadGridZmidMovingTransparentDepthBlur(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlur(grid);
+    break;
 case 1044:
-	drawPointGridZmidDepthBlur(grid);
-	break;
+    drawPointGridZmidDepthBlur(grid);
+    break;
 case 1045:
-	drawPointGridZmidMovingDepthBlur(grid);
-	break;
+    drawPointGridZmidMovingDepthBlur(grid);
+    break;
 case 1046:
-	drawPointGridZmidTransparentDepthBlur(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlur(grid);
+    break;
 case 1047:
-	drawPointGridZmidMovingTransparentDepthBlur(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlur(grid);
+    break;
 case 1048:
-	drawQuadGridZmidUnshadedDepthBlur(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlur(grid);
+    break;
 case 1049:
-	drawQuadGridZmidUnshadedMovingDepthBlur(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlur(grid);
+    break;
 case 1050:
-	break;
+    break;
 case 1051:
-	break;
+    break;
 case 1052:
-	drawPointGridZmidUnshadedDepthBlur(grid);
-	break;
+    drawPointGridZmidUnshadedDepthBlur(grid);
+    break;
 case 1053:
-	drawPointGridZmidUnshadedMovingDepthBlur(grid);
-	break;
+    drawPointGridZmidUnshadedMovingDepthBlur(grid);
+    break;
 case 1054:
-	break;
+    break;
 case 1055:
-	break;
+    break;
 case 1056:
-	drawQuadGridZmidExtraSamples(grid);
-	break;
+    drawQuadGridZmidExtraSamples(grid);
+    break;
 case 1057:
-	drawQuadGridZmidMovingExtraSamples(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamples(grid);
+    break;
 case 1058:
-	drawQuadGridZmidTransparentExtraSamples(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamples(grid);
+    break;
 case 1059:
-	drawQuadGridZmidMovingTransparentExtraSamples(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamples(grid);
+    break;
 case 1060:
-	drawPointGridZmidExtraSamples(grid);
-	break;
+    drawPointGridZmidExtraSamples(grid);
+    break;
 case 1061:
-	drawPointGridZmidMovingExtraSamples(grid);
-	break;
+    drawPointGridZmidMovingExtraSamples(grid);
+    break;
 case 1062:
-	drawPointGridZmidTransparentExtraSamples(grid);
-	break;
+    drawPointGridZmidTransparentExtraSamples(grid);
+    break;
 case 1063:
-	drawPointGridZmidMovingTransparentExtraSamples(grid);
-	break;
+    drawPointGridZmidMovingTransparentExtraSamples(grid);
+    break;
 case 1064:
-	drawQuadGridZmidUnshadedExtraSamples(grid);
-	break;
+    drawQuadGridZmidUnshadedExtraSamples(grid);
+    break;
 case 1065:
-	drawQuadGridZmidUnshadedMovingExtraSamples(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingExtraSamples(grid);
+    break;
 case 1066:
-	break;
+    break;
 case 1067:
-	break;
+    break;
 case 1068:
-	drawPointGridZmidUnshadedExtraSamples(grid);
-	break;
+    drawPointGridZmidUnshadedExtraSamples(grid);
+    break;
 case 1069:
-	drawPointGridZmidUnshadedMovingExtraSamples(grid);
-	break;
+    drawPointGridZmidUnshadedMovingExtraSamples(grid);
+    break;
 case 1070:
-	break;
+    break;
 case 1071:
-	break;
+    break;
 case 1072:
-	drawQuadGridZmidDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamples(grid);
+    break;
 case 1073:
-	drawQuadGridZmidMovingDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamples(grid);
+    break;
 case 1074:
-	drawQuadGridZmidTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamples(grid);
+    break;
 case 1075:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamples(grid);
+    break;
 case 1076:
-	drawPointGridZmidDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidDepthBlurExtraSamples(grid);
+    break;
 case 1077:
-	drawPointGridZmidMovingDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurExtraSamples(grid);
+    break;
 case 1078:
-	drawPointGridZmidTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurExtraSamples(grid);
+    break;
 case 1079:
-	drawPointGridZmidMovingTransparentDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurExtraSamples(grid);
+    break;
 case 1080:
-	drawQuadGridZmidUnshadedDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurExtraSamples(grid);
+    break;
 case 1081:
-	drawQuadGridZmidUnshadedMovingDepthBlurExtraSamples(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurExtraSamples(grid);
+    break;
 case 1082:
-	break;
+    break;
 case 1083:
-	break;
+    break;
 case 1084:
-	drawPointGridZmidUnshadedDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidUnshadedDepthBlurExtraSamples(grid);
+    break;
 case 1085:
-	drawPointGridZmidUnshadedMovingDepthBlurExtraSamples(grid);
-	break;
+    drawPointGridZmidUnshadedMovingDepthBlurExtraSamples(grid);
+    break;
 case 1086:
-	break;
+    break;
 case 1087:
-	break;
+    break;
 case 1088:
-	drawQuadGridZmidMatte(grid);
-	break;
+    drawQuadGridZmidMatte(grid);
+    break;
 case 1089:
-	drawQuadGridZmidMovingMatte(grid);
-	break;
+    drawQuadGridZmidMovingMatte(grid);
+    break;
 case 1090:
-	drawQuadGridZmidTransparentMatte(grid);
-	break;
+    drawQuadGridZmidTransparentMatte(grid);
+    break;
 case 1091:
-	drawQuadGridZmidMovingTransparentMatte(grid);
-	break;
+    drawQuadGridZmidMovingTransparentMatte(grid);
+    break;
 case 1092:
-	drawPointGridZmidMatte(grid);
-	break;
+    drawPointGridZmidMatte(grid);
+    break;
 case 1093:
-	drawPointGridZmidMovingMatte(grid);
-	break;
+    drawPointGridZmidMovingMatte(grid);
+    break;
 case 1094:
-	drawPointGridZmidTransparentMatte(grid);
-	break;
+    drawPointGridZmidTransparentMatte(grid);
+    break;
 case 1095:
-	drawPointGridZmidMovingTransparentMatte(grid);
-	break;
+    drawPointGridZmidMovingTransparentMatte(grid);
+    break;
 case 1096:
-	break;
+    break;
 case 1097:
-	break;
+    break;
 case 1098:
-	break;
+    break;
 case 1099:
-	break;
+    break;
 case 1100:
-	break;
+    break;
 case 1101:
-	break;
+    break;
 case 1102:
-	break;
+    break;
 case 1103:
-	break;
+    break;
 case 1104:
-	drawQuadGridZmidDepthBlurMatte(grid);
-	break;
+    drawQuadGridZmidDepthBlurMatte(grid);
+    break;
 case 1105:
-	drawQuadGridZmidMovingDepthBlurMatte(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurMatte(grid);
+    break;
 case 1106:
-	drawQuadGridZmidTransparentDepthBlurMatte(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurMatte(grid);
+    break;
 case 1107:
-	drawQuadGridZmidMovingTransparentDepthBlurMatte(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurMatte(grid);
+    break;
 case 1108:
-	drawPointGridZmidDepthBlurMatte(grid);
-	break;
+    drawPointGridZmidDepthBlurMatte(grid);
+    break;
 case 1109:
-	drawPointGridZmidMovingDepthBlurMatte(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurMatte(grid);
+    break;
 case 1110:
-	drawPointGridZmidTransparentDepthBlurMatte(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurMatte(grid);
+    break;
 case 1111:
-	drawPointGridZmidMovingTransparentDepthBlurMatte(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurMatte(grid);
+    break;
 case 1112:
-	break;
+    break;
 case 1113:
-	break;
+    break;
 case 1114:
-	break;
+    break;
 case 1115:
-	break;
+    break;
 case 1116:
-	break;
+    break;
 case 1117:
-	break;
+    break;
 case 1118:
-	break;
+    break;
 case 1119:
-	break;
+    break;
 case 1120:
-	drawQuadGridZmidExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidExtraSamplesMatte(grid);
+    break;
 case 1121:
-	drawQuadGridZmidMovingExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesMatte(grid);
+    break;
 case 1122:
-	drawQuadGridZmidTransparentExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesMatte(grid);
+    break;
 case 1123:
-	drawQuadGridZmidMovingTransparentExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesMatte(grid);
+    break;
 case 1124:
-	drawPointGridZmidExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidExtraSamplesMatte(grid);
+    break;
 case 1125:
-	drawPointGridZmidMovingExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidMovingExtraSamplesMatte(grid);
+    break;
 case 1126:
-	drawPointGridZmidTransparentExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidTransparentExtraSamplesMatte(grid);
+    break;
 case 1127:
-	drawPointGridZmidMovingTransparentExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidMovingTransparentExtraSamplesMatte(grid);
+    break;
 case 1128:
-	break;
+    break;
 case 1129:
-	break;
+    break;
 case 1130:
-	break;
+    break;
 case 1131:
-	break;
+    break;
 case 1132:
-	break;
+    break;
 case 1133:
-	break;
+    break;
 case 1134:
-	break;
+    break;
 case 1135:
-	break;
+    break;
 case 1136:
-	drawQuadGridZmidDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1137:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1138:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1139:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1140:
-	drawPointGridZmidDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1141:
-	drawPointGridZmidMovingDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1142:
-	drawPointGridZmidTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1143:
-	drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatte(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatte(grid);
+    break;
 case 1144:
-	break;
+    break;
 case 1145:
-	break;
+    break;
 case 1146:
-	break;
+    break;
 case 1147:
-	break;
+    break;
 case 1148:
-	break;
+    break;
 case 1149:
-	break;
+    break;
 case 1150:
-	break;
+    break;
 case 1151:
-	break;
+    break;
 case 1152:
-	drawQuadGridZmidLOD(grid);
-	break;
+    drawQuadGridZmidLOD(grid);
+    break;
 case 1153:
-	drawQuadGridZmidMovingLOD(grid);
-	break;
+    drawQuadGridZmidMovingLOD(grid);
+    break;
 case 1154:
-	drawQuadGridZmidTransparentLOD(grid);
-	break;
+    drawQuadGridZmidTransparentLOD(grid);
+    break;
 case 1155:
-	drawQuadGridZmidMovingTransparentLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentLOD(grid);
+    break;
 case 1156:
-	drawPointGridZmidLOD(grid);
-	break;
+    drawPointGridZmidLOD(grid);
+    break;
 case 1157:
-	drawPointGridZmidMovingLOD(grid);
-	break;
+    drawPointGridZmidMovingLOD(grid);
+    break;
 case 1158:
-	drawPointGridZmidTransparentLOD(grid);
-	break;
+    drawPointGridZmidTransparentLOD(grid);
+    break;
 case 1159:
-	drawPointGridZmidMovingTransparentLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentLOD(grid);
+    break;
 case 1160:
-	break;
+    break;
 case 1161:
-	break;
+    break;
 case 1162:
-	break;
+    break;
 case 1163:
-	break;
+    break;
 case 1164:
-	break;
+    break;
 case 1165:
-	break;
+    break;
 case 1166:
-	break;
+    break;
 case 1167:
-	break;
+    break;
 case 1168:
-	drawQuadGridZmidDepthBlurLOD(grid);
-	break;
+    drawQuadGridZmidDepthBlurLOD(grid);
+    break;
 case 1169:
-	drawQuadGridZmidMovingDepthBlurLOD(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurLOD(grid);
+    break;
 case 1170:
-	drawQuadGridZmidTransparentDepthBlurLOD(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurLOD(grid);
+    break;
 case 1171:
-	drawQuadGridZmidMovingTransparentDepthBlurLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurLOD(grid);
+    break;
 case 1172:
-	drawPointGridZmidDepthBlurLOD(grid);
-	break;
+    drawPointGridZmidDepthBlurLOD(grid);
+    break;
 case 1173:
-	drawPointGridZmidMovingDepthBlurLOD(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurLOD(grid);
+    break;
 case 1174:
-	drawPointGridZmidTransparentDepthBlurLOD(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurLOD(grid);
+    break;
 case 1175:
-	drawPointGridZmidMovingTransparentDepthBlurLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurLOD(grid);
+    break;
 case 1176:
-	break;
+    break;
 case 1177:
-	break;
+    break;
 case 1178:
-	break;
+    break;
 case 1179:
-	break;
+    break;
 case 1180:
-	break;
+    break;
 case 1181:
-	break;
+    break;
 case 1182:
-	break;
+    break;
 case 1183:
-	break;
+    break;
 case 1184:
-	drawQuadGridZmidExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidExtraSamplesLOD(grid);
+    break;
 case 1185:
-	drawQuadGridZmidMovingExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesLOD(grid);
+    break;
 case 1186:
-	drawQuadGridZmidTransparentExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesLOD(grid);
+    break;
 case 1187:
-	drawQuadGridZmidMovingTransparentExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesLOD(grid);
+    break;
 case 1188:
-	drawPointGridZmidExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidExtraSamplesLOD(grid);
+    break;
 case 1189:
-	drawPointGridZmidMovingExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidMovingExtraSamplesLOD(grid);
+    break;
 case 1190:
-	drawPointGridZmidTransparentExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidTransparentExtraSamplesLOD(grid);
+    break;
 case 1191:
-	drawPointGridZmidMovingTransparentExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentExtraSamplesLOD(grid);
+    break;
 case 1192:
-	break;
+    break;
 case 1193:
-	break;
+    break;
 case 1194:
-	break;
+    break;
 case 1195:
-	break;
+    break;
 case 1196:
-	break;
+    break;
 case 1197:
-	break;
+    break;
 case 1198:
-	break;
+    break;
 case 1199:
-	break;
+    break;
 case 1200:
-	drawQuadGridZmidDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1201:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1202:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1203:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1204:
-	drawPointGridZmidDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1205:
-	drawPointGridZmidMovingDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1206:
-	drawPointGridZmidTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1207:
-	drawPointGridZmidMovingTransparentDepthBlurExtraSamplesLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurExtraSamplesLOD(grid);
+    break;
 case 1208:
-	break;
+    break;
 case 1209:
-	break;
+    break;
 case 1210:
-	break;
+    break;
 case 1211:
-	break;
+    break;
 case 1212:
-	break;
+    break;
 case 1213:
-	break;
+    break;
 case 1214:
-	break;
+    break;
 case 1215:
-	break;
+    break;
 case 1216:
-	drawQuadGridZmidMatteLOD(grid);
-	break;
+    drawQuadGridZmidMatteLOD(grid);
+    break;
 case 1217:
-	drawQuadGridZmidMovingMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingMatteLOD(grid);
+    break;
 case 1218:
-	drawQuadGridZmidTransparentMatteLOD(grid);
-	break;
+    drawQuadGridZmidTransparentMatteLOD(grid);
+    break;
 case 1219:
-	drawQuadGridZmidMovingTransparentMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentMatteLOD(grid);
+    break;
 case 1220:
-	drawPointGridZmidMatteLOD(grid);
-	break;
+    drawPointGridZmidMatteLOD(grid);
+    break;
 case 1221:
-	drawPointGridZmidMovingMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingMatteLOD(grid);
+    break;
 case 1222:
-	drawPointGridZmidTransparentMatteLOD(grid);
-	break;
+    drawPointGridZmidTransparentMatteLOD(grid);
+    break;
 case 1223:
-	drawPointGridZmidMovingTransparentMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentMatteLOD(grid);
+    break;
 case 1224:
-	break;
+    break;
 case 1225:
-	break;
+    break;
 case 1226:
-	break;
+    break;
 case 1227:
-	break;
+    break;
 case 1228:
-	break;
+    break;
 case 1229:
-	break;
+    break;
 case 1230:
-	break;
+    break;
 case 1231:
-	break;
+    break;
 case 1232:
-	drawQuadGridZmidDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZmidDepthBlurMatteLOD(grid);
+    break;
 case 1233:
-	drawQuadGridZmidMovingDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurMatteLOD(grid);
+    break;
 case 1234:
-	drawQuadGridZmidTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurMatteLOD(grid);
+    break;
 case 1235:
-	drawQuadGridZmidMovingTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurMatteLOD(grid);
+    break;
 case 1236:
-	drawPointGridZmidDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZmidDepthBlurMatteLOD(grid);
+    break;
 case 1237:
-	drawPointGridZmidMovingDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurMatteLOD(grid);
+    break;
 case 1238:
-	drawPointGridZmidTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurMatteLOD(grid);
+    break;
 case 1239:
-	drawPointGridZmidMovingTransparentDepthBlurMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurMatteLOD(grid);
+    break;
 case 1240:
-	break;
+    break;
 case 1241:
-	break;
+    break;
 case 1242:
-	break;
+    break;
 case 1243:
-	break;
+    break;
 case 1244:
-	break;
+    break;
 case 1245:
-	break;
+    break;
 case 1246:
-	break;
+    break;
 case 1247:
-	break;
+    break;
 case 1248:
-	drawQuadGridZmidExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidExtraSamplesMatteLOD(grid);
+    break;
 case 1249:
-	drawQuadGridZmidMovingExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesMatteLOD(grid);
+    break;
 case 1250:
-	drawQuadGridZmidTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 1251:
-	drawQuadGridZmidMovingTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 1252:
-	drawPointGridZmidExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidExtraSamplesMatteLOD(grid);
+    break;
 case 1253:
-	drawPointGridZmidMovingExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingExtraSamplesMatteLOD(grid);
+    break;
 case 1254:
-	drawPointGridZmidTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 1255:
-	drawPointGridZmidMovingTransparentExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentExtraSamplesMatteLOD(grid);
+    break;
 case 1256:
-	break;
+    break;
 case 1257:
-	break;
+    break;
 case 1258:
-	break;
+    break;
 case 1259:
-	break;
+    break;
 case 1260:
-	break;
+    break;
 case 1261:
-	break;
+    break;
 case 1262:
-	break;
+    break;
 case 1263:
-	break;
+    break;
 case 1264:
-	drawQuadGridZmidDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1265:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1266:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1267:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1268:
-	drawPointGridZmidDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1269:
-	drawPointGridZmidMovingDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1270:
-	drawPointGridZmidTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1271:
-	drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
-	break;
+    drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(grid);
+    break;
 case 1272:
-	break;
+    break;
 case 1273:
-	break;
+    break;
 case 1274:
-	break;
+    break;
 case 1275:
-	break;
+    break;
 case 1276:
-	break;
+    break;
 case 1277:
-	break;
+    break;
 case 1278:
-	break;
+    break;
 case 1279:
-	break;
+    break;
 case 1280:
-	break;
+    break;
 case 1281:
-	break;
+    break;
 case 1282:
-	break;
+    break;
 case 1283:
-	break;
+    break;
 case 1284:
-	break;
+    break;
 case 1285:
-	break;
+    break;
 case 1286:
-	break;
+    break;
 case 1287:
-	break;
+    break;
 case 1288:
-	drawQuadGridZmidUnshadedUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedUndercull(grid);
+    break;
 case 1289:
-	drawQuadGridZmidUnshadedMovingUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingUndercull(grid);
+    break;
 case 1290:
-	break;
+    break;
 case 1291:
-	break;
+    break;
 case 1292:
-	drawPointGridZmidUnshadedUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedUndercull(grid);
+    break;
 case 1293:
-	drawPointGridZmidUnshadedMovingUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedMovingUndercull(grid);
+    break;
 case 1294:
-	break;
+    break;
 case 1295:
-	break;
+    break;
 case 1296:
-	break;
+    break;
 case 1297:
-	break;
+    break;
 case 1298:
-	break;
+    break;
 case 1299:
-	break;
+    break;
 case 1300:
-	break;
+    break;
 case 1301:
-	break;
+    break;
 case 1302:
-	break;
+    break;
 case 1303:
-	break;
+    break;
 case 1304:
-	drawQuadGridZmidUnshadedDepthBlurUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurUndercull(grid);
+    break;
 case 1305:
-	drawQuadGridZmidUnshadedMovingDepthBlurUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurUndercull(grid);
+    break;
 case 1306:
-	break;
+    break;
 case 1307:
-	break;
+    break;
 case 1308:
-	drawPointGridZmidUnshadedDepthBlurUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedDepthBlurUndercull(grid);
+    break;
 case 1309:
-	drawPointGridZmidUnshadedMovingDepthBlurUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedMovingDepthBlurUndercull(grid);
+    break;
 case 1310:
-	break;
+    break;
 case 1311:
-	break;
+    break;
 case 1312:
-	break;
+    break;
 case 1313:
-	break;
+    break;
 case 1314:
-	break;
+    break;
 case 1315:
-	break;
+    break;
 case 1316:
-	break;
+    break;
 case 1317:
-	break;
+    break;
 case 1318:
-	break;
+    break;
 case 1319:
-	break;
+    break;
 case 1320:
-	drawQuadGridZmidUnshadedExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedExtraSamplesUndercull(grid);
+    break;
 case 1321:
-	drawQuadGridZmidUnshadedMovingExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingExtraSamplesUndercull(grid);
+    break;
 case 1322:
-	break;
+    break;
 case 1323:
-	break;
+    break;
 case 1324:
-	drawPointGridZmidUnshadedExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedExtraSamplesUndercull(grid);
+    break;
 case 1325:
-	drawPointGridZmidUnshadedMovingExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedMovingExtraSamplesUndercull(grid);
+    break;
 case 1326:
-	break;
+    break;
 case 1327:
-	break;
+    break;
 case 1328:
-	break;
+    break;
 case 1329:
-	break;
+    break;
 case 1330:
-	break;
+    break;
 case 1331:
-	break;
+    break;
 case 1332:
-	break;
+    break;
 case 1333:
-	break;
+    break;
 case 1334:
-	break;
+    break;
 case 1335:
-	break;
+    break;
 case 1336:
-	drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 1337:
-	drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 1338:
-	break;
+    break;
 case 1339:
-	break;
+    break;
 case 1340:
-	drawPointGridZmidUnshadedDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 1341:
-	drawPointGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
-	break;
+    drawPointGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(grid);
+    break;
 case 1342:
-	break;
+    break;
 case 1343:
-	break;
+    break;
 case 1344:
-	break;
+    break;
 case 1345:
-	break;
+    break;
 case 1346:
-	break;
+    break;
 case 1347:
-	break;
+    break;
 case 1348:
-	break;
+    break;
 case 1349:
-	break;
+    break;
 case 1350:
-	break;
+    break;
 case 1351:
-	break;
+    break;
 case 1352:
-	break;
+    break;
 case 1353:
-	break;
+    break;
 case 1354:
-	break;
+    break;
 case 1355:
-	break;
+    break;
 case 1356:
-	break;
+    break;
 case 1357:
-	break;
+    break;
 case 1358:
-	break;
+    break;
 case 1359:
-	break;
+    break;
 case 1360:
-	break;
+    break;
 case 1361:
-	break;
+    break;
 case 1362:
-	break;
+    break;
 case 1363:
-	break;
+    break;
 case 1364:
-	break;
+    break;
 case 1365:
-	break;
+    break;
 case 1366:
-	break;
+    break;
 case 1367:
-	break;
+    break;
 case 1368:
-	break;
+    break;
 case 1369:
-	break;
+    break;
 case 1370:
-	break;
+    break;
 case 1371:
-	break;
+    break;
 case 1372:
-	break;
+    break;
 case 1373:
-	break;
+    break;
 case 1374:
-	break;
+    break;
 case 1375:
-	break;
+    break;
 case 1376:
-	break;
+    break;
 case 1377:
-	break;
+    break;
 case 1378:
-	break;
+    break;
 case 1379:
-	break;
+    break;
 case 1380:
-	break;
+    break;
 case 1381:
-	break;
+    break;
 case 1382:
-	break;
+    break;
 case 1383:
-	break;
+    break;
 case 1384:
-	break;
+    break;
 case 1385:
-	break;
+    break;
 case 1386:
-	break;
+    break;
 case 1387:
-	break;
+    break;
 case 1388:
-	break;
+    break;
 case 1389:
-	break;
+    break;
 case 1390:
-	break;
+    break;
 case 1391:
-	break;
+    break;
 case 1392:
-	break;
+    break;
 case 1393:
-	break;
+    break;
 case 1394:
-	break;
+    break;
 case 1395:
-	break;
+    break;
 case 1396:
-	break;
+    break;
 case 1397:
-	break;
+    break;
 case 1398:
-	break;
+    break;
 case 1399:
-	break;
+    break;
 case 1400:
-	break;
+    break;
 case 1401:
-	break;
+    break;
 case 1402:
-	break;
+    break;
 case 1403:
-	break;
+    break;
 case 1404:
-	break;
+    break;
 case 1405:
-	break;
+    break;
 case 1406:
-	break;
+    break;
 case 1407:
-	break;
+    break;
 case 1408:
-	break;
+    break;
 case 1409:
-	break;
+    break;
 case 1410:
-	break;
+    break;
 case 1411:
-	break;
+    break;
 case 1412:
-	break;
+    break;
 case 1413:
-	break;
+    break;
 case 1414:
-	break;
+    break;
 case 1415:
-	break;
+    break;
 case 1416:
-	break;
+    break;
 case 1417:
-	break;
+    break;
 case 1418:
-	break;
+    break;
 case 1419:
-	break;
+    break;
 case 1420:
-	break;
+    break;
 case 1421:
-	break;
+    break;
 case 1422:
-	break;
+    break;
 case 1423:
-	break;
+    break;
 case 1424:
-	break;
+    break;
 case 1425:
-	break;
+    break;
 case 1426:
-	break;
+    break;
 case 1427:
-	break;
+    break;
 case 1428:
-	break;
+    break;
 case 1429:
-	break;
+    break;
 case 1430:
-	break;
+    break;
 case 1431:
-	break;
+    break;
 case 1432:
-	break;
+    break;
 case 1433:
-	break;
+    break;
 case 1434:
-	break;
+    break;
 case 1435:
-	break;
+    break;
 case 1436:
-	break;
+    break;
 case 1437:
-	break;
+    break;
 case 1438:
-	break;
+    break;
 case 1439:
-	break;
+    break;
 case 1440:
-	break;
+    break;
 case 1441:
-	break;
+    break;
 case 1442:
-	break;
+    break;
 case 1443:
-	break;
+    break;
 case 1444:
-	break;
+    break;
 case 1445:
-	break;
+    break;
 case 1446:
-	break;
+    break;
 case 1447:
-	break;
+    break;
 case 1448:
-	break;
+    break;
 case 1449:
-	break;
+    break;
 case 1450:
-	break;
+    break;
 case 1451:
-	break;
+    break;
 case 1452:
-	break;
+    break;
 case 1453:
-	break;
+    break;
 case 1454:
-	break;
+    break;
 case 1455:
-	break;
+    break;
 case 1456:
-	break;
+    break;
 case 1457:
-	break;
+    break;
 case 1458:
-	break;
+    break;
 case 1459:
-	break;
+    break;
 case 1460:
-	break;
+    break;
 case 1461:
-	break;
+    break;
 case 1462:
-	break;
+    break;
 case 1463:
-	break;
+    break;
 case 1464:
-	break;
+    break;
 case 1465:
-	break;
+    break;
 case 1466:
-	break;
+    break;
 case 1467:
-	break;
+    break;
 case 1468:
-	break;
+    break;
 case 1469:
-	break;
+    break;
 case 1470:
-	break;
+    break;
 case 1471:
-	break;
+    break;
 case 1472:
-	break;
+    break;
 case 1473:
-	break;
+    break;
 case 1474:
-	break;
+    break;
 case 1475:
-	break;
+    break;
 case 1476:
-	break;
+    break;
 case 1477:
-	break;
+    break;
 case 1478:
-	break;
+    break;
 case 1479:
-	break;
+    break;
 case 1480:
-	break;
+    break;
 case 1481:
-	break;
+    break;
 case 1482:
-	break;
+    break;
 case 1483:
-	break;
+    break;
 case 1484:
-	break;
+    break;
 case 1485:
-	break;
+    break;
 case 1486:
-	break;
+    break;
 case 1487:
-	break;
+    break;
 case 1488:
-	break;
+    break;
 case 1489:
-	break;
+    break;
 case 1490:
-	break;
+    break;
 case 1491:
-	break;
+    break;
 case 1492:
-	break;
+    break;
 case 1493:
-	break;
+    break;
 case 1494:
-	break;
+    break;
 case 1495:
-	break;
+    break;
 case 1496:
-	break;
+    break;
 case 1497:
-	break;
+    break;
 case 1498:
-	break;
+    break;
 case 1499:
-	break;
+    break;
 case 1500:
-	break;
+    break;
 case 1501:
-	break;
+    break;
 case 1502:
-	break;
+    break;
 case 1503:
-	break;
+    break;
 case 1504:
-	break;
+    break;
 case 1505:
-	break;
+    break;
 case 1506:
-	break;
+    break;
 case 1507:
-	break;
+    break;
 case 1508:
-	break;
+    break;
 case 1509:
-	break;
+    break;
 case 1510:
-	break;
+    break;
 case 1511:
-	break;
+    break;
 case 1512:
-	break;
+    break;
 case 1513:
-	break;
+    break;
 case 1514:
-	break;
+    break;
 case 1515:
-	break;
+    break;
 case 1516:
-	break;
+    break;
 case 1517:
-	break;
+    break;
 case 1518:
-	break;
+    break;
 case 1519:
-	break;
+    break;
 case 1520:
-	break;
+    break;
 case 1521:
-	break;
+    break;
 case 1522:
-	break;
+    break;
 case 1523:
-	break;
+    break;
 case 1524:
-	break;
+    break;
 case 1525:
-	break;
+    break;
 case 1526:
-	break;
+    break;
 case 1527:
-	break;
+    break;
 case 1528:
-	break;
+    break;
 case 1529:
-	break;
+    break;
 case 1530:
-	break;
+    break;
 case 1531:
-	break;
+    break;
 case 1532:
-	break;
+    break;
 case 1533:
-	break;
+    break;
 case 1534:
-	break;
+    break;
 case 1535:
-	break;
+    break;
 case 1536:
-	drawQuadGridZmidXtreme(grid);
-	break;
+    drawQuadGridZmidXtreme(grid);
+    break;
 case 1537:
-	drawQuadGridZmidMovingXtreme(grid);
-	break;
+    drawQuadGridZmidMovingXtreme(grid);
+    break;
 case 1538:
-	drawQuadGridZmidTransparentXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentXtreme(grid);
+    break;
 case 1539:
-	drawQuadGridZmidMovingTransparentXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentXtreme(grid);
+    break;
 case 1540:
 case 1541:
 case 1542:
 case 1543:
 case 1544:
-	drawQuadGridZmidUnshadedXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedXtreme(grid);
+    break;
 case 1545:
-	drawQuadGridZmidUnshadedMovingXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingXtreme(grid);
+    break;
 case 1546:
-	break;
+    break;
 case 1547:
-	break;
+    break;
 case 1548:
 case 1549:
 case 1550:
-	break;
+    break;
 case 1551:
-	break;
+    break;
 case 1552:
-	drawQuadGridZmidDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurXtreme(grid);
+    break;
 case 1553:
-	drawQuadGridZmidMovingDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurXtreme(grid);
+    break;
 case 1554:
-	drawQuadGridZmidTransparentDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurXtreme(grid);
+    break;
 case 1555:
-	drawQuadGridZmidMovingTransparentDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurXtreme(grid);
+    break;
 case 1556:
 case 1557:
 case 1558:
 case 1559:
 case 1560:
-	drawQuadGridZmidUnshadedDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurXtreme(grid);
+    break;
 case 1561:
-	drawQuadGridZmidUnshadedMovingDepthBlurXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurXtreme(grid);
+    break;
 case 1562:
-	break;
+    break;
 case 1563:
-	break;
+    break;
 case 1564:
 case 1565:
 case 1566:
-	break;
+    break;
 case 1567:
-	break;
+    break;
 case 1568:
-	drawQuadGridZmidExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidExtraSamplesXtreme(grid);
+    break;
 case 1569:
-	drawQuadGridZmidMovingExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesXtreme(grid);
+    break;
 case 1570:
-	drawQuadGridZmidTransparentExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesXtreme(grid);
+    break;
 case 1571:
-	drawQuadGridZmidMovingTransparentExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesXtreme(grid);
+    break;
 case 1572:
 case 1573:
 case 1574:
 case 1575:
 case 1576:
-	drawQuadGridZmidUnshadedExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedExtraSamplesXtreme(grid);
+    break;
 case 1577:
-	drawQuadGridZmidUnshadedMovingExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingExtraSamplesXtreme(grid);
+    break;
 case 1578:
-	break;
+    break;
 case 1579:
-	break;
+    break;
 case 1580:
 case 1581:
 case 1582:
-	break;
+    break;
 case 1583:
-	break;
+    break;
 case 1584:
-	drawQuadGridZmidDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1585:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1586:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1587:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1588:
 case 1589:
 case 1590:
 case 1591:
 case 1592:
-	drawQuadGridZmidUnshadedDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1593:
-	drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesXtreme(grid);
+    break;
 case 1594:
-	break;
+    break;
 case 1595:
-	break;
+    break;
 case 1596:
 case 1597:
 case 1598:
-	break;
+    break;
 case 1599:
-	break;
+    break;
 case 1600:
-	drawQuadGridZmidMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMatteXtreme(grid);
+    break;
 case 1601:
-	drawQuadGridZmidMovingMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingMatteXtreme(grid);
+    break;
 case 1602:
-	drawQuadGridZmidTransparentMatteXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentMatteXtreme(grid);
+    break;
 case 1603:
-	drawQuadGridZmidMovingTransparentMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentMatteXtreme(grid);
+    break;
 case 1604:
 case 1605:
 case 1606:
 case 1607:
 case 1608:
-	break;
+    break;
 case 1609:
-	break;
+    break;
 case 1610:
-	break;
+    break;
 case 1611:
-	break;
+    break;
 case 1612:
-	break;
+    break;
 case 1613:
-	break;
+    break;
 case 1614:
-	break;
+    break;
 case 1615:
-	break;
+    break;
 case 1616:
-	drawQuadGridZmidDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurMatteXtreme(grid);
+    break;
 case 1617:
-	drawQuadGridZmidMovingDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurMatteXtreme(grid);
+    break;
 case 1618:
-	drawQuadGridZmidTransparentDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurMatteXtreme(grid);
+    break;
 case 1619:
-	drawQuadGridZmidMovingTransparentDepthBlurMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurMatteXtreme(grid);
+    break;
 case 1620:
 case 1621:
 case 1622:
 case 1623:
 case 1624:
-	break;
+    break;
 case 1625:
-	break;
+    break;
 case 1626:
-	break;
+    break;
 case 1627:
-	break;
+    break;
 case 1628:
-	break;
+    break;
 case 1629:
-	break;
+    break;
 case 1630:
-	break;
+    break;
 case 1631:
-	break;
+    break;
 case 1632:
-	drawQuadGridZmidExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidExtraSamplesMatteXtreme(grid);
+    break;
 case 1633:
-	drawQuadGridZmidMovingExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesMatteXtreme(grid);
+    break;
 case 1634:
-	drawQuadGridZmidTransparentExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesMatteXtreme(grid);
+    break;
 case 1635:
-	drawQuadGridZmidMovingTransparentExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesMatteXtreme(grid);
+    break;
 case 1636:
 case 1637:
 case 1638:
 case 1639:
 case 1640:
-	break;
+    break;
 case 1641:
-	break;
+    break;
 case 1642:
-	break;
+    break;
 case 1643:
-	break;
+    break;
 case 1644:
-	break;
+    break;
 case 1645:
-	break;
+    break;
 case 1646:
-	break;
+    break;
 case 1647:
-	break;
+    break;
 case 1648:
-	drawQuadGridZmidDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 1649:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 1650:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 1651:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteXtreme(grid);
+    break;
 case 1652:
 case 1653:
 case 1654:
 case 1655:
 case 1656:
-	break;
+    break;
 case 1657:
-	break;
+    break;
 case 1658:
-	break;
+    break;
 case 1659:
-	break;
+    break;
 case 1660:
-	break;
+    break;
 case 1661:
-	break;
+    break;
 case 1662:
-	break;
+    break;
 case 1663:
-	break;
+    break;
 case 1664:
-	drawQuadGridZmidLODXtreme(grid);
-	break;
+    drawQuadGridZmidLODXtreme(grid);
+    break;
 case 1665:
-	drawQuadGridZmidMovingLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingLODXtreme(grid);
+    break;
 case 1666:
-	drawQuadGridZmidTransparentLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentLODXtreme(grid);
+    break;
 case 1667:
-	drawQuadGridZmidMovingTransparentLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentLODXtreme(grid);
+    break;
 case 1668:
 case 1669:
 case 1670:
 case 1671:
 case 1672:
-	break;
+    break;
 case 1673:
-	break;
+    break;
 case 1674:
-	break;
+    break;
 case 1675:
-	break;
+    break;
 case 1676:
-	break;
+    break;
 case 1677:
-	break;
+    break;
 case 1678:
-	break;
+    break;
 case 1679:
-	break;
+    break;
 case 1680:
-	drawQuadGridZmidDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurLODXtreme(grid);
+    break;
 case 1681:
-	drawQuadGridZmidMovingDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurLODXtreme(grid);
+    break;
 case 1682:
-	drawQuadGridZmidTransparentDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurLODXtreme(grid);
+    break;
 case 1683:
-	drawQuadGridZmidMovingTransparentDepthBlurLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurLODXtreme(grid);
+    break;
 case 1684:
 case 1685:
 case 1686:
 case 1687:
 case 1688:
-	break;
+    break;
 case 1689:
-	break;
+    break;
 case 1690:
-	break;
+    break;
 case 1691:
-	break;
+    break;
 case 1692:
-	break;
+    break;
 case 1693:
-	break;
+    break;
 case 1694:
-	break;
+    break;
 case 1695:
-	break;
+    break;
 case 1696:
-	drawQuadGridZmidExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidExtraSamplesLODXtreme(grid);
+    break;
 case 1697:
-	drawQuadGridZmidMovingExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesLODXtreme(grid);
+    break;
 case 1698:
-	drawQuadGridZmidTransparentExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesLODXtreme(grid);
+    break;
 case 1699:
-	drawQuadGridZmidMovingTransparentExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesLODXtreme(grid);
+    break;
 case 1700:
 case 1701:
 case 1702:
 case 1703:
 case 1704:
-	break;
+    break;
 case 1705:
-	break;
+    break;
 case 1706:
-	break;
+    break;
 case 1707:
-	break;
+    break;
 case 1708:
-	break;
+    break;
 case 1709:
-	break;
+    break;
 case 1710:
-	break;
+    break;
 case 1711:
-	break;
+    break;
 case 1712:
-	drawQuadGridZmidDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 1713:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 1714:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 1715:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLODXtreme(grid);
+    break;
 case 1716:
 case 1717:
 case 1718:
 case 1719:
 case 1720:
-	break;
+    break;
 case 1721:
-	break;
+    break;
 case 1722:
-	break;
+    break;
 case 1723:
-	break;
+    break;
 case 1724:
-	break;
+    break;
 case 1725:
-	break;
+    break;
 case 1726:
-	break;
+    break;
 case 1727:
-	break;
+    break;
 case 1728:
-	drawQuadGridZmidMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMatteLODXtreme(grid);
+    break;
 case 1729:
-	drawQuadGridZmidMovingMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingMatteLODXtreme(grid);
+    break;
 case 1730:
-	drawQuadGridZmidTransparentMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentMatteLODXtreme(grid);
+    break;
 case 1731:
-	drawQuadGridZmidMovingTransparentMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentMatteLODXtreme(grid);
+    break;
 case 1732:
 case 1733:
 case 1734:
 case 1735:
 case 1736:
-	break;
+    break;
 case 1737:
-	break;
+    break;
 case 1738:
-	break;
+    break;
 case 1739:
-	break;
+    break;
 case 1740:
-	break;
+    break;
 case 1741:
-	break;
+    break;
 case 1742:
-	break;
+    break;
 case 1743:
-	break;
+    break;
 case 1744:
-	drawQuadGridZmidDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurMatteLODXtreme(grid);
+    break;
 case 1745:
-	drawQuadGridZmidMovingDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurMatteLODXtreme(grid);
+    break;
 case 1746:
-	drawQuadGridZmidTransparentDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurMatteLODXtreme(grid);
+    break;
 case 1747:
-	drawQuadGridZmidMovingTransparentDepthBlurMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurMatteLODXtreme(grid);
+    break;
 case 1748:
 case 1749:
 case 1750:
 case 1751:
 case 1752:
-	break;
+    break;
 case 1753:
-	break;
+    break;
 case 1754:
-	break;
+    break;
 case 1755:
-	break;
+    break;
 case 1756:
-	break;
+    break;
 case 1757:
-	break;
+    break;
 case 1758:
-	break;
+    break;
 case 1759:
-	break;
+    break;
 case 1760:
-	drawQuadGridZmidExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1761:
-	drawQuadGridZmidMovingExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1762:
-	drawQuadGridZmidTransparentExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1763:
-	drawQuadGridZmidMovingTransparentExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1764:
 case 1765:
 case 1766:
 case 1767:
 case 1768:
-	break;
+    break;
 case 1769:
-	break;
+    break;
 case 1770:
-	break;
+    break;
 case 1771:
-	break;
+    break;
 case 1772:
-	break;
+    break;
 case 1773:
-	break;
+    break;
 case 1774:
-	break;
+    break;
 case 1775:
-	break;
+    break;
 case 1776:
-	drawQuadGridZmidDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1777:
-	drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1778:
-	drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1779:
-	drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
-	break;
+    drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(grid);
+    break;
 case 1780:
 case 1781:
 case 1782:
 case 1783:
 case 1784:
-	break;
+    break;
 case 1785:
-	break;
+    break;
 case 1786:
-	break;
+    break;
 case 1787:
-	break;
+    break;
 case 1788:
-	break;
+    break;
 case 1789:
-	break;
+    break;
 case 1790:
-	break;
+    break;
 case 1791:
-	break;
+    break;
 case 1792:
-	break;
+    break;
 case 1793:
-	break;
+    break;
 case 1794:
-	break;
+    break;
 case 1795:
-	break;
+    break;
 case 1796:
-	break;
+    break;
 case 1797:
-	break;
+    break;
 case 1798:
-	break;
+    break;
 case 1799:
-	break;
+    break;
 case 1800:
-	drawQuadGridZmidUnshadedUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedUndercullXtreme(grid);
+    break;
 case 1801:
-	drawQuadGridZmidUnshadedMovingUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingUndercullXtreme(grid);
+    break;
 case 1802:
-	break;
+    break;
 case 1803:
-	break;
+    break;
 case 1804:
 case 1805:
 case 1806:
-	break;
+    break;
 case 1807:
-	break;
+    break;
 case 1808:
-	break;
+    break;
 case 1809:
-	break;
+    break;
 case 1810:
-	break;
+    break;
 case 1811:
-	break;
+    break;
 case 1812:
-	break;
+    break;
 case 1813:
-	break;
+    break;
 case 1814:
-	break;
+    break;
 case 1815:
-	break;
+    break;
 case 1816:
-	drawQuadGridZmidUnshadedDepthBlurUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurUndercullXtreme(grid);
+    break;
 case 1817:
-	drawQuadGridZmidUnshadedMovingDepthBlurUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurUndercullXtreme(grid);
+    break;
 case 1818:
-	break;
+    break;
 case 1819:
-	break;
+    break;
 case 1820:
 case 1821:
 case 1822:
-	break;
+    break;
 case 1823:
-	break;
+    break;
 case 1824:
-	break;
+    break;
 case 1825:
-	break;
+    break;
 case 1826:
-	break;
+    break;
 case 1827:
-	break;
+    break;
 case 1828:
-	break;
+    break;
 case 1829:
-	break;
+    break;
 case 1830:
-	break;
+    break;
 case 1831:
-	break;
+    break;
 case 1832:
-	drawQuadGridZmidUnshadedExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedExtraSamplesUndercullXtreme(grid);
+    break;
 case 1833:
-	drawQuadGridZmidUnshadedMovingExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingExtraSamplesUndercullXtreme(grid);
+    break;
 case 1834:
-	break;
+    break;
 case 1835:
-	break;
+    break;
 case 1836:
 case 1837:
 case 1838:
-	break;
+    break;
 case 1839:
-	break;
+    break;
 case 1840:
-	break;
+    break;
 case 1841:
-	break;
+    break;
 case 1842:
-	break;
+    break;
 case 1843:
-	break;
+    break;
 case 1844:
-	break;
+    break;
 case 1845:
-	break;
+    break;
 case 1846:
-	break;
+    break;
 case 1847:
-	break;
+    break;
 case 1848:
-	drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercullXtreme(grid);
+    break;
 case 1849:
-	drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(grid);
-	break;
+    drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(grid);
+    break;
 case 1850:
-	break;
+    break;
 case 1851:
-	break;
+    break;
 case 1852:
 case 1853:
 case 1854:
-	break;
+    break;
 case 1855:
-	break;
+    break;
 case 1856:
-	break;
+    break;
 case 1857:
-	break;
+    break;
 case 1858:
-	break;
+    break;
 case 1859:
-	break;
+    break;
 case 1860:
-	break;
+    break;
 case 1861:
-	break;
+    break;
 case 1862:
-	break;
+    break;
 case 1863:
-	break;
+    break;
 case 1864:
-	break;
+    break;
 case 1865:
-	break;
+    break;
 case 1866:
-	break;
+    break;
 case 1867:
-	break;
+    break;
 case 1868:
-	break;
+    break;
 case 1869:
-	break;
+    break;
 case 1870:
-	break;
+    break;
 case 1871:
-	break;
+    break;
 case 1872:
-	break;
+    break;
 case 1873:
-	break;
+    break;
 case 1874:
-	break;
+    break;
 case 1875:
-	break;
+    break;
 case 1876:
-	break;
+    break;
 case 1877:
-	break;
+    break;
 case 1878:
-	break;
+    break;
 case 1879:
-	break;
+    break;
 case 1880:
-	break;
+    break;
 case 1881:
-	break;
+    break;
 case 1882:
-	break;
+    break;
 case 1883:
-	break;
+    break;
 case 1884:
-	break;
+    break;
 case 1885:
-	break;
+    break;
 case 1886:
-	break;
+    break;
 case 1887:
-	break;
+    break;
 case 1888:
-	break;
+    break;
 case 1889:
-	break;
+    break;
 case 1890:
-	break;
+    break;
 case 1891:
-	break;
+    break;
 case 1892:
-	break;
+    break;
 case 1893:
-	break;
+    break;
 case 1894:
-	break;
+    break;
 case 1895:
-	break;
+    break;
 case 1896:
-	break;
+    break;
 case 1897:
-	break;
+    break;
 case 1898:
-	break;
+    break;
 case 1899:
-	break;
+    break;
 case 1900:
-	break;
+    break;
 case 1901:
-	break;
+    break;
 case 1902:
-	break;
+    break;
 case 1903:
-	break;
+    break;
 case 1904:
-	break;
+    break;
 case 1905:
-	break;
+    break;
 case 1906:
-	break;
+    break;
 case 1907:
-	break;
+    break;
 case 1908:
-	break;
+    break;
 case 1909:
-	break;
+    break;
 case 1910:
-	break;
+    break;
 case 1911:
-	break;
+    break;
 case 1912:
-	break;
+    break;
 case 1913:
-	break;
+    break;
 case 1914:
-	break;
+    break;
 case 1915:
-	break;
+    break;
 case 1916:
-	break;
+    break;
 case 1917:
-	break;
+    break;
 case 1918:
-	break;
+    break;
 case 1919:
-	break;
+    break;
 case 1920:
-	break;
+    break;
 case 1921:
-	break;
+    break;
 case 1922:
-	break;
+    break;
 case 1923:
-	break;
+    break;
 case 1924:
-	break;
+    break;
 case 1925:
-	break;
+    break;
 case 1926:
-	break;
+    break;
 case 1927:
-	break;
+    break;
 case 1928:
-	break;
+    break;
 case 1929:
-	break;
+    break;
 case 1930:
-	break;
+    break;
 case 1931:
-	break;
+    break;
 case 1932:
-	break;
+    break;
 case 1933:
-	break;
+    break;
 case 1934:
-	break;
+    break;
 case 1935:
-	break;
+    break;
 case 1936:
-	break;
+    break;
 case 1937:
-	break;
+    break;
 case 1938:
-	break;
+    break;
 case 1939:
-	break;
+    break;
 case 1940:
-	break;
+    break;
 case 1941:
-	break;
+    break;
 case 1942:
-	break;
+    break;
 case 1943:
-	break;
+    break;
 case 1944:
-	break;
+    break;
 case 1945:
-	break;
+    break;
 case 1946:
-	break;
+    break;
 case 1947:
-	break;
+    break;
 case 1948:
-	break;
+    break;
 case 1949:
-	break;
+    break;
 case 1950:
-	break;
+    break;
 case 1951:
-	break;
+    break;
 case 1952:
-	break;
+    break;
 case 1953:
-	break;
+    break;
 case 1954:
-	break;
+    break;
 case 1955:
-	break;
+    break;
 case 1956:
-	break;
+    break;
 case 1957:
-	break;
+    break;
 case 1958:
-	break;
+    break;
 case 1959:
-	break;
+    break;
 case 1960:
-	break;
+    break;
 case 1961:
-	break;
+    break;
 case 1962:
-	break;
+    break;
 case 1963:
-	break;
+    break;
 case 1964:
-	break;
+    break;
 case 1965:
-	break;
+    break;
 case 1966:
-	break;
+    break;
 case 1967:
-	break;
+    break;
 case 1968:
-	break;
+    break;
 case 1969:
-	break;
+    break;
 case 1970:
-	break;
+    break;
 case 1971:
-	break;
+    break;
 case 1972:
-	break;
+    break;
 case 1973:
-	break;
+    break;
 case 1974:
-	break;
+    break;
 case 1975:
-	break;
+    break;
 case 1976:
-	break;
+    break;
 case 1977:
-	break;
+    break;
 case 1978:
-	break;
+    break;
 case 1979:
-	break;
+    break;
 case 1980:
-	break;
+    break;
 case 1981:
-	break;
+    break;
 case 1982:
-	break;
+    break;
 case 1983:
-	break;
+    break;
 case 1984:
-	break;
+    break;
 case 1985:
-	break;
+    break;
 case 1986:
-	break;
+    break;
 case 1987:
-	break;
+    break;
 case 1988:
-	break;
+    break;
 case 1989:
-	break;
+    break;
 case 1990:
-	break;
+    break;
 case 1991:
-	break;
+    break;
 case 1992:
-	break;
+    break;
 case 1993:
-	break;
+    break;
 case 1994:
-	break;
+    break;
 case 1995:
-	break;
+    break;
 case 1996:
-	break;
+    break;
 case 1997:
-	break;
+    break;
 case 1998:
-	break;
+    break;
 case 1999:
-	break;
+    break;
 case 2000:
-	break;
+    break;
 case 2001:
-	break;
+    break;
 case 2002:
-	break;
+    break;
 case 2003:
-	break;
+    break;
 case 2004:
-	break;
+    break;
 case 2005:
-	break;
+    break;
 case 2006:
-	break;
+    break;
 case 2007:
-	break;
+    break;
 case 2008:
-	break;
+    break;
 case 2009:
-	break;
+    break;
 case 2010:
-	break;
+    break;
 case 2011:
-	break;
+    break;
 case 2012:
-	break;
+    break;
 case 2013:
-	break;
+    break;
 case 2014:
-	break;
+    break;
 case 2015:
-	break;
+    break;
 case 2016:
-	break;
+    break;
 case 2017:
-	break;
+    break;
 case 2018:
-	break;
+    break;
 case 2019:
-	break;
+    break;
 case 2020:
-	break;
+    break;
 case 2021:
-	break;
+    break;
 case 2022:
-	break;
+    break;
 case 2023:
-	break;
+    break;
 case 2024:
-	break;
+    break;
 case 2025:
-	break;
+    break;
 case 2026:
-	break;
+    break;
 case 2027:
-	break;
+    break;
 case 2028:
-	break;
+    break;
 case 2029:
-	break;
+    break;
 case 2030:
-	break;
+    break;
 case 2031:
-	break;
+    break;
 case 2032:
-	break;
+    break;
 case 2033:
-	break;
+    break;
 case 2034:
-	break;
+    break;
 case 2035:
-	break;
+    break;
 case 2036:
-	break;
+    break;
 case 2037:
-	break;
+    break;
 case 2038:
-	break;
+    break;
 case 2039:
-	break;
+    break;
 case 2040:
-	break;
+    break;
 case 2041:
-	break;
+    break;
 case 2042:
-	break;
+    break;
 case 2043:
-	break;
+    break;
 case 2044:
-	break;
+    break;
 case 2045:
-	break;
+    break;
 case 2046:
-	break;
+    break;
 case 2047:
-	break;
+    break;
 default:
-	break;
+    break;
 }
 #endif
 #ifdef DEFINE_STOCHASTIC_FUNCTIONS
-void CStochastic::drawQuadGridZmin(CRasterGrid *grid){
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-}
-void CStochastic::drawQuadGridZminMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-}
-void CStochastic::drawQuadGridZminTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawQuadGridZminMovingTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawPointGridZmin(CRasterGrid *grid){
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-}
-void CStochastic::drawPointGridZminMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-}
-void CStochastic::drawPointGridZminTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawPointGridZminMovingTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawQuadGridZminUnshaded(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawQuadGridZminUnshadedMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawPointGridZminUnshaded(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawPointGridZminUnshadedMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawQuadGridZminDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminUnshadedDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZminUnshadedMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZminExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminMovingTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminUnshadedExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminUnshadedMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminUnshadedExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminUnshadedMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminUnshadedDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZminUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZminMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZminLOD(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminLOD(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZminUnshadedUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedMovingUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedMovingUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedMovingDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZminXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMin()
-	#define depthFilterElse()	depthFilterElseZMin()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMin()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmid(CRasterGrid *grid){
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-}
-void CStochastic::drawQuadGridZmidMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-}
-void CStochastic::drawQuadGridZmidTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawQuadGridZmidMovingTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawPointGridZmid(CRasterGrid *grid){
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-}
-void CStochastic::drawPointGridZmidMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-}
-void CStochastic::drawPointGridZmidTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawPointGridZmidMovingTransparent(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-}
-void CStochastic::drawQuadGridZmidUnshaded(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawQuadGridZmidUnshadedMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawPointGridZmidUnshaded(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawPointGridZmidUnshadedMoving(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-}
-void CStochastic::drawQuadGridZmidDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidUnshadedDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawPointGridZmidUnshadedMovingDepthBlur(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-}
-void CStochastic::drawQuadGridZmidExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidMovingTransparentExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidUnshadedExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidUnshadedExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidUnshadedMovingExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidUnshadedDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-}
-void CStochastic::drawQuadGridZmidMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingTransparentMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-}
-void CStochastic::drawQuadGridZmidLOD(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidLOD(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-}
-void CStochastic::drawQuadGridZmidUnshadedUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedMovingUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticPoint.h"
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-}
-void CStochastic::drawQuadGridZmidXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_TRANSPARENT
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_MATTE
-	#define STOCHASTIC_LOD
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_TRANSPARENT
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_MATTE
-	#undef STOCHASTIC_LOD
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
-}
-void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid){
-	#define STOCHASTIC_MOVING
-	#define STOCHASTIC_UNSHADED
-	#define STOCHASTIC_FOCAL_BLUR
-	#define STOCHASTIC_EXTRA_SAMPLES
-	#define STOCHASTIC_UNDERCULL
-	#define STOCHASTIC_XTREME
-	#define depthFilterIf()		depthFilterIfZMid()
-	#define depthFilterElse()	depthFilterElseZMid()
-	#define depthFilterTouchNode()	depthFilterTouchNodeZMid()
-
-
-		#include "stochasticQuad.h"
-
-
-	#undef depthFilterIf
-	#undef depthFilterElse
-	#undef depthFilterTouchNode
-	#undef STOCHASTIC_MOVING
-	#undef STOCHASTIC_UNSHADED
-	#undef STOCHASTIC_FOCAL_BLUR
-	#undef STOCHASTIC_EXTRA_SAMPLES
-	#undef STOCHASTIC_UNDERCULL
-	#undef STOCHASTIC_XTREME
+void CStochastic::drawQuadGridZmin(CRasterGrid *grid) {
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+}
+void CStochastic::drawQuadGridZminMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+}
+void CStochastic::drawQuadGridZminTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawQuadGridZminMovingTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawPointGridZmin(CRasterGrid *grid) {
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+}
+void CStochastic::drawPointGridZminMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+}
+void CStochastic::drawPointGridZminTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawPointGridZminMovingTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawQuadGridZminUnshaded(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawQuadGridZminUnshadedMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawPointGridZminUnshaded(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawPointGridZminUnshadedMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawQuadGridZminDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminUnshadedDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZminUnshadedMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZminExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminMovingTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminUnshadedExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminUnshadedMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminUnshadedExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminUnshadedMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminUnshadedDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZminUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZminMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZminLOD(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminLOD(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZminMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZminUnshadedUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedMovingUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedMovingUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedMovingDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZminUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZminXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZminUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMin()
+#define depthFilterElse() depthFilterElseZMin()
+#define depthFilterTouchNode() depthFilterTouchNodeZMin()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmid(CRasterGrid *grid) {
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+}
+void CStochastic::drawQuadGridZmidMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+}
+void CStochastic::drawQuadGridZmidTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawQuadGridZmidMovingTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawPointGridZmid(CRasterGrid *grid) {
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+}
+void CStochastic::drawPointGridZmidMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+}
+void CStochastic::drawPointGridZmidTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawPointGridZmidMovingTransparent(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+}
+void CStochastic::drawQuadGridZmidUnshaded(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawQuadGridZmidUnshadedMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawPointGridZmidUnshaded(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawPointGridZmidUnshadedMoving(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+}
+void CStochastic::drawQuadGridZmidDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidUnshadedDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawPointGridZmidUnshadedMovingDepthBlur(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+}
+void CStochastic::drawQuadGridZmidExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidMovingTransparentExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidUnshadedExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidUnshadedExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidUnshadedMovingExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidUnshadedDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurExtraSamples(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+}
+void CStochastic::drawQuadGridZmidMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingTransparentMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatte(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+}
+void CStochastic::drawQuadGridZmidLOD(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidLOD(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawPointGridZmidMovingTransparentDepthBlurExtraSamplesMatteLOD(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+}
+void CStochastic::drawQuadGridZmidUnshadedUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedMovingUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedMovingExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawPointGridZmidUnshadedMovingDepthBlurExtraSamplesUndercull(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticPoint.h"
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+}
+void CStochastic::drawQuadGridZmidXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidMovingTransparentDepthBlurExtraSamplesMatteLODXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_TRANSPARENT
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_MATTE
+#define STOCHASTIC_LOD
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_TRANSPARENT
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_MATTE
+#undef STOCHASTIC_LOD
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
+}
+void CStochastic::drawQuadGridZmidUnshadedMovingDepthBlurExtraSamplesUndercullXtreme(CRasterGrid *grid) {
+#define STOCHASTIC_MOVING
+#define STOCHASTIC_UNSHADED
+#define STOCHASTIC_FOCAL_BLUR
+#define STOCHASTIC_EXTRA_SAMPLES
+#define STOCHASTIC_UNDERCULL
+#define STOCHASTIC_XTREME
+#define depthFilterIf() depthFilterIfZMid()
+#define depthFilterElse() depthFilterElseZMid()
+#define depthFilterTouchNode() depthFilterTouchNodeZMid()
+
+#include "stochasticQuad.h"
+
+#undef depthFilterIf
+#undef depthFilterElse
+#undef depthFilterTouchNode
+#undef STOCHASTIC_MOVING
+#undef STOCHASTIC_UNSHADED
+#undef STOCHASTIC_FOCAL_BLUR
+#undef STOCHASTIC_EXTRA_SAMPLES
+#undef STOCHASTIC_UNDERCULL
+#undef STOCHASTIC_XTREME
 }
 #endif
 #ifdef DEFINE_STOCHASTIC_FUNPROTOS

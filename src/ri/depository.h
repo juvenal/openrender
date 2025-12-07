@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: depository.h
+ *
+ * Description:
+ *   This file defines the interface for depository.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	depository.h
@@ -39,25 +35,20 @@
 // Description			:	This class holds a depository sample
 // Comments				:
 class CDepositorySample : public CMapItem {
-public:
-	float	C[7];
+    public:
+        float C[7];
 };
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CLocalHash
 // Description			:	A hash that holds the contribution that comes from nearby geometry
 // Comments				:
-class	CDepository : public CMap<CDepositorySample> {
-public:
-				CDepository();
-				~CDepository();
+class CDepository : public CMap<CDepositorySample> {
+    public:
+        CDepository();
+        ~CDepository();
 
-	void		lookup(float *,const float *,const float *);
+        void lookup(float *, const float *, const float *);
 };
 
-
-
 #endif
-

@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: implicitSurface.h
+ *
+ * Description:
+ *   This file defines the interface for implicitSurface.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	implicitSurface.h
@@ -40,33 +36,31 @@
 // Class				:	CImplicit
 // Description			:	This class encapsulates an implicit surface defined by a signed distance function
 // Comments				:
-class	CImplicit : public CSurface {
-public:
-								CImplicit(CAttributes *,CXform *,int,const char *,float,float);
-								~CImplicit();
+class CImplicit : public CSurface {
+    public:
+        CImplicit(CAttributes *, CXform *, int, const char *, float, float);
+        ~CImplicit();
 
-								// Object interface
-	void						intersect(CShadingContext *,CRay *);
-	void						dice(CShadingContext *);												// Split or render this object
-	void						instantiate(CAttributes *,CXform *,CRendererContext *) const;			// Instanciate this object
+        // Object interface
+        void intersect(CShadingContext *, CRay *);
+        void dice(CShadingContext *);                                        // Split or render this object
+        void instantiate(CAttributes *, CXform *, CRendererContext *) const; // Instanciate this object
 
-								// Surface functionality
-	void						sample(int,int,float **,float ***,unsigned int &) const;				// Sample the surface of the object
-	void						interpolate(int,float **,float ***)	const;								// Interpolate the variables
-	void						shade(CShadingContext *,int,CRay **);									// Shade the object
+        // Surface functionality
+        void sample(int, int, float **, float ***, unsigned int &) const; // Sample the surface of the object
+        void interpolate(int, float **, float ***) const;                 // Interpolate the variables
+        void shade(CShadingContext *, int, CRay **);                      // Shade the object
 
+    private:
+        implicitInitFunction initFunction; // DSO functions
+        implicitEvalFunction evalFunction;
+        implicitEvalNormalFunction evalNormalFunction;
+        implicitTiniFunction tiniFunction;
 
-private:
-	implicitInitFunction		initFunction;			// DSO functions
-	implicitEvalFunction		evalFunction;
-	implicitEvalNormalFunction	evalNormalFunction;
-	implicitTiniFunction		tiniFunction;
-
-	void						*handle;				// Handle
-	void						*data;					// Implicit data
-	float						stepSize;				// The step size for the matching
-	float						scaleFactor;			// The scale factor for the transformation
+        void *handle;      // Handle
+        void *data;        // Implicit data
+        float stepSize;    // The step size for the matching
+        float scaleFactor; // The scale factor for the transformation
 };
 
 #endif
-

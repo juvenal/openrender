@@ -1,34 +1,23 @@
 %{
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-//
-//  File				:	ifexpr.y
-//  Classes				:	-
-//  Description			:	Parser for the IF expressions
-//
-////////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: ifexpr.y
+ *
+ * Description:
+ *   Parser for the IF expressions
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 #undef alloca
 #include <string.h>
 
@@ -68,9 +57,9 @@ static	int					result		=	0;	// 0 - FALSE
 	// Description			:	Take the expression and form a string
 	// Return Value			:	The string
 	// Comments				:
-	static	inline	const char	*getString(const CExpr &expr) {	
+	static	inline	const char	*getString(const CExpr &expr) {
 		const void 	*value = expr.value;
-		
+
 		switch (expr.type) {
 			case TYPE_FLOAT:
 			case TYPE_COLOR:
@@ -88,9 +77,9 @@ static	int					result		=	0;	// 0 - FALSE
 			default:
 				break;
 		};
-		
+
 		error(CODE_SYNTAX,"Unable to cast a string in the expression\n");
-		
+
 		return "__nonsense__";
 	}
 
@@ -102,7 +91,7 @@ static	int					result		=	0;	// 0 - FALSE
 	// Comments				:
 	static	inline	float		getFloat(const CExpr &expr) {
 		const void	*value = expr.value;
-				
+
 		switch (expr.type) {
 			case TYPE_FLOAT:
 				if (value == NULL)	return expr.floatValue;
@@ -122,9 +111,9 @@ static	int					result		=	0;	// 0 - FALSE
 			default:
 				break;
 		};
-		
+
 		error(CODE_SYNTAX,"Unable to cast a float in the expression\n");
-		
+
 		return 0;
 	}
 
@@ -135,7 +124,7 @@ static	int					result		=	0;	// 0 - FALSE
 	// Comments				:
 	static	inline	int		getInt(const CExpr &expr) {
 		const void	*value = expr.value;
-		
+
 		switch (expr.type) {
 			case TYPE_FLOAT:
 				if (value == NULL)	return (int) expr.floatValue;
@@ -155,9 +144,9 @@ static	int					result		=	0;	// 0 - FALSE
 			default:
 				break;
 		};
-		
+
 		error(CODE_SYNTAX,"Unable to cast an integer in the expression\n");
-		
+
 		return 0;
 	}
 
@@ -190,29 +179,29 @@ static	int					result		=	0;	// 0 - FALSE
 	// Comments				:
 	static	void				findExpr(CExpr &expr,const char *name,const char *decl=NULL,int attributes=FALSE,int typeSet=FALSE) {
 		const char	*p;
-		
+
 		if (strncmp(name,"Attribute:",10) == 0) {
 			name	+=	10;
-			
+
 			findExpr(expr,name,NULL,TRUE,TRUE);
 		} else if (strncmp(name,"Option:",7) == 0) {
 			name	+=	7;
-			
+
 			findExpr(expr,name,NULL,FALSE,TRUE);
 		} else if ((p = strchr(name,':')) != NULL) {
-			char category[256];		
-				
+			char category[256];
+
 			assert((p-name) < 255);				// Sanity check
 			strncpy(category,name,p-name);		// Copy the category
 			category[p-name]		=	'\0';	// Make sure it terminates
-			
+
 			findExpr(expr,p+1,category,attributes,typeSet);
 		} else {
-			
+
 			if (attributes) {
 				// Lookup the attributes
 				CAttributes	*cAttributes	=	context->getAttributes(TRUE);
-				
+
 				if (cAttributes->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 					if (typeSet == FALSE) {
 						COptions	*cOptions		=	context->getOptions();
@@ -228,7 +217,7 @@ static	int					result		=	0;	// 0 - FALSE
 			} else {
 				// Lookup the options
 				COptions	*cOptions		=	context->getOptions();
-				
+
 				if (cOptions->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 					if (typeSet == FALSE) {
 						CAttributes	*cAttributes	=	context->getAttributes(TRUE);
@@ -285,12 +274,12 @@ static	int					result		=	0;	// 0 - FALSE
 %left  			IF_EQUAL
 %left			IF_NEQUAL
 %left  			IF_GREATERE
-%left			IF_LESSE 
-%left			IF_GREATER 
+%left			IF_LESSE
+%left			IF_GREATER
 %left			IF_LESS
-%left  			IF_PLUS	
-%left			IF_MINUS 
-%left  			IF_DIV 
+%left  			IF_PLUS
+%left			IF_MINUS
+%left  			IF_DIV
 %left			IF_MUL
 %left  			IF_OR
 %left  			IF_AND
@@ -305,14 +294,14 @@ start:			ifExpr
 				{
 					// If no result set so far
 					if (result == 2) {
-					
+
 						////////////////////////////////////////////////////////////////////
 						// Compute the value of the expression
 						if ($1.type == TYPE_STRING)	result	=	TRUE;
 						else						result	=	(getFloat($1) != 0);
 					}
 				};
-				
+
 ifExpr:			//////////////////////////////////////////////////////////////////////////
 				// The terminals
 				IF_DOLLAR
@@ -332,7 +321,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 				}
 				|
 				IF_FLOAT_VALUE
-				{					
+				{
 					setFloat($$,$1);
 				}
 				|
@@ -462,7 +451,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 					} else {
 						setInt($$,getFloat($1) <= getFloat($3));
 					}
-				}				
+				}
 				|
 				//////////////////////////////////////////////////////////////////////////
 				// String matching
@@ -561,7 +550,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 					strcat($$.stringValue,getString($5));
 				}
 				;
-				
+
 %%
 
 #include "lex.if.cpp"
@@ -576,7 +565,7 @@ int		CRendererContext::ifParse(const char *expr) {
 
 	// Begin a new page
 	memBegin(CRenderer::globalMemory);
-	
+
 	YY_BUFFER_STATE savedState	=	YY_CURRENT_BUFFER;		// Save the old buffer
 	YY_BUFFER_STATE	newState;
 
@@ -593,7 +582,7 @@ int		CRendererContext::ifParse(const char *expr) {
 
 	// Restore the memory page
 	memEnd(CRenderer::globalMemory);
-	
+
 	return result;
 }
 

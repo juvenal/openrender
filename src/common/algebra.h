@@ -1,4 +1,4 @@
-/*
+/**
  * Project: Pixie
  *
  * File: algebra.h
@@ -22,8 +22,8 @@
 
 #include <math.h>
 
-#include "global.h"
 #include "align.h"
+#include "global.h"
 
 /*
  * Matrix - vector types
@@ -65,8 +65,8 @@ inline float isqrtf(float number) {
     float x2, y;
     const float threehalfs = 1.5F;
     union {
-        float f;
-        uint32_t i;
+            float f;
+            uint32_t i;
     } u;
 
     x2 = number * 0.5F;
@@ -87,8 +87,8 @@ inline float isqrtf(float number) {
  */
 inline float absf(float f) {
     union {
-        float f;
-        uint32_t i;
+            float f;
+            uint32_t i;
     } u;
     u.f = f;
     u.i = u.i & 0x7FFFFFFF;

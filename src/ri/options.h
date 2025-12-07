@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: options.h
+ *
+ * Description:
+ *   This file defines the interface for options.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	options.h
@@ -31,239 +27,224 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "common/global.h"
-#include "common/containers.h"
 #include "common/algebra.h"
-#include "rendererc.h"
-#include "xform.h"
-#include "ri_config.h"
-#include "ri.h"
-#include "shader.h"
+#include "common/containers.h"
+#include "common/global.h"
 #include "dsply.h"
+#include "rendererc.h"
+#include "ri.h"
+#include "ri_config.h"
+#include "shader.h"
 #include "userAttributes.h"
+#include "xform.h"
 
 // Possible projections
 typedef enum {
-	OPTIONS_PROJECTION_PERSPECTIVE,			// Perspective projection
-	OPTIONS_PROJECTION_ORTHOGRAPHIC			// Orthographic projection
+    OPTIONS_PROJECTION_PERSPECTIVE, // Perspective projection
+    OPTIONS_PROJECTION_ORTHOGRAPHIC // Orthographic projection
 } EProjectionType;
 
 // The search paths are kept as a linked list of the following items
 typedef struct TSearchpath {
-	char		*directory;
-	TSearchpath	*next;
+        char *directory;
+        TSearchpath *next;
 } TSearchpath;
 
 // This is the depth filter type
 typedef enum {
-	DEPTH_MIN,
-	DEPTH_MAX,
-	DEPTH_AVG,
-	DEPTH_MID
+    DEPTH_MIN,
+    DEPTH_MAX,
+    DEPTH_AVG,
+    DEPTH_MID
 } EDepthFilter;
 
 // Options flags
-const	unsigned int		OPTIONS_FLAGS_CUSTOM_SCREENWINDOW	=	1<<0;	// The screenwindow is fixed
-const	unsigned int		OPTIONS_FLAGS_CUSTOM_FRAMEAR		=	1<<1;	// The frame aspect ratio is fixed
-const	unsigned int		OPTIONS_FLAGS_CUSTOM_RESOLUTION		=	1<<2;	// The resolution is fixed
-const	unsigned int		OPTIONS_FLAGS_CUSTOM_CLIPPING		=	1<<3;	// The near/far clipping planes have been set by user
-const	unsigned int		OPTIONS_FLAGS_FALSECOLOR_RAYTRACES	=	1<<4;	// Create a false color image of the effort being spent on the image
-const	unsigned int		OPTIONS_FLAGS_INHERIT_ATTRIBUTES	=	1<<12;	// The object instance inherit attributes from the parent
-const	unsigned int		OPTIONS_FLAGS_MOTIONBLUR			=	1<<13;	// We have motion blur in the scene (shutter open != shutter close)
-const	unsigned int		OPTIONS_FLAGS_FOCALBLUR				=	1<<14;	// We have depth of field in the scene
-const	unsigned int		OPTIONS_FLAGS_DEEP_SHADOW_RENDERING	=	1<<16;	// We're rendering a deep shadow map
-const	unsigned int		OPTIONS_FLAGS_USE_RADIANCE_CACHE	=	1<<17;	// Use the new radiance cache
-const	unsigned int		OPTIONS_FLAGS_PROGRESS				=	1<<18;	// Display the progress
-const	unsigned int		OPTIONS_FLAGS_SAMPLESPECTRUM		=	1<<19;	// Sample the spectrum in photon hider
-const	unsigned int		OPTIONS_FLAGS_SAMPLEMOTION			=	1<<20;	// We want the hider to sample motion blur (perform motion blur)
-
+const unsigned int OPTIONS_FLAGS_CUSTOM_SCREENWINDOW = 1 << 0;    // The screenwindow is fixed
+const unsigned int OPTIONS_FLAGS_CUSTOM_FRAMEAR = 1 << 1;         // The frame aspect ratio is fixed
+const unsigned int OPTIONS_FLAGS_CUSTOM_RESOLUTION = 1 << 2;      // The resolution is fixed
+const unsigned int OPTIONS_FLAGS_CUSTOM_CLIPPING = 1 << 3;        // The near/far clipping planes have been set by user
+const unsigned int OPTIONS_FLAGS_FALSECOLOR_RAYTRACES = 1 << 4;   // Create a false color image of the effort being spent on the image
+const unsigned int OPTIONS_FLAGS_INHERIT_ATTRIBUTES = 1 << 12;    // The object instance inherit attributes from the parent
+const unsigned int OPTIONS_FLAGS_MOTIONBLUR = 1 << 13;            // We have motion blur in the scene (shutter open != shutter close)
+const unsigned int OPTIONS_FLAGS_FOCALBLUR = 1 << 14;             // We have depth of field in the scene
+const unsigned int OPTIONS_FLAGS_DEEP_SHADOW_RENDERING = 1 << 16; // We're rendering a deep shadow map
+const unsigned int OPTIONS_FLAGS_USE_RADIANCE_CACHE = 1 << 17;    // Use the new radiance cache
+const unsigned int OPTIONS_FLAGS_PROGRESS = 1 << 18;              // Display the progress
+const unsigned int OPTIONS_FLAGS_SAMPLESPECTRUM = 1 << 19;        // Sample the spectrum in photon hider
+const unsigned int OPTIONS_FLAGS_SAMPLEMOTION = 1 << 20;          // We want the hider to sample motion blur (perform motion blur)
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	COptions
 // Description			:	This class settings that are constant accross a frame
 // Comments				:
 class COptions {
-public:
+    public:
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CDisplay
+        // Description			:	Holds a display setting
+        // Comments				:
+        class CDisplay {
+            public:
+                ///////////////////////////////////////////////////////////////////////
+                // Class				:	TDisplayParameter
+                // Description			:	Holds a display parameter
+                // Comments				:
+                typedef struct {
+                        char *name;
+                        ParameterType type;
+                        int numItems;
+                        void *data;
+                } TDisplayParameter;
 
+                CDisplay();
+                CDisplay(const CDisplay *);
+                ~CDisplay();
 
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CDisplay
-	// Description			:	Holds a display setting
-	// Comments				:
-	class CDisplay {
-	public:
-									///////////////////////////////////////////////////////////////////////
-									// Class				:	TDisplayParameter
-									// Description			:	Holds a display parameter
-									// Comments				:
-									typedef struct {
-										char			*name;
-										ParameterType	type;
-										int				numItems;
-										void			*data;
-									} TDisplayParameter;
+                char *outDevice;  // The name of the out device
+                char *outName;    // The name of the image
+                char *outSamples; // The samples to go into the display
+                CDisplay *next;
+                float quantizer[5]; // The quantization data
 
+                RtDisplayStartFunction startFunction; // For custom displays
+                RtDisplayDataFunction dataFunction;
+                RtDisplayFinishFunction finishFunction;
 
-									CDisplay();
-									CDisplay(const CDisplay *);
-									~CDisplay();
+                int numParameters;
+                TDisplayParameter *parameters;
+        };
 
-		char						*outDevice;		// The name of the out device
-		char						*outName;		// The name of the image
-		char						*outSamples;	// The samples to go into the display
-		CDisplay					*next;
-		float						quantizer[5];	// The quantization data
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CClipPlane
+        // Description			:	Holds a user defined clip plane description
+        // Comments				:
+        class CClipPlane {
+            public:
+                CClipPlane();
+                CClipPlane(const CClipPlane *);
 
-		RtDisplayStartFunction		startFunction;	// For custom displays
-		RtDisplayDataFunction		dataFunction;
-		RtDisplayFinishFunction		finishFunction;
+                vector normal;    // Normal vector in camera space
+                float d;          // normal.P+d=0;
+                CClipPlane *next; // Next clipping plane
+        };
 
-		int							numParameters;
-		TDisplayParameter			*parameters;
-	};
+        COptions();
+        COptions(const COptions *);
+        virtual ~COptions();
 
-	///////////////////////////////////////////////////////////////////////
-	// Class				:	CClipPlane
-	// Description			:	Holds a user defined clip plane description
-	// Comments				:
-	class CClipPlane {
-	public:
-									CClipPlane();
-									CClipPlane(const CClipPlane *);
+        // The following method is used to convert from a custom color space to RGB if- entered
+        void convertColor(vector &c, const float *f) const;
 
-		vector						normal;			// Normal vector in camera space
-		float						d;				// normal.P+d=0;
-		CClipPlane					*next;			// Next clipping plane
-	};
+        // Guess where to search by looking into the extension
+        TSearchpath *pickSearchpath(const char *name);
 
-	
-								COptions();
-								COptions(const COptions *);
-	virtual						~COptions();
+        // Find a particular option
+        int find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &floatValue) const;
 
-								// The following method is used to convert from a custom color space to RGB if- entered
-	void						convertColor(vector &c,const float *f)	const;
+        ////////////////////////////////////////////////////////////////////
+        // options start here
+        ////////////////////////////////////////////////////////////////////
+        int xres, yres; // Output resolution
 
-								// Guess where to search by looking into the extension
-	TSearchpath					*pickSearchpath(const char *name);
+        int frame; // The frame number given by frameBegin
 
-								// Find a particular option
-	int							find(const char *name,const char *category,EVariableType &type,const void *&value,int &intValue,float &floatValue) const;
+        float pixelAR; // Pixel aspect ratio
+        float frameAR; // Frame aspect ratio
 
+        float cropLeft, cropRight, cropTop, cropBottom;         // The crop window
+        float screenLeft, screenRight, screenTop, screenBottom; // The screen window
 
+        float clipMin, clipMax; // Clipping bounds
 
+        float pixelVariance; // The maximum tolerable pixel color variation
 
+        float jitter; // Amount of jitter in samples
 
+        char *hider; // Hider name
 
+        TSearchpath *archivePath;    // RIB search path
+        TSearchpath *proceduralPath; // Procedural primitive search path
+        TSearchpath *texturePath;    // Texture search path
+        TSearchpath *shaderPath;     // Shader search path
+        TSearchpath *displayPath;    // Display search path
+        TSearchpath *modulePath;     // Search path for Pixie modules
 
+        int pixelXsamples, pixelYsamples; // Number of samples to take in X and Y
 
+        float gamma, gain; // Gamma correction stuff
 
-								////////////////////////////////////////////////////////////////////
-								// options start here
-								////////////////////////////////////////////////////////////////////
-	int							xres,yres;										// Output resolution
+        float pixelFilterWidth, pixelFilterHeight; // Pixel filter data
+        RtFilterFunc pixelFilter;
 
-	int							frame;											// The frame number given by frameBegin
+        float colorQuantizer[5]; // The quantization data
+        float depthQuantizer[5];
 
-	float						pixelAR;										// Pixel aspect ratio
-	float						frameAR;										// Frame aspect ratio
+        vector opacityThreshold;     // The opacity threshold
+        vector zvisibilityThreshold; // The visibility threshold for z files and noncomp aovs
 
-	float						cropLeft,cropRight,cropTop,cropBottom;			// The crop window
-	float						screenLeft,screenRight,screenTop,screenBottom;	// The screen window
+        CDisplay *displays; // List of displays to send the output
 
-	float						clipMin,clipMax;								// Clipping bounds
+        CClipPlane *clipPlanes; // List of used defined clipping planes
 
-	float						pixelVariance;									// The maximum tolerable pixel color variation
+        float relativeDetail; // The relative detail multiplier
 
-	float						jitter;											// Amount of jitter in samples
+        EProjectionType projection; // Projection type
+        float fov;                  // Field of view for perspective projection
 
-	char						*hider;											// Hider name
+        int nColorComps; // Custom color space stuff
+        float *fromRGB, *toRGB;
 
-	TSearchpath					*archivePath;									// RIB search path
-	TSearchpath					*proceduralPath;								// Procedural primitive search path
-	TSearchpath					*texturePath;									// Texture search path
-	TSearchpath					*shaderPath;									// Shader search path
-	TSearchpath					*displayPath;									// Display search path
-	TSearchpath					*modulePath;									// Search path for Pixie modules
+        float fstop, focallength, focaldistance; // Depth of field stuff
 
-	int							pixelXsamples,pixelYsamples;					// Number of samples to take in X and Y
+        float shutterOpen, shutterClose; // Motion blur stuff
+        float shutterOffset;             // Shutter offset
 
-	float						gamma,gain;										// Gamma correction stuff
+        unsigned int flags; // Flags
 
-	float						pixelFilterWidth,pixelFilterHeight;				// Pixel filter data
-	RtFilterFunc				pixelFilter;
+        ////////////////////////////////////////////////////////////////////
+        // Pixie dependent options
+        ////////////////////////////////////////////////////////////////////
 
-	float						colorQuantizer[5];								// The quantization data
-	float						depthQuantizer[5];
+        int endofframe; // The end of frame statstics number
+        char *filelog;  // The name of the log file
 
-	vector						opacityThreshold;								// The opacity threshold
-	vector						zvisibilityThreshold;							// The visibility threshold for z files and noncomp aovs
-	
-	CDisplay					*displays;										// List of displays to send the output
+        int numThreads; // The number of threads working
 
-	CClipPlane					*clipPlanes;									// List of used defined clipping planes
+        int maxTextureSize; // Maximum amount of texture data to keep in memory (in bytes)
 
-	float						relativeDetail;									// The relative detail multiplier
+        int maxBrickSize; // Maximum amount of brick data to keep in memory (in bytes)
 
-	EProjectionType				projection;										// Projection type
-	float						fov;											// Field of view for perspective projection
+        int maxGridSize; // Maximum number of points to shade at a time
 
-	int							nColorComps;									// Custom color space stuff
-	float						*fromRGB,*toRGB;
+        int maxRayDepth; // Maximum raytracing recursion depth
 
-	float						fstop,focallength,focaldistance;				// Depth of field stuff
+        int maxPhotonDepth; // The maximum number of photon bounces
 
-	float						shutterOpen,shutterClose;						// Motion blur stuff
-	float						shutterOffset;									// Shutter offset
+        int bucketWidth, bucketHeight; // Bucket dimentions in samples
 
-	unsigned int				flags;											// Flags	
+        int netXBuckets, netYBuckets; // The meta bucket size
 
-								////////////////////////////////////////////////////////////////////
-								// Pixie dependent options
-								////////////////////////////////////////////////////////////////////
+        int threadStride; // The number of buckets to distribute to threads at a time
 
-	int							endofframe;										// The end of frame statstics number
-	char						*filelog;										// The name of the log file
+        int geoCacheMemory; // The ammount of memory to dedicate to tesselation caches
 
-	int							numThreads;										// The number of threads working
+        int maxEyeSplits; // Maximum number of eye splits
+                          // The number of times the bucket will be rendered
 
-	int							maxTextureSize;									// Maximum amount of texture data to keep in memory (in bytes)
+        float tsmThreshold; // Transparency shadow map threshold
 
-	int							maxBrickSize;									// Maximum amount of brick data to keep in memory (in bytes)
+        char *causticIn, *causticOut; // The caustics in/out file name
+        char *globalIn, *globalOut;   // The global photon map
 
-	int							maxGridSize;									// Maximum number of points to shade at a time
+        int numEmitPhotons; // The number of photons to emit for the scene
 
-	int							maxRayDepth;									// Maximum raytracing recursion depth
+        int shootStep; // The number of rays to shoot at a time
 
-	int							maxPhotonDepth;									// The maximum number of photon bounces
+        EDepthFilter depthFilter; // Holds the depth filter type
 
-	int							bucketWidth,bucketHeight;						// Bucket dimentions in samples
-
-	int							netXBuckets,netYBuckets;						// The meta bucket size
-
-	int							threadStride;									// The number of buckets to distribute to threads at a time
-	
-	int							geoCacheMemory;									// The ammount of memory to dedicate to tesselation caches
-
-	int							maxEyeSplits;									// Maximum number of eye splits
-																				// The number of times the bucket will be rendered
-
-	float						tsmThreshold;									// Transparency shadow map threshold
-
-	char						*causticIn,*causticOut;							// The caustics in/out file name
-	char						*globalIn,*globalOut;							// The global photon map 
-
-	int							numEmitPhotons;									// The number of photons to emit for the scene
-
-	int							shootStep;										// The number of rays to shoot at a time
-
-	EDepthFilter				depthFilter;									// Holds the depth filter type
-	
-	CUserAttributeDictionary	userOptions;									// User options
+        CUserAttributeDictionary userOptions; // User options
 };
 
-
-TSearchpath					*optionsGetSearchPath(const char *,TSearchpath *);				// Compute the search path
+TSearchpath *optionsGetSearchPath(const char *, TSearchpath *); // Compute the search path
 
 #endif
-

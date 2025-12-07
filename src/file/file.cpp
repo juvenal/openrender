@@ -1,8 +1,27 @@
+/**
+ * Project: Pixie
+ *
+ * File: file.cpp
+ *
+ * Description:
+ *   This file implements the functionality for file.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 //////////////////////////////////////////////////////////////////////
 //
 //                             Pixie
 //
-// Copyright © 1999 - 2003, Okan Arikan
+// Copyright  1999 - 2003, Okan Arikan
 //
 // Contact: okan@cs.utexas.edu
 //
@@ -29,15 +48,15 @@
 //							that sends the image into a file
 //
 ////////////////////////////////////////////////////////////////////////
-#include "common/global.h"
 #include "common/algebra.h"
+#include "common/global.h"
 #include "common/os.h"
-#include "ri/dsply.h"							// The display driver interface
+#include "ri/dsply.h" // The display driver interface
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "file_tiff.h"
 
@@ -45,68 +64,64 @@
 #include "file_png.h"
 #endif
 
-
 ///////////////////////////////////////////////////////////////////////
 // Function				:	displayStart
 // Description			:	Begin receiving an image
 // Return Value			:	The handle to the image on success, NULL othervise
 // Comments				:
-void	*displayStart(const char *name,int width,int height,int numSamples,const char *samples,TDisplayParameterFunction findParameter) {
-	CFileFramebuffer	*fb = NULL;
+void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
+    CFileFramebuffer *fb = NULL;
 
 #ifdef HAVE_LIBPNG
-	char* type	= (char *)findParameter("type",STRING_PARAMETER,1);		// Display "name" "type" "mode" ...
-	int len = strlen(name);
-	if ( 
-		 // Name contains "png" and type is not specifically "tiff"
-		 ( (len > 4 && strcmp(&name[len-4],".png")==0) && ( type && strcmp(type, "tiff") != 0 ) )
-		 // or type is specifically "png"
-		 || (type && strcmp(type, "png") == 0 ) ) {
-		fb = new CFileFramebufferPNG(name,width,height,numSamples,samples,findParameter);
-		if (!fb->success()) {
-			delete fb;
-			fb = NULL;
-		}
-	}
+    char *type = (char *)findParameter("type", STRING_PARAMETER, 1); // Display "name" "type" "mode" ...
+    int len = strlen(name);
+    if (
+        // Name contains "png" and type is not specifically "tiff"
+        ((len > 4 && strcmp(&name[len - 4], ".png") == 0) && (type && strcmp(type, "tiff") != 0))
+        // or type is specifically "png"
+        || (type && strcmp(type, "png") == 0)) {
+        fb = new CFileFramebufferPNG(name, width, height, numSamples, samples, findParameter);
+        if (!fb->success()) {
+            delete fb;
+            fb = NULL;
+        }
+    }
 #endif
-	if (!fb)
-		fb = new CFileFramebufferTIFF(name,width,height,numSamples,samples,findParameter);
-	
-	if (!fb->success()) {	// If we could not create the image file, return NULL
-		delete fb;
-		return NULL;
-	}
+    if (!fb)
+        fb = new CFileFramebufferTIFF(name, width, height, numSamples, samples, findParameter);
 
-	return fb;
+    if (!fb->success()) { // If we could not create the image file, return NULL
+        delete fb;
+        return NULL;
+    }
+
+    return fb;
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	displayData
 // Description			:	Receive image data
 // Return Value			:	TRUE on success, FALSE otherwise
 // Comments				:
-int		displayData(void *im,int x,int y,int w,int h,float *data) {
-	CFileFramebuffer	*fb	=	(CFileFramebuffer *) im;
-	
-	assert(fb != NULL);
+int displayData(void *im, int x, int y, int w, int h, float *data) {
+    CFileFramebuffer *fb = (CFileFramebuffer *)im;
 
-	fb->write(x,y,w,h,data);
+    assert(fb != NULL);
 
-	return TRUE;
+    fb->write(x, y, w, h, data);
+
+    return TRUE;
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	displayFinish
 // Description			:	Finish receiving an image
 // Return Value			:	-
 // Comments				:
-void	displayFinish(void *im) {
-	CFileFramebuffer	*fb	=	(CFileFramebuffer *) im;
+void displayFinish(void *im) {
+    CFileFramebuffer *fb = (CFileFramebuffer *)im;
 
-	assert(fb != NULL);
+    assert(fb != NULL);
 
-	delete fb;
+    delete fb;
 }
-

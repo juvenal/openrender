@@ -1,4 +1,4 @@
-/*
+/**
  * Project: Pixie
  *
  * File: comments.h
@@ -16,4 +16,3 @@
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
  */
-

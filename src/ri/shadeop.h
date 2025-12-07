@@ -1,26 +1,22 @@
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: shadeop.h
+ *
+ * Description:
+ *   This file defines the interface for shadeop.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	shadeop.h
@@ -31,41 +27,39 @@
 #ifndef SHADEOP_H
 #define SHADEOP_H
 
-
 typedef struct {
-	char	*definition;
-	char	*init;
-	char	*cleanup;
+        char *definition;
+        char *init;
+        char *cleanup;
 } SHADEOP_SPEC;
-
 
 #ifdef _WINDOWS
 
-#define	SHADEOP_TABLE(__shadeopname)	extern "C" __declspec(dllexport) SHADEOP_SPEC	__shadeopname##_shadeops[]
+#define SHADEOP_TABLE(__shadeopname) extern "C" __declspec(dllexport) SHADEOP_SPEC __shadeopname##_shadeops[]
 
-#define	SHADEOP_INIT(__shadeopname)		extern "C" void __declspec(dllexport) *__shadeopname(int ctx, void *texturectx) 
+#define SHADEOP_INIT(__shadeopname) extern "C" void __declspec(dllexport) * __shadeopname(int ctx, void *texturectx)
 
-#define	SHADEOP(__shadeopname)			extern "C" void __declspec(dllexport) __shadeopname(void *initdata,int argc,char *argv[])
+#define SHADEOP(__shadeopname) extern "C" void __declspec(dllexport) __shadeopname(void *initdata, int argc, char *argv[])
 
-#define	SHADEOP_CLEANUP(__shadeopname)	extern "C" void __declspec(dllexport) __shadeopname(void *initdata)
+#define SHADEOP_CLEANUP(__shadeopname) extern "C" void __declspec(dllexport) __shadeopname(void *initdata)
 
 #else
 
-#define	SHADEOP_TABLE(__shadeopname)	extern "C" SHADEOP_SPEC __shadeopname##_shadeops[]; SHADEOP_SPEC __shadeopname##_shadeops[]
+#define SHADEOP_TABLE(__shadeopname)                    \
+    extern "C" SHADEOP_SPEC __shadeopname##_shadeops[]; \
+    SHADEOP_SPEC __shadeopname##_shadeops[]
 
-#define	SHADEOP_INIT(__shadeopname)		extern "C" void *__shadeopname(int ctx, void *texturectx) 
+#define SHADEOP_INIT(__shadeopname) extern "C" void *__shadeopname(int ctx, void *texturectx)
 
-#define	SHADEOP(__shadeopname)			extern "C" void __shadeopname(void *initdata,int argc,char *argv[])
+#define SHADEOP(__shadeopname) extern "C" void __shadeopname(void *initdata, int argc, char *argv[])
 
-#define	SHADEOP_CLEANUP(__shadeopname)	extern "C" void __shadeopname(void *initdata)
+#define SHADEOP_CLEANUP(__shadeopname) extern "C" void __shadeopname(void *initdata)
 
 #endif
 
 // The function prototypes for the DSO shaders
-typedef void	*(*dsoInitFunction)(int,void *);
-typedef void	(*dsoExecFunction)(void *,int,void *[]);
-typedef void	(*dsoCleanupFunction)(void *);
-
+typedef void *(*dsoInitFunction)(int, void *);
+typedef void (*dsoExecFunction)(void *, int, void *[]);
+typedef void (*dsoCleanupFunction)(void *);
 
 #endif
-

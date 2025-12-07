@@ -1,27 +1,23 @@
 %{
-//////////////////////////////////////////////////////////////////////
-//
-//                             Pixie
-//
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
+/**
+ * Project: Pixie
+ *
+ * File: sdr.y
+ *
+ * Description:
+ *   Parser file for CShader.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	sl.y
@@ -168,7 +164,7 @@ static	TSlFunction		functions[]	=	{
 				float					*currentArray;			// Array items go here as we read them
 				char					**currentStringArray;	// If the array is string, we this pointer instead
 				int						numArrayItemsRemaining;	// Number of array items we're still expecting to read
-				
+
 				char					currentOpcode[64];		// Holds the opcode being parsed
 				char					currentPrototype[64];	// Holds the prototype being parsed
 				int						currentArgument;		// The current argument number
@@ -178,7 +174,7 @@ static	TSlFunction		functions[]	=	{
 
 				int						codeEntryPoint;			// Indices in the code array for corresponding entry points
 				int						initEntryPoint;
-				
+
 				char					*memory;				// The memory base for the area that's allocated
 				TCode					*code;					// Code blocks
 				TArgument				*arguments;				// Argument blocks
@@ -268,30 +264,30 @@ static	TSlFunction		functions[]	=	{
 												cVariable->uniform		=	currentData.uniform;
 												cVariable->variable		=	NULL;
 												cVariable->index		=	currentData.currentVariable;
-												
+
 												if (type == TYPE_STRING)
 													currentData.varyingSizes[currentData.currentVariable]	=	numItems*numComp*sizeof(char*);
 												else
 													currentData.varyingSizes[currentData.currentVariable]	=	numItems*numComp*sizeof(float);
-												
+
 												if (cVariable->uniform)	currentData.varyingSizes[currentData.currentVariable]	=	-currentData.varyingSizes[currentData.currentVariable];
-												
+
 												currentData.currentVariable++;
 												if (type == TYPE_STRING)
 													currentData.currentVaryingSize	+=	numItems*numComp*sizeof(char*);
 												else
 													currentData.currentVaryingSize	+=	numItems*numComp*sizeof(float);
 
-													
+
 												cVariable->next					=	currentData.definedVariables;
 												currentData.definedVariables	=	cVariable;
-												
+
 												// Here's the trick part ...
 												// If this is a parameter, allocate a parameter entry and make sure it points to the right location
 												if (parameter) {
 													CVariable	*newVariable;
 													CVariable	*gVariable;
-													
+
 													newVariable					=	new CVariable;
 													strcpy(newVariable->name,name);
 													newVariable->type			=	type;
@@ -304,26 +300,26 @@ static	TSlFunction		functions[]	=	{
 													if (type == TYPE_STRING) 	newVariable->defaultValue	=	new char*[numItems*numComp];
 													else						newVariable->defaultValue	=	new float[numItems*numComp];
 													newVariable->accessor		=	currentData.accessorType;
-													newVariable->next			=	NULL;													
+													newVariable->next			=	NULL;
 													cVariable->variable			=	newVariable;
-													
+
 													// Is this a global variable ?
 													gVariable					=	CRenderer::retrieveVariable(name);
 													if (gVariable != NULL)	{
 														if (gVariable->storage == STORAGE_GLOBAL) {
 															// If the variable is actually defined
-															
+
 															if (newVariable->type == gVariable->type &&
 																newVariable->numItems == gVariable->numItems &&
 																newVariable->numFloats == gVariable->numFloats &&
 																!(cVariable->uniform ^ ((gVariable->container == CONTAINER_UNIFORM) || (gVariable->container == CONTAINER_CONSTANT)))
 																) {
-																
+
 																// And it matchces the current definition
-																
+
 																newVariable->storage						=	STORAGE_GLOBAL;
 																currentData.varyingSizes[cVariable->index]	=	0;		// It takes up no space in the cache
-																
+
 																// Note: the variable index will be re-pointed at the global when init is run
 															}
 															/*else {
@@ -332,7 +328,7 @@ static	TSlFunction		functions[]	=	{
 															}*/
 														}
 													} //If so, then lets ensure we don't delete it by taking a copy
-													
+
 													return	newVariable->defaultValue;
 												}
 											}
@@ -351,7 +347,7 @@ static	TSlFunction		functions[]	=	{
 									// Comments				:
 		static	void				addStringReference(char **items,int numItems) {
 										int	i;
-										
+
 										switch(currentData.passNumber) {
 										case 1:
 											currentData.numArgument		+=	1;							// Add one argument
@@ -361,9 +357,9 @@ static	TSlFunction		functions[]	=	{
 											break;
 										case 2:
 											assert(currentData.currentConstant < 65535);
-											
+
 											char	**dest;
-											
+
 											currentData.currentArgumentPlace->numItems									=	numItems;
 											currentData.currentArgumentPlace->bytesPerItem								=	sizeof(char *);
 											currentData.currentArgumentPlace->index										=	(unsigned short) currentData.currentConstant;
@@ -379,7 +375,7 @@ static	TSlFunction		functions[]	=	{
 											// Acturally record the strings
 											for (i=0;i<numItems;i++)
 												dest[i]	=	currentData.strings[currentData.currentString++]	=	strdup(items[i]);
-											
+
 											break;
 										default:
 											break;
@@ -402,9 +398,9 @@ static	TSlFunction		functions[]	=	{
 												break;
 											case 2:
 												assert(currentData.currentConstant < 65536);
-												
+
 												float	*dest;
-												
+
 												currentData.currentArgumentPlace->numItems						=	numItems;
 												currentData.currentArgumentPlace->bytesPerItem					=	sizeof(float);
 												currentData.currentArgumentPlace->index							=	(unsigned short) currentData.currentConstant;
@@ -444,26 +440,26 @@ static	TSlFunction		functions[]	=	{
 												// Search the variables
 												for (cVariable=currentData.definedVariables;cVariable!=NULL;cVariable=cVariable->next) {
 													if (strcmp(cVariable->name,name) == 0) {
-														
+
 														// If this is a global parameter, let the next section deal with it
 														if (cVariable->variable) {
 															// in init, we treat the global as a parameter, but in the init phase, it's a local varying
 															if ((cVariable->variable->storage == STORAGE_GLOBAL) && !currentData.parsingInit) continue;
-														} 
-														
+														}
+
 														assert(cVariable->index < 65536);
 														assert((cVariable->multiplicity*numComponents(cVariable->type)) < 256);
-														
+
 														currentData.currentArgumentPlace->index			=	(unsigned short) cVariable->index;
 														currentData.currentArgumentPlace->numItems		=	(char) (cVariable->multiplicity*numComponents(cVariable->type));
 														currentData.currentArgumentPlace->bytesPerItem	=	(cVariable->type == TYPE_STRING ? sizeof(char *) : sizeof(float));
 														currentData.currentArgumentPlace->accessor		=	SL_VARYING_OPERAND;
 														currentData.currentArgumentPlace->varyingStep	=	(cVariable->uniform ? 0 : currentData.currentArgumentPlace->numItems);
 														currentData.currentArgumentPlace++;
-														
+
 														if (cVariable->uniform == FALSE)
 															currentData.opcodeUniform									=	FALSE;
-														
+
 														return;
 													}
 												}
@@ -475,19 +471,19 @@ static	TSlFunction		functions[]	=	{
 
 													assert(var->entry < 65536);
 													assert(var->numFloats < 256);
-													
+
 													currentData.currentArgumentPlace->index			=	(unsigned short) var->entry;
 													currentData.currentArgumentPlace->numItems		=	(char) var->numFloats;
 													currentData.currentArgumentPlace->bytesPerItem	=	(var->type == TYPE_STRING ? sizeof(char *) : sizeof(float));
 													currentData.currentArgumentPlace->accessor		=	SL_GLOBAL_OPERAND;
-													
+
 													if ((var->container != CONTAINER_UNIFORM) || (var->container != CONTAINER_CONSTANT)) {
 														currentData.opcodeUniform						=	FALSE;
 														currentData.currentArgumentPlace->varyingStep	=	currentData.currentArgumentPlace->numItems;
 													} else {
 														currentData.currentArgumentPlace->varyingStep	=	0;
 													}
-															
+
 													currentData.currentArgumentPlace++;
 												} else {
 													slerror("Unknown variable");
@@ -515,7 +511,7 @@ static	TSlFunction		functions[]	=	{
 													int		i;
 
 													for(i=0;opcodes[i].name != NULL;i++) {
-														if (strcmp(opcodes[i].name,currentData.currentOpcode) == 0) 
+														if (strcmp(opcodes[i].name,currentData.currentOpcode) == 0)
 															if (opcodes[i].nargs == currentData.currentArgument) {
 																opcode	=	opcodes[i].entryPoint;
 																break;
@@ -527,7 +523,7 @@ static	TSlFunction		functions[]	=	{
 													else {
 														assert((currentData.currentArgument+2) < 256);
 														assert((currentData.opcodeUniform) < 256);
-														
+
 														// Save the opcode
 														currentData.usedParameters						|=	opcodes[i].usedParameters;
 														currentData.currentOpcodePlace->opcode			=	(int) opcode;
@@ -547,7 +543,7 @@ static	TSlFunction		functions[]	=	{
 																break;
 															} else {
 																// Do a pattern match
-				
+
 
 																// The return types must match exactly
 																if (functions[i].prototype[0] != currentData.currentPrototype[0]) continue;
@@ -586,7 +582,7 @@ static	TSlFunction		functions[]	=	{
 																	if (t == FALSE) {
 																		if (
 																				((functions[i].prototype[k] == '\0') && (currentData.currentPrototype[j] == '\0')) ||
-																				((functions[i].prototype[k] == '+') || (functions[i].prototype[k] == '*')) || 
+																				((functions[i].prototype[k] == '+') || (functions[i].prototype[k] == '*')) ||
 																				(functions[i].prototype[k] == '!') ||
 																				(functions[i].prototype[k+1] == '*')) {
 																			// We found our function/opcode
@@ -600,13 +596,13 @@ static	TSlFunction		functions[]	=	{
 																}
 															}
 														}
-													}	
+													}
 
 													// Save the opcode
 													if (functions[i].name != NULL) {
 														assert((currentData.currentArgument+2) < 256);
 														assert(currentData.opcodeUniform < 256);
-														
+
 														currentData.currentOpcodePlace->opcode				=	(int) opcode;
 														currentData.currentOpcodePlace->numArguments		=	(unsigned char) (currentData.currentArgument);
 														currentData.currentOpcodePlace->uniform				=	(unsigned char) (currentData.opcodeUniform);
@@ -617,11 +613,11 @@ static	TSlFunction		functions[]	=	{
 
 														// See if this is a DSO function
 														if ((dso = CRenderer::getDSO(currentData.currentOpcode,currentData.currentPrototype)) != NULL) {
-														
+
 															// We have the DSO
 															if (currentData.currentPrototype[0] == 'o')		currentData.currentOpcodePlace->opcode	=	FUNCTION_DSO_VOID;
 															else											currentData.currentOpcodePlace->opcode	=	FUNCTION_DSO;
-								
+
 															currentData.currentOpcodePlace->numArguments	=	(unsigned char) (currentData.currentArgument);
 															currentData.currentOpcodePlace->uniform			=	(unsigned char) (currentData.opcodeUniform);
 															currentData.currentOpcodePlace->dso				=	dso;
@@ -743,8 +739,8 @@ static	TSlFunction		functions[]	=	{
 %type<v>		slVector
 %type<v>		slVectorValue
 %%
-start:		
-				slType	
+start:
+				slType
 				slParameterDefinitions
 				slVariableDefinitions
 				slInit
@@ -752,7 +748,7 @@ start:
 				slEmptySpace
 				;
 
-slEmptySpace: 
+slEmptySpace:
 				|
 				SCRL_NL
 				slEmptySpace
@@ -814,7 +810,7 @@ slVector:		slVectorIn
 					$$[2]	=	$1[2];
 				}
 				;
-			
+
 slType:
 				SCRL_SURFACE
 				SCRL_NL
@@ -968,16 +964,16 @@ slFloatParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_FLOAT,(int) $4,TRUE);
-					
+
 					if (def != NULL) {
 						int	i;
 
 						for (i=0;i<(int) $4;i++)
 							def[i]	=	0;
-						
+
 						currentData.currentArray = def;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slFloatArrayInitializer
@@ -1010,7 +1006,7 @@ slFloatArrayInitializer:
 					}
 				}
 				;
-				
+
 slFloatArrayInitializerItems:
 				slFloatArrayInitializerItems
 				SCRL_FLOAT_VALUE
@@ -1023,7 +1019,7 @@ slFloatArrayInitializerItems:
 					} else{
 						slerror("Wrong number of items in array initializer\n");
 					}
-				}	
+				}
 				|
 				;
 
@@ -1077,7 +1073,7 @@ slStringParameter:
 				SCRL_EQUAL
 				{
 					char	**def	=	(char **) newVariable($2,TYPE_STRING,(int) $4,TRUE);
-					
+
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numStrings += (int) $4;
@@ -1088,14 +1084,14 @@ slStringParameter:
 
 							for (i=0;i<(int) $4;i++)
 								def[i]	=	NULL;
-							
+
 							currentData.currentStringArray = def;
 						}
 						break;
 					default:
 						break;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slStringArrayInitializer
@@ -1126,7 +1122,7 @@ slStringArrayInitializer:
 					}
 				}
 				;
-		
+
 slStringArrayInitializerItems:
 				slStringArrayInitializerItems
 				SCRL_TEXT_VALUE
@@ -1140,7 +1136,7 @@ slStringArrayInitializerItems:
 					else{
 						slerror("Wrong number of items in array initializer\n");
 					}
-				}	
+				}
 				|
 				;
 
@@ -1168,7 +1164,7 @@ slColorParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_COLOR,(int) $4,TRUE);
-					
+
 					if(def != NULL)
 						currentData.currentArray = def;
 					currentData.numArrayItemsRemaining = (int) $4;
@@ -1208,11 +1204,11 @@ slVectorParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_VECTOR,(int) $4,TRUE);
-					
+
 					if(def != NULL) {
 						currentData.currentArray = def;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slVectorArrayInitializer
@@ -1250,11 +1246,11 @@ slNormalParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_NORMAL,(int) $4,TRUE);
-					
+
 					if(def != NULL) {
 						currentData.currentArray = def;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slVectorArrayInitializer
@@ -1292,11 +1288,11 @@ slPointParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_POINT,(int) $4,TRUE);
-					
+
 					if(def != NULL) {
 						currentData.currentArray = def;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slVectorArrayInitializer
@@ -1361,12 +1357,12 @@ slVectorArrayInitializer:
 					}
 				}
 				;
-		
+
 slVectorArrayInitializerItems:
 				slVectorArrayInitializerItems
 				slVectorValue
 				{
-					
+
 					if(currentData.numArrayItemsRemaining > 0){
 						if(currentData.currentArray){
 							movvv(currentData.currentArray,$2);
@@ -1376,7 +1372,7 @@ slVectorArrayInitializerItems:
 					} else{
 						slerror("Wrong number of items in array initializer\n");
 					}
-				}	
+				}
 				|
 				;
 
@@ -1486,16 +1482,16 @@ slMatrixParameter:
 				SCRL_EQUAL
 				{
 					float	*def	=	(float *) newVariable($2,TYPE_MATRIX,(int) $4,TRUE);
-					
+
 					if (def != NULL) {
 						int	i;
 
 						for (i=0;i<((int) $4)*16;i++)
 							def[i]	=	0;
-							
+
 						currentData.currentArray = def;
 					}
-					
+
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
 				slMatrixArrayInitializer
@@ -1568,7 +1564,7 @@ slMatrixArrayInitializerItems:
 							currentData.currentArray[13] = $16;
 							currentData.currentArray[14] = $17;
 							currentData.currentArray[15] = $18;
-							
+
 							currentData.currentArray += 16;
 						}
 						currentData.numArrayItemsRemaining--;
@@ -1576,7 +1572,7 @@ slMatrixArrayInitializerItems:
 					else{
 						slerror("Wrong number of items in array initializer\n");
 					}
-				}	
+				}
 				|
 				slMatrixArrayInitializerItems
 				SCRL_FLOAT_VALUE
@@ -1599,7 +1595,7 @@ slMatrixArrayInitializerItems:
 							currentData.currentArray[13] = 0;
 							currentData.currentArray[14] = 0;
 							currentData.currentArray[15] = 1;
-							
+
 							currentData.currentArray += 16;
 						}
 						currentData.numArrayItemsRemaining--;
@@ -1787,7 +1783,7 @@ slCode:			SCRL_CODE
 				slShaderLine
 				;
 
-slShaderLine:	
+slShaderLine:
 				slShaderLine
 				slStatement
 				SCRL_NL
@@ -1798,7 +1794,7 @@ slShaderLine:
 				|
 				slShaderLine
 				slDSO
-				SCRL_NL	
+				SCRL_NL
 				|
 				;
 
@@ -1807,7 +1803,7 @@ slDSO:			SCRL_DSO
 				SCRL_IDENTIFIER_VALUE
 				{
 					char	*dsoName	=	$2;
-					
+
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numCode++;					// opcode
@@ -1841,9 +1837,9 @@ slDSO:			SCRL_DSO
 							else				currentData.currentOpcodePlace->opcode		=	FUNCTION_DSO;
 
 							assert(currentData.opcodeUniform < 256);
-							
+
 							currentData.currentOpcodePlace->numArguments	=	(unsigned char) (currentData.currentArgument);
-							currentData.currentOpcodePlace->uniform			=	(unsigned char) (currentData.opcodeUniform);															
+							currentData.currentOpcodePlace->uniform			=	(unsigned char) (currentData.opcodeUniform);
 							currentData.currentOpcodePlace->dso				=	dso;
 							currentData.currentOpcodePlace++;
 						} else {
@@ -2069,7 +2065,7 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	FILE	*fin;
 
 	fin						=	fopen(name,"r");
-	
+
 	if (fin == NULL) return NULL;
 
 	oldState				=	YY_CURRENT_BUFFER;
@@ -2082,7 +2078,7 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	reset();
 	currentData.name		=	name;
 	currentData.passNumber	=	1;
-	
+
 	// The first pass
 	memBegin(CRenderer::globalMemory);
 	slparse();
@@ -2100,12 +2096,12 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	fseek(fin,0,SEEK_SET);
 	alloc();
 	currentData.passNumber				=	2;
-	
+
 	// The second pass
 	memBegin(CRenderer::globalMemory);
 	slparse();
 	memEnd(CRenderer::globalMemory);
-	
+
 	if (currentData.numErrors != 0) {
 		reset();
 		sl_delete_buffer( YY_CURRENT_BUFFER );
@@ -2144,7 +2140,7 @@ void	reset() {
 			nVar	=	cVar->next;
 			delete cVar;
 			cVar	=	nVar;
-			
+
 			// FIXME: Clear the parameter if not NULL
 		}
 	}
@@ -2183,12 +2179,12 @@ void	reset() {
 // Comments				:
 void	alloc() {
 	char	*mem;
-	
+
 	currentData.memory	=	(char *) allocate_untyped(	currentData.numCode*sizeof(TCode)	+
 														currentData.numArgument*sizeof(TArgument)	+
 														currentData.constantSize +
-														currentData.numConstants*sizeof(void *) + 
-														currentData.numVariables*sizeof(int) + 
+														currentData.numConstants*sizeof(void *) +
+														currentData.numVariables*sizeof(int) +
 														currentData.numStrings*sizeof(char *));
 
 	mem		=	currentData.memory;
@@ -2198,7 +2194,7 @@ void	alloc() {
 		currentData.currentOpcodePlace			=	currentData.code;
 		mem										+=	currentData.numCode*sizeof(TCode);
 	}
-	
+
 	if (currentData.numArgument != 0) {
 		currentData.arguments					=	(TArgument *) mem;
 		currentData.currentArgumentPlace		=	currentData.arguments;
@@ -2308,26 +2304,26 @@ CShader	*shaderCreate(const char *shaderName) {
 		while(currentData.definedVariables != NULL) {
 			cVar							=	currentData.definedVariables;
 			currentData.definedVariables	=	cVar->next;
-		
-			// Is this a parameter ? 
+
+			// Is this a parameter ?
 			if (cVar->variable != NULL) {
 				cVar->variable->next	=	cShader->parameters;
 				cShader->parameters		=	cVar->variable;
 				if (cVar->variable->storage == STORAGE_GLOBAL ||
 					cVar->variable->storage == STORAGE_MUTABLEPARAMETER)
 						numGlobals++;
-			} 
-			
+			}
+
 			// Delete the variable
 			delete cVar;
 			i++;
 		}
-		
+
 		cShader->numGlobals	=	numGlobals;
 	}
-	
+
 	cShader->analyse();
-	
+
 
 	currentData.memory					=	NULL;
 	currentData.code					=	NULL;
@@ -2335,7 +2331,7 @@ CShader	*shaderCreate(const char *shaderName) {
 	currentData.varyingSizes			=	NULL;
 	currentData.strings					=	NULL;
 	currentData.constantEntries			=	NULL;
-	
+
 
 	return cShader;
 }
