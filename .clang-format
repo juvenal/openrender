@@ -1,0 +1,34 @@
+# .clang-format
+BasedOnStyle: LLVM   # or Google/Chromium – pick your favorite baseline
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# 1. Curly braces on the same line
+BreakBeforeBraces: Attach            # means “{” stays on same line for functions, classes, etc
+BraceWrapping:
+  AfterControlStatement: false       # means control-statements keep “{” on same line
+  AfterClass: false                  # class/struct “{” stays on same line
+  AfterNamespace: false              # namespace “{” on same line
+  AfterFunction: false               # function definition “{” on same line
+  # (you can tweak other BraceWrapping sub-options if needed)
+
+# 2. Namespaces indentation & visibility indent
+NamespaceIndentation: All            # indent everything inside every namespace block  [oai_citation:0‡LLVM Releases](https://releases.llvm.org/16.0.0/tools/clang/docs/ClangFormatStyleOptions.html?utm_source=chatgpt.com)
+IndentAccessModifiers: true          # gives access modifiers their own indent level  [oai_citation:1‡LLVM Reviews](https://reviews.llvm.org/D94661?utm_source=chatgpt.com)
+# (If your clang-format version doesn’t support IndentAccessModifiers, you can use AccessModifierOffset instead.)
+AccessModifierOffset: 0              # no additional offset beyond the indent level
+
+# 3. Parameter spacing
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterFunctionDeclarationName: false
+  AfterFunctionDefinitionName: false
+  AfterControlStatements: true
+#SpaceBeforeParens: Never                # no space before the opening parenthesis of a function/method (so “foo(int a, int b)” not “foo (int… )”)
+BinPackParameters: false                # optionally each param may go on its own line if it doesn’t fit
+# You may also adjust e.g. AlignAfterOpenBracket etc, but simple setting may suffice.
+
+# Additional tweaks you may desire:
+ColumnLimit: 0                          # no automatic wrap limit (0 = disable)
+AllowShortIfStatementsOnASingleLine: false 
