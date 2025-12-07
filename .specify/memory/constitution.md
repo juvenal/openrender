@@ -1,50 +1,82 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+Version change: Template → 1.0.0
+Modified principles: All placeholders replaced with concrete principles
+Added sections: Language Standards, Platform Targeting, Development Workflow
+Removed sections: None (template structure preserved)
+Templates requiring updates:
+  ✅ plan-template.md - Constitution Check section updated
+  ✅ spec-template.md - No changes needed (already generic)
+  ✅ tasks-template.md - No changes needed (already generic)
+  ✅ checklist-template.md - No changes needed (already generic)
+Follow-up TODOs: None
+-->
+
+# Pixie Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Clean Code Standards
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Code MUST be readable, maintainable, and self-documenting. Functions MUST be small, focused, and follow the Single Responsibility Principle. Variable and function names MUST clearly express intent. Code MUST avoid magic numbers, deep nesting, and unnecessary complexity. Comments MUST explain "why" not "what". Code structure MUST follow consistent formatting and organization patterns. Refactoring is mandatory when code quality degrades.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Language Standards
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Code MUST conform to C++20 standard for C++ code and C17 standard for C code. Compiler flags MUST enforce strict standard compliance with no extensions. Modern C++ features (e.g., concepts, ranges, modules where applicable) SHOULD be preferred over legacy patterns. C++ code MUST use standard library facilities over platform-specific APIs when available. C interop MUST follow proper C linkage conventions.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Test-Driven Development (NON-NEGOTIABLE)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+TDD is mandatory: Tests written → User approved → Tests fail → Then implement. The Red-Green-Refactor cycle MUST be strictly enforced. All new features MUST start with failing tests. Tests MUST be written before implementation code. Test coverage MUST be maintained for all critical paths. Integration tests MUST validate CLI interfaces and end-to-end workflows.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Command Line Interface
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+All functionality MUST be accessible via command-line interface. Text I/O protocol: stdin/args → stdout, errors → stderr. CLI tools MUST support both human-readable and machine-parseable (e.g., JSON) output formats. Command-line arguments MUST follow POSIX conventions. Help text MUST be comprehensive and accessible via --help flag. Exit codes MUST follow standard Unix conventions (0 for success, non-zero for errors).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Minimal Dependencies
+
+External dependencies MUST be minimized and justified. System libraries (e.g., libc, pthreads) are preferred over third-party libraries. When dependencies are required, they MUST be widely available on target platforms. Dependencies MUST be clearly documented with version requirements. Build system MUST gracefully handle missing optional dependencies. No dependency SHOULD be added without explicit justification in design documentation.
+
+### VI. Platform Targeting
+
+Code MUST target Unix-like systems, specifically Linux and macOS. Platform-specific code MUST be isolated and clearly documented. No direct Windows support is provided; Windows users MUST use WSL (Windows Subsystem for Linux). Build system MUST detect and configure for target platform automatically. Platform-specific features MUST degrade gracefully or provide clear error messages when unavailable.
+
+## Additional Constraints
+
+### Build System
+
+CMake MUST be used as the primary build system. Build configuration MUST support both Debug and Release modes. Installation MUST follow standard Unix directory conventions (FHS) or support self-contained installation. Cross-compilation SHOULD be supported where feasible.
+
+### Code Quality
+
+Static analysis tools SHOULD be integrated into the build process. Code formatting MUST be enforced consistently (e.g., via .clang-format). Warnings MUST be treated as errors in CI/CD pipelines. Code reviews MUST verify constitution compliance before merge.
+
+## Development Workflow
+
+### Test-First Process
+
+1. Write test cases based on requirements (Red phase)
+2. Verify tests fail for correct reasons
+3. Implement minimal code to pass tests (Green phase)
+4. Refactor while maintaining passing tests (Refactor phase)
+5. Repeat for next feature increment
+
+### Code Review Requirements
+
+All changes MUST be reviewed for constitution compliance. Reviewers MUST verify TDD process was followed. Reviewers MUST check for clean code principles adherence. Reviewers MUST validate platform compatibility. Complexity additions MUST be justified.
+
+### Integration Testing
+
+Integration tests MUST validate CLI tool behavior end-to-end. Integration tests MUST cover error handling and edge cases. Integration tests MUST verify cross-platform compatibility (Linux and macOS). Integration tests MUST be runnable in CI/CD pipelines.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other coding practices and guidelines. Amendments to this constitution require:
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+- Documentation of the rationale for change
+- Approval through project maintainer review
+- Migration plan for any breaking changes
+- Version increment following semantic versioning
+
+All pull requests and code reviews MUST verify compliance with these principles. Complexity MUST be justified when it conflicts with simplicity principles. Use this constitution as the primary reference for all development decisions.
+
+**Version**: 1.0.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07

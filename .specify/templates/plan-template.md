@@ -31,7 +31,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**I. Clean Code Standards**: Design MUST follow clean code principles; functions small and focused; clear naming.
+
+**II. Language Standards**: Code MUST use C++20 (C++ code) or C17 (C code); standard library preferred.
+
+**III. Test-Driven Development**: TDD mandatory - tests written first, Red-Green-Refactor cycle enforced.
+
+**IV. Command Line Interface**: Feature MUST be accessible via CLI; stdin/args → stdout, errors → stderr; support --help.
+
+**V. Minimal Dependencies**: New dependencies MUST be justified; prefer system libraries; document requirements.
+
+**VI. Platform Targeting**: MUST target Linux and macOS; no Windows support (WSL only); platform code isolated.
 
 ## Project Structure
 
