@@ -28,6 +28,7 @@
 #include "brickmap.h"
 #include "atomic.h"
 #include "common/os.h"
+#include "common/portable_io.h"
 #include "error.h"
 #include "memory.h"
 #include "pointCloud.h"

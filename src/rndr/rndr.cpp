@@ -645,15 +645,15 @@ int main(int argc, char *argv[]) {
             }
         } else if (strcmp(argv[i], "-sizereport") == 0) {
             printf("Size Report:\n");
-            printf("        sizeof(char): %d\n", sizeof(char));
-            printf("       sizeof(short): %d\n", sizeof(short));
-            printf("         sizeof(int): %d\n", sizeof(int));
-            printf("        sizeof(long): %d\n", sizeof(long));
-            printf("   sizeof(long long): %d\n", sizeof(long long));
-            printf("      sizeof(void *): %d\n", sizeof(void *));
-            printf("         sizeof(T32): %d\n", sizeof(T32));
-            printf("         sizeof(T64): %d\n", sizeof(T64));
-            printf("      sizeof(TMutex): %d\n", sizeof(TMutex));
+            printf("        sizeof(char): %zu\n", sizeof(char));
+            printf("       sizeof(short): %zu\n", sizeof(short));
+            printf("         sizeof(int): %zu\n", sizeof(int));
+            printf("        sizeof(long): %zu\n", sizeof(long));
+            printf("   sizeof(long long): %zu\n", sizeof(long long));
+            printf("      sizeof(void *): %zu\n", sizeof(void *));
+            printf("         sizeof(T32): %zu\n", sizeof(T32));
+            printf("         sizeof(T64): %zu\n", sizeof(T64));
+            printf("      sizeof(TMutex): %zu\n", sizeof(TMutex));
             exit(0);
         } else if (strcmp(argv[i], "-s") == 0) {
             server = TRUE;

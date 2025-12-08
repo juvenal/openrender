@@ -239,6 +239,16 @@ install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${PIXIE_SHADERD
 
 
 # ###########################################################################
+# ########## Testing
+# ###########################################################################
+
+# Enable testing support
+enable_testing()
+
+# Add test subdirectory
+add_subdirectory(tests)
+
+# ###########################################################################
 # ########## Find rules/targets in subdirs
 # ###########################################################################
 add_subdirectory(src)
