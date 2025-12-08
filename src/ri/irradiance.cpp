@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "bundles.h"
+#include "common/portable_io.h"
 #include "debug.h"
 #include "error.h"
 #include "irradiance.h"
@@ -148,22 +149,58 @@ CIrradianceCache::~CIrradianceCache() {
 // Return Value			:
 // Comments				:
 void CIrradianceCache::writeNode(FILE *out, CCacheNode *cNode) {
-    int numSamples, i;
+    int32_p numSamples;
+    int i;
     CCacheSample *cSample;
 
-    fwrite(cNode->center, sizeof(vector), 1, out);
-    fwrite(&cNode->side, sizeof(float), 1, out);
+    // Write node geometry (portable I/O - Phase 2)
+    if (!writeVector(out, cNode->center, 3)) {
+        error(CODE_SYSTEM, "Failed to write irradiance cache node center\n");
+        return;
+    }
+    if (!writeFloat32(out, static_cast<float32_p>(cNode->side))) {
+        error(CODE_SYSTEM, "Failed to write irradiance cache node side\n");
+        return;
+    }
 
+    // Count samples
     for (cSample = cNode->samples, numSamples = 0; cSample != NULL; cSample = cSample->next, numSamples++)
         ;
 
-    fwrite(&numSamples, sizeof(int), 1, out);
-
-    for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
-        fwrite(cSample, sizeof(CCacheSample), 1, out);
+    if (!writeInt32(out, numSamples)) {
+        error(CODE_SYSTEM, "Failed to write irradiance cache num samples\n");
+        return;
     }
 
-    fwrite(cNode->children, sizeof(CCacheNode *), 8, out);
+    // Write each sample (portable I/O - write fields individually instead of struct)
+    for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
+        bool sampleWriteSuccess = true;
+        sampleWriteSuccess = sampleWriteSuccess && writeVector(out, cSample->P, 3);
+        sampleWriteSuccess = sampleWriteSuccess && writeVector(out, cSample->N, 3);
+        sampleWriteSuccess = sampleWriteSuccess && writeVector(out, cSample->irradiance, 3);
+        sampleWriteSuccess = sampleWriteSuccess && writeFloat32(out, static_cast<float32_p>(cSample->coverage));
+        sampleWriteSuccess = sampleWriteSuccess && writeVector(out, cSample->envdir, 3);
+        sampleWriteSuccess = sampleWriteSuccess && writeFloat32Array(out, cSample->gP, 21); // Translational gradient
+        sampleWriteSuccess = sampleWriteSuccess && writeFloat32Array(out, cSample->gR, 21); // Rotational gradient
+        sampleWriteSuccess = sampleWriteSuccess && writeFloat32(out, static_cast<float32_p>(cSample->dP));
+
+        if (!sampleWriteSuccess) {
+            error(CODE_SYSTEM, "Failed to write irradiance cache sample data\n");
+            return;
+        }
+    }
+
+    // Write children markers (portable I/O - Phase 2)
+    // Instead of writing pointer array, write markers indicating presence
+    for (i = 0; i < 8; i++) {
+        int32_p hasChild = (cNode->children[i] != NULL) ? 1 : 0;
+        if (!writeInt32(out, hasChild)) {
+            error(CODE_SYSTEM, "Failed to write irradiance cache child marker\n");
+            return;
+        }
+    }
+
+    // Recursively write child nodes
     for (i = 0; i < 8; i++) {
         if (cNode->children[i] != NULL)
             writeNode(out, cNode->children[i]);
@@ -177,22 +214,71 @@ void CIrradianceCache::writeNode(FILE *out, CCacheNode *cNode) {
 // Return Value			:
 // Comments				:
 CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
-    int numSamples, i;
+    int32_p numSamples_i;
+    int i;
     CCacheNode *cNode = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
 
-    fread(cNode->center, sizeof(vector), 1, in);
-    fread(&cNode->side, sizeof(float), 1, in);
+    // Read node geometry (portable I/O - Phase 2)
+    if (!readVector(in, cNode->center, 3)) {
+        error(CODE_SYSTEM, "Failed to read irradiance cache node center\n");
+        return NULL;
+    }
 
-    fread(&numSamples, sizeof(int), 1, in);
+    float32_p side_f;
+    if (!readFloat32(in, side_f)) {
+        error(CODE_SYSTEM, "Failed to read irradiance cache node side\n");
+        return NULL;
+    }
+    cNode->side = side_f;
 
-    for (cNode->samples = NULL; numSamples > 0; numSamples--) {
+    if (!readInt32(in, numSamples_i)) {
+        error(CODE_SYSTEM, "Failed to read irradiance cache num samples\n");
+        return NULL;
+    }
+
+    // Read samples (portable I/O - read fields individually instead of struct)
+    cNode->samples = NULL;
+    for (int numSamples = numSamples_i; numSamples > 0; numSamples--) {
         CCacheSample *cSample = (CCacheSample *)memory->alloc(sizeof(CCacheSample));
-        fread(cSample, sizeof(CCacheSample), 1, in);
+
+        bool sampleReadSuccess = true;
+        sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->P, 3);
+        sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->N, 3);
+        sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->irradiance, 3);
+
+        float32_p coverage_f;
+        sampleReadSuccess = sampleReadSuccess && readFloat32(in, coverage_f);
+        cSample->coverage = coverage_f;
+
+        sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->envdir, 3);
+        sampleReadSuccess = sampleReadSuccess && readFloat32Array(in, cSample->gP, 21); // Translational gradient
+        sampleReadSuccess = sampleReadSuccess && readFloat32Array(in, cSample->gR, 21); // Rotational gradient
+
+        float32_p dP_f;
+        sampleReadSuccess = sampleReadSuccess && readFloat32(in, dP_f);
+        cSample->dP = dP_f;
+
+        if (!sampleReadSuccess) {
+            error(CODE_SYSTEM, "Failed to read irradiance cache sample data\n");
+            return NULL;
+        }
+
         cSample->next = cNode->samples;
         cNode->samples = cSample;
     }
 
-    fread(cNode->children, sizeof(CCacheNode *), 8, in);
+    // Read children markers (portable I/O - Phase 2)
+    // Instead of reading pointer array, read markers and reconstruct
+    for (i = 0; i < 8; i++) {
+        int32_p hasChild;
+        if (!readInt32(in, hasChild)) {
+            error(CODE_SYSTEM, "Failed to read irradiance cache child marker\n");
+            return NULL;
+        }
+        cNode->children[i] = hasChild ? (CCacheNode *)1 : NULL; // Temporary marker
+    }
+
+    // Recursively read child nodes
     for (i = 0; i < 8; i++) {
         if (cNode->children[i] != NULL)
             cNode->children[i] = readNode(in);

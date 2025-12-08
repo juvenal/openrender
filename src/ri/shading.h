@@ -288,7 +288,7 @@ class CShadingContext {
 
         // Thread safe random number generator for integers
         inline uint32_t irand() {
-            register uint32_t y;
+            uint32_t y;
 
             if (state == next)
                 next_state();
@@ -306,7 +306,7 @@ class CShadingContext {
 
         // Thread safe random number generator for floats
         inline float urand() {
-            register uint32_t y;
+            uint32_t y;
 
             if (state == next)
                 next_state();

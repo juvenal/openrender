@@ -108,7 +108,8 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
 // Return Value			:	-
 // Comments				:
 CBrickMap::CBrickMap(FILE *in, const char *name, const float *from, const float *to) : CTexture3d(name, from, to) {
-    int offset, i;
+    int32_p offset;
+    int i;
 
     // Init the data
     nextMap = brickMaps;
@@ -118,41 +119,102 @@ CBrickMap::CBrickMap(FILE *in, const char *name, const float *from, const float 
     modifying = FALSE;
     osCreateMutex(mutex);
 
-    // Read the header offset
-    fseek(file, -(long)sizeof(int), SEEK_END);
-    fread(&offset, 1, sizeof(int), file);
+    // Read the header offset (portable I/O for fixed-width types)
+    fseek(file, -(long)sizeof(int32_p), SEEK_END);
+    if (!readInt32(file, offset)) {
+        error(CODE_SYSTEM, "Failed to read brickmap header offset\n");
+        return;
+    }
     fseek(file, offset, SEEK_SET);
 
     // Read the class data
     readChannels(file);
 
-    fread(bmin, 1, sizeof(vector), file);
-    fread(bmax, 1, sizeof(vector), file);
-    fread(center, 1, sizeof(vector), file);
-    fread(&side, 1, sizeof(float), file);
+    // Read bounding box and geometry data (portable I/O)
+    if (!readVector(file, bmin, 3)) {
+        error(CODE_SYSTEM, "Failed to read brickmap bmin\n");
+        return;
+    }
+    if (!readVector(file, bmax, 3)) {
+        error(CODE_SYSTEM, "Failed to read brickmap bmax\n");
+        return;
+    }
+    if (!readVector(file, center, 3)) {
+        error(CODE_SYSTEM, "Failed to read brickmap center\n");
+        return;
+    }
+
+    float32_p side_f;
+    if (!readFloat32(file, side_f)) {
+        error(CODE_SYSTEM, "Failed to read brickmap side\n");
+        return;
+    }
+    side = side_f;
     invSide = 1 / side;
-    fread(&maxDepth, 1, sizeof(int), file);
-    fread(activeBricks, BRICK_HASHSIZE, sizeof(CBrickNode *), file);
 
-    // Read the permanent bricks nodes
+    int32_p maxDepth_i;
+    if (!readInt32(file, maxDepth_i)) {
+        error(CODE_SYSTEM, "Failed to read brickmap maxDepth\n");
+        return;
+    }
+    maxDepth = maxDepth_i;
+
+    // Read the hash table (portable I/O - fixed in Phase 2)
+    // Instead of reading pointers, read markers indicating presence of nodes
     for (i = 0; i < BRICK_HASHSIZE; i++) {
-        if (activeBricks[i] != NULL) {
-            activeBricks[i] = NULL;
+        activeBricks[i] = NULL;
 
+        // Read marker: 0 = no nodes, 1 = has nodes
+        int32_p hasNodes;
+        if (!readInt32(file, hasNodes)) {
+            error(CODE_SYSTEM, "Failed to read brickmap hash bucket marker\n");
+            return;
+        }
+
+        if (hasNodes) {
+            CBrickNode *prevNode = NULL;
+
+            // Read linked list of nodes for this bucket
             while (TRUE) {
                 CBrickNode *cNode = new CBrickNode;
+                cNode->brick = NULL;  // Always NULL when reading from disk
 
-                fread(cNode, 1, sizeof(CBrickNode), file);
+                // Read node data fields (portable I/O)
+                int32_p x_i, y_i, z_i, d_i;
+                if (!readInt32(file, x_i) || !readInt32(file, y_i) ||
+                    !readInt32(file, z_i) || !readInt32(file, d_i)) {
+                    error(CODE_SYSTEM, "Failed to read brickmap node coordinates\n");
+                    delete cNode;
+                    return;
+                }
+                cNode->x = static_cast<short>(x_i);
+                cNode->y = static_cast<short>(y_i);
+                cNode->z = static_cast<short>(z_i);
+                cNode->d = static_cast<short>(d_i);
+
+                if (!readInt32(file, cNode->fileIndex)) {
+                    error(CODE_SYSTEM, "Failed to read brickmap node fileIndex\n");
+                    delete cNode;
+                    return;
+                }
+
+                // Read "has next" marker
+                int32_p hasNext;
+                if (!readInt32(file, hasNext)) {
+                    error(CODE_SYSTEM, "Failed to read brickmap node hasNext marker\n");
+                    delete cNode;
+                    return;
+                }
+
+                // Build linked list (prepend to list)
+                cNode->next = activeBricks[i];
+                activeBricks[i] = cNode;
 
                 assert(cNode->brick == NULL);
                 assert(cNode->fileIndex != -1);
 
-                if (cNode->next != NULL) {
-                    cNode->next = activeBricks[i];
-                    activeBricks[i] = cNode;
-                } else {
-                    cNode->next = activeBricks[i];
-                    activeBricks[i] = cNode;
+                // If no more nodes, exit loop
+                if (!hasNext) {
                     break;
                 }
             }
@@ -597,26 +659,72 @@ void CBrickMap::finalize() {
     // Write the class data here
     writeChannels(file);
 
-    // Write the class data
-    fwrite(bmin, sizeof(vector), 1, file);
-    fwrite(bmax, sizeof(vector), 1, file);
-    fwrite(center, sizeof(vector), 1, file);
-    fwrite(&side, sizeof(float), 1, file);
-    fwrite(&maxDepth, sizeof(int), 1, file);
-    fwrite(activeBricks, sizeof(CBrickNode *), BRICK_HASHSIZE, file);
-    for (i = 0; i < BRICK_HASHSIZE; i++) {
-        for (cNode = activeBricks[i]; cNode != NULL; cNode = cNode->next) {
+    // Write the class data (portable I/O for vectors, float, int)
+    if (!writeVector(file, bmin, 3)) {
+        error(CODE_SYSTEM, "Failed to write brickmap bmin\n");
+        return;
+    }
+    if (!writeVector(file, bmax, 3)) {
+        error(CODE_SYSTEM, "Failed to write brickmap bmax\n");
+        return;
+    }
+    if (!writeVector(file, center, 3)) {
+        error(CODE_SYSTEM, "Failed to write brickmap center\n");
+        return;
+    }
+    if (!writeFloat32(file, static_cast<float32_p>(side))) {
+        error(CODE_SYSTEM, "Failed to write brickmap side\n");
+        return;
+    }
+    if (!writeInt32(file, static_cast<int32_p>(maxDepth))) {
+        error(CODE_SYSTEM, "Failed to write brickmap maxDepth\n");
+        return;
+    }
 
-            // Make sure the node is written to disk
+    // Write the hash table (portable I/O - fixed in Phase 2)
+    // Instead of writing pointers, write markers and node data
+    for (i = 0; i < BRICK_HASHSIZE; i++) {
+        // Write marker: 0 = no nodes, 1 = has nodes
+        int32_p hasNodes = (activeBricks[i] != NULL) ? 1 : 0;
+        if (!writeInt32(file, hasNodes)) {
+            error(CODE_SYSTEM, "Failed to write brickmap hash bucket marker\n");
+            return;
+        }
+
+        // Write linked list of nodes for this bucket
+        for (cNode = activeBricks[i]; cNode != NULL; cNode = cNode->next) {
+            // Make sure the node is ready to be written to disk
             assert(cNode->brick == NULL);
             assert(cNode->fileIndex != -1);
 
-            fwrite(cNode, sizeof(CBrickNode), 1, file);
+            // Write node data fields (portable I/O)
+            if (!writeInt32(file, static_cast<int32_p>(cNode->x)) ||
+                !writeInt32(file, static_cast<int32_p>(cNode->y)) ||
+                !writeInt32(file, static_cast<int32_p>(cNode->z)) ||
+                !writeInt32(file, static_cast<int32_p>(cNode->d))) {
+                error(CODE_SYSTEM, "Failed to write brickmap node coordinates\n");
+                return;
+            }
+
+            if (!writeInt32(file, static_cast<int32_p>(cNode->fileIndex))) {
+                error(CODE_SYSTEM, "Failed to write brickmap node fileIndex\n");
+                return;
+            }
+
+            // Write "has next" marker
+            int32_p hasNext = (cNode->next != NULL) ? 1 : 0;
+            if (!writeInt32(file, hasNext)) {
+                error(CODE_SYSTEM, "Failed to write brickmap node hasNext marker\n");
+                return;
+            }
         }
     }
 
-    // Write the file header at the beginning
-    fwrite(&headerOffset, sizeof(int), 1, file);
+    // Write the file header offset at the end (portable I/O)
+    if (!writeInt32(file, static_cast<int32_p>(headerOffset))) {
+        error(CODE_SYSTEM, "Failed to write brickmap header offset\n");
+        return;
+    }
 
     // Mark the map as non-modifying, meaning
     // we will no longer page out nodes
@@ -950,25 +1058,48 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
     // Write the class data here
     writeChannels(outfile);
 
-    fwrite(bmin, sizeof(vector), 1, outfile);
-    fwrite(bmax, sizeof(vector), 1, outfile);
-    fwrite(center, sizeof(vector), 1, outfile);
-    fwrite(&side, sizeof(float), 1, outfile);
-    fwrite(&maxDepth, sizeof(int), 1, outfile);
-    fwrite(newHash, sizeof(CBrickNode *), BRICK_HASHSIZE, outfile);
-    for (i = 0; i < BRICK_HASHSIZE; i++) {
-        for (cNode = newHash[i]; cNode != NULL; cNode = cNode->next) {
+    // Write geometry data and hash table (portable I/O - fixed in Phase 2)
+    // Note: Error handling accumulates failures to avoid memEnd scope issues
+    bool writeSuccess = true;
+    writeSuccess = writeSuccess && writeVector(outfile, bmin, 3);
+    writeSuccess = writeSuccess && writeVector(outfile, bmax, 3);
+    writeSuccess = writeSuccess && writeVector(outfile, center, 3);
+    writeSuccess = writeSuccess && writeFloat32(outfile, static_cast<float32_p>(side));
+    writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(maxDepth));
 
+    // Write the compacted hash table (instead of pointers, write markers and node data)
+    for (i = 0; i < BRICK_HASHSIZE && writeSuccess; i++) {
+        // Write marker: 0 = no nodes, 1 = has nodes
+        int32_p hasNodes = (newHash[i] != NULL) ? 1 : 0;
+        writeSuccess = writeSuccess && writeInt32(outfile, hasNodes);
+
+        // Write linked list of nodes for this bucket
+        for (cNode = newHash[i]; cNode != NULL && writeSuccess; cNode = cNode->next) {
             // Make sure the node is written to disk
             assert(cNode->brick == NULL);
             assert(cNode->fileIndex != -1);
 
-            fwrite(cNode, sizeof(CBrickNode), 1, outfile);
+            // Write node data fields (portable I/O)
+            writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(cNode->x));
+            writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(cNode->y));
+            writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(cNode->z));
+            writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(cNode->d));
+            writeSuccess = writeSuccess && writeInt32(outfile, static_cast<int32_p>(cNode->fileIndex));
+
+            // Write "has next" marker
+            int32_p hasNext = (cNode->next != NULL) ? 1 : 0;
+            writeSuccess = writeSuccess && writeInt32(outfile, hasNext);
         }
     }
 
-    // Write the position of the file header right at the end
-    fwrite(&headerOffset, sizeof(int), 1, outfile);
+    if (!writeSuccess) {
+        error(CODE_SYSTEM, "Failed to write compacted brickmap data\n");
+    }
+
+    // Write the position of the file header right at the end (portable I/O)
+    if (!writeInt32(outfile, static_cast<int32_p>(headerOffset))) {
+        error(CODE_SYSTEM, "Failed to write compacted brickmap header offset\n");
+    }
 
     fclose(outfile);
 

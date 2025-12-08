@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "texture3d.h"
+#include "common/portable_io.h"
 #include "displayChannel.h"
 #include "error.h"
 #include "renderer.h"
@@ -182,12 +183,43 @@ void CTexture3d::defineChannels(int n, char **channelNames, char **channelTypes)
 // Return Value			:	-
 // Comments				:
 void CTexture3d::writeChannels(FILE *out) {
-    // Write out the header and channels
-    fwrite(toNDC, sizeof(float) * 16, 1, out);
-    fwrite(&numChannels, sizeof(int), 1, out);
+    // Write out the header and channels (portable I/O - Phase 2)
+    if (!writeFloat32Array(out, toNDC, 16)) {
+        error(CODE_SYSTEM, "Failed to write texture3d toNDC matrix\n");
+        return;
+    }
+
+    if (!writeInt32(out, static_cast<int32_p>(numChannels))) {
+        error(CODE_SYSTEM, "Failed to write texture3d numChannels\n");
+        return;
+    }
+
     for (int i = 0; i < numChannels; i++) {
-        fwrite(&channels[i], sizeof(CChannel), 1, out);
-        // GSHTODO:  deal with fill
+        // Write CChannel fields individually instead of struct
+        // Write name as fixed-size string
+        if (fwrite(channels[i].name, 1, 64, out) != 64) {
+            error(CODE_SYSTEM, "Failed to write texture3d channel name\n");
+            return;
+        }
+
+        if (!writeInt32(out, static_cast<int32_p>(channels[i].numSamples)) ||
+            !writeInt32(out, static_cast<int32_p>(channels[i].sampleStart)) ||
+            !writeInt32(out, static_cast<int32_p>(channels[i].type))) {
+            error(CODE_SYSTEM, "Failed to write texture3d channel data\n");
+            return;
+        }
+
+        // Write fill data if present
+        int32_p hasFill = (channels[i].fill != NULL) ? 1 : 0;
+        if (!writeInt32(out, hasFill)) {
+            error(CODE_SYSTEM, "Failed to write texture3d channel hasFill marker\n");
+            return;
+        }
+
+        if (hasFill && !writeFloat32Array(out, channels[i].fill, channels[i].numSamples)) {
+            error(CODE_SYSTEM, "Failed to write texture3d channel fill data\n");
+            return;
+        }
     }
 }
 
@@ -201,14 +233,57 @@ void CTexture3d::readChannels(FILE *in) {
     if (channels != NULL)
         delete[] channels;
 
-    // Write out the header and channels
-    fread(toNDC, sizeof(float) * 16, 1, in);
-    fread(&numChannels, sizeof(int), 1, in);
+    // Read the header and channels (portable I/O - Phase 2)
+    if (!readFloat32Array(in, toNDC, 16)) {
+        error(CODE_SYSTEM, "Failed to read texture3d toNDC matrix\n");
+        return;
+    }
+
+    int32_p numChannels_i;
+    if (!readInt32(in, numChannels_i)) {
+        error(CODE_SYSTEM, "Failed to read texture3d numChannels\n");
+        return;
+    }
+    numChannels = numChannels_i;
+
     channels = new CChannel[numChannels];
     for (int i = 0; i < numChannels; i++) {
-        fread(&channels[i], sizeof(CChannel), 1, in);
+        // Read CChannel fields individually instead of struct
+        // Read name as fixed-size string
+        if (fread(channels[i].name, 1, 64, in) != 64) {
+            error(CODE_SYSTEM, "Failed to read texture3d channel name\n");
+            return;
+        }
+
+        int32_p numSamples_i, sampleStart_i, type_i;
+        if (!readInt32(in, numSamples_i) ||
+            !readInt32(in, sampleStart_i) ||
+            !readInt32(in, type_i)) {
+            error(CODE_SYSTEM, "Failed to read texture3d channel data\n");
+            return;
+        }
+        channels[i].numSamples = numSamples_i;
+        channels[i].sampleStart = sampleStart_i;
+        channels[i].type = static_cast<EVariableType>(type_i);
+
         dataSize += channels[i].numSamples;
-        // GSHTODO:  deal with fill
+
+        // Read fill data if present
+        int32_p hasFill;
+        if (!readInt32(in, hasFill)) {
+            error(CODE_SYSTEM, "Failed to read texture3d channel hasFill marker\n");
+            return;
+        }
+
+        if (hasFill) {
+            channels[i].fill = new float[channels[i].numSamples];
+            if (!readFloat32Array(in, channels[i].fill, channels[i].numSamples)) {
+                error(CODE_SYSTEM, "Failed to read texture3d channel fill data\n");
+                return;
+            }
+        } else {
+            channels[i].fill = NULL;
+        }
     }
 }
 
