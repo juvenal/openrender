@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "pointHierarchy.h"
+#include "common/portable_io.h"
 #include "error.h"
 #include "random.h"
 #include "shading.h"
@@ -113,8 +114,12 @@ CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *
     // Reserve the actual space
     data.reserve(numItems * dataSize);
 
-    // Read the data
-    fread(data.array, sizeof(float), numItems * dataSize, in);
+    // Read the data (portable I/O - Phase 2)
+    if (!readFloat32Array(in, data.array, numItems * dataSize)) {
+        error(CODE_SYSTEM, "Failed to read point hierarchy data array\n");
+        fclose(in);
+        return;
+    }
     data.numItems = numItems * dataSize;
 
     // Close the file

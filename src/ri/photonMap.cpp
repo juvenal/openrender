@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include "common/portable_io.h"
 #include "error.h"
 #include "memory.h"
 #include "object.h"
@@ -82,10 +83,22 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
 
         CMap<CPhoton>::read(in);
 
-        // Read the transformation matrices
-        fread(fromWorld, sizeof(matrix), 1, in);
-        fread(toWorld, sizeof(matrix), 1, in);
-        fread(&maxPower, sizeof(float), 1, in);
+        // Read the transformation matrices (portable I/O - Phase 2)
+        if (!readFloat32Array(in, fromWorld, 16)) {
+            error(CODE_SYSTEM, "Failed to read photon map fromWorld matrix\n");
+            return;
+        }
+        if (!readFloat32Array(in, toWorld, 16)) {
+            error(CODE_SYSTEM, "Failed to read photon map toWorld matrix\n");
+            return;
+        }
+
+        float32_p maxPower_f;
+        if (!readFloat32(in, maxPower_f)) {
+            error(CODE_SYSTEM, "Failed to read photon map maxPower\n");
+            return;
+        }
+        maxPower = maxPower_f;
 
         mulmm(to, fromWorld, CRenderer::toWorld);
         mulmm(from, CRenderer::fromWorld, toWorld);
@@ -178,11 +191,24 @@ void CPhotonMap::write(const CXform *world) {
             // Write the map
             CMap<CPhoton>::write(out);
 
-            // Write the matrices
-            fwrite(CRenderer::fromWorld, sizeof(matrix), 1, out);
-            fwrite(CRenderer::toWorld, sizeof(matrix), 1, out);
+            // Write the matrices (portable I/O - Phase 2)
+            if (!writeFloat32Array(out, CRenderer::fromWorld, 16)) {
+                error(CODE_SYSTEM, "Failed to write photon map fromWorld matrix\n");
+                fclose(out);
+                return;
+            }
+            if (!writeFloat32Array(out, CRenderer::toWorld, 16)) {
+                error(CODE_SYSTEM, "Failed to write photon map toWorld matrix\n");
+                fclose(out);
+                return;
+            }
+
             maxPower = sqrtf(maxPower);
-            fwrite(&maxPower, sizeof(float), 1, out);
+            if (!writeFloat32(out, static_cast<float32_p>(maxPower))) {
+                error(CODE_SYSTEM, "Failed to write photon map maxPower\n");
+                fclose(out);
+                return;
+            }
 
             fclose(out);
         } else {

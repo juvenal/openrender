@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include "common/portable_io.h"
 #include "error.h"
 #include "memory.h"
 #include "object.h"
@@ -109,12 +110,22 @@ CPointCloud::CPointCloud(const char *n, const float *from, const float *to, FILE
     // Reserve the actual space
     data.reserve(numItems * dataSize);
 
-    // Read the data
-    fread(data.array, sizeof(float), numItems * dataSize, in);
+    // Read the data (portable I/O - Phase 2)
+    if (!readFloat32Array(in, data.array, numItems * dataSize)) {
+        error(CODE_SYSTEM, "Failed to read point cloud data array\n");
+        fclose(in);
+        return;
+    }
     data.numItems = numItems * dataSize;
 
-    // Read the maximum radius
-    fread(&maxdP, sizeof(float), 1, in);
+    // Read the maximum radius (portable I/O - Phase 2)
+    float32_p maxdP_f;
+    if (!readFloat32(in, maxdP_f)) {
+        error(CODE_SYSTEM, "Failed to read point cloud maxdP\n");
+        fclose(in);
+        return;
+    }
+    maxdP = maxdP_f;
 
     // Close the file
     fclose(in);
@@ -166,11 +177,19 @@ void CPointCloud::write() {
         // Write the map
         CMap<CPointCloudPoint>::write(out);
 
-        // Write the data
-        fwrite(data.array, sizeof(float), numItems * dataSize, out);
+        // Write the data (portable I/O - Phase 2)
+        if (!writeFloat32Array(out, data.array, numItems * dataSize)) {
+            error(CODE_SYSTEM, "Failed to write point cloud data array\n");
+            fclose(out);
+            return;
+        }
 
-        // Read the maximum radius
-        fwrite(&maxdP, sizeof(float), 1, out);
+        // Write the maximum radius (portable I/O - Phase 2)
+        if (!writeFloat32(out, static_cast<float32_p>(maxdP))) {
+            error(CODE_SYSTEM, "Failed to write point cloud maxdP\n");
+            fclose(out);
+            return;
+        }
 
         // Close the file
         fclose(out);
