@@ -21,4 +21,4 @@ add_library(openexr MODULE openexr.cpp ${openexr_headers})
 set_target_properties(openexr PROPERTIES PREFIX "")
 target_link_libraries(openexr pixiecommon ${exr_libs})
 
-install(TARGETS openexr LIBRARY DESTINATION "${displaysdir}")
+install(TARGETS openexr LIBRARY DESTINATION "${PIXIE_DISPLAYSDIR}")

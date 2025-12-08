@@ -2,9 +2,9 @@ file(GLOB pixiecommon_headers *.h)
 
 add_library(pixiecommon STATIC os.cpp algebra.cpp ${pixiecommon_headers})
 target_link_libraries(pixiecommon)
-install(TARGETS pixiecommon LIBRARY DESTINATION "${libdir}"
-				ARCHIVE DESTINATION "${libdir}"
-				RUNTIME DESTINATION "${bindir}")
+install(TARGETS pixiecommon LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
 if(UNIX)
 	target_link_libraries(pixiecommon pthread dl)

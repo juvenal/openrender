@@ -20,10 +20,10 @@ endif(USE_FLEX_BISON)
 
 add_library(sdr SHARED ${sdr_sources} ${sdr_headers})
 target_link_libraries(sdr pixiecommon)
-install(TARGETS sdr LIBRARY DESTINATION "${libdir}"
-			ARCHIVE DESTINATION "{$libdir}"
-			RUNTIME DESTINATION "{$bindir}")
-install(FILES sdr.h DESTINATION "${includedir}")
+install(TARGETS sdr LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(FILES sdr.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 if(APPLE)
 	set_target_properties(sdr PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")

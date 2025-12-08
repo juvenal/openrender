@@ -106,10 +106,10 @@ endif(USE_FLEX_BISON)
 
 add_library(ri SHARED ${ri_sources} ${ri_headers})
 target_link_libraries(ri ${pixietiff_libs} pixiecommon)
-install(TARGETS ri LIBRARY DESTINATION "${libdir}"
-			ARCHIVE DESTINATION "${libdir}"
-			RUNTIME DESTINATION "${bindir}")
-install(FILES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h DESTINATION "${includedir}")
+install(TARGETS ri LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(FILES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 if(WIN32)
 	target_link_libraries(ri zlib ws2_32)

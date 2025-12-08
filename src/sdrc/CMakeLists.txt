@@ -38,4 +38,4 @@ endif(USE_FLEX_BISON)
 
 add_executable(sdrc ${sdrc_sources})
 target_link_libraries(sdrc pixiecommon)
-install(TARGETS sdrc RUNTIME DESTINATION "${bindir}")
+install(TARGETS sdrc RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

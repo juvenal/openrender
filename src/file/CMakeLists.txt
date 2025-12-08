@@ -13,4 +13,4 @@ endif(WIN32)
 
 
 set_target_properties(file PROPERTIES PREFIX "") # otherwise CMake create a libxxxx.so file, here we don't want the lib prefix
-install(TARGETS file LIBRARY DESTINATION "${displaysdir}")
+install(TARGETS file LIBRARY DESTINATION "${PIXIE_DISPLAYSDIR}")
