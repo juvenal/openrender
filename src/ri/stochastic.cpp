@@ -26,6 +26,8 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include "common/portable_io.h"
+#include "error.h"
 #include "memory.h"
 #include "random.h"
 #include "stochastic.h"
@@ -968,12 +970,15 @@ inline void startSample(FILE *outFile, float threshold, CTSMData &data) {
     data.gSlopeMin = -C_INFINITY;
     data.bSlopeMin = -C_INFINITY;
 
-    // Output the first sample (at z=-C_INFINITY)
+    // Output the first sample (at z=-C_INFINITY) (portable I/O - Phase 2)
     data.origin[0] = -C_INFINITY;
     data.origin[1] = 1;
     data.origin[2] = 1;
     data.origin[3] = 1;
-    fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+    if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+        error(CODE_SYSTEM, "Failed to write deep shadow initial sample\n");
+        return;
+    }
     data.lastZ = -C_INFINITY;
 }
 
@@ -983,14 +988,17 @@ inline void startSample(FILE *outFile, float threshold, CTSMData &data) {
 // Return Value			:	-
 // Comments				:
 inline void outSample(float cZ, const float *opacity, CTSMData &data) {
-    // Always output the closest sample
+    // Always output the closest sample (portable I/O - Phase 2)
     if (data.origin[0] == -C_INFINITY) {
         data.origin[0] = cZ;
         data.origin[1] = opacity[0];
         data.origin[2] = opacity[1];
         data.origin[3] = opacity[2];
 
-        fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+        if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+            error(CODE_SYSTEM, "Failed to write deep shadow closest sample\n");
+            return;
+        }
     } else if (cZ == data.origin[0]) { // Do we have a step ?
         const float dr = absf(data.origin[1] - opacity[0]);
         const float dg = absf(data.origin[2] - opacity[1]);
@@ -999,11 +1007,14 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
         // Is the step small enough ?
         if ((dr >= data.tsmThreshold) || (dg >= data.tsmThreshold) || (db >= data.tsmThreshold)) {
 
-            // No, output the step
+            // No, output the step (portable I/O - Phase 2)
             data.origin[1] = opacity[0];
             data.origin[2] = opacity[1];
             data.origin[3] = opacity[2];
-            fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+            if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+                error(CODE_SYSTEM, "Failed to write deep shadow step sample\n");
+                return;
+            }
         }
     } else {
         // Check for the window of validity
@@ -1037,7 +1048,10 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
             data.origin[2] += (data.gSlopeMin + data.gSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
             data.origin[3] += (data.bSlopeMin + data.bSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
             data.origin[0] = data.lastZ;
-            fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+            if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+                error(CODE_SYSTEM, "Failed to write deep shadow slope sample\n");
+                return;
+            }
 
             data.rSlopeMax = C_INFINITY;
             data.gSlopeMax = C_INFINITY;
@@ -1055,11 +1069,14 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
                 // Is the step small enough ?
                 if ((dr >= data.tsmThreshold) || (dg >= data.tsmThreshold) || (db >= data.tsmThreshold)) {
 
-                    // No, output the step
+                    // No, output the step (portable I/O - Phase 2)
                     data.origin[1] = opacity[0];
                     data.origin[2] = opacity[1];
                     data.origin[3] = opacity[2];
-                    fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+                    if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+                        error(CODE_SYSTEM, "Failed to write deep shadow nested step sample\n");
+                        return;
+                    }
                 }
             } else {
                 const float denom = 1 / (cZ - data.origin[0]);
@@ -1087,17 +1104,26 @@ inline void finishSample(float cZ, const float *opacity, CTSMData &data) {
         data.origin[2] += (data.gSlopeMin + data.gSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
         data.origin[3] += (data.bSlopeMin + data.bSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
         data.origin[0] = data.lastZ;
-        fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+        if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+            error(CODE_SYSTEM, "Failed to write deep shadow finish slope sample\n");
+            return;
+        }
     }
 
     data.origin[0] = cZ;
     data.origin[1] = opacity[0];
     data.origin[2] = opacity[1];
     data.origin[3] = opacity[2];
-    fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+    if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+        error(CODE_SYSTEM, "Failed to write deep shadow finish sample\n");
+        return;
+    }
 
     data.origin[0] = C_INFINITY;
-    fwrite(data.origin, sizeof(float), 4, data.deepShadowFile);
+    if (!writeFloat32Array(data.deepShadowFile, data.origin, 4)) {
+        error(CODE_SYSTEM, "Failed to write deep shadow finish infinity sample\n");
+        return;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1272,20 +1298,30 @@ void CStochastic::deepShadowCompute() {
                 // Filter/write the pixels
                 filterSamples(numSamples, fSamples, fWeights);
             } else {
-                // Output a dummy pixel
+                // Output a dummy pixel (portable I/O - Phase 2)
                 float dummy[4];
 
                 dummy[0] = -C_INFINITY;
                 dummy[1] = 1;
                 dummy[2] = 1;
                 dummy[3] = 1;
-                fwrite(dummy, sizeof(float), 4, CRenderer::deepShadowFile);
+                if (!writeFloat32Array(CRenderer::deepShadowFile, dummy, 4)) {
+                    error(CODE_SYSTEM, "Failed to write deep shadow dummy pixel start\n");
+                    // NOTE: Cannot call memEnd here due to macro brace scoping
+                    osUnlock(CRenderer::deepShadowMutex);
+                    return;
+                }
 
                 dummy[0] = C_INFINITY;
                 dummy[1] = 1;
                 dummy[2] = 1;
                 dummy[3] = 1;
-                fwrite(dummy, sizeof(float), 4, CRenderer::deepShadowFile);
+                if (!writeFloat32Array(CRenderer::deepShadowFile, dummy, 4)) {
+                    error(CODE_SYSTEM, "Failed to write deep shadow dummy pixel end\n");
+                    // NOTE: Cannot call memEnd here due to macro brace scoping
+                    osUnlock(CRenderer::deepShadowMutex);
+                    return;
+                }
             }
         }
     }

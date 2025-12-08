@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "texture.h"
+#include "common/portable_io.h"
 #include "error.h"
 #include "memory.h"
 #include "renderer.h"
@@ -1259,21 +1260,51 @@ class CDeepShadow : public CEnvironment {
 
             fileName = strdup(fn);
 
-            // Read the header
-            fread(&header, sizeof(CDeepShadowHeader), 1, in);
+            // Read the header (portable I/O - Phase 2)
+            // Read CDeepShadowHeader fields individually instead of struct
+            int32_p xres_i, yres_i, xTiles_i, yTiles_i, tileSize_i, tileShift_i;
+            if (!readInt32(in, xres_i) || !readInt32(in, yres_i) ||
+                !readInt32(in, xTiles_i) || !readInt32(in, yTiles_i) ||
+                !readInt32(in, tileSize_i) || !readInt32(in, tileShift_i)) {
+                error(CODE_SYSTEM, "Failed to read deep shadow header integers\n");
+                return;
+            }
+            header.xres = xres_i;
+            header.yres = yres_i;
+            header.xTiles = xTiles_i;
+            header.yTiles = yTiles_i;
+            header.tileSize = tileSize_i;
+            header.tileShift = tileShift_i;
+
+            // Read transformation matrices
+            if (!readFloat32Array(in, header.toNDC, 16) ||
+                !readFloat32Array(in, header.toCamera, 16)) {
+                error(CODE_SYSTEM, "Failed to read deep shadow header matrices\n");
+                return;
+            }
+
             mulmm(mtmp, header.toNDC, toWorld);
             movmm(header.toNDC, mtmp);
 
             mulmm(mtmp, header.toCamera, toWorld);
             movmm(header.toCamera, mtmp);
 
-            // Read the tile end indices
+            // Read the tile end indices (portable I/O - Phase 2)
             tileIndices = new int[header.xTiles * header.yTiles];
-            fread(tileIndices, sizeof(int), header.xTiles * header.yTiles, in);
+            if (!readInt32Array(in, tileIndices, header.xTiles * header.yTiles)) {
+                error(CODE_SYSTEM, "Failed to read deep shadow tile indices\n");
+                delete[] tileIndices;
+                return;
+            }
 
-            // new-style tsm file
+            // new-style tsm file (portable I/O - Phase 2)
             tileSizes = new int[header.xTiles * header.yTiles];
-            fread(tileSizes, sizeof(int), header.xTiles * header.yTiles, in);
+            if (!readInt32Array(in, tileSizes, header.xTiles * header.yTiles)) {
+                error(CODE_SYSTEM, "Failed to read deep shadow tile sizes\n");
+                delete[] tileSizes;
+                delete[] tileIndices;
+                return;
+            }
 
             // Save the index start
             fileStart = ftell(in);
