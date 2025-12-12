@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:zerostaticthemes/hugo-winston-theme.git
+	branch = master
+	commit = c70260e55cd0e1bd6911bb49d01ae3458867da4d
+	parent = 0e619a17ff14a34a342542b688d30d91b863cd0d
+	method = merge
+	cmdver = 0.4.9
