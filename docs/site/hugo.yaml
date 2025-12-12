@@ -1,0 +1,75 @@
+baseURL: 'https://juvenal.github.io/pixie-code/'
+languageCode: 'en-us'
+title: 'Pixie Documentation'
+
+theme: 'hugo-winston-theme'
+
+menu:
+  main:
+    - name: Home
+      url: '/'
+      weight: 1
+    - name: User Manual
+      url: '/manual/'
+      weight: 2
+    - name: Development
+      url: '/development/'
+      weight: 3
+    - name: References
+      url: '/references/'
+      weight: 4
+
+params:
+  #
+  google_analytics_id: ""
+  twitter_handle: "@zerostaticio"
+  showAuthorOnHomepage: true
+  showAuthorOnPosts: false
+  showIntroContentOnHomepage: true
+  showPostsOnHomepage: true
+  usePaginationOnHomepage: false
+  limitPostsOnHomepage: 3 # only used if usePaginationOnHomepage is false
+  sortPostsByDateOldestFirst: false
+  addDot: true
+  addFrame: true
+  highlightColor: '#7b16ff'
+  baseColor: "#ffffff"
+  baseOffsetColor: "#eaeaea"
+  headingColor: "#1c1b1d"
+  textColor: "#4e5157"
+  dotColor: "#7b16ff"
+  enableGoogleFonts: true
+  googleFontsUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap"
+  fontFamilyHeading: "Poppins"
+  fontFamilyParagraph: "Helvetica"
+  fontFamilyMonospace: "monospace"
+
+  # Accessibility settings
+  accessibility:
+    enabled: true
+    nav_sectioning: true  # Enable sectioning for heading accessibility
+    contrast_check: true  # Check for sufficient color contrast
+    alt_text_required: true  # Require alt text for images
+
+  ## Enable Google Analytics
+  #googleAnalytics:
+  ## Enable/disable search
+  search: false
+  ## Enable/disable comments
+  #comments: false
+  ## Set the default editor
+  #editURL: 'https://github.com/juvenal/pixie-code/edit/main/docs/site/content/'
+  ## Show table of contents
+  #toc: true
+
+# Enable Emoji
+enableEmoji: true
+
+# Markup settings
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    style: github
+    noClasses: false

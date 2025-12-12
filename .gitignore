@@ -1,12 +1,15 @@
 build-test
 # Hugo builds
-/public/
-/resources/_gen/
- hugo_stats.json
+docs/site/public
+docs/site/resources
+hugo_stats.json
 
 # Hugo cache
 .hugo_build.lock
 .DS_Store
+
+# Hugo special checks
+docs/site/link-validat*
 
 # OS generated files
 .DS_Store

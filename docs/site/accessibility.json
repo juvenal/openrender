@@ -1,0 +1,26 @@
+# Accessibility validation configuration for pa11y
+{
+  "defaults": {
+    "chromeLaunchConfig": {
+      "args": [
+        "--no-sandbox",
+        "--disable-setuid-sandbox"
+      ]
+    }
+  },
+  "urls": [
+    {
+      "url": "https://juvenal-silva.github.io/pixie-code/"
+    }
+  ],
+  "pa11y": {
+    "standard": "WCAG2AA",
+    "runner": [
+      "axe"
+    ],
+    "ignore": [
+      "notice",
+      "warning"
+    ]
+  }
+}
