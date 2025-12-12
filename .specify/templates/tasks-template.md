@@ -150,7 +150,9 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX [P] Documentation updates in site/ for Hugo site
+- [ ] TXXX Update Hugo site configuration if needed
+- [ ] TXXX Verify GitHub Actions workflow in .github/workflows for site deployment
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/

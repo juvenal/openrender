@@ -1,14 +1,15 @@
 <!--
 Sync Impact Report:
-Version change: Template → 1.0.0
-Modified principles: All placeholders replaced with concrete principles
-Added sections: Language Standards, Platform Targeting, Development Workflow
-Removed sections: None (template structure preserved)
+Version change: 1.0.0 → 1.1.0
+Modified principles: None
+Added sections: VII. Documentation and Site Management
+Removed sections: None
 Templates requiring updates:
-  ✅ plan-template.md - Constitution Check section updated
-  ✅ spec-template.md - No changes needed (already generic)
-  ✅ tasks-template.md - No changes needed (already generic)
-  ✅ checklist-template.md - No changes needed (already generic)
+  ✅ plan-template.md - Constitution Check section updated to include VII
+  ✅ agent-file-template.md - Documentation and Site Management section added
+  ✅ spec-template.md - Documentation requirements added to success criteria
+  ✅ tasks-template.md - Documentation tasks added to Polish phase
+  ✅ checklist-template.md - Documentation checklist items added
 Follow-up TODOs: None
 -->
 
@@ -39,6 +40,10 @@ External dependencies MUST be minimized and justified. System libraries (e.g., l
 ### VI. Platform Targeting
 
 Code MUST target Unix-like systems, specifically Linux and macOS. Platform-specific code MUST be isolated and clearly documented. No direct Windows support is provided; Windows users MUST use WSL (Windows Subsystem for Linux). Build system MUST detect and configure for target platform automatically. Platform-specific features MUST degrade gracefully or provide clear error messages when unavailable.
+
+### VII. Documentation and Site Management
+
+Project documentation and development details MUST be maintained in a dedicated `site` folder using Hugo as the static site generator. The `site` folder MUST contain all source files for the project documentation website. Hugo configuration files (config.toml/yaml/json) MUST define the site structure, themes, and deployment settings. The site MUST be regularly updated to reflect changes and new features in the project. A `.github/workflows` folder MUST contain GitHub Actions workflows that automate site deployment. CI/CD pipelines MUST handle both the site content deployment and the project source code build/test processes. Site content MUST be written in Markdown format with appropriate front matter for Hugo processing. Site deployment MUST occur automatically on pushes to main branch and release tags.
 
 ## Additional Constraints
 
@@ -79,4 +84,4 @@ This constitution supersedes all other coding practices and guidelines. Amendmen
 
 All pull requests and code reviews MUST verify compliance with these principles. Complexity MUST be justified when it conflicts with simplicity principles. Use this constitution as the primary reference for all development decisions.
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
+**Version**: 1.1.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-08

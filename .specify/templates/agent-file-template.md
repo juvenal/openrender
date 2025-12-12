@@ -6,6 +6,10 @@ Auto-generated from all feature plans. Last updated: [DATE]
 
 [EXTRACTED FROM ALL PLAN.MD FILES]
 
+## Documentation and Site Management
+
+Project documentation is maintained in the `site` folder using Hugo as the static site generator. Hugo configuration files define the site structure, themes, and deployment settings. Site content is written in Markdown format and deployed automatically via GitHub Actions workflows in `.github/workflows`.
+
 ## Project Structure
 
 ```text

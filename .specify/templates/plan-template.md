@@ -43,6 +43,8 @@
 
 **VI. Platform Targeting**: MUST target Linux and macOS; no Windows support (WSL only); platform code isolated.
 
+**VII. Documentation and Site Management**: All feature documentation MUST be added to the Hugo site in the `site` folder; Hugo configuration MUST be updated if needed; site content MUST be regularly updated to reflect new features; GitHub Actions in `.github/workflows` MUST handle deployment of updated site content.
+
 ## Project Structure
 
 ### Documentation (this feature)
