@@ -53,10 +53,6 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
-        with:
-          # Automatically inject the base URL of the site when deploying
-          # You can remove this if you don't use relative URLs
-          enable_relative_urls: true
       - name: Build with Hugo
         env:
           # For maximum backward compatibility with Hugo modules
@@ -71,7 +67,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: docs/site/public
 
   # Deployment job
   deploy:
