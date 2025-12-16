@@ -56,12 +56,32 @@
 #endif
 
 // Misc Options and Attributes constants
+#ifdef __cplusplus
+// C++: provide template functions that handle mixed types like the old macros
+#include <algorithm>
+
+template<typename T, typename U>
+inline auto min(T a, U b) -> decltype(a < b ? a : b) {
+    return a < b ? a : b;
+}
+
+template<typename T, typename U>
+inline auto max(T a, U b) -> decltype(a > b ? a : b) {
+    return a > b ? a : b;
+}
+
+#else
+// C code: provide macros
 #ifdef min
 #undef min
 #endif
 
 #ifdef max
 #undef max
+#endif
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
 #ifdef radians
@@ -72,8 +92,6 @@
 #undef degrees
 #endif
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
 #define radians(a) ((a) * C_PI / 180.)
 #define degrees(a) ((a) * 180. / C_PI)
 
@@ -122,7 +140,7 @@ typedef union {
 
 // Include the global config file if available
 #ifdef HAVE_CONFIG_H
-#include "../../config.h"
+#include <config.h>
 #else
 
 // Are we running under Visual Studio?

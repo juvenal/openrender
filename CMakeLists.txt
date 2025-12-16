@@ -116,7 +116,7 @@ check_function_exists(fmodf							HAVE_FMODF)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 # Make config.h available to all targets
 target_include_directories(pixie_common_flags INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
-target_compile_definitions(pixie_common_flags INTERFACE HAVE_CMAKE_CONFIG_H)
+target_compile_definitions(pixie_common_flags INTERFACE HAVE_CONFIG_H)
 
 # ###########################################################################
 # ########## Dependencies
@@ -136,6 +136,9 @@ message(STATUS "Found PNG: ${PNG_VERSION}")
 # ZLIB (may be keg-only on macOS)
 find_package(ZLIB REQUIRED)
 message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
+
+# Define pixietiff_libs for use in subdirectories
+set(pixietiff_libs TIFF::TIFF PNG::PNG)
 
 # Threads
 find_package(Threads REQUIRED)
@@ -188,10 +191,13 @@ if(BUILD_SHOW)
     endif()
 endif()
 
-# OpenEXR (optional)
-find_package(OpenEXR QUIET)
+# OpenEXR (optional) - requires Imath for version 3.x
+find_package(OpenEXR QUIET CONFIG)
 if(OpenEXR_FOUND)
+    # OpenEXR 3.x also requires Imath
+    find_package(Imath REQUIRED CONFIG)
     message(STATUS "Found OpenEXR: ${OpenEXR_VERSION}")
+    message(STATUS "Found Imath: ${Imath_VERSION}")
     set(HAVE_OPENEXR ON)
 else()
     message(WARNING "OpenEXR not found - OpenEXR display driver will not be built")

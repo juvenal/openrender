@@ -644,7 +644,7 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     for (i = 0; i < numVariables; i++) {
 
         // Align the data to 64 bits
-        data = (char *)align64(data);
+        data = align64Ptr(data);
 
         locals[i] = (float *)data;
         if (varyingSizes[i] < 0)

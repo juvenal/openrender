@@ -33,6 +33,7 @@
 #include <ImfChannelList.h>
 #include <ImfChromaticitiesAttribute.h>
 #include <ImfCompressionAttribute.h>
+#include <ImfFrameBuffer.h>
 #include <ImfOutputFile.h>
 #include <ImfStandardAttributes.h>
 #include <ImfStringAttribute.h>
