@@ -1,6 +1,6 @@
-baseURL: 'https://juvenal.github.io/pixie-code/'
+baseURL: 'https://juvenal.github.io/openrender/'
 languageCode: 'en-us'
-title: 'Pixie Documentation'
+title: 'openRender Documentation'
 
 theme: 'hugo-winston-theme'
 
@@ -58,7 +58,7 @@ params:
   ## Enable/disable comments
   #comments: false
   ## Set the default editor
-  #editURL: 'https://github.com/juvenal/pixie-code/edit/main/docs/site/content/'
+  #editURL: 'https://github.com/juvenal/openrender/edit/main/docs/site/content/'
   ## Show table of contents
   #toc: true
 
