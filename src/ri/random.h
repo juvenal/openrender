@@ -179,12 +179,12 @@ void sampleSphere(float *P, CSobol<3> &generator);
 // platform doesn't have random().
 
 #ifdef _WINDOWS
-static inline long int random() {
+static inline long int orender_random() {
     // On Windows RAND_MAX is less than 0x7fffffff
     return rand();
 }
 #else
-static inline long int random() {
+static inline long int orender_random() {
     long int retval;
 
     // Note that we are assuming RAND_MAX >= 0x7fffffff
@@ -197,6 +197,9 @@ static inline long int random() {
     return retval;
 }
 #endif
+#else
+// When system has random(), alias to it
+#define orender_random random
 #endif
 
 // The variants of urand and irand that work without a shading context
@@ -204,11 +207,11 @@ static inline long int random() {
 // Note that RAND_MAX is specific to rand().  random() always has a max
 // of 0x7fffffff
 static inline float _urand() {
-    return random() / (float)0x7fffffff;
+    return orender_random() / (float)0x7fffffff;
 }
 
 static inline long int _irand() {
-    return random();
+    return orender_random();
 }
 
 #endif

@@ -34,6 +34,7 @@
 // Forward declarations
 struct CShadingScratch;
 class CAttributes;
+class CShaderInstance;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPLLookup

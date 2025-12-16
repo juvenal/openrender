@@ -48,8 +48,16 @@
 // >> Unix
 #include <dlfcn.h>
 #include <glob.h>
-#include <sys/param.h>
-#include <sys/sysctl.h>
+#include <unistd.h>
+
+// BSD-specific headers for sysctl CPU detection
+#if defined(__APPLE__) || defined(__APPLE_CC__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(BSD)
+    #include <sys/param.h>
+    #include <sys/sysctl.h>
+#else
+    // Linux and other Unix systems
+    #include <limits.h>
+#endif
 
 // << Unix
 #endif
@@ -118,7 +126,7 @@ void *osLoadModule(const char *name) {
     // Unix dlopen expects an absolute path or the shared object to be in LD_LIBRARY_PATH
     // Convert the name to an absolute file name
     if (cModule == NULL) {
-        char absoluteName[MAXPATHLEN];
+        char absoluteName[OS_MAX_PATH_LENGTH];
         char *absolute = realpath(name, absoluteName);
 
         if (absolute != NULL) {

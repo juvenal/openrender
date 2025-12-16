@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include "memory.h"
 #include "common/align.h"
+#include "common/global.h"
 #include "common/os.h"
 #include "ri_config.h"
 #include "stats.h"

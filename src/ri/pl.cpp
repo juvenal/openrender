@@ -1489,7 +1489,7 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
         }
 
         // Ensure alignment
-        cData = (float *)align64(cData);
+        cData = align64Ptr(cData);
     }
 
     // Sanity check

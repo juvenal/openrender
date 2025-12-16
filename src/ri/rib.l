@@ -209,12 +209,12 @@ version												return RIB_VERSION;
 \[													return RIB_ARRAY_BEGIN;
 \]													return RIB_ARRAY_END;
 
-\"[^\"]*\"											{   riblval->string	=	rstrdup(ribtext+1,CRenderer::globalMemory);	riblval->string[strlen(riblval->string)-1] = '\0'; return RIB_TEXT;}
-[+-]?([0-9]+|([0-9]*(\.[0-9]+)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&riblval->real);*/ riblval->real = (float) atof(ribtext); return RIB_FLOAT; }
-[+-]?([0-9]+|([0-9]+(\.[0-9]*)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&riblval->real);*/ riblval->real = (float) atof(ribtext); return RIB_FLOAT; }
+\"[^\"]*\"											{   yylval->string	=	rstrdup(ribtext+1,CRenderer::globalMemory);	yylval->string[strlen(yylval->string)-1] = '\0'; return RIB_TEXT;}
+[+-]?([0-9]+|([0-9]*(\.[0-9]+)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&yylval->real);*/ yylval->real = (float) atof(ribtext); return RIB_FLOAT; }
+[+-]?([0-9]+|([0-9]+(\.[0-9]*)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&yylval->real);*/ yylval->real = (float) atof(ribtext); return RIB_FLOAT; }
 
 [\t ]												;
-#\!.*												{	riblval->string	=	rstrdup(ribtext+2,CRenderer::globalMemory);	return RIB_STRUCTURE_COMMENT;	}
+#\!.*												{	yylval->string	=	rstrdup(ribtext+2,CRenderer::globalMemory);	return RIB_STRUCTURE_COMMENT;	}
 #.*													;
 \n													{	ribLineno++; }
 <<EOF>>												{
