@@ -77,12 +77,12 @@ TEST(type_sizes) {
     static_assert(sizeof(float64_p) == 8, "float64_p must be 8 bytes");
 
     // Runtime verification
-    ASSERT_EQ(sizeof(int32_p), 4);
-    ASSERT_EQ(sizeof(uint32_p), 4);
-    ASSERT_EQ(sizeof(int64_p), 8);
-    ASSERT_EQ(sizeof(uint64_p), 8);
-    ASSERT_EQ(sizeof(float32_p), 4);
-    ASSERT_EQ(sizeof(float64_p), 8);
+    ASSERT_EQ(sizeof(int32_p), static_cast<size_t>(4));
+    ASSERT_EQ(sizeof(uint32_p), static_cast<size_t>(4));
+    ASSERT_EQ(sizeof(int64_p), static_cast<size_t>(8));
+    ASSERT_EQ(sizeof(uint64_p), static_cast<size_t>(8));
+    ASSERT_EQ(sizeof(float32_p), static_cast<size_t>(4));
+    ASSERT_EQ(sizeof(float64_p), static_cast<size_t>(8));
 
     // Pointer types
     static_assert(sizeof(void*) == sizeof(uintptr_t), "uintptr_t must match pointer size");

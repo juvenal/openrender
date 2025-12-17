@@ -53,7 +53,11 @@ endif()
 # Platform-specific settings
 if(APPLE)
     # Support both Apple Silicon (arm64) and Intel (x86_64)
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
+    # Note: Universal binaries require universal versions of all dependencies (TIFF, PNG, FLTK, etc.)
+    # If dependencies are single-arch, comment out the architecture you don't have
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
+    endif()
     # Use modern macOS deployment target
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version")
 endif()
@@ -176,10 +180,10 @@ if(BUILD_SHOW)
         # Create imported target for FLTK
         add_library(FLTK::FLTK INTERFACE IMPORTED)
         separate_arguments(FLTK_CFLAGS)
-        separate_arguments(FLTK_LDFLAGS)
+        # Use SHELL: prefix to prevent CMake from splitting framework arguments
         set_target_properties(FLTK::FLTK PROPERTIES
             INTERFACE_COMPILE_OPTIONS "${FLTK_CFLAGS}"
-            INTERFACE_LINK_OPTIONS "${FLTK_LDFLAGS}"
+            INTERFACE_LINK_OPTIONS "SHELL:${FLTK_LDFLAGS}"
         )
         
         message(STATUS "Found FLTK: ${FLTK_VERSION}")

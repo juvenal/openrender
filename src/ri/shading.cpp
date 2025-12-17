@@ -1795,10 +1795,10 @@ void CShadingContext::randomShutdown() {
 // Comments				:
 void CShadingContext::next_state() {
     static const uint32_t _uTable[2] = {0UL, MATRIX_A};
-    register signed int j;
+    signed int j;
 
-    register uint32_t *p0;
-    register uint32_t *p1;
+    uint32_t *p0;
+    uint32_t *p1;
 
     j = (N - M) >> 1;
     p0 = state;

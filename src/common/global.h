@@ -138,21 +138,9 @@ typedef union {
 #define assert(__cond)
 #endif
 
-// Include the global config file if available
+// Include the CMake-generated config file
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#else
-
-// Are we running under Visual Studio?
-#ifdef _WINDOWS
-#include "../../config.windows.h"
-#endif
-
-// Are we running under XCode?
-#if defined(__APPLE__) || defined(__APPLE_CC__)
-#include "../../config.xcode.h"
-#endif
-
 #endif
 
 #endif

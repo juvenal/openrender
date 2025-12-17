@@ -17,24 +17,15 @@
  *
  */
 
-// Needs to be first, or clashes with other definitions
-#if defined(__APPLE__) || defined(__APPLE_CC__) // guard against __APPLE__ being undef from ftlk
-#include <CoreServices/CoreServices.h>          // For FSRef, FSRefMakePath, FSFindFolder
-#endif
-
 #include "os.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-
-// Needed for OSX 10.2.x fix
-#if defined(__APPLE__) || defined(__APPLE_CC__) // guard against __APPLE__ being undef from ftlk
-#include <stdio.h>
-#endif
 
 // Environment seperators
 #ifdef _WINDOWS
@@ -183,9 +174,8 @@ void *osResolve(void *cModule, const char *name) {
 // OSX 10.2.x fix
 #if defined(__APPLE__) || defined(__APPLE_CC__) // guard against __APPLE__ being undef from ftlk
         if (result == NULL) {
-            char new_name[strlen(name) + 2];
-            sprintf(new_name, "_%s", name);
-            result = dlsym((void *)cModule, new_name);
+            std::string new_name = std::string("_") + name;
+            result = dlsym((void *)cModule, new_name.c_str());
         }
 #endif
 
@@ -243,27 +233,16 @@ void osFixSlashes(char *st) {
 void osTempdir(char *result, size_t resultsize) {
 
 #ifdef _WINDOWS
-    sprintf(result, "PixieTemp_%d\\", GetCurrentProcessId());
-#elif defined(__APPLE__) || defined(__APPLE_CC__) // guard against __APPLE__ being undef from ftlk
-    FSRef tempRef;
-    char tempDirPath[OS_MAX_PATH_LENGTH];
-    OSErr err = FSFindFolder(kLocalDomain, kTemporaryFolderType, true, &tempRef);
-    if (!err)
-        err = FSRefMakePath(&tempRef, (UInt8 *)tempDirPath, sizeof(tempDirPath));
-    if (!err)
-        snprintf(result, resultsize, "%s/PixieTemp_%d/", tempDirPath, getpid());
-    else
-        snprintf(result, resultsize, "/tmp/PixieTemp_%d/", getpid());
-
+    snprintf(result, resultsize, "PixieTemp_%d\\", GetCurrentProcessId());
 #else
-    // Unix-y
+    // Unix-y (including macOS)
     const char *tempDirEnv = osEnvironment("TMPDIR");
     if (!tempDirEnv)
         tempDirEnv = osEnvironment("TMP");
     if (tempDirEnv != NULL)
         snprintf(result, resultsize, "%s/PixieTemp_%d/", tempDirEnv, getpid());
     else
-        snprintf(result, resultsize, "PixieTemp_%d/", getpid());
+        snprintf(result, resultsize, "/tmp/PixieTemp_%d/", getpid());
 #endif
 
     osFixSlashes(result);
@@ -279,13 +258,16 @@ void osTempname(const char *directory, const char *prefix, char *result) {
     // avoid some windows shortcomings by extending count when we
     // start to get clashes
     static int i = 0;
-    sprintf(result, "%s%s-%4xXXXXXXXX", directory, prefix, i);
+    snprintf(result, OS_MAX_PATH_LENGTH, "%s%s-%4xXXXXXXXX", directory, prefix, i);
     while (_mktemp(result) == NULL) {
-        sprintf(result, "%s%s-%4xXXXXXXXX", directory, prefix, i++);
+        snprintf(result, OS_MAX_PATH_LENGTH, "%s%s-%4xXXXXXXXX", directory, prefix, i++);
     }
 #else
-    sprintf(result, "%s%s-XXXXXXXX", directory, prefix);
-    mktemp(result);
+    snprintf(result, OS_MAX_PATH_LENGTH, "%s%s-XXXXXXXX", directory, prefix);
+    int fd = mkstemp(result);
+    if (fd != -1) {
+        close(fd);
+    }
 #endif
 }
 
@@ -365,7 +347,7 @@ void osEnumerate(const char *name, int (*callback)(const char *, void *), void *
     }
 #else
     glob_t globbuf;
-    int i;
+    size_t i;
 
     globbuf.gl_offs = 0;
     glob(name, GLOB_DOOFFS, NULL, &globbuf);
@@ -474,8 +456,10 @@ void osDeleteMutex(TMutex &mutex) {
 void osCreateSemaphore(TSemaphore &sem, int count) {
 #ifdef _WINDOWS
     sem = CreateSemaphore(NULL, 0, count, NULL);
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
+    sem = dispatch_semaphore_create(count);
 #else
-    sem_init(&sem, PTHREAD_PROCESS_PRIVATE, count);
+    sem_init(&sem, 0, count);
 #endif
 }
 
@@ -487,6 +471,8 @@ void osCreateSemaphore(TSemaphore &sem, int count) {
 void osDeleteSemaphore(TSemaphore &sem) {
 #ifdef _WINDOWS
     CloseHandle(sem);
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
+    dispatch_release(sem);
 #else
     sem_destroy(&sem);
 #endif

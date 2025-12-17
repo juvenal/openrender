@@ -291,22 +291,18 @@ COptions::COptions() {
 
     // Find the application support directory (~/Library/Application Support/Pixie/PlugIns), and set the
     // PIXIEUSERDIR environment variable to that directory
-    FSRef appsupport;
-    if (FSFindFolder(kUserDomain, kApplicationSupportFolderType, kCreateFolder, &appsupport) == noErr) {
-        FSRefMakePath(&appsupport, (UInt8 *)path, OS_MAX_PATH_LENGTH);
-        sprintf(pathtmp, "%s/" PACKAGE, path);
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(pathtmp, OS_MAX_PATH_LENGTH, "%s/Library/Application Support/Pixie", home);
         mkdir(pathtmp, 0755);
         setenv("PIXIEUSERDIR", (const char *)pathtmp, 1);
     }
 
     // Find the application support directory (/Library/Application Support/Pixie/PlugIns), and set the
     // PIXIELOCALDIR environment variable to that directory
-    if (FSFindFolder(kLocalDomain, kApplicationSupportFolderType, kCreateFolder, &appsupport) == noErr) {
-        FSRefMakePath(&appsupport, (UInt8 *)path, OS_MAX_PATH_LENGTH);
-        snprintf(pathtmp, OS_MAX_PATH_LENGTH, "%s/" PACKAGE, path);
-        mkdir(pathtmp, 0755);
-        setenv("PIXIELOCALDIR", (const char *)pathtmp, 1);
-    }
+    snprintf(pathtmp, OS_MAX_PATH_LENGTH, "/Library/Application Support/Pixie");
+    mkdir(pathtmp, 0755);
+    setenv("PIXIELOCALDIR", (const char *)pathtmp, 1);
 
     // Default home, unless overridden with environment
     setenv("PIXIEHOME", "/Library/Pixie", 0);

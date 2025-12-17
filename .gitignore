@@ -1,5 +1,13 @@
 build
 build-test
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
 # Hugo builds
 docs/site/public
 docs/site/resources

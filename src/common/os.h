@@ -72,9 +72,11 @@ typedef LPTHREAD_START_ROUTINE TFun;
 #include <sys/socket.h>
 #include <unistd.h>
 
-// #if defined(__APPLE__) || defined(__APPLE_CC__)	// guard against __APPLE__ being undef from ftlk
+#if defined(__APPLE__) || defined(__APPLE_CC__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
-// #endif
+#endif
 
 #ifndef LIB_EXPORT
 #define LIB_EXPORT extern
@@ -85,7 +87,11 @@ typedef LPTHREAD_START_ROUTINE TFun;
 #define INVALID_SOCKET -1
 #define TThread pthread_t
 #define TMutex pthread_mutex_t
+#if defined(__APPLE__) || defined(__APPLE_CC__)
+#define TSemaphore dispatch_semaphore_t
+#else
 #define TSemaphore sem_t
+#endif
 #define TRWLock pthread_rwlock_t
 #define TFunPrefix void *
 #define TFunReturn return NULL
@@ -194,6 +200,8 @@ inline void osUnlock(TMutex &mutex) {
 inline void osUp(TSemaphore &sem) {
 #ifdef _WINDOWS
     ReleaseSemaphore(sem, 1, NULL);
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
+    dispatch_semaphore_signal(sem);
 #else
     sem_post(&sem);
 #endif
@@ -207,6 +215,8 @@ inline void osUp(TSemaphore &sem) {
 inline void osDown(TSemaphore &sem) {
 #ifdef _WINDOWS
     WaitForSingleObject(sem, INFINITE);
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
+    dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
 #else
     sem_wait(&sem);
 #endif
