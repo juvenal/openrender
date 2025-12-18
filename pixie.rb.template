@@ -1,0 +1,42 @@
+class Pixie < Formula
+  desc "RenderMan-compliant photorealistic renderer"
+  homepage "https://github.com/YOUR_USERNAME/openrender"
+  url "https://github.com/YOUR_USERNAME/openrender/archive/refs/tags/v2.2.6.tar.gz"
+  sha256 "REPLACE_WITH_ACTUAL_SHA256"
+  license "LGPL-2.1-only"
+
+  head "https://github.com/YOUR_USERNAME/openrender.git", branch: "master"
+
+  depends_on "cmake" => :build
+  depends_on "flex" => :build
+  depends_on "bison" => :build
+  depends_on "libtiff"
+  depends_on "libpng"
+  depends_on "zlib"
+
+  # Optional dependencies for additional features
+  depends_on "fltk" => :optional      # GUI viewer (show command)
+  depends_on "openexr" => :optional   # OpenEXR display driver
+  depends_on "libx11" => :optional    # X11 framebuffer support
+
+  def install
+    # Build with CMake
+    system "cmake", "-S", ".", "-B", "build", *std_cmake_args
+    system "cmake", "--build", "build"
+    system "cmake", "--install", "build"
+  end
+
+  test do
+    # Verify executables are installed and working
+    system "#{bin}/rndr", "--help"
+    system "#{bin}/sdrc", "--version"
+    system "#{bin}/texmake", "--help"
+
+    # Check that libraries are installed
+    assert_predicate lib/"libri.dylib", :exist?
+    assert_predicate lib/"libsdr.dylib", :exist?
+
+    # Check that man pages are installed
+    assert_predicate man1/"rndr.1", :exist?
+  end
+end
