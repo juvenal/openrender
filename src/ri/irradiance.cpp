@@ -107,7 +107,19 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
         mulvf(center, 0.5f);
         movvv(root->center, center);
         subvv(bmax, bmin);
-        root->side = max(max(bmax[0], bmax[1]), bmax[2]);
+        float maxBmax01;
+        if (bmax[1] > bmax[0]) {
+            maxBmax01 = bmax[1];
+        } else {
+            maxBmax01 = bmax[0];
+        }
+        float maxBmax012;
+        if (bmax[2] > maxBmax01) {
+            maxBmax012 = bmax[2];
+        } else {
+            maxBmax012 = maxBmax01;
+        }
+        root->side = maxBmax012;
         root->samples = NULL;
     }
 }
@@ -363,7 +375,13 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
                 e2 = sqrtf(e2 * weightNormalDenominator);
 
                 // Compute the weight
-                float w = 1 - K * max(e1, e2);
+                float maxE1E2;
+                if (e2 > e1) {
+                    maxE1E2 = e2;
+                } else {
+                    maxE1E2 = e1;
+                }
+                float w = 1 - K * maxE1E2;
                 if (w > context->urand() * smallSampleWeight) {
                     vector ntmp;
 
@@ -754,7 +772,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 hemisphere->invDepth = 1 / ray.t;
 
                 if (tmp > horizonCutoff)
-                    rMean = min(rMean, ray.t);
+                    if (ray.t < rMean) {
+                        rMean = ray.t;
+                    }
 
                 movvv(hemisphere->dir, ray.dir);
 
@@ -820,7 +840,18 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         globalMap->lookup(C, P, N, attributes->photonEstimator);
 
                         // HACK: Avoid too bright spots
-                        tmp = max(max(C[0], C[1]), C[2]);
+                        float maxC01;
+                        if (C[1] > C[0]) {
+                            maxC01 = C[1];
+                        } else {
+                            maxC01 = C[0];
+                        }
+                        float tmp;
+                        if (C[2] > maxC01) {
+                            tmp = C[2];
+                        } else {
+                            tmp = maxC01;
+                        }
                         if (tmp > scratch->occlusionParams.maxBrightness)
                             mulvf(C, scratch->occlusionParams.maxBrightness / tmp);
 
@@ -873,7 +904,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 hemisphere->invDepth = 1 / ray.t;
 
                 if (tmp > horizonCutoff)
-                    rMean = min(rMean, ray.t);
+                    if (ray.t < rMean) {
+                        rMean = ray.t;
+                    }
 
                 movvv(hemisphere->dir, ray.dir);
 
@@ -915,7 +948,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         rMean *= 0.5f;
 
         // Clamp the radius of validity
-        rMean = min(rMean, db * scratch->occlusionParams.maxPixelDist);
+        float maxDist = db * scratch->occlusionParams.maxPixelDist;
+        if (maxDist < rMean) {
+            rMean = maxDist;
+        }
 
         // Record the data (in the target coordinate system)
         movvv(cSample->P, P);
@@ -968,7 +1004,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
         cSample->next = cNode->samples;
         cNode->samples = cSample;
-        maxDepth = max(depth, maxDepth);
+        if (depth > maxDepth) {
+            maxDepth = depth;
+        }
 
         osUnlock(mutex);
     }
@@ -1000,8 +1038,14 @@ void CIrradianceCache::clamp(CCacheSample *nSample) {
             //  Avoid issues with coincident points
             const float l = (dotvv(D, D) > C_EPSILON) ? lengthv(D) : C_EPSILON;
 
-            nSample->dP = min(nSample->dP, cSample->dP + l);
-            cSample->dP = min(cSample->dP, nSample->dP + l);
+            float newDP = cSample->dP + l;
+            if (newDP < nSample->dP) {
+                nSample->dP = newDP;
+            }
+            float newDP2 = nSample->dP + l;
+            if (newDP2 < cSample->dP) {
+                cSample->dP = newDP2;
+            }
         }
 
         // Check the children

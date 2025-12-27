@@ -56,7 +56,13 @@ CZbuffer::CZbuffer(int thread) : CReyes(thread), COcclusionCuller() {
     }
 
     // Initialize the occlusion culler
-    initCuller(max(totalWidth, totalHeight), &maxDepth);
+    int cullerSize;
+    if (totalHeight > totalWidth) {
+        cullerSize = totalHeight;
+    } else {
+        cullerSize = totalWidth;
+    }
+    initCuller(cullerSize, &maxDepth);
 }
 
 ///////////////////////////////////////////////////////////////////////

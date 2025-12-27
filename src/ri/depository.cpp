@@ -84,7 +84,14 @@ void CDepository::lookup(float *C, const float *P, const float *N) {
     for (int i = 1; i <= numFound; i++) {
         const CDepositorySample *p = indices[i];
         const float t1 = distances[i] / (distances[0] + C_EPSILON);
-        const float t2 = sqrtf(max(1 - dotvv(N, p->N), 0));
+        float dotValue = 1 - dotvv(N, p->N);
+        float maxDot;
+        if (0 > dotValue) {
+            maxDot = 0;
+        } else {
+            maxDot = dotValue;
+        }
+        const float t2 = sqrtf(maxDot);
         float weight = 1 / (t1 + 10 * t2 + C_EPSILON);
 
         if (weight < C_EPSILON)

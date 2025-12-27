@@ -1046,7 +1046,14 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
 
 #define PHONGEXPR                                                                              \
     normalizev(Ltmp, L);                                                                       \
-    const float coefficient = (1.0f - ns[0]) * (float)pow(max(0, dotvv(refDir, Ltmp)), *size); \
+    const float dotProduct = dotvv(refDir, Ltmp);                                              \
+    float clampedDot;                                                                          \
+    if (0 > dotProduct) {                                                                      \
+        clampedDot = 0;                                                                        \
+    } else {                                                                                   \
+        clampedDot = dotProduct;                                                               \
+    }                                                                                          \
+    const float coefficient = (1.0f - ns[0]) * (float)pow(clampedDot, *size);                 \
     if (coefficient > 0) {                                                                     \
         R[COMP_R] += coefficient * Cl[COMP_R];                                                 \
         R[COMP_G] += coefficient * Cl[COMP_G];                                                 \
@@ -1083,7 +1090,14 @@ DEFLIGHTFUNC(Phong, "phong", "c=nvf", PHONGEXPR_PRE, PHONGEXPR, PHONGEXPR_UPDATE
 #define SPECULARBRDFEXPR                                                \
     addvv(halfway, op3, op1);                                           \
     normalizev(halfway);                                                \
-    res[0] = (float)pow(max(0, dotvv(op2, halfway)), (10.0f) / (*op4)); \
+    const float dotProduct = dotvv(op2, halfway);                       \
+    float clampedDot;                                                   \
+    if (0 > dotProduct) {                                               \
+        clampedDot = 0;                                                 \
+    } else {                                                            \
+        clampedDot = dotProduct;                                        \
+    }                                                                   \
+    res[0] = (float)pow(clampedDot, (10.0f) / (*op4));                 \
     res[1] = res[0];                                                    \
     res[2] = res[1];
 
@@ -1761,7 +1775,13 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
         movvv(rays->P, P);                                                                  \
         mulvf(rays->dPdu, dPdu, (*du) * swidth);                                            \
         mulvf(rays->dPdv, dPdv, (*dv) * twidth);                                            \
-        rays->coneAngle = max(scratch->traceParams.coneAngle, scratch->textureParams.blur); \
+        float largerConeAngle;                                                              \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                 \
+            largerConeAngle = scratch->textureParams.blur;                                  \
+        } else {                                                                            \
+            largerConeAngle = scratch->traceParams.coneAngle;                               \
+        }                                                                                   \
+        rays->coneAngle = largerConeAngle;                                                  \
         rays->numSamples = (int)scratch->traceParams.samples;                               \
         rays->bias = scratch->traceParams.bias;                                             \
         rays->sampleBase = scratch->traceParams.sampleBase;                                 \
@@ -1864,7 +1884,13 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         subvv(rays->D, D, L);                                                               \
         mulvf(rays->dDdu, dPdu, (*du) * swidth);                                            \
         mulvf(rays->dDdv, dPdv, (*dv) * twidth);                                            \
-        rays->coneAngle = max(scratch->traceParams.coneAngle, scratch->textureParams.blur); \
+        float largerConeAngle2;                                                             \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                 \
+            largerConeAngle2 = scratch->textureParams.blur;                                 \
+        } else {                                                                            \
+            largerConeAngle2 = scratch->traceParams.coneAngle;                              \
+        }                                                                                   \
+        rays->coneAngle = largerConeAngle2;                                                 \
         rays->sampleBase = scratch->traceParams.sampleBase;                                 \
         rays->numSamples = (int)scratch->traceParams.samples;                               \
         rays->bias = scratch->traceParams.bias;                                             \
@@ -1966,7 +1992,14 @@ DEFSHORTFUNC(ShadowColor, "shadow", "c=SFp!", SHADOWEXPR_PRE, SHADOWEXPR(FALSE),
     for (int i = 0; i < numVertices; ++i) {                                           \
         dsdu[i] = fabs(dsdu[i] * du[i]);                                              \
         dsdv[i] = fabs(dsdv[i] * dv[i]);                                              \
-        fwidth[i] = scratch->textureParams.width * max(dsdu[i] + dsdv[i], C_EPSILON); \
+        float sumValue = dsdu[i] + dsdv[i];                                           \
+        float clampedSum;                                                              \
+        if (C_EPSILON > sumValue) {                                                    \
+            clampedSum = C_EPSILON;                                                    \
+        } else {                                                                       \
+            clampedSum = sumValue;                                                     \
+        }                                                                              \
+        fwidth[i] = scratch->textureParams.width * clampedSum;                         \
     }
 
 #define FILTERSTEP2EXPR \

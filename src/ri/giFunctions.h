@@ -432,7 +432,20 @@ DEFSHORTFUNC(Photonmap2, "photonmap", "c=Sp!", PHOTONMAP2EXPR_PRE, PHOTONMAP2EXP
     plReady();                                          \
     mulvf(dPdu, *du);                                   \
     mulvf(dPdv, *dv);                                   \
-    rays->da = min(max(tanf(*sampleCone), 0.0f), 1.0f); \
+    {                                                   \
+        float tanCone = tanf(*sampleCone);              \
+        float clampedTan;                               \
+        if (0.0f > tanCone) {                           \
+            clampedTan = 0.0f;                          \
+        } else {                                        \
+            clampedTan = tanCone;                       \
+        }                                               \
+        if (1.0f < clampedTan) {                        \
+            rays->da = 1.0f;                            \
+        } else {                                        \
+            rays->da = clampedTan;                      \
+        }                                               \
+    }                                                   \
     rays->db = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f;  \
     rays->sampleCone = *sampleCone;                     \
     rays->sampleBase = scratch->traceParams.sampleBase; \

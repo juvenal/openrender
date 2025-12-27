@@ -83,7 +83,9 @@ CMemPage *memoryNewPage(int size) {
     */
     lastPagingTime = time;
 
-    size = max(size, memoryPageSize);
+    if (memoryPageSize > size) {
+        size = memoryPageSize;
+    }
     size = (size + 7) & (~7);
 
     CMemPage *newPage = new CMemPage;

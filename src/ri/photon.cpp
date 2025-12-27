@@ -146,7 +146,12 @@ void CPhotonHider::renderingLoop() {
                     photonPower = 1 / (float)CRenderer::numEmitPhotons;
 
                     while (emit > 0) {
-                        const int numVertices = min(CRenderer::maxGridSize, emit);
+                        int numVertices;
+                        if (emit < CRenderer::maxGridSize) {
+                            numVertices = emit;
+                        } else {
+                            numVertices = CRenderer::maxGridSize;
+                        }
 
                         currentShadingState->numVertices = numVertices;
                         currentShadingState->numRealVertices = numVertices;
@@ -361,7 +366,14 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         assert(N != NULL);
 
         // Save the tangent of the angle for the ray differential
-        varying[VARIABLE_PW][0] = min(DEFAULT_RAY_DA, tanf(theta[0]));
+        float tanTheta = tanf(theta[0]);
+        float minDa;
+        if (tanTheta < DEFAULT_RAY_DA) {
+            minDa = tanTheta;
+        } else {
+            minDa = DEFAULT_RAY_DA;
+        }
+        varying[VARIABLE_PW][0] = minDa;
 
         for (; numVertices > 0; numVertices--, shaderPs += 3, shaderL += 3) {
 

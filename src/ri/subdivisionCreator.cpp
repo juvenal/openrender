@@ -175,7 +175,12 @@ class CSVertex {
             if (childVertex == NULL) {
                 childVertex = new (data.context) CSVertex(data);
                 childVertex->parentv = this;
-                childVertex->sharpness = max(sharpness - 1, 0);
+                int sharpnessValue = sharpness - 1;
+                if (0 > sharpnessValue) {
+                    childVertex->sharpness = 0;
+                } else {
+                    childVertex->sharpness = sharpnessValue;
+                }
             }
         }
 
@@ -275,11 +280,21 @@ class CSEdge {
 
                 children[0]->vertices[0] = vertices[0]->childVertex;
                 children[0]->vertices[1] = childVertex;
-                children[0]->sharpness = max(sharpness - 1, 0);
+                int sharpnessVal0_2 = sharpness - 1;
+                if (0 > sharpnessVal0_2) {
+                    children[0]->sharpness = 0;
+                } else {
+                    children[0]->sharpness = sharpnessVal0_2;
+                }
 
                 children[1]->vertices[0] = vertices[1]->childVertex;
                 children[1]->vertices[1] = childVertex;
-                children[1]->sharpness = max(sharpness - 1, 0);
+                int sharpnessVal1 = sharpness - 1;
+                if (0 > sharpnessVal1) {
+                    children[1]->sharpness = 0;
+                } else {
+                    children[1]->sharpness = sharpnessVal1;
+                }
 
                 children[0]->vertices[0]->addEdge(children[0]);
                 children[0]->vertices[1]->addEdge(children[0]);
@@ -1782,7 +1797,11 @@ void CSubdivMesh::create(CShadingContext *context) {
                 cEdge = v0->edgeExists(v1);
 
                 if (cEdge != NULL) {
-                    cEdge->sharpness = min(cfloatargs[0], 10);
+                    if (10 < cfloatargs[0]) {
+                        cEdge->sharpness = 10;
+                    } else {
+                        cEdge->sharpness = cfloatargs[0];
+                    }
                 } else {
                     error(CODE_RANGE, "The edge between vertices %d-%d not found\n", cintargs[j], cintargs[j + 1]);
                 }

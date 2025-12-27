@@ -277,10 +277,19 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
     int xmax = bounds[1] - left;
     int ymax = bounds[3] - top;
 
-    xmin = max(xmin, 0); // Clamp the bound in the current bucket
-    ymin = max(ymin, 0);
-    xmax = min(xmax, xres);
-    ymax = min(ymax, yres);
+    // Clamp the bound in the current bucket
+    if (0 > xmin) {
+        xmin = 0;
+    }
+    if (0 > ymin) {
+        ymin = 0;
+    }
+    if (xres < xmax) {
+        xmax = xres;
+    }
+    if (yres < ymax) {
+        ymax = yres;
+    }
 
     const float *v0 = vertices;
     int x, y;

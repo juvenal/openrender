@@ -737,8 +737,22 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     }
 
     // The sample offsets
-    xSampleOffset = (int)ceil(max((CRenderer::pixelFilterWidth - 1) * CRenderer::pixelXsamples / 2.0, 0));
-    ySampleOffset = (int)ceil(max((CRenderer::pixelFilterHeight - 1) * CRenderer::pixelYsamples / 2.0, 0));
+    float xOffsetValue = (CRenderer::pixelFilterWidth - 1) * CRenderer::pixelXsamples / 2.0;
+    float xOffsetClamped;
+    if (0 > xOffsetValue) {
+        xOffsetClamped = 0;
+    } else {
+        xOffsetClamped = xOffsetValue;
+    }
+    xSampleOffset = (int)ceil(xOffsetClamped);
+    float yOffsetValue = (CRenderer::pixelFilterHeight - 1) * CRenderer::pixelYsamples / 2.0;
+    float yOffsetClamped;
+    if (0 > yOffsetValue) {
+        yOffsetClamped = 0;
+    } else {
+        yOffsetClamped = yOffsetValue;
+    }
+    ySampleOffset = (int)ceil(yOffsetClamped);
 
     // The clipping region we have
     sampleClipLeft = (float)(-xSampleOffset);

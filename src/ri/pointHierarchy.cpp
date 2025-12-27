@@ -209,10 +209,21 @@ int CPointHierarchy::average(int numItems, int *indices) {
         float area;
 
         subvv(D, node.P, item->P);
-        if (areaIndex == -1)
-            area = max(((float)C_PI * item->dP * item->dP * dotvv(node.N, item->N)), 0);
-        else
-            area = max((src[areaIndex] * dotvv(node.N, item->N)), 0);
+        if (areaIndex == -1) {
+            float areaValue = ((float)C_PI * item->dP * item->dP * dotvv(node.N, item->N));
+            if (0 > areaValue) {
+                area = 0;
+            } else {
+                area = areaValue;
+            }
+        } else {
+            float areaValue2 = (src[areaIndex] * dotvv(node.N, item->N));
+            if (0 > areaValue2) {
+                area = 0;
+            } else {
+                area = areaValue2;
+            }
+        }
 
         node.dP += area;
 
@@ -222,7 +233,10 @@ int CPointHierarchy::average(int numItems, int *indices) {
             addvv(node.radiosity, tmp);
         }
 
-        node.dN = min(node.dN, dotvv(node.N, item->N));
+        float dotProduct = dotvv(node.N, item->N);
+        if (dotProduct < node.dN) {
+            node.dN = dotProduct;
+        }
     }
     indices -= numItems;
 
@@ -320,11 +334,25 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
 
                 // Compute the distance to the first cluster
                 subvv(D, cItem->P, C0);
-                const float d0 = dotvv(D, D) / max(dotvv(N0, cItem->N), C_EPSILON);
+                float dotN0 = dotvv(N0, cItem->N);
+                float maxDotN0;
+                if (C_EPSILON > dotN0) {
+                    maxDotN0 = C_EPSILON;
+                } else {
+                    maxDotN0 = dotN0;
+                }
+                const float d0 = dotvv(D, D) / maxDotN0;
 
                 // Compute the distance to the second cluster
                 subvv(D, cItem->P, C1);
-                const float d1 = dotvv(D, D) / max(dotvv(N1, cItem->N), C_EPSILON);
+                float dotN1 = dotvv(N1, cItem->N);
+                float maxDotN1;
+                if (C_EPSILON > dotN1) {
+                    maxDotN1 = C_EPSILON;
+                } else {
+                    maxDotN1 = dotN1;
+                }
+                const float d1 = dotvv(D, D) / maxDotN1;
 
                 // Change the membership if necessary
                 if (d0 < d1) {

@@ -140,11 +140,11 @@ DEFFUNC(Cos, "cos", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), 
 DEFFUNC(Tan, "tan", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
-#define FUNCTION(x) asin(max(min(x, 1), -1))
+#define FUNCTION(x) asin((((x) < 1) ? (x) : 1) > -1 ? (((x) < 1) ? (x) : 1) : -1)
 DEFFUNC(Asin, "asin", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
-#define FUNCTION(x) acos(max(min(x, 1), -1))
+#define FUNCTION(x) acos((((x) < 1) ? (x) : 1) > -1 ? (((x) < 1) ? (x) : 1) : -1)
 DEFFUNC(Acos, "acos", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
@@ -156,15 +156,15 @@ DEFFUNC(Atan, "atan", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1)
 DEFFUNC(Exp, "exp", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
-#define FUNCTION(x) log(max(x, C_EPSILON))
+#define FUNCTION(x) log((x) > C_EPSILON ? (x) : C_EPSILON)
 DEFFUNC(Log, "log", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
-#define FUNCTION(x) sqrt(max(x, 0))
+#define FUNCTION(x) sqrt((x) > 0 ? (x) : 0)
 DEFFUNC(Sqrt, "sqrt", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 
-#define FUNCTION(x) isqrtf(max(x, 0))
+#define FUNCTION(x) isqrtf((x) > 0 ? (x) : 0)
 DEFFUNC(InvSqrt, "inversesqrt", "f=f", FUN2EXPR_PRE, SIMPLEFUNCTION, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 #undef FUNCTION
 

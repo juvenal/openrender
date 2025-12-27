@@ -72,8 +72,16 @@ class CInterface {
             mulvf(mid, (float)0.5);
 
             subvv(tmp, bmax, bmin);
-            maxDim = max(tmp[0], tmp[1]);
-            maxDim = max(tmp[2], maxDim);
+            float largerValue;
+            if (tmp[1] > tmp[0]) {
+                largerValue = tmp[1];
+            } else {
+                largerValue = tmp[0];
+            }
+            if (tmp[2] > largerValue) {
+                largerValue = tmp[2];
+            }
+            maxDim = largerValue;
             maxDim *= 5;
         }
 

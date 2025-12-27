@@ -548,13 +548,23 @@ inline void fresnel(const SCALAR_TYPE *I, const SCALAR_TYPE *N, SCALAR_TYPE eta,
     const SCALAR_TYPE e = 1 / eta;
     const SCALAR_TYPE c = -dotvv(I, N);
     const SCALAR_TYPE t = e * e + c * c - 1;
-    const SCALAR_TYPE g = SQRT(max(t, 0));
+    SCALAR_TYPE clampedT;
+    if (t > 0) {
+        clampedT = t;
+    } else {
+        clampedT = 0;
+    }
+    const SCALAR_TYPE g = SQRT(clampedT);
     const SCALAR_TYPE a = (g - c) / (g + c);
     const SCALAR_TYPE b = (c * (g + c) - 1) / (c * (g - c) + 1);
 
     Kr = 0.5f * a * a * (1 + b * b);
-    Kr = min(Kr, 1);
-    Kr = max(Kr, 0);
+    if (1 < Kr) {
+        Kr = 1;
+    }
+    if (0 > Kr) {
+        Kr = 0;
+    }
     Kt = 1 - Kr;
     reflect(R, I, N);
     refract(T, I, N, eta);

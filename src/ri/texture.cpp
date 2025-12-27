@@ -203,7 +203,9 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 // Comments				:
 static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, CShadingContext *context) {
     stats.textureSize += entry->size;
-    stats.peakTextureSize = max(stats.textureSize, stats.peakTextureSize);
+    if (stats.peakTextureSize < stats.textureSize) {
+        stats.peakTextureSize = stats.textureSize;
+    }
     stats.textureMemory += entry->size;
     stats.transferredTextureData += entry->size;
 
@@ -881,23 +883,31 @@ class CMadeTexture : public CTexture {
             ds = (u[1] - cs) * width;
             dt = (v[1] - ct) * height;
             d = ds * ds + dt * dt;
-            diag = min(d, diag);
+            if (diag > d) {
+                diag = d;
+            }
 
             ds = (u[2] - cs) * width;
             dt = (v[2] - ct) * height;
             d = ds * ds + dt * dt;
-            diag = min(d, diag);
+            if (diag > d) {
+                diag = d;
+            }
 
             ds = (u[3] - cs) * width;
             dt = (v[3] - ct) * height;
             d = ds * ds + dt * dt;
-            diag = min(d, diag);
+            if (diag > d) {
+                diag = d;
+            }
 
             diag += scratch->textureParams.blur * scratch->textureParams.blur * width * height;
 
             // Find the layer that we want to probe
             l = (logf(diag) * 0.5f * (1 / logf(2.0f)));
-            l = max(l, 0);
+            if (0 > l) {
+                l = 0;
+            }
 
             i = (int)floor(l);
             if (i >= (numLayers - 1))
@@ -906,7 +916,9 @@ class CMadeTexture : public CTexture {
             layer0 = layers[i];
             layer1 = layers[i + 1];
             offset = l - i;
-            offset = min(offset, 1);
+            if (1 < offset) {
+                offset = 1;
+            }
 
             const float jitter = 1.0f - 1.0f / (float)scratch->textureParams.samples;
 

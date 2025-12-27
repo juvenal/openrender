@@ -337,8 +337,20 @@ void CRaytracer::renderingLoop() {
 
             left = x * CRenderer::bucketWidth;
             top = y * CRenderer::bucketHeight;
-            width = min(CRenderer::bucketWidth, CRenderer::xPixels - left);
-            height = min(CRenderer::bucketHeight, CRenderer::yPixels - top);
+            int availableWidth2 = CRenderer::xPixels - left;
+            int width;
+            if (CRenderer::bucketWidth < availableWidth2) {
+                width = CRenderer::bucketWidth;
+            } else {
+                width = availableWidth2;
+            }
+            int availableHeight2 = CRenderer::yPixels - top;
+            int height;
+            if (CRenderer::bucketHeight < availableHeight2) {
+                height = CRenderer::bucketHeight;
+            } else {
+                height = availableHeight2;
+            }
 
             // Sample the framebuffer
             sample(left, top, width, height);
@@ -399,8 +411,22 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
 
         for (j = 0; j < ysamples; j += 8) {
             for (i = 0; i < xsamples; i += 8) {
-                const int my = min(ysamples - j, 8);
-                const int mx = min(xsamples - i, 8);
+                int myLimit = ysamples - j;
+                int my;
+                if (8 < myLimit) {
+                    my = 8;
+                } else {
+                    my = myLimit;
+                }
+                int mxLimit = xsamples - i;
+                int mx;
+                if (8 < mxLimit) {
+                    mx = 8;
+                } else {
+                    mx = mxLimit;
+                }
+                const int my_const = my;
+                const int mx_const = mx;
 
                 for (y = 0; y < my; y++) {
                     for (x = 0; x < mx; x++) {
@@ -549,10 +575,20 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
         int pt = iy - ph;
         int pb = iy + ph;
 
-        pl = max(pl, left);
-        pt = max(pt, top);
-        pr = min(pr, left + xpixels - 1);
-        pb = min(pb, top + ypixels - 1);
+        if (left > pl) {
+            pl = left;
+        }
+        if (top > pt) {
+            pt = top;
+        }
+        int rightBound = left + xpixels - 1;
+        if (rightBound < pr) {
+            pr = rightBound;
+        }
+        int bottomBound = top + ypixels - 1;
+        if (bottomBound < pb) {
+            pb = bottomBound;
+        }
 
         /*
         for (pixelY=pt;pixelY<=pb;pixelY++) {

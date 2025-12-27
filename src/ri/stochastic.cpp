@@ -67,11 +67,11 @@ CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apert
     totalHeight = CRenderer::pixelYsamples * CRenderer::bucketHeight + 2 * CRenderer::ySampleOffset;
 
     // Allocate the framebuffer for extra samples (checkpointed)
-    if (CRenderer::numExtraSamples > 0)
+    if (CRenderer::numExtraSamples > 0) {
         extraSampleMemory = (float *)ralloc(totalWidth * totalHeight * CRenderer::numExtraSamples * sizeof(float), CRenderer::globalMemory);
-    else
+    } else {
         extraSampleMemory = NULL;
-
+    }
     // Allocate the pixels (checkpointed)
     cExtraSample = extraSampleMemory;
     fb = (CPixel **)ralloc(totalHeight * sizeof(CPixel *), CRenderer::globalMemory);
@@ -89,7 +89,13 @@ CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apert
     numFragments = 0;
 
     // Initialize the occlusion culler
-    initCuller(max(totalWidth, totalHeight), &maxDepth);
+    int cullerSize;
+    if (totalHeight > totalWidth) {
+        cullerSize = totalHeight;
+    } else {
+        cullerSize = totalWidth;
+    }
+    initCuller(cullerSize, &maxDepth);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -137,8 +143,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
     bottom = top + sampleHeight;
 
     // Early-out if we have no data
-    if (!(CRenderer::flags & OPTIONS_FLAGS_DEEP_SHADOW_RENDERING) && nullBucket)
+    if (!(CRenderer::flags & OPTIONS_FLAGS_DEEP_SHADOW_RENDERING) && nullBucket) {
         return;
+    }
 
     assert(sampleWidth <= totalWidth);
     assert(sampleHeight <= totalHeight);
@@ -148,8 +155,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
     for (i = 0, pxi = CRenderer::pixelYsamples - CRenderer::ySampleOffset; i < sampleHeight; i++, pxi++) {
         CPixel *pixel = fb[i];
 
-        if (pxi >= CRenderer::pixelYsamples)
+        if (pxi >= CRenderer::pixelYsamples) {
             pxi = 0;
+        }
 
         for (j = 0, pxj = CRenderer::pixelXsamples - CRenderer::xSampleOffset; j < sampleWidth; j++, pxj++, pixel++) {
             float aperture[2];
@@ -159,8 +167,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
             pixel->jy = (CRenderer::jitter * (urand() - 0.5f) + 0.5001017f);
 
             // Time of the sample for motion blur
-            if (pxj >= CRenderer::pixelXsamples)
+            if (pxj >= CRenderer::pixelXsamples) {
                 pxj = 0;
+            }
             pixel->jt = (pxi * CRenderer::pixelXsamples + pxj + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
             // Importance blend / jitter
@@ -173,8 +182,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
                     apertureGenerator.get(aperture);
                     aperture[0] = 2.0f * aperture[0] - 1.0f;
                     aperture[1] = 2.0f * aperture[1] - 1.0f;
-                    if ((aperture[0] * aperture[0] + aperture[1] * aperture[1]) < 1.0f)
+                    if ((aperture[0] * aperture[0] + aperture[1] * aperture[1]) < 1.0f) {
                         break;
+                    }
                 }
 
                 pixel->jdx = aperture[0];
@@ -201,8 +211,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
             cFragment->next = NULL;
             cFragment->prev = &pixel->first;
             // The last sample's extra samples are genuine AOV data
-            if (CRenderer::numExtraSamples > 0)
+            if (CRenderer::numExtraSamples > 0) {
                 memcpy(cFragment->extraSamples, CRenderer::sampleDefaults, sizeof(float) * CRenderer::numExtraSamples);
+            }
             initv(cFragment->accumulatedOpacity, 0);
 
             cFragment = &pixel->first;
@@ -228,12 +239,11 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
 // Description			:	Draw bunch of primitives
 // Return Value			:	-
 // Comments				:
-void CStochastic::rasterDrawPrimitives(CRasterGrid *grid){
-
-// Instantiate the dispatch switch
-#define DEFINE_STOCHASTIC_SWITCH
-#include "stochasticPrimitives.h"
-#undef DEFINE_STOCHASTIC_SWITCH
+void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
+    // Instantiate the dispatch switch
+    #define DEFINE_STOCHASTIC_SWITCH
+    #include "stochasticPrimitives.h"
+    #undef DEFINE_STOCHASTIC_SWITCH
 }
 
 // The following macros help various fragment operations
@@ -244,7 +254,9 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid){
 #define depthFilterIfZMid() pixel->zold = pixel->z;
 #define depthFilterElseZMid()              \
     else {                                 \
-        pixel->zold = min(pixel->zold, z); \
+        if (z < pixel->zold) {             \
+            pixel->zold = z;               \
+        }                                  \
     }
 #define depthFilterTouchNodeZMid() touchNode(pixel->node, pixel->zold);
 
@@ -311,8 +323,9 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid){
             printf("opac %.6f %.6f %.6f\tropac %.6f %.6f %.6f", ds->opacity[0], ds->opacity[1], ds->opacity[2], \
                    ds->accumulatedOpacity[0], ds->accumulatedOpacity[1], ds->accumulatedOpacity[2]);            \
             if (ds == nSample) {                                                                                \
-                if (ds == &pixel->last)                                                                         \
+                if (ds == &pixel->last) {                                                                       \
                     printf("*");                                                                                \
+                }                                                                                               \
                 printf("*\n");                                                                                  \
             } else {                                                                                            \
                 printf("\n");                                                                                   \
@@ -590,7 +603,9 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
                 // otherwise we'd be in the first case)
                 Z2[0] = Z[0];
             }
-            Z2[0] = max(Z2[0], cPixel->zold);
+            if (cPixel->zold > Z2[0]) {
+                Z2[0] = cPixel->zold;
+            }
         }
 
 #undef NonCompositeSampleLoop
@@ -783,7 +798,9 @@ case DEPTH_MIN:
             cPixel = cPixelLine;
             for (i = 0; i < xres; i++) {
                 for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    cPixel[4] = min(cPixel[4], cSample[1]);
+                    if (cSample[1] < cPixel[4]) {
+                        cPixel[4] = cSample[1];
+                    }
                 }
                 cPixel += CRenderer::numSamples;
             }
@@ -811,7 +828,9 @@ case DEPTH_MAX:
             cPixel = cPixelLine;
             for (i = 0; i < xres; i++) {
                 for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    cPixel[4] = max(cPixel[4], cSample[1]);
+                    if (cSample[1] > cPixel[4]) {
+                        cPixel[4] = cSample[1];
+                    }
                 }
                 cPixel += CRenderer::numSamples;
             }
@@ -1026,13 +1045,25 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
         float cgSlopeMin = (opacity[1] - data.origin[2] - data.tsmThreshold) * denom;
         float cbSlopeMin = (opacity[2] - data.origin[3] - data.tsmThreshold) * denom;
 
-        crSlopeMax = min(crSlopeMax, data.rSlopeMax);
-        cgSlopeMax = min(cgSlopeMax, data.gSlopeMax);
-        cbSlopeMax = min(cbSlopeMax, data.bSlopeMax);
+        if (data.rSlopeMax < crSlopeMax) {
+            crSlopeMax = data.rSlopeMax;
+        }
+        if (data.gSlopeMax < cgSlopeMax) {
+            cgSlopeMax = data.gSlopeMax;
+        }
+        if (data.bSlopeMax < cbSlopeMax) {
+            cbSlopeMax = data.bSlopeMax;
+        }
 
-        crSlopeMin = max(crSlopeMin, data.rSlopeMin);
-        cgSlopeMin = max(cgSlopeMin, data.gSlopeMin);
-        cbSlopeMin = max(cbSlopeMin, data.bSlopeMin);
+        if (data.rSlopeMin > crSlopeMin) {
+            crSlopeMin = data.rSlopeMin;
+        }
+        if (data.gSlopeMin > cgSlopeMin) {
+            cgSlopeMin = data.gSlopeMin;
+        }
+        if (data.bSlopeMin > cbSlopeMin) {
+            cbSlopeMin = data.bSlopeMin;
+        }
 
         if ((crSlopeMin < crSlopeMax) && (cgSlopeMin < cgSlopeMax) && (cbSlopeMin < cbSlopeMax)) {
             // We're in range

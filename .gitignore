@@ -1,5 +1,7 @@
+# CMake build and install directories
 build
 build-test
+openrender
 
 # CMake generated files
 CMakeFiles/

@@ -259,8 +259,22 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
         for (int i = 0; i < numVertices; ++i) {
             const double cu = u[i] * (nu - 1.0);
             const double cv = v[i] * (nv - 1.0);
-            const int x = (int)floor(min(cu, (nu - 2)));
-            const int y = (int)floor(min(cv, (nv - 2)));
+            double clampedCu;
+            double nuMinus2 = nu - 2;
+            if (nuMinus2 < cu) {
+                clampedCu = nuMinus2;
+            } else {
+                clampedCu = cu;
+            }
+            const int x = (int)floor(clampedCu);
+            double clampedCv;
+            double nvMinus2 = nv - 2;
+            if (nvMinus2 < cv) {
+                clampedCv = nvMinus2;
+            } else {
+                clampedCv = cv;
+            }
+            const int y = (int)floor(clampedCv);
             const float *d0 = vertexData + ((y + 1) * (nu + 2) + x + 1) * vertexSize;
             const float *d1 = vertexData + ((y + 1) * (nu + 2) + x + 2) * vertexSize;
             const float *d2 = vertexData + ((y + 2) * (nu + 2) + x + 1) * vertexSize;
@@ -327,8 +341,22 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
             for (int i = 0; i < numVertices; ++i, dest += 3) {
                 const float cu = u[i] * (nu - 1.0f);
                 const float cv = v[i] * (nv - 1.0f);
-                const int x = (int)floor(min(cu, (nu - 2)));
-                const int y = (int)floor(min(cv, (nv - 2)));
+                float clampedCu;
+                float nuMinus2f = (nu - 2);
+                if (nuMinus2f < cu) {
+                    clampedCu = nuMinus2f;
+                } else {
+                    clampedCu = cu;
+                }
+                const int x = (int)floor(clampedCu);
+                float clampedCv;
+                float nvMinus2f = (nv - 2);
+                if (nvMinus2f < cv) {
+                    clampedCv = nvMinus2f;
+                } else {
+                    clampedCv = cv;
+                }
+                const int y = (int)floor(clampedCv);
                 const float *d0 = vertexData + ((y + 1) * (nu + 2) + x + 1) * vertexSize;
                 const float *d1 = vertexData + ((y + 1) * (nu + 2) + x + 2) * vertexSize;
                 const float *d2 = vertexData + ((y + 2) * (nu + 2) + x + 1) * vertexSize;

@@ -103,9 +103,21 @@ static float getDisp(const float *mat, float disp) {
     for (i = 0; i < 10; i++) {
         mulmp4(tmp2, mat, tmp);
 
-        alpha = max(absf(tmp2[0]), absf(tmp2[1]));
-        alpha = max(alpha, absf(tmp2[2]));
-        alpha = max(alpha, absf(tmp2[3]));
+        float abs0 = absf(tmp2[0]);
+        float abs1 = absf(tmp2[1]);
+        if (abs1 > abs0) {
+            alpha = abs1;
+        } else {
+            alpha = abs0;
+        }
+        float abs2 = absf(tmp2[2]);
+        if (abs2 > alpha) {
+            alpha = abs2;
+        }
+        float abs3 = absf(tmp2[3]);
+        if (abs3 > alpha) {
+            alpha = abs3;
+        }
 
         tmp[0] = tmp2[0] / alpha;
         tmp[1] = tmp2[1] / alpha;
@@ -298,8 +310,12 @@ void CObject::makeBound(float *bmin, float *bmax) const {
 
     subvv(D, bmax, bmin);
     maxD = D[0];
-    maxD = max(D[1], maxD);
-    maxD = max(D[2], maxD);
+    if (D[1] > maxD) {
+        maxD = D[1];
+    }
+    if (D[2] > maxD) {
+        maxD = D[2];
+    }
     maxD *= attributes->bexpand;
 
     // Add the displacement amount of the surface
@@ -354,8 +370,12 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 total += sqrtf(dx * dx + dy * dy);
             }
             cP += 3;
-            uMax = max(uMax, total);
-            uMin = min(uMin, total);
+            if (total > uMax) {
+                uMax = total;
+            }
+            if (total < uMin) {
+                uMin = total;
+            }
         }
 
         // V stats
@@ -370,13 +390,22 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 total += sqrtf(dx * dx + dy * dy);
             }
 
-            vMax = max(vMax, total);
-            vMin = min(vMin, total);
+            if (total > vMax) {
+                vMax = total;
+            }
+            if (total < vMin) {
+                vMin = total;
+            }
         }
     } else { // non raster oriented
         vector tmp;
 
-        float maxDim = max(CRenderer::dPixeldx, CRenderer::dPixeldy);
+        float maxDim;
+        if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
+            maxDim = CRenderer::dPixeldy;
+        } else {
+            maxDim = CRenderer::dPixeldx;
+        }
         if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
                 float x, y;
@@ -405,8 +434,12 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 total += lengthv(tmp);
             }
             cP += 3;
-            uMax = max(uMax, total);
-            uMin = min(uMin, total);
+            if (total > uMax) {
+                uMax = total;
+            }
+            if (total < uMin) {
+                uMin = total;
+            }
         }
 
         // V stats
@@ -420,8 +453,12 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 total += lengthv(tmp);
             }
 
-            vMax = max(vMax, total);
-            vMin = min(vMin, total);
+            if (total > vMax) {
+                vMax = total;
+            }
+            if (total < vMin) {
+                vMin = total;
+            }
         }
     }
     float udivf, vdivf;
@@ -431,10 +468,18 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
     vdivf = vMax / shadingRate;
 
     // Clamp the division amount
-    udivf = max(1, udivf);
-    vdivf = max(1, vdivf);
-    udivf = min(10000, udivf);
-    vdivf = min(10000, vdivf);
+    if (1 > udivf) {
+        udivf = 1;
+    }
+    if (1 > vdivf) {
+        vdivf = 1;
+    }
+    if (10000 < udivf) {
+        udivf = 10000;
+    }
+    if (10000 < vdivf) {
+        vdivf = 10000;
+    }
 
     // Estimate the dicing amount
     if (attributes->flags & ATTRIBUTES_FLAGS_BINARY_DICE) {
@@ -536,7 +581,13 @@ void CSurface::intersect(CShadingContext *context, CRay *cRay) {
 void CSurface::dice(CShadingContext *rasterizer) {
 
     int minU, minV;
-    int minSplits = max(attributes->minSplits, getDicingStats(0, minU, minV));
+    int dicingStatsResult = getDicingStats(0, minU, minV);
+    int minSplits;
+    if (attributes->minSplits > dicingStatsResult) {
+        minSplits = attributes->minSplits;
+    } else {
+        minSplits = dicingStatsResult;
+    }
 
     CPatch *cSurface = new CPatch(attributes, xform, this, 0, 1, 0, 1, 0, minSplits);
     cSurface->attach();

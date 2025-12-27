@@ -339,8 +339,14 @@ void CRenderer::sendFile(int index, char *fileToSend, int start, int size) {
         // Transfer the file
         fseek(in, start, SEEK_SET);
         for (csize = size; csize > 0; csize -= NETWORK_BUFFER_LENGTH) {
-            fread(buffer, min(csize, NETWORK_BUFFER_LENGTH), sizeof(char), in);
-            rcSend(netServers[index], buffer, min(csize, NETWORK_BUFFER_LENGTH), FALSE);
+            int readSize_rn2;
+            if (NETWORK_BUFFER_LENGTH < csize) {
+                readSize_rn2 = NETWORK_BUFFER_LENGTH;
+            } else {
+                readSize_rn2 = csize;
+            }
+            fread(buffer, readSize_rn2, sizeof(char), in);
+            rcSend(netServers[index], buffer, readSize_rn2, FALSE);
         }
 
         fclose(in);
@@ -393,8 +399,14 @@ int CRenderer::getFile(FILE *file, const char *inName, int start, int size) {
 
         // Write down the file
         for (csize = tsize; csize > 0; csize -= NETWORK_BUFFER_LENGTH) {
-            rcRecv(netClient, buf, min(NETWORK_BUFFER_LENGTH, csize), FALSE);
-            fwrite(buf, min(NETWORK_BUFFER_LENGTH, csize), sizeof(char), file);
+            int recvSize;
+            if (NETWORK_BUFFER_LENGTH < csize) {
+                recvSize = NETWORK_BUFFER_LENGTH;
+            } else {
+                recvSize = csize;
+            }
+            rcRecv(netClient, buf, recvSize, FALSE);
+            fwrite(buf, recvSize, sizeof(char), file);
         }
 
         r = tsize;

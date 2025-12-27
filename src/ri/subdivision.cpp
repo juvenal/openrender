@@ -221,7 +221,15 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
             if ((cu == 0) && (cv == 0)) {
                 n = /*10*/ 24;
             } else {
-                n = (int)floor(min(-log(cu), -log(cv)) / log(2.0)) + 1;
+                float logCu = -log(cu);
+                float logCv = -log(cv);
+                float minLog;
+                if (logCv < logCu) {
+                    minLog = logCv;
+                } else {
+                    minLog = logCu;
+                }
+                n = (int)floor(minLog / log(2.0)) + 1;
                 if (n <= 0)
                     n = 1; // Need at least one subdivision
             }

@@ -775,7 +775,11 @@ void CRendererContext::RiClipping(float hither, float yon) {
     }
 
     options = getOptions(TRUE);
-    options->clipMin = max(hither, C_EPSILON);
+    if (C_EPSILON > hither) {
+        options->clipMin = C_EPSILON;
+    } else {
+        options->clipMin = hither;
+    }
     options->clipMax = yon;
     options->flags |= OPTIONS_FLAGS_CUSTOM_CLIPPING;
 }
@@ -2913,7 +2917,9 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 }
 
                                                                 for (i = 0; i < nvertices; i++) {
-                                                                    mvertex = max(mvertex, verts[i]);
+                                                                    if (verts[i] > mvertex) {
+                                                                        mvertex = verts[i];
+                                                                    }
                                                                 }
 
                                                                 pl = parseParameterList(npolys, mvertex + 1, 0, nvertices, n, tokens, params, RI_P, PL_VARYING_TO_VERTEX, attributes);
@@ -2991,7 +2997,9 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 }
 
                                                                 for (i = 0; i < sverts; i++) {
-                                                                    numVertices = max(numVertices, verts[i]);
+                                                                    if (verts[i] > numVertices) {
+                                                                        numVertices = verts[i];
+                                                                    }
                                                                 }
 
                                                                 pl = parseParameterList(npolys, numVertices + 1, 0, sverts, n, tokens, params, RI_P, PL_VARYING_TO_VERTEX, attributes);
@@ -3565,8 +3573,28 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                         ;
 
                                                                         tmp = absf(p0[0]);
-                                                                        p0[1] = min(max(p0[1], -tmp), tmp);
-                                                                        p0[2] = min(max(p0[2], -tmp), tmp);
+                                                                        float clampedP01;
+                                                                        if (p0[1] < -tmp) {
+                                                                            clampedP01 = -tmp;
+                                                                        } else {
+                                                                            clampedP01 = p0[1];
+                                                                        }
+                                                                        if (clampedP01 > tmp) {
+                                                                            p0[1] = tmp;
+                                                                        } else {
+                                                                            p0[1] = clampedP01;
+                                                                        }
+                                                                        float clampedP02;
+                                                                        if (p0[2] < -tmp) {
+                                                                            clampedP02 = -tmp;
+                                                                        } else {
+                                                                            clampedP02 = p0[2];
+                                                                        }
+                                                                        if (clampedP02 > tmp) {
+                                                                            p0[2] = tmp;
+                                                                        } else {
+                                                                            p0[2] = clampedP02;
+                                                                        }
                                                                         p0[1] = (float)asin(p0[1] / p0[0]);
                                                                         p0[2] = (float)asin(p0[2] / p0[0]);
 
@@ -3591,14 +3619,54 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                         ;
 
                                                                         tmp = absf(p0[0]);
-                                                                        p0[1] = min(max(p0[1], -tmp), tmp);
-                                                                        p0[2] = min(max(p0[2], -tmp), tmp);
+                                                                        float clampedP01;
+                                                                        if (p0[1] < -tmp) {
+                                                                            clampedP01 = -tmp;
+                                                                        } else {
+                                                                            clampedP01 = p0[1];
+                                                                        }
+                                                                        if (clampedP01 > tmp) {
+                                                                            p0[1] = tmp;
+                                                                        } else {
+                                                                            p0[1] = clampedP01;
+                                                                        }
+                                                                        float clampedP02;
+                                                                        if (p0[2] < -tmp) {
+                                                                            clampedP02 = -tmp;
+                                                                        } else {
+                                                                            clampedP02 = p0[2];
+                                                                        }
+                                                                        if (clampedP02 > tmp) {
+                                                                            p0[2] = tmp;
+                                                                        } else {
+                                                                            p0[2] = clampedP02;
+                                                                        }
                                                                         p0[1] = (float)asin(p0[1] / p0[0]);
                                                                         p0[2] = (float)asin(p0[2] / p0[0]);
 
                                                                         tmp = absf(p0[1]);
-                                                                        p1[1] = min(max(p1[1], -tmp), tmp);
-                                                                        p1[2] = min(max(p1[2], -tmp), tmp);
+                                                                        float clampedP11;
+                                                                        if (p1[1] < -tmp) {
+                                                                            clampedP11 = -tmp;
+                                                                        } else {
+                                                                            clampedP11 = p1[1];
+                                                                        }
+                                                                        if (clampedP11 > tmp) {
+                                                                            p1[1] = tmp;
+                                                                        } else {
+                                                                            p1[1] = clampedP11;
+                                                                        }
+                                                                        float clampedP12;
+                                                                        if (p1[2] < -tmp) {
+                                                                            clampedP12 = -tmp;
+                                                                        } else {
+                                                                            clampedP12 = p1[2];
+                                                                        }
+                                                                        if (clampedP12 > tmp) {
+                                                                            p1[2] = tmp;
+                                                                        } else {
+                                                                            p1[2] = clampedP12;
+                                                                        }
                                                                         p1[1] = (float)asin(p1[1] / p1[0]);
                                                                         p1[2] = (float)asin(p1[2] / p1[0]);
 

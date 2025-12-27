@@ -313,7 +313,9 @@ void CPointCloud::store(const float *C, const float *cP, const float *cN, float 
     for (int i = 0; i < dataSize; i++)
         data.push(C[i]);
 
-    maxdP = max(maxdP, dP);
+    if (dP > maxdP) {
+        maxdP = dP;
+    }
 
     osUnlock(mutex);
 }

@@ -59,14 +59,18 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
             const float *vertex = pl->data0 + pl->parameters[i].index;
 
             for (j = 0; j < np; j++) {
-                maxSize = max(maxSize, vertex[j]);
+                if (vertex[j] > maxSize) {
+                    maxSize = vertex[j];
+                }
             }
 
             if (pl->data1 != NULL) {
                 vertex = pl->data1 + pl->parameters[i].index;
 
                 for (j = 0; j < np; j++) {
-                    maxSize = max(maxSize, vertex[j]);
+                    if (vertex[j] > maxSize) {
+                    maxSize = vertex[j];
+                }
                 }
             }
 
@@ -74,12 +78,16 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
         } else if (cVar->entry == VARIABLE_CONSTANTWIDTH) {
             const float *vertex = pl->data0 + pl->parameters[i].index;
 
-            maxSize = max(maxSize, vertex[0]);
+            if (vertex[0] > maxSize) {
+                maxSize = vertex[0];
+            }
 
             if (pl->data1 != NULL) {
                 vertex = pl->data1 + pl->parameters[i].index;
 
-                maxSize = max(maxSize, vertex[0]);
+                if (vertex[0] > maxSize) {
+                maxSize = vertex[0];
+            }
             }
 
             break;
