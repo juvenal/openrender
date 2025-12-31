@@ -269,8 +269,18 @@ void CReyes::renderingLoop() {
 #define computeExtends                                                                                         \
     bucketPixelLeft = currentXBucket * CRenderer::bucketWidth;                                                 \
     bucketPixelTop = currentYBucket * CRenderer::bucketHeight;                                                 \
-    bucketPixelWidth = min(CRenderer::bucketWidth, CRenderer::xPixels - bucketPixelLeft);                      \
-    bucketPixelHeight = min(CRenderer::bucketHeight, CRenderer::yPixels - bucketPixelTop);                     \
+    int availableWidth = CRenderer::xPixels - bucketPixelLeft;                                                \
+    if (CRenderer::bucketWidth < availableWidth) {                                                            \
+        bucketPixelWidth = CRenderer::bucketWidth;                                                            \
+    } else {                                                                                                  \
+        bucketPixelWidth = availableWidth;                                                                    \
+    }                                                                                                         \
+    int availableHeight = CRenderer::yPixels - bucketPixelTop;                                                \
+    if (CRenderer::bucketHeight < availableHeight) {                                                          \
+        bucketPixelHeight = CRenderer::bucketHeight;                                                          \
+    } else {                                                                                                  \
+        bucketPixelHeight = availableHeight;                                                                  \
+    }                                                                                                         \
     tbucketLeft = bucketPixelLeft * CRenderer::pixelXsamples - CRenderer::xSampleOffset;                       \
     tbucketTop = bucketPixelTop * CRenderer::pixelYsamples - CRenderer::ySampleOffset;                         \
     tbucketRight = (bucketPixelLeft + bucketPixelWidth) * CRenderer::pixelXsamples - CRenderer::xSampleOffset; \
@@ -573,8 +583,18 @@ void CReyes::drawObject(CObject *object) {
     }
 
     // Clamp da bounding box
-    const float zmin = max(bmin[COMP_Z], CRenderer::clipMin);
-    const float zmax = min(bmax[COMP_Z], CRenderer::clipMax);
+    float zmin;
+    if (CRenderer::clipMin > bmin[COMP_Z]) {
+        zmin = CRenderer::clipMin;
+    } else {
+        zmin = bmin[COMP_Z];
+    }
+    float zmax;
+    if (CRenderer::clipMax < bmax[COMP_Z]) {
+        zmax = CRenderer::clipMax;
+    } else {
+        zmax = bmax[COMP_Z];
+    }
 
     assert(zmin <= zmax);
 
@@ -630,7 +650,14 @@ void CReyes::drawObject(CObject *object) {
 
     // Account for the depth of field
     if (CRenderer::aperture != 0) {
-        const float mcoc = max(cocScreen(zmin), cocScreen(zmax));
+        float coc1 = cocScreen(zmin);
+        float coc2 = cocScreen(zmax);
+        float mcoc;
+        if (coc2 > coc1) {
+            mcoc = coc2;
+        } else {
+            mcoc = coc1;
+        }
         xmin = xmin - mcoc;
         xmax = xmax + mcoc;
         ymin = ymin - mcoc;
@@ -665,10 +692,18 @@ void CReyes::drawObject(CObject *object) {
     if (ymax < CRenderer::sampleClipTop)
         return;
 
-    xmin = max(xmin, 0);
-    ymin = max(ymin, 0);
-    xmax = min(xmax, CRenderer::sampleClipRight);
-    ymax = min(ymax, CRenderer::sampleClipBottom);
+    if (0 > xmin) {
+        xmin = 0;
+    }
+    if (0 > ymin) {
+        ymin = 0;
+    }
+    if (CRenderer::sampleClipRight < xmax) {
+        xmax = CRenderer::sampleClipRight;
+    }
+    if (CRenderer::sampleClipBottom < ymax) {
+        ymax = CRenderer::sampleClipBottom;
+    }
 
     // Record the object
     CRasterObject *cObject = newObject(object);
@@ -1303,7 +1338,13 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         // Expand the bound by the maximum focal blur amount
         const float coc1 = cocSamples(zmin);
         const float coc2 = cocSamples(zmax);
-        const float mcoc = max(coc1, coc2);
+        float mcoc2;
+        if (coc2 > coc1) {
+            mcoc2 = coc2;
+        } else {
+            mcoc2 = coc1;
+        }
+        const float mcoc = mcoc2;
 
         xmin -= mcoc;
         xmax += mcoc;
@@ -1339,12 +1380,25 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             if (grid->flags & RASTER_MOVING) {
                 P += CRenderer::numExtraSamples + 10;
 
-                xbound[0] = min(xbound[0], P[0]);
-                xbound[1] = max(xbound[1], P[0]);
-                ybound[0] = min(ybound[0], P[1]);
-                ybound[1] = max(ybound[1], P[1]);
+                if (P[0] < xbound[0]) {
+                    xbound[0] = P[0];
+                }
+                if (P[0] > xbound[1]) {
+                    xbound[1] = P[0];
+                }
+                if (P[1] < ybound[0]) {
+                    ybound[0] = P[1];
+                }
+                if (P[1] > ybound[1]) {
+                    ybound[1] = P[1];
+                }
 
-                const float maxSize = max(sizes[0], sizes[1]);
+                float maxSize;
+                if (sizes[1] > sizes[0]) {
+                    maxSize = sizes[1];
+                } else {
+                    maxSize = sizes[0];
+                }
 
                 xbound[0] -= maxSize;
                 ybound[0] -= maxSize;
@@ -1485,7 +1539,24 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                     const float c2 = cVertex[9 + numVertexSamples];
                     const float c3 = cVertex[9 + numVertexSamples * (udiv + 1)];
                     const float c4 = cVertex[9 + numVertexSamples * (udiv + 2)];
-                    const float mcoc = max(max(max(c1, c2), c3), c4);
+                    float maxC1C2;
+                    if (c2 > c1) {
+                        maxC1C2 = c2;
+                    } else {
+                        maxC1C2 = c1;
+                    }
+                    float maxC1C2C3;
+                    if (c3 > maxC1C2) {
+                        maxC1C2C3 = c3;
+                    } else {
+                        maxC1C2C3 = maxC1C2;
+                    }
+                    float mcoc;
+                    if (c4 > maxC1C2C3) {
+                        mcoc = c4;
+                    } else {
+                        mcoc = maxC1C2C3;
+                    }
 
                     xbound[0] -= mcoc;
                     xbound[1] += mcoc;
@@ -1508,8 +1579,12 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         }
     }
 
-    xmin = max(xmin, 0);
-    ymin = max(ymin, 0);
+    if (0 > xmin) {
+        xmin = 0;
+    }
+    if (0 > ymin) {
+        ymin = 0;
+    }
 
     // Save the bound of the grid
     grid->xbound[0] = (int)floor(xmin);
@@ -1554,8 +1629,12 @@ void CReyes::insertObject(CRasterObject *object) {
     }
 
     // Guard
-    sx = max(0, sx);
-    sy = max(0, sy);
+    if (0 > sx) {
+        sx = 0;
+    }
+    if (0 > sy) {
+        sy = 0;
+    }
 
     int i;
     int refCount = 0;

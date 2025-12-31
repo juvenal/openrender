@@ -611,7 +611,13 @@ class CMemStack {
             while (stack->availableSize < size) {
 
                 if (stack->next == NULL) {
-                    CMemPage *cPage = memoryNewPage(max(pageSize, size));
+                    int pageSizeToUse;
+                    if (size > pageSize) {
+                        pageSizeToUse = size;
+                    } else {
+                        pageSizeToUse = pageSize;
+                    }
+                    CMemPage *cPage = memoryNewPage(pageSizeToUse);
                     cPage->prev = stack;
                     stack->next = cPage;
                 }

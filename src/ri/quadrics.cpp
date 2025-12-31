@@ -546,8 +546,18 @@ void CSphere::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) const
 // Comments				:
 void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, float vmax, float umax) {
     float maxRadius;
-    float vmi = min(vmin, vmax);
-    float vma = max(vmin, vmax);
+    float vmi;
+    if (vmax < vmin) {
+        vmi = vmax;
+    } else {
+        vmi = vmin;
+    }
+    float vma;
+    if (vmax > vmin) {
+        vma = vmax;
+    } else {
+        vma = vmin;
+    }
     float zmin;
     float zmax;
 
@@ -564,8 +574,20 @@ void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, 
         maxRadius = r;
     }
 
-    initv(bmin, -maxRadius, -maxRadius, min(zmin, zmax));
-    initv(bmax, maxRadius, maxRadius, max(zmin, zmax));
+    float minZ;
+    if (zmax < zmin) {
+        minZ = zmax;
+    } else {
+        minZ = zmin;
+    }
+    float maxZ;
+    if (zmax > zmin) {
+        maxZ = zmax;
+    } else {
+        maxZ = zmin;
+    }
+    initv(bmin, -maxRadius, -maxRadius, minZ);
+    initv(bmax, maxRadius, maxRadius, maxZ);
 }
 
 //////////////////////////////////////////// D I S K ///////////////////////////////////////////////////////
@@ -1339,8 +1361,20 @@ void CCone::computeObjectBound(float *bmin, float *bmax, float r, float height, 
 
     r = absf(r);
 
-    initv(bmin, -r, -r, min(height, 0));
-    initv(bmax, r, r, max(height, 0));
+    float minHeight;
+    if (0 < height) {
+        minHeight = 0;
+    } else {
+        minHeight = height;
+    }
+    float maxHeight;
+    if (0 > height) {
+        maxHeight = 0;
+    } else {
+        maxHeight = height;
+    }
+    initv(bmin, -r, -r, minHeight);
+    initv(bmax, r, r, maxHeight);
 }
 
 //////////////////////////////////////////// P A R A B O L O I D ///////////////////////////////////////////////////////
@@ -1768,8 +1802,20 @@ void CParaboloid::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) c
 void CParaboloid::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float umax) {
     r = absf(r);
 
-    initv(bmin, -r, -r, min(zmin, zmax));
-    initv(bmax, r, r, max(zmin, zmax));
+    float minZ2;
+    if (zmax < zmin) {
+        minZ2 = zmax;
+    } else {
+        minZ2 = zmin;
+    }
+    float maxZ2;
+    if (zmax > zmin) {
+        maxZ2 = zmax;
+    } else {
+        maxZ2 = zmin;
+    }
+    initv(bmin, -r, -r, minZ2);
+    initv(bmax, r, r, maxZ2);
 }
 
 //////////////////////////////////////////// C Y L I N D E R  ///////////////////////////////////////////////////////
@@ -2191,8 +2237,20 @@ void CCylinder::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) con
 void CCylinder::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float umax) {
     r = absf(r);
 
-    initv(bmin, -r, -r, min(zmin, zmax));
-    initv(bmax, r, r, max(zmin, zmax));
+    float minZ2;
+    if (zmax < zmin) {
+        minZ2 = zmax;
+    } else {
+        minZ2 = zmin;
+    }
+    float maxZ2;
+    if (zmax > zmin) {
+        maxZ2 = zmax;
+    } else {
+        maxZ2 = zmin;
+    }
+    initv(bmin, -r, -r, minZ2);
+    initv(bmax, r, r, maxZ2);
 }
 
 //////////////////////////////////////////// H Y P E R B O L O I D  ///////////////////////////////////////////////////////
@@ -2715,10 +2773,18 @@ void CHyperboloid::computeObjectBound(float *bmin, float *bmax, float *p1, float
     // FIXME: smaller bound is possible
     bmin[COMP_X] = -d;
     bmin[COMP_Y] = -d;
-    bmin[COMP_Z] = min(p1[COMP_Z], p2[COMP_Z]);
+    if (p2[COMP_Z] < p1[COMP_Z]) {
+        bmin[COMP_Z] = p2[COMP_Z];
+    } else {
+        bmin[COMP_Z] = p1[COMP_Z];
+    }
     bmax[COMP_X] = +d;
     bmax[COMP_Y] = +d;
-    bmax[COMP_Z] = max(p1[COMP_Z], p2[COMP_Z]);
+    if (p2[COMP_Z] > p1[COMP_Z]) {
+        bmax[COMP_Z] = p2[COMP_Z];
+    } else {
+        bmax[COMP_Z] = p1[COMP_Z];
+    }
 }
 
 //////////////////////////////////////////// T O R O I D  ///////////////////////////////////////////////////////

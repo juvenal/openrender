@@ -103,7 +103,9 @@ T pnoise(T x, int px, const unsigned char *perm) {
     T fx0, fx1;
     T s, n0, n1;
 
-    px = max(px, 1);
+    if (1 > px) {
+        px = 1;
+    }
 
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
@@ -155,8 +157,12 @@ T pnoise(T x, T y, int px, int py, const unsigned char *perm) {
     T fx0, fy0, fx1, fy1;
     T s, t, nx0, nx1, n0, n1;
 
-    px = max(px, 1);
-    py = max(py, 1);
+    if (1 > px) {
+        px = 1;
+    }
+    if (1 > py) {
+        py = 1;
+    }
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -240,9 +246,15 @@ T pnoise(T x, T y, T z, int px, int py, int pz, const unsigned char *perm) {
     T s, t, r;
     T nxy0, nxy1, nx0, nx1, n0, n1;
 
-    px = max(px, 1);
-    py = max(py, 1);
-    pz = max(pz, 1);
+    if (1 > px) {
+        px = 1;
+    }
+    if (1 > py) {
+        py = 1;
+    }
+    if (1 > pz) {
+        pz = 1;
+    }
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -374,10 +386,18 @@ T pnoise(T x, T y, T z, float w, int px, int py, int pz, int pw, const unsigned 
     T s, t, r, q;
     T nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
-    px = max(px, 1);
-    py = max(py, 1);
-    pz = max(pz, 1);
-    pw = max(pw, 1);
+    if (1 > px) {
+        px = 1;
+    }
+    if (1 > py) {
+        py = 1;
+    }
+    if (1 > pz) {
+        pz = 1;
+    }
+    if (1 > pw) {
+        pw = 1;
+    }
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);

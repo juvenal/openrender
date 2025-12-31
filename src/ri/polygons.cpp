@@ -1272,7 +1272,9 @@ CPolygonMesh::CPolygonMesh(CAttributes *a, CXform *x, CPl *pl, int npoly, int *n
     memcpy(this->vertices, vertices, nverts * sizeof(int));
 
     for (i = 0, mVertex = -1; i < nverts; i++) {
-        mVertex = max(mVertex, vertices[i]);
+        if (vertices[i] > mVertex) {
+            mVertex = vertices[i];
+        }
     }
     mVertex++;
 
@@ -1646,15 +1648,32 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
             normalizev(normal);
 
             // Find the minor and major axices of the normal ?
-            if (fabs(normal[COMP_X]) >= max(fabs(normal[COMP_Y]), fabs(normal[COMP_Z]))) {
+            float absY = fabs(normal[COMP_Y]);
+            float absZ = fabs(normal[COMP_Z]);
+            float maxAbsYZ;
+            if (absZ > absY) {
+                maxAbsYZ = absZ;
+            } else {
+                maxAbsYZ = absY;
+            }
+            if (fabs(normal[COMP_X]) >= maxAbsYZ) {
                 majorAxis = COMP_Y;
                 minorAxis = COMP_Z;
-            } else if (fabs(normal[COMP_Y]) >= max(fabs(normal[COMP_X]), fabs(normal[COMP_Z]))) {
-                majorAxis = COMP_X;
-                minorAxis = COMP_Z;
             } else {
-                majorAxis = COMP_X;
-                minorAxis = COMP_Y;
+                float absX = fabs(normal[COMP_X]);
+                float maxAbsXZ;
+                if (absZ > absX) {
+                    maxAbsXZ = absZ;
+                } else {
+                    maxAbsXZ = absX;
+                }
+                if (fabs(normal[COMP_Y]) >= maxAbsXZ) {
+                    majorAxis = COMP_X;
+                    minorAxis = COMP_Z;
+                } else {
+                    majorAxis = COMP_X;
+                    minorAxis = COMP_Y;
+                }
             }
 
             break;

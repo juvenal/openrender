@@ -50,7 +50,14 @@ class CSphere : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = minDivV = max(3 - depth, 1);
+            int depthValue = 3 - depth;
+            int clampedDepth;
+            if (1 > depthValue) {
+                clampedDepth = 1;
+            } else {
+                clampedDepth = depthValue;
+            }
+            minDivU = minDivV = clampedDepth;
             return 0;
         }
 
@@ -105,7 +112,12 @@ class CCone : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = max(3 - depth, 1);
+            int depthValue2 = 3 - depth;
+            if (1 > depthValue2) {
+                minDivU = 1;
+            } else {
+                minDivU = depthValue2;
+            }
             minDivV = 1;
             return 0;
         }
@@ -136,7 +148,14 @@ class CParaboloid : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = minDivV = max(3 - depth, 1);
+            int depthValue = 3 - depth;
+            int clampedDepth;
+            if (1 > depthValue) {
+                clampedDepth = 1;
+            } else {
+                clampedDepth = depthValue;
+            }
+            minDivU = minDivV = clampedDepth;
             return 0;
         }
 
@@ -166,7 +185,12 @@ class CCylinder : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = max(3 - depth, 1);
+            int depthValue2 = 3 - depth;
+            if (1 > depthValue2) {
+                minDivU = 1;
+            } else {
+                minDivU = depthValue2;
+            }
             minDivV = 1;
             return 0;
         }
@@ -197,7 +221,14 @@ class CHyperboloid : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = minDivV = max(3 - depth, 1);
+            int depthValue = 3 - depth;
+            int clampedDepth;
+            if (1 > depthValue) {
+                clampedDepth = 1;
+            } else {
+                clampedDepth = depthValue;
+            }
+            minDivU = minDivV = clampedDepth;
             return 0;
         }
 
@@ -228,7 +259,14 @@ class CToroid : public CSurface {
         void instantiate(CAttributes *, CXform *, CRendererContext *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = minDivV = max(3 - depth, 1);
+            int depthValue = 3 - depth;
+            int clampedDepth;
+            if (1 > depthValue) {
+                clampedDepth = 1;
+            } else {
+                clampedDepth = depthValue;
+            }
+            minDivU = minDivV = clampedDepth;
             return 2;
         }
 

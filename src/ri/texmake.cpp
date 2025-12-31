@@ -380,7 +380,17 @@ void filterImage(int width, int height, int numSamples, int bitspersample, float
 
         for (k = 0; k < numSamples; k++) {
             float t = (pixel[k] / norm[0]); // avoid precision / quanitze issues
-            t = min(max(minVal, t), maxVal);
+            float clampedValue;
+            if (t < minVal) {
+                clampedValue = minVal;
+            } else {
+                clampedValue = t;
+            }
+            if (clampedValue > maxVal) {
+                t = maxVal;
+            } else {
+                t = clampedValue;
+            }
             dest[k] = (T)(t);
 
             // dest[k]	=	(T) (pixel[k] / norm[0]);
@@ -492,7 +502,17 @@ void filterScaleImage(int width, int height, int targetWidth, int targetHeight, 
         if (nrm > 0) {
             for (k = 0; k < numSamples; k++) {
                 float t = (pixel[k] / nrm); // avoid precision / quanitze issues
-                t = min(max(minVal, t), maxVal);
+                float clampedValue;
+                if (t < minVal) {
+                    clampedValue = minVal;
+                } else {
+                    clampedValue = t;
+                }
+                if (clampedValue > maxVal) {
+                    t = maxVal;
+                } else {
+                    t = clampedValue;
+                }
                 dest[k] = (T)(t);
             }
         } else {

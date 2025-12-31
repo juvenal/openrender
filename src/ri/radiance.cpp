@@ -237,7 +237,19 @@ class CTriangleHash : public CMap<CTriTon> {
                     // Check if the function we're approximating is smooth or not
                     if ((index < 10) || (index >= (SINTABLE_SIZE - 10))) {
                         // The function is not smooth in this range, compute it the brute force way
-                        const float alphat = (float)acos(max(min(alpha, 1), -1));
+                        float clampedAlpha;
+                        if (1 < alpha) {
+                            clampedAlpha = 1;
+                        } else {
+                            clampedAlpha = alpha;
+                        }
+                        float finalAlpha;
+                        if (-1 > clampedAlpha) {
+                            finalAlpha = -1;
+                        } else {
+                            finalAlpha = clampedAlpha;
+                        }
+                        const float alphat = (float)acos(finalAlpha);
                         vector R;
 
                         crossvv(R, c1, c0);
@@ -294,7 +306,9 @@ class CTriangleHash : public CMap<CTriTon> {
                 C[2] += formFactor * cTriangle->C[2];
                 C[3] += formFactor;
                 dist = sqrtf(dist);
-                dP = min(dP, dist);
+                if (dist < dP) {
+                    dP = dist;
+                }
             }
 
             C[4] = dP;
@@ -335,7 +349,22 @@ CRadianceCache::CRadianceCache(const char *name, unsigned int mode, const float 
         root = (CRadianceNode *)memory->alloc(sizeof(CRadianceNode));
         addvv(root->center, bmin, bmax);
         mulvf(root->center, (float)0.5);
-        root->side = max(max(bmax[0] - bmin[0], bmax[1] - bmin[1]), bmax[2] - bmin[2]);
+        float diff02 = bmax[0] - bmin[0];
+        float diff12 = bmax[1] - bmin[1];
+        float maxDiff02;
+        if (diff12 > diff02) {
+            maxDiff02 = diff12;
+        } else {
+            maxDiff02 = diff02;
+        }
+        float diff22 = bmax[2] - bmin[2];
+        float rootSide2;
+        if (diff22 > maxDiff02) {
+            rootSide2 = diff22;
+        } else {
+            rootSide2 = maxDiff02;
+        }
+        root->side = rootSide2;
         root->samples = NULL;
         for (i = 0; i < 8; i++)
             root->children[i] = NULL;
@@ -572,9 +601,17 @@ void CRadianceCache::finalize(const CGlobalIllumLookup *l) {
                             continue;
 
                         n = dotvv(cSample->N, cHarmonic->N);
-                        t = cHarmonic->dP * max(n, (float)0.01);
+                        float maxN;
+                        if ((float)0.01 > n) {
+                            maxN = (float)0.01;
+                        } else {
+                            maxN = n;
+                        }
+                        t = cHarmonic->dP * maxN;
                         w = (float)exp(-nominator * 3 / (t * t));
-                        w = max(w, C_EPSILON);
+                        if (C_EPSILON > w) {
+                            w = C_EPSILON;
+                        }
 
                         assert(w <= 1);
                         assert(w > 0);
@@ -614,7 +651,14 @@ void CRadianceCache::finalize(const CGlobalIllumLookup *l) {
                 }
 
                 cDep = hash->photons + cSample->depSample;
-                const float w = max((1 - cDep->C[3]), 0);
+                float wValue3 = 1 - cDep->C[3];
+                float w3;
+                if (0 > wValue3) {
+                    w3 = 0;
+                } else {
+                    w3 = wValue3;
+                }
+                const float w = w3;
                 cDep->C[0] = global[0] * w + cDep->C[0];
                 cDep->C[1] = global[1] * w + cDep->C[1];
                 cDep->C[2] = global[2] * w + cDep->C[2];
@@ -951,8 +995,14 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
             cSample = points[i];
 
             subvv(D, P, cSample->P);
-            dP = max(dP, dotvv(D, D));
-            dN = min(dN, dotvv(N, cSample->N));
+            float dotDD = dotvv(D, D);
+            if (dotDD > dP) {
+                dP = dotDD;
+            }
+            float dotNN = dotvv(N, cSample->N);
+            if (dotNN < dN) {
+                dN = dotNN;
+            }
         }
 
         dP = sqrtf(dP); // This is the radius of the cluster
@@ -1122,7 +1172,9 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
 
             cHarmonic->next = cNode->samples;
             cNode->samples = cHarmonic;
-            maxDepth = max(maxDepth, depth);
+            if (depth > maxDepth) {
+                maxDepth = depth;
+            }
 
 #ifdef DEBUG_PRINT
             if (FALSE) {

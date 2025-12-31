@@ -58,11 +58,13 @@ const float importance = grid->object->attributes->lodImportance;
 
 #define lodCheck()                            \
     if (importance >= 0) {                    \
-        if (pixel->jimp > importance)         \
+        if (pixel->jimp > importance) {       \
             continue;                         \
+        }                                      \
     } else {                                  \
-        if ((1 - pixel->jimp) >= -importance) \
+        if ((1 - pixel->jimp) >= -importance) { \
             continue;                         \
+        }                                      \
     }
 
 #else
@@ -367,20 +369,25 @@ const float importance = grid->object->attributes->lodImportance;
     const float ycent = pixel->ycent;                                                                                \
     float aleft, atop, aright, abottom;                                                                              \
                                                                                                                      \
-    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0)                          \
+    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                        \
         continue;                                                                                                    \
-    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0)                        \
+    }                                                                                                                \
+    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                      \
         continue;                                                                                                    \
-    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0)                       \
+    }                                                                                                                \
+    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {                     \
         continue;                                                                                                    \
-    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0)                         \
+    }                                                                                                                \
+    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                       \
         continue;                                                                                                    \
+    }                                                                                                                \
                                                                                                                      \
     const float u = aleft / (aleft + aright);                                                                        \
     const float v = atop / (atop + abottom);                                                                         \
     const float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v; \
-    if (z < CRenderer::clipMin)                                                                                      \
-        continue;
+    if (z < CRenderer::clipMin) {                                                                                    \
+        continue;                                                                                                    \
+    }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -401,13 +408,22 @@ int xmax = grid->xbound[1] - left;
 int ymin = grid->ybound[0] - top;
 int ymax = grid->ybound[1] - top;
 
-xmin = max(xmin, 0); // Clamp the bound in the current bucket
-ymin = max(ymin, 0);
-xmax = min(xmax, xres);
-ymax = min(ymax, yres);
+// Clamp the bound in the current bucket
+if (0 > xmin) {
+    xmin = 0;
+}
+if (0 > ymin) {
+    ymin = 0;
+}
+if (xres < xmax) {
+    xmax = xres;
+}
+if (yres < ymax) {
+    ymax = yres;
+}
 
 int x, y;
-for (y = ymin; y <= ymax; y++)
+for (y = ymin; y <= ymax; y++) {
     for (x = xmin; x <= xmax; x++) {
         CPixel *pixel = fb[y] + x;
         int i, j;
@@ -423,15 +439,19 @@ for (y = ymin; y <= ymax; y++)
         for (j = 0; j < vdiv; j++) {
             for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
 
-                if (x + left < bounds[0])
+                if (x + left < bounds[0]) {
                     continue;
-                if (x + left > bounds[1])
+                }
+                if (x + left > bounds[1]) {
                     continue;
-                if (y + top < bounds[2])
+                }
                     continue;
-                if (y + top > bounds[3])
+                if (y + top < bounds[2]) {
                     continue;
-
+                }
+                if (y + top > bounds[3]) {
+                    continue;
+                }   
                 lodCheck();
 
                 const float *v0 = vertices;
@@ -439,14 +459,14 @@ for (y = ymin; y <= ymax; y++)
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
 
-#ifdef STOCHASTIC_FOCAL_BLUR
+                #ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
                 const float v1d = v1[9];
                 const float v2d = v2[9];
                 const float v3d = v3[9];
-#endif
+                #endif
 
-#ifdef STOCHASTIC_MOVING
+                #ifdef STOCHASTIC_MOVING
                 vector v0movTmp;
                 vector v1movTmp;
                 vector v2movTmp;
@@ -459,9 +479,9 @@ for (y = ymin; y <= ymax; y++)
                 v1 = v1movTmp;
                 v2 = v2movTmp;
                 v3 = v3movTmp;
-#endif
+                #endif
 
-#ifdef STOCHASTIC_FOCAL_BLUR
+                #ifdef STOCHASTIC_FOCAL_BLUR
                 vector v0focTmp;
                 vector v1focTmp;
                 vector v2focTmp;
@@ -485,14 +505,14 @@ for (y = ymin; y <= ymax; y++)
                 v1 = v1focTmp;
                 v2 = v2focTmp;
                 v3 = v3focTmp;
-#endif
+                #endif
 
                 // Check the orientation of the quad
                 float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                if (fabsf(a) < C_EPSILON)
+                if (fabsf(a) < C_EPSILON) {
                     a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
+                }
                 if (a > 0) {
-
                     // Back face culling
                     if (!shouldDrawBack()) {
                         continue;
@@ -507,7 +527,6 @@ for (y = ymin; y <= ymax; y++)
 
                     drawPixelCheck();
                 } else {
-
                     // Back face culling
                     if (!shouldDrawFront()) {
                         continue;
@@ -526,6 +545,7 @@ for (y = ymin; y <= ymax; y++)
             vertices += numVertexSamples;
         }
     }
+}
 
 #else
 
@@ -545,15 +565,18 @@ for (j = 0; j < vdiv; j++) {
     for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
 
         // Trivial rejects
-        if (bounds[1] < left)
+        if (bounds[1] < left) {
             continue;
-        if (bounds[3] < top)
+        }
+        if (bounds[3] < top) {
             continue;
-        if (bounds[0] >= right)
+        }
+        if (bounds[0] >= right) {
             continue;
-        if (bounds[2] >= bottom)
+        }
+        if (bounds[2] >= bottom) {
             continue;
-
+        }
         // Extract the quad corners
         const float *v0 = vertices;
         const float *v1 = vertices + numVertexSamples;
@@ -565,33 +588,43 @@ for (j = 0; j < vdiv; j++) {
         int xmax = bounds[1] - left;
         int ymax = bounds[3] - top;
 
-        xmin = max(xmin, 0); // Clamp the bound in the current bucket
-        ymin = max(ymin, 0);
-        xmax = min(xmax, xres);
-        ymax = min(ymax, yres);
+        // Clamp the bound in the current bucket
+        if (0 > xmin) {
+            xmin = 0;
+        }
+        if (0 > ymin) {
+            ymin = 0;
+        }
+        if (xres < xmax) {
+            xmax = xres;
+        }
+        if (yres < ymax) {
+            ymax = yres;
+        }
 
         // Figure our if we have to do the slow rasterization
-#ifdef STOCHASTIC_FOCAL_BLUR
-#define SLOW_RASTER
-#endif
+        #ifdef STOCHASTIC_FOCAL_BLUR
+        #define SLOW_RASTER
+        #endif
 
-#ifdef STOCHASTIC_MOVING
-#ifndef SLOW_RASTER
-#define SLOW_RASTER
-#endif
-#endif
+        #ifdef STOCHASTIC_MOVING
+        #ifndef SLOW_RASTER
+        #define SLOW_RASTER
+        #endif
+        #endif
 
-// SLOW_RENDER means the quad has motion blur or depth of field
-// In such a case, we need to deform the quad individually for each
-// sample which makes the rasterization slower
-#ifndef SLOW_RASTER
+        // SLOW_RASTER means the quad has motion blur or depth of field
+        // In such a case, we need to deform the quad individually for each
+        // sample which makes the rasterization slower
+        #ifndef SLOW_RASTER
 
         // Do the fast rasterization
 
         // Check the orientation of the quad
         float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        if (fabsf(a) < C_EPSILON)
+        if (fabsf(a) < C_EPSILON) {
             a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
+        }
         if (a > 0) {
 
             // Back face culling
@@ -635,7 +668,7 @@ for (j = 0; j < vdiv; j++) {
             }
         }
 
-#else
+        #else
 
         // Do the slow rasterization
 
@@ -652,14 +685,14 @@ for (j = 0; j < vdiv; j++) {
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
 
-#ifdef STOCHASTIC_FOCAL_BLUR
+                #ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
                 const float v1d = v1[9];
                 const float v2d = v2[9];
                 const float v3d = v3[9];
-#endif
+                #endif
 
-#ifdef STOCHASTIC_MOVING
+                #ifdef STOCHASTIC_MOVING
                 vector v0movTmp;
                 vector v1movTmp;
                 vector v2movTmp;
@@ -672,9 +705,9 @@ for (j = 0; j < vdiv; j++) {
                 v1 = v1movTmp;
                 v2 = v2movTmp;
                 v3 = v3movTmp;
-#endif
+                #endif
 
-#ifdef STOCHASTIC_FOCAL_BLUR
+                #ifdef STOCHASTIC_FOCAL_BLUR
                 vector v0focTmp;
                 vector v1focTmp;
                 vector v2focTmp;
@@ -698,12 +731,13 @@ for (j = 0; j < vdiv; j++) {
                 v1 = v1focTmp;
                 v2 = v2focTmp;
                 v3 = v3focTmp;
-#endif
+                #endif
 
                 // Check the orientation of the quad
                 float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                if (fabsf(a) < C_EPSILON)
+                if (fabsf(a) < C_EPSILON) {
                     a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
+                }
                 if (a > 0) {
 
                     // Back face culling
@@ -738,7 +772,7 @@ for (j = 0; j < vdiv; j++) {
             }
         }
 
-#endif
+        #endif
     }
 
     vertices += numVertexSamples;

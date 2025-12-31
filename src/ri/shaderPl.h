@@ -30,6 +30,7 @@
 #include "common/global.h"
 #include "ri.h"
 #include "ri_config.h"
+#include <cstddef>
 
 // Forward declarations
 struct CShadingScratch;

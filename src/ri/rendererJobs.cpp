@@ -150,7 +150,14 @@ void CRenderer::dispatchPhoton(int thread, CJob &job) {
 
         // There are still photons to trace
         job.type = CJob::PHOTON_BUNDLE;
-        job.numPhotons = min(1000, numEmitPhotons - currentPhoton); // Shoot 1000 photons at a time
+        int photonsRemaining = numEmitPhotons - currentPhoton;
+        int numPhotons;
+        if (1000 < photonsRemaining) {
+            numPhotons = 1000;
+        } else {
+            numPhotons = photonsRemaining;
+        }
+        job.numPhotons = numPhotons; // Shoot 1000 photons at a time
         currentPhoton += job.numPhotons;
 
         if (CRenderer::flags & OPTIONS_FLAGS_PROGRESS) {
@@ -207,9 +214,21 @@ int CRenderer::advanceBucket(int index, int &x, int &y) {
         // Has the bucket been assigned before ?
         if (bucket(x, y) == -1) {
             int left = (x / netXBuckets) * netXBuckets;
-            int right = min((left + netXBuckets), xBuckets);
+            int rightLimit = left + netXBuckets;
+            int right;
+            if (xBuckets < rightLimit) {
+                right = xBuckets;
+            } else {
+                right = rightLimit;
+            }
             int top = (y / netYBuckets) * netYBuckets;
-            int bottom = min((top + netYBuckets), yBuckets);
+            int bottomLimit = top + netYBuckets;
+            int bottom;
+            if (yBuckets < bottomLimit) {
+                bottom = yBuckets;
+            } else {
+                bottom = bottomLimit;
+            }
             int i, j;
 
             // The bucket is not assigned ...

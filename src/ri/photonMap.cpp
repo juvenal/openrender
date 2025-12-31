@@ -108,7 +108,22 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
         root = new CPhotonNode;
         addvv(root->center, bmin, bmax);
         mulvf(root->center, 1 / (float)2);
-        root->side = max(max(bmax[0] - bmin[0], bmax[1] - bmin[1]), bmax[2] - bmin[2]);
+        float diff01 = bmax[0] - bmin[0];
+        float diff11 = bmax[1] - bmin[1];
+        float maxDiff01;
+        if (diff11 > diff01) {
+            maxDiff01 = diff11;
+        } else {
+            maxDiff01 = diff01;
+        }
+        float diff21 = bmax[2] - bmin[2];
+        float rootSide;
+        if (diff21 > maxDiff01) {
+            rootSide = diff21;
+        } else {
+            rootSide = maxDiff01;
+        }
+        root->side = rootSide;
         root->samples = NULL;
         for (int i = 0; i < 8; i++)
             root->children[i] = NULL;
@@ -355,7 +370,9 @@ void CPhotonMap::insert(const float *C, const float *P, const float *N, float dP
 
     cSample->next = cNode->samples;
     cNode->samples = cSample;
-    maxDepth = max(maxDepth, depth);
+    if (depth > maxDepth) {
+        maxDepth = depth;
+    }
 
     // unlock the mutex
     osUnlock(mutex);
@@ -507,7 +524,10 @@ void CPhotonMap::store(const float *P, const float *N, const float *I, const flo
     CPhoton *ton = CMap<CPhoton>::store(P, N);
     dirToItem(ton->theta, ton->phi, I);
     movvv(ton->C, C);
-    maxPower = max(maxPower, dotvv(C, C));
+    float dotCC = dotvv(C, C);
+    if (dotCC > maxPower) {
+        maxPower = dotCC;
+    }
     osUnlock(mutex);
 }
 
@@ -550,7 +570,18 @@ void CPhotonMap::draw() {
             j = chunkSize;
         }
 
-        float maxChannel = max(max(cT->C[0], cT->C[1]), cT->C[2]);
+        float maxC01;
+        if (cT->C[1] > cT->C[0]) {
+            maxC01 = cT->C[1];
+        } else {
+            maxC01 = cT->C[0];
+        }
+        float maxChannel;
+        if (cT->C[2] > maxC01) {
+            maxChannel = cT->C[2];
+        } else {
+            maxChannel = maxC01;
+        }
 
         movvv(cP, cT->P);
         mulvf(cC, cT->C, 1 / maxChannel);

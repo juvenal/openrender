@@ -48,7 +48,13 @@ const int SPLIT_UV = 3;
 // Return Value			:
 // Comments				:	(inline for speed, needed for CSurface::dice() )
 static inline float minCocPixels(float z1, float z2) {
-    return min(cocPixels(z1), cocPixels(z2));
+    float coc1 = cocPixels(z1);
+    float coc2 = cocPixels(z2);
+    if (coc2 < coc1) {
+        return coc2;
+    } else {
+        return coc1;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -295,8 +301,17 @@ void CPatch::dice(CShadingContext *r) {
                 return;
 
             // Expand the bound
-            maxBound = max(bmax[COMP_X] - bmin[COMP_X], bmax[COMP_Y] - bmin[COMP_Y]);
-            maxBound = max(bmax[COMP_Z] - bmin[COMP_Z], maxBound);
+            float xDiff = bmax[COMP_X] - bmin[COMP_X];
+            float yDiff = bmax[COMP_Y] - bmin[COMP_Y];
+            if (yDiff > xDiff) {
+                maxBound = yDiff;
+            } else {
+                maxBound = xDiff;
+            }
+            float zDiff = bmax[COMP_Z] - bmin[COMP_Z];
+            if (zDiff > maxBound) {
+                maxBound = zDiff;
+            }
             maxBound *= attributes->rasterExpand;
             if (maxBound == 0)
                 return;
@@ -325,7 +340,14 @@ void CPatch::dice(CShadingContext *r) {
                 // Correct shading rate with dof factor
                 if (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) {
                     const float coc = minCocPixels(bmin[COMP_Z], bmax[COMP_Z]);
-                    shadingRate *= max(1, 0.5f * coc);
+                    float maxRate;
+                    float cocRate = 0.5f * coc;
+                    if (1 > cocRate) {
+                        maxRate = 1;
+                    } else {
+                        maxRate = cocRate;
+                    }
+                    shadingRate *= maxRate;
                 }
 
                 // Optionally correct shading rate with motionfactor
@@ -366,8 +388,12 @@ void CPatch::dice(CShadingContext *r) {
             }
 
             // clamp to the surface dice stats
-            udiv = max(minDivU, udiv);
-            vdiv = max(minDivV, vdiv);
+            if (minDivU > udiv) {
+                udiv = minDivU;
+            }
+            if (minDivV > vdiv) {
+                vdiv = minDivV;
+            }
 
             // Check the size ... If we're too big, we should be split
             if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
@@ -1549,8 +1575,18 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                 // Expand bounds
                 bnds = bounds;
                 for (int i = 0; i < nb * nb; i++) {
-                    float maxBound = max(bnds[3 + COMP_X] - bnds[COMP_X], bnds[3 + COMP_Y] - bnds[COMP_Y]);
-                    maxBound = max(bnds[3 + COMP_Z] - bnds[COMP_Z], maxBound);
+                    float xDiff2 = bnds[3 + COMP_X] - bnds[COMP_X];
+                    float yDiff2 = bnds[3 + COMP_Y] - bnds[COMP_Y];
+                    float maxBound;
+                    if (yDiff2 > xDiff2) {
+                        maxBound = yDiff2;
+                    } else {
+                        maxBound = xDiff2;
+                    }
+                    float zDiff2 = bnds[3 + COMP_Z] - bnds[COMP_Z];
+                    if (zDiff2 > maxBound) {
+                        maxBound = zDiff2;
+                    }
                     maxBound *= boundExpander;
 
                     bnds[COMP_X] -= maxBound;
@@ -1669,8 +1705,18 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                 // Expand bounds
                 bnds = bounds;
                 for (int i = 0; i < nb * nb; i++) {
-                    float maxBound = max(bnds[3 + COMP_X] - bnds[COMP_X], bnds[3 + COMP_Y] - bnds[COMP_Y]);
-                    maxBound = max(bnds[3 + COMP_Z] - bnds[COMP_Z], maxBound);
+                    float xDiff2 = bnds[3 + COMP_X] - bnds[COMP_X];
+                    float yDiff2 = bnds[3 + COMP_Y] - bnds[COMP_Y];
+                    float maxBound;
+                    if (yDiff2 > xDiff2) {
+                        maxBound = yDiff2;
+                    } else {
+                        maxBound = xDiff2;
+                    }
+                    float zDiff2 = bnds[3 + COMP_Z] - bnds[COMP_Z];
+                    if (zDiff2 > maxBound) {
+                        maxBound = zDiff2;
+                    }
                     maxBound *= boundExpander;
 
                     bnds[COMP_X] -= maxBound;
@@ -1701,8 +1747,12 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
     float vAvg = 0;
     for (int i = 0; i <= div; i++) {
         const float l = measureLength(Pstorage + i * 3, (div + 1) * 3, div);
-        vMax = max(vMax, l);
-        vMin = min(vMin, l);
+        if (l > vMax) {
+            vMax = l;
+        }
+        if (l < vMin) {
+            vMin = l;
+        }
         vAvg += l;
     }
 
@@ -1711,8 +1761,12 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
     float uAvg = 0;
     for (int i = 0; i <= div; i++) {
         const float l = measureLength(Pstorage + i * (div + 1) * 3, 3, div);
-        uMax = max(uMax, l);
-        uMin = min(uMin, l);
+        if (l > uMax) {
+            uMax = l;
+        }
+        if (l < uMin) {
+            uMin = l;
+        }
         uAvg += l;
     }
 
@@ -1788,9 +1842,15 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
     // Simply save the coarse r estimate
     if (rdiv == 1) {
         // we sampled 2x2 because we have to, but we wanted 1x1
-        rmax = max(rmax, (uAvg + vAvg) / 4.0f);
+        float avgValue = (uAvg + vAvg) / 4.0f;
+        if (avgValue > rmax) {
+            rmax = avgValue;
+        }
     } else {
-        rmax = max(rmax, div * (uAvg + vAvg) / 2.0f);
+        float avgValue2 = div * (uAvg + vAvg) / 2.0f;
+        if (avgValue2 > rmax) {
+            rmax = avgValue2;
+        }
     }
 
     // Calculate a tighter bound
@@ -1820,8 +1880,18 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
     }
 
     // Expand the bound
-    float maxBound = max(bmax[COMP_X] - bmin[COMP_X], bmax[COMP_Y] - bmin[COMP_Y]);
-    maxBound = max(bmax[COMP_Z] - bmin[COMP_Z], maxBound);
+    float xDiff3 = bmax[COMP_X] - bmin[COMP_X];
+    float yDiff3 = bmax[COMP_Y] - bmin[COMP_Y];
+    float maxBound;
+    if (yDiff3 > xDiff3) {
+        maxBound = yDiff3;
+    } else {
+        maxBound = xDiff3;
+    }
+    float zDiff3 = bmax[COMP_Z] - bmin[COMP_Z];
+    if (zDiff3 > maxBound) {
+        maxBound = zDiff3;
+    }
     maxBound *= boundExpander;
 
     bmin[COMP_X] -= maxBound;

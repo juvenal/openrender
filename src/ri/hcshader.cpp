@@ -170,7 +170,11 @@ void CSphereLight::illuminate(CShadingContext *context, float **locals) {
                     const float sina = radius / len;
                     const float cosa = sqrtf(1 - sina * sina);
                     const float da = sina / (cosa + C_EPSILON);
-                    ray.da = min(DEFAULT_RAY_DA, da);
+                    if (da < DEFAULT_RAY_DA) {
+                        ray.da = da;
+                    } else {
+                        ray.da = DEFAULT_RAY_DA;
+                    }
                     ray.db = DEFAULT_RAY_DB;
 
                     context->trace(&ray);
@@ -470,7 +474,11 @@ void CQuadLight::illuminate(CShadingContext *context, float **locals) {
                         const float sina = r / len;
                         const float cosa = sqrtf(1 - sina * sina);
                         const float da = sina / (cosa + C_EPSILON);
-                        ray.da = min(DEFAULT_RAY_DA, da);
+                        if (da < DEFAULT_RAY_DA) {
+                        ray.da = da;
+                    } else {
+                        ray.da = DEFAULT_RAY_DA;
+                    }
                         ray.db = DEFAULT_RAY_DB;
 
                         context->trace(&ray);

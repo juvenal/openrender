@@ -679,8 +679,50 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
 
                 value = osEnvironment(environmentVariable);
                 if (value != NULL) {
-                    strcpy(dest, value);
-                    dest += strlen(value);
+                    // If the expanded value contains ':', we need to split it and add each part
+                    // as a separate path entry. Otherwise, just copy it to dest.
+                    const char *colonPos = strchr(value, ':');
+                    if (colonPos != NULL) {
+                        // Value contains ':', split it into multiple paths
+                        const char *valueStart = value;
+                        while (*valueStart != '\0') {
+                            const char *valueEnd = strchr(valueStart, ':');
+                            if (valueEnd == NULL) {
+                                valueEnd = valueStart + strlen(valueStart);
+                            }
+
+                            if (valueEnd > valueStart) {
+                                // Create a path entry for this part
+                                char partPath[OS_MAX_PATH_LENGTH];
+                                int partLen = (int)(valueEnd - valueStart);
+                                strncpy(partPath, valueStart, partLen);
+                                partPath[partLen] = '\0';
+
+                                // Process this part as if it were in the original path string
+                                // (it may contain more %VAR% expansions, so we need to recurse)
+                                TSearchpath *partPathList = optionsGetSearchPath(partPath, NULL);
+
+                                // Append to the current path list
+                                if (partPathList != NULL) {
+                                    if (lastPath == NULL) {
+                                        lastPath = partPathList;
+                                        newPath = partPathList;
+                                    } else {
+                                        lastPath->next = partPathList;
+                                    }
+                                    // Find the new last path
+                                    while (lastPath->next != NULL) lastPath = lastPath->next;
+                                }
+                            }
+
+                            if (*valueEnd == '\0') break;
+                            valueStart = valueEnd + 1;
+                        }
+                    } else {
+                        // No ':' in value, just copy it directly
+                        strcpy(dest, value);
+                        dest += strlen(value);
+                    }
                     currentPath = endOfCurrentPath + 1;
                 } else {
                     // If this environment variable was not defined, scrap the entire
@@ -691,7 +733,6 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                     if (!currentPath)
                         currentPath = strchr(endOfCurrentPath, '\0'); // ...or end if last path
                 }
-
             } else {
                 currentPath++;
             }

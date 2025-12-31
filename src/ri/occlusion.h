@@ -71,8 +71,24 @@ class COcclusionCuller {
                     if (cNode->zmax == pNode->zmax) {
                         cNode->zmax = z;
 
-                        z = max(max(pNode->children[0]->zmax, pNode->children[1]->zmax),
-                                max(pNode->children[2]->zmax, pNode->children[3]->zmax));
+                        float maxZ01_h;
+                        if (pNode->children[1]->zmax > pNode->children[0]->zmax) {
+                            maxZ01_h = pNode->children[1]->zmax;
+                        } else {
+                            maxZ01_h = pNode->children[0]->zmax;
+                        }
+                        float maxZ23_h;
+                        if (pNode->children[3]->zmax > pNode->children[2]->zmax) {
+                            maxZ23_h = pNode->children[3]->zmax;
+                        } else {
+                            maxZ23_h = pNode->children[2]->zmax;
+                        }
+                        float z;
+                        if (maxZ23_h > maxZ01_h) {
+                            z = maxZ23_h;
+                        } else {
+                            z = maxZ01_h;
+                        }
 
                         if (z < pNode->zmax) {
                             cNode = pNode;

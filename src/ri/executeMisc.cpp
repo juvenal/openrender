@@ -757,7 +757,13 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
     for (int i = numRays; i > 0; --i, ++rays) {
         const int numSamples = rays->numSamples;
         const float coneAngle = rays->coneAngle;
-        const float tanConeAngle = min(fabsf(tanf(coneAngle)), 1.0f);
+        float tanValue = fabsf(tanf(coneAngle));
+        float tanConeAngle;
+        if (1.0f < tanValue) {
+            tanConeAngle = 1.0f;
+        } else {
+            tanConeAngle = tanValue;
+        }
         const float multiplier = 1 / (float)numSamples;
 
         // Compute the ray differentials
@@ -782,7 +788,13 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
             if (dotvv(cRay->dir, cRay->dir) > C_EPSILON) {
 
                 movvv(cRay->from, from);
-                cRay->t = min(rays->maxDist, d) - rays->bias;
+                float minDist;
+                if (d < rays->maxDist) {
+                    minDist = d;
+                } else {
+                    minDist = rays->maxDist;
+                }
+                cRay->t = minDist - rays->bias;
                 cRay->tmin = rays->bias;
                 if (sampleMotion)
                     cRay->time = (urand() + currentSample - 1) * multiplier;
@@ -879,7 +891,13 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     for (int i = numRays; i > 0; --i, ++rays) {
         const int numSamples = rays->numSamples;
         const float coneAngle = rays->coneAngle;
-        const float tanConeAngle = min(fabsf(tanf(coneAngle)), 1.0f);
+        float tanValue = fabsf(tanf(coneAngle));
+        float tanConeAngle;
+        if (1.0f < tanValue) {
+            tanConeAngle = 1.0f;
+        } else {
+            tanConeAngle = tanValue;
+        }
         const float multiplier = 1 / (float)numSamples;
 
         // Compute the ray differentials
@@ -1034,8 +1052,18 @@ float *CShadingContext::rayDiff(const float *from, const float *dir, const float
         for (j = 0; j < vVertices; j++) {
             for (i = 0; i < uVertices; i++) {
 
-                const int ii = min(i, uVertices - 2);
-                const int jj = min(j, vVertices - 2);
+                int ii;
+                if ((uVertices - 2) < i) {
+                    ii = uVertices - 2;
+                } else {
+                    ii = i;
+                }
+                int jj;
+                if ((vVertices - 2) < j) {
+                    jj = vVertices - 2;
+                } else {
+                    jj = j;
+                }
 
                 // The 4 corners of the current quad
                 const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;
@@ -1077,8 +1105,17 @@ float *CShadingContext::rayDiff(const float *from, const float *dir, const float
                 ab[0] *= 0.25f;
                 ab[1] *= 0.25f;
 
-                ab[0] = tanf(min(ab[0], ((float)C_PI) * 0.5f - C_EPSILON));
-                ab[0] = min(ab[0], DEFAULT_RAY_DA);
+                float clampedAb0;
+                float piHalf = ((float)C_PI) * 0.5f - C_EPSILON;
+                if (piHalf < ab[0]) {
+                    clampedAb0 = piHalf;
+                } else {
+                    clampedAb0 = ab[0];
+                }
+                ab[0] = tanf(clampedAb0);
+                if (DEFAULT_RAY_DA < ab[0]) {
+                    ab[0] = DEFAULT_RAY_DA;
+                }
 
                 // guard against bad differentials
 
@@ -1123,8 +1160,17 @@ float *CShadingContext::rayDiff(const float *from, const float *dir, const float
 
             ab[0] *= 0.5f;
             ab[1] *= 0.5f;
-            ab[0] = tanf(min(ab[0], ((float)C_PI) * 0.5f - C_EPSILON));
-            ab[0] = min(ab[0], DEFAULT_RAY_DA);
+            float clampedAb0_single;
+            float piHalf_single = ((float)C_PI) * 0.5f - C_EPSILON;
+            if (piHalf_single < ab[0]) {
+                clampedAb0_single = piHalf_single;
+            } else {
+                clampedAb0_single = ab[0];
+            }
+            ab[0] = tanf(clampedAb0_single);
+            if (DEFAULT_RAY_DA < ab[0]) {
+                ab[0] = DEFAULT_RAY_DA;
+            }
 
             // guard against bad differentials
 
@@ -1182,8 +1228,18 @@ float *CShadingContext::rayDiff(const float *from) {
         for (j = 0; j < vVertices; j++) {
             for (i = 0; i < uVertices; i++) {
 
-                const int ii = min(i, uVertices - 2);
-                const int jj = min(j, vVertices - 2);
+                int ii;
+                if ((uVertices - 2) < i) {
+                    ii = uVertices - 2;
+                } else {
+                    ii = i;
+                }
+                int jj;
+                if ((vVertices - 2) < j) {
+                    jj = vVertices - 2;
+                } else {
+                    jj = j;
+                }
 
                 // The 4 corners of the current quad
                 const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;

@@ -270,8 +270,12 @@ void CCurve::dice(CShadingContext *rasterizer) {
         estimateDicing(P, 1, 2, udiv, vdiv, attributes->shadingRate, attributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE);
 
         // Make sure we don't split along u
-        if (vdiv == 1)
-            udiv = min(udiv, (CRenderer::maxGridSize >> 1) - 1);
+        if (vdiv == 1) {
+            int maxUdiv = (CRenderer::maxGridSize >> 1) - 1;
+            if (maxUdiv < udiv) {
+                udiv = maxUdiv;
+            }
+        }
 
         // Can we render this sucker ?
         if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
@@ -706,14 +710,18 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
             sizeVariable = cVar;
 
             for (j = 0; j < np; j++) {
-                maxSize = max(maxSize, vertex[j]);
+                if (vertex[j] > maxSize) {
+                    maxSize = vertex[j];
+                }
             }
 
             if (pl->data1 != NULL) {
                 vertex = pl->data1 + pl->parameters[i].index;
 
                 for (j = 0; j < np; j++) {
-                    maxSize = max(maxSize, vertex[j]);
+                    if (vertex[j] > maxSize) {
+                    maxSize = vertex[j];
+                }
                 }
             }
 

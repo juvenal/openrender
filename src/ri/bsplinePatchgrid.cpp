@@ -199,8 +199,24 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
             interpolate = vertexData;
 
             for (int i = 0; i < numVertices; ++i) {
-                const int x = (int)floor(min(u[i] * upatches, (uVertices - 4)));
-                const int y = (int)floor(min(v[i] * vpatches, (vVertices - 4)));
+                double uValue = u[i] * upatches;
+                double uLimit = uVertices - 4;
+                double clampedU;
+                if (uLimit < uValue) {
+                    clampedU = uLimit;
+                } else {
+                    clampedU = uValue;
+                }
+                const int x = (int)floor(clampedU);
+                double vValue = v[i] * vpatches;
+                double vLimit = vVertices - 4;
+                double clampedV;
+                if (vLimit < vValue) {
+                    clampedV = vLimit;
+                } else {
+                    clampedV = vValue;
+                }
+                const int y = (int)floor(clampedV);
                 const float *vertex0 = vertex + (y * upatches + x) * vertexSize * 16;
                 const float *vertex1 = vertex0 + vertexSize * 16 * upatches * vpatches;
                 const float ctime = *time++;
@@ -224,8 +240,24 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
         // Interpolate the vertices
         for (int i = 0; i < numVertices; ++i) {
             double tmp1[4], tmp2[4];
-            const int x = (int)floor(min(u[i] * upatches, (uVertices - 4)));
-            const int y = (int)floor(min(v[i] * vpatches, (vVertices - 4)));
+            double uVal = u[i] * upatches;
+            double uLimit_bs = uVertices - 4;
+            double clampedU_bs;
+            if (uLimit_bs < uVal) {
+                clampedU_bs = uLimit_bs;
+            } else {
+                clampedU_bs = uVal;
+            }
+            const int x = (int)floor(clampedU_bs);
+            double vVal = v[i] * vpatches;
+            double vLimit_bs = vVertices - 4;
+            double clampedV_bs;
+            if (vLimit_bs < vVal) {
+                clampedV_bs = vLimit_bs;
+            } else {
+                clampedV_bs = vVal;
+            }
+            const int y = (int)floor(clampedV_bs);
             const double cu = (u[i] * upatches - x);
             const double cv = (v[i] * vpatches - y);
             const float *data = vertexData + (y * upatches + x) * vertexSampleStride;
@@ -283,8 +315,24 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
             // Interpolate the thing
             for (int i = 0; i < numVertices; ++i) {
                 double tmpStart[4], tmpEnd[4];
-                const int x = (int)floor(min(u[i] * upatches, (uVertices - 4)));
-                const int y = (int)floor(min(v[i] * vpatches, (vVertices - 4)));
+                double uValue = u[i] * upatches;
+                double uLimit = uVertices - 4;
+                double clampedU;
+                if (uLimit < uValue) {
+                    clampedU = uLimit;
+                } else {
+                    clampedU = uValue;
+                }
+                const int x = (int)floor(clampedU);
+                double vValue = v[i] * vpatches;
+                double vLimit = vVertices - 4;
+                double clampedV;
+                if (vLimit < vValue) {
+                    clampedV = vLimit;
+                } else {
+                    clampedV = vValue;
+                }
+                const int y = (int)floor(clampedV);
                 const double cu = (u[i] * upatches - x);
                 const double cv = (v[i] * vpatches - y);
                 const float *data = vertex + (y * upatches + x) * vertexSize * 16;

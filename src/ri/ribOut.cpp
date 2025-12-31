@@ -793,7 +793,9 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
 
                                                                 out("[");
                                                                 for (i = 0; i < nvertices; i++) {
-                                                                    mvertex = max(mvertex, verts[i]);
+                                                                    if (verts[i] > mvertex) {
+                                                                        mvertex = verts[i];
+                                                                    }
                                                                     out("%d ", verts[i]);
                                                                 }
                                                                 out("] ");
@@ -829,7 +831,10 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
 
                                                                 out("[");
                                                                 for (i = 0; i < sverts; i++) {
-                                                                    nvertices = max(nvertices, verts[i] + 1);
+                                                                    int newVertexCount = verts[i] + 1;
+                                                                    if (newVertexCount > nvertices) {
+                                                                        nvertices = newVertexCount;
+                                                                    }
                                                                     out("%d ", verts[i]);
                                                                 }
                                                                 out("] ");

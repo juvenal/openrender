@@ -80,8 +80,23 @@ void COcclusionCuller::resetHierarchy(COcclusionNode *cNode) {
         resetHierarchy(cNode->children[2]);
         resetHierarchy(cNode->children[3]);
 
-        cNode->zmax = max(max(cNode->children[0]->zmax, cNode->children[1]->zmax),
-                          max(cNode->children[2]->zmax, cNode->children[3]->zmax));
+        float maxZ01;
+        if (cNode->children[1]->zmax > cNode->children[0]->zmax) {
+            maxZ01 = cNode->children[1]->zmax;
+        } else {
+            maxZ01 = cNode->children[0]->zmax;
+        }
+        float maxZ23;
+        if (cNode->children[3]->zmax > cNode->children[2]->zmax) {
+            maxZ23 = cNode->children[3]->zmax;
+        } else {
+            maxZ23 = cNode->children[2]->zmax;
+        }
+        if (maxZ23 > maxZ01) {
+            cNode->zmax = maxZ23;
+        } else {
+            cNode->zmax = maxZ01;
+        }
     }
 }
 
@@ -170,8 +185,12 @@ int COcclusionCuller::probeRect(int *xbound, int *ybound, int bw, int bh, int bl
         ymax = ymax >> (depth - queryDepth);
 
         // Clamp the bound in the current bucket
-        xmin = max(xmin, 0);
-        ymin = max(ymin, 0);
+        if (0 > xmin) {
+            xmin = 0;
+        }
+        if (0 > ymin) {
+            ymin = 0;
+        }
 
         // Notes:
         //		This is correct but inefficient due to querying
@@ -184,8 +203,14 @@ int COcclusionCuller::probeRect(int *xbound, int *ybound, int bw, int bh, int bl
         // 			(bw*2+(1<<d))>>d , d = (depth-queryDepth)
         // 		is equivalent but probably slower
 
-        xmax = min(xmax, w - 1);
-        ymax = min(ymax, h - 1);
+        int wMinus1 = w - 1;
+        if (wMinus1 < xmax) {
+            xmax = wMinus1;
+        }
+        int hMinus1 = h - 1;
+        if (hMinus1 < ymax) {
+            ymax = hMinus1;
+        }
 
         // Something odd occurred, abort
         if (xmin > xmax)

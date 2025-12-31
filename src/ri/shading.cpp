@@ -747,8 +747,20 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 // sampling becomes grossly inaccurate, and in recursive raytracing, db
                 // grows unboundedly, causing inf and nan, and messing up filtering
                 // These are the 0-1 patch uvs, not the expanded range uvs, so this is OK.
-                const float dud = min(ku * dest * isqrtf(lengthu) + C_EPSILON, 1.0f);
-                const float dvd = min(kv * dest * isqrtf(lengthv) + C_EPSILON, 1.0f);
+                float computedDud = ku * dest * isqrtf(lengthu) + C_EPSILON;
+                float dud;
+                if (1.0f < computedDud) {
+                    dud = 1.0f;
+                } else {
+                    dud = computedDud;
+                }
+                float computedDvd = kv * dest * isqrtf(lengthv) + C_EPSILON;
+                float dvd;
+                if (1.0f < computedDvd) {
+                    dvd = 1.0f;
+                } else {
+                    dvd = computedDvd;
+                }
 
                 // Create one more shading point at (u + du,v)
                 u[j] = u[i] + dud;
@@ -807,7 +819,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
             // Project the grid vertices first
             // PS: The offset is not important, so do not compute it
-            const float maxdPixeldxy = max(CRenderer::dPixeldx, CRenderer::dPixeldy);
+            float maxdPixeldxy;
+            if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
+                maxdPixeldxy = CRenderer::dPixeldy;
+            } else {
+                maxdPixeldxy = CRenderer::dPixeldx;
+            }
             const float dPixeldx = (currentAttributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE) ? 1.0f : CRenderer::dPixeldx;
             const float dPixeldy = (currentAttributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE) ? 1.0f : CRenderer::dPixeldy;
             if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
@@ -888,8 +905,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                         if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
                             cSr = MAX_DIFFERENTIAL_DISCREPANCY;
                         d = cSr * (cU[1] - cU[0]);
-                        d = min(d, 1);
-                        d = max(d, C_EPSILON);
+                        if (1 < d) {
+                            d = 1;
+                        }
+                        if (C_EPSILON > d) {
+                            d = C_EPSILON;
+                        }
                         assert(d > 0);
                         assert(d <= 1);
                         cDU[0] = d;
@@ -917,8 +938,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                         if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
                             cSr = MAX_DIFFERENTIAL_DISCREPANCY;
                         d = cSr * (cV[uVertices] - cV[0]);
-                        d = max(d, C_EPSILON);
-                        d = min(d, 1);
+                        if (C_EPSILON > d) {
+                            d = C_EPSILON;
+                        }
+                        if (1 < d) {
+                            d = 1;
+                        }
                         assert(d > 0);
                         assert(d <= 1);
                         cDV[0] = d;
@@ -956,8 +981,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                         if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
                             cSr = MAX_DIFFERENTIAL_DISCREPANCY;
                         d = cSr * (cU[1] - cU[0]);
-                        d = min(d, 1);
-                        d = max(d, C_EPSILON);
+                        if (1 < d) {
+                            d = 1;
+                        }
+                        if (C_EPSILON > d) {
+                            d = C_EPSILON;
+                        }
                         assert(d > 0);
                         assert(d <= 1);
                         cDU[0] = d;
@@ -992,8 +1021,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                         if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
                             cSr = MAX_DIFFERENTIAL_DISCREPANCY;
                         d = cSr * (cV[uVertices] - cV[0]);
-                        d = max(d, C_EPSILON);
-                        d = min(d, 1);
+                        if (C_EPSILON > d) {
+                            d = C_EPSILON;
+                        }
+                        if (1 < d) {
+                            d = 1;
+                        }
                         assert(d > 0);
                         assert(d <= 1);
                         cDV[0] = d;

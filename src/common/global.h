@@ -22,9 +22,9 @@
 #define GLOBAL_H
 
 // The Pixie version
-#define VERSION_RELEASE 2
-#define VERSION_BETA 2
-#define VERSION_ALPHA 6
+#define VERSION_RELEASE 1
+#define VERSION_BETA 0
+#define VERSION_ALPHA 0
 
 // Some constant definitions
 
@@ -56,33 +56,6 @@
 #endif
 
 // Misc Options and Attributes constants
-#ifdef __cplusplus
-// C++: provide template functions that handle mixed types like the old macros
-#include <algorithm>
-
-template<typename T, typename U>
-inline auto min(T a, U b) -> decltype(a < b ? a : b) {
-    return a < b ? a : b;
-}
-
-template<typename T, typename U>
-inline auto max(T a, U b) -> decltype(a > b ? a : b) {
-    return a > b ? a : b;
-}
-
-#else
-// C code: provide macros
-#ifdef min
-#undef min
-#endif
-
-#ifdef max
-#undef max
-#endif
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#endif
 
 #ifdef radians
 #undef radians
@@ -107,8 +80,8 @@ typedef union {
 typedef union {
         long long integer;
         void *pointer;
-        char *string;
         double real;
+        char *string;
 } T64;
 
 // Some useful machinery for memory management

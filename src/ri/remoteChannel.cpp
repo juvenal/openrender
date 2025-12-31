@@ -614,7 +614,9 @@ int CRemoteICacheChannel::recvRemoteFrame(SOCKET s) {
 
             cSample->next = cNode->samples;
             cNode->samples = cSample;
-            cache->maxDepth = max(depth, cache->maxDepth);
+            if (depth > cache->maxDepth) {
+                cache->maxDepth = depth;
+            }
         }
 
         rcRecv(s, &numSamples, sizeof(int), FALSE);

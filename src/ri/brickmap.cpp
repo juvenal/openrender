@@ -70,8 +70,16 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax1 = P[0] + dP;
     tmin2 = x - d;
     tmax2 = x + d;
-    tmin = max(tmin1, tmin2);
-    tmax = min(tmax1, tmax2);
+    if (tmin2 > tmin1) {
+        tmin = tmin2;
+    } else {
+        tmin = tmin1;
+    }
+    if (tmax2 < tmax1) {
+        tmax = tmax2;
+    } else {
+        tmax = tmax1;
+    }
     if (tmax <= tmin)
         return 0;
     w = tmax - tmin;
@@ -81,8 +89,16 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax1 = P[1] + dP;
     tmin2 = y - d;
     tmax2 = y + d;
-    tmin = max(tmin1, tmin2);
-    tmax = min(tmax1, tmax2);
+    if (tmin2 > tmin1) {
+        tmin = tmin2;
+    } else {
+        tmin = tmin1;
+    }
+    if (tmax2 < tmax1) {
+        tmax = tmax2;
+    } else {
+        tmax = tmax1;
+    }
     if (tmax <= tmin)
         return 0;
     w *= tmax - tmin;
@@ -92,8 +108,16 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax1 = P[2] + dP;
     tmin2 = z - d;
     tmax2 = z + d;
-    tmin = max(tmin1, tmin2);
-    tmax = min(tmax1, tmax2);
+    if (tmin2 > tmin1) {
+        tmin = tmin2;
+    } else {
+        tmin = tmin1;
+    }
+    if (tmax2 < tmax1) {
+        tmax = tmax2;
+    } else {
+        tmax = tmax1;
+    }
     if (tmax <= tmin)
         return 0;
     w *= tmax - tmin;
@@ -244,8 +268,12 @@ CBrickMap::CBrickMap(const char *name, const float *bmi, const float *bma, const
     movvv(bmax, bma);
     subvv(bmax, bmin);
     side = bmax[0];
-    side = max(side, bmax[1]);
-    side = max(side, bmax[2]);
+    if (bmax[1] > side) {
+        side = bmax[1];
+    }
+    if (bmax[2] > side) {
+        side = bmax[2];
+    }
     invSide = 1 / side;
     addvf(bmax, bmin, side);
     addvv(center, bmin, bmax);
@@ -398,7 +426,17 @@ void CBrickMap::store(const float *data, const float *cP, const float *cN, float
     CBrickNode *cNode;
     vector P, N;
 
-    depth = min(max(depth, 0), maxDepth);
+    float clampedDepth_bm2;
+    if (0 > depth) {
+        clampedDepth_bm2 = 0;
+    } else {
+        clampedDepth_bm2 = depth;
+    }
+    if (maxDepth < clampedDepth_bm2) {
+        depth = maxDepth;
+    } else {
+        depth = clampedDepth_bm2;
+    }
 
     // First, transform the point to world coordinate system
     mulmp(P, to, cP);
@@ -1125,7 +1163,18 @@ void CBrickMap::draw() {
     float *cC = C;
     float *cN = N;
     float *cR = R;
-    int level = min(max(0, detailLevel), maxDepth);
+    int clampedLevel_bm;
+    if (0 > detailLevel) {
+        clampedLevel_bm = 0;
+    } else {
+        clampedLevel_bm = detailLevel;
+    }
+    int level;
+    if (maxDepth < clampedLevel_bm) {
+        level = maxDepth;
+    } else {
+        level = clampedLevel_bm;
+    }
     int nb = 1 << level;
     const float sqrt2 = sqrtf(0.5f);
     float cubePoints[] = {0, 0, 0,

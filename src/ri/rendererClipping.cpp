@@ -35,10 +35,34 @@
 // Comments				:
 void CRenderer::beginClipping() {
 
-    const float minX = min(pixelLeft, pixelRight); // The extend of the rendering window on the image
-    const float maxX = max(pixelLeft, pixelRight); // plane
-    const float minY = min(pixelTop, pixelBottom);
-    const float maxY = max(pixelTop, pixelBottom);
+    float minX;
+    if (pixelRight < pixelLeft) {
+        minX = pixelRight;
+    } else {
+        minX = pixelLeft;
+    } // The extend of the rendering window on the image
+    float maxX;
+    if (pixelRight > pixelLeft) {
+        maxX = pixelRight;
+    } else {
+        maxX = pixelLeft;
+    } // plane
+    float minY;
+    if (pixelBottom < pixelTop) {
+        minY = pixelBottom;
+    } else {
+        minY = pixelTop;
+    }
+    float maxY;
+    if (pixelBottom > pixelTop) {
+        maxY = pixelBottom;
+    } else {
+        maxY = pixelTop;
+    }
+    const float minX_const = minX;
+    const float maxX_const = maxX;
+    const float minY_const = minY;
+    const float maxY_const = maxY;
 
     // Compute the equations of the clipping planes
     // The visible points are:

@@ -103,8 +103,18 @@ class CNURBSPatch : public CSurface {
         void interpolate(int, float **, float ***) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
-            minDivU = max(uOrder - 1 - depth, 1);
-            minDivV = max(vOrder - 1 - depth, 1);
+            int uOrderValue = uOrder - 1 - depth;
+            if (1 > uOrderValue) {
+                minDivU = 1;
+            } else {
+                minDivU = uOrderValue;
+            }
+            int vOrderValue = vOrder - 1 - depth;
+            if (1 > vOrderValue) {
+                minDivV = 1;
+            } else {
+                minDivV = vOrderValue;
+            }
             return 0;
         }
 

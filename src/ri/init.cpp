@@ -190,9 +190,23 @@ void convertColorFrom(float *out, const float *in, ECoordinateSystem s) {
             tin[1] = 0;
             tin[2] = 0;
         } else {
-            tin[0] = max(in[0] * in[2] / in[1], 0);
+            float maxValue;
+            float multipliedValue = in[0] * in[2] / in[1];
+            if (0 > multipliedValue) {
+                maxValue = 0;
+            } else {
+                maxValue = multipliedValue;
+            }
+            tin[0] = maxValue;
             tin[1] = in[2];
-            tin[2] = max((1 - in[0] - in[1]) * in[2] / in[1], 0);
+            float maxValue2;
+            float multipliedValue2 = (1 - in[0] - in[1]) * in[2] / in[1];
+            if (0 > multipliedValue2) {
+                maxValue2 = 0;
+            } else {
+                maxValue2 = multipliedValue2;
+            }
+            tin[2] = maxValue2;
         }
 
         out[COMP_R] = (float)(3.24079 * tin[0] - 1.537150 * tin[1] - 0.498535 * tin[2]);
@@ -217,8 +231,24 @@ void convertColorTo(float *out, const float *in, ECoordinateSystem s) {
         movvv(out, in);
         break;
     case COLOR_HSL: {
-        float mi = min(in[0], min(in[1], in[2]));
-        float ma = max(in[0], max(in[1], in[2]));
+        float mi;
+        if (in[0] < in[1]) {
+            mi = in[0];
+        } else {
+            mi = in[1];
+        }
+        if (in[2] < mi) {
+            mi = in[2];
+        }
+        float ma;
+        if (in[0] > in[1]) {
+            ma = in[0];
+        } else {
+            ma = in[1];
+        }
+        if (in[2] > ma) {
+            ma = in[2];
+        }
 
         out[2] = (mi + ma) / 2;
         if (ma == mi) {
@@ -248,8 +278,24 @@ void convertColorTo(float *out, const float *in, ECoordinateSystem s) {
         }
     } break;
     case COLOR_HSV: {
-        float ma = max(in[0], max(in[1], in[2]));
-        float mi = min(in[0], min(in[1], in[2]));
+        float ma;
+        if (in[0] > in[1]) {
+            ma = in[0];
+        } else {
+            ma = in[1];
+        }
+        if (in[2] > ma) {
+            ma = in[2];
+        }
+        float mi;
+        if (in[0] < in[1]) {
+            mi = in[0];
+        } else {
+            mi = in[1];
+        }
+        if (in[2] < mi) {
+            mi = in[2];
+        }
 
         out[2] = ma;
         out[1] = (ma - mi) / ma;
