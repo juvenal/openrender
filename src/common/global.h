@@ -22,9 +22,9 @@
 #define GLOBAL_H
 
 // The Pixie version
-#define VERSION_RELEASE 2
-#define VERSION_BETA 2
-#define VERSION_ALPHA 6
+#define VERSION_RELEASE 1
+#define VERSION_BETA 0
+#define VERSION_ALPHA 0
 
 // Some constant definitions
 
