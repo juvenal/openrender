@@ -1,0 +1,60 @@
+#!version 2.2.6
+surface
+#!parameters:
+uniform	float	xmin
+uniform	float	ymin
+uniform	float	zmin
+uniform	float	xmax	=	1
+uniform	float	ymax	=	1
+uniform	float	zmax	=	1
+#!variables:
+uniform	vector	scale
+uniform	vector	zero
+varying	vector	objP
+varying	vector	cubeP
+varying	float	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+uniform	float	temporary_3
+uniform	float	temporary_4
+varying	vector	temporary_5
+varying	vector	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+#!Init:
+	negf              	xmin 1
+	negf              	ymin 1
+	negf              	zmin 1
+	return            
+#!Code:
+	feql              	temporary_3 xmax xmin
+	feql              	temporary_4 ymax ymin
+	or                	temporary_2 temporary_3 temporary_4
+	feql              	temporary_3 zmax zmin
+	or                	temporary_1 temporary_2 temporary_3
+	vufloat            temporary_0 temporary_1
+	if                	temporary_0 #!Label4
+	printf	("o=sffffff")  "bad bounding box %f %f %f %f %f %f in show_xyz()"  xmin  xmax  ymin  ymax  zmin  zmax 
+#!Label4:
+	else              	#!Label3
+	subff             	temporary_2 xmax xmin
+	divff             	temporary_1 1 temporary_2
+	subff             	temporary_3 ymax ymin
+	divff             	temporary_2 1 temporary_3
+	subff             	temporary_4 zmax zmin
+	divff             	temporary_3 1 temporary_4
+	vfromf            	scale temporary_1 temporary_2 temporary_3
+	vfromf            	zero xmin ymin zmin
+	transform	("p=Sp")  objP  "shader"  P 
+	vuvector           temporary_6 zero
+	subvv             	temporary_5 objP temporary_6
+	vuvector           temporary_6 scale
+	mulvv             	cubeP temporary_5 temporary_6
+	xcomp	("f=p")  temporary_7  cubeP 
+	ycomp	("f=p")  temporary_8  cubeP 
+	zcomp	("f=p")  temporary_9  cubeP 
+	vfromf            	Ci temporary_7 temporary_8 temporary_9
+#!Label3:
+	endif             
+	return            

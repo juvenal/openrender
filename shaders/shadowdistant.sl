@@ -1,24 +1,27 @@
-/*	Raytraced directional light source shader
+/**
+ * shadowdistant(): Raytraced directional light source shader
  *
- * 	Pixie is:
- * 	(c) Copyright 1999-2003 Okan Arikan. All rights reserved.
+ * openRender: RenderMan compliant renderer
  */
 
-light shadowdistant (   float intensity = 1;
-                     	color lightcolor = 1;
-                   	point from = point "shader" (0,0,0);
-                     	point to = point "shader" (0,0,1); 
-		     		string shadowname = "") {
-	vector dir = to - from;
+light
+shadowdistant (float intensity = 1;
+               color lightcolor = 1;
+               point from = point "shader" (0,0,0),
+                     to = point "shader" (0,0,1);
+            string shadowname = "") {
 
-	solar (dir, 0) {
-		color vis;
-		if (shadowname == "")
-			vis	=	color "rgb" (1,1,1);
-		else
-			vis	=	(1-shadow(shadowname,Ps));
+    vector dir = to - from;
 
-		Cl = vis*intensity * lightcolor;
+    solar (dir, 0) {
+        color vis;
+        if (shadowname == "") {
+            vis	= color "rgb" (1, 1, 1);
+        }
+ 		else {
+            vis = (1 - shadow(shadowname, Ps));
+        }
+
+        Cl = vis * intensity * lightcolor;
     }
 }
-

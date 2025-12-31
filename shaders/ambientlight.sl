@@ -1,11 +1,13 @@
-/*	ambient light source shader
+/**
+ * ambientlight(): light source shader
  *
- * 	Pixie is:
- * 	(c) Copyright 1999-2003 Okan Arikan. All rights reserved.
+ * openRender: RenderMan compliant renderer
  */
 
-light ambientlight (float intensity = 1;
-                    color lightcolor = 1;) {
+light
+ambientlight (float intensity = 1;
+              color lightcolor = 1) {
+
     Cl = intensity * lightcolor;
     L = 0;
 }

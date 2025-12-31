@@ -1,12 +1,15 @@
-/*	ambientindirect light source shader
+/**
+ * ambientindirect(): light source shader
  *
- * 	Pixie is:
- * 	(c) Copyright 1999-2003 Okan Arikan. All rights reserved.
+ * openRender: RenderMan compliant renderer
  */
 
-light ambientindirect (float numSamples=16,intensity=0.2) {
-	vector Nf = faceforward(normalize(N),I);
-   Cl = indirectdiffuse(P,Nf,numSamples);
-   L = 0;
+light
+ambientindirect (float numSamples = 16,
+                       intensity = 0.2) {
+
+    vector Nf = faceforward(normalize(N), I);
+    Cl = indirectdiffuse(P, Nf, numSamples);
+    L = 0;
 }
 

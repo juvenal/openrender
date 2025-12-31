@@ -1,11 +1,11 @@
-/*	constant surface shader
+/**
+ * constant(): surface shader
  *
- * 	Pixie is:
- * 	(c) Copyright 1999-2003 Okan Arikan. All rights reserved.
+ * openRender: RenderMan compliant renderer
  */
 
-surface constant() {
+surface
+constant() {
     Oi = Os;
     Ci = Oi * Cs;
 }
-

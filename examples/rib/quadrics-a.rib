@@ -1,0 +1,45 @@
+##RenderMan RIB
+version 3.03
+Projection "perspective" "fov" [29.990185]
+FrameAspectRatio 1.333333
+Identity
+Rotate 0 0 0 1
+Rotate 0 1 0 0
+Rotate 0 0 1 0
+Translate 0 0 6
+WorldBegin
+LightSource "ambientlight" 1 "intensity" [0.2]
+LightSource "distantlight" 2 "intensity" [1]
+Color [0.2 0.4 0.8]
+Rotate -90 1 0 0
+Translate -1.2 0 0.6
+Declare "center" "uniform point"
+Declare "in" "uniform point"
+Declare "up" "uniform point"
+Declare "panewidth" "uniform float"
+Declare "paneheight" "uniform float"
+Declare "framewidth" "uniform float"
+Declare "fuzz" "uniform float"
+Surface "windowhighlight" "center" [0 6 1]"in" [0 -1 0]"up" [0 0 1]"panewidth" [2]"paneheight" [2]"framewidth" [0.14]"fuzz" [0.03]
+Sphere 0.5 -0.5 0.5 360
+Translate 1.2 0 0
+Translate 0 0 -0.5
+Surface "blue_marble"
+Cone 1 0.5 360
+Translate 0 0 0.5
+Translate 1.2 0 0
+Surface "easysurface"
+Cylinder 0.5 -0.5 0.5 360
+Translate -1.2 0 -1.2
+Rotate 15 -1 1 1
+Rotate 15 0 0 1
+Surface "plastic"
+Attribute "bound" "displacement" [0.15]
+Displacement "round"
+Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5]
+Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5]
+Patch "bilinear" "P" [0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5]
+Patch "bilinear" "P" [0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5]
+Patch "bilinear" "P" [0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5]
+Patch "bilinear" "P" [-0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5]
+WorldEnd

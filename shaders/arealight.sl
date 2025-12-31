@@ -1,16 +1,17 @@
-/*	area light source shader
+/**
+ * arealight(): light source shader
  *
- * 	Pixie is:
- * 	(c) Copyright 1999-2003 Okan Arikan. All rights reserved.
+ * openRender: RenderMan compliant renderer
  */
 
-light arealight (float intensity = 1;
-                 color lightcolor = 1;) {
+light
+arealight (float intensity = 1;
+           color lightcolor = 1) {
 
-	N	=	normalize(N);
+    N = normalize(N);
 
-	illuminate (P,N,PI/2) {
-		Cl = intensity * lightcolor * (N.normalize(L))/ (L . L);
-	}
+    illuminate (P, N, PI/2) {
+        Cl = intensity * lightcolor * (N.normalize(L))/(L.L);
+    }
 }
 
