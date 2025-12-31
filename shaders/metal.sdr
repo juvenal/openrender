@@ -1,9 +1,9 @@
-#!version 2.2.6
+#!version 1.0.0
 surface
 #!parameters:
 uniform	float	Ka	=	1
 uniform	float	Ks	=	1
-uniform	float	roughness	=	.1
+uniform	float	roughness	=	0.1
 #!variables:
 varying	vector	Nf
 varying	vector	temporary_0

@@ -5,6 +5,4 @@ surface
 #!Init:
 	return            
 #!Code:
-	movevv            	Oi Os
-	mulvv             	Ci Oi Cs
 	return            
