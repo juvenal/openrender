@@ -48,7 +48,8 @@
       "Bash(sleep:*)",
       "Bash(grep -rn \"->intersect\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.cpp)",
       "Bash(grep -rn \"#include.*algebra\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.h)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)"
     ]
   }
 }
