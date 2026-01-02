@@ -1,0 +1,103 @@
+#!/bin/bash
+# Comprehensive debugging script for rndr skeleton TIFF issue
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:${PWD}/openrender/lib"
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PWD}/openrender/lib"
+export PIXIEHOME="${PWD}/openrender"
+export DISPLAYS="${PWD}/openrender/displays"
+export SHADERS="${PWD}/openrender/shaders:."
+
+RNDR_BIN="${PWD}/openrender/bin/rndr"
+RIB_FILE="${1:-examples/rib/quadrics-b.rib}"
+
+echo "=== Debugging rndr Skeleton TIFF Issue ==="
+echo ""
+echo "Environment:"
+echo "  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+echo "  PIXIEHOME=${PIXIEHOME}"
+echo "  DISPLAYS=${DISPLAYS}"
+echo "  SHADERS=${SHADERS}"
+echo ""
+echo "Checking display driver module..."
+if [ -f "${PWD}/openrender/displays/libfile.so" ]; then
+    echo "  ✓ Found libfile.so"
+elif [ -f "${PWD}/openrender/displays/file.so" ]; then
+    echo "  ✓ Found file.so"
+else
+    echo "  ✗ Display driver module not found in ${PWD}/openrender/displays/"
+    echo "    Looking for: libfile.so or file.so"
+    echo ""
+    echo "  Available files in displays directory:"
+    ls -la "${PWD}/openrender/displays/" 2>/dev/null || echo "    Directory does not exist!"
+fi
+echo ""
+
+echo "Checking RIB file: ${RIB_FILE}"
+if [ ! -f "${RIB_FILE}" ]; then
+    echo "  ✗ RIB file not found: ${RIB_FILE}"
+    exit 1
+fi
+echo "  ✓ RIB file found"
+echo ""
+
+echo "Checking for Format and Display statements in RIB file..."
+if grep -q "^Format" "${RIB_FILE}"; then
+    echo "  ✓ Format statement found"
+    grep "^Format" "${RIB_FILE}"
+else
+    echo "  ✗ Format statement NOT found"
+fi
+
+if grep -q "^Display" "${RIB_FILE}"; then
+    echo "  ✓ Display statement found"
+    grep "^Display" "${RIB_FILE}"
+else
+    echo "  ✗ Display statement NOT found"
+fi
+echo ""
+
+echo "Checking for defaults.rib..."
+DEFAULTS_RIB="examples/rib/.openrender/defaults.rib"
+if [ -f "${DEFAULTS_RIB}" ]; then
+    echo "  ✓ Found defaults.rib"
+    echo "  Contents:"
+    cat "${DEFAULTS_RIB}" | sed 's/^/    /'
+else
+    echo "  ✗ defaults.rib not found at ${DEFAULTS_RIB}"
+fi
+echo ""
+
+echo "=== Running rndr with debug output ==="
+echo "Command: ${RNDR_BIN} ${RIB_FILE}"
+echo ""
+
+# Run with debug output
+"${RNDR_BIN}" "${RIB_FILE}" 2>&1 | tee /tmp/rndr_debug.log
+
+echo ""
+echo "=== Debug output saved to /tmp/rndr_debug.log ==="
+echo ""
+echo "Checking output files..."
+find . -name "*.tif" -o -name "*.tiff" -newer "${RIB_FILE}" 2>/dev/null | while read f; do
+    if [ -f "$f" ]; then
+        SIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null)
+        echo "  Found: $f (size: $SIZE bytes)"
+        if [ "$SIZE" -lt 1000 ]; then
+            echo "    ⚠ WARNING: File is very small, likely a skeleton TIFF"
+        fi
+    fi
+done
+
+echo ""
+echo "=== Analysis ==="
+echo "Look for these debug messages in the output:"
+echo "  [DEBUG computeDisplayData] - Shows if displays are found"
+echo "  [DEBUG] Processing display - Shows each display being processed"
+echo "  [DEBUG] Looking for display driver - Shows if driver module is being searched"
+echo "  [DEBUG displayStart] - Shows if displayStart is called and what it returns"
+echo "  [DEBUG] HIDER_BREAK - Shows if rendering is being aborted"
+echo ""
+
