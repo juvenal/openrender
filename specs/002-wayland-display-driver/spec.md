@@ -167,3 +167,13 @@ As a renderer user, I want to interact with the display window (resize, close, m
 - **SEC-001**: Display driver MUST validate Wayland socket permissions before connection attempts
 - **SEC-002**: Buffer handling MUST prevent memory corruption vulnerabilities (buffer overflows, use-after-free)
 - **SEC-003**: Display driver MUST not leak sensitive render data to system logs or error messages
+
+## Clarifications
+
+### Session 2026-01-24
+
+- Q: Which Wayland library implementation should be used? → A: Use standard Wayland client library (libwayland-client) with xdg-shell protocol
+- Q: Should implementation start with software or hardware rendering? → A: Software rendering first, then hardware acceleration
+- Q: How should driver selection logging be handled? → A: Log at INFO level by default, with ERROR/WARNING for failures
+- Q: How should compositor disconnect be handled? → A: Terminate rendering process immediately
+- Q: Should both software and hardware rendering paths be supported? → A: Support both software and hardware rendering paths
