@@ -92,10 +92,12 @@ void CDisplay::clampData(int w, int h, float *d) {
     int c = w * h * numSamples;
 
     for (; c > 0; c--, cData++) {
-        if (*cData < 0)
+        if (*cData < 0) {
             *cData = 0;
-        else if (*cData > 1)
+        }
+        else if (*cData > 1) {
             *cData = 1;
+        }
     }
 }
 
