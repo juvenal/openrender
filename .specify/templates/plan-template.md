@@ -31,19 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**I. Clean Code Standards**: Design MUST follow clean code principles; functions small and focused; clear naming.
-
-**II. Language Standards**: Code MUST use C++20 (C++ code) or C17 (C code); standard library preferred.
-
-**III. Test-Driven Development**: TDD mandatory - tests written first, Red-Green-Refactor cycle enforced.
-
-**IV. Command Line Interface**: Feature MUST be accessible via CLI; stdin/args → stdout, errors → stderr; support --help.
-
-**V. Minimal Dependencies**: New dependencies MUST be justified; prefer system libraries; document requirements.
-
-**VI. Platform Targeting**: MUST target Linux and macOS; no Windows support (WSL only); platform code isolated.
-
-**VII. Documentation and Site Management**: All feature documentation MUST be added to the Hugo site in the `site` folder; Hugo configuration MUST be updated if needed; site content MUST be regularly updated to reflect new features; GitHub Actions in `.github/workflows` MUST handle deployment of updated site content.
+[Gates determined based on constitution file]
 
 ## Project Structure
 

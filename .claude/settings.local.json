@@ -4,7 +4,16 @@
       "Bash(git log:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git mv:*)",
+      "Bash(cmake:*)",
+      "Bash(./build/src/orender/orender:*)",
+      "Bash(./build/src/oshader/oshader:*)",
+      "Bash(./build/src/otexmake/otexmake:*)",
+      "Bash(./build/src/oshow/oshow:*)",
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(ctest:*)"
     ]
   }
 }
