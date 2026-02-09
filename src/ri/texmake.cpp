@@ -55,7 +55,7 @@ const char *resizeNoneMode = "none";
 static void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
     char tmp[1024];
 
-    vsprintf(tmp, fmt, ap);
+    vsnprintf(tmp, sizeof(tmp), fmt, ap);
 
     error(CODE_SYSTEM, "TIFF: %s\n", tmp);
 }

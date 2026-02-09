@@ -894,7 +894,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                 } else {
                                                                     char tmp[512];
 
-                                                                    sprintf(tmp, "Unknown patch type: \"%s\"\n", type);
+                                                                    snprintf(tmp, sizeof(tmp), "Unknown patch type: \"%s\"\n", type);
                                                                     errorHandler(RIE_BADTOKEN, RIE_ERROR, tmp);
                                                                     return;
                                                                 }
@@ -1455,7 +1455,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                         } else {
                                                                             char tmp[512];
 
-                                                                            sprintf(tmp, "Parameter \"%s\" not found\n", tokens[i]);
+                                                                            snprintf(tmp, sizeof(tmp), "Parameter \"%s\" not found\n", tokens[i]);
                                                                             errorHandler(RIE_BADTOKEN, RIE_ERROR, tmp);
                                                                         }
                                                                     }
@@ -1565,7 +1565,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                         } else {
                                                                             char tmp[512];
 
-                                                                            sprintf(tmp, "Parameter \"%s\" not found\n", tokens[i]);
+                                                                            snprintf(tmp, sizeof(tmp), "Parameter \"%s\" not found\n", tokens[i]);
                                                                             errorHandler(RIE_BADTOKEN, RIE_ERROR, tmp);
                                                                         }
                                                                     }

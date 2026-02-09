@@ -91,7 +91,7 @@ typedef struct {
 
 static	TSlOpcode	opcodes[]	=	{
 #include "scriptOpcodes.h"
-{	OPCODE_NOP	,	NULL	,	0	}
+{	OPCODE_NOP	,	NULL	,	0	,	0	}
 };
 
 #undef DEFOPCODE
@@ -111,7 +111,7 @@ static	TSlOpcode	opcodes[]	=	{
 #define	DEFLINKFUNC(name,text,prototype,par)											{FUNCTION_##name,text,prototype,par},
 static	TSlFunction		functions[]	=	{
 #include "scriptFunctions.h"
-{	OPCODE_NOP	,	NULL	,	NULL	}
+{	OPCODE_NOP	,	NULL	,	NULL	,	0	}
 };
 
 
@@ -477,7 +477,7 @@ static	TSlFunction		functions[]	=	{
 													currentData.currentArgumentPlace->bytesPerItem	=	(var->type == TYPE_STRING ? sizeof(char *) : sizeof(float));
 													currentData.currentArgumentPlace->accessor		=	SL_GLOBAL_OPERAND;
 
-													if ((var->container != CONTAINER_UNIFORM) || (var->container != CONTAINER_CONSTANT)) {
+													if ((var->container != CONTAINER_UNIFORM) && (var->container != CONTAINER_CONSTANT)) {
 														currentData.opcodeUniform						=	FALSE;
 														currentData.currentArgumentPlace->varyingStep	=	currentData.currentArgumentPlace->numItems;
 													} else {

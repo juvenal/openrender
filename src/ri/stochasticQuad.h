@@ -47,6 +47,7 @@ if ((_flags & RASTER_SHADE_HIDDEN) &&
 
 #ifdef STOCHASTIC_EXTRA_SAMPLES
 const int displacement = 10 + CRenderer::numExtraSamples;
+(void)displacement; // Suppress unused variable warning
 #else
 #define displacement 10
 #endif
@@ -181,6 +182,7 @@ const float importance = grid->object->attributes->lodImportance;
 #define drawPixel()                                        \
     if (z < pixel->z) {                                    \
         const float jt = pixel->jt;                        \
+        (void)jt; /* Suppress unused variable warning */   \
         findSample(nSample, z);                            \
         nSample->z = z;                                    \
         colorOpacityUpdate();                              \
@@ -225,6 +227,7 @@ const float importance = grid->object->attributes->lodImportance;
 #define drawPixel()                 \
     if (z < pixel->z) {             \
         const float jt = pixel->jt; \
+        (void)jt; /* Suppress unused variable warning */ \
         updateOpaque();             \
         nSample = &pixel->last;     \
         nSample->z = z;             \
@@ -458,6 +461,7 @@ for (y = ymin; y <= ymax; y++) {
                 const float *v1 = vertices + numVertexSamples;
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
+                (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
 
                 #ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
@@ -582,6 +586,7 @@ for (j = 0; j < vdiv; j++) {
         const float *v1 = vertices + numVertexSamples;
         const float *v2 = v1 + udiv * numVertexSamples;
         const float *v3 = v2 + numVertexSamples;
+        (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
 
         int xmin = bounds[0] - left; // Convert the bound into the current bucket
         int ymin = bounds[2] - top;
@@ -684,6 +689,7 @@ for (j = 0; j < vdiv; j++) {
                 const float *v1 = vertices + numVertexSamples;
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
+                (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
 
                 #ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];

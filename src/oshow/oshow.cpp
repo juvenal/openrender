@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     } else {
         char tmp[OS_MAX_PATH_LENGTH + 7];
 
-        sprintf(tmp, "oshow:%s", argv[1]);
+        snprintf(tmp, sizeof(tmp), "oshow:%s", argv[1]);
 
         // This is how we show things
         RiBegin(RI_NULL);

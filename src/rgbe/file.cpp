@@ -52,9 +52,10 @@ class CRgbeFramebuffer {
             char fileName[256];
 
             if (strchr(name, '.') == NULL) {
-                sprintf(fileName, "%s.pic", name);
+                snprintf(fileName, sizeof(fileName), "%s.pic", name);
             } else {
-                strcpy(fileName, name);
+                strncpy(fileName, name, sizeof(fileName) - 1);
+                fileName[sizeof(fileName) - 1] = '\0';
             }
 
             image = fopen(fileName, "wb");

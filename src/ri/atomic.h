@@ -59,15 +59,16 @@ inline int atomicDecrement(volatile int *pointer) {
 // Apple
 #elif defined(__APPLE__) || defined(__APPLE_CC__)
 
-// Include the OSX header
-#include <libkern/OSAtomic.h>
+#include <atomic>
 
-inline int atomicIncrement(int32_t *ptr) {
-    return OSAtomicIncrement32Barrier(ptr);
+inline int atomicIncrement(volatile int32_t *ptr) {
+    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t>*>(ptr);
+    return atomic_ptr->fetch_add(1) + 1;
 }
 
-inline int atomicDecrement(int32_t *ptr) {
-    return OSAtomicDecrement32Barrier(ptr);
+inline int atomicDecrement(volatile int32_t *ptr) {
+    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t>*>(ptr);
+    return atomic_ptr->fetch_sub(1) - 1;
 }
 
 ///////////////////////////////////////////////////////////////

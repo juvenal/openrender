@@ -161,7 +161,7 @@ void riThread(void *w) {
     a.integer = 0;
     send(peer_socket, (char *)&a, sizeof(T64), 0);
 
-    sprintf(managerString, "#rib:%s net:client=%zu", buffer[1].string,
+    snprintf(managerString, sizeof(managerString), "#rib:%s net:client=%zu", buffer[1].string,
             static_cast<size_t>(reinterpret_cast<uintptr_t>(buffer[0].pointer)));
 
     // I may want to do this in a seperate process
@@ -254,7 +254,7 @@ retryBind:
 
     // Run the rib
 
-    sprintf(managerString, "#rib:%s net:locclient=%d", ribFile, sock);
+    snprintf(managerString, sizeof(managerString), "#rib:%s net:locclient=%d", ribFile, sock);
 
     RiBegin(managerString);
 
@@ -358,7 +358,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
         char portbuf[20];
 
         // prepare the args for child process
-        sprintf(portbuf, "%d", listenPort);
+        snprintf(portbuf, sizeof(portbuf), "%d", listenPort);
 
         // The command line arguments
         char *const argv[] = {gargv[0], (char *)"-q", (char *)"-c", portbuf, ribFile, NULL};
@@ -400,7 +400,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
 
     // pre-accept the local servers
 
-    sprintf(tmp, "locservers=");
+    snprintf(tmp, sizeof(tmp), "locservers=");
     tmp += strlen(tmp);
 
     // accept the connections
@@ -436,9 +436,9 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
             localServerSockets[numLocalServers++] = peer;
 
             if (i < numChildren - 1)
-                sprintf(tmp, "%d,", peer);
+                snprintf(tmp, sizeof(managerString) - (tmp - managerString), "%d,", peer);
             else
-                sprintf(tmp, "%d", peer);
+                snprintf(tmp, sizeof(managerString) - (tmp - managerString), "%d", peer);
             tmp += strlen(tmp);
         } else {
             if (silent == FALSE)
@@ -599,7 +599,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Register the exit stuff
-    sprintf(managerString, "");
+    snprintf(managerString, sizeof(managerString), "");
     gargc = argc;
     gargv = argv;
     isDaemon = FALSE;
@@ -664,7 +664,7 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Was expecting list of servers\n");
                 exit(1);
             }
-            sprintf(managerString, "servers=%s", argv[i]);
+            snprintf(managerString, sizeof(managerString), "servers=%s", argv[i]);
         } else if (strcmp(argv[i], "-k") == 0) {
             server = TRUE;
             killservers = TRUE;
@@ -675,7 +675,7 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Was expecting list of servers\n");
                 exit(1);
             }
-            sprintf(managerString, "killservers=%s", argv[i]);
+            snprintf(managerString, sizeof(managerString), "killservers=%s", argv[i]);
         } else if (strcmp(argv[i], "-f") == 0) {
             i++;
             if (i >= argc) {
@@ -802,9 +802,9 @@ int main(int argc, char *argv[]) {
 
     // Create the command line for the ri
     if (client | server | localserver) {
-        sprintf(managerString2, "#rib:%s net:%s", source, managerString);
+        snprintf(managerString2, sizeof(managerString2), "#rib:%s net:%s", source, managerString);
     } else {
-        sprintf(managerString2, "#");
+        snprintf(managerString2, sizeof(managerString2), "#");
     }
 
     if (frameRange != NULL) {

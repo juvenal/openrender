@@ -85,7 +85,7 @@ class CTextureBlock {
 static void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
     char tmp[1024];
 
-    vsprintf(tmp, fmt, ap);
+    vsnprintf(tmp, sizeof(tmp), fmt, ap);
 
     error(CODE_SYSTEM, tmp);
 }
@@ -1994,10 +1994,10 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
         TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
         TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
         int ii, jj;
-        for (ii = 1, jj = 0; ii != tileWidth; ii = ii << 1, jj++)
+        for (ii = 1, jj = 0; (uint32)ii != tileWidth; ii = ii << 1, jj++)
             ;
         tileWidthShift = jj;
-        for (ii = 1, jj = 0; ii != tileHeight; ii = ii << 1, jj++)
+        for (ii = 1, jj = 0; (uint32)ii != tileHeight; ii = ii << 1, jj++)
             ;
         tileHeightShift = jj;
 

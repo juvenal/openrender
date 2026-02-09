@@ -228,7 +228,7 @@ class CRibOut : public CRiInterface {
         // Return Value			:	-
         // Comments				:
         void vout(const char *mes, va_list args) {
-            const int l = vsprintf(scratch, mes, args);
+            const int l = vsnprintf(scratch, sizeof(scratch), mes, args);
 
 #ifdef HAVE_ZLIB
             if (outputCompressed)
@@ -251,7 +251,7 @@ class CRibOut : public CRiInterface {
 
             va_start(args, mes);
 
-            const int l = vsprintf(scratch, mes, args);
+            const int l = vsnprintf(scratch, sizeof(scratch), mes, args);
 
 #ifdef HAVE_ZLIB
             if (outputCompressed)

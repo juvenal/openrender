@@ -118,6 +118,7 @@ void *displayStart(const char *name,
                    int width, int height, int numSamples,
                    const char *samples,
                    TDisplayParameterFunction findParameter) {
+    (void)findParameter; // Suppress unused parameter warning
 
 #ifdef _WINDOWS
     CWinDisplay *cWindow = new CWinDisplay(name, samples, width, height, numSamples);
