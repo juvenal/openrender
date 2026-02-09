@@ -1,4 +1,5 @@
-ObjectBegin "UtahTeapot"
+# teapot.rib
+ObjectBegin "teapot"
     AttributeBegin
         Basis "bezier" 3 "bezier" 3
         # Patch 1
