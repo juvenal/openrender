@@ -1,5 +1,5 @@
 #!/bin/bash
-# Comprehensive debugging script for rndr skeleton TIFF issue
+# Comprehensive debugging script for orender skeleton TIFF issue
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -10,10 +10,10 @@ export PIXIEHOME="${PWD}/openrender"
 export DISPLAYS="${PWD}/openrender/displays"
 export SHADERS="${PWD}/openrender/shaders:."
 
-RNDR_BIN="${PWD}/openrender/bin/rndr"
+ORENDER_BIN="${PWD}/openrender/bin/orender"
 RIB_FILE="${1:-examples/rib/quadrics-b.rib}"
 
-echo "=== Debugging rndr Skeleton TIFF Issue ==="
+echo "=== Debugging orender Skeleton TIFF Issue ==="
 echo ""
 echo "Environment:"
 echo "  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
@@ -70,15 +70,15 @@ else
 fi
 echo ""
 
-echo "=== Running rndr with debug output ==="
-echo "Command: ${RNDR_BIN} ${RIB_FILE}"
+echo "=== Running orender with debug output ==="
+echo "Command: ${ORENDER_BIN} ${RIB_FILE}"
 echo ""
 
 # Run with debug output
-"${RNDR_BIN}" "${RIB_FILE}" 2>&1 | tee /tmp/rndr_debug.log
+"${ORENDER_BIN}" "${RIB_FILE}" 2>&1 | tee /tmp/orender_debug.log
 
 echo ""
-echo "=== Debug output saved to /tmp/rndr_debug.log ==="
+echo "=== Debug output saved to /tmp/orender_debug.log ==="
 echo ""
 echo "Checking output files..."
 find . -name "*.tif" -o -name "*.tiff" -newer "${RIB_FILE}" 2>/dev/null | while read f; do
@@ -100,4 +100,3 @@ echo "  [DEBUG] Looking for display driver - Shows if driver module is being sea
 echo "  [DEBUG displayStart] - Shows if displayStart is called and what it returns"
 echo "  [DEBUG] HIDER_BREAK - Shows if rendering is being aborted"
 echo ""
-

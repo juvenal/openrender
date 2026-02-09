@@ -1,4 +1,4 @@
-Name: Pixie
+Name: openRender
 Summary: 3D renderer Renderman compliant
 Version: 2.2.5
 Release: 1
@@ -10,32 +10,32 @@ Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/build-root-%{name}
 Packager: cedric PAILLE
 Distribution: suse 10
-Prefix: /opt/pixie
-Url: http://www.cs.utexas.edu/~okan/Pixie/pixie.htm
-Provides: Pixie renderer
+Prefix: /opt/openrender
+Url: http://www.cs.utexas.edu/~okan/openRender/openrender.htm
+Provides: openRender renderer
 
 
 
 %description
-Pixie is a RenderMan like photorealistic renderer.
+openRender is a RenderMan like photorealistic renderer.
 It is being developed in the hope that it will be
 useful for graphics research and for people who
 can not afford a commercial renderer.
-Pixie is an open source project licensed under 
+openRender is an open source project licensed under
 GPL / LGPL.
 
 Don't forget to set these environment variables:
-export PIXIEHOME=/opt/pixie
-export PATH=$PATH:/opt/pixie/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/lib/pixie
+export OPENRENDERHOME=/opt/openrender
+export PATH=$PATH:/opt/openrender/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/lib/openrender
 in your ".profile" file in the home dir.
 
 %package devel
-Summary: Pixie development environment
+Summary: openRender development environment
 Group: Development/Libraries
 
 %description devel
-Install Pixie-devel if you need to develop with the pixie's libraries.
+Install openRender-devel if you need to develop with the openrender's libraries.
 
 %prep
 rm -rf $RPM_BUILD_ROOT 

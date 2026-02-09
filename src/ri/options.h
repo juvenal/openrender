@@ -167,7 +167,7 @@ class COptions {
         TSearchpath *texturePath;    // Texture search path
         TSearchpath *shaderPath;     // Shader search path
         TSearchpath *displayPath;    // Display search path
-        TSearchpath *modulePath;     // Search path for Pixie modules
+        TSearchpath *modulePath;     // Search path for openRender modules
 
         int pixelXsamples, pixelYsamples; // Number of samples to take in X and Y
 
@@ -202,7 +202,7 @@ class COptions {
         unsigned int flags; // Flags
 
         ////////////////////////////////////////////////////////////////////
-        // Pixie dependent options
+        // openRender dependent options
         ////////////////////////////////////////////////////////////////////
 
         int endofframe; // The end of frame statstics number

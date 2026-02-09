@@ -1,26 +1,26 @@
-.TH RNDR 1
+.TH ORENDER 1
 .SH NAME
-rndr \- render a rib file
+orender \- render a rib file
 .SH SYNOPSIS
-\fBrndr\fR [ -f <range> ] [ options ... ] [ -P:n | -t:n ] [ name.rib ...  ]
+\fBorender\fR [ -f <range> ] [ options ... ] [ -P:n | -t:n ] [ name.rib ...  ]
 .br
-\fBrndr\fR -r <port>
+\fBorender\fR -r <port>
 .br
-\fBrndr\fR -k <port>
+\fBorender\fR -k <port>
 .br
-\fBrndr\fR [ options... ] [ name.rib ...  ] -s <srv1:port1,srv2:port2...>
+\fBorender\fR [ options... ] [ name.rib ...  ] -s <srv1:port1,srv2:port2...>
 .SH DESCRIPTION
-.I  Rndr
-Renders a file with Pixie.
+.I  Orender
+Renders a file with openRender.
 .P
 The main documentation is maintained in html form
 and should be included with your distribution in the html or doc directories.
 .P
-Note: If the filename given is '-' or no filename is given, then 
-.I	rndr
+Note: If the filename given is '-' or no filename is given, then
+.I	orender
 will read from standard input.  This is not valid for network renders, where the
 file needs to be shipped to the server
-.I rndr
+.I orender
 instances for them to read.
 .SH OPTIONS
 .TP
@@ -48,26 +48,26 @@ or -s.
 Specify the number of threads for a multithreaded render.  May not be used with -r or -s.
 .TP
 .B \-c <client port>
-Specify a client (for subprocesses, used internally by rndr).
+Specify a client (for subprocesses, used internally by orender).
 .SH ENVIRONMENT
 .TP
-.B PIXIEHOME
-The directory $(PIXIEHOME)/shaders is used to locate the display drivers, shaders, and
-procedurals for a render.  
-.B PIXIEHOME
+.B OPENRENDERHOME
+The directory $(OPENRENDERHOME)/shaders is used to locate the display drivers, shaders, and
+procedurals for a render.
+.B OPENRENDERHOME
 is contain the directories 'shaders' and 'displays', but may contain:
 .RS
 .TP
-.B $(PIXIEHOME)/shaders
+.B $(OPENRENDERHOME)/shaders
 Location for shaders
 .TP
-.B $(PIXIEHOME)/displays
+.B $(OPENRENDERHOME)/displays
 Location for display drivers
 .TP
-.B $(PIXIEHOME)/procedurals
+.B $(OPENRENDERHOME)/procedurals
 Location for procedural generators
 .TP
-.B $(PIXIEHOME)/textures
+.B $(OPENRENDERHOME)/textures
 Location for textures
 .RE
 .TP
@@ -86,6 +86,6 @@ Also searched for display drivers
 .B DISPLAY
 Which X11 display to open for the framebuffer
 .SH "SEE ALSO"
-sdrc(1), texmake(1), show(1), sdrinfo(1)
+oshader(1), otexmake(1), oshow(1), sdrinfo(1)
 .SH BUGS
-See the sourceforge forums / tracker at http://pixie.sourceforge.net
+See the sourceforge forums / tracker at http://openrender.sourceforge.net

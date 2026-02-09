@@ -13,7 +13,7 @@ Pixie now supports baking arbitrary data to 3d textures. You don't need to provi
 
 The outline operation is:
 - call `bake3d()` from your shader to save a point cloud of your data
-- convert the point cloud to a 3d bricked texture using `texmake`
+- convert the point cloud to a 3d bricked texture using `otexmake`
 - read the texture using `texture3d`
 
 ### Point Clouds
@@ -87,12 +87,12 @@ color Cd = <something complex>;
 bake3d("cloud.ptc","CoutDiff",P,N,"CoutDiff",Cd);
 ```
 
-## Using `texmake` to prepare textures
+## Using `otexmake` to prepare textures
 
-To prepare these point clouds into a friendly format for reading, use the `texmake` program. The `-texture3d` option to `texmake` specifies that you wish to prepare a 3d texture. The syntax is:
+To prepare these point clouds into a friendly format for reading, use the `otexmake` program. The `-texture3d` option to `otexmake` specifies that you wish to prepare a 3d texture. The syntax is:
 
 ```
-texmake -texture3d [-maxerror n.n] <input point cloud> <output 3d texture>
+otexmake -texture3d [-maxerror n.n] <input point cloud> <output 3d texture>
 ```
 
 The `-maxerror` parameter allows you to tweak how compression of the texture will occur. The texture is stored in an octree-like format, with each level of the map representing a coarser approximation to previous levels. For very uniform data, there is no need to store the finest representations as coarser levels will represent the data perfectly well. The `-maxerror` parameter represents the maximum variation for which data will be considered uniform.
@@ -102,13 +102,13 @@ By setting maxerror (default 0.002) you can control the size/space tradeoff for 
 For example, the following command line might be used to prepare the baked cloud to a 3d texture
 
 ```
-texmake -texture3d cloud.ptc surftexture.bm
+otexmake -texture3d cloud.ptc surftexture.bm
 ```
 
 of perhaps after some experimentation:
 
 ```
-texmake -texture3d -maxerror 0.004 cloud.ptc surftexture.bm
+otexmake -texture3d -maxerror 0.004 cloud.ptc surftexture.bm
 ```
 
 ## Alternative for preparing a texture

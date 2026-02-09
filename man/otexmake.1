@@ -1,21 +1,21 @@
-.TH TEXMAKE 1
+.TH OTEXMAKE 1
 .SH NAME
-texmake \- Prepare a texture for use with Pixie. 
+otexmake \- Prepare a texture for use with openRender.
 .SH SYNOPSIS
-\fBtexmake\fR [ options... ] inname.tif [ iname2.tif ... ] outname.tex
+\fBotexmake\fR [ options... ] inname.tif [ iname2.tif ... ] outname.tex
 .P
-\fBtexmake\fR -texture3d [ brickmap options... ] inname.ptc outname.bm
+\fBotexmake\fR -texture3d [ brickmap options... ] inname.ptc outname.bm
 .SH DESCRIPTION
-.I  Texmake
-Prepares textures for efficient use in a render with 
-.I rndr
+.I  Otexmake
+Prepares textures for efficient use in a render with
+.I orender
 .P
 The main documentation is maintained in html form
 and should be included with your distribution in the html or doc directories.
 .P
 The command allows for preparation of envionment maps with latitude-logitude
 mapping, cube maps and also shadow maps.
-.I Texmake
+.I Otexmake
 will output a prepared texture in the same format as the input.  Supported modes
 are: 8bit per channel, 16bit per channel and float values per channel.
 .SH OPTIONS
@@ -43,7 +43,7 @@ in the following order: +x -x +y -y +z -z.
 Set the tile size for the output, defaults to 32.
 .TP
 .B \-smode <MODE>
-Set the s mode.  This may be one of 
+Set the s mode.  This may be one of
 .RS
 .TP
 .B periodic
@@ -130,6 +130,6 @@ brickmaps are unnecessarily large due to overly small point radii.
 .B -maxdepth 10
 Set the maximum depth of the brickmap
 .SH "SEE ALSO"
-rndr(1), sdrc(1), show(1), sdrinfo(1)
+orender(1), oshader(1), oshow(1), sdrinfo(1)
 .SH BUGS
-See the sourceforge forums / tracker at http://pixie.sourceforge.net
+See the sourceforge forums / tracker at http://openrender.sourceforge.net

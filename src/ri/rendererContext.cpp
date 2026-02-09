@@ -4670,7 +4670,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
                                                                 // Does PrMan support anything other than attribute ?
                                                                 if (strcmp(type, "attributes") != 0) {
-                                                                    error(CODE_BADTOKEN, "Don't know how to handle this type\nPlease tell us know what this type means at the Pixie forums\n");
+                                                                    error(CODE_BADTOKEN, "Don't know how to handle this type\nPlease tell us know what this type means at the openRender forums\n");
                                                                     return;
                                                                 }
 

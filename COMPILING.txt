@@ -1,6 +1,6 @@
 
 	
-	Compilation Instructions for PIXIE
+	Compilation Instructions for OPENRENDER
 
 	Requirements:
 	- libtiff:    Available from http://www.libtiff.org
@@ -9,7 +9,7 @@
 	- openEXR:    Available from http://www.openexr.org This is only required if you want to compile the OpenEXR output driver.
 
 
-	Compiling Pixie is a two step process:
+	Compiling openRender is a two step process:
 	1. Compilation
 	2. Creating a binary distribution
 
@@ -17,33 +17,33 @@
 -------->Compiling on Windows:
 
 	With Visual Studio .NET
-	- Open PIXIEHOME/windows/vcnetX/Pixie/Pixie.sln
+	- Open OPENRENDERHOME/windows/vcnetX/openRender/openRender.sln
 	- Select Build -> Batch Build
 	- Select the configurations to build
 	- Hit "Build"
 
 	After compilation
-	- PIXIEHOME/bin will contain the binaries
-	- execute PIXIEHOME/makeinst.bat
-	- Your binary distribution is in PIXIEHOME/Pixie
+	- OPENRENDERHOME/bin will contain the binaries
+	- execute OPENRENDERHOME/makeinst.bat
+	- Your binary distribution is in OPENRENDERHOME/openRender
 
 
 -------->Compiling on UNIX:
 
 	For a self contained archive
-	- go to PIXIEHOME
+	- go to OPENRENDERHOME
 	- type "./configure --prefix=XXX --enable-selfcontained"
-	  (XXX = the directory to put Pixie. e.g. /tmp/Pixie)
+	  (XXX = the directory to put openRender. e.g. /tmp/openRender)
 	- type "make"
 
 	After compilation
 	- type "make install"
 	- Your binary distribution is in XXX
 
-	Now you can take your binary distribution and move it anywhere. This is your new PIXIEHOME. This binary distribution should have the same directory structure and the same files no matter what platform you're on.
+	Now you can take your binary distribution and move it anywhere. This is your new OPENRENDERHOME. This binary distribution should have the same directory structure and the same files no matter what platform you're on.
 
-	
-	No matter what compiler you're using, Pixie takes quite long time to compile. This is primarily due to the massive amount of macros to make the renderer as efficient as possible. Some of the files that especially take long time are execute.cpp and stochastic.cpp. Just take your time, go to your favorite cafe and enjoy a nice cup of Java.
+
+	No matter what compiler you're using, openRender takes quite long time to compile. This is primarily due to the massive amount of macros to make the renderer as efficient as possible. Some of the files that especially take long time are execute.cpp and stochastic.cpp. Just take your time, go to your favorite cafe and enjoy a nice cup of Java.
 
 	Have fun ....
 	Okan Arikan

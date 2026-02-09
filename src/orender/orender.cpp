@@ -1,10 +1,10 @@
 /**
  * Project: Pixie
  *
- * File: rndr.cpp
+ * File: orender.cpp
  *
  * Description:
- *   This file implements the functionality for rndr.
+ *   This file implements the functionality for orender.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	rndr.cpp
+//  File				:	orender.cpp
 //  Classes				:	-
 //  Description			:	rib parser
 //
@@ -84,7 +84,7 @@ void exitFunction() {
             argv[i++] = (char *)"-q";
             argv[i] = NULL;
 
-            // use execvp to search PATH, incase pixie
+            // use execvp to search PATH, incase openrender
             // isn't on the default search path
 #ifdef _WINDOWS
             _execvp(argv[0], argv);
@@ -109,9 +109,9 @@ void exitFunction() {
 // Return Value			:	-
 // Comments				:
 void printVersion() {
-    printf("Pixie RenderMan Renderer (rndr) v%d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
+    printf("openRender RenderMan Renderer (orender) v%d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
     printf("\nCopyright 1999-2008 Okan Arikan. http://renderpixie.com/\n");
-    printf("Pixie is free software. There is NO warranty; not even for\n");
+    printf("openRender is free software. There is NO warranty; not even for\n");
     printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }
 
@@ -121,7 +121,7 @@ void printVersion() {
 // Return Value			:	-
 // Comments				:
 void printUsage() {
-    printf("Usage: rndr <options> file.rib [file.rib ...]\n");
+    printf("Usage: orender <options> file.rib [file.rib ...]\n");
     printf("Listing several RIB files concatenates them before rendering.\n");
     printf("\nOptions:\n");
     printf("  -f <range>      Render only a subsequence of frames\n");
@@ -141,7 +141,7 @@ void printUsage() {
     printf("  -v              Display version information\n");
     printf("  -h              Display this help\n");
     printf("\nEnvironment variables:\n");
-    printf("  PIXIEHOME       Pixie installation path\n");
+    printf("  OPENRENDERHOME       openRender installation path\n");
     printf("  SHADERS         Shader search path\n");
 }
 
@@ -365,7 +365,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
 
         for (int k = 0; k < numChildren; k++) {
 #ifdef _WINDOWS
-            // use _spawnvp to search PATH, incase pixie
+            // use _spawnvp to search PATH, incase openrender
             // isn't on the default search path
             intptr_t pid = _spawnvp(_P_NOWAIT, argv[0], argv);
             if (pid <= 0) {
@@ -388,7 +388,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
                 rndrc(ribFile, listenPort);
                 exit(0);
 #else
-                // use execvp to search PATH, incase pixie
+                // use execvp to search PATH, incase openrender
                 // isn't on the default search path
                 execvp(argv[0], argv);
                 exit(0);

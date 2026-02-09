@@ -6,10 +6,10 @@ if(HAVE_OPENEXR)
 
     # Use modern CMake imported targets
     target_link_libraries(openexr PRIVATE
-        pixiecommon
+        openrendercommon
         OpenEXR::OpenEXR
         Imath::Imath
     )
 
-    install(TARGETS openexr LIBRARY DESTINATION "${PIXIE_DISPLAYSDIR}")
+    install(TARGETS openexr LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
 endif()

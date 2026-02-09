@@ -1,30 +1,30 @@
-# Homebrew Formula Setup Guide for Pixie Renderer
+# Homebrew Formula Setup Guide for openRender Renderer
 
 ## TL;DR - Quick Setup (5 Steps)
 
 ```bash
-# 1. Create GitHub repo: homebrew-pixie (public)
+# 1. Create GitHub repo: homebrew-openrender (public)
 # 2. Create tap locally
-mkdir -p ~/homebrew-pixie/Formula
-cd ~/homebrew-pixie
+mkdir -p ~/homebrew-openrender/Formula
+cd ~/homebrew-openrender
 git init
-git remote add origin https://github.com/YOUR_USERNAME/homebrew-pixie.git
+git remote add origin https://github.com/YOUR_USERNAME/homebrew-openrender.git
 
 # 3. Create formula
 curl -L https://github.com/YOUR_USERNAME/openrender/archive/refs/tags/v2.2.6.tar.gz | shasum -a 256
-# Copy SHA256 output and create Formula/pixie.rb (see template below)
+# Copy SHA256 output and create Formula/openrender.rb (see template below)
 
 # 4. Test locally
-brew install --build-from-source ./Formula/pixie.rb
-brew test pixie
+brew install --build-from-source ./Formula/openrender.rb
+brew test openrender
 
 # 5. Publish
-git add Formula/pixie.rb
-git commit -m "Add Pixie formula"
+git add Formula/openrender.rb
+git commit -m "Add openRender formula"
 git push -u origin main
 ```
 
-Users install with: `brew install YOUR_USERNAME/pixie/pixie`
+Users install with: `brew install YOUR_USERNAME/openrender/openrender`
 
 ---
 
@@ -55,7 +55,7 @@ Then on GitHub:
 ### Step 2: Create Homebrew Tap Repository
 
 On GitHub:
-1. Create new repository: `homebrew-pixie` (or `homebrew-rendering`, etc.)
+1. Create new repository: `homebrew-openrender` (or `homebrew-rendering`, etc.)
 2. Make it **public**
 3. **Don't** initialize with README
 
@@ -63,12 +63,12 @@ On GitHub:
 
 ```bash
 # Create directory
-mkdir -p ~/homebrew-pixie
-cd ~/homebrew-pixie
+mkdir -p ~/homebrew-openrender
+cd ~/homebrew-openrender
 
 # Initialize git
 git init
-git remote add origin https://github.com/YOUR_USERNAME/homebrew-pixie.git
+git remote add origin https://github.com/YOUR_USERNAME/homebrew-openrender.git
 
 # Create Formula directory
 mkdir Formula
@@ -85,10 +85,10 @@ Copy the SHA256 hash that's printed.
 
 ### Step 5: Create Formula File
 
-Create `Formula/pixie.rb` with this content:
+Create `Formula/openrender.rb` with this content:
 
 ```ruby
-class Pixie < Formula
+class OpenRender < Formula
   desc "RenderMan-compliant photorealistic renderer"
   homepage "https://github.com/YOUR_USERNAME/openrender"
   url "https://github.com/YOUR_USERNAME/openrender/archive/refs/tags/v2.2.6.tar.gz"
@@ -116,8 +116,8 @@ class Pixie < Formula
   end
 
   test do
-    system "#{bin}/rndr", "--help"
-    system "#{bin}/sdrc", "--version"
+    system "#{bin}/orender", "--help"
+    system "#{bin}/oshader", "--version"
     assert_predicate lib/"libri.dylib", :exist?
   end
 end
@@ -127,17 +127,17 @@ end
 
 ```bash
 # Install from local formula
-brew install --build-from-source --verbose ./Formula/pixie.rb
+brew install --build-from-source --verbose ./Formula/openrender.rb
 
 # Run tests
-brew test pixie
+brew test openrender
 
 # Audit (check for issues)
-brew audit --new-formula pixie
+brew audit --new-formula openrender
 
 # Try the installed commands
-rndr --help
-sdrc --version
+orender --help
+oshader --version
 ```
 
 If it fails, check the error messages and adjust the formula.
@@ -145,8 +145,8 @@ If it fails, check the error messages and adjust the formula.
 ### Step 7: Publish to GitHub
 
 ```bash
-git add Formula/pixie.rb
-git commit -m "Add Pixie 2.2.6 formula"
+git add Formula/openrender.rb
+git commit -m "Add openRender 2.2.6 formula"
 git branch -M main
 git push -u origin main
 ```
@@ -157,15 +157,15 @@ Now anyone can install with:
 
 ```bash
 # Add your tap
-brew tap YOUR_USERNAME/pixie
+brew tap YOUR_USERNAME/openrender
 
 # Install
-brew install pixie
+brew install openrender
 ```
 
 Or in one command:
 ```bash
-brew install YOUR_USERNAME/pixie/pixie
+brew install YOUR_USERNAME/openrender/openrender
 ```
 
 ---
@@ -183,16 +183,16 @@ curl -L https://github.com/YOUR_USERNAME/openrender/archive/refs/tags/v2.2.7.tar
 #    - Update sha256 with new hash
 
 # 3. Test
-brew uninstall pixie
-brew install --build-from-source ./Formula/pixie.rb
+brew uninstall openrender
+brew install --build-from-source ./Formula/openrender.rb
 
 # 4. Publish
-git add Formula/pixie.rb
-git commit -m "pixie: update to 2.2.7"
+git add Formula/openrender.rb
+git commit -m "openrender: update to 2.2.7"
 git push
 ```
 
-Users upgrade with: `brew upgrade pixie`
+Users upgrade with: `brew upgrade openrender`
 
 ---
 
@@ -208,7 +208,7 @@ Users upgrade with: `brew upgrade pixie`
 **Solution:** Adjust the `test` block in your formula. Make sure executables exist and work
 
 ### Issue: Audit warnings
-**Solution:** Run `brew audit --new-formula pixie` and fix reported issues
+**Solution:** Run `brew audit --new-formula openrender` and fix reported issues
 
 ### Issue: Can't push to GitHub
 **Solution:** Make sure you have permission. You may need to authenticate:
@@ -225,10 +225,10 @@ Users can install with/without optional features:
 
 ```bash
 # With all features
-brew install pixie --with-fltk --with-openexr --with-libx11
+brew install openrender --with-fltk --with-openexr --with-libx11
 
 # Without GUI
-brew install pixie --without-fltk
+brew install openrender --without-fltk
 ```
 
 To handle this in your formula:
@@ -251,9 +251,9 @@ end
 ## Files You'll Create
 
 ```
-~/homebrew-pixie/
+~/homebrew-openrender/
 ├── Formula/
-│   └── pixie.rb          # Your formula
+│   └── openrender.rb          # Your formula
 ├── .git/                  # Git repository
 └── README.md             # Optional: usage instructions
 ```
@@ -264,22 +264,22 @@ end
 
 ```bash
 # Uninstall
-brew uninstall pixie
+brew uninstall openrender
 
 # Reinstall
-brew reinstall pixie
+brew reinstall openrender
 
 # Get info
-brew info pixie
+brew info openrender
 
 # Check dependencies
-brew deps pixie
+brew deps openrender
 
 # See what files were installed
-brew list pixie
+brew list openrender
 
 # Edit formula
-brew edit pixie
+brew edit openrender
 ```
 
 ---
@@ -297,5 +297,5 @@ brew edit pixie
 
 - Homebrew Discussions: https://github.com/Homebrew/discussions/discussions
 - Formula Issues: https://github.com/Homebrew/homebrew-core/issues
-- Your tap issues: Create issues in your homebrew-pixie repository
+- Your tap issues: Create issues in your homebrew-openrender repository
 

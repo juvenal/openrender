@@ -315,12 +315,12 @@ COptions::COptions() {
     modulePath = optionsGetSearchPath("%MODULES%:%PIXIEUSERDIR%/modules:%PIXIELOCALDIR%/modules:%PIXIEAPPPLUGINS%:%PIXIEHOME%/modules", NULL);
 
 #else
-    archivePath = optionsGetSearchPath(".:%RIBS%:" PIXIE_RIBS, NULL);
-    proceduralPath = optionsGetSearchPath(".:%PROCEDURALS%:" PIXIE_PROCEDURALS, NULL);
-    texturePath = optionsGetSearchPath(".:%TEXTURES%:" PIXIE_TEXTURES, NULL);
-    shaderPath = optionsGetSearchPath(".:%SHADERS%:" PIXIE_SHADERS, NULL);
-    displayPath = optionsGetSearchPath(".:%DISPLAYS%:" PIXIE_DISPLAYS, NULL);
-    modulePath = optionsGetSearchPath(".:%MODULES%:" PIXIE_MODULES, NULL);
+    archivePath = optionsGetSearchPath(".:%RIBS%:" OPENRENDER_RIBS, NULL);
+    proceduralPath = optionsGetSearchPath(".:%PROCEDURALS%:" OPENRENDER_PROCEDURALS, NULL);
+    texturePath = optionsGetSearchPath(".:%TEXTURES%:" OPENRENDER_TEXTURES, NULL);
+    shaderPath = optionsGetSearchPath(".:%SHADERS%:" OPENRENDER_SHADERS, NULL);
+    displayPath = optionsGetSearchPath(".:%DISPLAYS%:" OPENRENDER_DISPLAYS, NULL);
+    modulePath = optionsGetSearchPath(".:%MODULES%:" OPENRENDER_MODULES, NULL);
 #endif
 
     pixelXsamples = 2;

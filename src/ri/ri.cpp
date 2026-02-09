@@ -621,7 +621,7 @@ RiBegin(RtToken name) {
             renderMan = new CRibOut(name);
         }
     } else {
-        char *runProgEnv = osEnvironment("PIXIE_RUNPROGRAM");
+        char *runProgEnv = osEnvironment("OPENRENDER_RUNPROGRAM");
         if (runProgEnv != NULL) {
             // If we're a runprogram, we should be writing out to stdout
             renderMan = new CRibOut(stdout);
@@ -2197,7 +2197,7 @@ RiProcRunProgram(void *data, RtFloat detail) {
             if (cpid != 0) {
                 char tmp[128];
 
-                // we are the parent rndr
+                // we are the parent orender
 
                 close(fdout[0]); // close the ends the client uses
                 close(fdin[1]);
@@ -2235,7 +2235,7 @@ RiProcRunProgram(void *data, RtFloat detail) {
                 dup2(fdin[1], STDOUT_FILENO);
                 close(fdin[1]);
 
-                putenv((char *)"PIXIE_RUNPROGRAM=1");
+                putenv((char *)"OPENRENDER_RUNPROGRAM=1");
 
                 // launch the program (via shell to do cmdline parsing / breaking up!)
                 if (system(delayed->generator) != 0) {

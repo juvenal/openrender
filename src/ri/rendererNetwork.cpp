@@ -429,7 +429,7 @@ int CRenderer::getFile(char *outName, const char *inName) {
         osCreateDir(temporaryPath);
     }
 
-    osTempname(temporaryPath, "rndr", outName);
+    osTempname(temporaryPath, "orender", outName);
     CNetFileMapping *mapping = new CNetFileMapping(inName, outName);
     netFileMappings->insert(mapping->from, mapping);
 

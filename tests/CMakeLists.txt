@@ -4,7 +4,7 @@
 add_executable(test_64bit_portability test_64bit_portability.cpp)
 
 # Link against common flags (includes C++20 standard)
-target_link_libraries(test_64bit_portability PRIVATE pixie_common_flags)
+target_link_libraries(test_64bit_portability PRIVATE openrender_common_flags)
 
 # Include directories for accessing source headers
 target_include_directories(test_64bit_portability PRIVATE

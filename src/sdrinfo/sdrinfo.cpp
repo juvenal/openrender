@@ -43,14 +43,14 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         TSdrShader *cShader;
         TSdrParameter *cParameter;
-        const char *pixieHome = osEnvironment("PIXIEHOME");
+        const char *openrenderHome = osEnvironment("OPENRENDERHOME");
         const char *shaders = osEnvironment("SHADERS");
 
         sprintf(tmp, ".");
 
-        if (pixieHome != NULL) {
+        if (openrenderHome != NULL) {
             strcat(tmp, ":");
-            strcat(tmp, pixieHome);
+            strcat(tmp, openrenderHome);
             strcat(tmp, "/shaders");
         }
 

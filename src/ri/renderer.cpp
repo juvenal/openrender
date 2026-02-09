@@ -155,7 +155,7 @@ float CRenderer::shutterOpen, CRenderer::shutterClose;
 float CRenderer::shutterTime, CRenderer::invShutterTime; // initialized in beginFrame
 unsigned int CRenderer::flags;
 
-// Pixie dependent options
+// openRender dependent options
 int CRenderer::endofframe;
 char *CRenderer::filelog;
 int CRenderer::numThreads;
@@ -851,7 +851,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         CStochastic::preDisplaySetup();
     } else if (strcmp(hider, "zbuffer") == 0) {
         CZbuffer::preDisplaySetup();
-    } else if (strncmp(hider, "show:", 5) == 0) {
+    } else if (strncmp(hider, "oshow:", 6) == 0) {
         CShow::preDisplaySetup();
     } else if (strcmp(hider, "photon") == 0) {
         CPhotonHider::preDisplaySetup();
@@ -880,7 +880,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         } else if (strcmp(hider, "zbuffer") == 0) {
             contexts[i] = new CZbuffer(i);
             dispatchJob = dispatchReyes;
-        } else if (strncmp(hider, "show:", 5) == 0) {
+        } else if (strncmp(hider, "oshow:", 6) == 0) {
             contexts[i] = new CShow(i);
             dispatchJob = dispatchReyes;
         } else if (strcmp(hider, "photon") == 0) {

@@ -205,7 +205,7 @@ TEST(alignment) {
     ASSERT_EQ(alignTo(16, 16), std::size_t(16));
 
     // Test cache line alignment
-    ASSERT_EQ(PIXIE_CACHE_LINE_SIZE, 64);
+    ASSERT_EQ(OPENRENDER_CACHE_LINE_SIZE, 64);
     ASSERT_EQ(alignToCacheLine(0), std::size_t(0));
     ASSERT_EQ(alignToCacheLine(1), std::size_t(64));
     ASSERT_EQ(alignToCacheLine(63), std::size_t(64));
@@ -220,45 +220,45 @@ TEST(alignment) {
 TEST(platform_detection) {
     // At least one platform should be defined
     int platform_count = 0;
-    #ifdef PIXIE_PLATFORM_WINDOWS
-        platform_count++;
-        printf("\n  Detected: Windows");
-    #endif
-    #ifdef PIXIE_PLATFORM_MACOS
-        platform_count++;
-        printf("\n  Detected: macOS");
-    #endif
-    #ifdef PIXIE_PLATFORM_LINUX
+    #ifdef OPENRENDER_PLATFORM_LINUX
         platform_count++;
         printf("\n  Detected: Linux");
     #endif
-    #ifdef PIXIE_PLATFORM_UNIX
+    #ifdef OPENRENDER_PLATFORM_UNIX
         platform_count++;
         printf("\n  Detected: Unix");
+    #endif
+    #ifdef OPENRENDER_PLATFORM_WINDOWS
+        platform_count++;
+        printf("\n  Detected: Windows");
+    #endif
+    #ifdef OPENRENDER_PLATFORM_MACOS
+        platform_count++;
+        printf("\n  Detected: macOS");
     #endif
     ASSERT(platform_count > 0);
 
     // At least one architecture should be defined
     int arch_count = 0;
-    #ifdef PIXIE_ARCH_X86_64
+    #ifdef OPENRENDER_ARCH_X86_64
         arch_count++;
         printf("\n  Detected: x86_64");
     #endif
-    #ifdef PIXIE_ARCH_ARM64
+    #ifdef OPENRENDER_ARCH_ARM64
         arch_count++;
         printf("\n  Detected: ARM64");
     #endif
-    #ifdef PIXIE_ARCH_X86
+    #ifdef OPENRENDER_ARCH_X86
         arch_count++;
         printf("\n  Detected: x86");
     #endif
-    #ifdef PIXIE_ARCH_ARM32
+    #ifdef OPENRENDER_ARCH_ARM32
         arch_count++;
         printf("\n  Detected: ARM32");
     #endif
     ASSERT(arch_count > 0);
 
-    printf("\n  Cache line size: %d bytes", PIXIE_CACHE_LINE_SIZE);
+    printf("\n  Cache line size: %d bytes", OPENRENDER_CACHE_LINE_SIZE);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -322,7 +322,7 @@ TEST(constexpr_alignment) {
 
 int main() {
     printf("========================================\n");
-    printf("Pixie 64-bit Portability Test Suite\n");
+    printf("openRender 64-bit Portability Test Suite\n");
     printf("========================================\n\n");
 
     // Run all tests

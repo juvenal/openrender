@@ -12,6 +12,6 @@ else(WIN32)
 	endif(X11_FOUND)
 endif(WIN32)
 
-target_link_libraries(framebuffer pixiecommon ${X11_LIBRARIES})
+target_link_libraries(framebuffer openrendercommon ${X11_LIBRARIES})
 set_target_properties(framebuffer PROPERTIES PREFIX "")
-install(TARGETS framebuffer LIBRARY DESTINATION "${PIXIE_DISPLAYSDIR}")
+install(TARGETS framebuffer LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")

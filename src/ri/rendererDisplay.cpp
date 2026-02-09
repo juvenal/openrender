@@ -719,7 +719,7 @@ void CRenderer::computeDisplayData() {
                                 }
 
                                 // need read and write
-                                osTempname(temporaryPath, "rndr", tempTsmName);
+                                osTempname(temporaryPath, "orender", tempTsmName);
                                 deepShadowFile = ropen(tempTsmName, "w+b", fileTransparencyShadow);
 
                                 // register temporary for deletion

@@ -19,7 +19,7 @@ else(USE_FLEX_BISON)
 endif(USE_FLEX_BISON)
 
 add_library(sdr SHARED ${sdr_sources} ${sdr_headers})
-target_link_libraries(sdr pixiecommon)
+target_link_libraries(sdr openrendercommon)
 install(TARGETS sdr LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

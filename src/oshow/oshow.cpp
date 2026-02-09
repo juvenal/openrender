@@ -1,10 +1,10 @@
 /**
  * Project: Pixie
  *
- * File: show.cpp
+ * File: oshow.cpp
  *
  * Description:
- *   This file implements the functionality for show.
+ *   This file implements the functionality for oshow.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,9 +19,9 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	show.cpp
+//  File				:	oshow.cpp
 //  Classes				:	-
-//  Description			:	The main show file
+//  Description			:	The main oshow file
 //
 ////////////////////////////////////////////////////////////////////////
 #include "common/global.h"
@@ -39,7 +39,7 @@
 int main(int argc, char *argv[]) {
 
     if (argc == 1) {
-        fprintf(stdout, "Usage: show <options> <file_name>[,mode]\n");
+        fprintf(stdout, "Usage: oshow <options> <file_name>[,mode]\n");
         fprintf(stdout, "\tKeys:\tbrickmap\tm:more detailed level\n");
         fprintf(stdout, "\t\t\t\tl:less detailed level\n");
         fprintf(stdout, "\t\t\t\tb:show boxes\n");
@@ -58,9 +58,9 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "\t\tright\t\tpan\n");
         return 1;
     } else {
-        char tmp[OS_MAX_PATH_LENGTH + 6];
+        char tmp[OS_MAX_PATH_LENGTH + 7];
 
-        sprintf(tmp, "show:%s", argv[1]);
+        sprintf(tmp, "oshow:%s", argv[1]);
 
         // This is how we show things
         RiBegin(RI_NULL);

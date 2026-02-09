@@ -21,7 +21,7 @@
 //
 //  File				:	opengl.h
 //  Classes				:	-
-//  Description			:	This is a wrapper for openGL so that Pixie
+//  Description			:	This is a wrapper for openGL so that openRender
 //							can interact with OpenGL without linkinking to it
 //
 ////////////////////////////////////////////////////////////////////////

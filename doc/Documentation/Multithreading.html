@@ -61,10 +61,10 @@ var wgCurRevisionId = "3113";
 									<div id="jump-to-nav">Jump to: <a href="#column-one">navigation</a>, <a href="#searchInput">search</a></div>			<!-- start content -->
 			<p><br />
 New in 2.0.1, Multithreading is here!
-</p><p>Pixie now runs in multithreaded mode by default (unless you are network rendering or multiproc rendering).  In multithreaded mode, Pixie will make use of multiple processors on your system, but will operate more efficiently than the older <tt>rndr -P:n</tt> mode.  In particular, shading-heavy scenes will benefit from the sharing of computation that can occur between multiple threads.
+</p><p>Pixie now runs in multithreaded mode by default (unless you are network rendering or multiproc rendering).  In multithreaded mode, Pixie will make use of multiple processors on your system, but will operate more efficiently than the older <tt>orender -P:n</tt> mode.  In particular, shading-heavy scenes will benefit from the sharing of computation that can occur between multiple threads.
 </p><p>To control the number of threads Pixie uses, use the <tt>-t:n</tt> option for n threads.  Eg
 </p>
-<pre>rndr -t:2 file.rib
+<pre>orender -t:2 file.rib
 </pre>
 <p>You can also control this in the RIB stream using <tt>Option "limits" "numthreads" [n]</tt> before WorldBegin.
 </p>

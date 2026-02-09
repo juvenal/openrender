@@ -1,14 +1,14 @@
 
 
       *******************************
-      Pixie
+      openRender
       *******************************
 
-      Pixie is a photorealistic renderer that uses a Pixar's RenderMan-like interface.
+      openRender is a photorealistic renderer that uses a Pixar's RenderMan-like interface.
 
-      Pixie is licensed under GNU LGPL. See COPYING file for details.
+      openRender is licensed under GNU LGPL. See COPYING file for details.
 
-      This is a public distribution of the Pixie renderer. For more information on Pixie and its features, visit http://pixie.sourceforge.net .
+      This is a public distribution of the openRender renderer. For more information on openRender and its features, visit http://openrender.sourceforge.net .
 
       The directory structure:
       src                - The source codes
@@ -19,7 +19,7 @@
       bind               - Debug mode binaries (only after compilation)
       tmpd               - Debug mode object files (only after compilation)
 
-      For compilation instructions, see doc/Pixie.pdf
+      For compilation instructions, see doc/openRender.pdf
 
 
 	Okan Arikan

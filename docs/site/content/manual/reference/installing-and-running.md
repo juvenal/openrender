@@ -28,7 +28,7 @@ To compile Pixie, you will need:
 - flex / bison ( [http://www.gnu.org/software/flex/](http://www.gnu.org/software/flex/) and [http://www.gnu.org/software/bison/](http://www.gnu.org/software/bison/) )
 - libtiff ( [http://www.libtiff.org](http://www.libtiff.org) )
 - fltk ( [http://www.fltk.org](http://www.fltk.org) )
-  - Optional, only needed if you want to build "show"
+  - Optional, only needed if you want to build "oshow"
 - OpenEXR ( [http://www.openexr.org](http://www.openexr.org) )
   - Optional, only needed if you want to build "openexr" display driver
 
@@ -171,11 +171,11 @@ Your binary distribution should have the following structure:
 |   | `Pixie/` |   |   | This is your PIXIEHOME |
 |---|---|---|---|---|
 |   |   | `bin/` |   | The executables are here. |
-|   |   |   | `rndr` | The RIB renderer. |
-|   |   |   | `sdrc` | Shading language compiler |
+|   |   |   | `orender` | The RIB renderer. |
+|   |   |   | `oshader` | Shading language compiler |
 |   |   |   | `sdrinfo` | Get information about a compiled shader |
-|   |   |   | `texmake` | Texture preparation tool. |
-|   |   |   | `show` | A viewer for photon maps/irradiance caches etc.. |
+|   |   |   | `otexmake` | Texture preparation tool. |
+|   |   |   | `oshow` | A viewer for photon maps/irradiance caches etc.. |
 |   |   | `include/` |   | The header files |
 |   |   | `lib/` |   | The library files. |
 |   |   | `displays/` |   | The display drivers. |

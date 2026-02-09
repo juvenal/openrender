@@ -119,7 +119,7 @@ CRibOut::CRibOut(const char *n) : CRiInterface() {
     scratch = new char[ribOutScratchSize];
 
     // Write a header
-    out("## Pixie %d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
+    out("## openRender %d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
     out("## Generated %s\n", asctime(newtime));
 
     declareDefaultVariables();
@@ -143,7 +143,7 @@ CRibOut::CRibOut(FILE *o) : CRiInterface() {
     scratch = new char[ribOutScratchSize];
 
     // Write a header
-    out("## Pixie %d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
+    out("## openRender %d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
     out("## Generated %s\n", asctime(newtime));
 
     declareDefaultVariables();

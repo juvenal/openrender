@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Pixie
+project(openRender
     VERSION 2.2.6
     DESCRIPTION "Open-source RenderMan-compliant renderer"
     LANGUAGES C CXX
@@ -36,8 +36,8 @@ option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom 
 # Remove obsolete staging options - we now use system package managers
 
 if(USE_FLEX_BISON)
-	include(CMake/PixieUseFlex.cmake)
-	include(CMake/PixieUseBison.cmake)
+	include(CMake/openRenderUseFlex.cmake)
+	include(CMake/openRenderUseBison.cmake)
 endif()
 
 
@@ -63,11 +63,11 @@ if(APPLE)
 endif()
 
 # Create interface library for common flags
-add_library(pixie_common_flags INTERFACE)
+add_library(openrender_common_flags INTERFACE)
 
 # Enable modern C++ warnings and optimizations
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(pixie_common_flags INTERFACE
+    target_compile_options(openrender_common_flags INTERFACE
         -Wall -Wextra -Wpedantic
         $<$<CONFIG:Debug>:-g -O0>
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
@@ -79,7 +79,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     endif()
 
     # Add format security warnings
-    target_compile_options(pixie_common_flags INTERFACE
+    target_compile_options(openrender_common_flags INTERFACE
         $<$<COMPILE_LANGUAGE:CXX>:-Wformat-security>
     )
 endif()
@@ -119,8 +119,8 @@ check_function_exists(fmodf							HAVE_FMODF)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 # Make config.h available to all targets
-target_include_directories(pixie_common_flags INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
-target_compile_definitions(pixie_common_flags INTERFACE HAVE_CONFIG_H)
+target_include_directories(openrender_common_flags INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(openrender_common_flags INTERFACE HAVE_CONFIG_H)
 
 # ###########################################################################
 # ########## Dependencies
@@ -141,8 +141,8 @@ message(STATUS "Found PNG: ${PNG_VERSION}")
 find_package(ZLIB REQUIRED)
 message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
 
-# Define pixietiff_libs for use in subdirectories
-set(pixietiff_libs TIFF::TIFF PNG::PNG)
+# Define openrendertiff_libs for use in subdirectories
+set(openrendertiff_libs TIFF::TIFF PNG::PNG)
 
 # Threads
 find_package(Threads REQUIRED)
@@ -189,7 +189,7 @@ if(BUILD_SHOW)
         message(STATUS "Found FLTK: ${FLTK_VERSION}")
         set(HAVE_FLTK ON)
     else()
-        message(WARNING "FLTK not found - show program will not be built")
+        message(WARNING "FLTK not found - oshow program will not be built")
         set(BUILD_SHOW OFF)
         set(HAVE_FLTK OFF)
     endif()
@@ -215,28 +215,28 @@ endif()
 # Set installation directories using modern CMake approach
 if(INSTALL_SELFCONTAINED)
 	# Self-contained installation (all files under CMAKE_INSTALL_PREFIX)
-	set(PIXIE_DOCDIR ${CMAKE_INSTALL_DOCDIR})
-	set(PIXIE_SHADERDIR "shaders")
-	set(PIXIE_RIBDIR "ribs") 
-	set(PIXIE_TEXTUREDIR "textures")
-	set(PIXIE_PROCEDURALDIR "procedurals")
-	set(PIXIE_DISPLAYSDIR "displays")
-	set(PIXIE_MODULESDIR "modules")
+	set(OPENRENDER_DOCDIR ${CMAKE_INSTALL_DOCDIR})
+	set(OPENRENDER_SHADERDIR "shaders")
+	set(OPENRENDER_RIBDIR "ribs")
+	set(OPENRENDER_TEXTUREDIR "textures")
+	set(OPENRENDER_PROCEDURALDIR "procedurals")
+	set(OPENRENDER_DISPLAYSDIR "displays")
+	set(OPENRENDER_MODULESDIR "modules")
 else()
 	# System installation (follows FHS)
-	set(PIXIE_DOCDIR ${CMAKE_INSTALL_DOCDIR}/Pixie)
-	set(PIXIE_SHADERDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/shaders)
-	set(PIXIE_RIBDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/ribs)
-	set(PIXIE_TEXTUREDIR ${CMAKE_INSTALL_DATAROOTDIR}/Pixie/textures)
-	set(PIXIE_PROCEDURALDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/procedurals)
-	set(PIXIE_DISPLAYSDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/displays)
-	set(PIXIE_MODULESDIR ${CMAKE_INSTALL_LIBDIR}/Pixie/modules)
+	set(OPENRENDER_DOCDIR ${CMAKE_INSTALL_DOCDIR}/openRender)
+	set(OPENRENDER_SHADERDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/shaders)
+	set(OPENRENDER_RIBDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/ribs)
+	set(OPENRENDER_TEXTUREDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/textures)
+	set(OPENRENDER_PROCEDURALDIR ${CMAKE_INSTALL_LIBDIR}/openRender/procedurals)
+	set(OPENRENDER_DISPLAYSDIR ${CMAKE_INSTALL_LIBDIR}/openRender/displays)
+	set(OPENRENDER_MODULESDIR ${CMAKE_INSTALL_LIBDIR}/openRender/modules)
 endif()
 
 
 # Install documentation
 set(doc_files AUTHORS ChangeLog COPYING DEVNOTES INSTALL LICENSE NEWS README)
-install(FILES ${doc_files} DESTINATION ${PIXIE_DOCDIR})
+install(FILES ${doc_files} DESTINATION ${OPENRENDER_DOCDIR})
 
 # Install man pages  
 file(GLOB man_files man/*.1)
@@ -245,7 +245,7 @@ install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 # Install shaders
 file(GLOB shader_sl_files shaders/*.sl)
 file(GLOB shader_sdr_files shaders/*.sdr)
-install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${PIXIE_SHADERDIR})
+install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${OPENRENDER_SHADERDIR})
 
 
 # ###########################################################################

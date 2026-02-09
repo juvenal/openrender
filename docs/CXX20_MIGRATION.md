@@ -195,7 +195,7 @@ constexpr bool isCacheLineAligned(std::size_t value) noexcept;
 
 #### 6.1 SOCKET Size Assertion (Windows 64-bit)
 
-**File**: `src/rndr/rndr.cpp` (lines 537-544)
+**File**: `src/orender/orender.cpp` (lines 537-544)
 
 **Problem**: Hard crash on Windows 64-bit where `SOCKET` is 64-bit but code assumed 32-bit.
 
@@ -213,7 +213,7 @@ buffer[0].pointer = reinterpret_cast<void*>(static_cast<uintptr_t>(peer));
 
 #### 6.2 Format Specifier Warnings
 
-**File**: `src/rndr/rndr.cpp` (lines 648-656)
+**File**: `src/orender/orender.cpp` (lines 648-656)
 
 All `sizeof()` results now use `%zu` format specifier instead of `%d`:
 

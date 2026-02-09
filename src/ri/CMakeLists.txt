@@ -105,7 +105,7 @@ endif(USE_FLEX_BISON)
 
 
 add_library(ri SHARED ${ri_sources} ${ri_headers})
-target_link_libraries(ri ${pixietiff_libs} pixiecommon)
+target_link_libraries(ri ${openrendertiff_libs} openrendercommon)
 install(TARGETS ri LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

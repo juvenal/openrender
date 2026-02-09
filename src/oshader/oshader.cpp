@@ -1,10 +1,10 @@
 /**
  * Project: Pixie
  *
- * File: sdrc.cpp
+ * File: oshader.cpp
  *
  * Description:
- *   This file implements the functionality for sdrc.
+ *   This file implements the functionality for oshader.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sdrc.cpp
+//  File				:	oshader.cpp
 //  Classes				:	-
 //  Description			:	The main shader compiler source code
 //
@@ -78,9 +78,9 @@ extern "C" int preprocess(char *, FILE *, int, const char **);
 // this file
 
 // The symbol to be defined by the preprocessor
-static const char *defineProgramName = "PIXIE";
+static const char *defineProgramName = "OPENRENDER";
 // The name of the executable
-static const char *compilerName = "sdrc";
+static const char *compilerName = "oshader";
 
 /////////////////////////////////////////////////////////////////////
 // Program command line switches
@@ -100,9 +100,9 @@ static const char *argumentQuietInfo = "-q";
 // Return Value			:	-
 // Comments				:
 void printVersion() {
-    printf("Pixie RenderMan Shader Language Compiler (%s) v%d.%d.%d\n", compilerName, VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
+    printf("openRender RenderMan Shader Language Compiler (%s) v%d.%d.%d\n", compilerName, VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
     printf("\nCopyright 1999-2008 Okan Arikan. http://renderpixie.com/\n");
-    printf("Pixie is free software. There is NO warranty; not even for\n");
+    printf("openRender is free software. There is NO warranty; not even for\n");
     printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }
 
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
     char tempdir[OS_MAX_PATH_LENGTH];
     osTempdir(tempdir, sizeof(tempdir));
     osCreateDir(tempdir);
-    osTempname(tempdir, "sdrc", tempfile);
+    osTempname(tempdir, "oshader", tempfile);
 
     for (sourceFile = sourceFiles->first(); error == ERR_NONE, sourceFile != NULL; sourceFile = sourceFiles->next()) {
 

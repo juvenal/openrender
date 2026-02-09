@@ -21,7 +21,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-// The Pixie version
+// The openRender version
 #define VERSION_RELEASE 1
 #define VERSION_BETA 0
 #define VERSION_ALPHA 0

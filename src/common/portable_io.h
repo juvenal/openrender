@@ -30,7 +30,7 @@
 //							  - Little-endian and big-endian architectures
 //							  - Different compilers (sizeof(int) may vary)
 //
-//	File Format Standard:	All Pixie binary files use little-endian format
+//	File Format Standard:	All openRender binary files use little-endian format
 //
 ////////////////////////////////////////////////////////////////////////
 #ifndef PORTABLE_IO_H
@@ -50,17 +50,17 @@
 
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
     __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define PIXIE_LITTLE_ENDIAN 1
+#define OPENRENDER_LITTLE_ENDIAN 1
 #elif defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && \
     __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#define PIXIE_BIG_ENDIAN 1
+#define OPENRENDER_BIG_ENDIAN 1
 #else
 // Fallback: Most common architectures are little-endian
 #if defined(_WIN32) || defined(_WIN64) ||                            \
     defined(__x86_64__) || defined(__i386__) || defined(__i686__) || \
     defined(__arm__) || defined(__aarch64__) ||                      \
     defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM) || defined(_M_ARM64)
-#define PIXIE_LITTLE_ENDIAN 1
+#define OPENRENDER_LITTLE_ENDIAN 1
 #else
 #error "Cannot determine endianness for this platform"
 #endif
@@ -122,7 +122,7 @@ constexpr uint64_p byteswap64(uint64_p value) noexcept {
 ////////////////////////////////////////////////////////////////////////
 // Endianness Conversion Functions
 //
-// Convert to/from little-endian format (Pixie file format standard)
+// Convert to/from little-endian format (openRender file format standard)
 // On little-endian systems, these are no-ops
 // On big-endian systems, these perform byte swapping
 ////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ T toLittleEndian(T value) noexcept {
     static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>,
                   "Type must be integral or floating point");
 
-#ifdef PIXIE_LITTLE_ENDIAN
+#ifdef OPENRENDER_LITTLE_ENDIAN
     // Already little-endian, no conversion needed
     return value;
 #else
@@ -267,7 +267,7 @@ inline bool readFloat64(FILE *file, float64_p &value) noexcept {
 ////////////////////////////////////////////////////////////////////////
 // Vector I/O Functions
 //
-// Pixie uses 3D vectors (float[3]) extensively
+// openRender uses 3D vectors (float[3]) extensively
 // These functions read/write vector data portably
 ////////////////////////////////////////////////////////////////////////
 
@@ -349,7 +349,7 @@ inline bool readFloat32Array(FILE *file, float32_p *arr, std::size_t count) noex
 
 // Check if current platform is little-endian at runtime
 constexpr bool isLittleEndian() noexcept {
-#ifdef PIXIE_LITTLE_ENDIAN
+#ifdef OPENRENDER_LITTLE_ENDIAN
     return true;
 #else
     return false;

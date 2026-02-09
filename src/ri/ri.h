@@ -24,8 +24,8 @@
 //  Description			:	RenderMan Header
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef PIXIE
-#define PIXIE
+#ifndef OPENRENDER
+#define OPENRENDER
 
 #ifdef __cplusplus
 extern "C" {

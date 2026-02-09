@@ -69,6 +69,6 @@ Tutorial-style guides to various features in Pixie.
 - Improved AOV support (color AOVs are alpha composited like rgba)
 - Improved non-raster-orient dicing
 - Raytracing improvements - more robust, faster raytracing, with PRMan-compatible visibility and shade attributes
-- Shading language compiler `sdrc` is more robust and supports some syntax it previously didn't
+- Shading language compiler `oshader` is more robust and supports some syntax it previously didn't
 
 Download: [SourceForge Files](http://sourceforge.net/project/showfiles.php?group_id=59462&package_id=55537&release_id=522312), Release Notes: [SourceForge Notes](http://sourceforge.net/project/shownotes.php?release_id=522312&group_id=59462)

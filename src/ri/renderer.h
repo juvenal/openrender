@@ -338,7 +338,7 @@ class CRenderer {
         static TSearchpath *texturePath;                               // Texture search path
         static TSearchpath *shaderPath;                                // Shader search path
         static TSearchpath *displayPath;                               // Display search path
-        static TSearchpath *modulePath;                                // Search path for Pixie modules
+        static TSearchpath *modulePath;                                // Search path for openRender modules
         static int pixelXsamples, pixelYsamples;                       // Number of samples to take in X and Y
         static float gamma, gain;                                      // Gamma correction stuff
         static float pixelFilterWidth, pixelFilterHeight;              // Pixel filter data

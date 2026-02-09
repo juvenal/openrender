@@ -1,10 +1,10 @@
 /**
  * Project: Pixie
  *
- * File: texmake.cpp
+ * File: otexmake.cpp
  *
  * Description:
- *   This file implements the functionality for texmake.
+ *   This file implements the functionality for otexmake.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	texmake.cpp
+//  File				:	otexmake.cpp
 //  Classes				:	-
 //  Description			:	Texture making program
 //
@@ -52,8 +52,8 @@ const char *radiusscaleArgument = "-radiusscale";
 const char *maxdepthArgument = "-maxdepth";
 
 void printUsage() {
-    printf("Usage: texmake [-(shadow|envlatl|envcube)] [-resize <mode>] [-smode <mode>] [-tmode <mode>] [-filter <filter>] [-filterwidth <width>] [-filterheight <height>] [-sfilterwidth <width>] [-tfilterwidth <width>] <inputfile> <outputfile>\n");
-    printf("       texmake -texture3d [-maxerror <number>] [-radiusscale <number>] [-maxdepth <number>] <inputfile> <outputfile>\n");
+    printf("Usage: otexmake [-(shadow|envlatl|envcube)] [-resize <mode>] [-smode <mode>] [-tmode <mode>] [-filter <filter>] [-filterwidth <width>] [-filterheight <height>] [-sfilterwidth <width>] [-tfilterwidth <width>] <inputfile> <outputfile>\n");
+    printf("       otexmake -texture3d [-maxerror <number>] [-radiusscale <number>] [-maxdepth <number>] <inputfile> <outputfile>\n");
 }
 
 int main(int argc, char *argv[]) {

@@ -2062,7 +2062,7 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
         uint32 height = 0;
 
         // Use full image tags in preference to image size tags
-        // Allows us to rescale when texmake makes a texture power of 2
+        // Allows us to rescale when otexmake makes a texture power of 2
         // but retains aspect ratio
         if (((TIFFGetField(in, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1) &&
              (TIFFGetField(in, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1)) ||

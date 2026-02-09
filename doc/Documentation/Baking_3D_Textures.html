@@ -76,7 +76,7 @@ var wgCurRevisionId = "3006";
 <li class="toclevel-2"><a href="#optional_parameters"><span class="tocnumber">2.3</span> <span class="toctext">optional parameters</span></a></li>
 </ul>
 </li>
-<li class="toclevel-1"><a href="#Using_texmake_to_prepare_textures"><span class="tocnumber">3</span> <span class="toctext">Using texmake to prepare textures</span></a></li>
+<li class="toclevel-1"><a href="#Using_otexmake_to_prepare_textures"><span class="tocnumber">3</span> <span class="toctext">Using otexmake to prepare textures</span></a></li>
 <li class="toclevel-1"><a href="#Alternative_for_preparing_a_texture"><span class="tocnumber">4</span> <span class="toctext">Alternative for preparing a texture</span></a></li>
 <li class="toclevel-1"><a href="#texture3d"><span class="tocnumber">5</span> <span class="toctext">texture3d</span></a>
 <ul>
@@ -93,7 +93,7 @@ var wgCurRevisionId = "3006";
 </p><p>The outline operation is:
 </p>
 <ul><li> call <tt>bake3d()</tt> from your shader to save a point cloud of your data
-</li><li> convert the point cloud to a 3d bricked texture using <tt>texmake</tt>
+</li><li> convert the point cloud to a 3d bricked texture using <tt>otexmake</tt>
 </li><li> read the texture using <tt>texture3d</tt>
 </li></ul>
 <a name="Point_Clouds"></a><h2><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Baking_3D_Textures&amp;action=edit&amp;section=2" title="Edit section: Point Clouds">edit</a>]</span> <span class="mw-headline"> Point Clouds </span></h2>
@@ -146,20 +146,20 @@ var wgCurRevisionId = "3006";
 <pre>color Cd = &lt;something complex&gt;;
 bake3d("cloud.ptc","CoutDiff",P,N,"CoutDiff",Cd);
 </pre>
-<a name="Using_texmake_to_prepare_textures"></a><h1><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Baking_3D_Textures&amp;action=edit&amp;section=8" title="Edit section: Using texmake to prepare textures">edit</a>]</span> <span class="mw-headline"> Using <tt>texmake</tt> to prepare textures </span></h1>
-<p>To prepare these point clouds into a friendly format for reading, use the <tt>texmake</tt> program.  The <tt>-texture3d</tt> option to <tt>texmake</tt> specifies that you wish to prepare a 3d texture.  The syntax is:
+<a name="Using_otexmake_to_prepare_textures"></a><h1><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Baking_3D_Textures&amp;action=edit&amp;section=8" title="Edit section: Using otexmake to prepare textures">edit</a>]</span> <span class="mw-headline"> Using <tt>otexmake</tt> to prepare textures </span></h1>
+<p>To prepare these point clouds into a friendly format for reading, use the <tt>otexmake</tt> program.  The <tt>-texture3d</tt> option to <tt>otexmake</tt> specifies that you wish to prepare a 3d texture.  The syntax is:
 </p>
-<pre>texmake -texture3d [-maxerror n.n] &lt;input point cloud&gt; &lt;output 3d texture&gt;
+<pre>otexmake -texture3d [-maxerror n.n] &lt;input point cloud&gt; &lt;output 3d texture&gt;
 </pre>
 <p>The <tt>-maxerror</tt> parameter allows you to tweak how compression of the texture will occur.  The texture is stored in an octree-like format, with each level of the map representing a coarser approximation to previous levels.   For very uniform data, there is no need to store the finest representations as coarser levels will represent the data perfectly well.  The <tt>-maxerror</tt> parameter represents the maximum variation for which data will be considered uniform.
 </p><p>By setting maxerror (default 0.002) you can control the size/space tradeoff for the map.  Setting this number too large will result in 'blocky' lookups, and too small will hurt performance with no gain in quality.
 </p><p>For example, the following command line might be used to prepare the baked cloud to a 3d texture
 </p>
-<pre>texmake -texture3d cloud.ptc surftexture.bm
+<pre>otexmake -texture3d cloud.ptc surftexture.bm
 </pre>
 <p>of perhaps after some experimentation:
 </p>
-<pre>texmake -texture3d -maxerror 0.004 cloud.ptc surftexture.bm
+<pre>otexmake -texture3d -maxerror 0.004 cloud.ptc surftexture.bm
 </pre>
 <a name="Alternative_for_preparing_a_texture"></a><h1><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Baking_3D_Textures&amp;action=edit&amp;section=9" title="Edit section: Alternative for preparing a texture">edit</a>]</span> <span class="mw-headline"> Alternative for preparing a texture </span></h1>
 <p>You may also put the following fragment in your RIB <u>outside</u> WorldBegin / WorldEnd:

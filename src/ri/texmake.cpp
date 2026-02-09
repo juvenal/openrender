@@ -36,11 +36,11 @@
 #include <stddef.h> // ensure we have NULL defined before libtiff
 #include <tiffio.h>
 
-const char *TIFF_TEXTURE = "Pixie Texture";
-const char *TIFF_CYLINDER_ENVIRONMENT = "Pixie Environment (cylinder)";
-const char *TIFF_CUBIC_ENVIRONMENT = "Pixie Environment (cubic)";
-const char *TIFF_SPHERICAL_ENVIRONMENT = "Pixie Environment (spherical)";
-const char *TIFF_SHADOW = "Pixie shadow";
+const char *TIFF_TEXTURE = "openRender Texture";
+const char *TIFF_CYLINDER_ENVIRONMENT = "openRender Environment (cylinder)";
+const char *TIFF_CUBIC_ENVIRONMENT = "openRender Environment (cubic)";
+const char *TIFF_SPHERICAL_ENVIRONMENT = "openRender Environment (spherical)";
+const char *TIFF_SHADOW = "openRender shadow";
 
 const char *resizeUpMode = "up";
 const char *resizeDownMode = "down";

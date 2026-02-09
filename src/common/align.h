@@ -33,14 +33,14 @@
 ////////////////////////////////////////////////////////////////////////
 
 #if defined(_WIN32) || defined(_WIN64)
-    #define PIXIE_PLATFORM_WINDOWS 1
+    #define OPENRENDER_PLATFORM_WINDOWS 1
 #elif defined(__APPLE__) && defined(__MACH__)
-    #define PIXIE_PLATFORM_MACOS 1
+    #define OPENRENDER_PLATFORM_MACOS 1
     #include <TargetConditionals.h>
 #elif defined(__linux__)
-    #define PIXIE_PLATFORM_LINUX 1
+    #define OPENRENDER_PLATFORM_LINUX 1
 #elif defined(__unix__) || defined(__unix)
-    #define PIXIE_PLATFORM_UNIX 1
+    #define OPENRENDER_PLATFORM_UNIX 1
 #else
     #warning "Unknown platform - assuming POSIX compatibility"
 #endif
@@ -52,20 +52,20 @@
 ////////////////////////////////////////////////////////////////////////
 
 #if defined(__x86_64__) || defined(__x86_64) || defined(_M_X64) || defined(_M_AMD64)
-    #define PIXIE_ARCH_X86_64 1
-    #define PIXIE_CACHE_LINE_SIZE 64
+    #define OPENRENDER_ARCH_X86_64 1
+    #define OPENRENDER_CACHE_LINE_SIZE 64
 #elif defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64)
-    #define PIXIE_ARCH_ARM64 1
-    #define PIXIE_CACHE_LINE_SIZE 64  // Apple Silicon & modern ARM64
+    #define OPENRENDER_ARCH_ARM64 1
+    #define OPENRENDER_CACHE_LINE_SIZE 64  // Apple Silicon & modern ARM64
 #elif defined(__i386__) || defined(__i386) || defined(_M_IX86)
-    #define PIXIE_ARCH_X86 1
-    #define PIXIE_CACHE_LINE_SIZE 64
+    #define OPENRENDER_ARCH_X86 1
+    #define OPENRENDER_CACHE_LINE_SIZE 64
 #elif defined(__arm__) || defined(_M_ARM)
-    #define PIXIE_ARCH_ARM32 1
-    #define PIXIE_CACHE_LINE_SIZE 64
+    #define OPENRENDER_ARCH_ARM32 1
+    #define OPENRENDER_CACHE_LINE_SIZE 64
 #else
     #warning "Unknown architecture - assuming 64-byte cache lines"
-    #define PIXIE_CACHE_LINE_SIZE 64
+    #define OPENRENDER_CACHE_LINE_SIZE 64
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -145,17 +145,17 @@ inline bool isAligned(const void* ptr, std::size_t alignment) noexcept {
 
 // Align to cache line boundary
 constexpr std::size_t alignToCacheLine(std::size_t value) noexcept {
-    return alignTo(value, PIXIE_CACHE_LINE_SIZE);
+    return alignTo(value, OPENRENDER_CACHE_LINE_SIZE);
 }
 
 // Check if aligned to cache line
 constexpr bool isCacheLineAligned(std::size_t value) noexcept {
-    return isAligned(value, PIXIE_CACHE_LINE_SIZE);
+    return isAligned(value, OPENRENDER_CACHE_LINE_SIZE);
 }
 
 // Note: Not constexpr (calls non-constexpr isAligned)
 inline bool isCacheLineAligned(const void* ptr) noexcept {
-    return isAligned(ptr, PIXIE_CACHE_LINE_SIZE);
+    return isAligned(ptr, OPENRENDER_CACHE_LINE_SIZE);
 }
 
 ////////////////////////////////////////////////////////////////////////

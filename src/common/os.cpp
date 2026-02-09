@@ -233,16 +233,16 @@ void osFixSlashes(char *st) {
 void osTempdir(char *result, size_t resultsize) {
 
 #ifdef _WINDOWS
-    snprintf(result, resultsize, "PixieTemp_%d\\", GetCurrentProcessId());
+    snprintf(result, resultsize, "openRenderTemp_%d\\", GetCurrentProcessId());
 #else
     // Unix-y (including macOS)
     const char *tempDirEnv = osEnvironment("TMPDIR");
     if (!tempDirEnv)
         tempDirEnv = osEnvironment("TMP");
     if (tempDirEnv != NULL)
-        snprintf(result, resultsize, "%s/PixieTemp_%d/", tempDirEnv, getpid());
+        snprintf(result, resultsize, "%s/openRenderTemp_%d/", tempDirEnv, getpid());
     else
-        snprintf(result, resultsize, "/tmp/PixieTemp_%d/", getpid());
+        snprintf(result, resultsize, "/tmp/openRenderTemp_%d/", getpid());
 #endif
 
     osFixSlashes(result);

@@ -67,7 +67,7 @@ CShow::CShow(int thread) : CShadingContext(thread) {
             if (visualize != NULL) {
 
                 // Try to load the file
-                const char *fileName = CRenderer::hider + 5;
+                const char *fileName = CRenderer::hider + 6;
                 FILE *in = fopen(fileName, "rb");
 
                 CView::drawTriangles = (TGlTrianglesFunction)osResolve(CView::handle, "pglTriangles");

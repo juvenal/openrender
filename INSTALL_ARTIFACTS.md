@@ -14,11 +14,11 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 | Binary | Description | Location |
 |--------|-------------|----------|
-| `rndr` | Main renderer executable | `/usr/local/bin/rndr` |
-| `sdrc` | Shader compiler | `/usr/local/bin/sdrc` |
+| `orender` | Main renderer executable | `/usr/local/bin/orender` |
+| `oshader` | Shader compiler | `/usr/local/bin/oshader` |
 | `sdrinfo` | Shader information utility | `/usr/local/bin/sdrinfo` |
-| `texmake` | Texture creation utility | `/usr/local/bin/texmake` |
-| `show` | GUI viewer (FLTK-based, optional) | `/usr/local/bin/show` |
+| `otexmake` | Texture creation utility | `/usr/local/bin/otexmake` |
+| `oshow` | GUI viewer (FLTK-based, optional) | `/usr/local/bin/oshow` |
 | `precomp` | Preprocessor (not installed by default) | Build only |
 
 ---
@@ -92,10 +92,10 @@ Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 
 | Man Page | Command |
 |----------|---------|
-| `rndr.1` | rndr(1) |
-| `sdrc.1` | sdrc(1) |
+| `orender.1` | orender(1) |
+| `oshader.1` | oshader(1) |
 | `sdrinfo.1` | sdrinfo(1) |
-| `texmake.1` | texmake(1) |
+| `otexmake.1` | otexmake(1) |
 
 ---
 
@@ -118,14 +118,14 @@ Installed to: `${PIXIE_DOCDIR}` → `/usr/local/share/doc/`
 
 ## Installation Directory Structure
 
-```
+```text
 /usr/local/
 ├── bin/
-│   ├── rndr
-│   ├── sdrc
+│   ├── orender
+│   ├── oshader
 │   ├── sdrinfo
-│   ├── texmake
-│   └── show
+│   ├── otexmake
+│   └── oshow
 ├── lib/
 │   ├── libri.dylib
 │   └── libsdr.dylib
@@ -146,10 +146,10 @@ Installed to: `${PIXIE_DOCDIR}` → `/usr/local/share/doc/`
 │   └── *.sdr
 ├── share/
 │   ├── man/man1/        # Man pages
-│   │   ├── rndr.1
-│   │   ├── sdrc.1
+│   │   ├── orender.1
+│   │   ├── oshader.1
 │   │   ├── sdrinfo.1
-│   │   └── texmake.1
+│   │   └── otexmake.1
 │   └── doc/             # Documentation
 │       ├── AUTHORS
 │       ├── ChangeLog
@@ -170,11 +170,11 @@ When creating the Homebrew formula, you should verify these files are installed:
 ### Required Executables
 ```ruby
 test do
-  system "#{bin}/rndr", "--help"
-  system "#{bin}/sdrc", "--version"
-  system "#{bin}/texmake", "--help"
+  system "#{bin}/orender", "--help"
+  system "#{bin}/oshader", "--version"
+  system "#{bin}/otexmake", "--help"
   system "#{bin}/sdrinfo", "--version"
-  # show is optional (requires fltk)
+  # oshow is optional (requires fltk)
 end
 ```
 
@@ -206,7 +206,7 @@ end
 ### Man Pages
 ```ruby
 test do
-  assert_predicate man1/"rndr.1", :exist?
+  assert_predicate man1/"orender.1", :exist?
 end
 ```
 
@@ -244,4 +244,3 @@ When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 | Man Pages | 4 |
 | Documentation Files | 8 |
 | **Total Files** | **84** |
-

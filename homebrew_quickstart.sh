@@ -2,7 +2,7 @@
 set -e
 
 echo "=================================================="
-echo "Homebrew Formula Quick-Start for Pixie Renderer"
+echo "Homebrew Formula Quick-Start for openRender Renderer"
 echo "=================================================="
 echo ""
 
@@ -31,7 +31,7 @@ echo ""
 echo -e "${BLUE}Step 2: GitHub Repository Setup${NC}"
 echo "Before continuing, you need to:"
 echo "  1. Go to https://github.com/new"
-echo "  2. Create a repository named: ${GREEN}homebrew-pixie${NC}"
+echo "  2. Create a repository named: ${GREEN}homebrew-openrender${NC}"
 echo "     (Or homebrew-<yourname>, following the homebrew-* pattern)"
 echo "  3. Make it ${GREEN}public${NC}"
 echo "  4. Don't initialize with README"
@@ -42,7 +42,7 @@ echo ""
 # Step 3: Get repository details
 echo -e "${BLUE}Step 3: Repository Details${NC}"
 read -p "Enter your GitHub username: " GITHUB_USER
-read -p "Enter your tap name (e.g., 'pixie'): " TAP_NAME
+read -p "Enter your tap name (e.g., 'openrender'): " TAP_NAME
 REPO_NAME="homebrew-${TAP_NAME}"
 echo ""
 
@@ -79,7 +79,7 @@ mkdir -p Formula
 echo ""
 
 # Step 5: Create the formula
-echo -e "${BLUE}Step 5: Creating Pixie formula...${NC}"
+echo -e "${BLUE}Step 5: Creating openRender formula...${NC}"
 read -p "Enter your openrender repository URL (e.g., https://github.com/${GITHUB_USER}/openrender): " REPO_URL
 read -p "Enter the version tag (e.g., v2.2.6): " VERSION
 echo ""
@@ -101,9 +101,9 @@ fi
 echo ""
 
 # Create the formula file
-echo -e "${BLUE}Creating Formula/pixie.rb...${NC}"
-cat > Formula/pixie.rb << FORMULA
-class Pixie < Formula
+echo -e "${BLUE}Creating Formula/openrender.rb...${NC}"
+cat > Formula/openrender.rb << FORMULA
+class OpenRender < Formula
   desc "RenderMan-compliant photorealistic renderer"
   homepage "${REPO_URL}"
   url "${TARBALL_URL}"
@@ -133,9 +133,9 @@ class Pixie < Formula
 
   test do
     # Verify executables are installed and working
-    system "#{bin}/rndr", "--help"
-    system "#{bin}/sdrc", "--version"
-    system "#{bin}/texmake", "--help"
+    system "#{bin}/orender", "--help"
+    system "#{bin}/oshader", "--version"
+    system "#{bin}/otexmake", "--help"
     
     # Check that libraries are installed
     assert_predicate lib/"libri.dylib", :exist?
@@ -144,7 +144,7 @@ class Pixie < Formula
 end
 FORMULA
 
-echo "✅ Formula created at Formula/pixie.rb"
+echo "✅ Formula created at Formula/openrender.rb"
 echo ""
 
 # Step 6: Test the formula locally
@@ -152,28 +152,28 @@ echo -e "${BLUE}Step 6: Testing formula locally...${NC}"
 echo "To test the formula before publishing:"
 echo ""
 echo "  cd ${TAP_DIR}"
-echo "  brew install --build-from-source --verbose ./Formula/pixie.rb"
-echo "  brew test pixie"
-echo "  brew audit --new-formula pixie"
+echo "  brew install --build-from-source --verbose ./Formula/openrender.rb"
+echo "  brew test openrender"
+echo "  brew audit --new-formula openrender"
 echo ""
 read -p "Would you like to test now? (y/n): " TEST_NOW
 
 if [ "$TEST_NOW" = "y" ]; then
-    echo "Installing pixie from formula..."
-    brew install --build-from-source --verbose ./Formula/pixie.rb || {
+    echo "Installing openrender from formula..."
+    brew install --build-from-source --verbose ./Formula/openrender.rb || {
         echo "❌ Installation failed. Check the output above for errors."
         exit 1
     }
-    
+
     echo ""
     echo "Running tests..."
-    brew test pixie || {
+    brew test openrender || {
         echo "⚠️  Tests failed. You may need to update the test block in the formula."
     }
-    
+
     echo ""
     echo "Running audit..."
-    brew audit --new-formula pixie || {
+    brew audit --new-formula openrender || {
         echo "⚠️  Audit found issues. Review them before publishing."
     }
 fi
@@ -186,16 +186,16 @@ echo ""
 echo "Commands to publish:"
 echo -e "${GREEN}"
 echo "  cd ${TAP_DIR}"
-echo "  git add Formula/pixie.rb"
-echo "  git commit -m 'Add Pixie ${VERSION} formula'"
+echo "  git add Formula/openrender.rb"
+echo "  git commit -m 'Add openRender ${VERSION} formula'"
 echo "  git branch -M main"
 echo "  git push -u origin main"
 echo -e "${NC}"
 read -p "Would you like to commit and push now? (y/n): " PUBLISH_NOW
 
 if [ "$PUBLISH_NOW" = "y" ]; then
-    git add Formula/pixie.rb
-    git commit -m "Add Pixie ${VERSION} formula"
+    git add Formula/openrender.rb
+    git commit -m "Add openRender ${VERSION} formula"
     git branch -M main
     git push -u origin main || {
         echo "❌ Push failed. You may need to authenticate with GitHub."
@@ -211,22 +211,22 @@ echo -e "${GREEN}=================================================="
 echo "🎉 Setup Complete!"
 echo "==================================================${NC}"
 echo ""
-echo "Users can now install Pixie with:"
+echo "Users can now install openRender with:"
 echo -e "${BLUE}"
 echo "  # Add your tap"
 echo "  brew tap ${GITHUB_USER}/${TAP_NAME}"
 echo ""
-echo "  # Install pixie"
-echo "  brew install pixie"
+echo "  # Install openrender"
+echo "  brew install openrender"
 echo ""
 echo "  # Or in one command:"
-echo "  brew install ${GITHUB_USER}/${TAP_NAME}/pixie"
+echo "  brew install ${GITHUB_USER}/${TAP_NAME}/openrender"
 echo -e "${NC}"
 echo ""
 echo "To update the formula in the future:"
 echo "  1. Create a new release tag on GitHub"
-echo "  2. Update Formula/pixie.rb with new version and SHA256"
-echo "  3. git commit -am 'pixie: update to <new-version>'"
+echo "  2. Update Formula/openrender.rb with new version and SHA256"
+echo "  3. git commit -am 'openrender: update to <new-version>'"
 echo "  4. git push"
 echo ""
 echo "For more information:"

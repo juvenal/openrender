@@ -42,17 +42,17 @@ The formatting of the printed values is as follows:
 "string"
 .SH ENVIRONMENT
 .TP
-.B PIXIEHOME
-The directory $(PIXIEHOME)/shaders is searched for shaders
+.B OPENRENDERHOME
+The directory $(OPENRENDERHOME)/shaders is searched for shaders
 .TP
 .B SHADERS
 Also searched for shaders
 .SH "SEE ALSO"
-sdrc(1), texmake(1), show(1), sdrinfo(1)
+oshader(1), otexmake(1), oshow(1), sdrinfo(1)
 .SH BUGS
 Complex default values (those which require a function to be run at shader startup)
 may not display the correct value, but a zero instead.  Functions are not run by
 .I sdrinfo
 and only stored defaults are reported.
 .P
-See the sourceforge forums / tracker at http://pixie.sourceforge.net
+See the sourceforge forums / tracker at http://openrender.sourceforge.net
