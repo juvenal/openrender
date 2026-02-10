@@ -109,8 +109,8 @@ void exitFunction() {
 // Return Value			:	-
 // Comments				:
 void printVersion() {
-    printf("openRender RenderMan Renderer (orender) v%d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
-    printf("\nCopyright 1999-2008 Okan Arikan. http://renderpixie.com/\n");
+    printf("openRender RenderMan Renderer (orender) v%s\n", openrender_version_string());
+    printf("\nCopyright 2026 Juvenal A. Silva Jr. https://openrender.juvenal.me\n");
     printf("openRender is free software. There is NO warranty; not even for\n");
     printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }

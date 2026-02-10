@@ -100,8 +100,8 @@ static const char *argumentQuietInfo = "-q";
 // Return Value			:	-
 // Comments				:
 void printVersion() {
-    printf("openRender RenderMan Shader Language Compiler (%s) v%d.%d.%d\n", compilerName, VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
-    printf("\nCopyright 1999-2008 Okan Arikan. http://renderpixie.com/\n");
+    printf("openRender RenderMan Shader Language Compiler (%s) v%s\n", compilerName, openrender_version_string());
+    printf("\nCopyright 2026 Juvenal A. Silva Jr. https://openrender.juvenal.me\n");
     printf("openRender is free software. There is NO warranty; not even for\n");
     printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }

@@ -1,4 +1,4 @@
-# Pixie Build Artifacts & Installation Locations
+# openRender Build Artifacts & Installation Locations
 
 ## Build Configuration
 
@@ -36,7 +36,7 @@ Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
 ## Display Driver Modules (4 plugins)
 
-Installed to: `${PIXIE_DISPLAYSDIR}` → `/usr/local/displays/`
+Installed to: `${OPENRENDER_DISPLAYSDIR}` → `/usr/local/displays/`
 
 | Module | Description | Location |
 |--------|-------------|----------|
@@ -53,7 +53,7 @@ Installed to: `${PIXIE_DISPLAYSDIR}` → `/usr/local/displays/`
 
 | Library | Description | Location |
 |---------|-------------|----------|
-| `libpixiecommon.a` | Common utilities static library | Build only |
+| `libopenrendercommon.a` | Common utilities static library | Build only |
 
 ---
 
@@ -73,7 +73,7 @@ From `src/ri/CMakeLists.txt`:
 
 ## Shader Files (54 files)
 
-Installed to: `${PIXIE_SHADERDIR}` → `/usr/local/shaders/`
+Installed to: `${OPENRENDER_SHADERDIR}` → `/usr/local/shaders/`
 
 Includes:
 - `.sl` files - Shader source files (RenderMan Shading Language)
@@ -101,18 +101,18 @@ Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 
 ## Documentation Files (8 files)
 
-Installed to: `${PIXIE_DOCDIR}` → `/usr/local/share/doc/`
+Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 
 | File | Description |
 |------|-------------|
-| `AUTHORS` | Project authors |
-| `ChangeLog` | Change history |
-| `COPYING` | License text (LGPL) |
-| `DEVNOTES` | Developer notes |
-| `INSTALL` | Installation instructions |
-| `LICENSE` | License information |
-| `NEWS` | News and announcements |
-| `README` | Project readme |
+| `AUTHORS.md` | Project authors |
+| `ChangeLog.md` | Change history |
+| `COPYING.md` | License pointer (see LICENSE.md) |
+| `DEVNOTES.md` | Developer notes |
+| `INSTALL.md` | Installation instructions |
+| `LICENSE.md` | License (LGPL-2.1) |
+| `NEWS.md` | News and announcements |
+| `README.md` | Project readme |
 
 ---
 
@@ -151,14 +151,14 @@ Installed to: `${PIXIE_DOCDIR}` → `/usr/local/share/doc/`
 │   │   ├── sdrinfo.1
 │   │   └── otexmake.1
 │   └── doc/             # Documentation
-│       ├── AUTHORS
-│       ├── ChangeLog
-│       ├── COPYING
-│       ├── DEVNOTES
-│       ├── INSTALL
-│       ├── LICENSE
-│       ├── NEWS
-│       └── README
+│       ├── AUTHORS.md
+│       ├── ChangeLog.md
+│       ├── COPYING.md
+│       ├── DEVNOTES.md
+│       ├── INSTALL.md
+│       ├── LICENSE.md
+│       ├── NEWS.md
+│       └── README.md
 ```
 
 ---
@@ -221,14 +221,14 @@ When `INSTALL_SELFCONTAINED=OFF` (system installation):
 - `CMAKE_INSTALL_INCLUDEDIR` = `/usr/local/include`
 - `CMAKE_INSTALL_MANDIR` = `/usr/local/share/man`
 - `CMAKE_INSTALL_DATAROOTDIR` = `/usr/local/share`
-- `PIXIE_DISPLAYSDIR` = `/usr/local/lib/Pixie/displays`
-- `PIXIE_SHADERDIR` = `/usr/local/share/Pixie/shaders`
+- `OPENRENDER_DISPLAYSDIR` = `/usr/local/lib/openRender/displays`
+- `OPENRENDER_SHADERDIR` = `/usr/local/share/openRender/shaders`
 
 When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 
 - All files under `CMAKE_INSTALL_PREFIX`
-- `PIXIE_DISPLAYSDIR` = `${PREFIX}/displays`
-- `PIXIE_SHADERDIR` = `${PREFIX}/shaders`
+- `OPENRENDER_DISPLAYSDIR` = `${PREFIX}/displays`
+- `OPENRENDER_SHADERDIR` = `${PREFIX}/shaders`
 
 ---
 

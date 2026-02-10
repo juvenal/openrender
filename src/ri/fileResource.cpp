@@ -79,9 +79,9 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
 
         fwrite(&magic, sizeof(int), 1, f);
 
-        version[0] = VERSION_RELEASE;
-        version[1] = VERSION_BETA;
-        version[2] = VERSION_ALPHA;
+        version[0] = VERSION_MAJOR;
+        version[1] = VERSION_MINOR;
+        version[2] = VERSION_PATCH;
         version[3] = sizeof(int *);
 
         fwrite(version, sizeof(int), 4, f);
@@ -110,7 +110,7 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
 
         fread(version, 3, sizeof(int), f);
 
-        if ((version[0] != VERSION_RELEASE) || (version[1] != VERSION_BETA)) {
+        if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
             // Always report file version errors
             error(CODE_BADFILE, "File \"%s\" is of incompatible version\n", name);
             fclose(f);
@@ -172,7 +172,7 @@ FILE *ropen(const char *name, char *type) {
 
     fread(version, 3, sizeof(int), f);
 
-    if ((version[0] != VERSION_RELEASE) || (version[1] != VERSION_BETA)) {
+    if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
         error(CODE_BADFILE, "File \"%s\" is of incompatible version\n", name);
         fclose(f);
         return NULL;

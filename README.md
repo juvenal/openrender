@@ -155,7 +155,13 @@ cmake --build . --config Release
 ├── CMakeLists.txt        # Main CMake build file
 ├── COMPILING.txt         # Compilation instructions
 ├── README.md             # This file
-├── COPYING               # License information
+├── LICENSE.md            # License (LGPL-2.1)
+├── COPYING.md            # License pointer
+├── AUTHORS.md            # Contributors
+├── ChangeLog.md          # Changelog
+├── DEVNOTES.md           # Developer notes
+├── INSTALL.md            # Install instructions
+├── NEWS.md               # Release news
 └── ...
 ```
 
@@ -172,7 +178,7 @@ We welcome contributions to openRender! Please feel free to submit pull requests
 
 ## License
 
-openRender is licensed under the GNU Lesser General Public License v2.1 (LGPL-2.1). See the [COPYING](COPYING) file for details.
+openRender is licensed under the GNU Lesser General Public License v2.1 (LGPL-2.1). See [LICENSE.md](LICENSE.md) for the full text; [COPYING.md](COPYING.md) points to the same.
 
 ## Authors
 
@@ -195,7 +201,7 @@ The original Pixie project contributors include:
 - Eliot Mack
 - Raphael Sebbe
 
-For a complete list of contributors, see the [AUTHORS](AUTHORS) file.
+For a complete list of contributors, see [AUTHORS.md](AUTHORS.md).
 
 ---
 

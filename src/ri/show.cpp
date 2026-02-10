@@ -89,7 +89,7 @@ CShow::CShow(int thread) : CShadingContext(thread) {
                     if (magic == magicNumber) {
                         fread(version, sizeof(int), 4, in);
 
-                        if (!((version[0] == VERSION_RELEASE) || (version[1] == VERSION_BETA))) {
+                        if (!((version[0] == VERSION_MAJOR) || (version[1] == VERSION_MINOR))) {
                             error(CODE_VERSION, "File \"%s\" is from an incompatible version\n", fileName);
                         } else {
                             if (version[3] != sizeof(int *)) {

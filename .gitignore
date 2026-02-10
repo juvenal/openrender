@@ -2,6 +2,7 @@
 build
 build-test
 openrender
+install_staging
 
 # CMake generated files
 CMakeFiles/

@@ -21,10 +21,18 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-// The openRender version
-#define VERSION_RELEASE 1
-#define VERSION_BETA 0
-#define VERSION_ALPHA 0
+#include "version_config.h"
+
+// openRender version (SemVer: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD])
+#define VERSION_MAJOR OPENRENDER_VERSION_MAJOR
+#define VERSION_MINOR OPENRENDER_VERSION_MINOR
+#define VERSION_PATCH OPENRENDER_VERSION_PATCH
+#define VERSION_PRERELEASE OPENRENDER_VERSION_PRERELEASE
+#define VERSION_BUILD_METADATA OPENRENDER_VERSION_BUILD_METADATA
+
+static inline const char *openrender_version_string(void) {
+    return OPENRENDER_VERSION_STRING;
+}
 
 // Some constant definitions
 

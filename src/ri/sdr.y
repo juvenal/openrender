@@ -2049,7 +2049,7 @@ int	slLineno	=	0;
 // Return Value			:
 // Comments				:
 void	slerror(const char *s) {
-	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d)\n",currentData.name,slLineno,s,VERSION_RELEASE,VERSION_BETA,VERSION_ALPHA);
+	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d)\n",currentData.name,slLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
 	currentData.numErrors++;
 }
 

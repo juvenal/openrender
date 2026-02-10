@@ -1632,9 +1632,9 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
         return TRUE;
     } else if (strcmp(name, rendererinfoVersion) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)VERSION_RELEASE;
-        d[1] = (float)VERSION_BETA;
-        d[2] = (float)VERSION_ALPHA;
+        d[0] = (float)VERSION_MAJOR;
+        d[1] = (float)VERSION_MINOR;
+        d[2] = (float)VERSION_PATCH;
         d[3] = (float)0;
         return TRUE;
     }

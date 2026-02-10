@@ -1460,7 +1460,7 @@ void CScriptContext::generateCode(const char *o) {
         return;
     }
 
-    fprintf(out, "#!version %d.%d.%d\n", VERSION_RELEASE, VERSION_BETA, VERSION_ALPHA);
+    fprintf(out, "#!version %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
     switch (shaderType) {
     case SLC_SURFACE:

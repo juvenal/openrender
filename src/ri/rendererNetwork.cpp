@@ -498,8 +498,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
         }
 
         // Check the version
-        if ((netBuffer[1].integer != VERSION_RELEASE) ||
-            (netBuffer[2].integer != VERSION_BETA)) {
+        if ((netBuffer[1].integer != VERSION_MAJOR) ||
+            (netBuffer[2].integer != VERSION_MINOR)) {
             netBuffer[0].integer = NET_NACK;
             fatal(CODE_SYSTEM, "Version mismatch with the client\n");
         } else {
@@ -599,9 +599,9 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
 
                     // Try to establist the connection
                     netBuffer[0].integer = NET_CONNECT;
-                    netBuffer[1].integer = VERSION_RELEASE;
-                    netBuffer[2].integer = VERSION_BETA;
-                    netBuffer[3].integer = VERSION_ALPHA;
+                    netBuffer[1].integer = VERSION_MAJOR;
+                    netBuffer[2].integer = VERSION_MINOR;
+                    netBuffer[3].integer = VERSION_PATCH;
                     rcSend(control, netBuffer, 4 * sizeof(T32)); // Send the client version
                     rcRecv(control, netBuffer, 1 * sizeof(T32)); // Expect an ACK
 
@@ -661,9 +661,9 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
 
                 // Try to establist the connection
                 netBuffer[0].integer = NET_CONNECT;
-                netBuffer[1].integer = VERSION_RELEASE;
-                netBuffer[2].integer = VERSION_BETA;
-                netBuffer[3].integer = VERSION_ALPHA;
+                netBuffer[1].integer = VERSION_MAJOR;
+                netBuffer[2].integer = VERSION_MINOR;
+                netBuffer[3].integer = VERSION_PATCH;
                 rcSend(control, netBuffer, 4 * sizeof(T32)); // Send the client version
                 rcRecv(control, netBuffer, 1 * sizeof(T32)); // Expect an ACK
 
