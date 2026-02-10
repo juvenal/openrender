@@ -1,0 +1,11 @@
+# Test RIB file that uses the Geometry statement
+Display "test_output.tif" "tiff" "rgba"
+Format 256 256 1
+Projection "perspective" "fov" 45
+Translate 0 0 5
+WorldBegin
+
+# Using the Geometry statement to reference the named geometry
+Geometry "test_object"
+
+WorldEnd

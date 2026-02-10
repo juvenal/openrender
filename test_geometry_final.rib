@@ -1,0 +1,16 @@
+# Final test RIB file for the Geometry statement
+Display "final_test_output.tif" "tiff" "rgba"
+Format 256 256 1
+Projection "perspective" "fov" 45
+Translate 0 0 5
+
+WorldBegin
+
+# Using the Geometry statement to reference a named geometry
+# This should look for "teapot.rib" in the geometry folder
+Geometry "teapot"
+
+# Add a fallback geometry in case the reference geometry is not found
+Sphere 1 -1 1 360
+
+WorldEnd

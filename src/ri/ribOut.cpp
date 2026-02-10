@@ -1126,7 +1126,11 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                             }
 
                                                             void CRibOut::RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]) {
-                                                                errorHandler(RIE_UNIMPLEMENT, RIE_ERROR, "Failed to output optional geometry\n");
+                                                                out("Geometry \"%s\" ", type);
+                                                                if (n > 0)
+                                                                    writePL(n, tokens, params);
+                                                                else
+                                                                    out("\n");
                                                             }
 
                                                             void CRibOut::RiCurvesV(const char *degree, int ncurves, int nverts[], const char *wrap, int n, const char *tokens[], const void *params[]) {

@@ -1,0 +1,5 @@
+# Test geometry file for the Geometry RIB statement
+ObjectBegin "test_object"
+# Simple sphere geometry definition
+Sphere 1 -1 1 360
+ObjectEnd

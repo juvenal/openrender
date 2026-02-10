@@ -1,0 +1,12 @@
+# Test geometry file for the Geometry RIB statement
+# This file contains a named ObjectBegin block that can be referenced
+
+ObjectBegin "test_cube"
+# Simple cube geometry definition
+Polygon "P" [-1 -1 -1  1 -1 -1  1  1 -1  -1  1 -1
+             -1 -1  1  1 -1  1  1  1  1  -1  1  1
+             -1 -1 -1  -1 -1  1  -1  1  1  -1  1 -1
+              1 -1 -1   1 -1  1   1  1  1   1  1 -1
+             -1 -1 -1   1 -1 -1   1 -1  1  -1 -1  1
+             -1  1 -1   1  1 -1   1  1  1  -1  1  1]
+ObjectEnd

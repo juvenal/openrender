@@ -156,6 +156,7 @@ class CRendererContext : public CRiInterface {
         void RiTorusV(float majorrad, float minorrad, float phimin, float phimax, float thetamax, int n, const char *tokens[], const void *params[]);
         void RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *));
         void RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]);
+        void loadAndExecuteNamedGeometry(const char *filename, const char *objectName);
 
         void RiCurvesV(const char *degree, int ncurves, int nverts[], const char *wrap, int n, const char *tokens[], const void *params[]);
         void RiPointsV(int npts, int n, const char *tokens[], const void *params[]);

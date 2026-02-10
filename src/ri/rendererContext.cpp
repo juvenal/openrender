@@ -4301,7 +4301,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
                                                                     for (i = 0; i < n; i++) {
                                                                         if (strcmp(tokens[i], "file") == 0) {
-                                                                            name = (const char *)params[i];
+                                                                            name = *(const char **)params[i];
                                                                         } else {
                                                                             CVariable var;
 
@@ -4357,8 +4357,121 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                         }
                                                                     }
                                                                 } else {
-                                                                    error(CODE_BADTOKEN, "Unknown geometry: \"%s\"\n", type);
+                                                                    // Spec 5.8: first argument is geometry name (RiToken); expand ObjectBegin "name" block from name.rib
+                                                                    CAttributes *attributes = getAttributes(FALSE);
+                                                                    checkGeometryOrDiscard();
+                                                                    char location[OS_MAX_PATH_LENGTH];
+                                                                    if (CRenderer::locateFileEx(location, type, ".rib", CRenderer::geometryPath)) {
+                                                                        loadAndExecuteNamedGeometry(location, type);
+                                                                    } else {
+                                                                        error(CODE_MISSINGDATA, "Geometry '%s' not found in geometry path\n", type);
+                                                                    }
                                                                 }
+                                                            }
+
+                                                            namespace {
+                                                                static const int kGeometryExpandStackMax = 32;
+                                                                static const char *geometryExpandStack[kGeometryExpandStackMax];
+                                                                static int geometryExpandDepth = 0;
+
+                                                                static int isLineObjectBeginWithName(const char *line, const char *objectName) {
+                                                                    const char *p = line;
+                                                                    while (*p == ' ' || *p == '\t') p++;
+                                                                    if (strncmp(p, "ObjectBegin", 11) != 0) return 0;
+                                                                    p += 11;
+                                                                    while (*p == ' ' || *p == '\t') p++;
+                                                                    if (*p != '"') return 0;
+                                                                    p++;
+                                                                    size_t len = strlen(objectName);
+                                                                    if (strncmp(p, objectName, len) != 0) return 0;
+                                                                    if (p[len] != '"') return 0;
+                                                                    return 1;
+                                                                }
+                                                                static int lineStartsWith(const char *line, const char *prefix) {
+                                                                    const char *p = line;
+                                                                    while (*p == ' ' || *p == '\t') p++;
+                                                                    return strncmp(p, prefix, strlen(prefix)) == 0;
+                                                                }
+                                                            }
+
+                                                            void CRendererContext::loadAndExecuteNamedGeometry(const char *filename, const char *objectName) {
+                                                                int i;
+                                                                for (i = 0; i < geometryExpandDepth; i++) {
+                                                                    if (strcmp(geometryExpandStack[i], objectName) == 0) {
+                                                                        error(CODE_NESTING, "Geometry '%s': circular include detected\n", objectName);
+                                                                        return;
+                                                                    }
+                                                                }
+                                                                if (geometryExpandDepth >= kGeometryExpandStackMax) {
+                                                                    error(CODE_NESTING, "Geometry expansion stack overflow\n");
+                                                                    return;
+                                                                }
+                                                                geometryExpandStack[geometryExpandDepth++] = objectName;
+
+                                                                FILE *file = fopen(filename, "r");
+                                                                if (!file) {
+                                                                    geometryExpandDepth--;
+                                                                    error(CODE_NOFILE, "Could not open geometry file: %s\n", filename);
+                                                                    return;
+                                                                }
+
+                                                                if (!osFileExists(CRenderer::temporaryPath))
+                                                                    osCreateDir(CRenderer::temporaryPath);
+                                                                char tempPath[OS_MAX_PATH_LENGTH];
+                                                                osTempname(CRenderer::temporaryPath, "geom", tempPath);
+
+                                                                FILE *outFile = fopen(tempPath, "w");
+                                                                if (!outFile) {
+                                                                    fclose(file);
+                                                                    geometryExpandDepth--;
+                                                                    error(CODE_NOFILE, "Could not create temporary file for geometry expansion\n");
+                                                                    return;
+                                                                }
+
+                                                                char line[4096];
+                                                                int depth = 0;
+                                                                int found = 0;
+                                                                int collecting = 0;
+
+                                                                while (fgets(line, (int)sizeof(line), file)) {
+                                                                    if (!collecting) {
+                                                                        if (isLineObjectBeginWithName(line, objectName)) {
+                                                                            found = 1;
+                                                                            collecting = 1;
+                                                                            depth = 1;
+                                                                        }
+                                                                        continue;
+                                                                    }
+                                                                    if (lineStartsWith(line, "ObjectBegin")) {
+                                                                        depth++;
+                                                                        fprintf(outFile, "%s", line);
+                                                                        continue;
+                                                                    }
+                                                                    if (lineStartsWith(line, "ObjectEnd")) {
+                                                                        depth--;
+                                                                        if (depth == 0) {
+                                                                            fclose(outFile);
+                                                                            fclose(file);
+                                                                            ribParse(tempPath, NULL);
+                                                                            osDeleteFile(tempPath);
+                                                                            geometryExpandDepth--;
+                                                                            return;
+                                                                        }
+                                                                        fprintf(outFile, "%s", line);
+                                                                        continue;
+                                                                    }
+                                                                    fprintf(outFile, "%s", line);
+                                                                }
+
+                                                                fclose(outFile);
+                                                                fclose(file);
+                                                                osDeleteFile(tempPath);
+                                                                geometryExpandDepth--;
+
+                                                                if (!found)
+                                                                    error(CODE_MISSINGDATA, "Named geometry '%s' not found in file '%s'\n", objectName, filename);
+                                                                else
+                                                                    error(CODE_MISSINGDATA, "Geometry '%s': ObjectEnd not found in '%s'\n", objectName, filename);
                                                             }
 
                                                             void CRendererContext::RiPointsV(int npts, int n, const char *tokens[], const void *params[]) {

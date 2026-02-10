@@ -219,6 +219,7 @@ if(INSTALL_SELFCONTAINED)
 	set(OPENRENDER_SHADERDIR "shaders")
 	set(OPENRENDER_RIBDIR "ribs")
 	set(OPENRENDER_TEXTUREDIR "textures")
+	set(OPENRENDER_GEOMETRYDIR "geometry")
 	set(OPENRENDER_PROCEDURALDIR "procedurals")
 	set(OPENRENDER_DISPLAYSDIR "displays")
 	set(OPENRENDER_MODULESDIR "modules")
@@ -228,6 +229,7 @@ else()
 	set(OPENRENDER_SHADERDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/shaders)
 	set(OPENRENDER_RIBDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/ribs)
 	set(OPENRENDER_TEXTUREDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/textures)
+	set(OPENRENDER_GEOMETRYDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/geometry)
 	set(OPENRENDER_PROCEDURALDIR ${CMAKE_INSTALL_LIBDIR}/openRender/procedurals)
 	set(OPENRENDER_DISPLAYSDIR ${CMAKE_INSTALL_LIBDIR}/openRender/displays)
 	set(OPENRENDER_MODULESDIR ${CMAKE_INSTALL_LIBDIR}/openRender/modules)
@@ -246,6 +248,10 @@ install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 file(GLOB shader_sl_files shaders/*.sl)
 file(GLOB shader_sdr_files shaders/*.sdr)
 install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${OPENRENDER_SHADERDIR})
+
+# Install geometry files
+file(GLOB geometry_rib_files geometry/*.rib)
+install(FILES ${geometry_rib_files} DESTINATION ${OPENRENDER_GEOMETRYDIR})
 
 
 # ###########################################################################

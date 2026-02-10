@@ -321,6 +321,7 @@ COptions::COptions() {
     shaderPath = optionsGetSearchPath(".:%SHADERS%:" OPENRENDER_SHADERS, NULL);
     displayPath = optionsGetSearchPath(".:%DISPLAYS%:" OPENRENDER_DISPLAYS, NULL);
     modulePath = optionsGetSearchPath(".:%MODULES%:" OPENRENDER_MODULES, NULL);
+    geometryPath = optionsGetSearchPath(".:%GEOMETRIES%:" OPENRENDER_GEOMETRIES, NULL);
 #endif
 
     pixelXsamples = 2;
