@@ -15,6 +15,8 @@ set(oshader_sources
 	pp7.c
 	pp8.c)
 
+include_directories(AFTER ../includes)
+
 if(USE_FLEX_BISON)
 	# this is to make sure generated bison cpp's include the correct lex.xxx.cpp
 	include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
