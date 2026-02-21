@@ -38,27 +38,6 @@
 #include "stats.h"
 #include "surface.h"
 
-#if 0
-#if !defined(_WINDOWS)
-#if defined(__GNUC__) && (__GNUC__ < 4)
-// Stupid gcc doesn't allow explicit constructor invocation
-static void	*operator new(size_t size,void *buf) {
-	return	buf;
-}
-#else
-void	*operator new(size_t size,CPtriangle *buf) {
-	return	buf;
-}
-void	*operator new(size_t size,CMovingTriangle *buf) {
-	return	buf;
-}
-#endif
-#endif
-#endif
-
-// For debugging only, force all trace calls to go through the tesselation patch
-#define FORCE_TESSELATED_TRACE 0
-
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTriVertex
 // Description			:	This is a temporary vertex used during the triangulation
@@ -171,7 +150,7 @@ void CPolygonTriangle::intersect(CShadingContext *context, CRay *cRay) {
     }
 
     // smash to grids if we've got displacement
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS) || FORCE_TESSELATED_TRACE) {
+    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
         // Do we have a grid ?
         if (children == NULL) {
             osLock(CRenderer::tesselateMutex);
@@ -738,7 +717,7 @@ void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
     }
 
     // smash to grids if we've got displacement
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS) || FORCE_TESSELATED_TRACE) {
+    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
         // Do we have a grid ?
         if (children == NULL) {
             osLock(CRenderer::tesselateMutex);

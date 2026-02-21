@@ -39,21 +39,6 @@
 // Some misc macros
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#if 0
-#define __logPushRight(__object, __x, __y) fprintf(stderr, "\t->object %x pushed right to %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logPushDown(__object, __x, __y) fprintf(stderr, "\t->object %x pushed down to %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logPushDiscard(__object, __x, __y) fprintf(stderr, "\t->object %x discarded on push at %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logObjectDequeue(__object, __x, __y) fprintf(stderr, "\t->object %x dequeued at %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logObjectRasterizeDice(_object, __x, __y) fprintf(stderr, "->object %x rasterized / diced at %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logObjectOpacityCull(__object, __x, __y) fprintf(stderr, "\t->object %x gross opacity culled at %d %d in thread %d\n", cObject, currentXBucket, currentYBucket, thread);
-#define __logBucketStart(__x, __Y) fprintf(stderr, "START bucket %d,%d in thread %d\n", __x, _y, thread);
-#define __logBucketTerminate(__x, __y) fprintf(stderr, "DONE bucket %d,%d in thread %d\n", __x, _y, thread);
-#define __logBucketSkip(__x, __y) fprintf(stderr, "SKIP bucket %d,%d in thread %d\n", __x, _y, thread);
-#define __logObjectSkip(__object, __x, __y) fprintf(stderr, "->object %x skipped at %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logObjectDelete(__object, __x, __y) fprintf(stderr, "->object %x deleted at %d,%d in thread %d\n", __object, __x, __y, thread);
-#define __logObjectInsert(__object, __x, __y, __thread, __queue)
-		fprintf(stderr,"->object %x inserted at %d,%d in thread %d (queue was %d)\n",__object,__x,__y,__thread,__queue);
-#else
 #define __logPushRight(__object, __x, __y)
 #define __logPushDown(__object, __x, __y)
 #define __logPushDiscard(__object, __x, __y)
@@ -66,38 +51,9 @@
 #define __logObjectSkip(__object, __x, __y)
 #define __logObjectDelete(__object, __x, __y)
 #define __logObjectInsert(__object, __x, __y, __thread, __queue)
-#endif
 
-#if 0
-	TMutex debugMutex = PTHREAD_MUTEX_INITIALIZER;
-#include <map>
-	using namespace std;
-	map<void*,int> allocMap;
-
-	void allocateMapCheck() {
-		printf("%d undisposed objects\n",allocMap.size());
-		for(map<void*,int>::iterator it = allocMap.begin(); it != allocMap.end(); it++) {
-			printf("\t%x inserted to %d buckets\n",it->first,it->second);
-		}
-	}
-
-#define __recordObjectInsert(__object, __ref) \
-    osLock(debugMutex);                       \
-    allocMap[object] = refCount;              \
-    osUnlock(debugMutex);
-
-#define __recordObjectDelete(__object)                        \
-    osLock(debugMutex);                                       \
-    map<void *, int>::iterator it = allocMap.find(grid);      \
-    if (it == allocMap.end())                                 \
-        printf("ERROR deleting nonexistent raster object\n"); \
-    else                                                      \
-        allocMap.erase(it);                                   \
-    osUnlock(debugMutex);
-#else
 #define __recordObjectInsert(__object, __ref)
 #define __recordObjectDelete(__object)
-#endif
 
 // Returns the bucket numbers
 #define xbucket(__x) (int)floor((__x - CRenderer::xSampleOffset) * CRenderer::invBucketSampleWidth);
@@ -483,15 +439,6 @@ void CReyes::render() {
 
     // Get the framebuffer
     rasterEnd(pixelBuffer, noObjects);
-
-// Mark the first thread
-#if 0
-		if (thread == 1) {
-			pixelBuffer[5]	=	1;
-		} else if (thread == 0) {
-			pixelBuffer[6]	=	1;
-		}
-#endif
 
     // Flush the data to the out devices
     CRenderer::commit(bucketPixelLeft, bucketPixelTop, bucketPixelWidth, bucketPixelHeight, pixelBuffer);

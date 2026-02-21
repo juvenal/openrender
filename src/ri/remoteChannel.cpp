@@ -443,14 +443,6 @@ int CRemoteTSMChannel::sendRemoteBucket(SOCKET s, int x, int y) {
         sz -= nn;
     }
 
-    /* FIXME: Old code, remove after verification
-    uint64_t newPos = ftell(tsmFile);
-    if(newPos != curPos) {
-        fseek(tsmFile,(long) curPos,SEEK_SET);
-        error(CODE_BUG,"Error reading TSM file\n");
-    }
-    */
-
     // Overwrite the last position
     lastPosition = (long)curPos;
 

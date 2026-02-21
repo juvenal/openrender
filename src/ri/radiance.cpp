@@ -17,6 +17,14 @@
  *
  */
 
+// STATUS: INCOMPLETE FEATURE — Radiance Cache
+//
+// This file implements the radiance cache system for indirect illumination.
+// It is intentionally excluded from the main CMakeLists.txt build because the
+// feature is not yet complete. radiance.h is still included by other headers,
+// so this file and its header must NOT be deleted. When the radiance cache
+// feature is ready, re-add radiance.cpp to src/ri/CMakeLists.txt.
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	radiance.cpp

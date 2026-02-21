@@ -17,6 +17,14 @@
  *
  */
 
+// STATUS: INCOMPLETE FEATURE — Subsurface Scattering Bake
+//
+// This file implements the subsurface scattering bake (depository) system.
+// It is intentionally excluded from the main CMakeLists.txt build because the
+// feature is not yet complete. depository.h is still included by irradiance.h,
+// so this file and its header must NOT be deleted. When the SSS bake feature
+// is ready, re-add depository.cpp to src/ri/CMakeLists.txt.
+
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	depository.cpp
