@@ -13,7 +13,20 @@
       "Bash(./build/src/oshow/oshow:*)",
       "Bash(grep:*)",
       "Bash(echo:*)",
-      "Bash(ctest:*)"
+      "Bash(ctest:*)",
+      "Bash(done)",
+      "Bash(for var in coordinateCameraSystem coordinateWorldSystem coordinateObjectSystem colorRgbSystem)",
+      "Bash(do)",
+      "Bash(__NEW_LINE_86421d07dc253262__ grep -n \"strcmp.*-c\" /Volumes/Projects/Development/CLI/openrender/src/orender/orender.cpp)",
+      "Bash(ls:*)",
+      "Bash(__NEW_LINE_77ad7ec6a89f31ee__ grep -n \"BUILD_SHOW\\\\|HAVE_FLTK\" /Volumes/Projects/Development/CLI/openrender/src/oshow/CMakeLists.txt)",
+      "Bash(git -C /Volumes/Projects/Development/CLI/openrender log --oneline --follow -- CMake/FindOpenEXR.cmake.old)",
+      "Bash(git -C /Volumes/Projects/Development/CLI/openrender log --oneline --follow -- src/ri/depository.cpp)",
+      "Bash(python3:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)"
     ]
   }
 }
