@@ -71,3 +71,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# Auto-generated Bison/Flex parser outputs
+src/**/*.tab.c
+src/**/*_generated.cpp
+src/**/lex.*.cpp
