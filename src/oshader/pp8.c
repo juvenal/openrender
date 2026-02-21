@@ -73,8 +73,8 @@
 /*									*/
 /************************************************************************/
 
-#include	"pp.h"
-#include	"ppext.h"
+#include "pp.h"
+#include "ppext.h"
 
 /************************************************************************/
 /*									*/
@@ -87,31 +87,26 @@
 /************************************************************************/
 
 EVALINT
-eval()
-	{
-	char			buf[TOKENSIZE];
-	EVALINT			val;
+eval() {
+    char buf[TOKENSIZE];
+    EVALINT val;
 
-	pbcstr(readexpline(buf,TOKENSIZE));	/* Macro expand line */
+    pbcstr(readexpline(buf, TOKENSIZE)); /* Macro expand line */
 
-	for(;;)
-		{
-		val = evaltern();	/* Top level ternary form */
+    for (;;) {
+        val = evaltern(); /* Top level ternary form */
 
-		if(Token[0] != ',')
-			{
-			if(Token[0] != '\n')
-				{
-				non_fatal("Invalid operator",
-					Token);
-				}
-			else
-				pushback('\n');	/* Put eol back out */
-			break;
-			}
-		}
-	return (val);
-	}
+        if (Token[0] != ',') {
+            if (Token[0] != '\n') {
+                non_fatal("Invalid operator",
+                          Token);
+            } else
+                pushback('\n'); /* Put eol back out */
+            break;
+        }
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -122,26 +117,24 @@ eval()
 /************************************************************************/
 
 EVALINT
-evaltern()
-	{
-	EVALINT			val;
-	EVALINT			val_f;
-	EVALINT			val_t;
+evaltern() {
+    EVALINT val;
+    EVALINT val_f;
+    EVALINT val_t;
 
-	val = evallor();		/* Look for expression */
-	if(! test("?"))			/* ? part of ?: */
-		return (val);
+    val = evallor(); /* Look for expression */
+    if (!test("?"))  /* ? part of ?: */
+        return (val);
 
-	val_t = eval();			/* Get true-side expression */
-	if(! test(":"))
-		{
-		non_fatal("':' expected","");
-		return ((EVALINT) 0);
-		}
-	val_f = eval();			/* Get false-side expression */
+    val_t = eval(); /* Get true-side expression */
+    if (!test(":")) {
+        non_fatal("':' expected", "");
+        return ((EVALINT)0);
+    }
+    val_f = eval(); /* Get false-side expression */
 
-	return (val ? val_t : val_f );	/* Use it or loose it */
-	}
+    return (val ? val_t : val_f); /* Use it or loose it */
+}
 
 /************************************************************************/
 /*									*/
@@ -150,17 +143,15 @@ evaltern()
 /************************************************************************/
 
 EVALINT
-evallor()
-	{
-	EVALINT			val;
+evallor() {
+    EVALINT val;
 
-	for(val = evalland(); test("||") ;)
-		{
-		if(evalland() != 0)
-			val = TRUE;
-		}
-	return (val);
-	}
+    for (val = evalland(); test("||");) {
+        if (evalland() != 0)
+            val = TRUE;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -169,19 +160,17 @@ evallor()
 /************************************************************************/
 
 EVALINT
-evalland()
-	{
-	EVALINT			val;
+evalland() {
+    EVALINT val;
 
-	for(val = evalbor(); test("&&") ;)
-		{
-/*lint -e503 lint doesn't like boolean arguments to relationals */
-		if(! evalbor() != 0)
-/*lint +e503 lint doesn't like boolean arguments to relationals */
-			val = FALSE;
-		}
-	return (val);
-	}
+    for (val = evalbor(); test("&&");) {
+        /*lint -e503 lint doesn't like boolean arguments to relationals */
+        if (!evalbor() != 0)
+            /*lint +e503 lint doesn't like boolean arguments to relationals */
+            val = FALSE;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -190,15 +179,14 @@ evalland()
 /************************************************************************/
 
 EVALINT
-evalbor()
-	{
-	EVALINT			val;
+evalbor() {
+    EVALINT val;
 
-	for(val = evalbxor(); !look("||") && test("|"); )
-		val = val | evalbxor();
+    for (val = evalbxor(); !look("||") && test("|");)
+        val = val | evalbxor();
 
-	return (val);
-	}
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -207,15 +195,14 @@ evalbor()
 /************************************************************************/
 
 EVALINT
-evalbxor()
-	{
-	EVALINT			val;
+evalbxor() {
+    EVALINT val;
 
-	for(val = evalband(); test("^"); )
-		val = val ^ evalband();
+    for (val = evalband(); test("^");)
+        val = val ^ evalband();
 
-	return (val);
-	}
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -224,15 +211,14 @@ evalbxor()
 /************************************************************************/
 
 EVALINT
-evalband()
-	{
-	EVALINT			val;
+evalband() {
+    EVALINT val;
 
-	for(val = evaleq(); !look("&&") && test("&"); )
-		val = val & evaleq();
+    for (val = evaleq(); !look("&&") && test("&");)
+        val = val & evaleq();
 
-	return (val);
-	}
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -241,21 +227,19 @@ evalband()
 /************************************************************************/
 
 EVALINT
-evaleq()
-	{
-	EVALINT			val;
+evaleq() {
+    EVALINT val;
 
-	for(val = evalrel() ; ;)
-		{
-		if(test("=="))
-			val = val == evalrel();
-		else if(test("!="))
-			val = val != evalrel();
-		else
-			break;
-		}
-	return (val);
-	}
+    for (val = evalrel();;) {
+        if (test("=="))
+            val = val == evalrel();
+        else if (test("!="))
+            val = val != evalrel();
+        else
+            break;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -264,25 +248,23 @@ evaleq()
 /************************************************************************/
 
 EVALINT
-evalrel()
-	{
-	EVALINT			val;
+evalrel() {
+    EVALINT val;
 
-	for(val = evalsh() ; ; )
-		{
-		if(test("<="))
-			val = val <= evalsh();
-		else if(test(">="))
-			val = val >= evalsh();
-		else if(test("<"))
-			val = val < evalsh();
-		else if(test(">"))
-			val = val > evalsh();
-		else
-			break;
-		}
-	return (val);
-	}
+    for (val = evalsh();;) {
+        if (test("<="))
+            val = val <= evalsh();
+        else if (test(">="))
+            val = val >= evalsh();
+        else if (test("<"))
+            val = val < evalsh();
+        else if (test(">"))
+            val = val > evalsh();
+        else
+            break;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -291,21 +273,19 @@ evalrel()
 /************************************************************************/
 
 EVALINT
-evalsh()
-	{
-	EVALINT			val;
+evalsh() {
+    EVALINT val;
 
-	for(val = evalsum() ; ; )
-		{
-		if(test("<<"))
-			val = val << evalsum();
-		else if(test(">>"))
-			val = val >> evalsum();
-		else
-			break;
-		}
-	return (val);
-	}
+    for (val = evalsum();;) {
+        if (test("<<"))
+            val = val << evalsum();
+        else if (test(">>"))
+            val = val >> evalsum();
+        else
+            break;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -314,21 +294,19 @@ evalsh()
 /************************************************************************/
 
 EVALINT
-evalsum()
-	{
-	EVALINT			val;
+evalsum() {
+    EVALINT val;
 
-	for(val = evalmdr() ; ; )
-		{
-		if(test("+"))
-			val = val + evalmdr();
-		else if(test("-"))
-			val = val - evalmdr();
-		else
-			break;
-		}
-	return (val);
-	}
+    for (val = evalmdr();;) {
+        if (test("+"))
+            val = val + evalmdr();
+        else if (test("-"))
+            val = val - evalmdr();
+        else
+            break;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -337,42 +315,32 @@ evalsum()
 /************************************************************************/
 
 EVALINT
-evalmdr()
-	{
-	EVALINT			temp;
-	EVALINT			val;
+evalmdr() {
+    EVALINT temp;
+    EVALINT val;
 
-	for(val = evalfuns() ; ; )
-		{
-		if(test("*"))
-			val = val * evalfuns();
-		else if(test("/"))
-			{
-			temp = evalfuns();
-			if(temp == 0)
-				{
-				non_fatal("Division by zero","");
-				val = 0;
-				}
-			else
-				val = val / temp;
-			}
-		else if(test("%"))
-			{
-			temp = evalfuns();
-			if(temp == 0)
-				{
-				non_fatal("Division by zero","");
-				val = 0;
-				}
-			else
-				val = val % temp;
-			}
-		else
-			break;
-		}
-	return (val);
-	}
+    for (val = evalfuns();;) {
+        if (test("*"))
+            val = val * evalfuns();
+        else if (test("/")) {
+            temp = evalfuns();
+            if (temp == 0) {
+                non_fatal("Division by zero", "");
+                val = 0;
+            } else
+                val = val / temp;
+        } else if (test("%")) {
+            temp = evalfuns();
+            if (temp == 0) {
+                non_fatal("Division by zero", "");
+                val = 0;
+            } else
+                val = val % temp;
+        } else
+            break;
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -396,174 +364,144 @@ evalmdr()
 /************************************************************************/
 
 EVALINT
-evalfuns()
-	{
-	int			count;
-	int			pflag;
-	int			rv;
-	char			*str;
-	int			t;
+evalfuns() {
+    int count;
+    int pflag;
+    int rv;
+    char *str;
+    int t;
 
-	if(test("sizeof"))
-		{
-		non_fatal("sizeof() not allowed","");
+    if (test("sizeof")) {
+        non_fatal("sizeof() not allowed", "");
 
-		while(((t = getnstoken(GT_STR)) != ')') &&
-			(t != '\n') && (t != EOF))
-			;
-		return ((EVALINT) 0);
-		}
-	else if(test("defined"))
-		{
-		if(! (pflag = (getnstoken(GT_STR) == '('))) /* Latch '(' */
-			pbstr(Token);	/* Put it back if not */
+        while (((t = getnstoken(GT_STR)) != ')') &&
+               (t != '\n') && (t != EOF))
+            ;
+        return ((EVALINT)0);
+    } else if (test("defined")) {
+        if (!(pflag = (getnstoken(GT_STR) == '('))) /* Latch '(' */
+            pbstr(Token);                           /* Put it back if not */
 
-		if((t = getnstoken(GT_STR)) == LETTER) /* Get an Id */
-			{
-			rv = (int) (lookup(Token,NULL) != NULL);
+        if ((t = getnstoken(GT_STR)) == LETTER) /* Get an Id */
+        {
+            rv = (int)(lookup(Token, NULL) != NULL);
 
-			if(pflag && (getnstoken(GT_STR) != ')'))
-				{
-				non_fatal("Missing ')'","");
-				pbstr(Token);
-				}
+            if (pflag && (getnstoken(GT_STR) != ')')) {
+                non_fatal("Missing ')'", "");
+                pbstr(Token);
+            }
 
-			return ((EVALINT) rv);
-			}
-		else if(t == '\n')
-			pushback('\n');
-		else if(t == EOF)
-			end_of_file();
+            return ((EVALINT)rv);
+        } else if (t == '\n')
+            pushback('\n');
+        else if (t == EOF)
+            end_of_file();
 
-		non_fatal("Not an identifier",Token);
-		return ((EVALINT) FALSE);
-		}
-	else if(test("_isstring"))
-		{
-		rv = FALSE;
-		if(! test("("))
-			non_fatal("Missing '('","");
-		else
-			{
-			if(item(getnstoken,GT_STR) && (Token[0] == '"'))
-				rv = TRUE;
-			t = Token[0];
-			count = 0;	/* Paren nesting level */
-			while((! ((t == ')') && (count == 0))) &&
-				(t != '\n') && (t != EOF))
-				{
-				if(t == '(')
-					count++;
-				else if(t == ')')
-					count--;
-				t = getnstoken(GT_STR);
-				}
-			if(t != ')')
-				{
-				non_fatal("Missing ')'","");
-				if(t == EOF)
-					end_of_file();
-				pbstr(Token);
-				}
-			}
-		return ((EVALINT) rv);
-		}
-	else if(test("_strsize"))
-		{
-		rv = 1;
-		if(! test("("))
-			non_fatal("Missing '('","");
-		else
-			{
-			if(item(getnstoken,GT_STR) && (Token[0] != '"'))
-				{
-				non_fatal("_strsize: Missing string","");
-				t = Token[0];
-				count = 0;	/* Paren nesting level */
-				while((! ((t == ')') && (count == 0))) &&
-					(t != '\n') && (t != EOF))
-					{
-					if(t == '(')
-						count++;
-					else if(t == ')')
-						count--;
-					t = getnstoken(GT_STR);
-					}
-				if(t != ')')
-					{
-					non_fatal("Missing ')'",
-						"");
-					if(t == EOF)
-						end_of_file();
-					pbstr(Token);
-					}
-				}
-			else
-				{
-				for(;;)
-					{
-					str = &Token[1];
-					for(; (*str != '\0') &&
-						(*str != '\"'); rv++)
-						{
-/************************************************************************/
-	if(*str == '\\')
-		{
-		if(*++str == 'x')
-			{		/* Hex seq. >= 2 hex digits */
-			count = 0;
-			while(isxdigit(*++str) && (++count < 3))
-				;
-			}
-		else
-			{
-			if(isdigit(*str))
-				{ 	 /* Octal seq. >=3 octal dig */
-				count = 0;
-				while (isdigit(*++str) && (++count < 3))
-					;
-				}
-			else
-				str++;
-			}
-		}
-	else
-		str++;
-/************************************************************************/
-						}
-					if((t = getnstoken(GT_STR)) == ')')
-						break;	/* Done */
-					if(t == '"')
-						/* Concatenated string */
-						continue;
-					non_fatal("_strsize: Not a string","");
-					count = 0;	/* Paren nesting lvl */
-					while(((t != ')') || (count != 0)) &&
-						(t != '\n') && (t != EOF))
-						{
-						if(t == '(')
-							count++;
-						else if(t == ')')
-							count--;
-						t = getnstoken(GT_STR);
-						}
-					if(t != ')')
-						{
-				non_fatal("Missing ')'","");
-						if(t == '\n')
-							pushback('\n');
-						else if(t == EOF)
-							end_of_file();
-						}
-					break;
-					}
-				}
-			}
-		return ((EVALINT) rv);
-		}
-	else
-		return (evalucom());
-	}
+        non_fatal("Not an identifier", Token);
+        return ((EVALINT)FALSE);
+    } else if (test("_isstring")) {
+        rv = FALSE;
+        if (!test("("))
+            non_fatal("Missing '('", "");
+        else {
+            if (item(getnstoken, GT_STR) && (Token[0] == '"'))
+                rv = TRUE;
+            t = Token[0];
+            count = 0; /* Paren nesting level */
+            while ((!((t == ')') && (count == 0))) &&
+                   (t != '\n') && (t != EOF)) {
+                if (t == '(')
+                    count++;
+                else if (t == ')')
+                    count--;
+                t = getnstoken(GT_STR);
+            }
+            if (t != ')') {
+                non_fatal("Missing ')'", "");
+                if (t == EOF)
+                    end_of_file();
+                pbstr(Token);
+            }
+        }
+        return ((EVALINT)rv);
+    } else if (test("_strsize")) {
+        rv = 1;
+        if (!test("("))
+            non_fatal("Missing '('", "");
+        else {
+            if (item(getnstoken, GT_STR) && (Token[0] != '"')) {
+                non_fatal("_strsize: Missing string", "");
+                t = Token[0];
+                count = 0; /* Paren nesting level */
+                while ((!((t == ')') && (count == 0))) &&
+                       (t != '\n') && (t != EOF)) {
+                    if (t == '(')
+                        count++;
+                    else if (t == ')')
+                        count--;
+                    t = getnstoken(GT_STR);
+                }
+                if (t != ')') {
+                    non_fatal("Missing ')'",
+                              "");
+                    if (t == EOF)
+                        end_of_file();
+                    pbstr(Token);
+                }
+            } else {
+                for (;;) {
+                    str = &Token[1];
+                    for (; (*str != '\0') &&
+                           (*str != '\"');
+                         rv++) {
+                        /************************************************************************/
+                        if (*str == '\\') {
+                            if (*++str == 'x') { /* Hex seq. >= 2 hex digits */
+                                count = 0;
+                                while (isxdigit(*++str) && (++count < 3))
+                                    ;
+                            } else {
+                                if (isdigit(*str)) { /* Octal seq. >=3 octal dig */
+                                    count = 0;
+                                    while (isdigit(*++str) && (++count < 3))
+                                        ;
+                                } else
+                                    str++;
+                            }
+                        } else
+                            str++;
+                        /************************************************************************/
+                    }
+                    if ((t = getnstoken(GT_STR)) == ')')
+                        break; /* Done */
+                    if (t == '"')
+                        /* Concatenated string */
+                        continue;
+                    non_fatal("_strsize: Not a string", "");
+                    count = 0; /* Paren nesting lvl */
+                    while (((t != ')') || (count != 0)) &&
+                           (t != '\n') && (t != EOF)) {
+                        if (t == '(')
+                            count++;
+                        else if (t == ')')
+                            count--;
+                        t = getnstoken(GT_STR);
+                    }
+                    if (t != ')') {
+                        non_fatal("Missing ')'", "");
+                        if (t == '\n')
+                            pushback('\n');
+                        else if (t == EOF)
+                            end_of_file();
+                    }
+                    break;
+                }
+            }
+        }
+        return ((EVALINT)rv);
+    } else
+        return (evalucom());
+}
 
 /************************************************************************/
 /*									*/
@@ -572,15 +510,14 @@ evalfuns()
 /************************************************************************/
 
 EVALINT
-evalucom()
-	{
-	if(test("~"))
-/*lint -e502 lint doesn't like complementing signed integral types */
-		return (~evalfuns());
-/*lint +e502 lint doesn't like complementing signed integral types */
-	else
-		return (evalunot());
-	}
+evalucom() {
+    if (test("~"))
+        /*lint -e502 lint doesn't like complementing signed integral types */
+        return (~evalfuns());
+    /*lint +e502 lint doesn't like complementing signed integral types */
+    else
+        return (evalunot());
+}
 
 /************************************************************************/
 /*									*/
@@ -589,13 +526,12 @@ evalucom()
 /************************************************************************/
 
 EVALINT
-evalunot()
-	{
-	if(test("!"))
-		return ((EVALINT) !evalfuns());
-	else
-		return (evalumin());
-	}
+evalunot() {
+    if (test("!"))
+        return ((EVALINT)!evalfuns());
+    else
+        return (evalumin());
+}
 
 /************************************************************************/
 /*									*/
@@ -604,15 +540,14 @@ evalunot()
 /************************************************************************/
 
 EVALINT
-evalumin()
-	{
-	if(test("+"))
-		return ((EVALINT) evalfuns());
-	else if(test("-"))
-		return ((EVALINT) -evalfuns());
-	else
-		return (evalval());
-	}
+evalumin() {
+    if (test("+"))
+        return ((EVALINT)evalfuns());
+    else if (test("-"))
+        return ((EVALINT)-evalfuns());
+    else
+        return (evalval());
+}
 
 /************************************************************************/
 /*									*/
@@ -621,154 +556,152 @@ evalumin()
 /************************************************************************/
 
 EVALINT
-evalval()
-	{
-	int			c;
-	char			*p;
-	EVALINT			val;
+evalval() {
+    int c;
+    char *p;
+    EVALINT val;
 
-	if(test("("))
-		{
-		val = evaltern();	/* Get deeper expression */
-		if(! test(")"))
-			non_fatal("Mismatched \"()\"","");
-		}
-	else if(test("'"))		/* Quoted character constant ? */
-		{
-		val = getchn();		/* Get next character char */
-		if(val == '\\')		/* Special test for escaped chars */
-			{
-			switch((char) (val = getchn()))
-				{
-		case 'a':	val = '\a';	break;	/* Alert char	*/
-		case 'b':	val = '\b';	break;	/* Backspace	*/
-		case 'f':	val = '\f';	break;	/* Form feed	*/
-		case 'n':	val = '\n';	break;	/* Newline	*/
-		case 'r':	val = '\r';	break;	/* Return	*/
-		case 't':	val = '\t';	break;	/* Horiz. tab	*/
-		case 'v':	val = '\v';	break;	/* Vert. tab	*/
-		case '\\':	val = '\\';	break;
-		case '\'':	val = '\'';	break;
-		case '\"':	val = '\"';	break;
-		case '?':	val = '?';	break;
+    if (test("(")) {
+        val = evaltern(); /* Get deeper expression */
+        if (!test(")"))
+            non_fatal("Mismatched \"()\"", "");
+    } else if (test("'")) /* Quoted character constant ? */
+    {
+        val = getchn();  /* Get next character char */
+        if (val == '\\') /* Special test for escaped chars */
+        {
+            switch ((char)(val = getchn())) {
+            case 'a':
+                val = '\a';
+                break; /* Alert char	*/
+            case 'b':
+                val = '\b';
+                break; /* Backspace	*/
+            case 'f':
+                val = '\f';
+                break; /* Form feed	*/
+            case 'n':
+                val = '\n';
+                break; /* Newline	*/
+            case 'r':
+                val = '\r';
+                break; /* Return	*/
+            case 't':
+                val = '\t';
+                break; /* Horiz. tab	*/
+            case 'v':
+                val = '\v';
+                break; /* Vert. tab	*/
+            case '\\':
+                val = '\\';
+                break;
+            case '\'':
+                val = '\'';
+                break;
+            case '\"':
+                val = '\"';
+                break;
+            case '?':
+                val = '?';
+                break;
 
-		case '0': case '1': case '2': case '3':
-		case '4': case '5': case '6': case '7':
-/*
- *	Lead in to octal numeric field: get octal number.
- */
-			for(val -= '0'; (c = getchn()) != '\'';)
-				{
-				if(c == '\n')
-					{
-				non_fatal("EOL in '' constant","");
-					break;
-					}
-				else if(c == EOF)
-					end_of_file();
-				else if(isoct(c))
-					val = val * 8 + c - '0';  /* Add in */
-				else
-					{
-			non_fatal("Invalid octal digit","");
-					break;
-					}
-				}
-			pushback(c);
-			break;
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+                /*
+                 *	Lead in to octal numeric field: get octal number.
+                 */
+                for (val -= '0'; (c = getchn()) != '\'';) {
+                    if (c == '\n') {
+                        non_fatal("EOL in '' constant", "");
+                        break;
+                    } else if (c == EOF)
+                        end_of_file();
+                    else if (isoct(c))
+                        val = val * 8 + c - '0'; /* Add in */
+                    else {
+                        non_fatal("Invalid octal digit", "");
+                        break;
+                    }
+                }
+                pushback(c);
+                break;
 
-		case 'x':
-/*
- *	Beginning of hex numeric field, get number.
- */
-			for(val = 0; (c = getchn()) != '\'';)
-				{
-				if(c == '\n')
-					{
-				non_fatal("EOL in '' constant","");
-					break;
-					}
-				else if(c == EOF)
-					end_of_file();
-				else if(ishex(c))
-					val = val * 16 + hexbin(c);
-				else
-					{
-			non_fatal("Invalid hex digit","");
-					break;
-					}
-				}
-			pushback(c);
-			break;
-		default:
-			non_fatal("Invalid character escape","");
-			break;
-				}
-			}
-		if(! test("'"))
-			non_fatal("Mismatched apostrophes","");
-		}
-	else
-		{
-		/* Pack a number */
-		if(item(getnstoken,GT_STR))
-			{
-			if(isdigit(Token[0]))
-				{
-				val = 0;
-				p = Token;
-				if(*p == '0')
-					{
-					/* Octal or Hex number */
-					if(*++p == 'x' || *p == 'X')
-						{
-						/* Hex number */
-						for(++p; ishex(*p); ++p)
-							{
-							val = val * 16 +
-								hexbin(*p);
-							}
-						}
-					else
-						{
-						/* Octal number */
-						for(; isoct(*p); ++p)
-							{
-							val = val * 8 +
-								*p - '0';
-							}
-						}
-					}
-				else
-					{
-					/* Decimal number */
-					for(; isdigit(*p); ++p)
-						val = val * 10 + *p - '0';
-					}
-				if(*p != '\0')
-					{
-					non_fatal("Bad operand",
-						Token);
-					}
-				}
-			else
-				{
-				/* #if of undef'd id OK */
-				if(! istype(Token[0] & 0xFF,C_L))
-					{
-			non_fatal("Expected operand",Token);
-					}
-				return ((EVALINT) 0);
-				}
-			}
-		else
-			{
-			non_fatal("Expected operand",Token);
-			return ((EVALINT) 0);
-			}
-		}
-	return (val);
-	}
+            case 'x':
+                /*
+                 *	Beginning of hex numeric field, get number.
+                 */
+                for (val = 0; (c = getchn()) != '\'';) {
+                    if (c == '\n') {
+                        non_fatal("EOL in '' constant", "");
+                        break;
+                    } else if (c == EOF)
+                        end_of_file();
+                    else if (ishex(c))
+                        val = val * 16 + hexbin(c);
+                    else {
+                        non_fatal("Invalid hex digit", "");
+                        break;
+                    }
+                }
+                pushback(c);
+                break;
+            default:
+                non_fatal("Invalid character escape", "");
+                break;
+            }
+        }
+        if (!test("'"))
+            non_fatal("Mismatched apostrophes", "");
+    } else {
+        /* Pack a number */
+        if (item(getnstoken, GT_STR)) {
+            if (isdigit(Token[0])) {
+                val = 0;
+                p = Token;
+                if (*p == '0') {
+                    /* Octal or Hex number */
+                    if (*++p == 'x' || *p == 'X') {
+                        /* Hex number */
+                        for (++p; ishex(*p); ++p) {
+                            val = val * 16 +
+                                  hexbin(*p);
+                        }
+                    } else {
+                        /* Octal number */
+                        for (; isoct(*p); ++p) {
+                            val = val * 8 +
+                                  *p - '0';
+                        }
+                    }
+                } else {
+                    /* Decimal number */
+                    for (; isdigit(*p); ++p)
+                        val = val * 10 + *p - '0';
+                }
+                if (*p != '\0') {
+                    non_fatal("Bad operand",
+                              Token);
+                }
+            } else {
+                /* #if of undef'd id OK */
+                if (!istype(Token[0] & 0xFF, C_L)) {
+                    non_fatal("Expected operand", Token);
+                }
+                return ((EVALINT)0);
+            }
+        } else {
+            non_fatal("Expected operand", Token);
+            return ((EVALINT)0);
+        }
+    }
+    return (val);
+}
 
 /************************************************************************/
 /*									*/
@@ -779,14 +712,13 @@ evalval()
 /************************************************************************/
 
 EVALINT
-hexbin(ch)
-	char			ch;
-	{
-	if(isdigit(ch))
-		return ((EVALINT) (ch - '0'));
-	else
-		return ((EVALINT) ((isupper(ch) ? tolower(ch) : ch) - 'a'+10));
-	}
+hexbin(ch) char ch;
+{
+    if (isdigit(ch))
+        return ((EVALINT)(ch - '0'));
+    else
+        return ((EVALINT)((isupper(ch) ? tolower(ch) : ch) - 'a' + 10));
+}
 
 /************************************************************************/
 /*									*/
@@ -796,14 +728,13 @@ hexbin(ch)
 /*									*/
 /************************************************************************/
 
-int
-ishex(ch)
-	char			ch;
-	{
-	return (isdigit(ch)			||
-		((ch >= 'a') && (ch <= 'f'))	||
-			((ch >= 'A') && (ch <= 'F')));
-	}
+int ishex(ch)
+char ch;
+{
+    return (isdigit(ch) ||
+            ((ch >= 'a') && (ch <= 'f')) ||
+            ((ch >= 'A') && (ch <= 'F')));
+}
 
 /************************************************************************/
 /*									*/
@@ -813,12 +744,11 @@ ishex(ch)
 /*									*/
 /************************************************************************/
 
-int
-isoct(ch)
-	char			ch;
-	{
-	return ((ch >= '0') && (ch <= '7'));
-	}
+int isoct(ch)
+char ch;
+{
+    return ((ch >= '0') && (ch <= '7'));
+}
 
 /************************************************************************/
 /*									*/
@@ -830,23 +760,21 @@ isoct(ch)
 /*									*/
 /************************************************************************/
 
-int 
-item(fun,f)
-	int		(*fun)();
-	int			f;
-	{
-	int		t;
+int
+    item(fun, f) int (*fun)();
+int f;
+{
+    int t;
 
-	while((t = (*fun)(f)) != '\n')
-		{
-		if(t == EOF)
-			end_of_file();	/* Abort on end of file */
-		return(TRUE);
-		}
-	pushback('\n');			/* Unfetch the newline */
+    while ((t = (*fun)(f)) != '\n') {
+        if (t == EOF)
+            end_of_file(); /* Abort on end of file */
+        return (TRUE);
+    }
+    pushback('\n'); /* Unfetch the newline */
 
-	return (FALSE);
-	}
+    return (FALSE);
+}
 
 /************************************************************************/
 /*									*/
@@ -857,17 +785,16 @@ item(fun,f)
 /*									*/
 /************************************************************************/
 
-int
-look(str)
-	char		*str;
-	{
-	int		rc;
-	char			tokenbuf[TOKENSIZE];
+int look(str)
+char *str;
+{
+    int rc;
+    char tokenbuf[TOKENSIZE];
 
-	rc = match(tokenbuf,str);
-	pbstr(tokenbuf);		/* Unfetch the item */
-	return (rc);
-	}
+    rc = match(tokenbuf, str);
+    pbstr(tokenbuf); /* Unfetch the item */
+    return (rc);
+}
 
 /************************************************************************/
 /*									*/
@@ -880,43 +807,38 @@ look(str)
 /*									*/
 /************************************************************************/
 
-int 
-match(tbuf,str)
-	char		*tbuf;
-	char		*str;
-	{
-	int		(*fun)();
-	char		*s;
-	char		*t;
+int match(tbuf, str)
+char *tbuf;
+char *str;
+{
+    int (*fun)();
+    char *s;
+    char *t;
 
-	fun = getnstoken;		/* Initially skip spaces */
-	t = tbuf;			/* Token packing buffer */
-	s = str;			/* String to match */
+    fun = getnstoken; /* Initially skip spaces */
+    t = tbuf;         /* Token packing buffer */
+    s = str;          /* String to match */
 
-	while((*s != '\0') && item(fun,0))
-		{
-		if(strncmp(Token,s,strlen(Token)) == EQUAL)
-			{
-			/* Build token */
-			t = addstr(t,&tbuf[TOKENSIZE],
-				"Token too long",Token);
+    while ((*s != '\0') && item(fun, 0)) {
+        if (strncmp(Token, s, strlen(Token)) == EQUAL) {
+            /* Build token */
+            t = addstr(t, &tbuf[TOKENSIZE],
+                       "Token too long", Token);
 
-			s += strlen(Token);	/* Move past matched part */
-			if(*s == '\0')
-				break;	/* Exit if end of string */
-			}
-		else
-			{
-			pbstr(Token);	/* Unfetch unmatching string */
-			break;
-			}
-		fun = gettoken;		/* Don't skip spaces anymore */
-		}
+            s += strlen(Token); /* Move past matched part */
+            if (*s == '\0')
+                break; /* Exit if end of string */
+        } else {
+            pbstr(Token); /* Unfetch unmatching string */
+            break;
+        }
+        fun = gettoken; /* Don't skip spaces anymore */
+    }
 
-	*t = '\0';			/* End of token here */
- 
-	return (*s == '\0');		/* Return TRUE if end of string	*/
-	}
+    *t = '\0'; /* End of token here */
+
+    return (*s == '\0'); /* Return TRUE if end of string	*/
+}
 
 /************************************************************************/
 /*									*/
@@ -927,54 +849,48 @@ match(tbuf,str)
 /*									*/
 /************************************************************************/
 
-char	*
-readexpline(buf,bufsize)
-	char		*buf;
-	int		bufsize;
-	{
-	static	char		rbo[] = "Read buffer overflow";
+char *
+readexpline(buf, bufsize)
+char *buf;
+int bufsize;
+{
+    static char rbo[] = "Read buffer overflow";
 
-	char		*bufp;
-	int		is_func;
-	struct	symtab		*sy;
-	int		t;
+    char *bufp;
+    int is_func;
+    struct symtab *sy;
+    int t;
 
-	is_func = FALSE;
+    is_func = FALSE;
 
-	for(bufp = buf; (t = gettoken(GT_STR)) != '\n'; )
-		{
-		if(t == EOF)
-			end_of_file();
-		if(t == LETTER)
-			{
-			if((! is_func) &&
-				((sy = lookup(Token,NULL)) != NULL) &&
-					(sy->disable != TRUE))
-				{
-				bufp = docall(sy,bufp,&buf[bufsize - 1]);
-				}
-			else
-				{
-				bufp = addstr(bufp,&buf[bufsize - 1],rbo,
-					Token);
-				if(is_func)
-					is_func = FALSE;
-				else if(strcmp(Token,"defined") == EQUAL)
-					is_func = TRUE;
-				}
-			}
-		else
-			bufp = addstr(bufp,&buf[bufsize - 1],rbo,Token);
-		}
+    for (bufp = buf; (t = gettoken(GT_STR)) != '\n';) {
+        if (t == EOF)
+            end_of_file();
+        if (t == LETTER) {
+            if ((!is_func) &&
+                ((sy = lookup(Token, NULL)) != NULL) &&
+                (sy->disable != TRUE)) {
+                bufp = docall(sy, bufp, &buf[bufsize - 1]);
+            } else {
+                bufp = addstr(bufp, &buf[bufsize - 1], rbo,
+                              Token);
+                if (is_func)
+                    is_func = FALSE;
+                else if (strcmp(Token, "defined") == EQUAL)
+                    is_func = TRUE;
+            }
+        } else
+            bufp = addstr(bufp, &buf[bufsize - 1], rbo, Token);
+    }
 
-	pushback('\n');
-	*bufp = '\0';
+    pushback('\n');
+    *bufp = '\0';
 
-	for(bufp = buf; istype(*bufp & 0xFF,C_W); ++bufp)
-		;			/* Skip leading blanks */
+    for (bufp = buf; istype(*bufp & 0xFF, C_W); ++bufp)
+        ; /* Skip leading blanks */
 
-	return(bufp);
-	}
+    return (bufp);
+}
 
 /************************************************************************/
 /*									*/
@@ -987,18 +903,15 @@ readexpline(buf,bufsize)
 /*									*/
 /************************************************************************/
 
-int 
-test(str)
-	char		*str;
-	{
-	char			tokenbuf[TOKENSIZE];
+int test(str)
+char *str;
+{
+    char tokenbuf[TOKENSIZE];
 
-	if(match(tokenbuf,str))
-		return (TRUE);
-	else
-		{
-		pbstr(tokenbuf);	/* Lets look at it again later */
-		return (FALSE);
-		}
-	}
-
+    if (match(tokenbuf, str))
+        return (TRUE);
+    else {
+        pbstr(tokenbuf); /* Lets look at it again later */
+        return (FALSE);
+    }
+}

@@ -52,9 +52,9 @@
 /*									*/
 /************************************************************************/
 
-#include	"pp.h"
-#include	"ppext.h"
-#include	"logging.h"
+#include "logging.h"
+#include "pp.h"
+#include "ppext.h"
 
 /************************************************************************/
 /*									*/
@@ -65,53 +65,44 @@
 /************************************************************************/
 
 void
-doelse(elif)
-	int			elif;	/* TRUE if #elif; FALSE if #else */
-	{
+    doelse(elif) int elif; /* TRUE if #elif; FALSE if #else */
+{
 
-	LOG_DEBUG("doelse: %d", Iflevel);
+    LOG_DEBUG("doelse: %d", Iflevel);
 
-	if(Iflevel)
-		{
-		/* We are processing an if */
-		if(Ifstack[Iflevel].i_else)
-			non_fatal("\"#else\" already encountered","");
-		else
-			{
-			if(Ifstate == IFTRUE)
-				Ifstate = Ifstack[Iflevel].i_state = IFNEVER;
-			else if(Ifstate == IFFALSE)
-				{
-				if(elif)
-					{
-/*
- *	Note that we first need to pretend that we are in a TRUE branch so
- *	that routines which "eval" causes to be called will correctly process
- *	the "elif" expression (in particular "_docall").
- */
-					Ifstate = Ifstack[Iflevel].i_state =
-						IFTRUE;
-					Ifstate = Ifstack[Iflevel].i_state =
-						eval() ? IFTRUE : IFFALSE;
-					}
-				else
-					{
-					Ifstate = Ifstack[Iflevel].i_state =
-						IFTRUE;
-					}
-				}
-			/* If have seen an #else */
-			Ifstack[Iflevel].i_else = !elif;
-			}
-		}
-	else
-		{
-		if(elif)
-			non_fatal("\"#elif\" outside of \"#if\"","");
-		else
-			non_fatal("\"#else\" outside of \"#if\"","");
-		}
-	}
+    if (Iflevel) {
+        /* We are processing an if */
+        if (Ifstack[Iflevel].i_else)
+            non_fatal("\"#else\" already encountered", "");
+        else {
+            if (Ifstate == IFTRUE)
+                Ifstate = Ifstack[Iflevel].i_state = IFNEVER;
+            else if (Ifstate == IFFALSE) {
+                if (elif) {
+                    /*
+                     *	Note that we first need to pretend that we are in a TRUE branch so
+                     *	that routines which "eval" causes to be called will correctly process
+                     *	the "elif" expression (in particular "_docall").
+                     */
+                    Ifstate = Ifstack[Iflevel].i_state =
+                        IFTRUE;
+                    Ifstate = Ifstack[Iflevel].i_state =
+                        eval() ? IFTRUE : IFFALSE;
+                } else {
+                    Ifstate = Ifstack[Iflevel].i_state =
+                        IFTRUE;
+                }
+            }
+            /* If have seen an #else */
+            Ifstack[Iflevel].i_else = !elif;
+        }
+    } else {
+        if (elif)
+            non_fatal("\"#elif\" outside of \"#if\"", "");
+        else
+            non_fatal("\"#else\" outside of \"#if\"", "");
+    }
+}
 
 /************************************************************************/
 /*									*/
@@ -121,17 +112,15 @@ doelse(elif)
 /*									*/
 /************************************************************************/
 
-void
-doendif()
-	{
+void doendif() {
 
-	LOG_DEBUG("doendif: %d", Iflevel);
+    LOG_DEBUG("doendif: %d", Iflevel);
 
-	if(Iflevel)
-		Ifstate = Ifstack[--Iflevel].i_state;	/* Pop stack */
-	else
-		non_fatal("\"#endif\" outside of \"#if\"","");
-	}
+    if (Iflevel)
+        Ifstate = Ifstack[--Iflevel].i_state; /* Pop stack */
+    else
+        non_fatal("\"#endif\" outside of \"#if\"", "");
+}
 
 /************************************************************************/
 /*									*/
@@ -141,27 +130,21 @@ doendif()
 /*									*/
 /************************************************************************/
 
-void
-doif()
-	{
-	if(Iflevel >= IFSTACKSIZE)
-		non_fatal("\"#if\" stack overflow","");
-	else
-		{
-		if(Ifstate == IFTRUE)
-			{
-			Ifstate = Ifstack[++Iflevel].i_state =
-				eval() ? IFTRUE : IFFALSE;
-			}
-		else
-			{
-			Ifstate = Ifstack[++Iflevel].i_state =
-				IFNEVER;  /* NO #else */
-			scaneol();	/* Just absorb the rest */
-			}
-		Ifstack[Iflevel].i_else = FALSE;	/* No #else seen */
-		}
-	}
+void doif() {
+    if (Iflevel >= IFSTACKSIZE)
+        non_fatal("\"#if\" stack overflow", "");
+    else {
+        if (Ifstate == IFTRUE) {
+            Ifstate = Ifstack[++Iflevel].i_state =
+                eval() ? IFTRUE : IFFALSE;
+        } else {
+            Ifstate = Ifstack[++Iflevel].i_state =
+                IFNEVER; /* NO #else */
+            scaneol();   /* Just absorb the rest */
+        }
+        Ifstack[Iflevel].i_else = FALSE; /* No #else seen */
+    }
+}
 
 /************************************************************************/
 /*									*/
@@ -175,40 +158,33 @@ doif()
 /************************************************************************/
 
 void
-doifs(t)
-	int			t;	/* Type of if TRUE if #ifdef */
-	{
-	int			iftype;
+    doifs(t) int t; /* Type of if TRUE if #ifdef */
+{
+    int iftype;
 
-	if(Ifstate == IFTRUE)
-		{
-		/* Get next non-space token */
-		if(getnstoken(GT_STR) == LETTER)
-			{
+    if (Ifstate == IFTRUE) {
+        /* Get next non-space token */
+        if (getnstoken(GT_STR) == LETTER) {
 
-			LOG_DEBUG("doifs: %d %s", t, Token);
+            LOG_DEBUG("doifs: %d %s", t, Token);
 
-			iftype = (lookup(Token,NULL) ? TRUE : FALSE) ^
-				(t ? FALSE : TRUE) ? IFTRUE : IFFALSE;
-			}
-		else
-			{
-			iftype = IFFALSE;
-			illegal_symbol();
-			}
-		}
-	else
-		iftype = IFNEVER;	/* Inside false #if -- No #else */
+            iftype = (lookup(Token, NULL) ? TRUE : FALSE) ^
+                             (t ? FALSE : TRUE)
+                         ? IFTRUE
+                         : IFFALSE;
+        } else {
+            iftype = IFFALSE;
+            illegal_symbol();
+        }
+    } else
+        iftype = IFNEVER; /* Inside false #if -- No #else */
 
-	if(Iflevel >= IFSTACKSIZE)
-		non_fatal("\"#if\" stack overflow","");
-	else
-		{
-		Ifstate = Ifstack[++Iflevel].i_state = iftype;
-		Ifstack[Iflevel].i_else = FALSE;
-		}
+    if (Iflevel >= IFSTACKSIZE)
+        non_fatal("\"#if\" stack overflow", "");
+    else {
+        Ifstate = Ifstack[++Iflevel].i_state = iftype;
+        Ifstack[Iflevel].i_else = FALSE;
+    }
 
-	LOG_DEBUG("doifs: %d %d %d", t, iftype, Iflevel);
-	
-	}
-
+    LOG_DEBUG("doifs: %d %d %d", t, iftype, Iflevel);
+}

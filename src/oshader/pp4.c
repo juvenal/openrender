@@ -58,9 +58,9 @@
 /*									*/
 /************************************************************************/
 
-#include	"pp.h"
-#include	"ppext.h"
-#include	"logging.h"
+#include "logging.h"
+#include "pp.h"
+#include "ppext.h"
 
 /************************************************************************/
 /*									*/
@@ -84,38 +84,33 @@
 /************************************************************************/
 
 char *
-addstr(old,limit,msg,new)
-	char			*old;
-	char			*limit;
-	char			*msg;
-	char			*new;
-	{
-	static	char		*origmsg = 0;
+    addstr(old, limit, msg, new) char *old;
+char *limit;
+char *msg;
+char *new;
+{
+    static char *origmsg = 0;
 
-	char		*o;
-	char		*n;
+    char *o;
+    char *n;
 
-	if((old + strlen(new)) >= limit)
-		{
-		if(msg != origmsg)
-			{
-			/* Don't print multiple messages */
-			non_fatal(msg,"");
-			}
+    if ((old + strlen(new)) >= limit) {
+        if (msg != origmsg) {
+            /* Don't print multiple messages */
+            non_fatal(msg, "");
+        }
 
-		origmsg = msg;
-		return (old);
-		}
-	else
-		{
-		origmsg = NULL;		/* Clear the error condition */
-		o = old;
-		n = new;
-		while((*o++ = *n++) != '\0')
-			;		/* Copy strings */
-		return (o-1);		/* Next char pos in output string */
-		}
-	}
+        origmsg = msg;
+        return (old);
+    } else {
+        origmsg = NULL; /* Clear the error condition */
+        o = old;
+        n = new;
+        while ((*o++ = *n++) != '\0')
+            ;           /* Copy strings */
+        return (o - 1); /* Next char pos in output string */
+    }
+}
 
 /************************************************************************/
 /*									*/
@@ -125,16 +120,15 @@ addstr(old,limit,msg,new)
 /*									*/
 /************************************************************************/
 
-int
-getnstoken(f)
-	int			f;
-	{
-	int	t;
+int getnstoken(f)
+int f;
+{
+    int t;
 
-	while(istype(t = gettoken(f),C_W) && (t != '\n'))
-		;			/* Skip space tokens but ! newlines */
-	return (t);			/* Last token read */
-	}
+    while (istype(t = gettoken(f), C_W) && (t != '\n'))
+        ;       /* Skip space tokens but ! newlines */
+    return (t); /* Last token read */
+}
 
 /************************************************************************/
 /*									*/
@@ -144,372 +138,315 @@ getnstoken(f)
 /*									*/
 /************************************************************************/
 
-#ifdef	MSC_OPT
-#pragma	optimize("e",off)		/* Disable global reg optimizing */
-#pragma	optimize("g",off)		/* Disable global common subs */
-#pragma	optimize("l",off)		/* Disable loop optimizations */
-#endif	/* MSC_OPT */
+#ifdef MSC_OPT
+#pragma optimize("e", off) /* Disable global reg optimizing */
+#pragma optimize("g", off) /* Disable global common subs */
+#pragma optimize("l", off) /* Disable loop optimizations */
+#endif                     /* MSC_OPT */
 
-int
-gettoken(f)
-	int			f;
-	{
-	char		ch;
-	int		comment_level;
-	int		fail;
-	int		nt;
-	int		numstate;
-	char		*p;
-	int		t;
-	int		tmask;
+int gettoken(f)
+int f;
+{
+    char ch;
+    int comment_level;
+    int fail;
+    int nt;
+    int numstate;
+    char *p;
+    int t;
+    int tmask;
 
 /*	Define numstate values:						*/
-#define	F_INTPART	0		/* numstate for integer part	*/
-#define	F_FRAC		1		/* fractional part		*/
-#define	F_EXPSIGN	2		/* exponent sign test		*/
-#define	F_EXP		3		/* exponent digits		*/
-#define	F_LAST		4		/* after occurrance of f|F|l|L	*/
+#define F_INTPART 0 /* numstate for integer part	*/
+#define F_FRAC 1    /* fractional part		*/
+#define F_EXPSIGN 2 /* exponent sign test		*/
+#define F_EXP 3     /* exponent digits		*/
+#define F_LAST 4    /* after occurrance of f|F|l|L	*/
 
-	LOG_DEBUG("gettoken:");
+    LOG_DEBUG("gettoken:");
 
-	p = Token;
-	t = nextch();
-	Token[0] = t;
+    p = Token;
+    t = nextch();
+    Token[0] = t;
 
-	Tokenfile = Filelevel;		/* Remember file number and	*/
-	Tokenline = LLine;		/* Line number for this token	*/
+    Tokenfile = Filelevel; /* Remember file number and	*/
+    Tokenline = LLine;     /* Line number for this token	*/
 
-	if(istype(t,C_L|C_D|C_W))
-		{
-		if(istype(t,C_L))
-			{
-			for(p = &Token[1]; p < &Token[TOKENSIZE]; p++)
-				{
-				t = nextch();
-				*p = t;
-				if(! istype(t,C_L|C_D))
-					break;
-				}
-			}
-		else if(istype(t,C_D))
-			{
-			if(t == '0')
-				{
-				/* Possible octal/hex numeric token */
-				t = nextch();	/* Get next one */
-				*++p = t;	/* Store into token buffer */
+    if (istype(t, C_L | C_D | C_W)) {
+        if (istype(t, C_L)) {
+            for (p = &Token[1]; p < &Token[TOKENSIZE]; p++) {
+                t = nextch();
+                *p = t;
+                if (!istype(t, C_L | C_D))
+                    break;
+            }
+        } else if (istype(t, C_D)) {
+            if (t == '0') {
+                /* Possible octal/hex numeric token */
+                t = nextch(); /* Get next one */
+                *++p = t;     /* Store into token buffer */
 
-				if((t == 'x') || (t == 'X'))
-					tmask = C_X;	/* Only hex digits */
-				else if(istype(t,C_D))
-/* 0..9 (8 & 9 are "octal" digits) */	tmask = C_D;
-				else
-					tmask = 0;	/* Not part of #'s */
+                if ((t == 'x') || (t == 'X'))
+                    tmask = C_X; /* Only hex digits */
+                else if (istype(t, C_D))
+                    /* 0..9 (8 & 9 are "octal" digits) */ tmask = C_D;
+                else
+                    tmask = 0; /* Not part of #'s */
 
-				while((p < &Token[TOKENSIZE]) && (tmask != 0))
-					{
-					t = nextch();
-					*++p = t;
-					if(! istype(t,tmask))
-						tmask = 0;
-					}
+                while ((p < &Token[TOKENSIZE]) && (tmask != 0)) {
+                    t = nextch();
+                    *++p = t;
+                    if (!istype(t, tmask))
+                        tmask = 0;
+                }
 
-				if((t == 'l') || (t == 'L') || (t == 'u') ||
-					(t == 'U'))
-					{
-/*
- *	Last was a numeric terminator -- look ahead one char.
- */
-					t = nextch();
-/* Get next token for later refetch */	*++p = t;
-					}
-				}
-			else
-				{
-				numstate = F_INTPART;
-				fail = FALSE;
-				for(p = &Token[1]; p < &Token[TOKENSIZE] &&
-					(! fail); /*none*/ )
-					{
-					t = nextch();
-					*p = t;
-					switch(numstate)
-						{
-						case F_INTPART:
-					if(istype(t,C_D))
-						break;
-					else if(t == '.')
-						{
-						numstate = F_FRAC;
-						break;
-						}
-/*
- *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
- */
-/* FALLTHROUGH */
-						case F_FRAC:
-					if(istype(t,C_D))
-/* Fraction ok so far */			break;
-					else if((t == 'e') || (t == 'E'))
-						{
-/* Test sign */					numstate = F_EXPSIGN;
-						break;
-						}
-					else if((t == 'l') || (t == 'L') ||
-						(t == 'f') || (t == 'F'))
-						{
-						numstate = F_LAST;
-						break;
-						}
+                if ((t == 'l') || (t == 'L') || (t == 'u') ||
+                    (t == 'U')) {
+                    /*
+                     *	Last was a numeric terminator -- look ahead one char.
+                     */
+                    t = nextch();
+                    /* Get next token for later refetch */ *++p = t;
+                }
+            } else {
+                numstate = F_INTPART;
+                fail = FALSE;
+                for (p = &Token[1]; p < &Token[TOKENSIZE] &&
+                                    (!fail);
+                     /*none*/) {
+                    t = nextch();
+                    *p = t;
+                    switch (numstate) {
+                    case F_INTPART:
+                        if (istype(t, C_D))
+                            break;
+                        else if (t == '.') {
+                            numstate = F_FRAC;
+                            break;
+                        }
+                        /*
+                         *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
+                         */
+                        /* FALLTHROUGH */
+                    case F_FRAC:
+                        if (istype(t, C_D))
+                            /* Fraction ok so far */ break;
+                        else if ((t == 'e') || (t == 'E')) {
+                            /* Test sign */ numstate = F_EXPSIGN;
+                            break;
+                        } else if ((t == 'l') || (t == 'L') ||
+                                   (t == 'f') || (t == 'F')) {
+                            numstate = F_LAST;
+                            break;
+                        }
 
-					fail = TRUE;	/* Failure */
-					continue;
+                        fail = TRUE; /* Failure */
+                        continue;
 
-						case F_EXPSIGN:
-					if((t == '+') || (t == '-') ||
-						istype(t,C_D))
-						{
-						numstate = F_EXP;
-						break;
-						}
-					fail = TRUE;
-/* Error here -- loop fails */		continue;
+                    case F_EXPSIGN:
+                        if ((t == '+') || (t == '-') ||
+                            istype(t, C_D)) {
+                            numstate = F_EXP;
+                            break;
+                        }
+                        fail = TRUE;
+                        /* Error here -- loop fails */ continue;
 
-						case F_EXP:
-					if(istype(t,C_D))
-						break;	/* Digits ok */
+                    case F_EXP:
+                        if (istype(t, C_D))
+                            break; /* Digits ok */
 
-					if((t == 'f') || (t == 'F'))
-						{
-						numstate = F_LAST;
-/* Dummy state to end it */			break;
-						}
-					fail = TRUE;
-/* Error -- loop will fail */		continue;
-				    
-						case F_LAST:
-					fail = TRUE;	/* Force failure */
-					continue;	/* after an f|F|l|L */
-						}
-/* Advance char pointer into Token */	++p;
-					}
-				}
-			}
-		else
-			{
-			/* Must be some type of whitespace */
-			while(istype((t = nextch()),C_W))
-				;
-			if(t == '\n')
-				{
-				/* Just forget we saw any of the above space */
-				p = Token;	/* Reset token pointer */
-				Token[0] = '\n';
-				}
-			else
-				{
-				p = Token + 1;	/* Leave only one in buffer */
-				Token[0] = ' ';	/* Make it a single space */
-				/* t = token to pushback */
-				}
-			}
-		}
-	else
-		{
-		if(t == '\\')
-			{
-			if((t = nextch()) == '\n')
-				{
-				Token[0] = ' ';	/* Generic whitespace token */
-				Token[1] = '\0';
-				return (' ');
-				}
-			pushback(t);
-			t = '\\';	/* Return an escape char */
-			}
-		else if(((t == '"') || (t == '\'')) && (f & GT_STR))
-			{
-			LOG_DEBUG(" in quote");
+                        if ((t == 'f') || (t == 'F')) {
+                            numstate = F_LAST;
+                            /* Dummy state to end it */ break;
+                        }
+                        fail = TRUE;
+                        /* Error -- loop will fail */ continue;
 
-			for(p = &Token[1]; p < &Token[TOKENSIZE]; p++)
-				{
-				if((*p = nextch()) != '\\')
-					{
-					if((*p == t) || (*p == '\n'))
-						break;
-/*
- *	BUG: if a closing " or ' is missing from the string, the termination
- *	upon \n returns the \n as part of the string -- not as the NEXT token
- *	fetched.  This confuses readline() among others.  26-Jul-85 GO.
- */
-					}
-				else
-					{
-/*
- *	Fetched a '\\', see if next char is newline, and ignore both if it is.
- */
-					if((ch = nextch()) != '\n')
-						*++p = ch;
-					else
-						{
-						/* Unrecord the saved '\\' */
-						--p;
-						}
-					}
-				}
-			if(p >= &Token[TOKENSIZE])
-				non_fatal("Token too long","");
+                    case F_LAST:
+                        fail = TRUE; /* Force failure */
+                        continue;    /* after an f|F|l|L */
+                    }
+                    /* Advance char pointer into Token */ ++p;
+                }
+            }
+        } else {
+            /* Must be some type of whitespace */
+            while (istype((t = nextch()), C_W))
+                ;
+            if (t == '\n') {
+                /* Just forget we saw any of the above space */
+                p = Token; /* Reset token pointer */
+                Token[0] = '\n';
+            } else {
+                p = Token + 1;  /* Leave only one in buffer */
+                Token[0] = ' '; /* Make it a single space */
+                /* t = token to pushback */
+            }
+        }
+    } else {
+        if (t == '\\') {
+            if ((t = nextch()) == '\n') {
+                Token[0] = ' '; /* Generic whitespace token */
+                Token[1] = '\0';
+                return (' ');
+            }
+            pushback(t);
+            t = '\\'; /* Return an escape char */
+        } else if (((t == '"') || (t == '\'')) && (f & GT_STR)) {
+            LOG_DEBUG(" in quote");
 
-			p[1] = '\0';
-			return(t);
-			}
-		else if((t == '<') && (f == GT_ANGLE))
-			{
-			LOG_DEBUG(" in angle bracket");
+            for (p = &Token[1]; p < &Token[TOKENSIZE]; p++) {
+                if ((*p = nextch()) != '\\') {
+                    if ((*p == t) || (*p == '\n'))
+                        break;
+                    /*
+                     *	BUG: if a closing " or ' is missing from the string, the termination
+                     *	upon \n returns the \n as part of the string -- not as the NEXT token
+                     *	fetched.  This confuses readline() among others.  26-Jul-85 GO.
+                     */
+                } else {
+                    /*
+                     *	Fetched a '\\', see if next char is newline, and ignore both if it is.
+                     */
+                    if ((ch = nextch()) != '\n')
+                        *++p = ch;
+                    else {
+                        /* Unrecord the saved '\\' */
+                        --p;
+                    }
+                }
+            }
+            if (p >= &Token[TOKENSIZE])
+                non_fatal("Token too long", "");
 
-			for(p = &Token[1]; p < &Token[TOKENSIZE]; p++)
-				{
-				*p = nextch();
-				if((*p == '>') || (*p == '\n'))
-					break;
-				}
-			if(p >= &Token[TOKENSIZE])
-				non_fatal("Token too long","");
+            p[1] = '\0';
+            return (t);
+        } else if ((t == '<') && (f == GT_ANGLE)) {
+            LOG_DEBUG(" in angle bracket");
 
-			p[1] = '\0';
-			return(t);
-			}
-		else
-			{
-			if(t == '/')
-				{
-/* Regular C comments */	if((nt = nextch()) == '*')
-					{
-					comment_level = 1;
-					t = ' ';
-					Token[0] = t;
-					LOG_DEBUG(" in comment");
-					do
-						{
-						while((t != '*') && (t != '/')
-							&& (t != EOF))
-							{
-							t = nextch();
-							}
-						if(t == EOF)
-							{
-						non_fatal("Comment extends to end of file","");
-							return (EOF);
-							}
-						nt = nextch();
-						if((t == '/') && (nt == '*'))
-							{
-							if(! A_crecurse)
-								{
-					warning("\"/*\" found in comment","");
-								}
-							else
-								{
-							comment_level++;
-								}
-							}
-						if((t == '*') && (nt == '/'))
-							comment_level--;
-						if(comment_level > 0)
-							t = nt;
-						}
-					while(comment_level > 0) ;
-					t = Token[0];
-					}
-/* Optional C++ comments */	else if(A_eolcomment && (nt == '/'))
-					{
-					t = ' ';
-					Token[0] = t;
-					LOG_DEBUG(" in eol comment");
-					while((t != '\n') && (t != EOF))
-						t = nextch();
-					if(t == EOF)
-						{
-						non_fatal("Comment extends to end of file","");
+            for (p = &Token[1]; p < &Token[TOKENSIZE]; p++) {
+                *p = nextch();
+                if ((*p == '>') || (*p == '\n'))
+                    break;
+            }
+            if (p >= &Token[TOKENSIZE])
+                non_fatal("Token too long", "");
 
-						return (EOF);
-						}
-					else
-						pushback(t);
+            p[1] = '\0';
+            return (t);
+        } else {
+            if (t == '/') {
+                /* Regular C comments */ if ((nt = nextch()) == '*') {
+                    comment_level = 1;
+                    t = ' ';
+                    Token[0] = t;
+                    LOG_DEBUG(" in comment");
+                    do {
+                        while ((t != '*') && (t != '/') && (t != EOF)) {
+                            t = nextch();
+                        }
+                        if (t == EOF) {
+                            non_fatal("Comment extends to end of file", "");
+                            return (EOF);
+                        }
+                        nt = nextch();
+                        if ((t == '/') && (nt == '*')) {
+                            if (!A_crecurse) {
+                                warning("\"/*\" found in comment", "");
+                            } else {
+                                comment_level++;
+                            }
+                        }
+                        if ((t == '*') && (nt == '/'))
+                            comment_level--;
+                        if (comment_level > 0)
+                            t = nt;
+                    } while (comment_level > 0);
+                    t = Token[0];
+                }
+                /* Optional C++ comments */ else if (A_eolcomment && (nt == '/')) {
+                    t = ' ';
+                    Token[0] = t;
+                    LOG_DEBUG(" in eol comment");
+                    while ((t != '\n') && (t != EOF))
+                        t = nextch();
+                    if (t == EOF) {
+                        non_fatal("Comment extends to end of file", "");
 
-					t = Token[0];
-					}
-				else
-					pushback(nt);
-				}
-			}
-		if(istype(t,C_M))
-			{
-			/* One of several meta token chars */
-			switch(t)
-				{
-				case LINE_TOKEN:
-					snprintf(Token, sizeof(Token), "%d", LLine);
-					break;
+                        return (EOF);
+                    } else
+                        pushback(t);
 
-				case FILE_TOKEN:
-					snprintf(Token, sizeof(Token), "\"%s\"",
-						Filestack[Filelevel]->f_name);
-					break;
+                    t = Token[0];
+                } else
+                    pushback(nt);
+            }
+        }
+        if (istype(t, C_M)) {
+            /* One of several meta token chars */
+            switch (t) {
+            case LINE_TOKEN:
+                snprintf(Token, sizeof(Token), "%d", LLine);
+                break;
 
-				case TIME_TOKEN:
-					snprintf(Token, sizeof(Token), "\"%s\"",_Time);
-					break;
+            case FILE_TOKEN:
+                snprintf(Token, sizeof(Token), "\"%s\"",
+                         Filestack[Filelevel]->f_name);
+                break;
 
-				case DATE_TOKEN:
-					snprintf(Token, sizeof(Token), "\"%s\"",Date);
-					break;
+            case TIME_TOKEN:
+                snprintf(Token, sizeof(Token), "\"%s\"", _Time);
+                break;
 
-				case NOW_TOKEN:
-					snprintf(Token, sizeof(Token), "%u",Unique);
-					break;
+            case DATE_TOKEN:
+                snprintf(Token, sizeof(Token), "\"%s\"", Date);
+                break;
 
-				case NEXT_TOKEN:
-					snprintf(Token, sizeof(Token), "%u",++Unique);
-					break;
+            case NOW_TOKEN:
+                snprintf(Token, sizeof(Token), "%u", Unique);
+                break;
 
-				case PREV_TOKEN:
-					snprintf(Token, sizeof(Token), "%u",--Unique);
-					break;
+            case NEXT_TOKEN:
+                snprintf(Token, sizeof(Token), "%u", ++Unique);
+                break;
 
-				default:
-					Token[0] = t;
-					Token[1] = '\0';
-					break;
-				}
-			return (type(Token[0] & 0xFF));
-			}
-		}
+            case PREV_TOKEN:
+                snprintf(Token, sizeof(Token), "%u", --Unique);
+                break;
 
-	if(p >= &Token[TOKENSIZE])
-		non_fatal("Token too long","");
+            default:
+                Token[0] = t;
+                Token[1] = '\0';
+                break;
+            }
+            return (type(Token[0] & 0xFF));
+        }
+    }
 
-	if(p > Token)
-		{
-		--p;
-		pushback(t);		/* Push back previous token value */
-		t = type(Token[0] & 0xFF);
-		}
+    if (p >= &Token[TOKENSIZE])
+        non_fatal("Token too long", "");
 
-	p[1] = '\0';			/* Null terminated */
+    if (p > Token) {
+        --p;
+        pushback(t); /* Push back previous token value */
+        t = type(Token[0] & 0xFF);
+    }
 
-	LOG_DEBUG(" returning: <%s> type: %c", Token, t);
+    p[1] = '\0'; /* Null terminated */
 
-	return(t);
-	}
+    LOG_DEBUG(" returning: <%s> type: %c", Token, t);
 
-#ifdef	MSC_OPT
-#pragma	optimize("e",on)		/* Enable global reg optimizing */
-#pragma	optimize("g",on)		/* Enable global common subs */
-#pragma	optimize("l",on)		/* Enable loop optimizing */
-#endif	/* MSC_OPT */
+    return (t);
+}
 
-#if	!PP
+#ifdef MSC_OPT
+#pragma optimize("e", on) /* Enable global reg optimizing */
+#pragma optimize("g", on) /* Enable global common subs */
+#pragma optimize("l", on) /* Enable loop optimizing */
+#endif                    /* MSC_OPT */
+
+#if !PP
 /************************************************************************/
 /*									*/
 /*	istype								*/
@@ -521,16 +458,15 @@ gettoken(f)
 /*									*/
 /************************************************************************/
 
-int
-istype(c,v)
-	int			c;
-	int			v;
-	{
-	return ((typetab+1)[c]&v);
-	}
-#endif	/* !PP */
+int istype(c, v)
+int c;
+int v;
+{
+    return ((typetab + 1)[c] & v);
+}
+#endif /* !PP */
 
-#ifndef	memmov
+#ifndef memmov
 /************************************************************************/
 /*									*/
 /*	memmov								*/
@@ -540,15 +476,14 @@ istype(c,v)
 /************************************************************************/
 
 void
-memmov(f,t,l)
-	char	*f;
-	char	*t;
-	unsigned	l;
-	{    
-	while(l--)
-		*t++ = *f++;
-	}
-#endif	/* memmov */
+    memmov(f, t, l) char *f;
+char *t;
+unsigned l;
+{
+    while (l--)
+        *t++ = *f++;
+}
+#endif /* memmov */
 
 /************************************************************************/
 /*									*/
@@ -563,28 +498,27 @@ memmov(f,t,l)
 /************************************************************************/
 
 void
-pbcstr(s)
-	char			*s;
-	{
-	char			*cp;
-	unsigned	int	length;
+    pbcstr(s) char *s;
+{
+    char *cp;
+    unsigned int length;
 
-	if((cp = malloc((unsigned) (length = ((unsigned int) strlen(s) + 1)))) == NULL)
-		out_of_memory();
-	memmov(s,cp,length);		/* Make a copy of memory */
+    if ((cp = malloc((unsigned)(length = ((unsigned int)strlen(s) + 1)))) == NULL)
+        out_of_memory();
+    memmov(s, cp, length); /* Make a copy of memory */
 
-	if(Pbbufp++ >= &Pbbuf[PUSHBACKSIZE-1])
-		fatal("Pushback buffer overflow","");
-	Pbbufp->pb_type = PB_STRING;
-	Pbbufp->pb_val.pb_str = cp;
+    if (Pbbufp++ >= &Pbbuf[PUSHBACKSIZE - 1])
+        fatal("Pushback buffer overflow", "");
+    Pbbufp->pb_type = PB_STRING;
+    Pbbufp->pb_val.pb_str = cp;
 
-	if(Pbbufp++ >= &Pbbuf[PUSHBACKSIZE-1])
-		fatal("Pushback buffer overflow","");
-	Pbbufp->pb_type = PB_STRING;
-	Pbbufp->pb_val.pb_str = cp;
+    if (Pbbufp++ >= &Pbbuf[PUSHBACKSIZE - 1])
+        fatal("Pushback buffer overflow", "");
+    Pbbufp->pb_type = PB_STRING;
+    Pbbufp->pb_val.pb_str = cp;
 
-	Nextch = gchpb;
-	}
+    Nextch = gchpb;
+}
 
 /************************************************************************/
 /*									*/
@@ -595,14 +529,13 @@ pbcstr(s)
 /************************************************************************/
 
 void
-pbstr(in)
-	char			*in;
-	{
-	int	i;
+    pbstr(in) char *in;
+{
+    int i;
 
-	for(i = (int) strlen(in) - 1; i >= 0; i--)
-		pushback(in[i] & 0xFF);
-	}
+    for (i = (int)strlen(in) - 1; i >= 0; i--)
+        pushback(in[i] & 0xFF);
+}
 
 /************************************************************************/
 /*									*/
@@ -613,17 +546,16 @@ pbstr(in)
 /************************************************************************/
 
 void
-pushback(c)
-	int			c;
-	{
-	if(Pbbufp++ >= &Pbbuf[PUSHBACKSIZE-1])
-		fatal("Pushback buffer overflow","");
+    pushback(c) int c;
+{
+    if (Pbbufp++ >= &Pbbuf[PUSHBACKSIZE - 1])
+        fatal("Pushback buffer overflow", "");
 
-	Pbbufp->pb_type = PB_CHAR;
-	Pbbufp->pb_val.pb_char = c;
+    Pbbufp->pb_type = PB_CHAR;
+    Pbbufp->pb_val.pb_char = c;
 
-	Nextch = gchpb;
-	}
+    Nextch = gchpb;
+}
 
 /************************************************************************/
 /*									*/
@@ -634,58 +566,50 @@ pushback(c)
 /************************************************************************/
 
 void
-puttoken(s)
-	char			s[];
-	{
-	int	ch;
-	char	*str;
-	static	int		lastoutc = '\n';	/* Last char written */
+    puttoken(s) char s[];
+{
+    int ch;
+    char *str;
+    static int lastoutc = '\n'; /* Last char written */
 
-	str = s;
+    str = s;
 
     LOG_DEBUG("puttoken: <%s>", str);
 
-	if(istype(*str & 0xFF,C_N))	/* Ignore null tokens */
-		return;
+    if (istype(*str & 0xFF, C_N)) /* Ignore null tokens */
+        return;
 
-	if(Lineopt)
-		{
-		/* Get line numbers in sync before emitting token */
+    if (Lineopt) {
+        /* Get line numbers in sync before emitting token */
 
-#if	(TARGET == T_QC) OR (TARGET == T_QCX)
-		if(!Do_asm && (((*str != '\n') && (Outline != LLine)) ||
-			Do_name))
-#else	/* !((TARGET == T_QC) OR (TARGET == T_QCX)) */
-		if(((*str != '\n') && (Outline != LLine)) || Do_name)
-#endif	/* (TARGET == T_QC) OR (TARGET == T_QCX) */
-			{
-			do_line(lastoutc == '\n');	/* True if at BOL */
-			lastoutc = '\n';	/* We're at BOL now... */
-			}
+#if (TARGET == T_QC) OR(TARGET == T_QCX)
+        if (!Do_asm && (((*str != '\n') && (Outline != LLine)) ||
+                        Do_name))
+#else  /* !((TARGET == T_QC) OR (TARGET == T_QCX)) */
+        if (((*str != '\n') && (Outline != LLine)) || Do_name)
+#endif /* (TARGET == T_QC) OR (TARGET == T_QCX) */
+        {
+            do_line(lastoutc == '\n'); /* True if at BOL */
+            lastoutc = '\n';           /* We're at BOL now... */
+        }
 
-		while((ch = *str++) != '\0')
-			{
-			if(ch == '\n')
-				{
-				if(lastoutc != '\n')
-					{
-					putc(lastoutc = '\n',Output);
-					Outline++;
-					}
-/*
- *	No character written if lastoutc WAS a newline.
- */
-				}
-			else
-				putc(lastoutc = ch,Output);
-			}
-		}
-	else
-		{
-		while((ch = *str++) != '\0')
-			putc(ch,Output);	/* if!line mode output token */
-		}
-	}
+        while ((ch = *str++) != '\0') {
+            if (ch == '\n') {
+                if (lastoutc != '\n') {
+                    putc(lastoutc = '\n', Output);
+                    Outline++;
+                }
+                /*
+                 *	No character written if lastoutc WAS a newline.
+                 */
+            } else
+                putc(lastoutc = ch, Output);
+        }
+    } else {
+        while ((ch = *str++) != '\0')
+            putc(ch, Output); /* if!line mode output token */
+    }
+}
 
 /************************************************************************/
 /*									*/
@@ -695,15 +619,13 @@ puttoken(s)
 /*									*/
 /************************************************************************/
 
-int
-type(c)
-	int			c;
-	{
-	if(istype(c,C_L))
-		return(LETTER);
-	else if(istype(c,C_D))
-		return(NUMBER);
-	else
-		return(c);
-	}
-
+int type(c)
+int c;
+{
+    if (istype(c, C_L))
+        return (LETTER);
+    else if (istype(c, C_D))
+        return (NUMBER);
+    else
+        return (c);
+}

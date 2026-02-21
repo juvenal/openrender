@@ -55,10 +55,10 @@
 /*									*/
 /************************************************************************/
 
-#include	"pp.h"
-#include	"ppext.h"
+#include "pp.h"
+#include "ppext.h"
 
-#if	(TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX)
+#if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
 /************************************************************************/
 /*									*/
 /*	doasm								*/
@@ -70,12 +70,11 @@
 /************************************************************************/
 
 void
-doasm(asmtype)
-	int			asmtype;/* True if #asm; False if #endasm */
-	{
-	puttoken(asmtype ? "#asm" : "#endasm");
-	}
-#endif	/* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
+    doasm(asmtype) int asmtype; /* True if #asm; False if #endasm */
+{
+    puttoken(asmtype ? "#asm" : "#endasm");
+}
+#endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
 
 /************************************************************************/
 /*									*/
@@ -88,53 +87,46 @@ doasm(asmtype)
 /*									*/
 /************************************************************************/
 
-void
-dopragma()
-	{
-	int			ltr_flag;
-	int			no_flag;
-	struct	ppdir		*pp;
-	char			pragbuf[PRAGBUFSIZE];
+void dopragma() {
+    int ltr_flag;
+    int no_flag;
+    struct ppdir *pp;
+    char pragbuf[PRAGBUFSIZE];
 
-	no_flag = FALSE;		/* "no" not encountered */
+    no_flag = FALSE; /* "no" not encountered */
 
-	if((ltr_flag = (getnstoken(GT_STR) == LETTER)) != 0)
-		{
-		if(strcmp(Token,"no") == EQUAL)
-			{
-			no_flag = TRUE;
-			ltr_flag = (getnstoken(GT_STR) == LETTER);
-			}
-		if(ltr_flag && ((pp = predef(Token,pragtab)) != NULL))
-			{
-			/* If unconditionally do it or if emitting code */
-			if(pp->pp_ifif || (Ifstate == IFTRUE))
-				{
-				(void) (*(pp->pp_func))(pp->pp_arg,no_flag,
-					pp->pp_name);
-				}
-			return;
-			}
-		}
-/*
- *	We do not understand: print original (or similar) #pragma to output
- *	if we are emitting code.
- */
-	if(Ifstate == IFTRUE)
-		{
-		puttoken("#pragma ");	/* Write #pragma directive */
-		if(no_flag)
-			puttoken("no ");
-		puttoken(Token);	/* Unrecognized token */
-		puttoken(" ");		/* Whitespace separating */
-/*
- *	Expand macros...
- */
-		puttoken(readline(pragbuf,PRAGBUFSIZE,GT_STR,TRUE));
-		}
-	}
+    if ((ltr_flag = (getnstoken(GT_STR) == LETTER)) != 0) {
+        if (strcmp(Token, "no") == EQUAL) {
+            no_flag = TRUE;
+            ltr_flag = (getnstoken(GT_STR) == LETTER);
+        }
+        if (ltr_flag && ((pp = predef(Token, pragtab)) != NULL)) {
+            /* If unconditionally do it or if emitting code */
+            if (pp->pp_ifif || (Ifstate == IFTRUE)) {
+                (void)(*(pp->pp_func))(pp->pp_arg, no_flag,
+                                       pp->pp_name);
+            }
+            return;
+        }
+    }
+    /*
+     *	We do not understand: print original (or similar) #pragma to output
+     *	if we are emitting code.
+     */
+    if (Ifstate == IFTRUE) {
+        puttoken("#pragma "); /* Write #pragma directive */
+        if (no_flag)
+            puttoken("no ");
+        puttoken(Token); /* Unrecognized token */
+        puttoken(" ");   /* Whitespace separating */
+                         /*
+                          *	Expand macros...
+                          */
+        puttoken(readline(pragbuf, PRAGBUFSIZE, GT_STR, TRUE));
+    }
+}
 
-#if	(TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX)
+#if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
 /************************************************************************/
 /*									*/
 /*	pragasm								*/
@@ -145,25 +137,21 @@ dopragma()
 /************************************************************************/
 
 void
-pragasm(asmtype)
-	int			asmtype;/* True if #asm; False if #endasm */
-	{
-	if(Do_asm == asmtype)
-		{
-		if(Do_asm)
-			non_fatal("Already within \"#pragma asm\"","");
-		else
-			non_fatal("Not within \"#pragma asm\"","");
-		}
-	else
-		{
-		pbstr(Do_asm ? "#endasm" : "#asm");	/* For 2nd pass */
-		pushback('\n');		/* So scaneol finds the end */
-		Do_asm = asmtype;	/* Set flag and let main line handle */
-		Macexpand = asmtype ? Asmexpand : TRUE;	/* Set expand mode */
-		}
-	}
-#endif	/* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
+    pragasm(asmtype) int asmtype; /* True if #asm; False if #endasm */
+{
+    if (Do_asm == asmtype) {
+        if (Do_asm)
+            non_fatal("Already within \"#pragma asm\"", "");
+        else
+            non_fatal("Not within \"#pragma asm\"", "");
+    } else {
+        pbstr(Do_asm ? "#endasm" : "#asm");     /* For 2nd pass */
+        pushback('\n');                         /* So scaneol finds the end */
+        Do_asm = asmtype;                       /* Set flag and let main line handle */
+        Macexpand = asmtype ? Asmexpand : TRUE; /* Set expand mode */
+    }
+}
+#endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
 
 /************************************************************************/
 /*									*/
@@ -173,11 +161,9 @@ pragasm(asmtype)
 /*									*/
 /************************************************************************/
 
-void
-pragendm()
-	{
-	non_fatal("\"#pragma endmacro\" not allowed outside macro","");
-	}
+void pragendm() {
+    non_fatal("\"#pragma endmacro\" not allowed outside macro", "");
+}
 
 /************************************************************************/
 /*									*/
@@ -187,13 +173,11 @@ pragendm()
 /*									*/
 /************************************************************************/
 
-void
-pragerror()
-	{
-	char			msgbuf[MESSAGEBUFSIZE];
+void pragerror() {
+    char msgbuf[MESSAGEBUFSIZE];
 
-	non_fatal(readline(msgbuf,MESSAGEBUFSIZE,GT_STR,FALSE),"");
-	}
+    non_fatal(readline(msgbuf, MESSAGEBUFSIZE, GT_STR, FALSE), "");
+}
 
 /************************************************************************/
 /*									*/
@@ -206,15 +190,13 @@ pragerror()
 /*									*/
 /************************************************************************/
 
-void
-pragmsg()
-	{
-	char			msgbuf[MESSAGEBUFSIZE];
+void pragmsg() {
+    char msgbuf[MESSAGEBUFSIZE];
 
-	printf("%s(%u): MESSAGE: %s\n",
-		Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,LLine,
-			readline(msgbuf,MESSAGEBUFSIZE,GT_STR,FALSE));
-	}
+    printf("%s(%u): MESSAGE: %s\n",
+           Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name, LLine,
+           readline(msgbuf, MESSAGEBUFSIZE, GT_STR, FALSE));
+}
 
 /************************************************************************/
 /*									*/
@@ -224,67 +206,64 @@ pragmsg()
 /*									*/
 /************************************************************************/
 
-#ifdef	__TURBOC__
-#pragma	warn	-par
-#endif	/* __TURBOC__ */
+#ifdef __TURBOC__
+#pragma warn - par
+#endif /* __TURBOC__ */
 
 void
-pragopt(dummy,no_flag,name)
-	int			dummy;		/* Placeholder */
-	int			no_flag;	/* TRUE if "no" condition */
-	char			*name;		/* Name of pragma */
-	{
-	char			buf[TOKENSIZE + 1];
-	struct	symtab		*sym;
-	char			*toptr;
+    pragopt(dummy, no_flag, name) int dummy; /* Placeholder */
+int no_flag;                                 /* TRUE if "no" condition */
+char *name;                                  /* Name of pragma */
+{
+    char buf[TOKENSIZE + 1];
+    struct symtab *sym;
+    char *toptr;
 
-	if(strcmp(name,"arg_string") == EQUAL)
-		A_astring = !no_flag;
-#if	(TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX)
-	else if(strcmp(name,"asm_expand") == EQUAL)
-		Asmexpand = !no_flag;
-#endif	/* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
-	else if(strcmp(name,"comment_recurse") == EQUAL)
-		A_crecurse = !no_flag;
-	else if(strcmp(name,"eol_comment") == EQUAL)
-		A_eolcomment = !no_flag;
-	else if(strcmp(name,"macro_rescan") == EQUAL)
-		A_rescan = !no_flag;
-	else if(strcmp(name,"macro_stack") == EQUAL)
-		A_stack = !no_flag;
-	else if(strcmp(name,"trigraph") == EQUAL)
-		A_trigraph = !no_flag;
-/*
- *	We need to keep track of the current setting of the options via
- *	the appropriate "__<uppercase option name>__" macro.  First we
- *	synthesize the macro name.
- */
-	strcpy(buf,"__");
-	for(toptr = &buf[2]; *name; name++)
-		*toptr++ = (islower(*name) ? toupper(*name) : *name);
-	*toptr = '\0';
-	strcat(buf,"__");
-/*
- *	Now see if it still exists and if its value hasn't been altered
- *	beyond use by the user doing a undef/define sequence on it.
- */
-	if((sym = lookup(buf,NULL)) != NULL)
-		{
-		if((sym->s_body != NULL) &&
-			((strcmp(sym->s_body,"0") == EQUAL) ||
-				(strcmp(sym->s_body,"1") == EQUAL)))
-			{
-			if(! no_flag)
-				*(sym->s_body) = '1';
-			else
-				*(sym->s_body) = '0';
-			}
-		}
-	}
+    if (strcmp(name, "arg_string") == EQUAL)
+        A_astring = !no_flag;
+#if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
+    else if (strcmp(name, "asm_expand") == EQUAL)
+        Asmexpand = !no_flag;
+#endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
+    else if (strcmp(name, "comment_recurse") == EQUAL)
+        A_crecurse = !no_flag;
+    else if (strcmp(name, "eol_comment") == EQUAL)
+        A_eolcomment = !no_flag;
+    else if (strcmp(name, "macro_rescan") == EQUAL)
+        A_rescan = !no_flag;
+    else if (strcmp(name, "macro_stack") == EQUAL)
+        A_stack = !no_flag;
+    else if (strcmp(name, "trigraph") == EQUAL)
+        A_trigraph = !no_flag;
+    /*
+     *	We need to keep track of the current setting of the options via
+     *	the appropriate "__<uppercase option name>__" macro.  First we
+     *	synthesize the macro name.
+     */
+    strcpy(buf, "__");
+    for (toptr = &buf[2]; *name; name++)
+        *toptr++ = (islower(*name) ? toupper(*name) : *name);
+    *toptr = '\0';
+    strcat(buf, "__");
+    /*
+     *	Now see if it still exists and if its value hasn't been altered
+     *	beyond use by the user doing a undef/define sequence on it.
+     */
+    if ((sym = lookup(buf, NULL)) != NULL) {
+        if ((sym->s_body != NULL) &&
+            ((strcmp(sym->s_body, "0") == EQUAL) ||
+             (strcmp(sym->s_body, "1") == EQUAL))) {
+            if (!no_flag)
+                *(sym->s_body) = '1';
+            else
+                *(sym->s_body) = '0';
+        }
+    }
+}
 
-#ifdef	__TURBOC__
-#pragma	warn	.par
-#endif	/* __TURBOC__ */
+#ifdef __TURBOC__
+#pragma warn.par
+#endif /* __TURBOC__ */
 
 /************************************************************************/
 /*									*/
@@ -294,13 +273,10 @@ pragopt(dummy,no_flag,name)
 /*									*/
 /************************************************************************/
 
-void
-pragvalue()
-	{
-	char			buf[TOKENSIZE + 1];
+void pragvalue() {
+    char buf[TOKENSIZE + 1];
 
-	snprintf(buf, sizeof(buf), "%ld", (long) eval());
-	pbstr(buf);			/* Push back into "input" stream */
-	pushback('\n');			/* So scaneol finds the end */
-	}
-
+    snprintf(buf, sizeof(buf), "%ld", (long)eval());
+    pbstr(buf);     /* Push back into "input" stream */
+    pushback('\n'); /* So scaneol finds the end */
+}
