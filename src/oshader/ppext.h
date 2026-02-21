@@ -121,15 +121,15 @@ extern void pragvalue();
 /*
  *	pp7.c
  */
-extern void end_of_file();
+extern void end_of_file(void);
 /*lint -function(exit,end_of_file) */
-extern void fatal();
+extern void fatal(char *s1, char *s2);
 /*lint -function(exit,fatal) */
-extern void illegal_symbol();
-extern void non_fatal();
-extern void out_of_memory();
-extern void prmsg();
-extern void warning();
+extern void illegal_symbol(void);
+extern void non_fatal(char *s1, char *s2);
+extern void out_of_memory(void);
+extern void prmsg(char *s1, char *s2, char *s3);
+extern void warning(char *s1, char *s2);
 
 /*
  *	pp8.c

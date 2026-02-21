@@ -133,6 +133,7 @@
 
 #include	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 #ifdef	__TURBOC__
 extern	unsigned	_stklen = 32767;
@@ -162,9 +163,9 @@ main(argc,argv)
 */
 	static	char		*one_string = "1";
 
-	register int		t;	/* General holder for token	*/
-	register struct	symtab	*p;	/* Ptr into symbol table	*/
-	register struct	ppdir	*sp;	/* Ptr to predefined symbol	*/
+	int			t;	/* General holder for token	*/
+	struct	symtab		*p;	/* Ptr into symbol table	*/
+	struct	ppdir		*sp;	/* Ptr to predefined symbol	*/
 	int			ifile;
 	int			ofile;
 	const char			*s;
@@ -295,7 +296,7 @@ main(argc,argv)
 					case 'O':
 					case 'o':
 				s2 = getnext(s,&argc,&argv,NO);
-				strcpy(Outfile,s2);	/* Copy filename */
+				snprintf(Outfile, sizeof(Outfile), "%s", s2);	/* Copy filename */
 				ofile = TRUE;
 				skip = TRUE;	/* Skip to next param */
 				break;

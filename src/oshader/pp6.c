@@ -299,7 +299,7 @@ pragvalue()
 	{
 	char			buf[TOKENSIZE + 1];
 
-	sprintf(buf,"%ld",(long) eval());
+	snprintf(buf, sizeof(buf), "%ld", (long) eval());
 	pbstr(buf);			/* Push back into "input" stream */
 	pushback('\n');			/* So scaneol finds the end */
 	}

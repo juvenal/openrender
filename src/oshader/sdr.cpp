@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "logging.h"
 #include "opcodes.h" // This file holds the constant strings
 #include "ri/dso.h"
 #include "ri/shadeop.h"
@@ -1327,7 +1328,7 @@ void CScriptContext::addVariable(CVariable *cVariable) {
         if (cVariable->cName != NULL)
             return;
 
-        sprintf(tmp, cVariable->symbolName);
+        snprintf(tmp, sizeof(tmp), "%s", cVariable->symbolName);
 
         while (collusion == TRUE) {
             collusion = FALSE;
@@ -1336,14 +1337,14 @@ void CScriptContext::addVariable(CVariable *cVariable) {
                 if (tVar->cName != NULL) {
                     if (strcmp(tmp, tVar->cName) == 0) {
                         count++;
-                        sprintf(tmp, "%s_%d", cVariable->symbolName, count);
+                        snprintf(tmp, sizeof(tmp), "%s_%d", cVariable->symbolName, count);
                         collusion = TRUE;
                         break;
                     }
                 } else {
                     if (strcmp(tmp, tVar->symbolName) == 0) {
                         count++;
-                        sprintf(tmp, "%s_%d", cVariable->symbolName, count);
+                        snprintf(tmp, sizeof(tmp), "%s_%d", cVariable->symbolName, count);
                         collusion = TRUE;
                         break;
                     }
@@ -1367,7 +1368,7 @@ void CScriptContext::addVariable(CVariable *cVariable) {
 void CScriptContext::newLabel(char *dest) {
     numLabels++;
 
-    sprintf(dest, "#!Label%d", numLabels);
+    snprintf(dest, OS_MAX_PATH_LENGTH, "#!Label%d", numLabels);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1603,7 +1604,7 @@ static int dsoEnumerateCallback(const char *file, void *ud) {
         {
             char tmp[OS_MAX_PATH_LENGTH];
 
-            sprintf(tmp, "%s_shadeops", name);
+            snprintf(tmp, sizeof(tmp), "%s_shadeops", name);
 
             shadeops = (SHADEOP_SPEC *)osResolve(module, tmp);
         }
@@ -1644,7 +1645,7 @@ void CScriptContext::enumerateDso(const char *name) {
 
     // Go over the directories
     for (inPath = dsoPath; inPath != NULL; inPath = inPath->next) {
-        sprintf(searchPath, "%s/*.%s", inPath->directory, osModuleExtension);
+        snprintf(searchPath, sizeof(searchPath), "%s/*.%s", inPath->directory, osModuleExtension);
         osEnumerate(searchPath, dsoEnumerateCallback, (void *)name);
     }
 }
@@ -1656,19 +1657,21 @@ void CScriptContext::enumerateDso(const char *name) {
 // Return Value			:
 // Comments				:
 void CScriptContext::error(const char *mes, ...) {
-    char tmp[1024];
-    va_list args;
-
     compileError++;
 
     if (CScriptContext::settings & COMPILER_SUPPRESS_ERRORS)
         return;
 
-    sprintf(tmp, "%s(%d) Error: %s", sourceFile, lineNo, mes);
-
+    char fmtbuf[512], msg[1024];
+    snprintf(fmtbuf, sizeof(fmtbuf), "%s(%d) Error: %s", sourceFile, lineNo, mes);
+    va_list args;
     va_start(args, mes);
-    vprintf(tmp, args);
+    vsnprintf(msg, sizeof(msg), fmtbuf, args);
     va_end(args);
+    size_t len = strlen(msg);
+    if (len > 0 && msg[len - 1] == '\n')
+        msg[len - 1] = '\0';
+    LOG_ERROR("%s", msg);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1678,19 +1681,21 @@ void CScriptContext::error(const char *mes, ...) {
 // Return Value			:
 // Comments				:
 void CScriptContext::warning(const char *mes, ...) {
-    char tmp[1024];
-    va_list args;
-
     compileWarning++;
 
     if (settings & COMPILER_SUPPRESS_WARNINGS)
         return;
 
-    sprintf(tmp, "%s(%d) Warning: %s", sourceFile, lineNo, mes);
-
+    char fmtbuf[512], msg[1024];
+    snprintf(fmtbuf, sizeof(fmtbuf), "%s(%d) Warning: %s", sourceFile, lineNo, mes);
+    va_list args;
     va_start(args, mes);
-    vprintf(tmp, args);
+    vsnprintf(msg, sizeof(msg), fmtbuf, args);
     va_end(args);
+    size_t len = strlen(msg);
+    if (len > 0 && msg[len - 1] == '\n')
+        msg[len - 1] = '\0';
+    LOG_WARN("%s", msg);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1700,14 +1705,16 @@ void CScriptContext::warning(const char *mes, ...) {
 // Return Value			:
 // Comments				:
 void CScriptContext::fatal(const char *mes, ...) {
-    char tmp[1024];
+    char fmtbuf[512], msg[1024];
+    snprintf(fmtbuf, sizeof(fmtbuf), "%s(%d) Error: %s", sourceFile, lineNo, mes);
     va_list args;
-
-    sprintf(tmp, "%s(%d) Error: %s", sourceFile, lineNo, mes);
-
     va_start(args, mes);
-    vprintf(tmp, args);
+    vsnprintf(msg, sizeof(msg), fmtbuf, args);
     va_end(args);
+    size_t len = strlen(msg);
+    if (len > 0 && msg[len - 1] == '\n')
+        msg[len - 1] = '\0';
+    LOG_ERROR("%s", msg);
 
     exit(-1);
 }
@@ -1792,7 +1799,7 @@ CVariable *CScriptContext::lockRegister(int type, int numItems) {
         }
     }
 
-    sprintf(name, "temporary_%d", numTemporaryRegisters++);
+    snprintf(name, sizeof(name), "temporary_%d", numTemporaryRegisters++);
     cVar = new CVariable(name, type, numItems);
     cVar->cName = strdup(name);
 

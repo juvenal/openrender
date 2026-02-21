@@ -57,6 +57,7 @@
 
 #include	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 /************************************************************************/
 /*									*/
@@ -67,7 +68,7 @@
 /************************************************************************/
 
 void
-end_of_file()
+end_of_file(void)
 	{
 	fatal("Unexpected end of file","");
 	}
@@ -81,11 +82,9 @@ end_of_file()
 /************************************************************************/
 
 void
-fatal(s1,s2)
-	char			*s1;
-	char			*s2;
+fatal(char *s1, char *s2)
 	{
-	fprintf(STDERR,"Error: %s%s\n",s1,s2);	/* Print message */
+	LOG_ERROR("FATAL: %s%s", s1, s2);
 	exit(TRUE);
 	}
 
@@ -98,7 +97,7 @@ fatal(s1,s2)
 /************************************************************************/
 
 void
-illegal_symbol()
+illegal_symbol(void)
 	{
 	non_fatal("Invalid symbol name",Token);
 	}
@@ -112,9 +111,7 @@ illegal_symbol()
 /************************************************************************/
 
 void
-non_fatal(s1,s2)
-	char			*s1;
-	char			*s2;
+non_fatal(char *s1, char *s2)
 	{
 	prmsg("Error: ",s1,s2);
 	Errors++;			/* Count the error */
@@ -129,7 +126,7 @@ non_fatal(s1,s2)
 /************************************************************************/
 
 void
-out_of_memory()
+out_of_memory(void)
 	{
 	fatal("Out of memory","");
 	}
@@ -146,19 +143,28 @@ out_of_memory()
 /************************************************************************/
 
 void
-prmsg(s1,s2,s3)
-	char			*s1;
-	char			*s2;
-	char			*s3;
+prmsg(char *s1, char *s2, char *s3)
 	{
-	if (s3[0] == 0)
-		fprintf(STDERR,"%s(%u) %s%s\n",
-				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,LLine,
-				s1,s2);
-	else
-		fprintf(STDERR,"%s(%u) %s%s \"%s\"\n",
-				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,LLine,
-				s1,s2,s3);
+	int is_warn = (strcmp(s1, "Warning: ") == 0);
+	if (s3[0] == 0) {
+		if (is_warn)
+			LOG_WARN("%s(%u) %s%s",
+				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+				LLine, s1, s2);
+		else
+			LOG_ERROR("%s(%u) %s%s",
+				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+				LLine, s1, s2);
+	} else {
+		if (is_warn)
+			LOG_WARN("%s(%u) %s%s \"%s\"",
+				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+				LLine, s1, s2, s3);
+		else
+			LOG_ERROR("%s(%u) %s%s \"%s\"",
+				Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+				LLine, s1, s2, s3);
+	}
 	}
 
 /************************************************************************/
@@ -170,9 +176,7 @@ prmsg(s1,s2,s3)
 /************************************************************************/
 
 void
-warning(s1,s2)
-	char			*s1;
-	char			*s2;
+warning(char *s1, char *s2)
 	{
 	prmsg("Warning: ",s1,s2);
 	}

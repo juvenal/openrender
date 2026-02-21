@@ -54,6 +54,7 @@
 
 #include	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 /************************************************************************/
 /*									*/
@@ -67,9 +68,9 @@ void
 doelse(elif)
 	int			elif;	/* TRUE if #elif; FALSE if #else */
 	{
-#if	DEBUG
-	if(Debug) printf("doelse: %d\n",Iflevel);
-#endif	/* DEBUG */
+
+	LOG_DEBUG("doelse: %d", Iflevel);
+
 	if(Iflevel)
 		{
 		/* We are processing an if */
@@ -123,9 +124,9 @@ doelse(elif)
 void
 doendif()
 	{
-#if	DEBUG
-	if(Debug) printf("doendif: %d\n",Iflevel);
-#endif	/* DEBUG */
+
+	LOG_DEBUG("doendif: %d", Iflevel);
+
 	if(Iflevel)
 		Ifstate = Ifstack[--Iflevel].i_state;	/* Pop stack */
 	else
@@ -177,16 +178,16 @@ void
 doifs(t)
 	int			t;	/* Type of if TRUE if #ifdef */
 	{
-	register int		iftype;
+	int			iftype;
 
 	if(Ifstate == IFTRUE)
 		{
 		/* Get next non-space token */
 		if(getnstoken(GT_STR) == LETTER)
 			{
-#if	DEBUG
-			if(Debug) printf("doifs: %d %s",t,Token);
-#endif	/* DEBUG */
+
+			LOG_DEBUG("doifs: %d %s", t, Token);
+
 			iftype = (lookup(Token,NULL) ? TRUE : FALSE) ^
 				(t ? FALSE : TRUE) ? IFTRUE : IFFALSE;
 			}
@@ -207,8 +208,7 @@ doifs(t)
 		Ifstack[Iflevel].i_else = FALSE;
 		}
 
-#if	DEBUG
-	if(Debug) printf("doifs: %d %d %d\n",t,iftype,Iflevel);
-#endif	/* DEBUG */
+	LOG_DEBUG("doifs: %d %d %d", t, iftype, Iflevel);
+	
 	}
 

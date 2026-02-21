@@ -42,6 +42,9 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////
+#define LOGGING_IMPLEMENTATION
+#include "logging.h"
+
 #include <string.h>
 
 #include "common/global.h" // The glorious global header
@@ -93,6 +96,8 @@ static const char *argumentResolutionInfo = "-ri";
 static const char *argumentHelp = "-h";
 static const char *argumentPrintVersionInfo = "-v";
 static const char *argumentQuietInfo = "-q";
+static const char *argumentLogLevel     = "-d";
+static const char *argumentLogLevelLong = "--log";
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	printVersion
@@ -125,6 +130,8 @@ void printUsage() {
     printf("  %s                Display resolution information\n", argumentResolutionInfo);
     printf("  %s                 Display version information\n", argumentPrintVersionInfo);
     printf("  %s                 Display this help\n", argumentHelp);
+    printf("  %s <level>  / %s <level>   Set log verbosity: error|warn|info|debug (default: warn)\n",
+           argumentLogLevel, argumentLogLevelLong);
     printf("\nEnvironment variables:\n");
     printf("  INCLUDE            Additional include paths for the preprocessor\n");
 }
@@ -135,11 +142,13 @@ void printUsage() {
 // Return Value			:	-
 // Comments				:
 void initError(char *mes, ...) {
+    char buf[1024];
     va_list args;
 
     va_start(args, mes);
-    vprintf(mes, args);
+    vsnprintf(buf, sizeof(buf), mes, args);
     va_end(args);
+    LOG_ERROR("%s", buf);
     exit(-1);
 }
 
@@ -173,7 +182,8 @@ int main(int argc, char *argv[]) {
     char *outName = NULL;
     char *includeEnv = osEnvironment(INCLUDE);
     int error = ERR_NONE;
-    int quiet = FALSE;
+
+    LOG_INIT(stderr, LOG_LEVEL_WARN);
 
     sourceFiles = new CList<char *>;
 
@@ -207,7 +217,16 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], argumentResolutionInfo) == 0) {
             settings &= ~COMPILER_SUPPRESS_DEFINITIONS;
         } else if (strcmp(argv[i], argumentQuietInfo) == 0) {
-            quiet = TRUE;
+            LOG_SET_LEVEL(LOG_LEVEL_ERROR);
+        } else if (strcmp(argv[i], argumentLogLevel) == 0 ||
+                   strcmp(argv[i], argumentLogLevelLong) == 0) {
+            if (++i < argc) {
+                if      (strcasecmp(argv[i], "error") == 0) LOG_SET_LEVEL(LOG_LEVEL_ERROR);
+                else if (strcasecmp(argv[i], "warn")  == 0) LOG_SET_LEVEL(LOG_LEVEL_WARN);
+                else if (strcasecmp(argv[i], "info")  == 0) LOG_SET_LEVEL(LOG_LEVEL_INFO);
+                else if (strcasecmp(argv[i], "debug") == 0) LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
+                else { LOG_ERROR("Unknown log level: %s", argv[i]); exit(1); }
+            }
         } else if (strcmp(argv[i], argumentPrintVersionInfo) == 0 || strcmp(argv[i], "-version") == 0 || strcmp(argv[i], "--version") == 0) {
             printVersion();
             exit(0);
@@ -219,7 +238,7 @@ int main(int argc, char *argv[]) {
                 outName = argv[i + 1];
                 i++;
             } else
-                fprintf(stderr, "Output filename expected\n");
+                LOG_ERROR("Output filename expected");
         } else if (strncmp(argv[i], argumentDefine, strlen(argumentDefine)) == 0) {
             ppargv[ppargc++] = "-d";
             ppargv[ppargc++] = &argv[i][2];
@@ -235,7 +254,7 @@ int main(int argc, char *argv[]) {
         } else if (argv[i][0] == '-' && argv[i][1] != 0) {
             // Starts with '-' but not matched any option
             if (!(settings & (COMPILER_SUPPRESS_WARNINGS | COMPILER_SUPPRESS_ERRORS)))
-                fprintf(stderr, "Unknown option '%s'\n", argv[i]);
+                LOG_ERROR("Unknown option '%s'", argv[i]);
         } else {
             // Save the files
             sourceFiles->push(strdup(argv[i]));
@@ -265,13 +284,13 @@ int main(int argc, char *argv[]) {
 
     // Require input file
     if (sourceFiles->numItems == 0) {
-        fprintf(stderr, "no input files\n");
+        LOG_ERROR("no input files");
         exit(0);
     };
 
     // If using -o only one file can be processed
     if (outName != NULL && sourceFiles->numItems > 1) {
-        fprintf(stderr, "Named output file requires single input file\n");
+        LOG_ERROR("Named output file requires single input file");
         exit(1);
     };
 
@@ -284,12 +303,11 @@ int main(int argc, char *argv[]) {
 
     for (sourceFile = sourceFiles->first(); error == ERR_NONE, sourceFile != NULL; sourceFile = sourceFiles->next()) {
 
-        if (!quiet)
-            fprintf(stderr, "Compiling %s\n", sourceFile);
+        LOG_INFO("Compiling %s", sourceFile);
 
         FILE *in = fopen(tempfile, "w+");
         if (in == NULL) {
-            fprintf(stderr, "Failed to create a temporary file\n");
+            LOG_ERROR("Failed to create a temporary file");
             error = ERR_FILE;
             break;
         }

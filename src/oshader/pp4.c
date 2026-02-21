@@ -60,6 +60,7 @@
 
 #include	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 /************************************************************************/
 /*									*/
@@ -91,8 +92,8 @@ addstr(old,limit,msg,new)
 	{
 	static	char		*origmsg = 0;
 
-	register char		*o;
-	register char		*n;
+	char		*o;
+	char		*n;
 
 	if((old + strlen(new)) >= limit)
 		{
@@ -128,7 +129,7 @@ int
 getnstoken(f)
 	int			f;
 	{
-	register	int	t;
+	int	t;
 
 	while(istype(t = gettoken(f),C_W) && (t != '\n'))
 		;			/* Skip space tokens but ! newlines */
@@ -153,14 +154,14 @@ int
 gettoken(f)
 	int			f;
 	{
-	register char		ch;
-	register int		comment_level;
-	register int		fail;
-	register int		nt;
-	register int		numstate;
-	register char		*p;
-	register int		t;
-	register int		tmask;
+	char		ch;
+	int		comment_level;
+	int		fail;
+	int		nt;
+	int		numstate;
+	char		*p;
+	int		t;
+	int		tmask;
 
 /*	Define numstate values:						*/
 #define	F_INTPART	0		/* numstate for integer part	*/
@@ -169,9 +170,7 @@ gettoken(f)
 #define	F_EXP		3		/* exponent digits		*/
 #define	F_LAST		4		/* after occurrance of f|F|l|L	*/
 
-#if	DEBUG
-	if(Debug) printf("gettoken: ");
-#endif	/* DEBUG */
+	LOG_DEBUG("gettoken:");
 
 	p = Token;
 	t = nextch();
@@ -247,7 +246,7 @@ gettoken(f)
 /*
  *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
  */
-
+/* FALLTHROUGH */
 						case F_FRAC:
 					if(istype(t,C_D))
 /* Fraction ok so far */			break;
@@ -330,9 +329,7 @@ gettoken(f)
 			}
 		else if(((t == '"') || (t == '\'')) && (f & GT_STR))
 			{
-#if	DEBUG
-			if(Debug) printf(" in quote");
-#endif	/* DEBUG */
+			LOG_DEBUG(" in quote");
 
 			for(p = &Token[1]; p < &Token[TOKENSIZE]; p++)
 				{
@@ -368,9 +365,7 @@ gettoken(f)
 			}
 		else if((t == '<') && (f == GT_ANGLE))
 			{
-#if	DEBUG
-			if(Debug) printf(" in angle bracket");
-#endif	/* DEBUG */
+			LOG_DEBUG(" in angle bracket");
 
 			for(p = &Token[1]; p < &Token[TOKENSIZE]; p++)
 				{
@@ -393,9 +388,7 @@ gettoken(f)
 					comment_level = 1;
 					t = ' ';
 					Token[0] = t;
-#if	DEBUG
-					if(Debug) printf(" in comment");
-#endif	/* DEBUG */
+					LOG_DEBUG(" in comment");
 					do
 						{
 						while((t != '*') && (t != '/')
@@ -432,9 +425,7 @@ gettoken(f)
 					{
 					t = ' ';
 					Token[0] = t;
-#if	DEBUG
-					if(Debug) printf(" in eol comment");
-#endif	/* DEBUG */
+					LOG_DEBUG(" in eol comment");
 					while((t != '\n') && (t != EOF))
 						t = nextch();
 					if(t == EOF)
@@ -458,32 +449,32 @@ gettoken(f)
 			switch(t)
 				{
 				case LINE_TOKEN:
-					sprintf(Token,"%d",LLine);
+					snprintf(Token, sizeof(Token), "%d", LLine);
 					break;
 
 				case FILE_TOKEN:
-					sprintf(Token, "\"%s\"",
+					snprintf(Token, sizeof(Token), "\"%s\"",
 						Filestack[Filelevel]->f_name);
 					break;
 
 				case TIME_TOKEN:
-					sprintf(Token,"\"%s\"",_Time);
+					snprintf(Token, sizeof(Token), "\"%s\"",_Time);
 					break;
 
 				case DATE_TOKEN:
-					sprintf(Token,"\"%s\"",Date);
+					snprintf(Token, sizeof(Token), "\"%s\"",Date);
 					break;
 
 				case NOW_TOKEN:
-					sprintf(Token,"%u",Unique);
+					snprintf(Token, sizeof(Token), "%u",Unique);
 					break;
 
 				case NEXT_TOKEN:
-					sprintf(Token,"%u",++Unique);
+					snprintf(Token, sizeof(Token), "%u",++Unique);
 					break;
 
 				case PREV_TOKEN:
-					sprintf(Token,"%u",--Unique);
+					snprintf(Token, sizeof(Token), "%u",--Unique);
 					break;
 
 				default:
@@ -507,9 +498,7 @@ gettoken(f)
 
 	p[1] = '\0';			/* Null terminated */
 
-#if	DEBUG
-	if(Debug) printf(" returning: <%s> type: %c\n",Token,t);
-#endif	/* DEBUG */
+	LOG_DEBUG(" returning: <%s> type: %c", Token, t);
 
 	return(t);
 	}
@@ -552,9 +541,9 @@ istype(c,v)
 
 void
 memmov(f,t,l)
-	register	char	*f;
-	register	char	*t;
-	register unsigned	l;
+	char	*f;
+	char	*t;
+	unsigned	l;
 	{    
 	while(l--)
 		*t++ = *f++;
@@ -609,7 +598,7 @@ void
 pbstr(in)
 	char			*in;
 	{
-	register	int	i;
+	int	i;
 
 	for(i = (int) strlen(in) - 1; i >= 0; i--)
 		pushback(in[i] & 0xFF);
@@ -648,15 +637,13 @@ void
 puttoken(s)
 	char			s[];
 	{
-	register	int	ch;
-	register	char	*str;
+	int	ch;
+	char	*str;
 	static	int		lastoutc = '\n';	/* Last char written */
 
 	str = s;
 
-#if	DEBUG
-if (Debug) printf("puttoken: <%s>\n", str);
-#endif	/* DEBUG */
+    LOG_DEBUG("puttoken: <%s>", str);
 
 	if(istype(*str & 0xFF,C_N))	/* Ignore null tokens */
 		return;

@@ -65,6 +65,7 @@
 
 #include 	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 #if	HOST == H_CPM
 /************************************************************************/
@@ -113,12 +114,12 @@ do_line(at_bol)
 	{
 	char			buf[TOKENSIZE + 1];
 	char			filen[FILENAMESIZE + 1];
-	register	int	n;
+	int		n;
 
 	n = Tokenline - Outline;	/* Difference in line #s */
 
-	sprintf(filen," \"%s\"",Filestack[Tokenfile]->f_name);
-	sprintf(buf,"%s#%s %d%s\n",
+	snprintf(filen, sizeof(filen), " \"%s\"", Filestack[Tokenfile]->f_name);
+	snprintf(buf, sizeof(buf), "%s#%s %d%s\n",
 		!at_bol ? "\n" : "",	/* Emit a \n if needed */
 			Lineopt == LINE_EXP ? "line" : "",
 #if	TARGET == T_QC
@@ -167,25 +168,24 @@ void
 doinclude()
 	{
 	char			buf[TOKENSIZE];
-	register int		c;
-	register int		d;
-	register char		*incf;
+	int		c;
+	int		d;
+	char		*incf;
 	char			incfile[FILENAMESIZE + 1];
 #if	HOST != H_CPM
 	char			filename[FILENAMESIZE + 1];
-	register char		**ip;
+	char		**ip;
 #endif	/* HOST != H_CPM */
-	register int		ok;
+	int		ok;
 #if	HOST == H_CPM
-	register int		disk;
-	register char		*p;
-	register char		**ip;
-	register int		user;
+	int		disk;
+	char		*p;
+	char		**ip;
+	int		user;
 #endif	/* HOST == H_CPM */
 
-#if	DEBUG
-	if(Debug) printf("doinclude: include level:%d\n",Filelevel);
-#endif	/* DEBUG */
+	LOG_DEBUG("doinclude: include level:%d", Filelevel);
+
 	if(Filelevel >= FILESTACKSIZE)
 		{
 		non_fatal("Too many include files","");
@@ -241,9 +241,7 @@ doinclude()
 	if(Lineopt)
 		do_line(TRUE);		/* Catch up before inc file switch */
 
-#if	DEBUG
-	if(Debug) printf("doinclude: <%s>\n",incfile);
-#endif	/* DEBUG */
+	LOG_DEBUG("doinclude: <%s>", incfile);
 
 	if(Verbose)
 		printf("*** Include %s\n",incfile);
@@ -305,11 +303,11 @@ doinclude()
 	if(d == '"')
 		{
 		/* Look in current directory */
-		strcpy(filename,Filestack[Filelevel]->f_name);
+		snprintf(filename, sizeof(filename), "%s", Filestack[Filelevel]->f_name);
 		if(strrchr(filename,SLASHCHAR))
 			strcpy(strrchr(filename,SLASHCHAR) + 1,incfile);
 		else
-			strcpy(filename,incfile);
+			snprintf(filename, sizeof(filename), "%s", incfile);
 
 		ok = inc_open(filename);
 		}
@@ -318,7 +316,7 @@ doinclude()
 
 	for(ip = &Ipath[0]; *ip != NULL && !ok; ip++)
 		{
-		strcpy(filename,*ip);	/* Copy path name */
+		snprintf(filename, sizeof(filename), "%s", *ip);	/* Copy path name */
 		strcat(filename,SLASHSTR);	/* Append / for directory */
 		strcat(filename,incfile);	/* Append local file name */
 		ok = inc_open(filename);	/* Attempt an open */
@@ -419,7 +417,7 @@ doline()
 int
 gchbuf()
 	{
-	register int		c;
+	int		c;
 
 	for(;;)
 		{
@@ -470,7 +468,7 @@ gchfile()
 	extern	int		read();
 #endif	/* PP_SYSIO */
 
-	register struct	file	*f;
+	struct	file	*f;
 
 	if(Filelevel < 0)
 		{
@@ -522,7 +520,7 @@ gchfile()
 int
 gchpb()
 	{
-	register int		c;
+	int		c;
 
 	for(;;)
 		{
@@ -593,7 +591,7 @@ getchn()
 #if	HOST == H_CPM
 int
 inc_open(incfile,u,d)
-	register char		*incfile;
+	char		*incfile;
 	int			u;
 	int			d;
 #else	/* HOST != H_CPM */
@@ -606,16 +604,13 @@ inc_open(incfile)
 	extern	int		open();
 #endif	/* PP_SYSIO */
 
-	register int		v;
-	register struct	file	*f;
-	register struct file	*fold;
+	int		v;
+	struct	file	*f;
+	struct file	*fold;
 
 #if	HOST == H_CPM
 
-#if	DEBUG
-	if(Debug)
-		printf("inc_open: %s on %c%d\n",incfile,d+'A',u);
-#endif	/* DEBUG */
+	LOG_DEBUG("inc_open: %s on %c%d", incfile, d+'A', u);
 
 	if(u >= 0)
 		{
@@ -625,10 +620,7 @@ inc_open(incfile)
 
 #else	/* HOST != H_CPM */
 
-#if	DEBUG
-	if(Debug)
-		printf("inc_open: %s\n",incfile);
-#endif	/* DEBUG */
+	LOG_DEBUG("inc_open: %s", incfile);
 
 #endif	/* HOST == H_CPM */
 
@@ -646,13 +638,8 @@ inc_open(incfile)
 		{
 		if(Filelevel >= 0)	/* Don't do if first time thru */
 			{
-#if	DEBUG
-			if(Debug)
-				{
-	printf("inc_open pushing: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d\n",
-					Bufc,Bufp,Lasteol,LLine);
-				}
-#endif	/* DEBUG */
+			LOG_DEBUG("inc_open pushing: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d",
+					Bufc, Bufp, Lasteol, LLine);
 
 			fold = Filestack[Filelevel];
 			fold->f_bufp = Bufp;	/* Save current buf ptr */
@@ -706,9 +693,9 @@ void
 init_path()
 	{
 #if	HOST == H_CPM
-	register int		inum;
+	int		inum;
 	char			pb[TOKENSIZE];
-	register FILE		*pf;
+	FILE		*pf;
 
 	bdos(BDOS_USER,0);
 	bdos(BDOS_SELDISK,0);		/* Select A0 */
@@ -800,7 +787,7 @@ popfile()
 #ifdef	PP_SYSIO
 	extern	int		close();
 #endif	/* PP_SYSIO */
-	register struct	file	*f;
+	struct	file	*f;
 
 #if	HOST == H_CPM
 	set_user();
@@ -833,11 +820,8 @@ popfile()
 	Lasteol = f->f_lasteol;
 	LLine = f->f_line;
 
-#if	DEBUG
-	if(Debug)
-		printf("popfile: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d\n",
-			Bufc, Bufp, Lasteol, LLine);
-#endif	/* DEBUG */
+	LOG_DEBUG("popfile: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d",
+		Bufc, Bufp, Lasteol, LLine);
 
 	return (TRUE);			/* All is ok -- return success */
 	}
@@ -852,16 +836,16 @@ popfile()
 
 char	*
 readline(buf,bufsize,flags,doexpand)
-	register char		*buf;
-	register int		bufsize;
-	register int		flags;
+	char		*buf;
+	int		bufsize;
+	int		flags;
 	int					doexpand;
 	{
 	static	char		rbo[] = "Read buffer overflow";
 
-	register char		*bufp;
+	char		*bufp;
 	struct	symtab		*sy;
-	register int		t;
+	int		t;
 
 	for(bufp = buf; (t = gettoken(flags)) != '\n'; )
 		{
@@ -895,7 +879,7 @@ readline(buf,bufsize,flags,doexpand)
 void
 scaneol()
 	{
-	register int		t;
+	int		t;
 
 	while((t = gettoken(GT_STR)) != '\n')
 		{

@@ -67,6 +67,7 @@
 
 #include	"pp.h"
 #include	"ppext.h"
+#include	"logging.h"
 
 /************************************************************************/
 /*									*/
@@ -101,17 +102,17 @@ docall(p,internal,internal_limit)
 	char			*bodyp;
 	char			*cp;
 	int			done;
-	register int		expand;
+	int		expand;
 	int			flags;
 	struct	symtab		*formals;
-	register int		had_ws;
+	int		had_ws;
 	int			maclevel;
 	int			nl_count;
 	int			pcount;
 	struct	param		*pp;
 	int			printed;
 	struct	symtab		*sy;
-	register int		t;
+	int		t;
 	char			t_token[TOKENSIZE];
 /*
  *	Crack the formal parameters for the macro.
@@ -455,7 +456,7 @@ docall(p,internal,internal_limit)
 			else		/* Was # operator, look at in a bit */
 				{
 				pbstr(Token);
-				strcpy(Token,"#");
+				snprintf(Token, sizeof(Token), "%s", "#");
 				t = '#';
 				}
 			}
@@ -595,7 +596,7 @@ docall(p,internal,internal_limit)
  *	Was single #, pushback # for later.
  */
 					pbstr(Token);
-					strcpy(Token,"#");
+					snprintf(Token, sizeof(Token), "%s", "#");
 					}
 				}
 			pbstr(Token);	/* Refetch the last non # token */
@@ -807,9 +808,9 @@ _docall(line,internal,internal_limit)
 	{
 	static	char		mbomsg[] = "Macro body overflow";
 
-	register struct	ppdir	*d;
-	register int		had_ws;
-	register int		t;
+	struct	ppdir	*d;
+	int		had_ws;
+	int		t;
 
 	pushback(END_MACRO);
 	pbcstr(line);
@@ -910,22 +911,19 @@ dodefine(mactype)
 	static	char		mtlmsg[] = "Macro too long";
 
 	char			body[MACROSIZE];	/* Body of def	*/
-	register char		*bodyp;	/* Pointer into body		*/
-	register int		lasttok;/* Last token fetched in loop	*/
-	register int		macctr;	/* Level ctr for #macro/#endm	*/
+	char		*bodyp;	/* Pointer into body		*/
+	int		lasttok;/* Last token fetched in loop	*/
+	int		macctr;	/* Level ctr for #macro/#endm	*/
 	char			name[TOKENSIZE];	/* Name buffer	*/
-	register struct	param	*pp;	/* Param proto pointer		*/
-	register struct	symtab	*sy;	/* Symbol table ptr		*/
-	register int		t;	/* Token type			*/
+	struct	param	*pp;	/* Param proto pointer		*/
+	struct	symtab	*sy;	/* Symbol table ptr		*/
+	int		t;	/* Token type			*/
 
 	if(getnstoken(GT_STR) == LETTER)
 		{
-		strcpy(name,Token);	/* Move name token to save buffer */
+		snprintf(name, sizeof(name), "%s", Token);	/* Move name token to save buffer */
 
-#if	DEBUG
-		if(Debug)
-			printf("dodefine: <%s>\n",name);
-#endif	/* DEBUG */
+		LOG_DEBUG("dodefine: <%s>", name);
 
 		if(gettoken(GT_STR) == '(')
 			pp = getparams();	/* Get list of param protos */
@@ -978,7 +976,7 @@ dodefine(mactype)
 
 			pbstr(Token);
 			pushback(' ');
-			strcpy(Token,"pragma");	/* Refetch it all */
+			snprintf(Token, sizeof(Token), "%s", "pragma");	/* Refetch it all */
 /************************************************************************/
 						}
 					}
@@ -1182,12 +1180,12 @@ getparams()
 	{
 	static	char		*iffmsg = "Invalid macro parameter flag";
 
-	register int		flags;
-	register struct	param	*lh;
-	register struct	param	*lt;
-	register struct param	*p;
+	int		flags;
+	struct	param	*lh;
+	struct	param	*lt;
+	struct param	*p;
 	char			pname[TOKENSIZE];
-	register int		t;
+	int		t;
 
 	lh = NULL;
 	lt = NULL;			/* For lint */
@@ -1203,7 +1201,7 @@ getparams()
 				}
 			else
 				{
-				strcpy(pname,Token);
+				snprintf(pname, sizeof(pname), "%s", Token);
 				flags = 0;
 
 				for(t = getnstoken(GT_STR); t != ']';
@@ -1284,8 +1282,8 @@ unsigned int
 hash(sym)
 	char			*sym;
 	{
-	register unsigned int	s;
-	register char		*str;
+	unsigned int	s;
+	char		*str;
 
 	for(str = sym, s = 0; *str != '\0'; s += *str++)
 		;			/* Compute sum of chars */    
@@ -1307,12 +1305,11 @@ lookup(name,pe)
 	struct	symtab		**pe;	/* Previous entry to allow removal */
 					/* If NULL, do not return pointer */
 	{
-	register struct symtab	*c;
-	register struct	symtab	*p;
+	struct symtab	*c;
+	struct	symtab	*p;
 
-#if	DEBUG
-	if(Debug) printf("lookup: %s - ",name);
-#endif	/* DEBUG */
+	LOG_DEBUG("lookup: %s - ", name);
+
 	p = (struct symtab *) &Macros[hash(name) & (NUMBUCKETS - 1)];
 	c = p->s_link;
 
@@ -1320,9 +1317,8 @@ lookup(name,pe)
 		{
 		if(strcmp(c->s_name,name) == EQUAL)
 			{
-#if	DEBUG
-			if(Debug) printf("found!\n");
-#endif	/* DEBUG */
+			LOG_DEBUG("found!");
+
 			if(pe != NULL)
 				*pe = p;
 			return (c);
@@ -1330,9 +1326,8 @@ lookup(name,pe)
 		p = c;
 		c = c->s_link;
 		}
-#if	DEBUG
-	if(Debug) printf("NOT found.\n");
-#endif	/* DEBUG */
+
+		LOG_DEBUG("NOT found.");
 
 	return (NULL);			/* Didn't find it */
 	}
@@ -1377,28 +1372,19 @@ predef(n,table)
 	char			*n;
 	struct	ppdir		*table;
 	{
-	register	char	*name;
-	register struct	ppdir	*p;
+	char		*name;
+	struct	ppdir	*p;
 
 	for(name = n, p = table; p->pp_name != NULL; p++)
 		{
-#if	DEBUG
-		if(Debug)
-			printf("predef: %s : %s\n",name,p->pp_name);
-#endif	/* DEBUG */
+		LOG_DEBUG("predef: %s : %s", name, p->pp_name);
 		if(strcmp(name,p->pp_name) == EQUAL)
 			{
-#if	DEBUG
-			if(Debug)
-				printf("predef: found! %p\n",p->pp_func);
-#endif	/* DEBUG */
+			LOG_DEBUG("predef: found! %p", p->pp_func);
 			return (p);	/* Return table address */
 			}
 		}
-#if	DEBUG
-	if(Debug)
-		printf("predef: not found.\n");
-#endif	/* DEBUG */
+	LOG_DEBUG("predef: not found.");
 	return (NULL);
 	}
 
@@ -1416,12 +1402,10 @@ sbind(sym,defn,params)
 	char			*defn;
 	struct	param		*params;
 	{
-	register int		i;
-	register struct	symtab	*p;
+	int		i;
+	struct	symtab	*p;
 
-#if	DEBUG
-	if(Debug) printf("sbind: name <%s> with <%s>\n",sym,defn);
-#endif	/* DEBUG */
+	LOG_DEBUG("sbind: name <%s> with <%s>", sym, defn);
 
 	p = (struct symtab *) malloc(sizeof(struct symtab) +
 		(unsigned) strlen(sym));
@@ -1542,7 +1526,7 @@ void
 unfbind(formals)
 	struct	symtab		*formals;
 	{
-	register struct	symtab	*temp;
+	struct	symtab	*temp;
 
 	while(formals != NULL)
 		{
@@ -1587,11 +1571,9 @@ unsbind(sym)
 	char			*sym;
 	{
 	struct	symtab		*p;
-	register struct	symtab	*s;
+	struct	symtab	*s;
 
-#if	DEBUG
-	if(Debug) printf("unsbind: %s\n",sym);
-#endif	/* DEBUG */
+	LOG_DEBUG("unsbind: %s", sym);
 
 	if((s = lookup(sym,&p)) == NULL)
 		non_fatal("Symbol not defined",sym);
