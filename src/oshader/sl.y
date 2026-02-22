@@ -53,6 +53,8 @@
 
 
 
+%require "3.0"
+
 %{
 //////////////////////////////////////////////////////////////////////////
 // Misc C definitions
@@ -72,6 +74,10 @@
 //////////////////////////////////////////////////////////////////////////
 // Here's the only global CVariable
 //////////////////////////////////////////////////////////////////////////
+	// NOTE: `sdr` is intentionally a global rather than being threaded through
+	// yyparse() via %define api.pure full. Making the parser pure would require
+	// significant architectural changes to pass sdr through all actions, which is
+	// out of scope for this modernization pass.
 	CScriptContext		*sdr;
 	
 // This macro can be used to record the last parsed line number for accurate error reporting
@@ -440,7 +446,7 @@ slFunctionHeader:
 		{
 			CFunction	*thisFunction	=	sdr->newFunction($2);
 			
-			thisFunction->returnValue	=	NULL;
+			thisFunction->returnValue	=	nullptr;
 			checkPoint();
 		}
 		;
@@ -456,7 +462,7 @@ slFunction:
 			cFun->initExpression	=	$2;
 			cFun->code				=	$4;
 
-			if (cFun->returnValue != NULL)
+			if (cFun->returnValue != nullptr)
 				if (cFun->returnValueGiven == FALSE) 
 					sdr->error("Return value not given for %s\n",cFun->symbolName);
 
@@ -594,7 +600,7 @@ slMain:	slShaderType							// Type of the shader
 			} else {
 				CFunction		*mainFunction	=	sdr->newFunction(constantShaderMain);
 
-				mainFunction->returnValue		=	NULL;
+				mainFunction->returnValue		=	nullptr;
 
 				sdr->shaderName				=	strdup($2);
 				sdr->shaderType				=	$1;
@@ -611,7 +617,7 @@ slMain:	slShaderType							// Type of the shader
 		{
 			CFunction	*cFun			=	sdr->popFunction();
 
-			for (CParameter	*cParameter=cFun->parameters->first();cParameter!=NULL;cParameter=cFun->parameters->next()) {
+			for (CParameter	*cParameter=cFun->parameters->first();cParameter!=nullptr;cParameter=cFun->parameters->next()) {
 				sdr->variables->push(cParameter);
 			}
 
@@ -812,7 +818,7 @@ slBlock:
 
 			cFun->code			=	$3;
 
-			$$					=	new	CFuncallExpression(cFun,NULL);
+			$$					=	new	CFuncallExpression(cFun,nullptr);
 		}
 		;
 
@@ -831,7 +837,7 @@ slVariableDeclarations:
 			}
 
 			// Remove the uninitialized variables from the list
-			while((cVar = (CVariable *) sdr->variableList->pop()) != NULL);
+			while((cVar = (CVariable *) sdr->variableList->pop()) != nullptr);
 
 			sdr->undesire();
 
@@ -1115,7 +1121,7 @@ slBreakStatement:
 
 			if (bc <= 0) sdr->error("Bad break count: %s\n",$2);
 
-			for(cFunction = sdr->functionStack->last(); cFunction != NULL; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
@@ -1125,9 +1131,9 @@ slBreakStatement:
 				break;
 			}
 
-			if (cFunction == NULL) sdr->error("Break target not found\n");
+			if (cFunction == nullptr) sdr->error("Break target not found\n");
 
-			sprintf(tmp,"%s\t%s\n",opcodeBreak,$2);
+			snprintf(tmp,sizeof(tmp),"%s\t%s\n",opcodeBreak,$2);
 
 			$$	=	new CFixedExpression(tmp);
 		}
@@ -1139,7 +1145,7 @@ slBreakStatement:
 			int			bc	=	(int) 1;
 
 			sdr->functionStack->push(sdr->lastFunction);
-			for(cFunction = sdr->functionStack->last(); cFunction != NULL; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
@@ -1150,9 +1156,9 @@ slBreakStatement:
 			}
 			sdr->lastFunction	=	sdr->functionStack->pop();
 
-			if (cFunction == NULL) sdr->error("Break target not found\n");
+			if (cFunction == nullptr) sdr->error("Break target not found\n");
 
-			sprintf(tmp,"%s\t1\n",opcodeBreak);
+			snprintf(tmp,sizeof(tmp),"%s\t1\n",opcodeBreak);
 
 			$$	=	new CFixedExpression(tmp);
 		}
@@ -1171,7 +1177,7 @@ slContinueStatement:
 
 			if (bc <= 0) sdr->error("Bad continue count: %s\n",$2);
 
-			for(cFunction = sdr->functionStack->last(); cFunction != NULL; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
@@ -1181,9 +1187,9 @@ slContinueStatement:
 				break;
 			}
 
-			if (cFunction == NULL) sdr->error("Continue target not found\n");
+			if (cFunction == nullptr) sdr->error("Continue target not found\n");
 
-			sprintf(tmp,"%s\t%s\n",opcodeContinue,$2);
+			snprintf(tmp,sizeof(tmp),"%s\t%s\n",opcodeContinue,$2);
 
 			$$	=	new CFixedExpression(tmp);
 		}
@@ -1194,7 +1200,7 @@ slContinueStatement:
 			char		tmp[256];
 			int			bc	=	(int) 1;
 
-			for(cFunction = sdr->functionStack->last(); cFunction != NULL; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
@@ -1204,9 +1210,9 @@ slContinueStatement:
 				break;
 			}
 
-			if (cFunction == NULL) sdr->error("Continue target not found\n");
+			if (cFunction == nullptr) sdr->error("Continue target not found\n");
 
-			sprintf(tmp,"%s\t1\n",opcodeContinue);
+			snprintf(tmp,sizeof(tmp),"%s\t1\n",opcodeContinue);
 
 			$$	=	new CFixedExpression(tmp);
 		}
@@ -1220,7 +1226,7 @@ slReturnStatement:
 			CFunction	*cFun = sdr->lastFunction;
 			
 			// Work out what we're returning from
-			for (cFun = sdr->functionStack->last(); cFun != NULL; cFun = sdr->functionStack->prev()) {
+			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
@@ -1243,17 +1249,17 @@ slReturnStatement:
 			sdr->undesire();
 			
 			// Skip over loops
-			for (cFun = sdr->functionStack->last(); cFun != NULL; cFun = sdr->functionStack->prev()) {
+			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
 			}
 
-			if (cFun ==	NULL) {
+			if (cFun ==	nullptr) {
 				sdr->error("Return target not found\n");
 				$$	=	new CNullExpression;
 			} else {
-				if (cFun->returnValue == NULL) {
+				if (cFun->returnValue == nullptr) {
 					if (cFun == sdr->shaderFunction)
 						sdr->warning("Shader was not expecting a return statement\n");
 					else
@@ -1282,15 +1288,15 @@ slReturnStatement:
 			CFunction	*cFun	=	sdr->lastFunction;
 
 			// Skip over loops
-			for (cFun = sdr->functionStack->last(); cFun != NULL; cFun = sdr->functionStack->prev()) {
+			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
 			}
 
-			if (cFun ==	NULL)	sdr->error("Return target not found\n");
+			if (cFun ==	nullptr)	sdr->error("Return target not found\n");
 			else {
-				if (cFun->returnValue != NULL) {
+				if (cFun->returnValue != nullptr) {
 					sdr->error("Function \"%s\" was expecting a return value\n",cFun->symbolName);
 				}
 			}
@@ -1319,7 +1325,7 @@ slWhileStatement:
 		{
 			CFunction	*cFun	=	sdr->popFunction();
 
-			$$	=	new CForLoop(NULL,$1,NULL,$2);
+			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
 		;
 
@@ -1330,7 +1336,7 @@ slUnmatchedWhileStatement:
 
 			CFunction	*cFun	=	sdr->popFunction();
 
-			$$	=	new CForLoop(NULL,$1,NULL,$2);
+			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
 		;
 
@@ -1342,14 +1348,14 @@ slAssignmentStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {	
+			if (cVar == nullptr) {	
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CAssignmentExpression(cVar,$4);
@@ -1365,14 +1371,14 @@ slAssignmentStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else if (cVar->type & SLC_ARRAY) {
 				$$	=	new CArrayAssignmentExpression(cVar,$3,$7);
@@ -1386,14 +1392,14 @@ slAssignmentStatement:
 				dummyParams->push($7);
 
 				// Check the builtin functions
-				for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 					if (cFun->match("setcomp",dummyParams,sdr->desired())) break;
 				}
 				
-				if (cFun == NULL) {
+				if (cFun == nullptr) {
 					// Cleanup
 					CExpression	*cCode;
-					while((cCode = dummyParams->pop()) != NULL) {
+					while((cCode = dummyParams->pop()) != nullptr) {
 						delete cCode;
 					}
 					delete dummyParams;
@@ -1416,14 +1422,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,$4);
@@ -1436,14 +1442,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeSubFloatFloat,opcodeSubVectorVector,FALSE,$4);
@@ -1456,7 +1462,7 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,new CConstantTerminalExpression(SLC_FLOAT,strdup("1")));
 			}
@@ -1467,7 +1473,7 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,new CConstantTerminalExpression(SLC_FLOAT,strdup("-1")));
 			}
@@ -1478,14 +1484,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeMulFloatFloat,opcodeMulVectorVector,FALSE,$4);
@@ -1498,14 +1504,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeDivFloatFloat,opcodeDivVectorVector,FALSE,$4);
@@ -1521,14 +1527,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 			
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
@@ -1544,14 +1550,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeSubFloatFloat,opcodeSubVectorVector,opcodeSubMatrixMatrix);
@@ -1567,7 +1573,7 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,new CConstantTerminalExpression(SLC_FLOAT,strdup("1")),opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
 			}
@@ -1581,7 +1587,7 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,new CConstantTerminalExpression(SLC_FLOAT,strdup("-1")),opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
 			}
@@ -1595,14 +1601,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeMulFloatFloat,opcodeMulVectorVector,opcodeMulMatrixMatrix);
@@ -1618,14 +1624,14 @@ slUpdateStatement:
 		{
 			CVariable	*cVar				=	sdr->getVariable($1);
 
-			if (cVar == NULL)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
 			else				sdr->desire(cVar->type);
 		}
 		slAritmeticExpression
 		{
 			CVariable			*cVar		=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeDivFloatFloat,opcodeDivVectorVector,opcodeDivMatrixMatrix);
@@ -1783,7 +1789,7 @@ slUnmatchedIfStatement:
 		SL_CLOSE_PARANTHESIS
 		slStatement
 		{
-			$$	=	new CIfThenElse($3,$5,NULL);
+			$$	=	new CIfThenElse($3,$5,nullptr);
 		}
 	|
 		SL_IF
@@ -1850,7 +1856,7 @@ slUnmatchedGatherStatement:
 		slGatherHeader
 		slStatement
 		{
-			$$	=	new CGatherThenElse($1,$2,NULL);
+			$$	=	new CGatherThenElse($1,$2,nullptr);
 			sdr->actualParameters	=	sdr->actualParameterStack->pop();
 		}
 	|
@@ -1913,7 +1919,7 @@ slIlluminateStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,NULL,NULL,$5);
+			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,nullptr,nullptr,$5);
 		}
 	|
 		SL_ILLUMINATE
@@ -1941,7 +1947,7 @@ slUnmatchedIlluminateStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,NULL,NULL,$5);
+			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,nullptr,nullptr,$5);
 		}
 	|
 		SL_ILLUMINATE
@@ -1970,7 +1976,7 @@ slSolarStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,NULL,NULL,NULL,$4);
+			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,nullptr,nullptr,nullptr,$4);
 		}
 	|
 		SL_SOLAR
@@ -1983,7 +1989,7 @@ slSolarStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,NULL,$7);
+			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,nullptr,$7);
 		}
 		;
 
@@ -1995,7 +2001,7 @@ slUnmatchedSolarStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,NULL,NULL,NULL,$4);
+			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,nullptr,nullptr,nullptr,$4);
 		}
 	|
 		SL_SOLAR
@@ -2008,7 +2014,7 @@ slUnmatchedSolarStatement:
 		{
 			sdr->requiredShaderContext	|=	SLC_LIGHT;
 
-			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,NULL,$7);
+			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,nullptr,$7);
 		}
 		;
 
@@ -2024,21 +2030,21 @@ slAritmeticExpression:
 		SL_PLUS
 		slAritmeticExpression
 		{
-			$$	=	getOperation($1,$3,opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix,NULL,0);
+			$$	=	getOperation($1,$3,opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix,nullptr,0);
 		}
 	|
 		slAritmeticExpression
 		SL_MINUS
 		slAritmeticExpression
 		{
-			$$	=	getOperation($1,$3,opcodeSubFloatFloat,opcodeSubVectorVector,opcodeSubMatrixMatrix,NULL,0);
+			$$	=	getOperation($1,$3,opcodeSubFloatFloat,opcodeSubVectorVector,opcodeSubMatrixMatrix,nullptr,0);
 		}
 	|
 		slAritmeticExpression
 		SL_MULTIPLY
 		slAritmeticExpression
 		{
-			$$	=	NULL;
+			$$	=	nullptr;
 
 			if ($1->type & SLC_MATRIX) {
 				if ($3->type & SLC_VVECTOR) {
@@ -2050,7 +2056,7 @@ slAritmeticExpression:
 				}
 			}
 
-			if ($$ == NULL) {
+			if ($$ == nullptr) {
 				if ($3->type & SLC_MATRIX) {
 					if ($1->type & SLC_VVECTOR) {
 						$$	=	new CBinaryExpression(SLC_VECTOR | SLC_VVECTOR,opcodeMulVectorMatrix,$1,getConversion(SLC_VECTOR,$3));
@@ -2063,15 +2069,15 @@ slAritmeticExpression:
 			}
 
 
-			if ($$ == NULL)
-				$$	=	getOperation($1,$3,opcodeMulFloatFloat,opcodeMulVectorVector,opcodeMulMatrixMatrix,NULL,0);
+			if ($$ == nullptr)
+				$$	=	getOperation($1,$3,opcodeMulFloatFloat,opcodeMulVectorVector,opcodeMulMatrixMatrix,nullptr,0);
 		}
 	|
 		slAritmeticExpression
 		SL_DIVIDE
 		slAritmeticExpression
 		{
-			$$	=	getOperation($1,$3,opcodeDivFloatFloat,opcodeDivVectorVector,opcodeDivMatrixMatrix,NULL,0);
+			$$	=	getOperation($1,$3,opcodeDivFloatFloat,opcodeDivVectorVector,opcodeDivMatrixMatrix,nullptr,0);
 		}
 	|
 		slAritmeticExpression
@@ -2105,7 +2111,7 @@ slAritmeticExpression:
 		SL_MINUS
 		slAritmeticExpression
 		{
-			$$	=	getOperation($2,opcodeNegFloat,opcodeNegVector,opcodeNegMatrix,NULL,0);
+			$$	=	getOperation($2,opcodeNegFloat,opcodeNegVector,opcodeNegMatrix,nullptr,0);
 		}
 	|
 		slAritmeticExpression
@@ -2128,56 +2134,56 @@ slAritmeticExpression:
 		SL_AND
 		slAritmeticExpression
 		{
-			$$	=	getOperation($1,$3,opcodeAnd,NULL,NULL,NULL,0);
+			$$	=	getOperation($1,$3,opcodeAnd,nullptr,nullptr,nullptr,0);
 		}
 	|
 		slAritmeticExpression
 		SL_OR
 		slAritmeticExpression
 		{
-			$$	=	getOperation($1,$3,opcodeOr,NULL,NULL,NULL,0);
+			$$	=	getOperation($1,$3,opcodeOr,nullptr,nullptr,nullptr,0);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_GREATER
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatGreater,opcodeVectorGreater,NULL,NULL,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatGreater,opcodeVectorGreater,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_LESS
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatLess,opcodeVectorLess,NULL,NULL,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatLess,opcodeVectorLess,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_GREATER_EQUAL
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatEGreater,opcodeVectorEGreater,NULL,NULL,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatEGreater,opcodeVectorEGreater,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_LESS_EQUAL
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatELess,opcodeVectorELess,NULL,NULL,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatELess,opcodeVectorELess,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_EQUAL
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatEqual,opcodeVectorEqual,NULL,opcodeStringEqual,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatEqual,opcodeVectorEqual,nullptr,opcodeStringEqual,SLC_FLOAT);
 		}
 	|
 		slAritmeticExpression
 		SL_COMP_DIFFERENT
 		slAritmeticExpression
 		{
-			$$			=	getOperation($1,$3,opcodeFloatNotEqual,opcodeVectorNotEqual,NULL,opcodeStringNotEqual,SLC_FLOAT);
+			$$			=	getOperation($1,$3,opcodeFloatNotEqual,opcodeVectorNotEqual,nullptr,opcodeStringNotEqual,SLC_FLOAT);
 		}
 	|
 		SL_NOT
@@ -2258,7 +2264,7 @@ slAritmeticTerminalValue:
 	
 			CVariable	*cVar	=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				sdr->error("Identifier \"%s\" is not found\n",$1);
 				$$	=	new CNullExpression;
 			} else { 
@@ -2272,7 +2278,7 @@ slAritmeticTerminalValue:
 	
 			CVariable	*cVar	=	sdr->getVariable($2);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				sdr->error("Identifier \"%s\" is not found\n",$2);
 				$$	=	new CNullExpression;
 			} else { 
@@ -2289,7 +2295,7 @@ slAritmeticTerminalValue:
 		{
 			CVariable *cVar	=	sdr->getVariable($1);
 
-			if (cVar == NULL) {
+			if (cVar == nullptr) {
 				sdr->error("Identifier \"%s\" is not found\n",$1);
 				$$	=	new CNullExpression;
 			} else if (cVar->type & SLC_ARRAY) { 
@@ -2302,14 +2308,14 @@ slAritmeticTerminalValue:
 				dummyParams->push($3);
 
 				// Check the builtin functions
-				for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 					if (cFun->match("comp",dummyParams,SLC_FLOAT)) break;
 				}
 				
-				if (cFun == NULL) {
+				if (cFun == nullptr) {
 					// Cleanup
 					CExpression	*cCode;
-					while((cCode = dummyParams->pop()) != NULL) {
+					while((cCode = dummyParams->pop()) != nullptr) {
 						delete cCode;
 					}
 					delete dummyParams;
@@ -2487,23 +2493,23 @@ slFunctionCall:
 			sdr->actualParameters		=	sdr->actualParameterStack->pop();
 
 			// Check the builtin functions
-			for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+			for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 				if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
 			}
 
-			if (cFun == NULL) {
-				for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+			if (cFun == nullptr) {
+				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 					if (cFun->match($1,parameters,sdr->desired())) break;
 				}
 			}
 
-			if (cFun != NULL) {
+			if (cFun != nullptr) {
 				$$	=	new CBuiltinExpression(cFun,parameters);
 			} else {
 				sdr->error("Function \"%s\" is not found\n",$1);
 				if (parameters->numItems != 0) {
 					CExpression	*cCode;
-					while((cCode = parameters->pop()) != NULL) {
+					while((cCode = parameters->pop()) != nullptr) {
 						delete cCode;
 					}
 				}
@@ -2585,7 +2591,7 @@ slFunCall:
 			// Search for the CFunction here....
 			cFun	=	sdr->getFunction($1,parameters);
 
-			if (cFun != NULL) {													// Cool, the function exists
+			if (cFun != nullptr) {													// Cool, the function exists
 				// A function with the same name is defined ... 
 				// Try to match the parameters;
 				if (cFun->parameters->numItems == parameters->numItems) {	// The number of parameters match
@@ -2595,43 +2601,43 @@ slFunCall:
 			}
 
 			// If not found, check the predefined CFunctions
-			if (cFun == NULL) {
+			if (cFun == nullptr) {
 				CFunctionPrototype	*cFun;
 				const char			*fName	=	$1;
 				// Check the builtin CFunctions
 
-				for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 					if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
 				}
 
-				if (cFun == NULL) {
-					for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+				if (cFun == nullptr) {
+					for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 						if (cFun->match($1,parameters,sdr->desired())) break;
 					}
 				}
 
 				// Check if there is a DSO implementing this function
-				if (cFun == NULL) {
+				if (cFun == nullptr) {
 					sdr->enumerateDso($1);
 
-					for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+					for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 						if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
 					}
 
-					if (cFun == NULL) {
-						for (cFun = sdr->builtinFunctions->first(); cFun != NULL; cFun = sdr->builtinFunctions->next()) {
+					if (cFun == nullptr) {
+						for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
 							if (cFun->match($1,parameters,sdr->desired())) break;
 						}
 					}
 				}
 
-				if (cFun != NULL) {
+				if (cFun != nullptr) {
 					$$	=	new CBuiltinExpression(cFun,parameters);
 				} else {
 					sdr->error("Function \"%s\" is not found\n",$1);
 					if (parameters->numItems != 0) {
 						CExpression	*cCode;
-						while((cCode = parameters->pop()) != NULL) {
+						while((cCode = parameters->pop()) != nullptr) {
 							delete cCode;
 						}
 					}
@@ -2655,7 +2661,7 @@ slTextureNameSpecifier:
 		{
 			CVariable	*cVar	=	sdr->getVariable($1);
 
-			if (cVar != NULL)	$$	=	new CTerminalExpression(cVar);
+			if (cVar != nullptr)	$$	=	new CTerminalExpression(cVar);
 			else				$$	=	new CNullExpression;
 		}
 		;
@@ -2695,7 +2701,7 @@ slTextureCall:
 
 			pl->push($3);
 			pl->push($4);
-			for (cExpression=parameters->first();cExpression!=NULL;cExpression=parameters->next())
+			for (cExpression=parameters->first();cExpression!=nullptr;cExpression=parameters->next())
 				pl->push(cExpression);
 
 			delete parameters;
@@ -2717,7 +2723,7 @@ slTextureCall:
 
 			pl->push($3);
 			pl->push($4);
-			for (cExpression=parameters->first();cExpression!=NULL;cExpression=parameters->next())
+			for (cExpression=parameters->first();cExpression!=nullptr;cExpression=parameters->next())
 				pl->push(cExpression);
 
 			delete parameters;
@@ -2830,7 +2836,7 @@ int	CScriptContext::compile(FILE *in,char *outName) {
 	if (compileError == 0) {
 		char		*tmp;
 
-		if (outName == NULL) {
+		if (outName == nullptr) {
 			// If there's no compile error, dump the compiled code
 			tmp	=	new char[strlen(sdr->shaderName)+5];
 

@@ -65,7 +65,7 @@
 #endif
 #endif
 
-extern "C" int preprocess(char *, FILE *, int, const char **);
+extern "C" int preprocess(char *, FILE *, int, char **);
 
 // The environment variables to be searched for the preprocessor and include files
 #define INCLUDE "INCLUDE" // The default include path for the preprocessor
@@ -104,7 +104,7 @@ static const char *argumentLogLevelLong = "--log";
 // Description			:	Print the version
 // Return Value			:	-
 // Comments				:
-void printVersion() {
+static void printVersion() {
     printf("openRender RenderMan Shader Language Compiler (%s) v%s\n", compilerName, openrender_version_string());
     printf("\nCopyright 2026 Juvenal A. Silva Jr. https://openrender.juvenal.me\n");
     printf("openRender is free software. There is NO warranty; not even for\n");
@@ -116,7 +116,7 @@ void printVersion() {
 // Description			:	Print the compiler usage
 // Return Value			:	-
 // Comments				:
-void printUsage() {
+static void printUsage() {
     printf("Usage: %s <options> filename.sl [filename.sl ...]\n", compilerName);
     printf("The filenames are wildcard-expanded\n\n");
     printf("Options:\n");
@@ -141,7 +141,7 @@ void printUsage() {
 // Description			:	Display an error and exit
 // Return Value			:	-
 // Comments				:
-void initError(char *mes, ...) {
+[[maybe_unused]] static void initError(const char *mes, ...) {
     char buf[1024];
     va_list args;
 
@@ -157,7 +157,7 @@ void initError(char *mes, ...) {
 // Description			:	Append a file name
 // Return Value			:	-
 // Comments				:
-int append(const char *file, void *ud) {
+static int append(const char *file, void *ud) {
     CList<char *> *sourceFiles = (CList<char *> *)ud;
 
     sourceFiles->push(strdup(file));
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
     char *sourceFile;
     const char *ppargv[100];
     int ppargc;
-    char *outName = NULL;
+    char *outName = nullptr;
     char *includeEnv = osEnvironment(INCLUDE);
     int error = ERR_NONE;
 
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 
     dsoPath = new TSearchpath;
     dsoPath->directory = strdup(".");
-    dsoPath->next = NULL;
+    dsoPath->next = nullptr;
 
     ppargc = 1;
     ppargv[ppargc++] = "-c";
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
     ppargv[ppargc++] = "-d";
     ppargv[ppargc++] = defineProgramName;
 
-    if (includeEnv != NULL) {
+    if (includeEnv != nullptr) {
         ppargv[ppargc++] = "-i";
         ppargv[ppargc++] = includeEnv;
     }
@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
         } else {
             // Save the files
             sourceFiles->push(strdup(argv[i]));
-            argv[i] = NULL;
+            argv[i] = nullptr;
         }
     }
 
@@ -269,8 +269,8 @@ int main(int argc, char *argv[]) {
         char *file;
         CList<char *> *newSources = new CList<char *>;
 
-        for (file = sourceFiles->first(); file != NULL; file = sourceFiles->next()) {
-            if ((strchr(file, '*') != NULL) || (strchr(file, '?') != NULL)) {
+        for (file = sourceFiles->first(); file != nullptr; file = sourceFiles->next()) {
+            if ((strchr(file, '*') != nullptr) || (strchr(file, '?') != nullptr)) {
                 osEnumerate(file, append, newSources);
                 free(file);
             } else {
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
     };
 
     // If using -o only one file can be processed
-    if (outName != NULL && sourceFiles->numItems > 1) {
+    if (outName != nullptr && sourceFiles->numItems > 1) {
         LOG_ERROR("Named output file requires single input file");
         exit(1);
     };
@@ -301,19 +301,19 @@ int main(int argc, char *argv[]) {
     osCreateDir(tempdir);
     osTempname(tempdir, "oshader", tempfile);
 
-    for (sourceFile = sourceFiles->first(); error == ERR_NONE, sourceFile != NULL; sourceFile = sourceFiles->next()) {
+    for (sourceFile = sourceFiles->first(); error == ERR_NONE && sourceFile != nullptr; sourceFile = sourceFiles->next()) {
 
         LOG_INFO("Compiling %s", sourceFile);
 
         FILE *in = fopen(tempfile, "w+");
-        if (in == NULL) {
+        if (in == nullptr) {
             LOG_ERROR("Failed to create a temporary file");
             error = ERR_FILE;
             break;
         }
 
         // Preprocess the file
-        if (!preprocess(sourceFile, in, ppargc, ppargv)) {
+        if (!preprocess(sourceFile, in, ppargc, (char **)ppargv)) {
             error = ERR_PREPROCESS;
             fclose(in);
             break;
@@ -345,7 +345,7 @@ int main(int argc, char *argv[]) {
     delete sourceFiles;
 
     TSearchpath *cPath, *nPath;
-    for (cPath = dsoPath; cPath != NULL;) {
+    for (cPath = dsoPath; cPath != nullptr;) {
         nPath = cPath->next;
         free(cPath->directory);
         delete cPath;

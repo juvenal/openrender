@@ -83,18 +83,14 @@
 /*									*/
 /************************************************************************/
 
-char *
-    addstr(old, limit, msg, new) char *old;
-char *limit;
-char *msg;
-char *new;
+char *addstr(char *old, char *limit, const char *msg, const char *new_str)
 {
-    static char *origmsg = 0;
+    static const char *origmsg = NULL;
 
     char *o;
-    char *n;
+    const char *n;
 
-    if ((old + strlen(new)) >= limit) {
+    if ((old + strlen(new_str)) >= limit) {
         if (msg != origmsg) {
             /* Don't print multiple messages */
             non_fatal(msg, "");
@@ -105,7 +101,7 @@ char *new;
     } else {
         origmsg = NULL; /* Clear the error condition */
         o = old;
-        n = new;
+        n = new_str;
         while ((*o++ = *n++) != '\0')
             ;           /* Copy strings */
         return (o - 1); /* Next char pos in output string */
@@ -120,8 +116,7 @@ char *new;
 /*									*/
 /************************************************************************/
 
-int getnstoken(f)
-int f;
+int getnstoken(int f)
 {
     int t;
 
@@ -144,8 +139,7 @@ int f;
 #pragma optimize("l", off) /* Disable loop optimizations */
 #endif                     /* MSC_OPT */
 
-int gettoken(f)
-int f;
+int gettoken(int f)
 {
     char ch;
     int comment_level;
@@ -171,6 +165,13 @@ int f;
 
     Tokenfile = Filelevel; /* Remember file number and	*/
     Tokenline = LLine;     /* Line number for this token	*/
+
+    /* istype() uses (c & 0xFF) which maps EOF (-1) to 0xFF, past the end of
+     * typetab (which covers only 0x00-0x89).  Catch EOF here before any table
+     * lookup to avoid an out-of-bounds read and a subsequent crash in do_line()
+     * via puttoken() when Tokenfile/Filelevel is already -1. */
+    if (t == EOF)
+        return (EOF);
 
     if (istype(t, C_L | C_D | C_W)) {
         if (istype(t, C_L)) {
@@ -458,9 +459,7 @@ int f;
 /*									*/
 /************************************************************************/
 
-int istype(c, v)
-int c;
-int v;
+int istype(int c, int v)
 {
     return ((typetab + 1)[c] & v);
 }
@@ -475,13 +474,10 @@ int v;
 /*									*/
 /************************************************************************/
 
-void
-    memmov(f, t, l) char *f;
-char *t;
-unsigned l;
+void memmov(const char *src, char *dest, unsigned len)
 {
-    while (l--)
-        *t++ = *f++;
+    while (len--)
+        *dest++ = *src++;
 }
 #endif /* memmov */
 
@@ -497,8 +493,7 @@ unsigned l;
 /*									*/
 /************************************************************************/
 
-void
-    pbcstr(s) char *s;
+void pbcstr(char *s)
 {
     char *cp;
     unsigned int length;
@@ -528,8 +523,7 @@ void
 /*									*/
 /************************************************************************/
 
-void
-    pbstr(in) char *in;
+void pbstr(const char *in)
 {
     int i;
 
@@ -545,8 +539,7 @@ void
 /*									*/
 /************************************************************************/
 
-void
-    pushback(c) int c;
+void pushback(int c)
 {
     if (Pbbufp++ >= &Pbbuf[PUSHBACKSIZE - 1])
         fatal("Pushback buffer overflow", "");
@@ -565,11 +558,10 @@ void
 /*									*/
 /************************************************************************/
 
-void
-    puttoken(s) char s[];
+void puttoken(const char s[])
 {
     int ch;
-    char *str;
+    const char *str;
     static int lastoutc = '\n'; /* Last char written */
 
     str = s;
@@ -619,8 +611,7 @@ void
 /*									*/
 /************************************************************************/
 
-int type(c)
-int c;
+int type(int c)
 {
     if (istype(c, C_L))
         return (LETTER);

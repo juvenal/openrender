@@ -86,8 +86,8 @@
 /*									*/
 /************************************************************************/
 
-EVALINT
-eval() {
+EVALINT eval(void)
+{
     char buf[TOKENSIZE];
     EVALINT val;
 
@@ -116,8 +116,8 @@ eval() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evaltern() {
+EVALINT evaltern(void)
+{
     EVALINT val;
     EVALINT val_f;
     EVALINT val_t;
@@ -142,8 +142,8 @@ evaltern() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evallor() {
+EVALINT evallor(void)
+{
     EVALINT val;
 
     for (val = evalland(); test("||");) {
@@ -159,13 +159,13 @@ evallor() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalland() {
+EVALINT evalland(void)
+{
     EVALINT val;
 
     for (val = evalbor(); test("&&");) {
         /*lint -e503 lint doesn't like boolean arguments to relationals */
-        if (!evalbor() != 0)
+        if (!evalbor())
             /*lint +e503 lint doesn't like boolean arguments to relationals */
             val = FALSE;
     }
@@ -178,8 +178,8 @@ evalland() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalbor() {
+EVALINT evalbor(void)
+{
     EVALINT val;
 
     for (val = evalbxor(); !look("||") && test("|");)
@@ -194,8 +194,8 @@ evalbor() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalbxor() {
+EVALINT evalbxor(void)
+{
     EVALINT val;
 
     for (val = evalband(); test("^");)
@@ -210,8 +210,8 @@ evalbxor() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalband() {
+EVALINT evalband(void)
+{
     EVALINT val;
 
     for (val = evaleq(); !look("&&") && test("&");)
@@ -226,8 +226,8 @@ evalband() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evaleq() {
+EVALINT evaleq(void)
+{
     EVALINT val;
 
     for (val = evalrel();;) {
@@ -247,8 +247,8 @@ evaleq() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalrel() {
+EVALINT evalrel(void)
+{
     EVALINT val;
 
     for (val = evalsh();;) {
@@ -272,8 +272,8 @@ evalrel() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalsh() {
+EVALINT evalsh(void)
+{
     EVALINT val;
 
     for (val = evalsum();;) {
@@ -293,8 +293,8 @@ evalsh() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalsum() {
+EVALINT evalsum(void)
+{
     EVALINT val;
 
     for (val = evalmdr();;) {
@@ -314,8 +314,8 @@ evalsum() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalmdr() {
+EVALINT evalmdr(void)
+{
     EVALINT temp;
     EVALINT val;
 
@@ -363,8 +363,8 @@ evalmdr() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalfuns() {
+EVALINT evalfuns(void)
+{
     int count;
     int pflag;
     int rv;
@@ -509,8 +509,8 @@ evalfuns() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalucom() {
+EVALINT evalucom(void)
+{
     if (test("~"))
         /*lint -e502 lint doesn't like complementing signed integral types */
         return (~evalfuns());
@@ -525,8 +525,8 @@ evalucom() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalunot() {
+EVALINT evalunot(void)
+{
     if (test("!"))
         return ((EVALINT)!evalfuns());
     else
@@ -539,8 +539,8 @@ evalunot() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalumin() {
+EVALINT evalumin(void)
+{
     if (test("+"))
         return ((EVALINT)evalfuns());
     else if (test("-"))
@@ -555,8 +555,8 @@ evalumin() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-evalval() {
+EVALINT evalval(void)
+{
     int c;
     char *p;
     EVALINT val;
@@ -711,8 +711,7 @@ evalval() {
 /*									*/
 /************************************************************************/
 
-EVALINT
-hexbin(ch) char ch;
+EVALINT hexbin(char ch)
 {
     if (isdigit(ch))
         return ((EVALINT)(ch - '0'));
@@ -728,8 +727,7 @@ hexbin(ch) char ch;
 /*									*/
 /************************************************************************/
 
-int ishex(ch)
-char ch;
+int ishex(char ch)
 {
     return (isdigit(ch) ||
             ((ch >= 'a') && (ch <= 'f')) ||
@@ -744,8 +742,7 @@ char ch;
 /*									*/
 /************************************************************************/
 
-int isoct(ch)
-char ch;
+int isoct(char ch)
 {
     return ((ch >= '0') && (ch <= '7'));
 }
@@ -760,9 +757,7 @@ char ch;
 /*									*/
 /************************************************************************/
 
-int
-    item(fun, f) int (*fun)();
-int f;
+int item(int (*fun)(int), int f)
 {
     int t;
 
@@ -785,8 +780,7 @@ int f;
 /*									*/
 /************************************************************************/
 
-int look(str)
-char *str;
+int look(const char *str)
 {
     int rc;
     char tokenbuf[TOKENSIZE];
@@ -807,12 +801,10 @@ char *str;
 /*									*/
 /************************************************************************/
 
-int match(tbuf, str)
-char *tbuf;
-char *str;
+int match(char *tbuf, const char *str)
 {
-    int (*fun)();
-    char *s;
+    int (*fun)(int);
+    const char *s;
     char *t;
 
     fun = getnstoken; /* Initially skip spaces */
@@ -849,10 +841,7 @@ char *str;
 /*									*/
 /************************************************************************/
 
-char *
-readexpline(buf, bufsize)
-char *buf;
-int bufsize;
+char *readexpline(char *buf, int bufsize)
 {
     static char rbo[] = "Read buffer overflow";
 
@@ -903,8 +892,7 @@ int bufsize;
 /*									*/
 /************************************************************************/
 
-int test(str)
-char *str;
+int test(const char *str)
 {
     char tokenbuf[TOKENSIZE];
 

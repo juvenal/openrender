@@ -69,9 +69,9 @@
 /*									*/
 /************************************************************************/
 
-void
-    doasm(asmtype) int asmtype; /* True if #asm; False if #endasm */
+void doasm(int asmtype, int no_flag, const char *name)
 {
+    (void)no_flag; (void)name;
     puttoken(asmtype ? "#asm" : "#endasm");
 }
 #endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
@@ -87,7 +87,9 @@ void
 /*									*/
 /************************************************************************/
 
-void dopragma() {
+void dopragma(int dummy, int outer_no_flag, const char *outer_name)
+{
+    (void)dummy; (void)outer_no_flag; (void)outer_name;
     int ltr_flag;
     int no_flag;
     struct ppdir *pp;
@@ -136,9 +138,9 @@ void dopragma() {
 /*									*/
 /************************************************************************/
 
-void
-    pragasm(asmtype) int asmtype; /* True if #asm; False if #endasm */
+void pragasm(int asmtype, int no_flag, const char *name)
 {
+    (void)no_flag; (void)name;
     if (Do_asm == asmtype) {
         if (Do_asm)
             non_fatal("Already within \"#pragma asm\"", "");
@@ -161,7 +163,9 @@ void
 /*									*/
 /************************************************************************/
 
-void pragendm() {
+void pragendm(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     non_fatal("\"#pragma endmacro\" not allowed outside macro", "");
 }
 
@@ -173,7 +177,9 @@ void pragendm() {
 /*									*/
 /************************************************************************/
 
-void pragerror() {
+void pragerror(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     char msgbuf[MESSAGEBUFSIZE];
 
     non_fatal(readline(msgbuf, MESSAGEBUFSIZE, GT_STR, FALSE), "");
@@ -190,7 +196,9 @@ void pragerror() {
 /*									*/
 /************************************************************************/
 
-void pragmsg() {
+void pragmsg(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     char msgbuf[MESSAGEBUFSIZE];
 
     printf("%s(%u): MESSAGE: %s\n",
@@ -210,11 +218,9 @@ void pragmsg() {
 #pragma warn - par
 #endif /* __TURBOC__ */
 
-void
-    pragopt(dummy, no_flag, name) int dummy; /* Placeholder */
-int no_flag;                                 /* TRUE if "no" condition */
-char *name;                                  /* Name of pragma */
+void pragopt(int dummy, int no_flag, const char *name)
 {
+    (void)dummy;
     char buf[TOKENSIZE + 1];
     struct symtab *sym;
     char *toptr;
@@ -273,7 +279,9 @@ char *name;                                  /* Name of pragma */
 /*									*/
 /************************************************************************/
 
-void pragvalue() {
+void pragvalue(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     char buf[TOKENSIZE + 1];
 
     snprintf(buf, sizeof(buf), "%ld", (long)eval());

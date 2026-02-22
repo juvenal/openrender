@@ -76,7 +76,7 @@
 /*									*/
 /************************************************************************/
 
-void cur_user() {
+void cur_user(void) {
     bdos(BDOS_SELDISK, Orig_disk);
     bdos(BDOS_USER, Orig_user);
 }
@@ -106,8 +106,7 @@ void cur_user() {
 #define NL_CHAR 2
 #endif /* H_BSD || H_MPW || H_UNIX || H_XENIX */
 
-void
-    do_line(at_bol) char at_bol; /* TRUE if already at BOL */
+void do_line(char at_bol) /* TRUE if already at BOL */
 {
     char buf[TOKENSIZE + 1];
     char filen[FILENAMESIZE + 1];
@@ -116,14 +115,15 @@ void
     n = Tokenline - Outline; /* Difference in line #s */
 
     snprintf(filen, sizeof(filen), " \"%s\"", Filestack[Tokenfile]->f_name);
+#if TARGET == T_QC
+    int token_line = Tokenline - 1; /* QC bug */
+#else                               /* TARGET != T_QC */
+    int token_line = Tokenline;
+#endif                              /* TARGET == T_QC */
     snprintf(buf, sizeof(buf), "%s#%s %d%s\n",
              !at_bol ? "\n" : "", /* Emit a \n if needed */
              Lineopt == LINE_EXP ? "line" : "",
-#if TARGET == T_QC
-             Tokenline - 1, /* QC bug */
-#else                       /* TARGET != T_QC */
-             Tokenline,
-#endif                      /* TARGET == T_QC */
+             token_line,
              Do_name ? filen : "");
 
 #if (TARGET == T_QC) OR(TARGET == T_QCX)
@@ -135,7 +135,7 @@ void
         while (n-- > 0)
             putc('\n', Output); /* Write newlines to synch */
     } else {
-        fprintf(Output, buf);
+        fprintf(Output, "%s", buf);
     }
 
     Outline = Tokenline; /* Make them the same */
@@ -157,7 +157,9 @@ void
 /*									*/
 /************************************************************************/
 
-void doinclude() {
+void doinclude(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     char buf[TOKENSIZE];
     int c;
     int d;
@@ -321,7 +323,9 @@ void doinclude() {
 /*									*/
 /************************************************************************/
 
-void doline() {
+void doline(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     char buf[TOKENSIZE];
     int c;
     int l;
@@ -382,7 +386,7 @@ void doline() {
 /*									*/
 /************************************************************************/
 
-int gchbuf() {
+int gchbuf(void) {
     int c;
 
     for (;;) {
@@ -424,9 +428,8 @@ int gchbuf() {
 /*									*/
 /************************************************************************/
 
-int gchfile() {
+int gchfile(void) {
 #ifdef PP_SYSIO
-    extern int read();
 #endif /* PP_SYSIO */
 
     struct file *f;
@@ -475,7 +478,7 @@ int gchfile() {
 /*									*/
 /************************************************************************/
 
-int gchpb() {
+int gchpb(void) {
     int c;
 
     for (;;) {
@@ -511,7 +514,7 @@ int gchpb() {
 /*									*/
 /************************************************************************/
 
-int getchn() {
+int getchn(void) {
     int c;
     int c2;
 
@@ -536,18 +539,12 @@ int getchn() {
 /************************************************************************/
 
 #if HOST == H_CPM
-int inc_open(incfile, u, d)
-char *incfile;
-int u;
-int d;
+int inc_open(const char *incfile, int u, int d)
 #else  /* HOST != H_CPM */
-int inc_open(incfile)
-char *incfile;
+int inc_open(const char *incfile)
 #endif /* HOST == H_CPM */
 {
-#ifdef PP_SYSIO
-    extern int open();
-#endif /* PP_SYSIO */
+/* open() declared via <fcntl.h> in pp.h */
 
     int v;
     struct file *f;
@@ -583,7 +580,7 @@ char *incfile;
         if (Filelevel >= 0) /* Don't do if first time thru */
         {
             LOG_DEBUG("inc_open pushing: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d",
-                      Bufc, Bufp, Lasteol, LLine);
+                      Bufc, (void *)Bufp, Lasteol, LLine);
 
             fold = Filestack[Filelevel];
             fold->f_bufp = Bufp;       /* Save current buf ptr */
@@ -630,7 +627,7 @@ char *incfile;
 /*									*/
 /************************************************************************/
 
-void init_path() {
+void init_path(void) {
 #if HOST == H_CPM
     int inum;
     char pb[TOKENSIZE];
@@ -639,7 +636,7 @@ void init_path() {
     bdos(BDOS_USER, 0);
     bdos(BDOS_SELDISK, 0); /* Select A0 */
 
-    if (pf = fopen(PATHFILE, "r")) {
+    if ((pf = fopen(PATHFILE, "r")) != NULL) {
         /* Found the file -- read lines and use as paths */
         for (inum = Ipcnt; inum < NIPATHS; inum++) {
             if (fgets(pb, TOKENSIZE, pf) != NULL) {
@@ -706,9 +703,8 @@ void init_path() {
 /*									*/
 /************************************************************************/
 
-int popfile() {
+int popfile(void) {
 #ifdef PP_SYSIO
-    extern int close();
 #endif /* PP_SYSIO */
     struct file *f;
 
@@ -744,7 +740,7 @@ int popfile() {
     LLine = f->f_line;
 
     LOG_DEBUG("popfile: Bufc=%d, Bufp=%p, Lasteol=%d, Line=%d",
-              Bufc, Bufp, Lasteol, LLine);
+              Bufc, (void *)Bufp, Lasteol, LLine);
 
     return (TRUE); /* All is ok -- return success */
 }
@@ -757,12 +753,7 @@ int popfile() {
 /*									*/
 /************************************************************************/
 
-char *
-readline(buf, bufsize, flags, doexpand)
-char *buf;
-int bufsize;
-int flags;
-int doexpand;
+char *readline(char *buf, int bufsize, int flags, int doexpand)
 {
     static char rbo[] = "Read buffer overflow";
 
@@ -796,7 +787,7 @@ int doexpand;
 /*									*/
 /************************************************************************/
 
-void scaneol() {
+void scaneol(void) {
     int t;
 
     while ((t = gettoken(GT_STR)) != '\n') {
@@ -815,7 +806,7 @@ void scaneol() {
 /*									*/
 /************************************************************************/
 
-void set_user() {
+void set_user(void) {
     /* Don't change if < 0 */
     if (Filestack[Filelevel]->f_user >= 0) {
         bdos(BDOS_SELDISK, Filestack[Filelevel]->f_disk);
@@ -832,7 +823,7 @@ void set_user() {
 /*									*/
 /************************************************************************/
 
-int trigraph() {
+int trigraph(void) {
     int c;
     int q_count;
 

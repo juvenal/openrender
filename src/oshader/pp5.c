@@ -64,9 +64,9 @@
 /*									*/
 /************************************************************************/
 
-void
-    doelse(elif) int elif; /* TRUE if #elif; FALSE if #else */
+void doelse(int elif, int no_flag, const char *name)
 {
+    (void)no_flag; (void)name;
 
     LOG_DEBUG("doelse: %d", Iflevel);
 
@@ -112,7 +112,9 @@ void
 /*									*/
 /************************************************************************/
 
-void doendif() {
+void doendif(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
 
     LOG_DEBUG("doendif: %d", Iflevel);
 
@@ -130,7 +132,9 @@ void doendif() {
 /*									*/
 /************************************************************************/
 
-void doif() {
+void doif(int dummy, int no_flag, const char *name)
+{
+    (void)dummy; (void)no_flag; (void)name;
     if (Iflevel >= IFSTACKSIZE)
         non_fatal("\"#if\" stack overflow", "");
     else {
@@ -157,9 +161,9 @@ void doif() {
 /*									*/
 /************************************************************************/
 
-void
-    doifs(t) int t; /* Type of if TRUE if #ifdef */
+void doifs(int t, int no_flag, const char *name)
 {
+    (void)no_flag; (void)name;
     int iftype;
 
     if (Ifstate == IFTRUE) {

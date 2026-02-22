@@ -1,5 +1,9 @@
 %option never-interactive
 %option noyywrap
+%option nounistd
+%option noinput
+%option nounput
+%option warn
 %%
 surface											return SL_SURFACE;
 displacement									return SL_DISPLACEMENT;
@@ -83,7 +87,7 @@ PI												return SL_FCN_PI;
 \[												return SL_OPEN_SQR_PARANTHESIS;
 \]												return SL_CLOSE_SQR_PARANTHESIS;
 
-^\#line[ ][0-9]+[ ]\"[^\"]*\"					{ char tmp[OS_MAX_PATH_LENGTH]; sscanf(yytext+6,"%d \"%s\"",&sdr->lineNo,tmp); sdr->lineNo--; tmp[strlen(tmp)-1] = '\0';  if (sdr->sourceFile != NULL) free(sdr->sourceFile); sdr->sourceFile = strdup(tmp);}
+^\#line[ ][0-9]+[ ]\"[^\"]*\"					{ char tmp[OS_MAX_PATH_LENGTH]; sscanf(yytext+6,"%d \"%s\"",&sdr->lineNo,tmp); sdr->lineNo--; tmp[strlen(tmp)-1] = '\0';  if (sdr->sourceFile != nullptr) free(sdr->sourceFile); sdr->sourceFile = strdup(tmp);}
 ^\#line[ ][0-9]+[^\n]*							{ sscanf(yytext+6,"%d",&sdr->lineNo); sdr->lineNo--; }
 ^\#pragma[ ]nolint[^\n]*						;
 ^\#[^\n]*										{ sdr->warning("Skipping unknown preprocessor directive \"%s\"\n",yytext); }

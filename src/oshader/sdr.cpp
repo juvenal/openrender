@@ -40,10 +40,10 @@
 // Description			:	Allocate memory ...
 // Comments				:	The first parameter is the name of the variable as referenced in the code
 CSymbol::CSymbol(const char *name) {
-    assert(name != NULL);
+    assert(name != nullptr);
 
     symbolName = strdup(name);
-    defFileName = NULL;
+    defFileName = nullptr;
     defLineNo = 0;
 }
 
@@ -54,7 +54,7 @@ CSymbol::CSymbol(const char *name) {
 // Comments				:
 CSymbol::~CSymbol() {
     free(symbolName);
-    if (defFileName != NULL)
+    if (defFileName != nullptr)
         free(defFileName);
 }
 
@@ -82,7 +82,7 @@ CVariable::CVariable(const char *name, int type, int multiplicity) : CSymbol(nam
     // Record
     this->type = type;
     this->numItems = multiplicity; // Note that numItems field only makes sense if the ARRAY field
-    cName = NULL;                  // of the type is set
+    cName = nullptr;                  // of the type is set
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ CVariable::CVariable(const char *name, int type, int multiplicity) : CSymbol(nam
 // Description			:	De-allocate memory
 // Comments				:
 CVariable::~CVariable() {
-    if (cName != NULL)
+    if (cName != nullptr)
         free(cName);
 }
 
@@ -101,7 +101,7 @@ CVariable::~CVariable() {
 // Description			:	Get the codename for the variable
 // Comments				:
 char *CVariable::codeName() {
-    assert(cName != NULL);
+    assert(cName != nullptr);
 
     return cName;
 }
@@ -116,8 +116,8 @@ char *CVariable::codeName() {
 //							so that later on, the occurance of these parameters in the code can be translated
 //							to the actual parameter names in the caller's context
 CParameter::CParameter(const char *name, int type, int multiplicity) : CVariable(name, type, multiplicity) {
-    defaultValue = NULL;
-    mapping = NULL;
+    defaultValue = nullptr;
+    mapping = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -126,7 +126,7 @@ CParameter::CParameter(const char *name, int type, int multiplicity) : CVariable
 // Description			:	De-allocate the memory
 // Comments				:
 CParameter::~CParameter() {
-    if (defaultValue != NULL)
+    if (defaultValue != nullptr)
         free(defaultValue);
 }
 
@@ -136,7 +136,7 @@ CParameter::~CParameter() {
 // Description			:	Get the code name
 // Comments				:
 char *CParameter::codeName() {
-    if (mapping != NULL)
+    if (mapping != nullptr)
         return mapping->codeName();
 
     // We must be a shader parameter
@@ -150,15 +150,15 @@ char *CParameter::codeName() {
 // Return Value			:
 // Comments				:
 CFunction::CFunction(const char *name, CFunction *p) : CSymbol(name) {
-    this->returnValue = NULL;
+    this->returnValue = nullptr;
     this->returnValueGiven = FALSE;
-    this->initExpression = NULL;
-    this->code = NULL;
+    this->initExpression = nullptr;
+    this->code = nullptr;
     this->parameters = new CList<CParameter *>;
     this->variables = new CList<CVariable *>;
     this->functions = new CList<CFunction *>;
 
-    this->name = strdup(name);
+    this->funcName = strdup(name);
     this->parent = p;
 }
 
@@ -169,17 +169,17 @@ CFunction::CFunction(const char *name, CFunction *p) : CSymbol(name) {
 // Return Value			:
 // Comments				:
 CFunction::~CFunction() {
-    if (initExpression != NULL)
+    if (initExpression != nullptr)
         delete initExpression;
-    if (code != NULL)
+    if (code != nullptr)
         delete code;
 
-    if (returnValue != NULL)
+    if (returnValue != nullptr)
         delete returnValue;
     parameters->destroy();
     variables->destroy();
     functions->destroy();
-    free(name);
+    free(funcName);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -192,7 +192,7 @@ CParameter *CFunction::addParameter(const char *name, int type, int multiplicity
     CParameter *cParameter;
 
     // Check the function parameters
-    for (cParameter = parameters->first(); cParameter != NULL; cParameter = parameters->next()) {
+    for (cParameter = parameters->first(); cParameter != nullptr; cParameter = parameters->next()) {
         // We already have a parameter with the same name
         if (strcmp(cParameter->symbolName, name) == 0) {
             sdr->error("Parameter \"%s\" is already defined\n", name);
@@ -211,14 +211,14 @@ CParameter *CFunction::addParameter(const char *name, int type, int multiplicity
 // Class				:	CFunction
 // Method				:	addVariable(char *)
 // Description			:	This method creates a new variable and adds it into the function
-// Return Value			:	The newly create variable (NULL if the variable (or parameter) already exists)
+// Return Value			:	The newly create variable (nullptr if the variable (or parameter) already exists)
 // Comments				:	This method adds a copy of the variable into the parent's list as well
 //							This is done so that variables declared in the scope are propegated to the parent function
 CVariable *CFunction::addVariable(const char *name, int type, int multiplicity) {
     CVariable *cVariable;
 
     // Check the function parameters
-    for (cVariable = parameters->first(); cVariable != NULL; cVariable = parameters->next()) {
+    for (cVariable = parameters->first(); cVariable != nullptr; cVariable = parameters->next()) {
         // We already have a parameter with the same name
         if (strcmp(cVariable->symbolName, name) == 0) {
             sdr->error("%s was defined as parameter\n", name);
@@ -227,7 +227,7 @@ CVariable *CFunction::addVariable(const char *name, int type, int multiplicity) 
     }
 
     // Check the function variables
-    for (cVariable = variables->first(); cVariable != NULL; cVariable = variables->next()) {
+    for (cVariable = variables->first(); cVariable != nullptr; cVariable = variables->next()) {
         if (strcmp(cVariable->symbolName, name) == 0) {
             sdr->error("Variable \"%s\" is already defined\n", name);
             return cVariable;
@@ -259,7 +259,7 @@ CFunction *CFunction::addFunction(const char *name) {
 // Class				:	function
 // Method				:	getVariable(char *name,int depth)
 // Description			:	This method searches for a variable. The name is the variable's name as it is in the source code
-// Return Value			:	NULL if the variable not found, pointer to the variable (or parameter) othervise
+// Return Value			:	nullptr if the variable not found, pointer to the variable (or parameter) othervise
 // Comments				:	If the variable is not found in this function, method searches the parents as well.
 //							The second parameter is used to controll the number functions above the current function.
 //							e.g.: depth=0 means only this function is searched for the variable
@@ -267,23 +267,23 @@ CVariable *CFunction::getVariable(const char *name, int probe) {
     CVariable *cVariable;
 
     // Check the function parameters
-    for (cVariable = parameters->first(); cVariable != NULL; cVariable = parameters->next())
+    for (cVariable = parameters->first(); cVariable != nullptr; cVariable = parameters->next())
         if (strcmp(cVariable->symbolName, name) == 0)
             return cVariable;
 
     // Check the function variables
-    for (cVariable = variables->first(); cVariable != NULL; cVariable = variables->next())
+    for (cVariable = variables->first(); cVariable != nullptr; cVariable = variables->next())
         if (strcmp(cVariable->symbolName, name) == 0)
             return cVariable;
 
     if ((strcmp(this->symbolName, constantLoopName) == 0) ||
         (strcmp(this->symbolName, constantBlockName) == 0)) {
-        if (parent != NULL) {
+        if (parent != nullptr) {
             return parent->getVariable(name, probe);
         }
     } else {
         if (probe == TRUE) {
-            if (parent != NULL) {
+            if (parent != nullptr) {
                 return parent->getVariable(name, probe);
             }
         }
@@ -292,20 +292,20 @@ CVariable *CFunction::getVariable(const char *name, int probe) {
     // if (probe == FALSE)
     //	sdr->error("Variable \"%s\" is not found\n",name);
 
-    return NULL;
+    return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CFunction
 // Method				:	getFunction(char *,CList<CCodeBlock *> *,int)
 // Description			:	This method searches all the defined functions for a match
-// Return Value			:	NULL if no compatible function exists, a pointer to the function othervise
+// Return Value			:	nullptr if no compatible function exists, a pointer to the function othervise
 // Comments				:
 CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, int returnType) {
     CFunction *cFun;
 
     // Look for an exact match first
-    for (cFun = functions->first(); cFun != NULL; cFun = functions->next()) {
+    for (cFun = functions->first(); cFun != nullptr; cFun = functions->next()) {
         CParameter *cPar;
         CExpression *cArg;
 
@@ -318,7 +318,7 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
             continue;
 
         // Try 1 to 1 matching first
-        for (cPar = cFun->parameters->first(), cArg = args->first(); cPar != NULL; cPar = cFun->parameters->next(), cArg = args->next()) {
+        for (cPar = cFun->parameters->first(), cArg = args->first(); cPar != nullptr; cPar = cFun->parameters->next(), cArg = args->next()) {
 
             // Do the types match	?
             if ((cPar->type & SLC_TYPE_MASK) & (cArg->type & SLC_TYPE_MASK)) {
@@ -328,7 +328,7 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
                     if ((cPar->type & SLC_SUB_TYPE_MASK) & (cArg->type & SLC_SUB_TYPE_MASK)) {
 
                         // Do the return values match ?
-                        if (cFun->returnValue != NULL) {
+                        if (cFun->returnValue != nullptr) {
                             if ((returnType & SLC_TYPE_MASK) & (cFun->returnValue->type & SLC_TYPE_MASK)) {
                                 if (returnType & SLC_VECTOR) {
                                     if ((returnType & SLC_SUB_TYPE_MASK) & (cFun->returnValue->type & SLC_SUB_TYPE_MASK))
@@ -348,7 +348,7 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
                         break;
                 } else {
                     // Do the return values match ?
-                    if (cFun->returnValue != NULL) {
+                    if (cFun->returnValue != nullptr) {
                         if ((returnType & SLC_TYPE_MASK) & (cFun->returnValue->type & SLC_TYPE_MASK)) {
                             if (returnType & SLC_VECTOR) {
                                 if ((returnType & SLC_SUB_TYPE_MASK) & (cFun->returnValue->type & SLC_SUB_TYPE_MASK))
@@ -370,12 +370,12 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
         }
 
         // If exact match, return the function
-        if (cPar == NULL)
+        if (cPar == nullptr)
             return cFun;
     }
 
     // ok ... no exact match found... choose the closest one
-    for (cFun = functions->first(); cFun != NULL; cFun = functions->next()) {
+    for (cFun = functions->first(); cFun != nullptr; cFun = functions->next()) {
         CParameter *cPar;
         CExpression *cArg;
 
@@ -387,7 +387,7 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
         if (cFun->parameters->numItems != args->numItems)
             continue;
 
-        for (cPar = cFun->parameters->first(), cArg = args->first(); cPar != NULL; cPar = cFun->parameters->next(), cArg = args->next()) {
+        for (cPar = cFun->parameters->first(), cArg = args->first(); cPar != nullptr; cPar = cFun->parameters->next(), cArg = args->next()) {
             if ((cPar->type & SLC_TYPE_MASK) & (cArg->type & SLC_TYPE_MASK))
                 continue;
 
@@ -401,9 +401,9 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
             break;
         }
 
-        if (cPar == NULL) {
+        if (cPar == nullptr) {
             if (!(returnType & SLC_NONE)) {
-                if (cFun->returnValue == NULL)
+                if (cFun->returnValue == nullptr)
                     continue;
 
                 if ((returnType & SLC_TYPE_MASK) & (cFun->returnValue->type & SLC_TYPE_MASK))
@@ -422,11 +422,11 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
     }
 
     // If we still couldn't locate the function,  try the parent
-    if (this->parent != NULL) {
+    if (this->parent != nullptr) {
         return parent->getFunction(name, args, returnType);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -516,10 +516,6 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
     if (strcmp(name, symbolName) != 0)
         return FALSE;
 
-    if (strcmp(name, "shadow") == 0) {
-        int y = 1;
-    }
-
     // Check the return values
     if (!(dt & SLC_NONE)) {
         if (prototype[0] == 'o')
@@ -552,7 +548,7 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
         return FALSE;
 
     bool parameterList = false;
-    for (cPrototype = 2, cCode = pl->first(); (cCode != NULL) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
+    for (cPrototype = 2, cCode = pl->first(); (cCode != nullptr) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
         if (prototype[cPrototype] == '.') {
             continue;
         } else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
@@ -590,10 +586,10 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
         return FALSE;
     }
 
-    if ((cCode == NULL) && (prototype[cPrototype] == '\0'))
+    if ((cCode == nullptr) && (prototype[cPrototype] == '\0'))
         return TRUE;
 
-    if (cCode == NULL) {
+    if (cCode == nullptr) {
         if (prototype[cPrototype] == '+')
             return TRUE;
         if (prototype[cPrototype] == '*')
@@ -616,6 +612,7 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
 // Return Value			:	TRUE if compatible, FALSE othervise
 // Comments				:
 int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt) {
+    (void)dt;
     CExpression *cCode;
     int cPrototype;
 
@@ -630,7 +627,7 @@ int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt
         return FALSE;
 
     bool parameterList = false;
-    for (cPrototype = 2, cCode = pl->first(); (cCode != NULL) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
+    for (cPrototype = 2, cCode = pl->first(); (cCode != nullptr) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
         if (prototype[cPrototype] == '.') {
             continue;
         } else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
@@ -688,10 +685,10 @@ int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt
         return FALSE;
     }
 
-    if ((cCode == NULL) && (prototype[cPrototype] == '\0'))
+    if ((cCode == nullptr) && (prototype[cPrototype] == '\0'))
         return TRUE;
 
-    if (cCode == NULL) {
+    if (cCode == nullptr) {
         if (prototype[cPrototype] == '+')
             return TRUE;
         if (prototype[cPrototype] == '*')
@@ -717,7 +714,7 @@ int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt
 CScriptContext::CScriptContext(int s) {
     // Create a dummy "root" function that will contain
     // all the global variables defined
-    rootFunction = new CFunction("root", NULL);
+    rootFunction = new CFunction("root", nullptr);
 
     variables = new CList<CVariable *>;          // Pointers to all defined variables (except function parameters)
     temporaryRegisters = new CList<CVariable *>; // Temporary variables used
@@ -730,9 +727,9 @@ CScriptContext::CScriptContext(int s) {
 
     allocatedStrings = new CList<char *>; // Pointers to the allocated strings by lex
 
-    dsoPath = NULL;
+    dsoPath = nullptr;
 
-    sourceFile = NULL;
+    sourceFile = nullptr;
 
     passNo = 0;
     lineNo = 1;          // The line no in the code
@@ -741,7 +738,7 @@ CScriptContext::CScriptContext(int s) {
     compileWarning = 0;  // The number of compiler warnings
     settings = s;        // No settings
 
-    shaderName = NULL; // The name of the shader
+    shaderName = nullptr; // The name of the shader
     shaderType = 0;
 
     builtinFunctions = new CList<CFunctionPrototype *>; // List of built in functions
@@ -1127,11 +1124,11 @@ CScriptContext::~CScriptContext() {
     delete functionStack;        // Delete the function stack
     delete runtimeFunctionStack; // Delete the function stack
 
-    while ((str = allocatedStrings->pop()) != NULL) // Delete the allocated stings
+    while ((str = allocatedStrings->pop()) != nullptr) // Delete the allocated stings
         free(str);
     delete allocatedStrings;
 
-    if (shaderName != NULL)
+    if (shaderName != nullptr)
         free(shaderName);
 
     delete variableList;
@@ -1168,6 +1165,7 @@ CFunctionPrototype *CScriptContext::addBuiltInFunction(const char *name, const c
 // Return Value			:
 // Comments				:
 void CScriptContext::addGlobalVariable(const char *name, int type, int scope) {
+    (void)scope;
     CVariable *cVar = lastFunction->addVariable(name, type | SLC_GLOBAL, 1);
 
     cVar->cName = strdup(name);
@@ -1180,12 +1178,12 @@ void CScriptContext::addGlobalVariable(const char *name, int type, int scope) {
 // Class				:	CScriptContext
 // Method				:	getFunction(char *,CList<CCodeBlock *>)
 // Description			:	Search for a function in the current context
-// Return Value			:	NULL if the function is not found, pointer to the function otherwise
+// Return Value			:	nullptr if the function is not found, pointer to the function otherwise
 // Comments				:
 CFunction *CScriptContext::getFunction(const char *fn, CList<CExpression *> *params) {
     CFunction *f = lastFunction->getFunction(fn, params, desiredType);
 
-    if (f != NULL)
+    if (f != nullptr)
         printDefine(f);
 
     return f;
@@ -1195,12 +1193,12 @@ CFunction *CScriptContext::getFunction(const char *fn, CList<CExpression *> *par
 // Class				:	CScriptContext
 // Method				:	getVariable(char *,int,int);
 // Description			:	Search for a variable in the current context
-// Return Value			:	NULL if the variable is not found, pointer to the variable otherwise
+// Return Value			:	nullptr if the variable is not found, pointer to the variable otherwise
 // Comments				:
 CVariable *CScriptContext::getVariable(const char *vn) {
     CVariable *v = lastFunction->getVariable(vn);
 
-    if (v == NULL) {
+    if (v == nullptr) {
         int i = globalVariables->numItems;
         CVariable **vars = globalVariables->array;
 
@@ -1214,7 +1212,7 @@ CVariable *CScriptContext::getVariable(const char *vn) {
         }
     }
 
-    if (v != NULL)
+    if (v != nullptr)
         printDefine(v);
     else {
         v = rootFunction->getVariable(vn);
@@ -1230,11 +1228,11 @@ CVariable *CScriptContext::getVariable(const char *vn) {
 // Return Value			:
 // Comments				:
 void CScriptContext::define(CSymbol *s) {
-    if (sourceFile != NULL) {
-        if (sourceFile != NULL)
+    if (sourceFile != nullptr) {
+        if (sourceFile != nullptr)
             s->defFileName = strdup(sourceFile);
         else
-            s->defFileName = NULL;
+            s->defFileName = nullptr;
 
         s->defLineNo = lineNo - 1;
     } else {
@@ -1253,7 +1251,7 @@ void CScriptContext::printDefine(CSymbol *s) {
     if (settings & COMPILER_SUPPRESS_DEFINITIONS)
         return;
 
-    if (s->defFileName != NULL)
+    if (s->defFileName != nullptr)
         printf("%s \t(%s(%d)) \t-> %d in %s\n", s->symbolName, sourceFile, lineNo - 1, s->defLineNo, s->defFileName);
     else
         printf("%s \t(%s(%d)) \t-> ??? in ???\n", s->symbolName, sourceFile, lineNo - 1);
@@ -1263,7 +1261,7 @@ void CScriptContext::printDefine(CSymbol *s) {
 // Class				:	CScriptContext
 // Method				:	newParameter(char *)
 // Description			:	This function creates a new parameter
-// Return Value			:	NULL if the parameter already defined
+// Return Value			:	nullptr if the parameter already defined
 // Comments				:
 CParameter *CScriptContext::newParameter(const char *name, int type, int multiplicity) {
     CParameter *cParameter = lastFunction->addParameter(name, type, multiplicity);
@@ -1281,7 +1279,7 @@ CParameter *CScriptContext::newParameter(const char *name, int type, int multipl
 // Class				:	CScriptContext
 // Method				:	newVariable(char *)
 // Description			:	This function creates a new variable
-// Return Value			:	NULL if the variable already exists
+// Return Value			:	nullptr if the variable already exists
 // Comments				:
 CVariable *CScriptContext::newVariable(const char *name, int type, int multiplicity) {
     CVariable *cVariable = lastFunction->addVariable(name, type, multiplicity);
@@ -1325,7 +1323,7 @@ void CScriptContext::addVariable(CVariable *cVariable) {
     if (cVariable->type & SLC_PARAMETER) {
         variables->push(cVariable);
     } else {
-        if (cVariable->cName != NULL)
+        if (cVariable->cName != nullptr)
             return;
 
         snprintf(tmp, sizeof(tmp), "%s", cVariable->symbolName);
@@ -1333,8 +1331,8 @@ void CScriptContext::addVariable(CVariable *cVariable) {
         while (collusion == TRUE) {
             collusion = FALSE;
 
-            for (tVar = variables->first(); tVar != NULL; tVar = variables->next()) {
-                if (tVar->cName != NULL) {
+            for (tVar = variables->first(); tVar != nullptr; tVar = variables->next()) {
+                if (tVar->cName != nullptr) {
                     if (strcmp(tmp, tVar->cName) == 0) {
                         count++;
                         snprintf(tmp, sizeof(tmp), "%s_%d", cVariable->symbolName, count);
@@ -1434,7 +1432,7 @@ void CScriptContext::restoreParameters() {
 void CScriptContext::generateCode(const char *o) {
     CParameter *cParameter;
     CVariable *cVariable;
-    FILE *out = NULL;
+    FILE *out = nullptr;
 
     if (!(requiredShaderContext & shaderType)) {
         CScriptContext::error("The shader uses some functions or constructs that are not defined for its type\n");
@@ -1446,17 +1444,17 @@ void CScriptContext::generateCode(const char *o) {
     passNo = 0;
     // Code generation
     runtimeFunctionStack->push(shaderFunction);
-    if (shaderFunction->initExpression != NULL)
-        shaderFunction->initExpression->getCode(out, NULL);
-    if (shaderFunction->code != NULL)
-        shaderFunction->code->getCode(out, NULL);
+    if (shaderFunction->initExpression != nullptr)
+        shaderFunction->initExpression->getCode(out, nullptr);
+    if (shaderFunction->code != nullptr)
+        shaderFunction->code->getCode(out, nullptr);
 
     if (compileError != 0)
         return;
 
     out = fopen(o, "w");
 
-    if (out == NULL) {
+    if (out == nullptr) {
         sdr->error("Failed to open \"%s\"\n", o);
         return;
     }
@@ -1489,7 +1487,7 @@ void CScriptContext::generateCode(const char *o) {
 
     // Print the parameters
     fprintf(out, "#!parameters:\n");
-    for (cVariable = variables->first(); cVariable != NULL; cVariable = variables->next()) {
+    for (cVariable = variables->first(); cVariable != nullptr; cVariable = variables->next()) {
         if (cVariable->type & SLC_PARAMETER) {
             cParameter = (CParameter *)cVariable;
 
@@ -1529,7 +1527,7 @@ void CScriptContext::generateCode(const char *o) {
                 fprintf(out, "[%d]", cParameter->numItems);
             }
 
-            if (cParameter->defaultValue != NULL) {
+            if (cParameter->defaultValue != nullptr) {
                 fprintf(out, "\t=\t%s\n", cParameter->defaultValue);
             } else {
                 fprintf(out, "\n");
@@ -1539,7 +1537,7 @@ void CScriptContext::generateCode(const char *o) {
 
     // Print the variables
     fprintf(out, "#!variables:\n");
-    for (cVariable = variables->first(); cVariable != NULL; cVariable = variables->next()) {
+    for (cVariable = variables->first(); cVariable != nullptr; cVariable = variables->next()) {
         if ((!(cVariable->type & SLC_PARAMETER)) && (!(cVariable->type & SLC_GLOBAL))) {
 
             if (cVariable->type & SLC_NONE)
@@ -1575,14 +1573,14 @@ void CScriptContext::generateCode(const char *o) {
 
     uniformParameters();
     fprintf(out, "#!Init:\n");
-    if (shaderFunction->initExpression != NULL)
-        shaderFunction->initExpression->getCode(out, NULL);
+    if (shaderFunction->initExpression != nullptr)
+        shaderFunction->initExpression->getCode(out, nullptr);
     fprintf(out, "%s\n", opcodeReturn);
     restoreParameters();
 
     fprintf(out, "#!Code:\n");
-    if (shaderFunction->code != NULL)
-        shaderFunction->code->getCode(out, NULL);
+    if (shaderFunction->code != nullptr)
+        shaderFunction->code->getCode(out, nullptr);
     fprintf(out, "%s\n", opcodeReturn);
 
     fclose(out);
@@ -1596,7 +1594,7 @@ void CScriptContext::generateCode(const char *o) {
 static int dsoEnumerateCallback(const char *file, void *ud) {
     void *module = osLoadModule(file);
 
-    if (module != NULL) {
+    if (module != nullptr) {
         int i;
         char *name = (char *)ud;
         SHADEOP_SPEC *shadeops;
@@ -1609,7 +1607,7 @@ static int dsoEnumerateCallback(const char *file, void *ud) {
             shadeops = (SHADEOP_SPEC *)osResolve(module, tmp);
         }
 
-        if (shadeops != NULL) {
+        if (shadeops != nullptr) {
             for (i = 0;; i++) {
                 char *dsoName, *dsoPrototype;
 
@@ -1644,7 +1642,7 @@ void CScriptContext::enumerateDso(const char *name) {
     TSearchpath *inPath;
 
     // Go over the directories
-    for (inPath = dsoPath; inPath != NULL; inPath = inPath->next) {
+    for (inPath = dsoPath; inPath != nullptr; inPath = inPath->next) {
         snprintf(searchPath, sizeof(searchPath), "%s/*.%s", inPath->directory, osModuleExtension);
         osEnumerate(searchPath, dsoEnumerateCallback, (void *)name);
     }
@@ -1778,7 +1776,7 @@ CVariable *CScriptContext::lockRegister(int type, int numItems) {
 
     type &= (SLC_TYPE_MASK | SLC_UNIFORM);
 
-    for (cVar = temporaryRegisters->first(); cVar != NULL; cVar = temporaryRegisters->next()) {
+    for (cVar = temporaryRegisters->first(); cVar != nullptr; cVar = temporaryRegisters->next()) {
         if (cVar->type & SLC_LOCKED)
             continue;
 

@@ -24,6 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include <cstdarg>
 #include <string.h>
 
 #include "common/os.h"
@@ -31,11 +32,20 @@
 #include "opcodes.h"
 #include "sdr.h"
 
+// Max token size used in value() buffer sizing — matches pp.h TOKENSIZE
+static constexpr int TOKENSIZE = 5100;
+
 extern CScriptContext *sdr;
 
-#define fprintf      \
-    if (out != NULL) \
-    fprintf
+// Safe fprintf wrapper: only writes if out is non-null (replaces the former
+// `#define fprintf if (out != NULL) fprintf` which was undefined behaviour).
+static void out_printf(FILE *out, const char *fmt, ...) {
+    if (out == nullptr) return;
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(out, fmt, args);
+    va_end(args);
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	getContainer
@@ -46,7 +56,7 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
     if (type & SLC_UNIFORM) {
         if (src->type & SLC_UNIFORM) {
             // No action required
-            if (dest == NULL) {
+            if (dest == nullptr) {
                 dest = sdr->lockRegister(src->type);
                 src->getCode(out, dest);
             }
@@ -60,7 +70,7 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
             CVariable *nDest = sdr->lockRegister(src->type ^ SLC_UNIFORM);
             const char *opcode;
 
-            if (dest == NULL) {
+            if (dest == nullptr) {
                 dest = sdr->lockRegister(src->type);
                 src->getCode(out, dest);
             }
@@ -78,16 +88,16 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
                 sdr->fatal(constantBug);
             }
 
-            fprintf(out, "%s %s %s\n", opcode, nDest->codeName(), dest->codeName());
+            out_printf(out, "%s %s %s\n", opcode, nDest->codeName(), dest->codeName());
 
-            if (dest != NULL) {
+            if (dest != nullptr) {
                 sdr->releaseRegister(dest);
             }
 
             dest = nDest;
         } else {
             // No action required
-            if (dest == NULL) {
+            if (dest == nullptr) {
                 dest = sdr->lockRegister(src->type);
                 src->getCode(out, dest);
             }
@@ -125,7 +135,7 @@ inline void getContainer(FILE *out, CVariable *dest, CVariable *src) {
             } else {
             }
 
-            fprintf(out, "%s %s %s\n", opcode, dest->codeName(), src->codeName());
+            out_printf(out, "%s %s %s\n", opcode, dest->codeName(), src->codeName());
         } else {
             sdr->fatal(constantBug);
         }
@@ -154,7 +164,7 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
             int allocated = FALSE;
 
             cVar = exp->getVariable();
-            if (cVar == NULL) {
+            if (cVar == nullptr) {
                 cVar = sdr->lockRegister(exp->type);
                 exp->getCode(out, cVar);
                 allocated = TRUE;
@@ -173,7 +183,7 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
                 sdr->fatalbailout();
             }
 
-            fprintf(out, "%s %s %s\n", opcode, dest->codeName(), cVar->codeName());
+            out_printf(out, "%s %s %s\n", opcode, dest->codeName(), cVar->codeName());
 
             if (allocated) {
                 sdr->releaseRegister(cVar);
@@ -195,7 +205,7 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
     if (type & SLC_UNIFORM) {
         if (src->type & SLC_UNIFORM) {
             dest = src->getVariable();
-            if (dest == NULL) {
+            if (dest == nullptr) {
                 dest = sdr->lockRegister(src->type);
                 src->getCode(out, dest);
             }
@@ -212,7 +222,7 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
 
             dest = sdr->lockRegister(src->type & (~SLC_UNIFORM));
             cVar = src->getVariable();
-            if (cVar == NULL) {
+            if (cVar == nullptr) {
                 cVar = sdr->lockRegister(src->type);
                 src->getCode(out, cVar);
                 allocated = TRUE;
@@ -231,15 +241,15 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
                 assert(FALSE);
             }
 
-            fprintf(out, "%s %s %s\n", opcode, dest->codeName(), cVar->codeName());
+            out_printf(out, "%s %s %s\n", opcode, dest->codeName(), cVar->codeName());
 
             if (allocated) {
                 sdr->releaseRegister(cVar);
             }
         } else {
             dest = src->getVariable();
-            if (dest == NULL) {
-                sdr->lockRegister(src->type);
+            if (dest == nullptr) {
+                (void)sdr->lockRegister(src->type);
                 src->getCode(out, dest);
             }
         }
@@ -251,11 +261,11 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
 // Lock a value into a character
 #define lock(IIIdest, IIIexpression)                                             \
     {                                                                            \
-        char *IIIdest = NULL;                                                    \
-        CVariable *IIIdest##Var = NULL;                                          \
-        if (IIIexpression != NULL) {                                             \
+        char *IIIdest = nullptr;                                                    \
+        CVariable *IIIdest##Var = nullptr;                                          \
+        if (IIIexpression != nullptr) {                                             \
             IIIdest##Var = IIIexpression->getVariable();                         \
-            if (IIIdest##Var == NULL) {                                          \
+            if (IIIdest##Var == nullptr) {                                          \
                 getContainer(out, type, IIIdest##Var, IIIexpression);            \
                 IIIdest = IIIdest##Var->codeName();                              \
             } else {                                                             \
@@ -264,13 +274,13 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
                     IIIdest = IIIdest##Var->codeName();                          \
                 } else {                                                         \
                     IIIdest = IIIdest##Var->codeName();                          \
-                    IIIdest##Var = NULL;                                         \
+                    IIIdest##Var = nullptr;                                         \
                 }                                                                \
             }                                                                    \
         }
 
 #define release(IIIdest)                    \
-    if (IIIdest##Var != NULL)               \
+    if (IIIdest##Var != nullptr)               \
         sdr->releaseRegister(IIIdest##Var); \
     }
 
@@ -302,6 +312,8 @@ CExpression::~CExpression() {
 // Return Value			:	-
 // Comments				:
 void CExpression::getCode(FILE *out, CVariable *dest) {
+    (void)out;
+    (void)dest;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -311,7 +323,7 @@ void CExpression::getCode(FILE *out, CVariable *dest) {
 // Return Value			:	-
 // Comments				:
 CVariable *CExpression::getVariable() {
-    return NULL;
+    return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -371,13 +383,13 @@ CTwoExpressions::~CTwoExpressions() {
 // Return Value			:	-
 // Comments				:
 void CTwoExpressions::getCode(FILE *out, CVariable *dest) {
-    if (dest != NULL) {
+    if (dest != nullptr) {
         sdr->error("Can not assign to a variable\n");
         return;
     }
 
-    first->getCode(out, NULL);
-    second->getCode(out, NULL);
+    first->getCode(out, nullptr);
+    second->getCode(out, nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -401,11 +413,11 @@ CVectorExpression::CVectorExpression(CExpression *x, CExpression *y, CExpression
 // Return Value			:	-
 // Comments				:
 CVectorExpression::~CVectorExpression() {
-    if (x != NULL)
+    if (x != nullptr)
         delete x;
-    if (y != NULL)
+    if (y != nullptr)
         delete y;
-    if (z != NULL)
+    if (z != nullptr)
         delete z;
 }
 
@@ -416,7 +428,7 @@ CVectorExpression::~CVectorExpression() {
 // Return Value			:	-
 // Comments				:
 void CVectorExpression::getCode(FILE *out, CVariable *dest) {
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless vector expression\n");
         return;
     }
@@ -431,7 +443,7 @@ void CVectorExpression::getCode(FILE *out, CVariable *dest) {
     lock(op2, y);
     lock(op3, z);
 
-    fprintf(out, "%s\t%s %s %s %s\n", opcodeVectorFromFloat, dest->codeName(), op1, op2, op3);
+    out_printf(out, "%s\t%s %s %s %s\n", opcodeVectorFromFloat, dest->codeName(), op1, op2, op3);
 
     release(op3);
     release(op2);
@@ -450,8 +462,7 @@ int CVectorExpression::value(char *dest) {
     char tmp3[128];
 
     if (x->value(tmp1) & y->value(tmp2) & z->value(tmp3)) {
-        sprintf(dest, " [ %s %s %s ]", tmp1, tmp2, tmp3);
-
+        snprintf(dest, TOKENSIZE, " [ %s %s %s ]", tmp1, tmp2, tmp3);
         return TRUE;
     }
 
@@ -488,7 +499,7 @@ CMatrixExpression::~CMatrixExpression() {
     int i;
 
     for (i = 0; i < 16; i++) {
-        if (elements[i] != NULL)
+        if (elements[i] != nullptr)
             delete elements[i];
     }
 }
@@ -500,7 +511,7 @@ CMatrixExpression::~CMatrixExpression() {
 // Return Value			:	-
 // Comments				:
 void CMatrixExpression::getCode(FILE *out, CVariable *dest) {
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless matrix expression\n");
         return;
     }
@@ -540,7 +551,7 @@ void CMatrixExpression::getCode(FILE *out, CVariable *dest) {
     lock(op15, elements[15]);
     assert(elements[15]->type & SLC_FLOAT);
 
-    fprintf(out, "%s\t%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
+    out_printf(out, "%s\t%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
             opcodeMatrixFromFloat,
             dest->codeName(),
             op0, op1, op2, op3,
@@ -576,7 +587,7 @@ int CMatrixExpression::value(char *dest) {
     char tmp[128];
     int i;
 
-    sprintf(dest, "[ ");
+    snprintf(dest, TOKENSIZE, "[ ");
     for (i = 0; i < 16; i++) {
         if (elements[i]->value(tmp)) {
             strcat(dest, tmp);
@@ -627,7 +638,7 @@ CArrayExpression::~CArrayExpression() {
 void CArrayExpression::getCode(FILE *out, CVariable *dest) {
     const char *opcode;
 
-    if (dest == NULL) {
+    if (dest == nullptr) {
         // We have to be assigned to something
         sdr->warning("Useles array expression\n");
         return;
@@ -664,7 +675,7 @@ void CArrayExpression::getCode(FILE *out, CVariable *dest) {
         }
     }
 
-    fprintf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), array->codeName(), op1);
+    out_printf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), array->codeName(), op1);
 
     release(op1);
 }
@@ -699,7 +710,7 @@ CTerminalExpression::~CTerminalExpression() {
 void CTerminalExpression::getCode(FILE *out, CVariable *dest) {
     const char *opcode;
 
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless assignment\n");
         return;
     }
@@ -718,7 +729,7 @@ void CTerminalExpression::getCode(FILE *out, CVariable *dest) {
         assert(FALSE);
     }
 
-    fprintf(out, "%s\t%s %s\n", opcode, dest->codeName(), variable->codeName());
+    out_printf(out, "%s\t%s %s\n", opcode, dest->codeName(), variable->codeName());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -755,7 +766,7 @@ CConstantTerminalExpression::~CConstantTerminalExpression() {
 void CConstantTerminalExpression::getCode(FILE *out, CVariable *dest) {
     const char *opcode;
 
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless constant expression\n");
         return;
     }
@@ -774,7 +785,7 @@ void CConstantTerminalExpression::getCode(FILE *out, CVariable *dest) {
         assert(FALSE);
     }
 
-    fprintf(out, "%s\t%s %s\n", opcode, dest->codeName(), constant);
+    out_printf(out, "%s\t%s %s\n", opcode, dest->codeName(), constant);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -809,9 +820,9 @@ CBinaryExpression::CBinaryExpression(int t, const char *o, CExpression *f, CExpr
 // Return Value			:	-
 // Comments				:
 CBinaryExpression::~CBinaryExpression() {
-    if (first != NULL)
+    if (first != nullptr)
         delete first;
-    if (second != NULL)
+    if (second != nullptr)
         delete second;
 }
 
@@ -823,7 +834,7 @@ CBinaryExpression::~CBinaryExpression() {
 // Comments				:
 void CBinaryExpression::getCode(FILE *out, CVariable *dest) {
 
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless binary expression\n");
         return;
     }
@@ -833,7 +844,7 @@ void CBinaryExpression::getCode(FILE *out, CVariable *dest) {
     lock(op1, first);
     lock(op2, second);
 
-    fprintf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), op1, op2);
+    out_printf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), op1, op2);
 
     release(op2);
     release(op1);
@@ -859,7 +870,7 @@ CUnaryExpression::CUnaryExpression(int t, const char *o, CExpression *f) : CExpr
 // Return Value			:	-
 // Comments				:
 CUnaryExpression::~CUnaryExpression() {
-    if (first != NULL)
+    if (first != nullptr)
         delete first;
 }
 
@@ -870,7 +881,7 @@ CUnaryExpression::~CUnaryExpression() {
 // Return Value			:	-
 // Comments				:
 void CUnaryExpression::getCode(FILE *out, CVariable *dest) {
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless unary expression\n");
         return;
     }
@@ -879,7 +890,7 @@ void CUnaryExpression::getCode(FILE *out, CVariable *dest) {
 
     lock(op1, first);
 
-    fprintf(out, "%s\t%s %s\n", opcode, dest->codeName(), op1);
+    out_printf(out, "%s\t%s %s\n", opcode, dest->codeName(), op1);
 
     release(op1);
 }
@@ -905,9 +916,9 @@ CSysConversionExpression::CSysConversionExpression(int t, const char *opcode, co
 // Return Value			:	-
 // Comments				:
 CSysConversionExpression::~CSysConversionExpression() {
-    if (first != NULL)
+    if (first != nullptr)
         delete first;
-    free(system);
+    free(const_cast<char *>(system));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -917,7 +928,7 @@ CSysConversionExpression::~CSysConversionExpression() {
 // Return Value			:	-
 // Comments				:
 void CSysConversionExpression::getCode(FILE *out, CVariable *dest) {
-    if (dest == NULL) {
+    if (dest == nullptr) {
         sdr->warning("Useless system conversion\n");
         return;
     }
@@ -926,7 +937,7 @@ void CSysConversionExpression::getCode(FILE *out, CVariable *dest) {
 
     lock(op1, first);
 
-    fprintf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), system, op1);
+    out_printf(out, "%s\t%s %s %s\n", opcode, dest->codeName(), system, op1);
 
     release(op1);
 }
@@ -941,7 +952,7 @@ int CSysConversionExpression::value(char *dest) {
     char tmp[128];
 
     if (first->value(tmp)) {
-        sprintf(dest, "%s %s", system, tmp);
+        snprintf(dest, 2 * TOKENSIZE, "%s %s", system, tmp);
         return TRUE;
     }
 
@@ -957,7 +968,7 @@ int CSysConversionExpression::value(char *dest) {
 // Return Value			:	-
 // Comments				:
 CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : CExpression(SLC_NONE) {
-    if (f->returnValue != NULL)
+    if (f->returnValue != nullptr)
         type = f->returnValue->type;
     function = f;
     error = FALSE;
@@ -967,9 +978,9 @@ CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : 
         type |= function->code->type & SLC_UNIFORM;
 
     // handle the parameters
-    if (p == NULL) {
+    if (p == nullptr) {
         // No arguments
-        arguments = NULL;
+        arguments = nullptr;
 
         if (function->parameters->numItems != 0) {
             sdr->error("Argument count mismatch for %s\n", function->symbolName);
@@ -985,7 +996,7 @@ CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : 
             sdr->fatal("Argument count mismatch for %s\n", function->symbolName);
             error = TRUE;
         } else {
-            for (argument = p->first(), parameter = function->parameters->first(); (argument != NULL) && (parameter != NULL); argument = p->next(), parameter = function->parameters->next()) {
+            for (argument = p->first(), parameter = function->parameters->first(); (argument != nullptr) && (parameter != nullptr); argument = p->next(), parameter = function->parameters->next()) {
                 newArguments->push(getConversion(parameter->type & SLC_TYPE_MASK, argument));
                 if (!(argument->type & SLC_UNIFORM)) {
                     type &= ~SLC_UNIFORM;
@@ -1007,8 +1018,8 @@ CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : 
 CFuncallExpression::~CFuncallExpression() {
     CExpression *cExpression;
 
-    if (arguments != NULL) {
-        while ((cExpression = arguments->pop()) != NULL)
+    if (arguments != nullptr) {
+        while ((cExpression = arguments->pop()) != nullptr)
             delete cExpression;
         delete arguments;
     }
@@ -1021,25 +1032,25 @@ CFuncallExpression::~CFuncallExpression() {
 // Return Value			:	-
 // Comments				:
 void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
-    CVariable **c = NULL;
+    CVariable **c = nullptr;
     int i, j;
     CExpression *cParameter;
     CParameter *cP;
     CVariable *cVariable;
-    CVariable *temp = NULL;
+    CVariable *temp = nullptr;
 
     if (error == TRUE)
         return;
 
     // Check the return value
-    if (dest == NULL) {
-        if (function->returnValue != NULL) {
+    if (dest == nullptr) {
+        if (function->returnValue != nullptr) {
             temp = sdr->lockRegister(type);
             dest = temp;
         }
     } else {
-        if (function->returnValue == NULL) {
-            sdr->error("Function %s does not have a return value\n", function->name);
+        if (function->returnValue == nullptr) {
+            sdr->error("Function %s does not have a return value\n", function->funcName);
             return;
         }
 
@@ -1047,26 +1058,26 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
     }
 
     // Set the return value to dest
-    if (function->returnValue != NULL)
+    if (function->returnValue != nullptr)
         function->returnValue->mapping = dest;
 
     // Figure out which variables the extern variables refer to
-    for (cVariable = function->variables->first(); cVariable != NULL; cVariable = function->variables->next()) {
+    for (cVariable = function->variables->first(); cVariable != nullptr; cVariable = function->variables->next()) {
         if (cVariable->type & SLC_EXTERN) {
             CFunction *lFunction;
 
-            for (lFunction = sdr->runtimeFunctionStack->last(); lFunction != NULL; lFunction = sdr->runtimeFunctionStack->prev()) {
+            for (lFunction = sdr->runtimeFunctionStack->last(); lFunction != nullptr; lFunction = sdr->runtimeFunctionStack->prev()) {
                 CVariable *tVariable = lFunction->getVariable(cVariable->symbolName, TRUE);
 
-                if (tVariable != NULL) {
-                    if (cVariable->cName != NULL)
+                if (tVariable != nullptr) {
+                    if (cVariable->cName != nullptr)
                         free(cVariable->cName);
                     cVariable->cName = strdup(tVariable->codeName());
                     break;
                 }
             }
 
-            if (lFunction == NULL) {
+            if (lFunction == nullptr) {
                 sdr->error("Extern variable \"%s\" is not found\n", cVariable->symbolName);
             }
         } else {
@@ -1078,14 +1089,14 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
     sdr->runtimeFunctionStack->push(function);
 
     i = 0;
-    if (arguments != NULL) {
+    if (arguments != nullptr) {
         c = new CVariable *[arguments->numItems];
 
         // Go over the parameters and convert them as necessary
-        for (cP = function->parameters->first(), cParameter = arguments->first(); cParameter != NULL; cParameter = arguments->next(), cP = function->parameters->next()) {
+        for (cP = function->parameters->first(), cParameter = arguments->first(); cParameter != nullptr; cParameter = arguments->next(), cP = function->parameters->next()) {
             CVariable *cVar = cParameter->getVariable();
 
-            if (cVar == NULL) {
+            if (cVar == nullptr) {
                 getContainer(out, cP->type, cVar, cParameter);
                 c[i++] = cVar;
             } else if ((cVar->type & SLC_UNIFORM) ^ (cP->type & SLC_UNIFORM)) {
@@ -1093,20 +1104,20 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
                 c[i++] = cVar;
             }
 
-            assert(cVar != NULL);
+            assert(cVar != nullptr);
             cP->mapping = cVar;
         }
     } else {
-        c = NULL;
+        c = nullptr;
     }
 
     // Go over the init code
-    if (function->initExpression != NULL)
-        function->initExpression->getCode(out, NULL);
+    if (function->initExpression != nullptr)
+        function->initExpression->getCode(out, nullptr);
 
     // Go over the code
-    if (function->code != NULL)
-        function->code->getCode(out, NULL);
+    if (function->code != nullptr)
+        function->code->getCode(out, nullptr);
 
     // Release the locked registers
     for (j = 0; j < i; j++) {
@@ -1115,10 +1126,10 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
         }
     }
 
-    if (c != NULL)
+    if (c != nullptr)
         delete[] c;
 
-    if (temp != NULL)
+    if (temp != nullptr)
         sdr->releaseRegister(temp);
 
     // Restore the runtime function stack
@@ -1138,18 +1149,18 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
     int i;
     CExpression *cEx;
 
-    replacementPrototype = NULL;
+    replacementPrototype = nullptr;
 
     if (f->nonuniform == TRUE) {
         fa = 0;
     } else {
-        for (cEx = p->first(); cEx != NULL; cEx = p->next()) {
+        for (cEx = p->first(); cEx != nullptr; cEx = p->next()) {
             fa &= cEx->type & SLC_UNIFORM;
         }
     }
 
     if (strcmp(f->symbolName, "texture") == 0) {
-        arguments = NULL;
+        arguments = nullptr;
 
         if (strcmp(f->prototype, "c=SF!") == 0) {
             arguments = new CList<CExpression *>;
@@ -1209,7 +1220,7 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
             replacementPrototype = "c=SFffffffff!";
         }
 
-        if (arguments != NULL) {
+        if (arguments != nullptr) {
             p = arguments;
         }
 
@@ -1235,8 +1246,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
 CBuiltinExpression::~CBuiltinExpression() {
     CExpression *cExpression;
 
-    if (arguments != NULL) {
-        while ((cExpression = arguments->pop()) != NULL)
+    if (arguments != nullptr) {
+        while ((cExpression = arguments->pop()) != nullptr)
             delete cExpression;
         delete arguments;
     }
@@ -1281,19 +1292,19 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
     char usedPrototype[512];
     int uPrototype;
     CVariable *d;
-    CVariable *temp = NULL;
+    CVariable *temp = nullptr;
     const char *fprototype;
     int plStart = -1;
 
-    if (replacementPrototype == NULL) {
+    if (replacementPrototype == nullptr) {
         fprototype = function->prototype;
     } else {
         fprototype = replacementPrototype;
     }
 
-    if (dest == NULL) {
+    if (dest == nullptr) {
         if (fprototype[0] == 'o') {
-            d = NULL;
+            d = nullptr;
         } else {
             temp = sdr->lockRegister(type);
             d = temp;
@@ -1320,7 +1331,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
     usedPrototype[1] = '=';
 
     bool parameterList = false;
-    for (i = 0, cParameter = arguments->first(); cParameter != NULL;) {
+    for (i = 0, cParameter = arguments->first(); cParameter != nullptr;) {
         if (fprototype[cPrototype] == 'f') {
             expressions[i] = getConversion(SLC_FLOAT, cParameter);
             usedPrototype[uPrototype++] = 'f';
@@ -1365,7 +1376,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'F') {
             expressions[i] = getConversion(SLC_FLOAT, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'F';
             cPrototype++;
@@ -1373,7 +1384,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'V') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VVECTOR, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'V';
             cPrototype++;
@@ -1381,7 +1392,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'N') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VNORMAL, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'N';
             cPrototype++;
@@ -1389,7 +1400,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'P') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VPOINT, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'P';
             cPrototype++;
@@ -1397,7 +1408,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'C') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VCOLOR, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'C';
             cPrototype++;
@@ -1405,7 +1416,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'M') {
             expressions[i] = getConversion(SLC_MATRIX, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'M';
             cPrototype++;
@@ -1413,7 +1424,7 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cParameter = arguments->next();
         } else if (fprototype[cPrototype] == 'S') {
             expressions[i] = getConversion(SLC_STRING, cParameter);
-            if (expressions[i]->getVariable() == NULL)
+            if (expressions[i]->getVariable() == nullptr)
                 sdr->warning("Identifier expected as return value\n");
             usedPrototype[uPrototype++] = 'S';
             cPrototype++;
@@ -1458,14 +1469,14 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
         int dt = type;
 
         c[i] = expressions[i]->getVariable();
-        op[i] = NULL;
+        op[i] = nullptr;
 
         if ((i >= plStart) || ((usedPrototype[i + 2] >= 'A') && (usedPrototype[i + 2] <= 'Z'))) {
             dt &= ~SLC_VARYING;
             dt |= SLC_UNIFORM;
         }
 
-        if (c[i] == NULL) {
+        if (c[i] == nullptr) {
             getContainer(out, dt, c[i], expressions[i]);
             op[i] = c[i]->codeName();
         } else if ((c[i]->type & SLC_UNIFORM) ^ (dt & SLC_UNIFORM)) {
@@ -1473,29 +1484,29 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             op[i] = c[i]->codeName();
         } else {
             op[i] = c[i]->codeName();
-            c[i] = NULL;
+            c[i] = nullptr;
         }
     }
 
     if (function->dso == FALSE) {
-        fprintf(out, "\t%s\t(\"%s\") ", function->symbolName, usedPrototype);
+        out_printf(out, "\t%s\t(\"%s\") ", function->symbolName, usedPrototype);
     } else {
-        fprintf(out, "\tDSO %s\t(\"%s\") ", function->symbolName, usedPrototype);
+        out_printf(out, "\tDSO %s\t(\"%s\") ", function->symbolName, usedPrototype);
     }
 
-    if (d != NULL) {
-        fprintf(out, " %s ", d->codeName());
+    if (d != nullptr) {
+        out_printf(out, " %s ", d->codeName());
     }
 
     for (i = 0; i < nParameters; i++) {
-        fprintf(out, " %s ", op[i]);
+        out_printf(out, " %s ", op[i]);
     }
 
-    fprintf(out, "\n");
+    out_printf(out, "\n");
 
     // Release the locked registers
     for (i = 0; i < arguments->numItems; i++) {
-        if (c[i] != NULL) {
+        if (c[i] != nullptr) {
             sdr->releaseRegister(c[i]);
         } else {
         }
@@ -1563,19 +1574,19 @@ void CConditionalExpression::getCode(FILE *out, CVariable *dest) {
     lock(cond, condition);
     type = typeSave;
 
-    fprintf(out, "%s\t%s %s\n", opcodeIf, cond, elseLabel);
+    out_printf(out, "%s\t%s %s\n", opcodeIf, cond, elseLabel);
 
     release(cond);
 
     getContainer(out, dest, trueExpression);
 
-    fprintf(out, "%s:\n", elseLabel);
-    fprintf(out, "%s\t%s\n", opcodeElse, endLabel);
+    out_printf(out, "%s:\n", elseLabel);
+    out_printf(out, "%s\t%s\n", opcodeElse, endLabel);
 
     getContainer(out, dest, falseExpression);
 
-    fprintf(out, "%s:\n", endLabel);
-    fprintf(out, "%s\n", opcodeEndif);
+    out_printf(out, "%s:\n", endLabel);
+    out_printf(out, "%s\n", opcodeEndif);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1608,7 +1619,7 @@ CAssignmentExpression::CAssignmentExpression(CVariable *f, CExpression *s) : CEx
 // Return Value			:	-
 // Comments				:
 CAssignmentExpression::~CAssignmentExpression() {
-    if (second != NULL)
+    if (second != nullptr)
         delete second;
 }
 
@@ -1621,7 +1632,7 @@ CAssignmentExpression::~CAssignmentExpression() {
 void CAssignmentExpression::getCode(FILE *out, CVariable *dest) {
     getContainer(out, first, second);
 
-    if (dest != NULL) {
+    if (dest != nullptr) {
         CExpression *t = new CTerminalExpression(first);
 
         getContainer(out, dest, t);
@@ -1661,9 +1672,9 @@ CArrayAssignmentExpression::CArrayAssignmentExpression(CVariable *f, CExpression
 // Return Value			:	-
 // Comments				:
 CArrayAssignmentExpression::~CArrayAssignmentExpression() {
-    if (second != NULL)
+    if (second != nullptr)
         delete second;
-    if (index != NULL)
+    if (index != nullptr)
         delete index;
 }
 
@@ -1675,30 +1686,25 @@ CArrayAssignmentExpression::~CArrayAssignmentExpression() {
 // Comments				:
 void CArrayAssignmentExpression::getCode(FILE *out, CVariable *dest) {
     const char *opcode;
-    const char *opcodeN;
 
     lock(opi, index); // Get float index
     lock(op, second); // Get the second code
 
     if (first->type & SLC_FLOAT) {
         opcode = opcodeFToArray;
-        opcodeN = opcodeMoveFloatFloat;
     } else if (first->type & SLC_VECTOR) {
         opcode = opcodeVToArray;
-        opcodeN = opcodeMoveVectorVector;
     } else if (first->type & SLC_MATRIX) {
         opcode = opcodeMToArray;
-        opcodeN = opcodeMoveMatrixMatrix;
     } else if (first->type & SLC_STRING) {
         opcode = opcodeSToArray;
-        opcodeN = opcodeMoveStringString;
     } else {
         assert(FALSE);
     }
 
-    fprintf(out, "%s\t%s %s %s\n", opcode, first->codeName(), opi, op);
+    out_printf(out, "%s\t%s %s %s\n", opcode, first->codeName(), opi, op);
 
-    if (dest != NULL) {
+    if (dest != nullptr) {
         assert((dest->type & SLC_ARRAY) == 0);
         getConversion(out, dest, second);
     }
@@ -1717,7 +1723,7 @@ void CArrayAssignmentExpression::getCode(FILE *out, CVariable *dest) {
 // Comments				:
 CArrayUpdateExpression::CArrayUpdateExpression(CVariable *f, CExpression *i, CExpression *s, const char *opcodeFloat, const char *opcodeVector, const char *opcodeMatrix) : CExpression(f->type) {
     first = f;
-    arrayAssigner = NULL;
+    arrayAssigner = nullptr;
 
     // Ensure index is float
     index = getConversion(SLC_FLOAT | (type & SLC_UNIFORM), i);
@@ -1728,7 +1734,7 @@ CArrayUpdateExpression::CArrayUpdateExpression(CVariable *f, CExpression *i, CEx
     // Create Accessor
     if (CExpression *arrayAccessor = new CArrayExpression(first, new CTerminalExpression(indexVar))) {
         // Create update expression
-        if (CExpression *second = getOperation(arrayAccessor, s, opcodeFloat, opcodeVector, opcodeMatrix, NULL, 0)) {
+        if (CExpression *second = getOperation(arrayAccessor, s, opcodeFloat, opcodeVector, opcodeMatrix, nullptr, 0)) {
             // Create expression to store it again
             arrayAssigner = new CArrayAssignmentExpression(first, new CTerminalExpression(indexVar), second);
         }
@@ -1742,9 +1748,9 @@ CArrayUpdateExpression::CArrayUpdateExpression(CVariable *f, CExpression *i, CEx
 // Return Value			:	-
 // Comments				:
 CArrayUpdateExpression::~CArrayUpdateExpression() {
-    if (index != NULL)
+    if (index != nullptr)
         delete index;
-    if (arrayAssigner != NULL)
+    if (arrayAssigner != nullptr)
         delete arrayAssigner;
 }
 
@@ -1780,7 +1786,7 @@ CArrayMove::CArrayMove(CVariable *f, CList<CExpression *> *e) : CExpression(f->t
     first = f;
     items = new CList<CExpression *>;
 
-    while ((cExpression = e->pop()) != NULL) {
+    while ((cExpression = e->pop()) != nullptr) {
 
         items->push(getConversion(f->type & (SLC_TYPE_MASK | SLC_UNIFORM), cExpression));
 
@@ -1806,7 +1812,7 @@ CArrayMove::CArrayMove(CVariable *f, CList<CExpression *> *e) : CExpression(f->t
 CArrayMove::~CArrayMove() {
     CExpression *cExpression;
 
-    while ((cExpression = items->pop()) != NULL) {
+    while ((cExpression = items->pop()) != nullptr) {
         delete cExpression;
     }
 }
@@ -1823,7 +1829,7 @@ void CArrayMove::getCode(FILE *out, CVariable *dest) {
     char tmp[32];
     const char *opcode;
 
-    if (dest != NULL) {
+    if (dest != nullptr) {
         sdr->error("Nested array assignments are not supported yet\n");
         return;
     }
@@ -1840,16 +1846,16 @@ void CArrayMove::getCode(FILE *out, CVariable *dest) {
         assert(FALSE);
     }
 
-    for (i = 0, cExpression = items->first(); cExpression != NULL; cExpression = items->next(), i++) {
+    for (i = 0, cExpression = items->first(); cExpression != nullptr; cExpression = items->next(), i++) {
         CVariable *cVariable = getContainer(out, first->type & (SLC_TYPE_MASK | SLC_UNIFORM), cExpression);
 
-        sprintf(tmp, "%d", i);
+        snprintf(tmp, sizeof(tmp), "%d", i);
 
         CExpression *iVariable = new CConstantTerminalExpression(SLC_UNIFORM | SLC_FLOAT, tmp);
 
         lock(iname, iVariable);
 
-        fprintf(out, "%s %s %s %s\n", opcode, first->codeName(), iname, cVariable->codeName());
+        out_printf(out, "%s %s %s %s\n", opcode, first->codeName(), iname, cVariable->codeName());
 
         release(iname);
 
@@ -1893,7 +1899,7 @@ CUpdateExpression::CUpdateExpression(CVariable *f, const char *opcodeFloat, cons
 // Return Value			:	-
 // Comments				:
 CUpdateExpression::~CUpdateExpression() {
-    if (second != NULL)
+    if (second != nullptr)
         delete second;
 }
 
@@ -1927,18 +1933,18 @@ void CUpdateExpression::getCode(FILE *out, CVariable *dest) {
     }
 
     if (pre) {
-        fprintf(out, "%s\t%s %s %s\n", opcode, first->codeName(), first->codeName(), op);
+        out_printf(out, "%s\t%s %s %s\n", opcode, first->codeName(), first->codeName(), op);
 
-        if (dest != NULL) {
+        if (dest != nullptr) {
             assert((dest->type & SLC_ARRAY) == 0);
-            fprintf(out, "%s\t%s %s\n", opcodeM, dest->codeName(), first->codeName());
+            out_printf(out, "%s\t%s %s\n", opcodeM, dest->codeName(), first->codeName());
         }
     } else {
-        fprintf(out, "%s\t%s %s %s\n", opcode, first->codeName(), first->codeName(), op);
+        out_printf(out, "%s\t%s %s %s\n", opcode, first->codeName(), first->codeName(), op);
 
-        if (dest != NULL) {
+        if (dest != nullptr) {
             assert((dest->type & SLC_ARRAY) == 0);
-            fprintf(out, "%s\t%s %s\n", opcodeM, dest->codeName(), op);
+            out_printf(out, "%s\t%s %s\n", opcodeM, dest->codeName(), op);
         }
     }
 
@@ -1968,7 +1974,7 @@ CIfThenElse::CIfThenElse(CExpression *c, CExpression *f, CExpression *s) : CExpr
 CIfThenElse::~CIfThenElse() {
     delete cond;
     delete first;
-    if (second != NULL)
+    if (second != nullptr)
         delete second;
 }
 
@@ -1982,7 +1988,7 @@ void CIfThenElse::getCode(FILE *out, CVariable *dest) {
     char elseLabel[32];
     char endLabel[32];
 
-    if (dest != NULL) {
+    if (dest != nullptr) {
         sdr->error("Conditional assignment to a variable\n");
         return;
     }
@@ -1993,24 +1999,24 @@ void CIfThenElse::getCode(FILE *out, CVariable *dest) {
 
     lock(condition, cond);
 
-    fprintf(out, "%s\t%s ", opcodeIf, condition);
-    if (second != NULL) {
-        fprintf(out, "%s\n", elseLabel);
+    out_printf(out, "%s\t%s ", opcodeIf, condition);
+    if (second != nullptr) {
+        out_printf(out, "%s\n", elseLabel);
     } else {
-        fprintf(out, "%s\n", endLabel);
+        out_printf(out, "%s\n", endLabel);
     }
 
-    first->getCode(out, NULL);
+    first->getCode(out, nullptr);
 
-    if (second != NULL) {
-        fprintf(out, "%s:\n", elseLabel);
-        fprintf(out, "%s\t%s\n", opcodeElse, endLabel);
+    if (second != nullptr) {
+        out_printf(out, "%s:\n", elseLabel);
+        out_printf(out, "%s\t%s\n", opcodeElse, endLabel);
 
-        second->getCode(out, NULL);
+        second->getCode(out, nullptr);
     }
 
-    fprintf(out, "%s:\n", endLabel);
-    fprintf(out, "%s\n", opcodeEndif);
+    out_printf(out, "%s:\n", endLabel);
+    out_printf(out, "%s\n", opcodeEndif);
 
     release(condition);
 }
@@ -2060,7 +2066,7 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
     CVariable **vars;
     char **varNames;
 
-    if (dest != NULL) {
+    if (dest != nullptr) {
         sdr->error("Gather assignment to a variable\n");
         return;
     }
@@ -2087,7 +2093,7 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
     for (i = 5; i < numParameters; i += 2) {
         parameters[i] = getConversion(SLC_STRING | SLC_UNIFORM, parameters[i]);
         vars[i] = parameters[i]->getVariable();
-        if (vars[i] == NULL) {
+        if (vars[i] == nullptr) {
             varNames[i] = new char[32];
             if (parameters[i]->value(varNames[i]) == FALSE) {
                 sdr->error("Gather was expecting a variable in the parameter list\n");
@@ -2098,7 +2104,7 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
 
         parameters[i + 1] = parameters[i + 1];
         vars[i + 1] = parameters[i + 1]->getVariable();
-        if (vars[i + 1] == NULL) {
+        if (vars[i + 1] == nullptr) {
             varNames[i + 1] = new char[32];
             if (parameters[i + 1]->value(varNames[i + 1]) == FALSE) {
                 sdr->error("Gather was expecting a variable in the parameter list\n");
@@ -2135,35 +2141,35 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
     sdr->newLabel(endLabel);
     sdr->newLabel(elseLabel);
 
-    fprintf(out, "%s (\"o=%s\") %s %s %s %s %s ", opcodeGatherHeader, str, category, P, N, sampleCone, samples);
+    out_printf(out, "%s (\"o=%s\") %s %s %s %s %s ", opcodeGatherHeader, str, category, P, N, sampleCone, samples);
     for (i = 5; i < numParameters; i++) {
-        if (vars[i] == NULL) {
-            fprintf(out, "%s ", varNames[i]);
+        if (vars[i] == nullptr) {
+            out_printf(out, "%s ", varNames[i]);
         } else {
-            fprintf(out, "%s ", vars[i]->codeName());
+            out_printf(out, "%s ", vars[i]->codeName());
         }
     }
-    fprintf(out, "\n");
+    out_printf(out, "\n");
 
-    fprintf(out, "%s:\n", beginLabel);
+    out_printf(out, "%s:\n", beginLabel);
 
-    if (second != NULL) {
-        fprintf(out, "%s %s\n", opcodeGather, elseLabel);
+    if (second != nullptr) {
+        out_printf(out, "%s %s\n", opcodeGather, elseLabel);
     } else {
-        fprintf(out, "%s %s\n", opcodeGather, endLabel);
+        out_printf(out, "%s %s\n", opcodeGather, endLabel);
     }
 
-    first->getCode(out, NULL);
+    first->getCode(out, nullptr);
 
-    if (second != NULL) {
-        fprintf(out, "%s:\n", elseLabel);
-        fprintf(out, "%s\t%s\n", opcodeGatherElse, endLabel);
+    if (second != nullptr) {
+        out_printf(out, "%s:\n", elseLabel);
+        out_printf(out, "%s\t%s\n", opcodeGatherElse, endLabel);
 
-        second->getCode(out, NULL);
+        second->getCode(out, nullptr);
     }
 
-    fprintf(out, "%s:\n", endLabel);
-    fprintf(out, "%s %s\n", opcodeGatherEnd, beginLabel);
+    out_printf(out, "%s:\n", endLabel);
+    out_printf(out, "%s %s\n", opcodeGatherEnd, beginLabel);
 
     delete[] varNames;
     delete[] vars;
@@ -2197,13 +2203,13 @@ CForLoop::CForLoop(CExpression *s, CExpression *c, CExpression *u, CExpression *
 // Return Value			:	-
 // Comments				:
 CForLoop::~CForLoop() {
-    if (start != NULL)
+    if (start != nullptr)
         delete start;
-    if (cond != NULL)
+    if (cond != nullptr)
         delete cond;
-    if (update != NULL)
+    if (update != nullptr)
         delete update;
-    if (body != NULL)
+    if (body != nullptr)
         delete body;
 }
 
@@ -2214,6 +2220,7 @@ CForLoop::~CForLoop() {
 // Return Value			:	-
 // Comments				:
 void CForLoop::getCode(FILE *out, CVariable *dest) {
+    (void)dest;
     char bodyLabel[32];
     char contLabel[32];
     char endLabel[32];
@@ -2222,32 +2229,32 @@ void CForLoop::getCode(FILE *out, CVariable *dest) {
     sdr->newLabel(contLabel);
     sdr->newLabel(endLabel);
 
-    if (start != NULL) {
-        start->getCode(out, NULL);
+    if (start != nullptr) {
+        start->getCode(out, nullptr);
     }
 
-    fprintf(out, "%s\t%s %s %s\n", opcodeBeginfor, bodyLabel, contLabel, endLabel);
+    out_printf(out, "%s\t%s %s %s\n", opcodeBeginfor, bodyLabel, contLabel, endLabel);
 
-    fprintf(out, "%s:\n", bodyLabel);
+    out_printf(out, "%s:\n", bodyLabel);
 
     lock(condition, cond);
 
-    fprintf(out, "%s\t%s\n", opcodeFor, condition);
+    out_printf(out, "%s\t%s\n", opcodeFor, condition);
 
     release(condition);
 
-    if (body != NULL)
-        body->getCode(out, NULL);
+    if (body != nullptr)
+        body->getCode(out, nullptr);
 
-    fprintf(out, "%s:\n", contLabel);
+    out_printf(out, "%s:\n", contLabel);
 
-    if (update != NULL) {
-        update->getCode(out, NULL);
+    if (update != nullptr) {
+        update->getCode(out, nullptr);
     }
 
-    fprintf(out, "%s:\n", endLabel);
+    out_printf(out, "%s:\n", endLabel);
 
-    fprintf(out, "%s\n", opcodeEndfor);
+    out_printf(out, "%s\n", opcodeEndfor);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2258,7 +2265,7 @@ void CForLoop::getCode(FILE *out, CVariable *dest) {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CIlluminationLoop::CIlluminationLoop(CList<CExpression *> *p, CExpression *b) : CExpression(0), category(NULL), P(NULL), N(NULL), angle(NULL), body(b) {
+CIlluminationLoop::CIlluminationLoop(CList<CExpression *> *p, CExpression *b) : CExpression(0), category(nullptr), P(nullptr), N(nullptr), angle(nullptr), body(b) {
     // Note that p is reverse
 
     // Figure out the number of core items
@@ -2304,15 +2311,15 @@ CIlluminationLoop::CIlluminationLoop(CList<CExpression *> *p, CExpression *b) : 
 // Return Value			:	-
 // Comments				:
 CIlluminationLoop::~CIlluminationLoop() {
-    if (category != NULL)
+    if (category != nullptr)
         delete category;
-    if (P != NULL)
+    if (P != nullptr)
         delete P;
-    if (N != NULL)
+    if (N != nullptr)
         delete N;
-    if (angle != NULL)
+    if (angle != nullptr)
         delete angle;
-    if (body != NULL)
+    if (body != nullptr)
         delete body;
 }
 
@@ -2323,6 +2330,7 @@ CIlluminationLoop::~CIlluminationLoop() {
 // Return Value			:	-
 // Comments				:
 void CIlluminationLoop::getCode(FILE *out, CVariable *dest) {
+    (void)dest;
     char beginLabel[32];
     char endLabel[32];
 
@@ -2334,43 +2342,43 @@ void CIlluminationLoop::getCode(FILE *out, CVariable *dest) {
     lock(op3, angle);
     lock(op4, category);
 
-    fprintf(out, "%s\t", opcodeIlluminance);
+    out_printf(out, "%s\t", opcodeIlluminance);
 
-    if (op1 != NULL) {
-        fprintf(out, " %s ", op1);
+    if (op1 != nullptr) {
+        out_printf(out, " %s ", op1);
     }
 
-    if (op2 != NULL) {
-        fprintf(out, " %s ", op2);
+    if (op2 != nullptr) {
+        out_printf(out, " %s ", op2);
     }
 
-    if (op3 != NULL) {
-        fprintf(out, " %s ", op3);
+    if (op3 != nullptr) {
+        out_printf(out, " %s ", op3);
     }
 
-    //	fprintf(out," %s %s\n",beginLabel,endLabel);
-    fprintf(out, " %s %s", beginLabel, endLabel);
-    if (op4 != NULL) {
-        fprintf(out, " %s ", op4);
+    //	out_printf(out," %s %s\n",beginLabel,endLabel);
+    out_printf(out, " %s %s", beginLabel, endLabel);
+    if (op4 != nullptr) {
+        out_printf(out, " %s ", op4);
     }
-    fprintf(out, "\n");
+    out_printf(out, "\n");
 
-    fprintf(out, "%s:\n", beginLabel);
+    out_printf(out, "%s:\n", beginLabel);
 
-    if (body != NULL)
-        body->getCode(out, NULL);
+    if (body != nullptr)
+        body->getCode(out, nullptr);
 
-    fprintf(out, "%s:\n", endLabel);
+    out_printf(out, "%s:\n", endLabel);
 
-    fprintf(out, "%s\n", opcodeEndIlluminance);
+    out_printf(out, "%s\n", opcodeEndIlluminance);
 
-    if (op4 != NULL)
+    if (op4 != nullptr)
         release(op4);
-    if (op3 != NULL)
+    if (op3 != nullptr)
         release(op3);
-    if (op2 != NULL)
+    if (op2 != nullptr)
         release(op2);
-    if (op1 != NULL)
+    if (op1 != nullptr)
         release(op1);
 }
 
@@ -2383,9 +2391,9 @@ void CIlluminationLoop::getCode(FILE *out, CVariable *dest) {
 CIlluminateSolar::CIlluminateSolar(const char *op1, const char *op2, CExpression *p, CExpression *n, CExpression *a, CExpression *b) : CExpression(0) {
     beginOpcode = strdup(op1);
     endOpcode = strdup(op2);
-    this->P = (p != NULL ? getConversion(SLC_VECTOR, p) : NULL);
-    this->N = (n != NULL ? getConversion(SLC_VECTOR, n) : NULL);
-    this->angle = (a != NULL ? getConversion(SLC_FLOAT, a) : NULL);
+    this->P = (p != nullptr ? getConversion(SLC_VECTOR, p) : nullptr);
+    this->N = (n != nullptr ? getConversion(SLC_VECTOR, n) : nullptr);
+    this->angle = (a != nullptr ? getConversion(SLC_FLOAT, a) : nullptr);
     this->body = b;
 }
 
@@ -2396,13 +2404,13 @@ CIlluminateSolar::CIlluminateSolar(const char *op1, const char *op2, CExpression
 // Return Value			:	-
 // Comments				:
 CIlluminateSolar::~CIlluminateSolar() {
-    if (P != NULL)
+    if (P != nullptr)
         delete P;
-    if (N != NULL)
+    if (N != nullptr)
         delete N;
-    if (angle != NULL)
+    if (angle != nullptr)
         delete angle;
-    if (body != NULL)
+    if (body != nullptr)
         delete body;
 }
 
@@ -2413,6 +2421,7 @@ CIlluminateSolar::~CIlluminateSolar() {
 // Return Value			:	-
 // Comments				:
 void CIlluminateSolar::getCode(FILE *out, CVariable *dest) {
+    (void)dest;
     char endLabel[32];
 
     // Allocate end label
@@ -2422,34 +2431,34 @@ void CIlluminateSolar::getCode(FILE *out, CVariable *dest) {
     lock(op2, N);
     lock(op3, angle);
 
-    fprintf(out, "%s\t", beginOpcode);
+    out_printf(out, "%s\t", beginOpcode);
 
-    if (op1 != NULL) {
-        fprintf(out, " %s ", op1);
+    if (op1 != nullptr) {
+        out_printf(out, " %s ", op1);
     }
 
-    if (op2 != NULL) {
-        fprintf(out, " %s ", op2);
+    if (op2 != nullptr) {
+        out_printf(out, " %s ", op2);
     }
 
-    if (op3 != NULL) {
-        fprintf(out, " %s ", op3);
+    if (op3 != nullptr) {
+        out_printf(out, " %s ", op3);
     }
 
-    fprintf(out, " %s\n", endLabel);
+    out_printf(out, " %s\n", endLabel);
 
-    if (body != NULL)
-        body->getCode(out, NULL);
+    if (body != nullptr)
+        body->getCode(out, nullptr);
 
-    fprintf(out, "%s:\n", endLabel);
+    out_printf(out, "%s:\n", endLabel);
 
-    fprintf(out, "%s\n", endOpcode);
+    out_printf(out, "%s\n", endOpcode);
 
-    if (op3 != NULL)
+    if (op3 != nullptr)
         release(op3);
-    if (op2 != NULL)
+    if (op2 != nullptr)
         release(op2);
-    if (op1 != NULL)
+    if (op1 != nullptr)
         release(op1);
 }
 
@@ -2480,12 +2489,12 @@ CFixedExpression::~CFixedExpression() {
 // Return Value			:	-
 // Comments				:
 void CFixedExpression::getCode(FILE *out, CVariable *dest) {
-    if (dest != NULL) {
+    if (dest != nullptr) {
         sdr->error("Destination variable \"%s\" was not expected\n", dest->symbolName);
         return;
     }
 
-    fprintf(out, fixed);
+    out_printf(out, fixed);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2506,26 +2515,26 @@ CExpression *getOperation(CExpression *first, CExpression *second, const char *o
         // Yesss
 
         if (first->type & SLC_FLOAT) {
-            if (opcodeFloat == NULL) {
+            if (opcodeFloat == nullptr) {
                 sdr->error("This operation is not defined on floats\n");
             } else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_FLOAT), opcodeFloat, first, second);
             }
         } else if (first->type & SLC_VECTOR) {
-            if (opcodeVector == NULL) {
+            if (opcodeVector == nullptr) {
                 sdr->error("This operation is not defined on vectors\n");
             } else {
                 int subtype = (first->type | second->type) & SLC_SUB_TYPE_MASK;
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : (SLC_VECTOR | subtype)), opcodeVector, first, second);
             }
         } else if (first->type & SLC_MATRIX) {
-            if (opcodeMatrix == NULL) {
+            if (opcodeMatrix == nullptr) {
                 sdr->error("This operation is not defined on matrices\n");
             } else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_MATRIX), opcodeMatrix, first, second);
             }
         } else if (first->type & SLC_STRING) {
-            if (opcodeString == NULL) {
+            if (opcodeString == nullptr) {
                 sdr->error("This operation is not defined on strings\n");
             } else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_STRING), opcodeString, first, second);
@@ -2536,26 +2545,26 @@ CExpression *getOperation(CExpression *first, CExpression *second, const char *o
     } else {
         // Nop, try converting to the most general type
         if ((first->type | second->type) & SLC_STRING) {
-            if (opcodeString == NULL) {
+            if (opcodeString == nullptr) {
                 sdr->error("This operation is not defined on strings\n");
             } else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_STRING), opcodeString, getConversion(SLC_STRING, first), getConversion(SLC_STRING, second));
             }
         } else if ((first->type | second->type) & SLC_MATRIX) {
-            if (opcodeMatrix == NULL) {
+            if (opcodeMatrix == nullptr) {
                 sdr->error("This operation is not defined on matrices\n");
             } else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_MATRIX), opcodeMatrix, getConversion(SLC_MATRIX, first), getConversion(SLC_MATRIX, second));
             }
         } else if ((first->type | second->type) & SLC_VECTOR) {
-            if (opcodeVector == NULL) {
+            if (opcodeVector == nullptr) {
                 sdr->error("This operation is not defined on vectors\n");
             } else {
                 int subtype = (first->type | second->type) & SLC_SUB_TYPE_MASK;
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : (SLC_VECTOR | subtype)), opcodeVector, getConversion(SLC_VECTOR, first), getConversion(SLC_VECTOR, second));
             }
         } else if ((first->type | second->type) & SLC_FLOAT) {
-            if (opcodeFloat == NULL) {
+            if (opcodeFloat == nullptr) {
                 sdr->error("This operation is not defined on floats\n");
             } else {
                 return new CBinaryExpression(SLC_FLOAT, opcodeFloat, getConversion((typeOverwrite ? typeOverwrite : SLC_FLOAT), first), getConversion(SLC_FLOAT, second));
@@ -2703,7 +2712,7 @@ void getConversion(FILE *out, CVariable *dest, CExpression *first) {
 
     cVar = first->getVariable();
 
-    if (cVar == NULL) {
+    if (cVar == nullptr) {
         if ((first->type & dest->type & SLC_TYPE_MASK & (~SLC_NONE)) == 0) {
             // We need one more intermediate variable
             CVariable *tVar = sdr->lockRegister(first->type);
@@ -2716,15 +2725,15 @@ void getConversion(FILE *out, CVariable *dest, CExpression *first) {
                 sdr->error(unabletocast, firsttype, desttype);
             } else if (dest->type & SLC_VECTOR) {
                 if (first->type & SLC_FLOAT) {
-                    fprintf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), tVar->codeName());
+                    out_printf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), tVar->codeName());
                 } else {
                     sdr->error(unabletocast, firsttype, desttype);
                 }
             } else if (dest->type & SLC_MATRIX) {
                 if (first->type & SLC_FLOAT) {
-                    fprintf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), tVar->codeName());
+                    out_printf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), tVar->codeName());
                 } else if (first->type & SLC_VECTOR) {
-                    fprintf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), tVar->codeName());
+                    out_printf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), tVar->codeName());
                 } else {
                     sdr->error(unabletocast, firsttype, desttype);
                 }
@@ -2738,31 +2747,31 @@ void getConversion(FILE *out, CVariable *dest, CExpression *first) {
     } else {
         if (dest->type & SLC_STRING) {
             if (first->type & SLC_STRING) {
-                fprintf(out, "%s\t%s %s\n", opcodeMoveStringString, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMoveStringString, dest->codeName(), cVar->codeName());
             } else {
                 sdr->error(unabletocast, firsttype, desttype);
             }
         } else if (dest->type & SLC_FLOAT) {
             if (first->type & SLC_FLOAT) {
-                fprintf(out, "%s\t%s %s\n", opcodeMoveFloatFloat, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMoveFloatFloat, dest->codeName(), cVar->codeName());
             } else {
                 sdr->error(unabletocast, firsttype, desttype);
             }
         } else if (dest->type & SLC_VECTOR) {
             if (first->type & SLC_VECTOR) {
-                fprintf(out, "%s\t%s %s\n", opcodeMoveVectorVector, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMoveVectorVector, dest->codeName(), cVar->codeName());
             } else if (first->type & SLC_FLOAT) {
-                fprintf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), cVar->codeName());
             } else {
                 sdr->error(unabletocast, firsttype, desttype);
             }
         } else if (dest->type & SLC_MATRIX) {
             if (first->type & SLC_MATRIX) {
-                fprintf(out, "%s\t%s %s\n", opcodeMoveMatrixMatrix, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMoveMatrixMatrix, dest->codeName(), cVar->codeName());
             } else if (first->type & SLC_FLOAT) {
-                fprintf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), cVar->codeName());
             } else if (first->type & SLC_VECTOR) {
-                fprintf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), cVar->codeName());
+                out_printf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), cVar->codeName());
             } else {
                 sdr->error(unabletocast, firsttype, desttype);
             }
@@ -2807,7 +2816,7 @@ CExpression *getAssignment(CList<CVariable *> *variables, CExpression *expressio
     CExpression *cExpression = expression;
     char tmp[256];
 
-    for (cVar = variables->pop(); cVar != NULL; cVar = variables->pop()) {
+    for (cVar = variables->pop(); cVar != nullptr; cVar = variables->pop()) {
 
         if (cVar->type & SLC_ARRAY) {
             sdr->error("Can not assign to whole array %s\n", cVar->symbolName);
@@ -2858,14 +2867,14 @@ CExpression *getAssignment(CList<CVariable *> *variables, CExpression *expressio
 // Comments				:
 CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *expressions) {
     CVariable *cVar;
-    CExpression *pExpression = NULL;
+    CExpression *pExpression = nullptr;
     int i, hasNamedSpace, hasComplexRef;
     char tmp[128], *tmp2;
 
 #define NEWARRAYPARSE
 #ifdef NEWARRAYPARSE
 
-    while ((cVar = variables->pop()) != NULL) {
+    while ((cVar = variables->pop()) != nullptr) {
         hasNamedSpace = FALSE;
         hasComplexRef = FALSE;
 
@@ -2887,7 +2896,7 @@ CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *
                 }
 
                 tmp2 = (char *)malloc(expressions->numItems * 128);
-                sprintf(tmp2, "[ ");
+                snprintf(tmp2, expressions->numItems * 128, "[ ");
                 for (i = expressions->numItems - 1; i >= 0; i--) {
                     if ((*expressions)[i]->value(tmp)) {
                         strcat(tmp2, tmp);
@@ -2915,13 +2924,13 @@ CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *
 
         CExpression *cExpression = new CArrayMove(cVar, expressions);
 
-        if (pExpression == NULL)
+        if (pExpression == nullptr)
             pExpression = cExpression;
         else
             pExpression = new CTwoExpressions(cExpression, pExpression);
     }
 
-    if (pExpression == NULL) {
+    if (pExpression == nullptr) {
         delete expressions;
         return new CNullExpression;
     }
@@ -2929,11 +2938,11 @@ CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *
     return pExpression;
 
 #else
-    while ((cVar = variables->pop()) != NULL) {
+    while ((cVar = variables->pop()) != nullptr) {
 
         CExpression *cExpression = new CArrayMove(cVar, expressions);
 
-        if (pExpression == NULL)
+        if (pExpression == nullptr)
             pExpression = cExpression;
         else
             pExpression = new CTwoExpressions(cExpression, pExpression);

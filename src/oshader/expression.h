@@ -67,9 +67,11 @@ class CExpression {
     public:
         CExpression(int);
         virtual ~CExpression();
+        CExpression(const CExpression &) = delete;
+        CExpression &operator=(const CExpression &) = delete;
 
         virtual void getCode(FILE *, CVariable *);
-        virtual CVariable *getVariable();
+        [[nodiscard]] virtual CVariable *getVariable();
         virtual int value(char *);
 
         int type;
@@ -82,9 +84,9 @@ class CExpression {
 class CTwoExpressions : public CExpression {
     public:
         CTwoExpressions(CExpression *, CExpression *);
-        ~CTwoExpressions();
+        ~CTwoExpressions() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *first, *second;
 };
@@ -105,10 +107,10 @@ class CNullExpression : public CExpression {
 class CVectorExpression : public CExpression {
     public:
         CVectorExpression(CExpression *, CExpression *, CExpression *);
-        ~CVectorExpression();
+        ~CVectorExpression() override;
 
-        void getCode(FILE *, CVariable *);
-        int value(char *);
+        void getCode(FILE *, CVariable *) override;
+        int value(char *) override;
 
         CExpression *x, *y, *z;
 };
@@ -120,10 +122,10 @@ class CVectorExpression : public CExpression {
 class CMatrixExpression : public CExpression {
     public:
         CMatrixExpression(CExpression **);
-        ~CMatrixExpression();
+        ~CMatrixExpression() override;
 
-        void getCode(FILE *, CVariable *);
-        int value(char *);
+        void getCode(FILE *, CVariable *) override;
+        int value(char *) override;
 
         CExpression *elements[16];
 };
@@ -135,10 +137,10 @@ class CMatrixExpression : public CExpression {
 class CTerminalExpression : public CExpression {
     public:
         CTerminalExpression(CVariable *);
-        ~CTerminalExpression();
+        ~CTerminalExpression() override;
 
-        void getCode(FILE *, CVariable *);
-        CVariable *getVariable() { return variable; }
+        void getCode(FILE *, CVariable *) override;
+        [[nodiscard]] CVariable *getVariable() override { return variable; }
 
         CVariable *variable;
 };
@@ -150,9 +152,9 @@ class CTerminalExpression : public CExpression {
 class CArrayExpression : public CExpression {
     public:
         CArrayExpression(CVariable *, CExpression *);
-        ~CArrayExpression();
+        ~CArrayExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *array;
         CExpression *item;
@@ -165,11 +167,11 @@ class CArrayExpression : public CExpression {
 class CConstantTerminalExpression : public CExpression {
     public:
         CConstantTerminalExpression(int, char *);
-        ~CConstantTerminalExpression();
+        ~CConstantTerminalExpression() override;
 
-        void getCode(FILE *, CVariable *);
-        CVariable *getVariable() { return dummy; }
-        int value(char *);
+        void getCode(FILE *, CVariable *) override;
+        [[nodiscard]] CVariable *getVariable() override { return dummy; }
+        int value(char *) override;
 
         char *constant;
         CVariable *dummy;
@@ -182,9 +184,9 @@ class CConstantTerminalExpression : public CExpression {
 class CBinaryExpression : public CExpression {
     public:
         CBinaryExpression(int, const char *, CExpression *, CExpression *);
-        ~CBinaryExpression();
+        ~CBinaryExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *first, *second;
         const char *opcode;
@@ -197,9 +199,9 @@ class CBinaryExpression : public CExpression {
 class CUnaryExpression : public CExpression {
     public:
         CUnaryExpression(int, const char *, CExpression *);
-        ~CUnaryExpression();
+        ~CUnaryExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *first;
         const char *opcode;
@@ -212,14 +214,14 @@ class CUnaryExpression : public CExpression {
 class CSysConversionExpression : public CExpression {
     public:
         CSysConversionExpression(int, const char *, const char *, CExpression *);
-        ~CSysConversionExpression();
+        ~CSysConversionExpression() override;
 
-        void getCode(FILE *, CVariable *);
-        int value(char *);
+        void getCode(FILE *, CVariable *) override;
+        int value(char *) override;
 
         CExpression *first;
         const char *opcode;
-        char *system;
+        const char *system;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -229,9 +231,9 @@ class CSysConversionExpression : public CExpression {
 class CFuncallExpression : public CExpression {
     public:
         CFuncallExpression(CFunction *, CList<CExpression *> *);
-        ~CFuncallExpression();
+        ~CFuncallExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CList<CExpression *> *arguments;
         CFunction *function;
@@ -245,9 +247,9 @@ class CFuncallExpression : public CExpression {
 class CBuiltinExpression : public CExpression {
     public:
         CBuiltinExpression(CFunctionPrototype *, CList<CExpression *> *);
-        ~CBuiltinExpression();
+        ~CBuiltinExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CList<CExpression *> *arguments;
         CFunctionPrototype *function;
@@ -261,9 +263,9 @@ class CBuiltinExpression : public CExpression {
 class CConditionalExpression : public CExpression {
     public:
         CConditionalExpression(int, CExpression *, CExpression *, CExpression *);
-        ~CConditionalExpression();
+        ~CConditionalExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *condition;
         CExpression *trueExpression;
@@ -277,9 +279,9 @@ class CConditionalExpression : public CExpression {
 class CAssignmentExpression : public CExpression {
     public:
         CAssignmentExpression(CVariable *, CExpression *);
-        ~CAssignmentExpression();
+        ~CAssignmentExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *first;
         CExpression *second;
@@ -292,9 +294,9 @@ class CAssignmentExpression : public CExpression {
 class CArrayAssignmentExpression : public CExpression {
     public:
         CArrayAssignmentExpression(CVariable *, CExpression *, CExpression *);
-        ~CArrayAssignmentExpression();
+        ~CArrayAssignmentExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *first;
         CExpression *index;
@@ -308,9 +310,9 @@ class CArrayAssignmentExpression : public CExpression {
 class CArrayUpdateExpression : public CExpression {
     public:
         CArrayUpdateExpression(CVariable *, CExpression *, CExpression *, const char *, const char *, const char *);
-        ~CArrayUpdateExpression();
+        ~CArrayUpdateExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *first;
         CVariable *indexVar;
@@ -325,9 +327,9 @@ class CArrayUpdateExpression : public CExpression {
 class CArrayMove : public CExpression {
     public:
         CArrayMove(CVariable *, CList<CExpression *> *);
-        ~CArrayMove();
+        ~CArrayMove() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *first;
         CList<CExpression *> *items;
@@ -340,9 +342,9 @@ class CArrayMove : public CExpression {
 class CUpdateExpression : public CExpression {
     public:
         CUpdateExpression(CVariable *, const char *, const char *, int, CExpression *);
-        ~CUpdateExpression();
+        ~CUpdateExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CVariable *first;
         CExpression *second;
@@ -357,9 +359,9 @@ class CUpdateExpression : public CExpression {
 class CIfThenElse : public CExpression {
     public:
         CIfThenElse(CExpression *, CExpression *, CExpression *);
-        ~CIfThenElse();
+        ~CIfThenElse() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *cond;
         CExpression *first;
@@ -373,9 +375,9 @@ class CIfThenElse : public CExpression {
 class CGatherThenElse : public CExpression {
     public:
         CGatherThenElse(CList<CExpression *> *, CExpression *, CExpression *);
-        ~CGatherThenElse();
+        ~CGatherThenElse() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CList<CExpression *> *parameterList;
         CExpression *first;
@@ -389,9 +391,9 @@ class CGatherThenElse : public CExpression {
 class CForLoop : public CExpression {
     public:
         CForLoop(CExpression *, CExpression *, CExpression *, CExpression *);
-        ~CForLoop();
+        ~CForLoop() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *start, *cond, *update;
         CExpression *body;
@@ -404,9 +406,9 @@ class CForLoop : public CExpression {
 class CIlluminationLoop : public CExpression {
     public:
         CIlluminationLoop(CList<CExpression *> *, CExpression *);
-        ~CIlluminationLoop();
+        ~CIlluminationLoop() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *category, *P, *N, *angle;
         CExpression *body;
@@ -419,9 +421,9 @@ class CIlluminationLoop : public CExpression {
 class CIlluminateSolar : public CExpression {
     public:
         CIlluminateSolar(const char *, const char *, CExpression *, CExpression *, CExpression *, CExpression *);
-        ~CIlluminateSolar();
+        ~CIlluminateSolar() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         CExpression *P, *N, *angle;
         CExpression *body;
@@ -435,9 +437,9 @@ class CIlluminateSolar : public CExpression {
 class CFixedExpression : public CExpression {
     public:
         CFixedExpression(const char *);
-        ~CFixedExpression();
+        ~CFixedExpression() override;
 
-        void getCode(FILE *, CVariable *);
+        void getCode(FILE *, CVariable *) override;
 
         char *fixed;
 };

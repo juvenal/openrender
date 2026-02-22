@@ -44,6 +44,14 @@ static inline const char* _log_level_str(LogLevel level) {
     }
 }
 
+/* ##__VA_ARGS__ is a widely-supported GNU extension that removes a leading comma
+ * when __VA_ARGS__ is empty, allowing LOG_DEBUG("msg") without extra format args.
+ * Suppress the pedantic warning for these macro definitions. */
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
+
 #define LOG(level, fmt, ...) do { \
     if ((level) >= _log_level && _log_output) { \
         struct timespec _ts; \
@@ -62,5 +70,9 @@ static inline const char* _log_level_str(LogLevel level) {
 #define LOG_INFO(fmt, ...)  LOG(LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
 #define LOG_WARN(fmt, ...)  LOG(LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
 #define LOG_ERROR(fmt, ...) LOG(LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
+
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
 
 #endif // LOGGING_H

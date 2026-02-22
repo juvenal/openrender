@@ -79,7 +79,7 @@ void end_of_file(void) {
 /*									*/
 /************************************************************************/
 
-void fatal(char *s1, char *s2) {
+void fatal(const char *s1, const char *s2) {
     LOG_ERROR("FATAL: %s%s", s1, s2);
     exit(TRUE);
 }
@@ -104,7 +104,7 @@ void illegal_symbol(void) {
 /*									*/
 /************************************************************************/
 
-void non_fatal(char *s1, char *s2) {
+void non_fatal(const char *s1, const char *s2) {
     prmsg("Error: ", s1, s2);
     Errors++; /* Count the error */
 }
@@ -132,7 +132,7 @@ void out_of_memory(void) {
 /*									*/
 /************************************************************************/
 
-void prmsg(char *s1, char *s2, char *s3) {
+void prmsg(const char *s1, const char *s2, const char *s3) {
     int is_warn = (strcmp(s1, "Warning: ") == 0);
     if (s3[0] == 0) {
         if (is_warn)
@@ -163,6 +163,6 @@ void prmsg(char *s1, char *s2, char *s3) {
 /*									*/
 /************************************************************************/
 
-void warning(char *s1, char *s2) {
+void warning(const char *s1, const char *s2) {
     prmsg("Warning: ", s1, s2);
 }

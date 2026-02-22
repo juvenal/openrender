@@ -179,9 +179,11 @@
 #define BUFFERSIZE 512           /* Disk buffer size			*/
 #endif                           /* HOST == H_BSD */
 #include <ctype.h>               /* Char type info			*/
+#include <fcntl.h>               /* POSIX open()				*/
 #include <stdio.h>               /* Standard I/O info			*/
 #include <stdlib.h>              /* Standard library info		*/
 #include <string.h>
+#include <unistd.h>              /* POSIX read(), close()		*/
 
 #if HOST == H_XENIX
 #include <sys/types.h> /* Need for 'time_t'			*/
@@ -202,9 +204,8 @@
 
 #if HOST == H_BSD /* Berkeley 4.x				*/
 #include <sys/types.h>
-#define strchr index
-#define strrchr rindex
-#define memmov bcopy /* Used move memory routine		*/
+/* strchr, strrchr, and memmove are standard C17; no aliases needed */
+/* memmov is a local implementation in pp4.c -- do not alias to bcopy */
 #endif               /* HOST == H_BSD */
 
 #endif /* HOST != H_CPM */
@@ -233,10 +234,10 @@
 #define C_N 0x80 /* A NUL (no output)			*/
 
 #if PP
-#define istype(c, v) ((typetab + 1)[(c)] & (v))
-extern int gchfile();
+#define istype(c, v) ((typetab + 1)[((c) & 0xFF)] & (v))
+extern int gchfile(void);
 #else  /* !PP */
-extern int istype();
+extern int istype(int c, int v);
 #endif /* PP */
 
 #ifdef MAIN
@@ -394,7 +395,7 @@ EXTERN int Bufc I_ZERO;    /* Current file char count		*/
 EXTERN char *Bufp I_ZERO;  /* Current file char ptr 		*/
 EXTERN int Lasteol I_ZERO; /* True if last char processed was EOL	*/
 EXTERN int LLine I_ZERO;   /* Last line number			*/
-EXTERN int (*Nextch)();    /* Next char function		*/
+EXTERN int (*Nextch)(void); /* Next char function		*/
 #define nextch (*Nextch)   /* Macro to rd chars via Nextch	*/
 
 EXTERN struct file *Filestack[FILESTACKSIZE + 1] I_BRZERO;
@@ -434,7 +435,7 @@ struct param {
 struct ppdir {
         char *pp_name;     /* #function name		*/
         char pp_ifif;      /* FALSE if ! to do on false #if*/
-        void (*pp_func)(); /* Address of function		*/
+        void (*pp_func)(int, int, const char *); /* Address of function */
         int pp_arg;        /* Argument to function		*/
 };
 
@@ -451,19 +452,19 @@ struct ppdir {
  */
 
 #if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
-extern void doasm();
+extern void doasm(int asmtype, int no_flag, const char *name);
 #endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
 
-extern void dodefine();
-extern void doelse();
-extern void doendif();
-extern void doerror();
-extern void doif();
-extern void doifs();
-extern void doinclude();
-extern void doline();
-extern void dopragma();
-extern void doundef();
+extern void dodefine(int mactype, int no_flag, const char *name);
+extern void doelse(int elif, int no_flag, const char *name);
+extern void doendif(int dummy, int no_flag, const char *name);
+extern void doerror(int dummy, int no_flag, const char *name);
+extern void doif(int dummy, int no_flag, const char *name);
+extern void doifs(int t, int no_flag, const char *name);
+extern void doinclude(int dummy, int no_flag, const char *name);
+extern void doline(int dummy, int no_flag, const char *name);
+extern void dopragma(int dummy, int no_flag, const char *name);
+extern void doundef(int dummy, int no_flag, const char *name);
 
 #ifdef MAIN /* If in main() module			*/
 struct ppdir pptab[] =
@@ -489,18 +490,18 @@ struct ppdir pptab[] =
         {"line", NO, doline, EMPTY},
         {"undef", NO, doundef, EMPTY},
         {"pragma", YES, dopragma, EMPTY},
-        {NULL} /* The end */
+        {NULL, 0, NULL, 0} /* The end */
 };
 
 #if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
-extern void pragasm();
+extern void pragasm(int asmtype, int no_flag, const char *name);
 #endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX)*/
 
-extern void pragendm();
-extern void pragerror();
-extern void pragmsg();
-extern void pragopt();
-extern void pragvalue();
+extern void pragendm(int dummy, int no_flag, const char *name);
+extern void pragerror(int dummy, int no_flag, const char *name);
+extern void pragmsg(int dummy, int no_flag, const char *name);
+extern void pragopt(int dummy, int no_flag, const char *name);
+extern void pragvalue(int dummy, int no_flag, const char *name);
 
 /*
  *	Pragma keyword table.
@@ -535,7 +536,7 @@ struct ppdir pragtab[] =
         {"trigraph", NO, pragopt, EMPTY},
         {"undef", NO, doundef, EMPTY},
         {"value", NO, pragvalue, EMPTY},
-        {NULL} /* The end */
+        {NULL, 0, NULL, 0} /* The end */
 };
 
 #else  /* !MAIN */

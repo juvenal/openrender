@@ -153,7 +153,7 @@ extern unsigned _stklen = 32767;
 #pragma optimize("l", off) /* Disable loop optimizations */
 #endif                     /* MSC_OPT */
 
-int preprocess(char *inFile, FILE *outFile, int argc, const char **argv) {
+int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
     /*
     void
     main(argc,argv)
@@ -168,7 +168,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, const char **argv) {
     struct ppdir *sp; /* Ptr to predefined symbol	*/
     int ifile;
     int ofile;
-    const char *s;
+    char *s;
     char *s2;
     int i;
 #if DEBUG
@@ -430,7 +430,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, const char **argv) {
                      *	If unconditionally do it or if emitting code...
                      */
                     if (sp->pp_ifif || (Ifstate == IFTRUE)) {
-                        /* Do #func */ (void)(*(sp->pp_func))(sp->pp_arg);
+                        /* Do #func */ (void)(*(sp->pp_func))(sp->pp_arg, 0, NULL);
                     }
                 } else if (Ifstate == IFTRUE)
                     non_fatal("Invalid directive", buf);
@@ -545,12 +545,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, const char **argv) {
 /*									*/
 /************************************************************************/
 
-char *
-getnext(cp, argc, argv, swvalid)
-char *cp;
-int *argc;
-char ***argv;
-int swvalid; /* True if -x token valid */
+char *getnext(char *cp, int *argc, char ***argv, int swvalid)
 {
     if (*++cp == '\0') {
         if (*argc != 0) {
@@ -575,7 +570,7 @@ int swvalid; /* True if -x token valid */
 /*									*/
 /************************************************************************/
 
-void init() {
+void init(void) {
     static char *one_string = "1";
 
     char *fromptr;
@@ -730,8 +725,7 @@ void init() {
 /*									*/
 /************************************************************************/
 
-void
-    usage(v) int v;
+void usage(int v)
 {
     printf(
 #if DEBUG

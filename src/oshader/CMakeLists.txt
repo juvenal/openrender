@@ -33,11 +33,29 @@ if(USE_FLEX_BISON)
 
 	# add the generated bison cpp's
 	set(oshader_sources ${oshader_sources} sl_generated.cpp dso_generated.cpp)
-else(USE_FLEX_BISON)
+else()
 	# add the ones from the source tree
 	set(oshader_sources ${oshader_sources} sl.cpp ../ri/dso.cpp)
-endif(USE_FLEX_BISON)
+endif()
 
 add_executable(oshader ${oshader_sources})
+
+# Require C17 for C files and C++20 for C++ files
+target_compile_features(oshader PRIVATE c_std_17 cxx_std_20)
+
+# Strict warning flags for clean, standard-conforming code
+target_compile_options(oshader PRIVATE
+	-Wall
+	-Wextra
+	-Wpedantic
+	-Wold-style-definition
+	-Wstrict-prototypes
+	-Wmissing-prototypes
+	-Wmissing-declarations
+	-Wnull-dereference
+	-Wshadow
+	$<$<COMPILE_LANGUAGE:CXX>:-Wsuggest-override>
+)
+
 target_link_libraries(oshader openrendercommon)
 install(TARGETS oshader RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

@@ -79,58 +79,58 @@ class CFunctionPrototype; // A function prototype
 class CScriptContext;     // The main shader context. Holds everything
 
 // Bit position definitions for the settings field of the CScriptContext
-const int COMPILER_SUPPRESS_WARNINGS = 1;
-const int COMPILER_SUPPRESS_ERRORS = 2;
-const int COMPILER_SUPPRESS_DEFINITIONS = 4;
+constexpr int COMPILER_SUPPRESS_WARNINGS = 1;
+constexpr int COMPILER_SUPPRESS_ERRORS = 2;
+constexpr int COMPILER_SUPPRESS_DEFINITIONS = 4;
 
 ////////////////////////////////////////////////////////////////
 // Type constants, all the types are kept in an integer
 // where the specific bit positions determine the type and scope of the type
-const int SLC_FLOAT = 1 << 0;  // Float
-const int SLC_VECTOR = 1 << 1; // A vector of 3 floats
-const int SLC_STRING = 1 << 2; // String
-const int SLC_MATRIX = 1 << 3; // Matrix
-const int SLC_NONE = 1 << 4;   // No type
+constexpr int SLC_FLOAT = 1 << 0;  // Float
+constexpr int SLC_VECTOR = 1 << 1; // A vector of 3 floats
+constexpr int SLC_STRING = 1 << 2; // String
+constexpr int SLC_MATRIX = 1 << 3; // Matrix
+constexpr int SLC_NONE = 1 << 4;   // No type
 
-const int SLC_RDONLY = 1 << 6; // Read only variable
+constexpr int SLC_RDONLY = 1 << 6; // Read only variable
 
-const int SLC_VNORMAL = 1 << 7; // Vector is a normal
-const int SLC_VVECTOR = 1 << 8; // Vector is a vector
-const int SLC_VPOINT = 1 << 9;  // Vector is a point
-const int SLC_VCOLOR = 1 << 10; // Vector is a color
+constexpr int SLC_VNORMAL = 1 << 7; // Vector is a normal
+constexpr int SLC_VVECTOR = 1 << 8; // Vector is a vector
+constexpr int SLC_VPOINT = 1 << 9;  // Vector is a point
+constexpr int SLC_VCOLOR = 1 << 10; // Vector is a color
 
-const int SLC_ARRAY = 1 << 11; // Variable is an array
+constexpr int SLC_ARRAY = 1 << 11; // Variable is an array
 
-const int SLC_EXTERN = 1 << 12; // Variable is an extern
+constexpr int SLC_EXTERN = 1 << 12; // Variable is an extern
 
-const int SLC_UNIFORM = 1 << 13; // Variable is uniform
-const int SLC_VARYING = 1 << 14; // Variable is varying (used only to differentiate non uniform params)
+constexpr int SLC_UNIFORM = 1 << 13; // Variable is uniform
+constexpr int SLC_VARYING = 1 << 14; // Variable is varying (used only to differentiate non uniform params)
                                  // Note 1<<15 was removed
 
-const int SLC_LOCKED = 1 << 16; // Variable is a locked temporary variable
-const int SLC_OUTPUT = 1 << 17; // Variable is output
+constexpr int SLC_LOCKED = 1 << 16; // Variable is a locked temporary variable
+constexpr int SLC_OUTPUT = 1 << 17; // Variable is output
 
-const int SLC_GLOBAL = 1 << 18;    // Variable is global
-const int SLC_PARAMETER = 1 << 19; // Variable is parameter
+constexpr int SLC_GLOBAL = 1 << 18;    // Variable is global
+constexpr int SLC_PARAMETER = 1 << 19; // Variable is parameter
 
 // Some masks that can be used to isolate specific postions of the type integer
-const int SLC_TYPE_MASK = SLC_FLOAT | SLC_VECTOR | SLC_STRING | SLC_MATRIX | SLC_NONE;
-const int SLC_SUB_TYPE_MASK = SLC_VNORMAL | SLC_VVECTOR | SLC_VPOINT | SLC_VCOLOR;
+constexpr int SLC_TYPE_MASK = SLC_FLOAT | SLC_VECTOR | SLC_STRING | SLC_MATRIX | SLC_NONE;
+constexpr int SLC_SUB_TYPE_MASK = SLC_VNORMAL | SLC_VVECTOR | SLC_VPOINT | SLC_VCOLOR;
 
 // Script types
-const int SLC_SURFACE = 1 << 0;        // The script is a RenderMan surface shader
-const int SLC_LIGHT = 1 << 1;          // The script is a RenderMan light source shader
-const int SLC_DISPLACEMENT = 1 << 2;   // The script is a RenderMan displacement shader
-const int SLC_VOLUME = 1 << 3;         // The script is a RenderMan volume shader
-const int SLC_TRANSFORMATION = 1 << 4; // The script is a RenderMan transformation shader (not supported yet)
-const int SLC_IMAGER = 1 << 5;         // The script is a RenderMan imager shader
-const int SLC_GENERIC = 1 << 6;        // The script is a generic script
+constexpr int SLC_SURFACE = 1 << 0;        // The script is a RenderMan surface shader
+constexpr int SLC_LIGHT = 1 << 1;          // The script is a RenderMan light source shader
+constexpr int SLC_DISPLACEMENT = 1 << 2;   // The script is a RenderMan displacement shader
+constexpr int SLC_VOLUME = 1 << 3;         // The script is a RenderMan volume shader
+constexpr int SLC_TRANSFORMATION = 1 << 4; // The script is a RenderMan transformation shader (not supported yet)
+constexpr int SLC_IMAGER = 1 << 5;         // The script is a RenderMan imager shader
+constexpr int SLC_GENERIC = 1 << 6;        // The script is a generic script
 
 // This structure is used to hold a linked list of search directories
-typedef struct TSearchpath {
+struct TSearchpath {
         char *directory;
         TSearchpath *next;
-} TSearchpath;
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSymbol
@@ -144,6 +144,8 @@ class CSymbol {
     public:
         CSymbol(const char *); // The parameter is the name of the symbol
         virtual ~CSymbol();
+        CSymbol(const CSymbol &) = delete;
+        CSymbol &operator=(const CSymbol &) = delete;
 
         char *symbolName;  // This is the name a variable refered in the original code
         int defLineNo;     // The line number where the symbol is defined
@@ -173,7 +175,9 @@ class CVariable : public CSymbol {
         // The type of the variable
         // The multiplicity of the variable
         CVariable(const char *, int, int multiplicity = 1);
-        ~CVariable();
+        ~CVariable() override;
+        CVariable(const CVariable &) = delete;
+        CVariable &operator=(const CVariable &) = delete;
 
         virtual char *codeName();
 
@@ -197,9 +201,11 @@ class CParameter : public CVariable {
         // The multiplicity of the parameter
         // The order of the parameter from left
         CParameter(const char *, int, int);
-        ~CParameter();
+        ~CParameter() override;
+        CParameter(const CParameter &) = delete;
+        CParameter &operator=(const CParameter &) = delete;
 
-        virtual char *codeName();
+        char *codeName() override;
 
         CVariable *mapping; // The variable having the value of the parameter
         char *defaultValue; // The default value of the parameter. This field is used only for the script parameters for the time being
@@ -225,14 +231,16 @@ class CFunction : public CSymbol {
         // The function owning this function
         CFunction(const char *, CFunction *);
         ~CFunction();
+        CFunction(const CFunction &) = delete;
+        CFunction &operator=(const CFunction &) = delete;
 
         CParameter *addParameter(const char *, int, int); // Adds a parameter into the papameter list. Retuns NULL if a parameter with the same name exists
         CVariable *addVariable(const char *, int, int);   // Adds a variable into the variable list. Returns NULL if a variable with the same name exists
         CFunction *addFunction(const char *);             // Adds a function into the function list.
 
-        CVariable *getVariable(const char *, int probe = FALSE); // Gets the variable record associated with the name. Returns null if the variable doesn't exist
-                                                                 // Gets the function associated with the name and the parameter list. Retuns NULL if not found
-        CFunction *getFunction(const char *, CList<CExpression *> *, int returnType = SLC_NONE);
+        [[nodiscard]] CVariable *getVariable(const char *, int probe = FALSE); // Gets the variable record associated with the name. Returns null if the variable doesn't exist
+                                                                               // Gets the function associated with the name and the parameter list. Retuns NULL if not found
+        [[nodiscard]] CFunction *getFunction(const char *, CList<CExpression *> *, int returnType = SLC_NONE);
 
         CExpression *initExpression;
         CExpression *code;
@@ -242,7 +250,7 @@ class CFunction : public CSymbol {
         CList<CParameter *> *parameters; // List of parameters
         CList<CVariable *> *variables;   // List of variables
         CList<CFunction *> *functions;   // List of functions
-        char *name;                      // Name of the function
+        char *funcName;                  // Name of the function
         CFunction *parent;               // Parent function (in static scope)
 };
 
@@ -269,11 +277,13 @@ class CFunctionPrototype : public CSymbol {
         // The script that this function can be called from
         CFunctionPrototype(const char *, const char *, int = SLC_GENERIC | SLC_SURFACE | SLC_LIGHT | SLC_DISPLACEMENT | SLC_TRANSFORMATION | SLC_IMAGER | SLC_VOLUME, int nonuniform = FALSE);
         ~CFunctionPrototype();
+        CFunctionPrototype(const CFunctionPrototype &) = delete;
+        CFunctionPrototype &operator=(const CFunctionPrototype &) = delete;
 
         // Returns TRUE if the given function matches perfectly to this
-        int perfectMatch(const char *, CList<CExpression *> *, int dt = SLC_NONE);
+        [[nodiscard]] int perfectMatch(const char *, CList<CExpression *> *, int dt = SLC_NONE);
         // Returns TRUE if these two functions are compatible
-        int match(const char *, CList<CExpression *> *, int dt = SLC_NONE);
+        [[nodiscard]] int match(const char *, CList<CExpression *> *, int dt = SLC_NONE);
         // Returns the function call code
 
         char *prototype;       // The prototype of the function (e.g.: "f=f" for sin)
@@ -293,27 +303,29 @@ class CScriptContext {
     public:
         CScriptContext(int s = 0);
         ~CScriptContext();
+        CScriptContext(const CScriptContext &) = delete;
+        CScriptContext &operator=(const CScriptContext &) = delete;
 
         // Add global junk
         CFunctionPrototype *addBuiltInFunction(const char *, const char *, int, int nonuniform = FALSE);
         void addGlobalVariable(const char *, int, int);
-        int compile(FILE *, char *outName = NULL); // All mighty compile function
+        int compile(FILE *, char *outName = nullptr); // All mighty compile function
 
         // The following two functions are
         // used to search the context for a function
         // or a variable
-        CFunction *getFunction(const char *, CList<CExpression *> *);
-        CVariable *getVariable(const char *);
+        [[nodiscard]] CFunction *getFunction(const char *, CList<CExpression *> *);
+        [[nodiscard]] CVariable *getVariable(const char *);
 
         void define(CSymbol *);      // Define a symbol here
         void printDefine(CSymbol *); // Print the definition of a symbol
 
-        CVariable *lockRegister(int, int numItems = 1); // Allocate a temporary register
+        [[nodiscard]] CVariable *lockRegister(int, int numItems = 1); // Allocate a temporary register
         void releaseRegister(CVariable *);              // Deallocate a temporary register
 
-        CParameter *newParameter(const char *, int, int); // Create a new parameter to the topmost function
-        CVariable *newVariable(const char *, int, int);   // Create a new variable to the topmost function
-        CFunction *newFunction(const char *);             // Create a function to the topmost function
+        [[nodiscard]] CParameter *newParameter(const char *, int, int); // Create a new parameter to the topmost function
+        [[nodiscard]] CVariable *newVariable(const char *, int, int);   // Create a new variable to the topmost function
+        [[nodiscard]] CFunction *newFunction(const char *);             // Create a function to the topmost function
         void newLabel(char *);                            // Create a unique label
         void addVariable(CVariable *);                    // Create a unique name for the variable
 
@@ -327,7 +339,7 @@ class CScriptContext {
 
         void error(const char *, ...);   // Compiler error
         void warning(const char *, ...); // Compiler warning
-        void fatal(const char *, ...);   // Fatal compiler error
+        [[noreturn]] void fatal(const char *, ...); // Fatal compiler error
         void fatalbailout();             // Fatal compiler error, standard error message
 
         void desire(int); // Desire a particular type
