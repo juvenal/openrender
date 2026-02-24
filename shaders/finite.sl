@@ -7,9 +7,9 @@
 light 
 finite (float intensity = 1;
         color lightcolor = 1;
-        vector location = (0, 0, 0)) {
+        point location = (0, 0, 0)) {
 
-    L = Ps - location;
+    L = vector (Ps - location);
     Cl = intensity * lightcolor;
 }
 
