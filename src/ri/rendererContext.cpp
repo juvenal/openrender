@@ -4361,7 +4361,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                     CAttributes *attributes = getAttributes(FALSE);
                                                                     checkGeometryOrDiscard();
                                                                     char location[OS_MAX_PATH_LENGTH];
-                                                                    if (CRenderer::locateFileEx(location, type, ".rib", CRenderer::geometryPath)) {
+                                                                    if (CRenderer::locateFileEx(location, type, "rib", CRenderer::geometryPath)) {
                                                                         loadAndExecuteNamedGeometry(location, type);
                                                                     } else {
                                                                         error(CODE_MISSINGDATA, "Geometry '%s' not found in geometry path\n", type);

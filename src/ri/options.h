@@ -168,6 +168,7 @@ class COptions {
         TSearchpath *shaderPath;     // Shader search path
         TSearchpath *displayPath;    // Display search path
         TSearchpath *modulePath;     // Search path for openRender modules
+        TSearchpath *geometryPath;   // Geometry search path
 
         int pixelXsamples, pixelYsamples; // Number of samples to take in X and Y
 
