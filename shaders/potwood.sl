@@ -1,17 +1,17 @@
 /**
- * wood(): calculate a solid wood texture using noise()
+ * potwood(): calculate a solid wood texture using noise()
  *
  * From the "The RenderMan Companion"
  */
 
 surface
-wood (float ringscale = 10;
-      color lightwood = color(0.3, 0.12, 0.03),
-            darkwood = color(0.05, 0.01, 0.005);
-      float Ka = 0.2,
-            Kd = 0.4,
-            Ks = 0.6,
-            roughness = 0.1) {
+potwood (float ringscale = 10;
+         color lightwood = color(0.3, 0.12, 0.03),
+               darkwood = color(0.05, 0.01, 0.005);
+         float Ka = 0.2,
+               Kd = 0.4,
+               Ks = 0.6,
+               roughness = 0.1) {
 
     point NN, V;
     point PP;

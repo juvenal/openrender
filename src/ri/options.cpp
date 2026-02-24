@@ -313,6 +313,7 @@ COptions::COptions() {
     shaderPath = optionsGetSearchPath(".:%SHADERS%:%PIXIEUSERDIR%/shaders:%PIXIELOCALDIR%/shaders:%PIXIEAPPRESOURCES%/shaders:%PIXIEHOME%/shaders", NULL);
     displayPath = optionsGetSearchPath("%DISPLAYS%:%PIXIEUSERDIR%/displays:%PIXIELOCALDIR%/displays:%PIXIEAPPPLUGINS%:%PIXIEHOME%/displays", NULL);
     modulePath = optionsGetSearchPath("%MODULES%:%PIXIEUSERDIR%/modules:%PIXIELOCALDIR%/modules:%PIXIEAPPPLUGINS%:%PIXIEHOME%/modules", NULL);
+    geometryPath = optionsGetSearchPath(".:%GEOMETRIES%:" OPENRENDER_GEOMETRIES, NULL);
 
 #else
     archivePath = optionsGetSearchPath(".:%RIBS%:" OPENRENDER_RIBS, NULL);
@@ -437,6 +438,7 @@ COptions::COptions(const COptions *o) {
     shaderPath = optionsCloneSearchPath(o->shaderPath);
     displayPath = optionsCloneSearchPath(o->displayPath);
     modulePath = optionsCloneSearchPath(o->modulePath);
+    geometryPath = optionsCloneSearchPath(o->geometryPath);
 
     if (o->displays != NULL) {
         CDisplay *cDisplay, *nDisplay;
@@ -530,6 +532,7 @@ COptions::~COptions() {
     optionsDeleteSearchPath(shaderPath);
     optionsDeleteSearchPath(displayPath);
     optionsDeleteSearchPath(modulePath);
+    optionsDeleteSearchPath(geometryPath);
 
     if (causticIn != NULL)
         free(causticIn);
