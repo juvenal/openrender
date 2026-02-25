@@ -93,7 +93,8 @@ void exitFunction() {
 #endif
             delete[] argv;
         }
-    } else if (numLocalServers > 0) {
+    }
+    else if (numLocalServers > 0) {
         // we have open local sockets, close them
         int i = closesocket(listenSock);
         for (int j = 0; j < numLocalServers; j++) {
@@ -109,10 +110,12 @@ void exitFunction() {
 // Return Value			:	-
 // Comments				:
 void printVersion() {
-    printf("openRender RenderMan Renderer (orender) v%s\n", openrender_version_string());
-    printf("\nCopyright 2026 Juvenal A. Silva Jr. https://openrender.juvenal.me\n");
-    printf("openRender is free software. There is NO warranty; not even for\n");
-    printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+    printf("orender - A RenderMan CLI Renderer\n");
+    printf("openRender - Open Rendering Tools %s (Adheres to the RenderMan Standard)\n", openrender_version_string());
+    printf("   (c) Copyright 2025-2026 by Juvenal A. Silva Jr.  All rights reserved.\n\n");
+    printf("       The RenderMan (R) Interface Procedures and RIB Protocol are:\n");
+    printf("            Copyright 1988, 1989, Pixar. All rights reserved.\n");
+    printf("            RenderMan (R) is a registered trademark of Pixar\n");
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -121,28 +124,28 @@ void printVersion() {
 // Return Value			:	-
 // Comments				:
 void printUsage() {
-    printf("Usage: orender <options> file.rib [file.rib ...]\n");
-    printf("Listing several RIB files concatenates them before rendering.\n");
-    printf("\nOptions:\n");
-    printf("  -f <range>      Render only a subsequence of frames\n");
-    printf("                    -f 43     = Render only the 43rd frame\n");
-    printf("                    -f 5:15   = Render frames 5 thru 15\n");
-    printf("                    -f 5:2:15 = Render every second frame from 5 thru 15\n");
-    printf("  -q              Quiet mode; errors and warnings are ignored\n");
-    printf("  -d              Ignore the display drivers and use framebuffer\n");
-    printf("  -t              Print renderer statistics after every frame\n");
-    printf("  -p              Display rendering progress\n");
-    printf("  -P:<n>          Render using <n> processes; default is using one process\n");
-    printf("  -t:<n>          Render using <n> threads; default is one thread per CPU core\n");
-    printf("  -r [port]       Start a network server. If given, use port <port>\n");
-    printf("  -k <serverlist> Stop network servers in <serverlist>\n");
-    printf("  -s <serverlist> Render on network servers in <serverlist>\n");
-    printf("                  <serverlist> specified as <IP[:port],IP[:port],...>\n");
-    printf("  -v              Display version information\n");
-    printf("  -h              Display this help\n");
-    printf("\nEnvironment variables:\n");
-    printf("  OPENRENDERHOME       openRender installation path\n");
-    printf("  SHADERS         Shader search path\n");
+    printf("Usage: orender [options] file.rib [file.rib ...]\n");
+    printf("Listing several RIB files concatenates them before rendering.\n\n");
+    printf("  Options:\n");
+    printf("    -f <range>      Render only a subsequence of frames:\n");
+    printf("                      -f 43     = Render only the 43rd frame\n");
+    printf("                      -f 5:15   = Render frames 5 thru 15\n");
+    printf("                      -f 5:2:15 = Render every second frame from 5 thru 15\n");
+    printf("    -q              Quiet mode; errors and warnings are ignored\n");
+    printf("    -d              Ignore the display drivers and use framebuffer\n");
+    printf("    -t              Print renderer statistics after every frame\n");
+    printf("    -p              Display rendering progress\n");
+    printf("    -P:<n>          Render using <n> processes; default is using one process\n");
+    printf("    -t:<n>          Render using <n> threads; default is one thread per CPU core\n");
+    printf("    -r [port]       Start a network server. If given, use port <port>\n");
+    printf("    -k <serverlist> Stop network servers in <serverlist>\n");
+    printf("    -s <serverlist> Render on network servers in <serverlist>\n");
+    printf("                    <serverlist> specified as <IP[:port],IP[:port],...>\n");
+    printf("    -v              Display version information\n");
+    printf("    -h              Display this help\n\n");
+    printf("Environment variables:\n");
+    printf("  OPENRENDERHOME   openRender installation path\n");
+    printf("  SHADERS          Shader search path\n");
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -380,7 +383,8 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
                 if (silent == FALSE)
                     fprintf(stderr, "Failed to launch subprocess\n");
                 return FALSE;
-            } else if (pid == 0) {
+            }
+            else if (pid == 0) {
 // We are now the child server
 #if USE_PURE_FORK
                 // We can actually skip the exec alltogether
@@ -440,7 +444,8 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
             else
                 snprintf(tmp, sizeof(managerString) - (tmp - managerString), "%d", peer);
             tmp += strlen(tmp);
-        } else {
+        }
+        else {
             if (silent == FALSE)
                 fprintf(stderr, "Socket error\n");
             j = closesocket(sock);
@@ -548,7 +553,8 @@ void rndrd(int port) {
             if (strncmp(buffer[1].string, " quit", 5) == 0) {
                 noRestart = TRUE;
                 running = FALSE;
-            } else {
+            }
+            else {
                 // Store SOCKET in pointer-sized storage (safe for both 32-bit and 64-bit)
                 static_assert(sizeof(SOCKET) <= sizeof(void *),
                               "SOCKET must fit in pointer-sized storage");
@@ -609,26 +615,33 @@ int main(int argc, char *argv[]) {
 
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0) {
+            printVersion();
+            printf("\n");
             printUsage();
             if (source)
                 free(source);
             exit(0);
-        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "-version") == 0 || strcmp(argv[i], "--version") == 0) {
+        }
+        else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "-version") == 0 || strcmp(argv[i], "--version") == 0) {
             printVersion();
             if (source)
                 free(source);
             exit(0);
-        } else if (strcmp(argv[i], "-r") == 0) {
+        }
+        else if (strcmp(argv[i], "-r") == 0) {
             i++;
 
             if ((i < argc) && (sscanf(argv[i], "%d", &port) == 1)) {
-            } else {
+            }
+            else {
                 port = DEFAULT_DAEMON_PORT;
                 i--;
             }
-        } else if (strcmp(argv[i], "-q") == 0) {
+        }
+        else if (strcmp(argv[i], "-q") == 0) {
             silent = TRUE;
-        } else if (strcmp(argv[i], "-c") == 0) {
+        }
+        else if (strcmp(argv[i], "-c") == 0) {
             client = TRUE;
 
             i++;
@@ -643,7 +656,8 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Unrecognized client port\n");
                 exit(1);
             }
-        } else if (strcmp(argv[i], "-sizereport") == 0) {
+        }
+        else if (strcmp(argv[i], "-sizereport") == 0) {
             printf("Size Report:\n");
             printf("        sizeof(char): %zu\n", sizeof(char));
             printf("       sizeof(short): %zu\n", sizeof(short));
@@ -655,7 +669,8 @@ int main(int argc, char *argv[]) {
             printf("         sizeof(T64): %zu\n", sizeof(T64));
             printf("      sizeof(TMutex): %zu\n", sizeof(TMutex));
             exit(0);
-        } else if (strcmp(argv[i], "-s") == 0) {
+        }
+        else if (strcmp(argv[i], "-s") == 0) {
             server = TRUE;
 
             i++;
@@ -665,7 +680,8 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
             snprintf(managerString, sizeof(managerString), "servers=%s", argv[i]);
-        } else if (strcmp(argv[i], "-k") == 0) {
+        }
+        else if (strcmp(argv[i], "-k") == 0) {
             server = TRUE;
             killservers = TRUE;
 
@@ -676,7 +692,8 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
             snprintf(managerString, sizeof(managerString), "killservers=%s", argv[i]);
-        } else if (strcmp(argv[i], "-f") == 0) {
+        }
+        else if (strcmp(argv[i], "-f") == 0) {
             i++;
             if (i >= argc) {
                 if (silent == FALSE)
@@ -685,7 +702,8 @@ int main(int argc, char *argv[]) {
             }
 
             frameRange = argv[i];
-        } else if (strncmp(argv[i], "-P:", 3) == 0) {
+        }
+        else if (strncmp(argv[i], "-P:", 3) == 0) {
             localChildren = atoi(argv[i] + 3);
             localserver = TRUE;
 
@@ -695,23 +713,30 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Cannot run more than %d local processes\n", MAX_LOCALSERVERS);
                 localChildren = MAX_LOCALSERVERS;
             }
-        } else if (strcmp(argv[i], "-d") == 0) {
+        }
+        else if (strcmp(argv[i], "-d") == 0) {
             frameBufferOnly = TRUE;
-        } else if (strncmp(argv[i], "-t:", 3) == 0) {
+        }
+        else if (strncmp(argv[i], "-t:", 3) == 0) {
             numThreads = atoi(argv[i] + 3);
-        } else if (strcmp(argv[i], "-t") == 0) {
+        }
+        else if (strcmp(argv[i], "-t") == 0) {
             displayStats = TRUE;
-        } else if (strcmp(argv[i], "-p") == 0) {
+        }
+        else if (strcmp(argv[i], "-p") == 0) {
             displayProgress = TRUE;
-        } else if (argv[i][0] == '-' && argv[i][1] != 0) {
+        }
+        else if (argv[i][0] == '-' && argv[i][1] != 0) {
             // Starts with '-' but not matched any option
             if (silent == FALSE)
                 fprintf(stderr, "Unknown option '%s'\n", argv[i]);
-        } else {
+        }
+        else {
             // Create colon-separated list of source RIBs
             if (!source) {
                 source = strdup(argv[i]);
-            } else {
+            }
+            else {
                 char *tmp = (char *)malloc(strlen(source) + 1 + strlen(argv[i]) + 1);
                 strcpy(tmp, source);
                 strcat(tmp, ":");
@@ -803,7 +828,8 @@ int main(int argc, char *argv[]) {
     // Create the command line for the ri
     if (client | server | localserver) {
         snprintf(managerString2, sizeof(managerString2), "#rib:%s net:%s", source, managerString);
-    } else {
+    }
+    else {
         snprintf(managerString2, sizeof(managerString2), "#");
     }
 
