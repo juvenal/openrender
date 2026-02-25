@@ -1,0 +1,18 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Display "killeroo.tif" "file" "rgba"
+Format 1280 720 1
+PixelSamples 4 4
+Projection "perspective" "fov" [30]
+Clipping 1 2000
+WorldBegin
+  LightSource "distantlight" 1 "intensity" [1.5] "direction" [0.5 -1 0.5]
+  LightSource "ambientlight" 2 "intensity" [0.2]
+  AttributeBegin
+    Color [0.7 0.8 0.9]
+    Surface "matte"
+    # Full-body framing
+    Translate 0 47.73 49
+    Geometry "killeroo"
+  AttributeEnd
+WorldEnd

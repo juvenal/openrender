@@ -11,8 +11,8 @@ Rotate 25 -1 0 0
 
 WorldBegin
 
-  LightSource "ambientlight" 0 "intensity" .7
-  LightSource "distantlight" 1 "intensity" .9 "from" [4 4 -3] "to" [0 0 0]
+  LightSource "ambientlight" 0 "intensity" [0.7]
+  LightSource "distantlight" 1 "intensity" [0.9] "from" [4 4 -3] "to" [0 0 0]
 
   AttributeBegin
     Attribute "identifier" "name" "bowl"
