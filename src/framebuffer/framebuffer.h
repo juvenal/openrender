@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: framebuffer.h
  *
@@ -34,19 +34,19 @@
  *
  */
 class CDisplay {
-  public:
-    CDisplay(const char *, const char *, int, int, int);
-    virtual ~CDisplay();
+    public:
+        CDisplay(const char *, const char *, int, int, int);
+        virtual ~CDisplay();
 
-    int failure;                   // Set to TRUE in the case of an init error
-    int width, height, numSamples; // The display properties
-    char *name;                    // Name of the display
-    char *samples;                 // Samples for the display
+        int failure;                   // Set to TRUE in the case of an init error
+        int width, height, numSamples; // The display properties
+        char *name;                    // Name of the display
+        char *samples;                 // Samples for the display
 
-    virtual int data(int, int, int, int, float *) = 0; // Store data
-    virtual void finish() = 0;                         // Finish displaying the data
+        virtual int data(int, int, int, int, float *) = 0; // Store data
+        virtual void finish() = 0;                         // Finish displaying the data
 
-    void clampData(int, int, float *); // Clamp the data so that everything is between 0 and 1
+        void clampData(int, int, float *); // Clamp the data so that everything is between 0 and 1
 };
 
 #endif

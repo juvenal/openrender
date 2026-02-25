@@ -4,13 +4,23 @@ IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 
+# Indentation for Switch Statements
+IndentCaseLabels: true               # Indents the 'case' relative to 'switch'
+IndentCaseBlocks: false              # Keep as false to maintain your specific brace layout
+
 # 1. Curly braces on the same line
-BreakBeforeBraces: Attach            # means “{” stays on same line for functions, classes, etc
+BreakBeforeBraces: Custom            # means “{” stays on same line for functions, classes, etc
 BraceWrapping:
   AfterControlStatement: false       # means control-statements keep “{” on same line
+  BeforeElse: true
+  AfterCaseLabel: true               # Forces the '{' to a new line after 'case KeyPress:'
   AfterClass: false                  # class/struct “{” stays on same line
   AfterNamespace: false              # namespace “{” on same line
   AfterFunction: false               # function definition “{” on same line
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: true                  # Optional: puts "catch" on a new line too
   # (you can tweak other BraceWrapping sub-options if needed)
 
 # 2. Namespaces indentation & visibility indent

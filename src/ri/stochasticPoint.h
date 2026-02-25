@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: stochasticPoint.h
  *
@@ -16,7 +16,6 @@
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
  */
-
 
 // This is the portion of Pixie that draws a point into the stochastic
 

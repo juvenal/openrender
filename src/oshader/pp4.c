@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp4.c
  *
@@ -83,8 +83,7 @@
 /*									*/
 /************************************************************************/
 
-char *addstr(char *old, char *limit, const char *msg, const char *new_str)
-{
+char *addstr(char *old, char *limit, const char *msg, const char *new_str) {
     static const char *origmsg = NULL;
 
     char *o;
@@ -116,8 +115,7 @@ char *addstr(char *old, char *limit, const char *msg, const char *new_str)
 /*									*/
 /************************************************************************/
 
-int getnstoken(int f)
-{
+int getnstoken(int f) {
     int t;
 
     while (istype(t = gettoken(f), C_W) && (t != '\n'))
@@ -139,8 +137,7 @@ int getnstoken(int f)
 #pragma optimize("l", off) /* Disable loop optimizations */
 #endif                     /* MSC_OPT */
 
-int gettoken(int f)
-{
+int gettoken(int f) {
     char ch;
     int comment_level;
     int fail;
@@ -459,8 +456,7 @@ int gettoken(int f)
 /*									*/
 /************************************************************************/
 
-int istype(int c, int v)
-{
+int istype(int c, int v) {
     return ((typetab + 1)[c] & v);
 }
 #endif /* !PP */
@@ -474,8 +470,7 @@ int istype(int c, int v)
 /*									*/
 /************************************************************************/
 
-void memmov(const char *src, char *dest, unsigned len)
-{
+void memmov(const char *src, char *dest, unsigned len) {
     while (len--)
         *dest++ = *src++;
 }
@@ -493,8 +488,7 @@ void memmov(const char *src, char *dest, unsigned len)
 /*									*/
 /************************************************************************/
 
-void pbcstr(char *s)
-{
+void pbcstr(char *s) {
     char *cp;
     unsigned int length;
 
@@ -523,8 +517,7 @@ void pbcstr(char *s)
 /*									*/
 /************************************************************************/
 
-void pbstr(const char *in)
-{
+void pbstr(const char *in) {
     int i;
 
     for (i = (int)strlen(in) - 1; i >= 0; i--)
@@ -539,8 +532,7 @@ void pbstr(const char *in)
 /*									*/
 /************************************************************************/
 
-void pushback(int c)
-{
+void pushback(int c) {
     if (Pbbufp++ >= &Pbbuf[PUSHBACKSIZE - 1])
         fatal("Pushback buffer overflow", "");
 
@@ -558,8 +550,7 @@ void pushback(int c)
 /*									*/
 /************************************************************************/
 
-void puttoken(const char s[])
-{
+void puttoken(const char s[]) {
     int ch;
     const char *str;
     static int lastoutc = '\n'; /* Last char written */
@@ -611,8 +602,7 @@ void puttoken(const char s[])
 /*									*/
 /************************************************************************/
 
-int type(int c)
-{
+int type(int c) {
     if (istype(c, C_L))
         return (LETTER);
     else if (istype(c, C_D))

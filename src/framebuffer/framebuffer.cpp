@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: framebuffer.cpp
  *
@@ -115,7 +115,9 @@ void CDisplay::clampData(int w, int h, float *d) {
  *
  */
 void *displayStart(const char *name,
-                   int width, int height, int numSamples,
+                   int width,
+                   int height,
+                   int numSamples,
                    const char *samples,
                    TDisplayParameterFunction findParameter) {
     (void)findParameter; // Suppress unused parameter warning

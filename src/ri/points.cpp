@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: points.cpp
  *
@@ -69,8 +69,8 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
 
                 for (j = 0; j < np; j++) {
                     if (vertex[j] > maxSize) {
-                    maxSize = vertex[j];
-                }
+                        maxSize = vertex[j];
+                    }
                 }
             }
 
@@ -86,8 +86,8 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
                 vertex = pl->data1 + pl->parameters[i].index;
 
                 if (vertex[0] > maxSize) {
-                maxSize = vertex[0];
-            }
+                    maxSize = vertex[0];
+                }
             }
 
             break;

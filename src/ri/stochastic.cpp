@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: stochastic.cpp
  *
@@ -240,10 +240,10 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
 // Return Value			:	-
 // Comments				:
 void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
-    // Instantiate the dispatch switch
-    #define DEFINE_STOCHASTIC_SWITCH
-    #include "stochasticPrimitives.h"
-    #undef DEFINE_STOCHASTIC_SWITCH
+// Instantiate the dispatch switch
+#define DEFINE_STOCHASTIC_SWITCH
+#include "stochasticPrimitives.h"
+#undef DEFINE_STOCHASTIC_SWITCH
 }
 
 // The following macros help various fragment operations
@@ -252,11 +252,11 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
 #define depthFilterTouchNodeZMin() touchNode(pixel->node, z);
 
 #define depthFilterIfZMid() pixel->zold = pixel->z;
-#define depthFilterElseZMid()              \
-    else {                                 \
-        if (z < pixel->zold) {             \
-            pixel->zold = z;               \
-        }                                  \
+#define depthFilterElseZMid()  \
+    else {                     \
+        if (z < pixel->zold) { \
+            pixel->zold = z;   \
+        }                      \
     }
 #define depthFilterTouchNodeZMid() touchNode(pixel->node, pixel->zold);
 

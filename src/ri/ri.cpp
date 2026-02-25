@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: ri.cpp
  *
@@ -2097,7 +2097,6 @@ RiProcDelayedReadArchive(void *data, RtFloat detail) {
     CDelayedData *delayed = (CDelayedData *)data;
 
     renderMan->RiReadArchiveV(delayed->generator, NULL, 0, NULL, NULL);
-
 }
 
 EXTERN(RtVoid)

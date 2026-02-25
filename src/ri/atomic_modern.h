@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: atomic_modern.h
  *
@@ -72,7 +72,7 @@ using atomic_int32 = std::atomic<std::int32_t>;
 //   std::atomic<int32_t> refCount{0};
 //   int32_t newCount = atomicIncrement(refCount);  // Returns 1
 ////////////////////////////////////////////////////////////////////////
-inline std::int32_t atomicIncrement(atomic_int32& counter) noexcept {
+inline std::int32_t atomicIncrement(atomic_int32 &counter) noexcept {
     // fetch_add returns the OLD value, so we add 1 to get the NEW value
     // This matches the behavior of the old atomic.h implementation
     return counter.fetch_add(1, std::memory_order_acq_rel) + 1;
@@ -95,7 +95,7 @@ inline std::int32_t atomicIncrement(atomic_int32& counter) noexcept {
 //       // Safe to delete - no other threads have a reference
 //   }
 ////////////////////////////////////////////////////////////////////////
-inline std::int32_t atomicDecrement(atomic_int32& counter) noexcept {
+inline std::int32_t atomicDecrement(atomic_int32 &counter) noexcept {
     // fetch_sub returns the OLD value, so we subtract 1 to get the NEW value
     // This matches the behavior of the old atomic.h implementation
     return counter.fetch_sub(1, std::memory_order_acq_rel) - 1;
@@ -118,19 +118,19 @@ inline std::int32_t atomicDecrement(atomic_int32& counter) noexcept {
 
 // DEPRECATED: Legacy pointer-based increment
 // TODO: Remove after migrating all code to use atomic_int32&
-inline std::int32_t atomicIncrement(volatile std::int32_t* ptr) noexcept {
+inline std::int32_t atomicIncrement(volatile std::int32_t *ptr) noexcept {
     // SAFETY WARNING: This assumes ptr actually points to std::atomic<int32_t>
     // This is only safe because std::atomic<int32_t> has the same layout as int32_t
     // on all supported platforms (guaranteed by standard for trivial types)
-    auto* atomic_ptr = reinterpret_cast<atomic_int32*>(const_cast<std::int32_t*>(ptr));
+    auto *atomic_ptr = reinterpret_cast<atomic_int32 *>(const_cast<std::int32_t *>(ptr));
     return atomicIncrement(*atomic_ptr);
 }
 
 // DEPRECATED: Legacy pointer-based decrement
 // TODO: Remove after migrating all code to use atomic_int32&
-inline std::int32_t atomicDecrement(volatile std::int32_t* ptr) noexcept {
+inline std::int32_t atomicDecrement(volatile std::int32_t *ptr) noexcept {
     // SAFETY WARNING: Same as above - only safe if ptr points to std::atomic
-    auto* atomic_ptr = reinterpret_cast<atomic_int32*>(const_cast<std::int32_t*>(ptr));
+    auto *atomic_ptr = reinterpret_cast<atomic_int32 *>(const_cast<std::int32_t *>(ptr));
     return atomicDecrement(*atomic_ptr);
 }
 

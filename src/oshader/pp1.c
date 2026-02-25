@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp1.c
  *
@@ -301,7 +301,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
                 case 's':
                     Stats = Verbose = TRUE; /* Implies Verbose */
                     break;
-#endif              /* DEBUG */
+#endif /* DEBUG */
                     /* -[t Astr|Rstr] Add or delete chars from LETTER class */
                 case 'T':
                 case 't':
@@ -545,8 +545,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
 /*									*/
 /************************************************************************/
 
-char *getnext(char *cp, int *argc, char ***argv, int swvalid)
-{
+char *getnext(char *cp, int *argc, char ***argv, int swvalid) {
     if (*++cp == '\0') {
         if (*argc != 0) {
             /* Parameters remain -- use next one */
@@ -725,8 +724,7 @@ void init(void) {
 /*									*/
 /************************************************************************/
 
-void usage(int v)
-{
+void usage(int v) {
     printf(
 #if DEBUG
         "Usage: pp <input> -[cdeilostuvz?]\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",

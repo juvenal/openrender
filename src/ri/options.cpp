@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: options.cpp
  *
@@ -715,11 +715,13 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                                         lastPath->next = partPathList;
                                     }
                                     // Find the new last path
-                                    while (lastPath->next != NULL) lastPath = lastPath->next;
+                                    while (lastPath->next != NULL)
+                                        lastPath = lastPath->next;
                                 }
                             }
 
-                            if (*valueEnd == '\0') break;
+                            if (*valueEnd == '\0')
+                                break;
                             valueStart = valueEnd + 1;
                         }
                     } else {

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: hcshader.cpp
  *
@@ -118,7 +118,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **locals) {
 
         // Call the hook handle
         context->illuminateEnd();
-    } else {
+    }
+    else {
         CShadedLight **lights = &currentShadingState->lights;
         const int *tags = currentShadingState->tags;
         float *Ps = currentShadingState->varying[VARIABLE_PS];
@@ -172,7 +173,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **locals) {
                     const float da = sina / (cosa + C_EPSILON);
                     if (da < DEFAULT_RAY_DA) {
                         ray.da = da;
-                    } else {
+                    }
+                    else {
                         ray.da = DEFAULT_RAY_DA;
                     }
                     ray.db = DEFAULT_RAY_DB;
@@ -212,19 +214,23 @@ void CSphereLight::setParameters(int n, const char **params, const void **vals) 
             const float *val = (const float *)vals[i];
 
             mulmp(from, xform->from, val);
-        } else if (strcmp(params[i], "radius") == 0) {
+        }
+        else if (strcmp(params[i], "radius") == 0) {
             const float *val = (const float *)vals[i];
 
             radius = val[0] * powf(determinantm(xform->from), 1.0f / 3.0f);
-        } else if (strcmp(params[i], "lightcolor") == 0) {
+        }
+        else if (strcmp(params[i], "lightcolor") == 0) {
             const float *val = (const float *)vals[i];
 
             movvv(lightColor, val);
-        } else if (strcmp(params[i], "intensity") == 0) {
+        }
+        else if (strcmp(params[i], "intensity") == 0) {
             const float *val = (const float *)vals[i];
 
             intensity = val[0];
-        } else if (strcmp(params[i], "numSamples") == 0) {
+        }
+        else if (strcmp(params[i], "numSamples") == 0) {
             const float *val = (const float *)vals[i];
 
             numSamples = (int)val[0];
@@ -244,22 +250,26 @@ int CSphereLight::getParameter(const char *param, void *val, CVariable **, int *
 
         movvv(cval, from);
         return TRUE;
-    } else if (strcmp(param, "radius") == 0) {
+    }
+    else if (strcmp(param, "radius") == 0) {
         float *cval = (float *)val;
 
         cval[0] = radius;
         return TRUE;
-    } else if (strcmp(param, "lightcolor") == 0) {
+    }
+    else if (strcmp(param, "lightcolor") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, lightColor);
         return TRUE;
-    } else if (strcmp(param, "intensity") == 0) {
+    }
+    else if (strcmp(param, "intensity") == 0) {
         float *cval = (float *)val;
 
         cval[0] = intensity;
         return TRUE;
-    } else if (strcmp(param, "numSamples") == 0) {
+    }
+    else if (strcmp(param, "numSamples") == 0) {
         float *cval = (float *)val;
 
         cval[0] = (float)numSamples;
@@ -414,7 +424,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **locals) {
 
         // Call the hook handle
         context->illuminateEnd();
-    } else {
+    }
+    else {
         CShadedLight **lights = &currentShadingState->lights;
         CShadedLight **freeLights = &currentShadingState->freeLights;
         const int *tags = currentShadingState->tags;
@@ -475,10 +486,11 @@ void CQuadLight::illuminate(CShadingContext *context, float **locals) {
                         const float cosa = sqrtf(1 - sina * sina);
                         const float da = sina / (cosa + C_EPSILON);
                         if (da < DEFAULT_RAY_DA) {
-                        ray.da = da;
-                    } else {
-                        ray.da = DEFAULT_RAY_DA;
-                    }
+                            ray.da = da;
+                        }
+                        else {
+                            ray.da = DEFAULT_RAY_DA;
+                        }
                         ray.db = DEFAULT_RAY_DB;
 
                         context->trace(&ray);
@@ -495,7 +507,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **locals) {
                     visibility *= -dotvv(N, L) * intensity;
                     mulvf(Cl, lightColor, visibility);
                     numLitPoints++;
-                } else {
+                }
+                else {
                     (*lightTags)++;
                 }
                 lightTags++;
@@ -508,7 +521,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **locals) {
             // Only save the light if it has active points
             cLight->next = *lights;
             *lights = cLight;
-        } else {
+        }
+        else {
             // Otherwise put it on the free list
             cLight->next = *freeLights;
             *freeLights = cLight;
@@ -530,31 +544,38 @@ void CQuadLight::setParameters(int n, const char **params, const void **vals) {
             const float *val = (const float *)vals[i];
 
             mulmp(corners[0], xform->from, val);
-        } else if (strcmp(params[i], "P1") == 0) {
+        }
+        else if (strcmp(params[i], "P1") == 0) {
             const float *val = (const float *)vals[i];
 
             mulmp(corners[1], xform->from, val);
-        } else if (strcmp(params[i], "P2") == 0) {
+        }
+        else if (strcmp(params[i], "P2") == 0) {
             const float *val = (const float *)vals[i];
 
             mulmp(corners[2], xform->from, val);
-        } else if (strcmp(params[i], "P3") == 0) {
+        }
+        else if (strcmp(params[i], "P3") == 0) {
             const float *val = (const float *)vals[i];
 
             mulmp(corners[3], xform->from, val);
-        } else if (strcmp(params[i], "direction") == 0) {
+        }
+        else if (strcmp(params[i], "direction") == 0) {
             const float *val = (const float *)vals[i];
 
             mulmn(N, xform->to, val);
-        } else if (strcmp(params[i], "lightcolor") == 0) {
+        }
+        else if (strcmp(params[i], "lightcolor") == 0) {
             const float *val = (const float *)vals[i];
 
             movvv(lightColor, val);
-        } else if (strcmp(params[i], "intensity") == 0) {
+        }
+        else if (strcmp(params[i], "intensity") == 0) {
             const float *val = (const float *)vals[i];
 
             intensity = val[0];
-        } else if (strcmp(params[i], "numSamples") == 0) {
+        }
+        else if (strcmp(params[i], "numSamples") == 0) {
             const float *val = (const float *)vals[i];
 
             numSamples = (int)val[0];
@@ -574,37 +595,44 @@ int CQuadLight::getParameter(const char *param, void *val, CVariable **, int *) 
 
         movvv(cval, corners[0]);
         return TRUE;
-    } else if (strcmp(param, "P1") == 0) {
+    }
+    else if (strcmp(param, "P1") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, corners[1]);
         return TRUE;
-    } else if (strcmp(param, "P2") == 0) {
+    }
+    else if (strcmp(param, "P2") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, corners[1]);
         return TRUE;
-    } else if (strcmp(param, "P3") == 0) {
+    }
+    else if (strcmp(param, "P3") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, corners[1]);
         return TRUE;
-    } else if (strcmp(param, "direction") == 0) {
+    }
+    else if (strcmp(param, "direction") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, N);
         return TRUE;
-    } else if (strcmp(param, "lightColor") == 0) {
+    }
+    else if (strcmp(param, "lightColor") == 0) {
         float *cval = (float *)val;
 
         movvv(cval, lightColor);
         return TRUE;
-    } else if (strcmp(param, "intensity") == 0) {
+    }
+    else if (strcmp(param, "intensity") == 0) {
         float *cval = (float *)val;
 
         cval[0] = intensity;
         return TRUE;
-    } else if (strcmp(param, "numSamples") == 0) {
+    }
+    else if (strcmp(param, "numSamples") == 0) {
         float *cval = (float *)val;
 
         cval[0] = (float)numSamples;

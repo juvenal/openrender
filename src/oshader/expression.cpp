@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: expression.cpp
  *
@@ -40,7 +40,8 @@ extern CScriptContext *sdr;
 // Safe fprintf wrapper: only writes if out is non-null (replaces the former
 // `#define fprintf if (out != NULL) fprintf` which was undefined behaviour).
 static void out_printf(FILE *out, const char *fmt, ...) {
-    if (out == nullptr) return;
+    if (out == nullptr)
+        return;
     va_list args;
     va_start(args, fmt);
     vfprintf(out, fmt, args);
@@ -261,11 +262,11 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
 // Lock a value into a character
 #define lock(IIIdest, IIIexpression)                                             \
     {                                                                            \
-        char *IIIdest = nullptr;                                                    \
-        CVariable *IIIdest##Var = nullptr;                                          \
-        if (IIIexpression != nullptr) {                                             \
+        char *IIIdest = nullptr;                                                 \
+        CVariable *IIIdest##Var = nullptr;                                       \
+        if (IIIexpression != nullptr) {                                          \
             IIIdest##Var = IIIexpression->getVariable();                         \
-            if (IIIdest##Var == nullptr) {                                          \
+            if (IIIdest##Var == nullptr) {                                       \
                 getContainer(out, type, IIIdest##Var, IIIexpression);            \
                 IIIdest = IIIdest##Var->codeName();                              \
             } else {                                                             \
@@ -274,13 +275,13 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
                     IIIdest = IIIdest##Var->codeName();                          \
                 } else {                                                         \
                     IIIdest = IIIdest##Var->codeName();                          \
-                    IIIdest##Var = nullptr;                                         \
+                    IIIdest##Var = nullptr;                                      \
                 }                                                                \
             }                                                                    \
         }
 
 #define release(IIIdest)                    \
-    if (IIIdest##Var != nullptr)               \
+    if (IIIdest##Var != nullptr)            \
         sdr->releaseRegister(IIIdest##Var); \
     }
 
@@ -552,12 +553,12 @@ void CMatrixExpression::getCode(FILE *out, CVariable *dest) {
     assert(elements[15]->type & SLC_FLOAT);
 
     out_printf(out, "%s\t%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
-            opcodeMatrixFromFloat,
-            dest->codeName(),
-            op0, op1, op2, op3,
-            op4, op5, op6, op7,
-            op8, op9, op10, op11,
-            op12, op13, op14, op15);
+               opcodeMatrixFromFloat,
+               dest->codeName(),
+               op0, op1, op2, op3,
+               op4, op5, op6, op7,
+               op8, op9, op10, op11,
+               op12, op13, op14, op15);
 
     release(op15);
     release(op14);

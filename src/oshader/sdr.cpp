@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: sdr.cpp
  *
@@ -82,7 +82,7 @@ CVariable::CVariable(const char *name, int type, int multiplicity) : CSymbol(nam
     // Record
     this->type = type;
     this->numItems = multiplicity; // Note that numItems field only makes sense if the ARRAY field
-    cName = nullptr;                  // of the type is set
+    cName = nullptr;               // of the type is set
 }
 
 ///////////////////////////////////////////////////////////////////////

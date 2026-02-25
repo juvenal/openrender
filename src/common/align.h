@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: align.h
  *
@@ -21,8 +21,8 @@
 #define ALIGN_H
 
 // C++20: Use standard headers for fixed-width types
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 #include "global.h"
 
@@ -75,18 +75,18 @@
 // These are guaranteed by the C++ standard to be available
 ////////////////////////////////////////////////////////////////////////
 
-using std::uint32_t;
-using std::uint64_t;
 using std::int32_t;
 using std::int64_t;
-using std::uintptr_t;
 using std::intptr_t;
 using std::size_t;
+using std::uint32_t;
+using std::uint64_t;
+using std::uintptr_t;
 
 // Verify type sizes at compile time
 static_assert(sizeof(uint32_t) == 4, "uint32_t must be 4 bytes");
 static_assert(sizeof(uint64_t) == 8, "uint64_t must be 8 bytes");
-static_assert(sizeof(uintptr_t) == sizeof(void*), "uintptr_t must match pointer size");
+static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t must match pointer size");
 
 ////////////////////////////////////////////////////////////////////////
 // Memory Alignment Functions (C++20 constexpr)
@@ -101,7 +101,7 @@ static_assert(sizeof(uintptr_t) == sizeof(void*), "uintptr_t must match pointer 
 
 // Check if a pointer is 8-byte (64-bit) aligned
 // Note: Not constexpr because reinterpret_cast of pointers cannot be evaluated at compile time
-inline bool isAligned64(const void* ptr) noexcept {
+inline bool isAligned64(const void *ptr) noexcept {
     return (reinterpret_cast<std::uintptr_t>(ptr) & 0x7) == 0;
 }
 
@@ -116,11 +116,11 @@ constexpr std::size_t align64(std::size_t value) noexcept {
 }
 
 // Align pointer up to next 8-byte (64-bit) boundary
-template<typename T>
-constexpr T* align64Ptr(T* ptr) noexcept {
+template <typename T>
+constexpr T *align64Ptr(T *ptr) noexcept {
     auto addr = reinterpret_cast<std::uintptr_t>(ptr);
     addr = (addr + 7) & ~std::uintptr_t{7};
-    return reinterpret_cast<T*>(addr);
+    return reinterpret_cast<T *>(addr);
 }
 
 // General alignment functions for arbitrary boundaries
@@ -133,7 +133,7 @@ constexpr bool isAligned(std::size_t value, std::size_t alignment) noexcept {
 }
 
 // Note: Not constexpr because reinterpret_cast of pointers cannot be evaluated at compile time
-inline bool isAligned(const void* ptr, std::size_t alignment) noexcept {
+inline bool isAligned(const void *ptr, std::size_t alignment) noexcept {
     return (reinterpret_cast<std::uintptr_t>(ptr) & (alignment - 1)) == 0;
 }
 
@@ -154,7 +154,7 @@ constexpr bool isCacheLineAligned(std::size_t value) noexcept {
 }
 
 // Note: Not constexpr (calls non-constexpr isAligned)
-inline bool isCacheLineAligned(const void* ptr) noexcept {
+inline bool isCacheLineAligned(const void *ptr) noexcept {
     return isAligned(ptr, OPENRENDER_CACHE_LINE_SIZE);
 }
 
@@ -172,4 +172,3 @@ inline bool isCacheLineAligned(const void* ptr) noexcept {
 #define ALIGN_64_DEPRECATED(__data) align64(__data)
 
 #endif // ALIGN_H
-

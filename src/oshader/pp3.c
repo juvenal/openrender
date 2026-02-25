@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp3.c
  *
@@ -157,9 +157,10 @@ void do_line(char at_bol) /* TRUE if already at BOL */
 /*									*/
 /************************************************************************/
 
-void doinclude(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void doinclude(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char buf[TOKENSIZE];
     int c;
     int d;
@@ -323,9 +324,10 @@ void doinclude(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void doline(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void doline(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char buf[TOKENSIZE];
     int c;
     int l;
@@ -544,7 +546,7 @@ int inc_open(const char *incfile, int u, int d)
 int inc_open(const char *incfile)
 #endif /* HOST == H_CPM */
 {
-/* open() declared via <fcntl.h> in pp.h */
+    /* open() declared via <fcntl.h> in pp.h */
 
     int v;
     struct file *f;
@@ -753,8 +755,7 @@ int popfile(void) {
 /*									*/
 /************************************************************************/
 
-char *readline(char *buf, int bufsize, int flags, int doexpand)
-{
+char *readline(char *buf, int bufsize, int flags, int doexpand) {
     static char rbo[] = "Read buffer overflow";
 
     char *bufp;

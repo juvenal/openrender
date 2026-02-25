@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: rendererContext.cpp
  *
@@ -4376,20 +4376,27 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
                                                                 static int isLineObjectBeginWithName(const char *line, const char *objectName) {
                                                                     const char *p = line;
-                                                                    while (*p == ' ' || *p == '\t') p++;
-                                                                    if (strncmp(p, "ObjectBegin", 11) != 0) return 0;
+                                                                    while (*p == ' ' || *p == '\t')
+                                                                        p++;
+                                                                    if (strncmp(p, "ObjectBegin", 11) != 0)
+                                                                        return 0;
                                                                     p += 11;
-                                                                    while (*p == ' ' || *p == '\t') p++;
-                                                                    if (*p != '"') return 0;
+                                                                    while (*p == ' ' || *p == '\t')
+                                                                        p++;
+                                                                    if (*p != '"')
+                                                                        return 0;
                                                                     p++;
                                                                     size_t len = strlen(objectName);
-                                                                    if (strncmp(p, objectName, len) != 0) return 0;
-                                                                    if (p[len] != '"') return 0;
+                                                                    if (strncmp(p, objectName, len) != 0)
+                                                                        return 0;
+                                                                    if (p[len] != '"')
+                                                                        return 0;
                                                                     return 1;
                                                                 }
                                                                 static int lineStartsWith(const char *line, const char *prefix) {
                                                                     const char *p = line;
-                                                                    while (*p == ' ' || *p == '\t') p++;
+                                                                    while (*p == ' ' || *p == '\t')
+                                                                        p++;
                                                                     return strncmp(p, prefix, strlen(prefix)) == 0;
                                                                 }
                                                             }

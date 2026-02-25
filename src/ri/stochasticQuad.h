@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: stochasticQuad.h
  *
@@ -57,15 +57,15 @@ const int displacement = 10 + CRenderer::numExtraSamples;
 #ifdef STOCHASTIC_LOD
 const float importance = grid->object->attributes->lodImportance;
 
-#define lodCheck()                            \
-    if (importance >= 0) {                    \
-        if (pixel->jimp > importance) {       \
-            continue;                         \
-        }                                      \
-    } else {                                  \
+#define lodCheck()                              \
+    if (importance >= 0) {                      \
+        if (pixel->jimp > importance) {         \
+            continue;                           \
+        }                                       \
+    } else {                                    \
         if ((1 - pixel->jimp) >= -importance) { \
-            continue;                         \
-        }                                      \
+            continue;                           \
+        }                                       \
     }
 
 #else
@@ -224,19 +224,19 @@ const float importance = grid->object->attributes->lodImportance;
 
 #endif
 
-#define drawPixel()                 \
-    if (z < pixel->z) {             \
-        const float jt = pixel->jt; \
+#define drawPixel()                                      \
+    if (z < pixel->z) {                                  \
+        const float jt = pixel->jt;                      \
         (void)jt; /* Suppress unused variable warning */ \
-        updateOpaque();             \
-        nSample = &pixel->last;     \
-        nSample->z = z;             \
-        colorOpacityUpdate();       \
-        drawExtraSamples();         \
-        depthFilterIf();            \
-        pixel->z = z;               \
-        depthFilterTouchNode();     \
-    }                               \
+        updateOpaque();                                  \
+        nSample = &pixel->last;                          \
+        nSample->z = z;                                  \
+        colorOpacityUpdate();                            \
+        drawExtraSamples();                              \
+        depthFilterIf();                                 \
+        pixel->z = z;                                    \
+        depthFilterTouchNode();                          \
+    }                                                    \
     depthFilterElse();
 
 #endif
@@ -448,29 +448,30 @@ for (y = ymin; y <= ymax; y++) {
                 if (x + left > bounds[1]) {
                     continue;
                 }
-                    continue;
+                continue;
                 if (y + top < bounds[2]) {
                     continue;
                 }
                 if (y + top > bounds[3]) {
                     continue;
-                }   
+                }
                 lodCheck();
 
                 const float *v0 = vertices;
                 const float *v1 = vertices + numVertexSamples;
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
-                (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
+                (void)v0;
+                (void)v3; // Suppress unused variable warnings in some compilation paths
 
-                #ifdef STOCHASTIC_FOCAL_BLUR
+#ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
                 const float v1d = v1[9];
                 const float v2d = v2[9];
                 const float v3d = v3[9];
-                #endif
+#endif
 
-                #ifdef STOCHASTIC_MOVING
+#ifdef STOCHASTIC_MOVING
                 vector v0movTmp;
                 vector v1movTmp;
                 vector v2movTmp;
@@ -483,9 +484,9 @@ for (y = ymin; y <= ymax; y++) {
                 v1 = v1movTmp;
                 v2 = v2movTmp;
                 v3 = v3movTmp;
-                #endif
+#endif
 
-                #ifdef STOCHASTIC_FOCAL_BLUR
+#ifdef STOCHASTIC_FOCAL_BLUR
                 vector v0focTmp;
                 vector v1focTmp;
                 vector v2focTmp;
@@ -509,7 +510,7 @@ for (y = ymin; y <= ymax; y++) {
                 v1 = v1focTmp;
                 v2 = v2focTmp;
                 v3 = v3focTmp;
-                #endif
+#endif
 
                 // Check the orientation of the quad
                 float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
@@ -586,7 +587,8 @@ for (j = 0; j < vdiv; j++) {
         const float *v1 = vertices + numVertexSamples;
         const float *v2 = v1 + udiv * numVertexSamples;
         const float *v3 = v2 + numVertexSamples;
-        (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
+        (void)v0;
+        (void)v3; // Suppress unused variable warnings in some compilation paths
 
         int xmin = bounds[0] - left; // Convert the bound into the current bucket
         int ymin = bounds[2] - top;
@@ -607,21 +609,21 @@ for (j = 0; j < vdiv; j++) {
             ymax = yres;
         }
 
-        // Figure our if we have to do the slow rasterization
-        #ifdef STOCHASTIC_FOCAL_BLUR
-        #define SLOW_RASTER
-        #endif
+// Figure our if we have to do the slow rasterization
+#ifdef STOCHASTIC_FOCAL_BLUR
+#define SLOW_RASTER
+#endif
 
-        #ifdef STOCHASTIC_MOVING
-        #ifndef SLOW_RASTER
-        #define SLOW_RASTER
-        #endif
-        #endif
+#ifdef STOCHASTIC_MOVING
+#ifndef SLOW_RASTER
+#define SLOW_RASTER
+#endif
+#endif
 
-        // SLOW_RASTER means the quad has motion blur or depth of field
-        // In such a case, we need to deform the quad individually for each
-        // sample which makes the rasterization slower
-        #ifndef SLOW_RASTER
+// SLOW_RASTER means the quad has motion blur or depth of field
+// In such a case, we need to deform the quad individually for each
+// sample which makes the rasterization slower
+#ifndef SLOW_RASTER
 
         // Do the fast rasterization
 
@@ -673,7 +675,7 @@ for (j = 0; j < vdiv; j++) {
             }
         }
 
-        #else
+#else
 
         // Do the slow rasterization
 
@@ -689,16 +691,17 @@ for (j = 0; j < vdiv; j++) {
                 const float *v1 = vertices + numVertexSamples;
                 const float *v2 = v1 + udiv * numVertexSamples;
                 const float *v3 = v2 + numVertexSamples;
-                (void)v0; (void)v3; // Suppress unused variable warnings in some compilation paths
+                (void)v0;
+                (void)v3; // Suppress unused variable warnings in some compilation paths
 
-                #ifdef STOCHASTIC_FOCAL_BLUR
+#ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
                 const float v1d = v1[9];
                 const float v2d = v2[9];
                 const float v3d = v3[9];
-                #endif
+#endif
 
-                #ifdef STOCHASTIC_MOVING
+#ifdef STOCHASTIC_MOVING
                 vector v0movTmp;
                 vector v1movTmp;
                 vector v2movTmp;
@@ -711,9 +714,9 @@ for (j = 0; j < vdiv; j++) {
                 v1 = v1movTmp;
                 v2 = v2movTmp;
                 v3 = v3movTmp;
-                #endif
+#endif
 
-                #ifdef STOCHASTIC_FOCAL_BLUR
+#ifdef STOCHASTIC_FOCAL_BLUR
                 vector v0focTmp;
                 vector v1focTmp;
                 vector v2focTmp;
@@ -737,7 +740,7 @@ for (j = 0; j < vdiv; j++) {
                 v1 = v1focTmp;
                 v2 = v2focTmp;
                 v3 = v3focTmp;
-                #endif
+#endif
 
                 // Check the orientation of the quad
                 float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
@@ -778,7 +781,7 @@ for (j = 0; j < vdiv; j++) {
             }
         }
 
-        #endif
+#endif
     }
 
     vertices += numVertexSamples;

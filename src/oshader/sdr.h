@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: sdr.h
  *
@@ -105,7 +105,7 @@ constexpr int SLC_EXTERN = 1 << 12; // Variable is an extern
 
 constexpr int SLC_UNIFORM = 1 << 13; // Variable is uniform
 constexpr int SLC_VARYING = 1 << 14; // Variable is varying (used only to differentiate non uniform params)
-                                 // Note 1<<15 was removed
+                                     // Note 1<<15 was removed
 
 constexpr int SLC_LOCKED = 1 << 16; // Variable is a locked temporary variable
 constexpr int SLC_OUTPUT = 1 << 17; // Variable is output
@@ -321,13 +321,13 @@ class CScriptContext {
         void printDefine(CSymbol *); // Print the definition of a symbol
 
         [[nodiscard]] CVariable *lockRegister(int, int numItems = 1); // Allocate a temporary register
-        void releaseRegister(CVariable *);              // Deallocate a temporary register
+        void releaseRegister(CVariable *);                            // Deallocate a temporary register
 
         [[nodiscard]] CParameter *newParameter(const char *, int, int); // Create a new parameter to the topmost function
         [[nodiscard]] CVariable *newVariable(const char *, int, int);   // Create a new variable to the topmost function
         [[nodiscard]] CFunction *newFunction(const char *);             // Create a function to the topmost function
-        void newLabel(char *);                            // Create a unique label
-        void addVariable(CVariable *);                    // Create a unique name for the variable
+        void newLabel(char *);                                          // Create a unique label
+        void addVariable(CVariable *);                                  // Create a unique name for the variable
 
         CFunction *popFunction(); // Pop the topmost function in the function stack
 
@@ -337,10 +337,10 @@ class CScriptContext {
 
         void enumerateDso(const char *); // Find a DSO and add it into the library
 
-        void error(const char *, ...);   // Compiler error
-        void warning(const char *, ...); // Compiler warning
+        void error(const char *, ...);              // Compiler error
+        void warning(const char *, ...);            // Compiler warning
         [[noreturn]] void fatal(const char *, ...); // Fatal compiler error
-        void fatalbailout();             // Fatal compiler error, standard error message
+        void fatalbailout();                        // Fatal compiler error, standard error message
 
         void desire(int); // Desire a particular type
         int undesire();   // Return back to the previous desired type

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: fbw.h
  *
@@ -35,26 +35,26 @@
  *
  */
 class CWinDisplay : public CDisplay {
-  public:
-    CWinDisplay(const char *, const char *, int, int, int);
-    ~CWinDisplay();
+    public:
+        CWinDisplay(const char *, const char *, int, int, int);
+        ~CWinDisplay();
 
-    // int ready();
-    void main();
-    void redraw();
-    int data(int, int, int, int, float *);
-    void finish();
+        // int ready();
+        void main();
+        void redraw();
+        int data(int, int, int, int, float *);
+        void finish();
 
-    HANDLE thread;
+        HANDLE thread;
 
-  private:
-    HINSTANCE hInst;    // current instance
-    HWND hWnd;          // current window
-    BITMAPINFO info;    // bitmap info
-    RGBQUAD *bmiColors; // the colors
-    unsigned int *imageData;
-    int active;
-    int willRedraw;
+    private:
+        HINSTANCE hInst;    // current instance
+        HWND hWnd;          // current window
+        BITMAPINFO info;    // bitmap info
+        RGBQUAD *bmiColors; // the colors
+        unsigned int *imageData;
+        int active;
+        int willRedraw;
 };
 
 #endif

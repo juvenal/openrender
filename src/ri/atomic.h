@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: atomic.h
  *
@@ -62,12 +62,12 @@ inline int atomicDecrement(volatile int *pointer) {
 #include <atomic>
 
 inline int atomicIncrement(volatile int32_t *ptr) {
-    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t>*>(ptr);
+    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t> *>(ptr);
     return atomic_ptr->fetch_add(1) + 1;
 }
 
 inline int atomicDecrement(volatile int32_t *ptr) {
-    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t>*>(ptr);
+    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t> *>(ptr);
     return atomic_ptr->fetch_sub(1) - 1;
 }
 

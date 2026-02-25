@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: test_64bit_portability.cpp
  *
@@ -21,47 +21,47 @@
 #include <cstring>
 #include <type_traits>
 
-#include "../src/common/portable_io.h"
 #include "../src/common/align.h"
 #include "../src/common/global.h"
+#include "../src/common/portable_io.h"
 
 // Test counter
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define TEST(name) \
-    void test_##name(); \
-    void run_test_##name() { \
+#define TEST(name)                              \
+    void test_##name();                         \
+    void run_test_##name() {                    \
         printf("Running test: %s ... ", #name); \
-        fflush(stdout); \
-        test_##name(); \
-        tests_passed++; \
-        printf("PASSED\n"); \
-    } \
+        fflush(stdout);                         \
+        test_##name();                          \
+        tests_passed++;                         \
+        printf("PASSED\n");                     \
+    }                                           \
     void test_##name()
 
-#define ASSERT(condition) \
-    do { \
-        if (!(condition)) { \
+#define ASSERT(condition)                                          \
+    do {                                                           \
+        if (!(condition)) {                                        \
             printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
-                   #condition, __FILE__, __LINE__); \
-            tests_failed++; \
-            return; \
-        } \
-    } while(0)
+                   #condition, __FILE__, __LINE__);                \
+            tests_failed++;                                        \
+            return;                                                \
+        }                                                          \
+    } while (0)
 
-#define ASSERT_EQ(a, b) \
-    do { \
-        auto _a = (a); \
-        auto _b = (b); \
-        if (_a != _b) { \
-            printf("\nAssertion failed: %s == %s\n", #a, #b); \
+#define ASSERT_EQ(a, b)                                                      \
+    do {                                                                     \
+        auto _a = (a);                                                       \
+        auto _b = (b);                                                       \
+        if (_a != _b) {                                                      \
+            printf("\nAssertion failed: %s == %s\n", #a, #b);                \
             printf("  Expected: %zu\n  Got: %zu\n", (size_t)_b, (size_t)_a); \
-            printf("File: %s, Line: %d\n", __FILE__, __LINE__); \
-            tests_failed++; \
-            return; \
-        } \
-    } while(0)
+            printf("File: %s, Line: %d\n", __FILE__, __LINE__);              \
+            tests_failed++;                                                  \
+            return;                                                          \
+        }                                                                    \
+    } while (0)
 
 ////////////////////////////////////////////////////////////////////////
 // Test 1: Type Size Invariants
@@ -85,13 +85,13 @@ TEST(type_sizes) {
     ASSERT_EQ(sizeof(float64_p), static_cast<size_t>(8));
 
     // Pointer types
-    static_assert(sizeof(void*) == sizeof(uintptr_t), "uintptr_t must match pointer size");
-    ASSERT_EQ(sizeof(void*), sizeof(uintptr_t));
+    static_assert(sizeof(void *) == sizeof(uintptr_t), "uintptr_t must match pointer size");
+    ASSERT_EQ(sizeof(void *), sizeof(uintptr_t));
 
     // T32 and T64 unions
     ASSERT_EQ(sizeof(T32), std::size_t(4));
     ASSERT_EQ(sizeof(T64), std::size_t(8));
-    ASSERT(sizeof(T64) >= sizeof(void*));  // T64 must be able to hold pointers
+    ASSERT(sizeof(T64) >= sizeof(void *)); // T64 must be able to hold pointers
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -99,7 +99,7 @@ TEST(type_sizes) {
 ////////////////////////////////////////////////////////////////////////
 
 TEST(binary_io_roundtrip) {
-    FILE* tmp = tmpfile();
+    FILE *tmp = tmpfile();
     ASSERT(tmp != nullptr);
 
     // Test int32_p
@@ -173,11 +173,11 @@ TEST(endianness) {
 
 TEST(alignment) {
     // Test pointer alignment checking
-    ASSERT(isAligned64(reinterpret_cast<void*>(0x0)));
-    ASSERT(isAligned64(reinterpret_cast<void*>(0x8)));
-    ASSERT(isAligned64(reinterpret_cast<void*>(0x10)));
-    ASSERT(!isAligned64(reinterpret_cast<void*>(0x4)));
-    ASSERT(!isAligned64(reinterpret_cast<void*>(0x1)));
+    ASSERT(isAligned64(reinterpret_cast<void *>(0x0)));
+    ASSERT(isAligned64(reinterpret_cast<void *>(0x8)));
+    ASSERT(isAligned64(reinterpret_cast<void *>(0x10)));
+    ASSERT(!isAligned64(reinterpret_cast<void *>(0x4)));
+    ASSERT(!isAligned64(reinterpret_cast<void *>(0x1)));
 
     // Test value alignment checking
     ASSERT(isAligned64(std::size_t(0)));
@@ -266,7 +266,7 @@ TEST(platform_detection) {
 ////////////////////////////////////////////////////////////////////////
 
 TEST(array_io) {
-    FILE* tmp = tmpfile();
+    FILE *tmp = tmpfile();
     ASSERT(tmp != nullptr);
 
     // Write int32 array

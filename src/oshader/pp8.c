@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp8.c
  *
@@ -86,8 +86,7 @@
 /*									*/
 /************************************************************************/
 
-EVALINT eval(void)
-{
+EVALINT eval(void) {
     char buf[TOKENSIZE];
     EVALINT val;
 
@@ -116,8 +115,7 @@ EVALINT eval(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evaltern(void)
-{
+EVALINT evaltern(void) {
     EVALINT val;
     EVALINT val_f;
     EVALINT val_t;
@@ -142,8 +140,7 @@ EVALINT evaltern(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evallor(void)
-{
+EVALINT evallor(void) {
     EVALINT val;
 
     for (val = evalland(); test("||");) {
@@ -159,8 +156,7 @@ EVALINT evallor(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalland(void)
-{
+EVALINT evalland(void) {
     EVALINT val;
 
     for (val = evalbor(); test("&&");) {
@@ -178,8 +174,7 @@ EVALINT evalland(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalbor(void)
-{
+EVALINT evalbor(void) {
     EVALINT val;
 
     for (val = evalbxor(); !look("||") && test("|");)
@@ -194,8 +189,7 @@ EVALINT evalbor(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalbxor(void)
-{
+EVALINT evalbxor(void) {
     EVALINT val;
 
     for (val = evalband(); test("^");)
@@ -210,8 +204,7 @@ EVALINT evalbxor(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalband(void)
-{
+EVALINT evalband(void) {
     EVALINT val;
 
     for (val = evaleq(); !look("&&") && test("&");)
@@ -226,8 +219,7 @@ EVALINT evalband(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evaleq(void)
-{
+EVALINT evaleq(void) {
     EVALINT val;
 
     for (val = evalrel();;) {
@@ -247,8 +239,7 @@ EVALINT evaleq(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalrel(void)
-{
+EVALINT evalrel(void) {
     EVALINT val;
 
     for (val = evalsh();;) {
@@ -272,8 +263,7 @@ EVALINT evalrel(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalsh(void)
-{
+EVALINT evalsh(void) {
     EVALINT val;
 
     for (val = evalsum();;) {
@@ -293,8 +283,7 @@ EVALINT evalsh(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalsum(void)
-{
+EVALINT evalsum(void) {
     EVALINT val;
 
     for (val = evalmdr();;) {
@@ -314,8 +303,7 @@ EVALINT evalsum(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalmdr(void)
-{
+EVALINT evalmdr(void) {
     EVALINT temp;
     EVALINT val;
 
@@ -363,8 +351,7 @@ EVALINT evalmdr(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalfuns(void)
-{
+EVALINT evalfuns(void) {
     int count;
     int pflag;
     int rv;
@@ -509,8 +496,7 @@ EVALINT evalfuns(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalucom(void)
-{
+EVALINT evalucom(void) {
     if (test("~"))
         /*lint -e502 lint doesn't like complementing signed integral types */
         return (~evalfuns());
@@ -525,8 +511,7 @@ EVALINT evalucom(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalunot(void)
-{
+EVALINT evalunot(void) {
     if (test("!"))
         return ((EVALINT)!evalfuns());
     else
@@ -539,8 +524,7 @@ EVALINT evalunot(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalumin(void)
-{
+EVALINT evalumin(void) {
     if (test("+"))
         return ((EVALINT)evalfuns());
     else if (test("-"))
@@ -555,8 +539,7 @@ EVALINT evalumin(void)
 /*									*/
 /************************************************************************/
 
-EVALINT evalval(void)
-{
+EVALINT evalval(void) {
     int c;
     char *p;
     EVALINT val;
@@ -711,8 +694,7 @@ EVALINT evalval(void)
 /*									*/
 /************************************************************************/
 
-EVALINT hexbin(char ch)
-{
+EVALINT hexbin(char ch) {
     if (isdigit(ch))
         return ((EVALINT)(ch - '0'));
     else
@@ -727,8 +709,7 @@ EVALINT hexbin(char ch)
 /*									*/
 /************************************************************************/
 
-int ishex(char ch)
-{
+int ishex(char ch) {
     return (isdigit(ch) ||
             ((ch >= 'a') && (ch <= 'f')) ||
             ((ch >= 'A') && (ch <= 'F')));
@@ -742,8 +723,7 @@ int ishex(char ch)
 /*									*/
 /************************************************************************/
 
-int isoct(char ch)
-{
+int isoct(char ch) {
     return ((ch >= '0') && (ch <= '7'));
 }
 
@@ -757,8 +737,7 @@ int isoct(char ch)
 /*									*/
 /************************************************************************/
 
-int item(int (*fun)(int), int f)
-{
+int item(int (*fun)(int), int f) {
     int t;
 
     while ((t = (*fun)(f)) != '\n') {
@@ -780,8 +759,7 @@ int item(int (*fun)(int), int f)
 /*									*/
 /************************************************************************/
 
-int look(const char *str)
-{
+int look(const char *str) {
     int rc;
     char tokenbuf[TOKENSIZE];
 
@@ -801,8 +779,7 @@ int look(const char *str)
 /*									*/
 /************************************************************************/
 
-int match(char *tbuf, const char *str)
-{
+int match(char *tbuf, const char *str) {
     int (*fun)(int);
     const char *s;
     char *t;
@@ -841,8 +818,7 @@ int match(char *tbuf, const char *str)
 /*									*/
 /************************************************************************/
 
-char *readexpline(char *buf, int bufsize)
-{
+char *readexpline(char *buf, int bufsize) {
     static char rbo[] = "Read buffer overflow";
 
     char *bufp;
@@ -892,8 +868,7 @@ char *readexpline(char *buf, int bufsize)
 /*									*/
 /************************************************************************/
 
-int test(const char *str)
-{
+int test(const char *str) {
     char tokenbuf[TOKENSIZE];
 
     if (match(tokenbuf, str))

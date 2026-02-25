@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp6.c
  *
@@ -69,9 +69,9 @@
 /*									*/
 /************************************************************************/
 
-void doasm(int asmtype, int no_flag, const char *name)
-{
-    (void)no_flag; (void)name;
+void doasm(int asmtype, int no_flag, const char *name) {
+    (void)no_flag;
+    (void)name;
     puttoken(asmtype ? "#asm" : "#endasm");
 }
 #endif /* (TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX) */
@@ -87,9 +87,10 @@ void doasm(int asmtype, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void dopragma(int dummy, int outer_no_flag, const char *outer_name)
-{
-    (void)dummy; (void)outer_no_flag; (void)outer_name;
+void dopragma(int dummy, int outer_no_flag, const char *outer_name) {
+    (void)dummy;
+    (void)outer_no_flag;
+    (void)outer_name;
     int ltr_flag;
     int no_flag;
     struct ppdir *pp;
@@ -138,9 +139,9 @@ void dopragma(int dummy, int outer_no_flag, const char *outer_name)
 /*									*/
 /************************************************************************/
 
-void pragasm(int asmtype, int no_flag, const char *name)
-{
-    (void)no_flag; (void)name;
+void pragasm(int asmtype, int no_flag, const char *name) {
+    (void)no_flag;
+    (void)name;
     if (Do_asm == asmtype) {
         if (Do_asm)
             non_fatal("Already within \"#pragma asm\"", "");
@@ -163,9 +164,10 @@ void pragasm(int asmtype, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void pragendm(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void pragendm(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     non_fatal("\"#pragma endmacro\" not allowed outside macro", "");
 }
 
@@ -177,9 +179,10 @@ void pragendm(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void pragerror(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void pragerror(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char msgbuf[MESSAGEBUFSIZE];
 
     non_fatal(readline(msgbuf, MESSAGEBUFSIZE, GT_STR, FALSE), "");
@@ -196,9 +199,10 @@ void pragerror(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void pragmsg(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void pragmsg(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char msgbuf[MESSAGEBUFSIZE];
 
     printf("%s(%u): MESSAGE: %s\n",
@@ -218,8 +222,7 @@ void pragmsg(int dummy, int no_flag, const char *name)
 #pragma warn - par
 #endif /* __TURBOC__ */
 
-void pragopt(int dummy, int no_flag, const char *name)
-{
+void pragopt(int dummy, int no_flag, const char *name) {
     (void)dummy;
     char buf[TOKENSIZE + 1];
     struct symtab *sym;
@@ -279,9 +282,10 @@ void pragopt(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void pragvalue(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void pragvalue(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char buf[TOKENSIZE + 1];
 
     snprintf(buf, sizeof(buf), "%ld", (long)eval());

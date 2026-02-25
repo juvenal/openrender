@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: shader.h
  *
@@ -54,24 +54,24 @@ const unsigned int SL_VARYING_OPERAND = 2;   // Local variable references (this 
 
 // This structure holds an argument for a code
 typedef struct {
-    unsigned char numItems;     // The number of items to step for this variable (0 for constants,parameters, cardinality for variables,globals)
-    unsigned char accessor;     // The type of the variable (SL_IMMEDIATE,SL_PARAMETER,SL_VARIABLE,SL_GLOBAL)
-    unsigned char bytesPerItem; // The number of bytes per item
-    unsigned char varyingStep;  // Used to store whether operand is uniform (step 0) or varying (step) ... important PADDING also
-    unsigned int index;         // The index of the variable in the corresponding entry array
+        unsigned char numItems;     // The number of items to step for this variable (0 for constants,parameters, cardinality for variables,globals)
+        unsigned char accessor;     // The type of the variable (SL_IMMEDIATE,SL_PARAMETER,SL_VARIABLE,SL_GLOBAL)
+        unsigned char bytesPerItem; // The number of bytes per item
+        unsigned char varyingStep;  // Used to store whether operand is uniform (step 0) or varying (step) ... important PADDING also
+        unsigned int index;         // The index of the variable in the corresponding entry array
 } TArgument;
 
 // This structure holds a code
 // In the future, we may want to make this a class
 //    and have the shading language opcodes subclass from it
 typedef struct {
-    int opcode;                 // The opcode
-    unsigned char uniform;      // TRUE if all the arguments are uniform
-    unsigned char numArguments; // The number of stack arguments
-    unsigned char padding0;     // PADDING ... Not used ... PADDING
-    unsigned char padding1;     // PADDING ... Not used ... PADDING
-    TArgument *arguments;       // The array of arguments
-    CDSO *dso;                  // If this is a DSO, points to the DSO function
+        int opcode;                 // The opcode
+        unsigned char uniform;      // TRUE if all the arguments are uniform
+        unsigned char numArguments; // The number of stack arguments
+        unsigned char padding0;     // PADDING ... Not used ... PADDING
+        unsigned char padding1;     // PADDING ... Not used ... PADDING
+        TArgument *arguments;       // The array of arguments
+        CDSO *dso;                  // If this is a DSO, points to the DSO function
 } TCode;
 
 // Shader types

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: giOpcodes.h
  *
@@ -42,16 +42,18 @@
     for (int i = 0; i < numRealVertices; ++i) {                                                             \
         if (tags[i]) {                                                                                      \
             ++tags[i];                                                                                      \
-        } else {                                                                                            \
+        }                                                                                                   \
+        else {                                                                                              \
             vector tmp0, tmp1;                                                                              \
-            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase * (urand() - 0.5f));                           \
-            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase * (urand() - 0.5f));                           \
+            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase *(urand() - 0.5f));                            \
+            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase *(urand() - 0.5f));                            \
             addvv(raysBase->from, tmp0, tmp1);                                                              \
             addvv(raysBase->from, raysBase->gatherP);                                                       \
                                                                                                             \
             if (lastGather->uniformDist) {                                                                  \
                 sampleHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);       \
-            } else {                                                                                        \
+            }                                                                                               \
+            else {                                                                                          \
                 sampleCosineHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d); \
             }                                                                                               \
             raysBase->index = i;                                                                            \
@@ -65,7 +67,8 @@
             raysBase->tags = &tags[i];                                                                      \
             if (dotvv(raysBase->dir, N) > 0) {                                                              \
                 rays[numExtRays++] = raysBase;                                                              \
-            } else {                                                                                        \
+            }                                                                                               \
+            else {                                                                                          \
                 rays[numRealVertices - 1 - numIntRays++] = raysBase;                                        \
             }                                                                                               \
         }                                                                                                   \
@@ -122,7 +125,8 @@ DEFOPCODE(Gather, "gather", 1, GATHEREXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, 
                 *tags = 0;                                      \
                 numActive++;                                    \
                 numPassive--;                                   \
-            } else {                                            \
+            }                                                   \
+            else {                                              \
                 *tags = 1;                                      \
                 numActive--;                                    \
                 numPassive++;                                   \
@@ -162,7 +166,8 @@ DEFOPCODE(GatherElse, "gatherElse", 1, GATHERELSEEXPR_PRE, NULL_EXPR, NULL_EXPR,
     lastGather->remainingSamples--;                             \
     if (lastGather->remainingSamples > 0) {                     \
         jmp(argument(0));                                       \
-    } else {                                                    \
+    }                                                           \
+    else {                                                      \
         delete lastGather;                                      \
     }
 

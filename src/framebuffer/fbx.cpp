@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: fbx.cpp
  *
@@ -18,9 +18,9 @@
  *
  */
 
+#include "fbx.h"
 #include "common/global.h"
 #include "framebuffer.h"
-#include "fbx.h"
 
 #define color_15_bgr(r, g, b, a) ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
 #define color_15_bgr_rev(r, g, b, a) ((g >> 3) << 13) | ((b >> 3) << 8) | ((r >> 3) << 3) | (g >> 5)
@@ -124,128 +124,128 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
 
         // Allocate memory and create a checkerboard pattern
         switch (imageDepth) {
-        case 15:
-            if (vis->red_mask == 0x001F) {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_rgb15_rev;
-                else
-                    dataHandler = &CXDisplay::handleData_rgb15;
-            }
-            else {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_bgr15_rev;
-                else
-                    dataHandler = &CXDisplay::handleData_bgr15;
-            }
-            imageData = malloc(width * height * sizeof(unsigned short));
-            dests = (unsigned short *)imageData;
+            case 15:
+                if (vis->red_mask == 0x001F) {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_rgb15_rev;
+                    else
+                        dataHandler = &CXDisplay::handleData_rgb15;
+                }
+                else {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_bgr15_rev;
+                    else
+                        dataHandler = &CXDisplay::handleData_bgr15;
+                }
+                imageData = malloc(width * height * sizeof(unsigned short));
+                dests = (unsigned short *)imageData;
 
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
-                    int t = 0;
+                for (y = 0; y < height; y++) {
+                    for (x = 0; x < width; x++) {
+                        int t = 0;
 
-                    if ((x & 63) < 32)
-                        t ^= 1;
-                    if ((y & 63) < 32)
-                        t ^= 1;
+                        if ((x & 63) < 32)
+                            t ^= 1;
+                        if ((y & 63) < 32)
+                            t ^= 1;
 
-                    if (t) {
-                        *dests++ = color_15_rgb(128, 128, 128, 128); // all chanels identical, so format irrelevant
-                    }
-                    else {
-                        *dests++ = color_15_rgb(255, 255, 255, 255);
+                        if (t) {
+                            *dests++ = color_15_rgb(128, 128, 128, 128); // all chanels identical, so format irrelevant
+                        }
+                        else {
+                            *dests++ = color_15_rgb(255, 255, 255, 255);
+                        }
                     }
                 }
-            }
-            break;
+                break;
 
-        case 16:
-            if (vis->red_mask == 0x001F) {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_rgb16_rev;
-                else
-                    dataHandler = &CXDisplay::handleData_rgb16;
-            }
-            else {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_bgr16_rev;
-                else
-                    dataHandler = &CXDisplay::handleData_bgr16;
-            }
-            imageData = malloc(width * height * sizeof(unsigned short));
-            dests = (unsigned short *)imageData;
+            case 16:
+                if (vis->red_mask == 0x001F) {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_rgb16_rev;
+                    else
+                        dataHandler = &CXDisplay::handleData_rgb16;
+                }
+                else {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_bgr16_rev;
+                    else
+                        dataHandler = &CXDisplay::handleData_bgr16;
+                }
+                imageData = malloc(width * height * sizeof(unsigned short));
+                dests = (unsigned short *)imageData;
 
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
-                    int t = 0;
+                for (y = 0; y < height; y++) {
+                    for (x = 0; x < width; x++) {
+                        int t = 0;
 
-                    if ((x & 63) < 32)
-                        t ^= 1;
-                    if ((y & 63) < 32)
-                        t ^= 1;
+                        if ((x & 63) < 32)
+                            t ^= 1;
+                        if ((y & 63) < 32)
+                            t ^= 1;
 
-                    if (t) {
-                        *dests++ = color_16_rgb(128, 128, 128, 128); // all chanels identical, so format irrelevant
-                    }
-                    else {
-                        *dests++ = color_16_rgb(255, 255, 255, 255);
+                        if (t) {
+                            *dests++ = color_16_rgb(128, 128, 128, 128); // all chanels identical, so format irrelevant
+                        }
+                        else {
+                            *dests++ = color_16_rgb(255, 255, 255, 255);
+                        }
                     }
                 }
-            }
-            break;
+                break;
 
-        case 24:
-        case 32:
-            if (vis->red_mask == 0x000000FF) {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_abgr32;
-                else
-                    dataHandler = &CXDisplay::handleData_rgba32;
-            }
-            else if (vis->red_mask == 0x0000FF00) {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_bgra32;
-                else
-                    dataHandler = &CXDisplay::handleData_argb32;
-            }
-            else if (vis->red_mask == 0x00FF0000) {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_argb32;
-                else
-                    dataHandler = &CXDisplay::handleData_bgra32;
-            }
-            else {
-                if (flipByteOrder)
-                    dataHandler = &CXDisplay::handleData_rgba32;
-                else
-                    dataHandler = &CXDisplay::handleData_abgr32;
-            }
-            imageData = malloc(width * height * sizeof(unsigned int));
-            dest = (unsigned int *)imageData;
+            case 24:
+            case 32:
+                if (vis->red_mask == 0x000000FF) {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_abgr32;
+                    else
+                        dataHandler = &CXDisplay::handleData_rgba32;
+                }
+                else if (vis->red_mask == 0x0000FF00) {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_bgra32;
+                    else
+                        dataHandler = &CXDisplay::handleData_argb32;
+                }
+                else if (vis->red_mask == 0x00FF0000) {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_argb32;
+                    else
+                        dataHandler = &CXDisplay::handleData_bgra32;
+                }
+                else {
+                    if (flipByteOrder)
+                        dataHandler = &CXDisplay::handleData_rgba32;
+                    else
+                        dataHandler = &CXDisplay::handleData_abgr32;
+                }
+                imageData = malloc(width * height * sizeof(unsigned int));
+                dest = (unsigned int *)imageData;
 
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
-                    int t = 0;
+                for (y = 0; y < height; y++) {
+                    for (x = 0; x < width; x++) {
+                        int t = 0;
 
-                    if ((x & 63) < 32)
-                        t ^= 1;
-                    if ((y & 63) < 32)
-                        t ^= 1;
+                        if ((x & 63) < 32)
+                            t ^= 1;
+                        if ((y & 63) < 32)
+                            t ^= 1;
 
-                    if (t) {
-                        *dest++ = color_argb(128, 128, 128, 128); // all chanels identical, so format irrelevant
-                    }
-                    else {
-                        *dest++ = color_argb(255, 255, 255, 255);
+                        if (t) {
+                            *dest++ = color_argb(128, 128, 128, 128); // all chanels identical, so format irrelevant
+                        }
+                        else {
+                            *dest++ = color_argb(255, 255, 255, 255);
+                        }
                     }
                 }
-            }
-            break;
+                break;
 
-        default:
-            fprintf(stderr, "Unsupported sample format for framebuffer display\n");
-            imageData = NULL;
-            failure = true;
+            default:
+                fprintf(stderr, "Unsupported sample format for framebuffer display\n");
+                imageData = NULL;
+                failure = true;
         }
 
         if (imageData != NULL) {
@@ -318,32 +318,32 @@ void CXDisplay::main() {
     int scanSize;
 
     switch (imageDepth) {
-    case 15:
-    case 16:
-        xim = XCreateImage(display,
-                           CopyFromParent,
-                           imageDepth,
-                           ZPixmap,
-                           0,
-                           (char *)imageData,
-                           width,
-                           height,
-                           16,
-                           width * 2);
-        break;
-    case 24:
-    case 32:
-        xim = XCreateImage(display,
-                           CopyFromParent,
-                           imageDepth,
-                           ZPixmap,
-                           0,
-                           (char *)imageData,
-                           width,
-                           height,
-                           32,
-                           width * 4);
-        break;
+        case 15:
+        case 16:
+            xim = XCreateImage(display,
+                               CopyFromParent,
+                               imageDepth,
+                               ZPixmap,
+                               0,
+                               (char *)imageData,
+                               width,
+                               height,
+                               16,
+                               width * 2);
+            break;
+        case 24:
+        case 32:
+            xim = XCreateImage(display,
+                               CopyFromParent,
+                               imageDepth,
+                               ZPixmap,
+                               0,
+                               (char *)imageData,
+                               width,
+                               height,
+                               32,
+                               width * 4);
+            break;
     }
 
     image_gc = XCreateGC(display, xcanvas, 0, 0);
@@ -369,39 +369,37 @@ void CXDisplay::main() {
 
         XNextEvent(display, &x_event);
         switch (x_event.type) {
-        case Expose:
-            exp_event = x_event.xexpose;
-            XPutImage(display,
-                      xcanvas,
-                      image_gc,
-                      xim,
-                      exp_event.x,
-                      exp_event.y,
-                      exp_event.x,
-                      exp_event.y,
-                      exp_event.width,
-                      exp_event.height);
-            XFlush(display);
-            break;
-        case KeyPress:
-        {
-            KeySym key = XLookupKeysym(&x_event.xkey, 0);
-            if (key == XK_Escape || key == XK_q) {
+            case Expose:
+                exp_event = x_event.xexpose;
+                XPutImage(display,
+                          xcanvas,
+                          image_gc,
+                          xim,
+                          exp_event.x,
+                          exp_event.y,
+                          exp_event.x,
+                          exp_event.y,
+                          exp_event.width,
+                          exp_event.height);
+                XFlush(display);
+                break;
+            case KeyPress:
+            {
+                KeySym key = XLookupKeysym(&x_event.xkey, 0);
+                if (key == XK_Escape || key == XK_q) {
+                    running = FALSE;
+                }
+            } break;
+            case DestroyNotify:
                 running = FALSE;
-            }
-        }
-        break;
-        case DestroyNotify:
-            running = FALSE;
-            break;
-        case ClientMessage:
-        {
-            const long *data = x_event.xclient.data.l;
-            if ((Atom)(data[0]) == WM_DELETE_WINDOW) {
-                running = FALSE;
-            }
-        }
-        break;
+                break;
+            case ClientMessage:
+            {
+                const long *data = x_event.xclient.data.l;
+                if ((Atom)(data[0]) == WM_DELETE_WINDOW) {
+                    running = FALSE;
+                }
+            } break;
         }
     }
 
@@ -494,88 +492,88 @@ void CXDisplay::finish() {
         src += inc;                                      \
     }
 
-#define DEFINE_DATA_HANDLER_16(fn_name, colorPacker)                                          \
-    void CXDisplay::handleData_##fn_name(int x, int y, int w, int h, float *d) {              \
-        int i, j;                                                                             \
-        switch (numSamples) {                                                                 \
-        case 0:                                                                               \
-            break;                                                                            \
-        case 1:                                                                               \
-            for (i = 0; i < h; i++) {                                                         \
-                const float *src = &d[i * w * numSamples];                                    \
-                unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
-                STUFF_MONO_ROW(colorPacker, src[0])                                           \
-            }                                                                                 \
-            break;                                                                            \
-        case 2:                                                                               \
-            for (i = 0; i < h; i++) {                                                         \
-                const float *src = &d[i * w * numSamples];                                    \
-                unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
-                STUFF_ALPHA_ROW_16(colorPacker, src[0], src[0], src[0], src[1], 2)            \
-            }                                                                                 \
-            break;                                                                            \
-        case 3:                                                                               \
-            for (i = 0; i < h; i++) {                                                         \
-                const float *src = &d[i * w * numSamples];                                    \
-                unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
-                STUFF_ROW(colorPacker, src[0], src[1], src[2], 3)                             \
-            }                                                                                 \
-            break;                                                                            \
-        case 4:                                                                               \
-            for (i = 0; i < h; i++) {                                                         \
-                const float *src = &d[i * w * numSamples];                                    \
-                unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
-                STUFF_ALPHA_ROW_16(colorPacker, src[0], src[1], src[2], src[3], 4)            \
-            }                                                                                 \
-        default:                                                                              \
-            for (i = 0; i < h; i++) {                                                         \
-                const float *src = &d[i * w * numSamples];                                    \
-                unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
-                STUFF_ALPHA_ROW_16(colorPacker, src[0], src[1], src[2], src[3], numSamples)   \
-            }                                                                                 \
-        }                                                                                     \
+#define DEFINE_DATA_HANDLER_16(fn_name, colorPacker)                                              \
+    void CXDisplay::handleData_##fn_name(int x, int y, int w, int h, float *d) {                  \
+        int i, j;                                                                                 \
+        switch (numSamples) {                                                                     \
+            case 0:                                                                               \
+                break;                                                                            \
+            case 1:                                                                               \
+                for (i = 0; i < h; i++) {                                                         \
+                    const float *src = &d[i * w * numSamples];                                    \
+                    unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
+                    STUFF_MONO_ROW(colorPacker, src[0])                                           \
+                }                                                                                 \
+                break;                                                                            \
+            case 2:                                                                               \
+                for (i = 0; i < h; i++) {                                                         \
+                    const float *src = &d[i * w * numSamples];                                    \
+                    unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
+                    STUFF_ALPHA_ROW_16(colorPacker, src[0], src[0], src[0], src[1], 2)            \
+                }                                                                                 \
+                break;                                                                            \
+            case 3:                                                                               \
+                for (i = 0; i < h; i++) {                                                         \
+                    const float *src = &d[i * w * numSamples];                                    \
+                    unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
+                    STUFF_ROW(colorPacker, src[0], src[1], src[2], 3)                             \
+                }                                                                                 \
+                break;                                                                            \
+            case 4:                                                                               \
+                for (i = 0; i < h; i++) {                                                         \
+                    const float *src = &d[i * w * numSamples];                                    \
+                    unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
+                    STUFF_ALPHA_ROW_16(colorPacker, src[0], src[1], src[2], src[3], 4)            \
+                }                                                                                 \
+            default:                                                                              \
+                for (i = 0; i < h; i++) {                                                         \
+                    const float *src = &d[i * w * numSamples];                                    \
+                    unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
+                    STUFF_ALPHA_ROW_16(colorPacker, src[0], src[1], src[2], src[3], numSamples)   \
+                }                                                                                 \
+        }                                                                                         \
     }
 
-#define DEFINE_DATA_HANDLER(fn_name, colorPacker, colorUnpacker)                                        \
-    void CXDisplay::handleData_##fn_name(int x, int y, int w, int h, float *d) {                        \
-        int i, j;                                                                                       \
-        switch (numSamples) {                                                                           \
-        case 0:                                                                                         \
-            break;                                                                                      \
-        case 1:                                                                                         \
-            for (i = 0; i < h; i++) {                                                                   \
-                const float *src = &d[i * w * numSamples];                                              \
-                unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
-                STUFF_MONO_ROW(colorPacker, src[0])                                                     \
-            }                                                                                           \
-            break;                                                                                      \
-        case 2:                                                                                         \
-            for (i = 0; i < h; i++) {                                                                   \
-                const float *src = &d[i * w * numSamples];                                              \
-                unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
-                STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[0], src[0], src[1], 2)          \
-            }                                                                                           \
-            break;                                                                                      \
-        case 3:                                                                                         \
-            for (i = 0; i < h; i++) {                                                                   \
-                const float *src = &d[i * w * numSamples];                                              \
-                unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
-                STUFF_ROW(colorPacker, src[0], src[1], src[2], 3)                                       \
-            }                                                                                           \
-            break;                                                                                      \
-        case 4:                                                                                         \
-            for (i = 0; i < h; i++) {                                                                   \
-                const float *src = &d[i * w * numSamples];                                              \
-                unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
-                STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[1], src[2], src[3], 4)          \
-            }                                                                                           \
-        default:                                                                                        \
-            for (i = 0; i < h; i++) {                                                                   \
-                const float *src = &d[i * w * numSamples];                                              \
-                unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
-                STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[1], src[2], src[3], numSamples) \
-            }                                                                                           \
-        }                                                                                               \
+#define DEFINE_DATA_HANDLER(fn_name, colorPacker, colorUnpacker)                                            \
+    void CXDisplay::handleData_##fn_name(int x, int y, int w, int h, float *d) {                            \
+        int i, j;                                                                                           \
+        switch (numSamples) {                                                                               \
+            case 0:                                                                                         \
+                break;                                                                                      \
+            case 1:                                                                                         \
+                for (i = 0; i < h; i++) {                                                                   \
+                    const float *src = &d[i * w * numSamples];                                              \
+                    unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
+                    STUFF_MONO_ROW(colorPacker, src[0])                                                     \
+                }                                                                                           \
+                break;                                                                                      \
+            case 2:                                                                                         \
+                for (i = 0; i < h; i++) {                                                                   \
+                    const float *src = &d[i * w * numSamples];                                              \
+                    unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
+                    STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[0], src[0], src[1], 2)          \
+                }                                                                                           \
+                break;                                                                                      \
+            case 3:                                                                                         \
+                for (i = 0; i < h; i++) {                                                                   \
+                    const float *src = &d[i * w * numSamples];                                              \
+                    unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
+                    STUFF_ROW(colorPacker, src[0], src[1], src[2], 3)                                       \
+                }                                                                                           \
+                break;                                                                                      \
+            case 4:                                                                                         \
+                for (i = 0; i < h; i++) {                                                                   \
+                    const float *src = &d[i * w * numSamples];                                              \
+                    unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
+                    STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[1], src[2], src[3], 4)          \
+                }                                                                                           \
+            default:                                                                                        \
+                for (i = 0; i < h; i++) {                                                                   \
+                    const float *src = &d[i * w * numSamples];                                              \
+                    unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
+                    STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[1], src[2], src[3], numSamples) \
+                }                                                                                           \
+        }                                                                                                   \
     }
 
 DEFINE_DATA_HANDLER_16(rgb16, color_16_rgb)

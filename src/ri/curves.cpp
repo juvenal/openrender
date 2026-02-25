@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: curves.cpp
  *
@@ -720,8 +720,8 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
 
                 for (j = 0; j < np; j++) {
                     if (vertex[j] > maxSize) {
-                    maxSize = vertex[j];
-                }
+                        maxSize = vertex[j];
+                    }
                 }
             }
 

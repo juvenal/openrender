@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: orender.cpp
  *
@@ -162,7 +162,7 @@ void riThread(void *w) {
     send(peer_socket, (char *)&a, sizeof(T64), 0);
 
     snprintf(managerString, sizeof(managerString), "#rib:%s net:client=%zu", buffer[1].string,
-            static_cast<size_t>(reinterpret_cast<uintptr_t>(buffer[0].pointer)));
+             static_cast<size_t>(reinterpret_cast<uintptr_t>(buffer[0].pointer)));
 
     // I may want to do this in a seperate process
     RiBegin(managerString);

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: brickmap.cpp
  *
@@ -201,7 +201,7 @@ CBrickMap::CBrickMap(FILE *in, const char *name, const float *from, const float 
             // Read linked list of nodes for this bucket
             while (TRUE) {
                 CBrickNode *cNode = new CBrickNode;
-                cNode->brick = NULL;  // Always NULL when reading from disk
+                cNode->brick = NULL; // Always NULL when reading from disk
 
                 // Read node data fields (portable I/O)
                 int32_p x_i, y_i, z_i, d_i;

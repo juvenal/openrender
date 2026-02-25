@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp.h
  *
@@ -183,7 +183,7 @@
 #include <stdio.h>               /* Standard I/O info			*/
 #include <stdlib.h>              /* Standard library info		*/
 #include <string.h>
-#include <unistd.h>              /* POSIX read(), close()		*/
+#include <unistd.h> /* POSIX read(), close()		*/
 
 #if HOST == H_XENIX
 #include <sys/types.h> /* Need for 'time_t'			*/
@@ -206,7 +206,7 @@
 #include <sys/types.h>
 /* strchr, strrchr, and memmove are standard C17; no aliases needed */
 /* memmov is a local implementation in pp4.c -- do not alias to bcopy */
-#endif               /* HOST == H_BSD */
+#endif /* HOST == H_BSD */
 
 #endif /* HOST != H_CPM */
 
@@ -391,12 +391,12 @@ struct file {
  *	Define static vars that are a bit more efficient to access.
  */
 
-EXTERN int Bufc I_ZERO;    /* Current file char count		*/
-EXTERN char *Bufp I_ZERO;  /* Current file char ptr 		*/
-EXTERN int Lasteol I_ZERO; /* True if last char processed was EOL	*/
-EXTERN int LLine I_ZERO;   /* Last line number			*/
+EXTERN int Bufc I_ZERO;     /* Current file char count		*/
+EXTERN char *Bufp I_ZERO;   /* Current file char ptr 		*/
+EXTERN int Lasteol I_ZERO;  /* True if last char processed was EOL	*/
+EXTERN int LLine I_ZERO;    /* Last line number			*/
 EXTERN int (*Nextch)(void); /* Next char function		*/
-#define nextch (*Nextch)   /* Macro to rd chars via Nextch	*/
+#define nextch (*Nextch)    /* Macro to rd chars via Nextch	*/
 
 EXTERN struct file *Filestack[FILESTACKSIZE + 1] I_BRZERO;
 EXTERN int Filelevel I_ZERO; /* Include level	*/
@@ -433,10 +433,10 @@ struct param {
  */
 
 struct ppdir {
-        char *pp_name;     /* #function name		*/
-        char pp_ifif;      /* FALSE if ! to do on false #if*/
+        char *pp_name;                           /* #function name		*/
+        char pp_ifif;                            /* FALSE if ! to do on false #if*/
         void (*pp_func)(int, int, const char *); /* Address of function */
-        int pp_arg;        /* Argument to function		*/
+        int pp_arg;                              /* Argument to function		*/
 };
 
 /*

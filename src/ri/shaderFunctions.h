@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: shaderFunctions.h
  *
@@ -47,7 +47,8 @@ DEFFUNC(DebugVector, "debug", "o=v", FUN1EXPR_PRE, DEBUGVEXPR, FUN1EXPR_UPDATE(3
             mulvf(res, op1, -1); \
         else                     \
             movvv(res, op1);     \
-    } else {                     \
+    }                            \
+    else {                       \
         if (dotvv(op2, Ng) > 0)  \
             movvv(res, op1);     \
         else                     \
@@ -68,7 +69,8 @@ DEFFUNC(FaceForward, "faceforward", "v=vv", FACEFORWARDEXPR_PRE, FACEFORWARDEXPR
             mulvf(res, op1, -1); \
         else                     \
             movvv(res, op1);     \
-    } else {                     \
+    }                            \
+    else {                       \
         if (dotvv(op2, op3) > 0) \
             movvv(res, op1);     \
         else                     \
@@ -162,7 +164,8 @@ DEFFUNC(Dvv, "Dv", "v=v", DVVEXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, PARAMETE
 #define DERIVFEXPR                        \
     if (duBottom[0] != 0) {               \
         res[0] = duTop[0] / duBottom[0];  \
-    } else {                              \
+    }                                     \
+    else {                                \
         res[0] = 0;                       \
     }                                     \
                                           \
@@ -210,7 +213,8 @@ DEFFUNC(Derivf, "Deriv", "f=ff", DERIVFEXPR_PRE, DERIVFEXPR, DERIVFEXPR_UPDATE, 
         res[0] = (float)((double)duTop[0] / (double)duBottom[0]);  \
         res[1] = (float)((double)duTop[1] / (double)duBottom[0]);  \
         res[2] = (float)((double)duTop[2] / (double)duBottom[0]);  \
-    } else {                                                       \
+    }                                                              \
+    else {                                                         \
         res[0] = 0;                                                \
         res[1] = 0;                                                \
         res[2] = 0;                                                \
@@ -304,10 +308,12 @@ DEFFUNC(Area, "area", "f=p", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXPR,
         duVector(dPdu, op);                                                                         \
         dvVector(dPdv, op);                                                                         \
         dicingMeasure = FALSE;                                                                      \
-    } else if (strcmp(*measure, "dicing") == 0) {                                                   \
+    }                                                                                               \
+    else if (strcmp(*measure, "dicing") == 0) {                                                     \
         du = rayDiff(op);                                                                           \
         dicingMeasure = TRUE;                                                                       \
-    } else {                                                                                        \
+    }                                                                                               \
+    else {                                                                                          \
         error(CODE_BADTOKEN, "Unrecognized area measure: \"%s\". Assuming \"dicing\"\n", *measure); \
         du = rayDiff(op);                                                                           \
         dicingMeasure = TRUE;                                                                       \
@@ -317,7 +323,8 @@ DEFFUNC(Area, "area", "f=p", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXPR,
     if (dicingMeasure) {          \
         assert(*du >= 0);         \
         *res = (*du) * (*du);     \
-    } else {                      \
+    }                             \
+    else {                        \
         mulvf(dPdu, du[0]);       \
         mulvf(dPdv, dv[0]);       \
         crossvv(tmp, dPdu, dPdv); \
@@ -796,7 +803,8 @@ DEFFUNC(Ambient, "ambient", "c=", AMBIENTEXPR_PRE, AMBIENTEXPR, AMBIENTEXPR_UPDA
             CLightShaderData *lightData = (CLightShaderData *)_inst->data;        \
             nd = (*currentLight)->savedState[2 + lightData->nonDiffuseIndex];     \
             ndStep = lightData->nonDiffuseStep;                                   \
-        } else {                                                                  \
+        }                                                                         \
+        else {                                                                    \
             nd = &_nd;                                                            \
             ndStep = 0;                                                           \
         }                                                                         \
@@ -868,7 +876,8 @@ DEFLIGHTFUNC(Diffuse, "diffuse", "c=n", DIFFUSEEXPR_PRE, DIFFUSEEXPR, DIFFUSEEXP
             CLightShaderData *lightData = (CLightShaderData *)_inst->data;        \
             nd = (*currentLight)->savedState[2 + lightData->nonDiffuseIndex];     \
             ndStep = lightData->nonDiffuseStep;                                   \
-        } else {                                                                  \
+        }                                                                         \
+        else {                                                                    \
             nd = &_nd;                                                            \
             ndStep = 0;                                                           \
         }                                                                         \
@@ -946,7 +955,8 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
             CLightShaderData *lightData = (CLightShaderData *)_inst->data;        \
             ns = (*currentLight)->savedState[2 + lightData->nonSpecularIndex];    \
             nsStep = lightData->nonSpecularStep;                                  \
-        } else {                                                                  \
+        }                                                                         \
+        else {                                                                    \
             ns = &_ns;                                                            \
             nsStep = 0;                                                           \
         }                                                                         \
@@ -1033,7 +1043,8 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
             CLightShaderData *lightData = (CLightShaderData *)_inst->data;           \
             ns = (*currentLight)->savedState[2 + lightData->nonSpecularIndex];       \
             nsStep = lightData->nonSpecularStep;                                     \
-        } else {                                                                     \
+        }                                                                            \
+        else {                                                                       \
             ns = &_ns;                                                               \
             nsStep = 0;                                                              \
         }                                                                            \
@@ -1044,20 +1055,21 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
         refDir = refDirs;                                                            \
         tags = tagStart;
 
-#define PHONGEXPR                                                                              \
-    normalizev(Ltmp, L);                                                                       \
-    const float dotProduct = dotvv(refDir, Ltmp);                                              \
-    float clampedDot;                                                                          \
-    if (0 > dotProduct) {                                                                      \
-        clampedDot = 0;                                                                        \
-    } else {                                                                                   \
-        clampedDot = dotProduct;                                                               \
-    }                                                                                          \
-    const float coefficient = (1.0f - ns[0]) * (float)pow(clampedDot, *size);                 \
-    if (coefficient > 0) {                                                                     \
-        R[COMP_R] += coefficient * Cl[COMP_R];                                                 \
-        R[COMP_G] += coefficient * Cl[COMP_G];                                                 \
-        R[COMP_B] += coefficient * Cl[COMP_B];                                                 \
+#define PHONGEXPR                                                             \
+    normalizev(Ltmp, L);                                                      \
+    const float dotProduct = dotvv(refDir, Ltmp);                             \
+    float clampedDot;                                                         \
+    if (0 > dotProduct) {                                                     \
+        clampedDot = 0;                                                       \
+    }                                                                         \
+    else {                                                                    \
+        clampedDot = dotProduct;                                              \
+    }                                                                         \
+    const float coefficient = (1.0f - ns[0]) * (float)pow(clampedDot, *size); \
+    if (coefficient > 0) {                                                    \
+        R[COMP_R] += coefficient * Cl[COMP_R];                                \
+        R[COMP_G] += coefficient * Cl[COMP_G];                                \
+        R[COMP_B] += coefficient * Cl[COMP_B];                                \
     }
 
 #define PHONGEXPR_UPDATE \
@@ -1087,18 +1099,19 @@ DEFLIGHTFUNC(Phong, "phong", "c=nvf", PHONGEXPR_PRE, PHONGEXPR, PHONGEXPR_UPDATE
     operand(3, op3, const float *);     \
     operand(4, op4, const float *);
 
-#define SPECULARBRDFEXPR                                                \
-    addvv(halfway, op3, op1);                                           \
-    normalizev(halfway);                                                \
-    const float dotProduct = dotvv(op2, halfway);                       \
-    float clampedDot;                                                   \
-    if (0 > dotProduct) {                                               \
-        clampedDot = 0;                                                 \
-    } else {                                                            \
-        clampedDot = dotProduct;                                        \
-    }                                                                   \
-    res[0] = (float)pow(clampedDot, (10.0f) / (*op4));                 \
-    res[1] = res[0];                                                    \
+#define SPECULARBRDFEXPR                               \
+    addvv(halfway, op3, op1);                          \
+    normalizev(halfway);                               \
+    const float dotProduct = dotvv(op2, halfway);      \
+    float clampedDot;                                  \
+    if (0 > dotProduct) {                              \
+        clampedDot = 0;                                \
+    }                                                  \
+    else {                                             \
+        clampedDot = dotProduct;                       \
+    }                                                  \
+    res[0] = (float)pow(clampedDot, (10.0f) / (*op4)); \
+    res[1] = res[0];                                   \
     res[2] = res[1];
 
 #define SPECULARBRDFEXPR_UPDATE \
@@ -1135,13 +1148,15 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
         if (cVar != NULL) {                                                                          \
             if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {   \
                 src = currentShadingState->locals[accessor][cVar->entry];                            \
-            } else {                                                                                 \
+            }                                                                                        \
+            else {                                                                                   \
                 src = varying[cVar->entry];                                                          \
             }                                                                                        \
             srcStep = cVar->numFloats;                                                               \
             if ((cVar->container == CONTAINER_UNIFORM) || (cVar->container == CONTAINER_CONSTANT)) { \
                 srcStep = 0;                                                                         \
-            } else if (op2Step == 0) {                                                               \
+            }                                                                                        \
+            else if (op2Step == 0) {                                                                 \
                 /* guard against varying->uniform assignment : nullify copy */                       \
                 srcStep = 0;                                                                         \
                 src = op2;                                                                           \
@@ -1173,7 +1188,8 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
             srcStep = cVar->numFloats;                                                               \
             if ((cVar->container == CONTAINER_UNIFORM) || (cVar->container == CONTAINER_CONSTANT)) { \
                 srcStep = 0;                                                                         \
-            } else if (op2Step == 0) {                                                               \
+            }                                                                                        \
+            else if (op2Step == 0) {                                                                 \
                 /* guard against varying->uniform assignment : nullify copy */                       \
                 srcStep = 0;                                                                         \
                 src = op2;                                                                           \
@@ -1358,7 +1374,8 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
     if (textureInfo == NULL) {                                       \
         found = 0;                                                   \
         src = op3; /* prevent writing result */                      \
-    } else {                                                         \
+    }                                                                \
+    else {                                                           \
                                                                      \
         for (int i = 0; i < 16 * 2; ++i)                             \
             out[i] = 0;                                              \
@@ -1367,18 +1384,24 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
                                                                      \
         if (strcmp(*op2, "resolution") == 0) {                       \
             textureInfo->getResolution(out);                         \
-        } else if (strcmp(*op2, "type") == 0) {                      \
+        }                                                            \
+        else if (strcmp(*op2, "type") == 0) {                        \
             outS = textureInfo->getTextureType();                    \
             src = (_t) & outS;                                       \
-        } else if (strcmp(*op2, "channels") == 0) {                  \
+        }                                                            \
+        else if (strcmp(*op2, "channels") == 0) {                    \
             out[0] = (float)textureInfo->getNumChannels();           \
-        } else if (strcmp(*op2, "viewingmatrix") == 0) {             \
+        }                                                            \
+        else if (strcmp(*op2, "viewingmatrix") == 0) {               \
             found = (float)textureInfo->getViewMatrix(out);          \
-        } else if (strcmp(*op2, "projectionmatrix") == 0) {          \
+        }                                                            \
+        else if (strcmp(*op2, "projectionmatrix") == 0) {            \
             found = (float)textureInfo->getProjectionMatrix(out);    \
-        } else if (strcmp(*op2, "exists") == 0) {                    \
+        }                                                            \
+        else if (strcmp(*op2, "exists") == 0) {                      \
             src = op3; /* prevent writing result */                  \
-        } else {                                                     \
+        }                                                            \
+        else {                                                       \
             found = 0;                                               \
             src = op3; /* prevent writing result */                  \
         }                                                            \
@@ -1765,49 +1788,52 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     duVector(dDdu, D);                                                                                                       \
     dvVector(dDdv, D);
 
-#define ENVIRONMENTEXPR(__float)                                                            \
-    plReady();                                                                              \
-    if (tex == NULL) {                                                                      \
-        rays->res = res;                                                                    \
-        movvv(rays->D, D);                                                                  \
-        mulvf(rays->dDdu, dDdu, (*du) * swidth);                                            \
-        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                                            \
-        movvv(rays->P, P);                                                                  \
-        mulvf(rays->dPdu, dPdu, (*du) * swidth);                                            \
-        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                                            \
-        float largerConeAngle;                                                              \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                 \
-            largerConeAngle = scratch->textureParams.blur;                                  \
-        } else {                                                                            \
-            largerConeAngle = scratch->traceParams.coneAngle;                               \
-        }                                                                                   \
-        rays->coneAngle = largerConeAngle;                                                  \
-        rays->numSamples = (int)scratch->traceParams.samples;                               \
-        rays->bias = scratch->traceParams.bias;                                             \
-        rays->sampleBase = scratch->traceParams.sampleBase;                                 \
-        rays->maxDist = scratch->traceParams.maxDist;                                       \
-        rays->time = *time;                                                                 \
-        ++rays;                                                                             \
-        ++numRays;                                                                          \
-    } else {                                                                                \
-        vector D0, D1, D2, D3;                                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                                 \
-        subvv(D0, D, dDdu);                                                                 \
-        subvv(D0, dDdv);                                                                    \
-        addvv(D1, D, dDdu);                                                                 \
-        subvv(D1, dDdv);                                                                    \
-        subvv(D2, D, dDdu);                                                                 \
-        addvv(D2, dDdv);                                                                    \
-        addvv(D3, D, dDdu);                                                                 \
-        addvv(D3, dDdv);                                                                    \
-        if (__float) {                                                                      \
-            vector color;                                                                   \
-            tex->lookup(color, D0, D1, D2, D3, this);                                       \
-            *res = color[0];                                                                \
-        } else {                                                                            \
-            tex->lookup(res, D0, D1, D2, D3, this);                                         \
-        }                                                                                   \
+#define ENVIRONMENTEXPR(__float)                                            \
+    plReady();                                                              \
+    if (tex == NULL) {                                                      \
+        rays->res = res;                                                    \
+        movvv(rays->D, D);                                                  \
+        mulvf(rays->dDdu, dDdu, (*du) * swidth);                            \
+        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                            \
+        movvv(rays->P, P);                                                  \
+        mulvf(rays->dPdu, dPdu, (*du) * swidth);                            \
+        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                            \
+        float largerConeAngle;                                              \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
+            largerConeAngle = scratch->textureParams.blur;                  \
+        }                                                                   \
+        else {                                                              \
+            largerConeAngle = scratch->traceParams.coneAngle;               \
+        }                                                                   \
+        rays->coneAngle = largerConeAngle;                                  \
+        rays->numSamples = (int)scratch->traceParams.samples;               \
+        rays->bias = scratch->traceParams.bias;                             \
+        rays->sampleBase = scratch->traceParams.sampleBase;                 \
+        rays->maxDist = scratch->traceParams.maxDist;                       \
+        rays->time = *time;                                                 \
+        ++rays;                                                             \
+        ++numRays;                                                          \
+    }                                                                       \
+    else {                                                                  \
+        vector D0, D1, D2, D3;                                              \
+        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
+        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
+        subvv(D0, D, dDdu);                                                 \
+        subvv(D0, dDdv);                                                    \
+        addvv(D1, D, dDdu);                                                 \
+        subvv(D1, dDdv);                                                    \
+        subvv(D2, D, dDdu);                                                 \
+        addvv(D2, dDdv);                                                    \
+        addvv(D3, D, dDdu);                                                 \
+        addvv(D3, dDdv);                                                    \
+        if (__float) {                                                      \
+            vector color;                                                   \
+            tex->lookup(color, D0, D1, D2, D3, this);                       \
+            *res = color[0];                                                \
+        }                                                                   \
+        else {                                                              \
+            tex->lookup(res, D0, D1, D2, D3, this);                         \
+        }                                                                   \
     }
 
 #define ENVIRONMENTEXPR_UPDATE(__n) \
@@ -1834,7 +1860,8 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
             for (int i = numRays; i > 0; --i, ++rays) {                       \
                 *(rays->res) = (rays->C[0] + rays->C[1] + rays->C[2]) / 3.0f; \
             }                                                                 \
-        } else {                                                              \
+        }                                                                     \
+        else {                                                                \
             for (int i = numRays; i > 0; --i, ++rays)                         \
                 movvv(rays->res, rays->C);                                    \
         }                                                                     \
@@ -1874,49 +1901,52 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         dvVector(dPdv, tmp);                                                                              \
     }
 
-#define SHADOWEXPR(__float)                                                                 \
-    plReady();                                                                              \
-    if (tex == NULL) {                                                                      \
-        rays->res = res;                                                                    \
-        movvv(rays->P, D);                                                                  \
-        mulvf(rays->dPdu, dDdu, (*du) * swidth);                                            \
-        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                                            \
-        subvv(rays->D, D, L);                                                               \
-        mulvf(rays->dDdu, dPdu, (*du) * swidth);                                            \
-        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                                            \
-        float largerConeAngle2;                                                             \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                 \
-            largerConeAngle2 = scratch->textureParams.blur;                                 \
-        } else {                                                                            \
-            largerConeAngle2 = scratch->traceParams.coneAngle;                              \
-        }                                                                                   \
-        rays->coneAngle = largerConeAngle2;                                                 \
-        rays->sampleBase = scratch->traceParams.sampleBase;                                 \
-        rays->numSamples = (int)scratch->traceParams.samples;                               \
-        rays->bias = scratch->traceParams.bias;                                             \
-        rays->maxDist = scratch->traceParams.maxDist;                                       \
-        rays->time = *time;                                                                 \
-        ++rays;                                                                             \
-        ++numRays;                                                                          \
-    } else {                                                                                \
-        vector D0, D1, D2, D3;                                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                                 \
-        subvv(D0, D, dDdu);                                                                 \
-        subvv(D0, dDdv);                                                                    \
-        addvv(D1, D, dDdu);                                                                 \
-        subvv(D1, dDdv);                                                                    \
-        subvv(D2, D, dDdu);                                                                 \
-        addvv(D2, dDdv);                                                                    \
-        addvv(D3, D, dDdu);                                                                 \
-        addvv(D3, dDdv);                                                                    \
-        if (__float) {                                                                      \
-            vector color;                                                                   \
-            tex->lookup(color, D0, D1, D2, D3, this);                                       \
-            *res = (color[0] + color[1] + color[2]) / 3.0f;                                 \
-        } else {                                                                            \
-            tex->lookup(res, D0, D1, D2, D3, this);                                         \
-        }                                                                                   \
+#define SHADOWEXPR(__float)                                                 \
+    plReady();                                                              \
+    if (tex == NULL) {                                                      \
+        rays->res = res;                                                    \
+        movvv(rays->P, D);                                                  \
+        mulvf(rays->dPdu, dDdu, (*du) * swidth);                            \
+        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                            \
+        subvv(rays->D, D, L);                                               \
+        mulvf(rays->dDdu, dPdu, (*du) * swidth);                            \
+        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                            \
+        float largerConeAngle2;                                             \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
+            largerConeAngle2 = scratch->textureParams.blur;                 \
+        }                                                                   \
+        else {                                                              \
+            largerConeAngle2 = scratch->traceParams.coneAngle;              \
+        }                                                                   \
+        rays->coneAngle = largerConeAngle2;                                 \
+        rays->sampleBase = scratch->traceParams.sampleBase;                 \
+        rays->numSamples = (int)scratch->traceParams.samples;               \
+        rays->bias = scratch->traceParams.bias;                             \
+        rays->maxDist = scratch->traceParams.maxDist;                       \
+        rays->time = *time;                                                 \
+        ++rays;                                                             \
+        ++numRays;                                                          \
+    }                                                                       \
+    else {                                                                  \
+        vector D0, D1, D2, D3;                                              \
+        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
+        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
+        subvv(D0, D, dDdu);                                                 \
+        subvv(D0, dDdv);                                                    \
+        addvv(D1, D, dDdu);                                                 \
+        subvv(D1, dDdv);                                                    \
+        subvv(D2, D, dDdu);                                                 \
+        addvv(D2, dDdv);                                                    \
+        addvv(D3, D, dDdu);                                                 \
+        addvv(D3, dDdv);                                                    \
+        if (__float) {                                                      \
+            vector color;                                                   \
+            tex->lookup(color, D0, D1, D2, D3, this);                       \
+            *res = (color[0] + color[1] + color[2]) / 3.0f;                 \
+        }                                                                   \
+        else {                                                              \
+            tex->lookup(res, D0, D1, D2, D3, this);                         \
+        }                                                                   \
     }
 
 #define SHADOWEXPR_UPDATE(__n) \
@@ -1942,7 +1972,8 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
             for (int i = numRays; i > 0; --i, ++rays) {                           \
                 *(rays->res) = 1 - (rays->C[0] + rays->C[1] + rays->C[2]) / 3.0f; \
             }                                                                     \
-        } else {                                                                  \
+        }                                                                         \
+        else {                                                                    \
             for (int i = numRays; i > 0; --i, ++rays) {                           \
                 res = rays->res;                                                  \
                 res[0] = 1 - rays->C[0];                                          \
@@ -1977,29 +2008,30 @@ DEFSHORTFUNC(ShadowColor, "shadow", "c=SFp!", SHADOWEXPR_PRE, SHADOWEXPR(FALSE),
 // filterstep "f=ff!"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef INIT_SHADING
-#define FILTERSTEP2EXPR_PRE                                                           \
-    FUN3EXPR_PRE                                                                      \
-    plBegin(CFilterLookup, 3);                                                        \
-    float *dsdu = (float *)ralloc(numVertices * 2 * sizeof(float), threadMemory);     \
-    float *dsdv = dsdu + numVertices;                                                 \
-    float *fwidth = dsdu;                                                             \
-    const float *du = varying[VARIABLE_DU];                                           \
-    const float *dv = varying[VARIABLE_DV];                                           \
-    const float *s = op2;                                                             \
-                                                                                      \
-    duFloat(dsdu, s);                                                                 \
-    dvFloat(dsdv, s);                                                                 \
-    for (int i = 0; i < numVertices; ++i) {                                           \
-        dsdu[i] = fabs(dsdu[i] * du[i]);                                              \
-        dsdv[i] = fabs(dsdv[i] * dv[i]);                                              \
-        float sumValue = dsdu[i] + dsdv[i];                                           \
-        float clampedSum;                                                              \
-        if (C_EPSILON > sumValue) {                                                    \
-            clampedSum = C_EPSILON;                                                    \
-        } else {                                                                       \
-            clampedSum = sumValue;                                                     \
-        }                                                                              \
-        fwidth[i] = scratch->textureParams.width * clampedSum;                         \
+#define FILTERSTEP2EXPR_PRE                                                       \
+    FUN3EXPR_PRE                                                                  \
+    plBegin(CFilterLookup, 3);                                                    \
+    float *dsdu = (float *)ralloc(numVertices * 2 * sizeof(float), threadMemory); \
+    float *dsdv = dsdu + numVertices;                                             \
+    float *fwidth = dsdu;                                                         \
+    const float *du = varying[VARIABLE_DU];                                       \
+    const float *dv = varying[VARIABLE_DV];                                       \
+    const float *s = op2;                                                         \
+                                                                                  \
+    duFloat(dsdu, s);                                                             \
+    dvFloat(dsdv, s);                                                             \
+    for (int i = 0; i < numVertices; ++i) {                                       \
+        dsdu[i] = fabs(dsdu[i] * du[i]);                                          \
+        dsdv[i] = fabs(dsdv[i] * dv[i]);                                          \
+        float sumValue = dsdu[i] + dsdv[i];                                       \
+        float clampedSum;                                                         \
+        if (C_EPSILON > sumValue) {                                               \
+            clampedSum = C_EPSILON;                                               \
+        }                                                                         \
+        else {                                                                    \
+            clampedSum = sumValue;                                                \
+        }                                                                         \
+        fwidth[i] = scratch->textureParams.width * clampedSum;                    \
     }
 
 #define FILTERSTEP2EXPR \
@@ -2098,7 +2130,8 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
     mulvf(dPdv, *dv);                                                                                      \
     if (scratch->texture3dParams.radius > 0) {                                                             \
         radius = scratch->texture3dParams.radius * scratch->texture3dParams.radiusScale;                   \
-    } else {                                                                                               \
+    }                                                                                                      \
+    else {                                                                                                 \
         radius = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f * scratch->texture3dParams.radiusScale;            \
     }                                                                                                      \
                                                                                                            \
@@ -2106,7 +2139,8 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
     if (doInterp == FALSE) {                                                                               \
         movvv(P, op3);                                                                                     \
         tex->store(dest, P, op4, radius);                                                                  \
-    } else if ((curU < uVerts - 1) && (curV < vVerts - 1)) {                                               \
+    }                                                                                                      \
+    else if ((curU < uVerts - 1) && (curV < vVerts - 1)) {                                                 \
         /* skip the end - do not double-bake seams */                                                      \
         P[0] = (dPdu[0] + dPdv[0]) * 0.5f + op3[0];                                                        \
         P[1] = (dPdu[1] + dPdv[1]) * 0.5f + op3[1];                                                        \
@@ -2190,7 +2224,8 @@ DEFSHORTFUNC(Bake3d, "bake3d", "f=SSpn!", BAKE3DEXPR_PRE, BAKE3DEXPR, BAKE3DEXPR
     mulvf(dPdv, *dv);                                                                                     \
     if (scratch->texture3dParams.radius > 0) {                                                            \
         radius = scratch->texture3dParams.radius * scratch->texture3dParams.radiusScale;                  \
-    } else {                                                                                              \
+    }                                                                                                     \
+    else {                                                                                                \
         radius = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f * scratch->texture3dParams.radiusScale;           \
     }                                                                                                     \
     tex->lookup(dest, op2, op3, radius);                                                                  \

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp5.c
  *
@@ -64,9 +64,9 @@
 /*									*/
 /************************************************************************/
 
-void doelse(int elif, int no_flag, const char *name)
-{
-    (void)no_flag; (void)name;
+void doelse(int elif, int no_flag, const char *name) {
+    (void)no_flag;
+    (void)name;
 
     LOG_DEBUG("doelse: %d", Iflevel);
 
@@ -112,9 +112,10 @@ void doelse(int elif, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void doendif(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void doendif(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
 
     LOG_DEBUG("doendif: %d", Iflevel);
 
@@ -132,9 +133,10 @@ void doendif(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void doif(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void doif(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     if (Iflevel >= IFSTACKSIZE)
         non_fatal("\"#if\" stack overflow", "");
     else {
@@ -161,9 +163,9 @@ void doif(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void doifs(int t, int no_flag, const char *name)
-{
-    (void)no_flag; (void)name;
+void doifs(int t, int no_flag, const char *name) {
+    (void)no_flag;
+    (void)name;
     int iftype;
 
     if (Ifstate == IFTRUE) {

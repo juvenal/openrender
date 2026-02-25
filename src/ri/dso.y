@@ -1,6 +1,6 @@
 %{
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: dso.y
  *

@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: oshader.cpp
  *
@@ -96,7 +96,7 @@ static const char *argumentResolutionInfo = "-ri";
 static const char *argumentHelp = "-h";
 static const char *argumentPrintVersionInfo = "-v";
 static const char *argumentQuietInfo = "-q";
-static const char *argumentLogLevel     = "-d";
+static const char *argumentLogLevel = "-d";
 static const char *argumentLogLevelLong = "--log";
 
 ///////////////////////////////////////////////////////////////////////
@@ -221,11 +221,18 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], argumentLogLevel) == 0 ||
                    strcmp(argv[i], argumentLogLevelLong) == 0) {
             if (++i < argc) {
-                if      (strcasecmp(argv[i], "error") == 0) LOG_SET_LEVEL(LOG_LEVEL_ERROR);
-                else if (strcasecmp(argv[i], "warn")  == 0) LOG_SET_LEVEL(LOG_LEVEL_WARN);
-                else if (strcasecmp(argv[i], "info")  == 0) LOG_SET_LEVEL(LOG_LEVEL_INFO);
-                else if (strcasecmp(argv[i], "debug") == 0) LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
-                else { LOG_ERROR("Unknown log level: %s", argv[i]); exit(1); }
+                if (strcasecmp(argv[i], "error") == 0)
+                    LOG_SET_LEVEL(LOG_LEVEL_ERROR);
+                else if (strcasecmp(argv[i], "warn") == 0)
+                    LOG_SET_LEVEL(LOG_LEVEL_WARN);
+                else if (strcasecmp(argv[i], "info") == 0)
+                    LOG_SET_LEVEL(LOG_LEVEL_INFO);
+                else if (strcasecmp(argv[i], "debug") == 0)
+                    LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
+                else {
+                    LOG_ERROR("Unknown log level: %s", argv[i]);
+                    exit(1);
+                }
             }
         } else if (strcmp(argv[i], argumentPrintVersionInfo) == 0 || strcmp(argv[i], "-version") == 0 || strcmp(argv[i], "--version") == 0) {
             printVersion();

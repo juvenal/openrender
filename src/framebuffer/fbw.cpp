@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: fbw.cpp
  *
@@ -18,8 +18,8 @@
  *
  */
 
-#include "framebuffer.h"
 #include "fbw.h"
+#include "framebuffer.h"
 
 // Foward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

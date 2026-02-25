@@ -1,5 +1,5 @@
 /**
- * Project: Pixie
+ * Project: openRender
  *
  * File: pp2.c
  *
@@ -88,8 +88,7 @@
 #pragma optimize("l", off) /* Disable loop optimizations */
 #endif                     /* MSC_OPT */
 
-char *docall(struct symtab *p, char *internal, char *internal_limit)
-{
+char *docall(struct symtab *p, char *internal, char *internal_limit) {
     static char mbomsg[] = "Macro body overflow";
     static char toggle_token[] = {(char)TOGGLE_EXPAND, '\0'};
 
@@ -712,8 +711,7 @@ char *docall(struct symtab *p, char *internal, char *internal_limit)
 /*									*/
 /************************************************************************/
 
-char *_docall(char *line, char *internal, char *internal_limit)
-{
+char *_docall(char *line, char *internal, char *internal_limit) {
     static char mbomsg[] = "Macro body overflow";
 
     struct ppdir *d;
@@ -801,9 +799,9 @@ char *_docall(char *line, char *internal, char *internal_limit)
 /*									*/
 /************************************************************************/
 
-void dodefine(int mactype, int no_flag, const char *pragma_name)
-{
-    (void)no_flag; (void)pragma_name;
+void dodefine(int mactype, int no_flag, const char *pragma_name) {
+    (void)no_flag;
+    (void)pragma_name;
     static char mtlmsg[] = "Macro too long";
 
     char body[MACROSIZE]; /* Body of def	*/
@@ -918,9 +916,10 @@ void dodefine(int mactype, int no_flag, const char *pragma_name)
 /*									*/
 /************************************************************************/
 
-void doerror(int dummy, int no_flag, const char *name)
-{
-    (void)dummy; (void)no_flag; (void)name;
+void doerror(int dummy, int no_flag, const char *name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)name;
     char *cptr1;
     char *cptr2;
     char msgbuf[MESSAGEBUFSIZE];
@@ -942,9 +941,10 @@ void doerror(int dummy, int no_flag, const char *name)
 /*									*/
 /************************************************************************/
 
-void doundef(int dummy, int no_flag, const char *pragma_name)
-{
-    (void)dummy; (void)no_flag; (void)pragma_name;
+void doundef(int dummy, int no_flag, const char *pragma_name) {
+    (void)dummy;
+    (void)no_flag;
+    (void)pragma_name;
     if (getnstoken(GT_STR) == LETTER) {
         if (lookup(Token, NULL) != NULL) /* OK if symbol not defined */
             unsbind(Token);              /* Remove symbol from table */
@@ -960,8 +960,7 @@ void doundef(int dummy, int no_flag, const char *pragma_name)
 /*									*/
 /************************************************************************/
 
-char *esc_str(char *old, int c, char *limit)
-{
+char *esc_str(char *old, int c, char *limit) {
     if (((c == '"') || (c == '\\')) && (old < limit))
         *old++ = '\\';
     if (old < limit)
@@ -977,8 +976,7 @@ char *esc_str(char *old, int c, char *limit)
 /*									*/
 /************************************************************************/
 
-void fbind(struct symtab **formals, const char *name, const char *value)
-{
+void fbind(struct symtab **formals, const char *name, const char *value) {
     struct symtab *temp;
 
     if ((temp = (struct symtab *)malloc(sizeof(struct symtab) +
@@ -1003,8 +1001,7 @@ void fbind(struct symtab **formals, const char *name, const char *value)
 /*									*/
 /************************************************************************/
 
-char *flookup(struct symtab *formals, const char *name)
-{
+char *flookup(struct symtab *formals, const char *name) {
     while (formals != NULL) {
         if (strcmp(formals->s_name, name) == EQUAL)
             return (formals->s_body);
@@ -1031,8 +1028,7 @@ char *flookup(struct symtab *formals, const char *name)
 /*									*/
 /************************************************************************/
 
-struct param *getparams(void)
-{
+struct param *getparams(void) {
     static char *iffmsg = "Invalid macro parameter flag";
 
     int flags;
@@ -1119,8 +1115,7 @@ struct param *getparams(void)
 /*									*/
 /************************************************************************/
 
-unsigned int hash(const char *sym)
-{
+unsigned int hash(const char *sym) {
     unsigned int s;
     const char *str;
 
@@ -1138,8 +1133,7 @@ unsigned int hash(const char *sym)
 /*									*/
 /************************************************************************/
 
-struct symtab *lookup(const char *name, struct symtab **pe)
-{
+struct symtab *lookup(const char *name, struct symtab **pe) {
     struct symtab *c;
     struct symtab *p;
 
@@ -1173,8 +1167,7 @@ struct symtab *lookup(const char *name, struct symtab **pe)
 /*									*/
 /************************************************************************/
 
-struct param *makeparam(const char *s, int f)
-{
+struct param *makeparam(const char *s, int f) {
     struct param *p;
 
     p = (struct param *)malloc(sizeof(struct param) + strlen(s));
@@ -1197,8 +1190,7 @@ struct param *makeparam(const char *s, int f)
 /*									*/
 /************************************************************************/
 
-struct ppdir *predef(const char *n, struct ppdir *table)
-{
+struct ppdir *predef(const char *n, struct ppdir *table) {
     const char *name;
     struct ppdir *p;
 
@@ -1221,8 +1213,7 @@ struct ppdir *predef(const char *n, struct ppdir *table)
 /*									*/
 /************************************************************************/
 
-void sbind(const char *sym, const char *defn, struct param *params)
-{
+void sbind(const char *sym, const char *defn, struct param *params) {
     int i;
     struct symtab *p;
 
@@ -1260,8 +1251,7 @@ void sbind(const char *sym, const char *defn, struct param *params)
 /*									*/
 /************************************************************************/
 
-char *strize(char *result, char *limit, const char *msg, const char *new_str)
-{
+char *strize(char *result, char *limit, const char *msg, const char *new_str) {
     int c;
     int had_ws;
 
@@ -1332,8 +1322,7 @@ char *strize(char *result, char *limit, const char *msg, const char *new_str)
 /*									*/
 /************************************************************************/
 
-void unfbind(struct symtab *formals)
-{
+void unfbind(struct symtab *formals) {
     struct symtab *temp;
 
     while (formals != NULL) {
@@ -1352,8 +1341,7 @@ void unfbind(struct symtab *formals)
 /*									*/
 /************************************************************************/
 
-void unparam(struct param *pp)
-{
+void unparam(struct param *pp) {
     struct param *npp;
 
     for (; pp != NULL; pp = npp) {
@@ -1370,8 +1358,7 @@ void unparam(struct param *pp)
 /*									*/
 /************************************************************************/
 
-void unsbind(const char *sym)
-{
+void unsbind(const char *sym) {
     struct symtab *p;
     struct symtab *s;
 
