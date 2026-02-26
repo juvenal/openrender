@@ -17,7 +17,7 @@
  *
  */
 
-// This is the portion of Pixie that draws a quad into the zbuffer
+// This is the render code portion that draws a quad into the zbuffer
 int i, j;
 const int *bounds = grid->bounds;
 const float *vertices = grid->vertices;
@@ -96,7 +96,8 @@ for (j = 0; j < vdiv; j++) {
             sample[0] = z;                                                                               \
             if (flags & RASTER_MATTE) {                                                                  \
                 initv(sample, 0);                                                                        \
-            } else {                                                                                     \
+            }                                                                                            \
+            else {                                                                                       \
                 sample[1] = (v0[3] * (1 - u) + v1[3] * u) * (1 - v) + (v2[3] * (1 - u) + v3[3] * u) * v; \
                 sample[2] = (v0[4] * (1 - u) + v1[4] * u) * (1 - v) + (v2[4] * (1 - u) + v3[4] * u) * v; \
                 sample[3] = (v0[5] * (1 - u) + v1[5] * u) * (1 - v) + (v2[5] * (1 - u) + v3[5] * u) * v; \
@@ -126,7 +127,8 @@ for (j = 0; j < vdiv; j++) {
                     }
                 }
             }
-        } else {
+        }
+        else {
             if (flags & (RASTER_DRAW_FRONT | RASTER_SHADE_BACKFACE)) {
 
                 float xcent, ycent;
