@@ -2,11 +2,13 @@
 # This file contains a named ObjectBegin block that can be referenced
 
 ObjectBegin "test_cube"
-# Simple cube geometry definition
-Polygon "P" [-1 -1 -1  1 -1 -1  1  1 -1  -1  1 -1
-             -1 -1  1  1 -1  1  1  1  1  -1  1  1
-             -1 -1 -1  -1 -1  1  -1  1  1  -1  1 -1
-              1 -1 -1   1 -1  1   1  1  1   1  1 -1
-             -1 -1 -1   1 -1 -1   1 -1  1  -1 -1  1
-             -1  1 -1   1  1 -1   1  1  1  -1  1  1]
+  AttributeBegin
+    # Simple cube geometry definition
+    Polygon "P" [-1 -1 -1   1 -1 -1   1  1 -1  -1  1 -1
+                 -1 -1  1   1 -1  1   1  1  1  -1  1  1
+                 -1 -1 -1  -1 -1  1  -1  1  1  -1  1 -1
+                  1 -1 -1   1 -1  1   1  1  1   1  1 -1
+                 -1 -1 -1   1 -1 -1   1 -1  1  -1 -1  1
+                 -1  1 -1   1  1 -1   1  1  1  -1  1  1]
+  AttributeEnd
 ObjectEnd
