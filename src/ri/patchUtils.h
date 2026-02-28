@@ -44,7 +44,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
         float *Ng = varying[VARIABLE_NG];                               \
                                                                         \
         for (int i = numVertices; i > 0; i--, Ng += 3) {                \
-            if (dotvv(Ng, Ng) == 0) {                                   \
+            if (dotvv(Ng, Ng) < C_EPSILON * C_EPSILON) {                 \
                 const float *u = varying[VARIABLE_U];                   \
                 const float *v = varying[VARIABLE_V];                   \
                 const float *cNg = varying[VARIABLE_NG];                \
@@ -55,7 +55,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
                 int j;                                                  \
                                                                         \
                 for (j = numVertices; j > 0; j--, cNg += 3, u++, v++) { \
-                    if (dotvv(cNg, cNg) > 0) {                          \
+                    if (dotvv(cNg, cNg) > 0) {                                              \
                         const float du = cu - u[0];                     \
                         const float dv = cv - v[0];                     \
                         float d;                                        \
