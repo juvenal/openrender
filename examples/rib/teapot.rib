@@ -12,6 +12,10 @@ LightSource "finite" 3 "location" [0 10 10] "intensity" [0.6]
 Translate -1 10 -1.5
 Rotate 20 1 0 0
 Rotate -30 0 0 1
+Color [.2 .8 .1]
 Surface "blue_marble"
+# Surface "matte"
+# Surface "metal"
+# Surface "mtorPhong"
 Geometry "teapot"
 WorldEnd
