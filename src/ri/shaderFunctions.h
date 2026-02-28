@@ -261,11 +261,12 @@ DEFFUNC(Derivv, "Deriv", "v=vf", DERIVVEXPR_PRE, DERIVVEXPR, DERIVVEXPR_UPDATE, 
     duVector(dPdu, op);                                                           \
     dvVector(dPdv, op);
 
-#define AREAEXPR              \
-    mulvf(dPdu, du[0]);       \
-    mulvf(dPdv, dv[0]);       \
-    crossvv(tmp, dPdu, dPdv); \
-    *res = lengthv(tmp);      \
+#define AREAEXPR                                    \
+    mulvf(dPdu, du[0]);                             \
+    mulvf(dPdv, dv[0]);                             \
+    crossvv(tmp, dPdu, dPdv);                       \
+    *res = lengthv(tmp);                            \
+    if (*res < C_EPSILON) *res = C_EPSILON;         \
     assert(*res >= 0);
 
 #define AREAEXPR_UPDATE \
@@ -319,16 +320,17 @@ DEFFUNC(Area, "area", "f=p", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXPR,
         dicingMeasure = TRUE;                                                                       \
     }
 
-#define AREAEXPR                  \
-    if (dicingMeasure) {          \
-        assert(*du >= 0);         \
-        *res = (*du) * (*du);     \
-    }                             \
-    else {                        \
-        mulvf(dPdu, du[0]);       \
-        mulvf(dPdv, dv[0]);       \
-        crossvv(tmp, dPdu, dPdv); \
-        *res = lengthv(tmp);      \
+#define AREAEXPR                                    \
+    if (dicingMeasure) {                            \
+        assert(*du >= 0);                           \
+        *res = (*du) * (*du);                       \
+    }                                               \
+    else {                                          \
+        mulvf(dPdu, du[0]);                         \
+        mulvf(dPdv, dv[0]);                         \
+        crossvv(tmp, dPdu, dPdv);                   \
+        *res = lengthv(tmp);                        \
+        if (*res < C_EPSILON) *res = C_EPSILON;     \
     }
 
 #define AREAEXPR_UPDATE           \
@@ -968,16 +970,18 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
         power = powers;                                                           \
         tags = tagStart;
 
-#define SPECULAREXPR                                        \
-    normalizev(Ltmp, L);                                    \
-    addvv(halfway, V, Ltmp);                                \
-    normalizev(halfway);                                    \
-    const float tmp = ((1.0f - ns[0]) * dotvv(N, halfway)); \
-    if (tmp > 0) {                                          \
-        const float coefficient = (float)pow(tmp, *power);  \
-        R[COMP_R] += coefficient * Cl[COMP_R];              \
-        R[COMP_G] += coefficient * Cl[COMP_G];              \
-        R[COMP_B] += coefficient * Cl[COMP_B];              \
+#define SPECULAREXPR                                                    \
+    normalizev(Ltmp, L);                                                \
+    addvv(halfway, V, Ltmp);                                            \
+    if (dotvv(halfway, halfway) > 0) {                                  \
+        normalizev(halfway);                                            \
+        const float tmp = ((1.0f - ns[0]) * dotvv(N, halfway));        \
+        if (tmp > 0) {                                                  \
+            const float coefficient = (float)pow(tmp, *power);         \
+            R[COMP_R] += coefficient * Cl[COMP_R];                     \
+            R[COMP_G] += coefficient * Cl[COMP_G];                     \
+            R[COMP_B] += coefficient * Cl[COMP_B];                     \
+        }                                                               \
     }
 
 #define SPECULAREXPR_UPDATE \
@@ -1099,20 +1103,25 @@ DEFLIGHTFUNC(Phong, "phong", "c=nvf", PHONGEXPR_PRE, PHONGEXPR, PHONGEXPR_UPDATE
     operand(3, op3, const float *);     \
     operand(4, op4, const float *);
 
-#define SPECULARBRDFEXPR                               \
-    addvv(halfway, op3, op1);                          \
-    normalizev(halfway);                               \
-    const float dotProduct = dotvv(op2, halfway);      \
-    float clampedDot;                                  \
-    if (0 > dotProduct) {                              \
-        clampedDot = 0;                                \
-    }                                                  \
-    else {                                             \
-        clampedDot = dotProduct;                       \
-    }                                                  \
-    res[0] = (float)pow(clampedDot, (10.0f) / (*op4)); \
-    res[1] = res[0];                                   \
-    res[2] = res[1];
+#define SPECULARBRDFEXPR                                        \
+    addvv(halfway, op3, op1);                                   \
+    if (dotvv(halfway, halfway) > 0) {                          \
+        normalizev(halfway);                                    \
+        const float dotProduct = dotvv(op2, halfway);          \
+        float clampedDot;                                       \
+        if (0 > dotProduct) {                                   \
+            clampedDot = 0;                                     \
+        }                                                       \
+        else {                                                  \
+            clampedDot = dotProduct;                            \
+        }                                                       \
+        res[0] = (float)pow(clampedDot, (10.0f) / (*op4));     \
+        res[1] = res[0];                                        \
+        res[2] = res[1];                                        \
+    }                                                           \
+    else {                                                      \
+        res[0] = res[1] = res[2] = 0.0f;                       \
+    }
 
 #define SPECULARBRDFEXPR_UPDATE \
     res += 3;                   \

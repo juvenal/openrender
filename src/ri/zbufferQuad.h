@@ -27,6 +27,12 @@ const int udiv = grid->udiv;
 const int vdiv = grid->vdiv;
 const int flags = grid->flags;
 
+// Squared sample-space distance threshold for a sub-pixel top edge.
+// Scales with PixelSamples so the "shorter than 1 pixel" test stays correct
+// regardless of the super-sampling rate.
+const float degenerateEdgeSq = (float)(CRenderer::pixelXsamples * CRenderer::pixelXsamples
+                                        + CRenderer::pixelYsamples * CRenderer::pixelYsamples);
+
 // Iterate over every quad
 for (j = 0; j < vdiv; j++) {
     for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
@@ -109,9 +115,16 @@ for (j = 0; j < vdiv; j++) {
         }                                                                                                \
     }
 
+        const float dx01 = v1[COMP_X] - v0[COMP_X];
+        const float dy01 = v1[COMP_Y] - v0[COMP_Y];
         float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        if (fabsf(a) < C_EPSILON)
+        if (fabsf(a) < C_EPSILON || dx01 * dx01 + dy01 * dy01 < degenerateEdgeSq) {
+            // Top edge is degenerate or shorter than one pixel in sample space.
+            // Floating-point noise from a near-zero top edge makes the sign of the
+            // primary triangle unreliable. The second triangle always preserves the
+            // correct winding sign for front-facing convex quads.
             a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
+        }
         if (a > 0) {
 
             if (flags & (RASTER_DRAW_BACK | RASTER_SHADE_BACKFACE)) {

@@ -205,6 +205,12 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
     // Copy the normal vector
     if (usedParameters & PARAMETER_N) {
         memcpy(varying[VARIABLE_N], varying[VARIABLE_NG], 3 * num * sizeof(float));
+        float *nPtr = varying[VARIABLE_N];
+        for (int k = 0; k < num; k++, nPtr += 3) {
+            if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+            }
+        }
     }
 
     // ensure Oi and Ci are always filled in
@@ -338,6 +344,12 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 
     if (usedParameters & PARAMETER_N) {
         memcpy(varying[VARIABLE_N], varying[VARIABLE_NG], 3 * num * sizeof(float));
+        float *nPtr = varying[VARIABLE_N];
+        for (int k = 0; k < num; k++, nPtr += 3) {
+            if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+            }
+        }
     }
 
     // ensure Oi and Ci are always filled in
@@ -650,6 +662,14 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 }
 
                 memcpy(varying[VARIABLE_N], varying[VARIABLE_NG], numVertices * 3 * sizeof(float));
+                {
+                    float *nPtr = varying[VARIABLE_N];
+                    for (int k = 0; k < numVertices; k++, nPtr += 3) {
+                        if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                            nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+                        }
+                    }
+                }
             }
 
             // We're done here
