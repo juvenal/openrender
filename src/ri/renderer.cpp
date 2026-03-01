@@ -189,6 +189,8 @@ unsigned int CRenderer::raytracingFlags = 0;                             // init
 CObject *CRenderer::root = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 CObject *CRenderer::offendingObject = NULL;                              // initialized in beginFrame
 matrix CRenderer::fromWorld, CRenderer::toWorld;                         // initialized in beginFrame
+matrix CRenderer::fromWorld1, CRenderer::toWorld1;                       // initialized in beginFrame
+bool CRenderer::cameraHasMotion = false;                                  // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame
@@ -448,6 +450,18 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     world->attach();
     movmm(fromWorld, x->from);
     movmm(toWorld, x->to);
+
+    // Store camera motion endpoint (shutter close, t=1).
+    // If there is no pre-world MotionBegin, both endpoints are identical.
+    if (x->next != NULL) {
+        movmm(fromWorld1, x->next->from);
+        movmm(toWorld1,   x->next->to);
+        cameraHasMotion = true;
+    } else {
+        movmm(fromWorld1, x->from);
+        movmm(toWorld1,   x->to);
+        cameraHasMotion = false;
+    }
 
     assert(pixelXsamples > 0);
     assert(pixelYsamples > 0);

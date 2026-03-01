@@ -473,6 +473,40 @@ void CRendererContext::addObject(CObject *o) {
     // Are we in the world block ?
     if (CRenderer::world != NULL) {
 
+        // Apply camera motion blur to static objects when the camera is moving.
+        // We clone o->xform so the shared currentXform->next stays NULL and
+        // subsequent geometry objects are not contaminated.
+        if (CRenderer::cameraHasMotion && (o->xform->next == NULL)) {
+            CXform *privXform = new CXform(o->xform); // deep-copies from/to, next=NULL
+            o->xform->detach();
+            o->xform = privXform;
+            privXform->attach();
+
+            privXform->next = new CXform();
+            // next_from = fromWorld1 * toWorld * xform->from
+            //   = local->world->camera(t=1): object at camera position at shutter close
+            mulmm(privXform->next->from, CRenderer::fromWorld1, CRenderer::toWorld, privXform->from);
+            // next_to = xform->to * fromWorld * toWorld1  (inverse of next_from)
+            mulmm(privXform->next->to, privXform->to, CRenderer::fromWorld, CRenderer::toWorld1);
+            privXform->next->flip = privXform->flip;
+
+            // Expand the bounding box to cover the t=1 camera-space position.
+            // relMotion maps t=0 camera-space points into t=1 camera-space.
+            matrix relMotion;
+            mulmm(relMotion, CRenderer::fromWorld1, CRenderer::toWorld);
+            vector corners[8], vtmp;
+            initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]); mulmp(corners[0], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]); mulmp(corners[1], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]); mulmp(corners[2], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]); mulmp(corners[3], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]); mulmp(corners[4], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]); mulmp(corners[5], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]); mulmp(corners[6], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]); mulmp(corners[7], relMotion, vtmp);
+            for (int ci = 0; ci < 8; ci++)
+                addBox(o->bmin, o->bmax, corners[ci]);
+        }
+
         // Render the object
         CRenderer::render(o);
     }
@@ -648,8 +682,17 @@ void CRendererContext::RiWorldBegin(void) {
     // Define the world coordinate system
     CRenderer::defineCoordinateSystem(coordinateWorldSystem, currentXform->from, currentXform->to, COORDINATE_WORLD);
 
-    // Start the renderer
+    // Start the renderer. beginFrame() captures camera motion from currentXform->next
+    // (fromWorld1/toWorld1) before we discard the motion chain below.
     CRenderer::beginFrame(currentOptions, currentAttributes, currentXform);
+
+    // Clear any camera-motion chain deep-copied by xformBegin().
+    // Pre-world MotionBegin defines CAMERA motion, now captured in fromWorld1/toWorld1.
+    // Geometry inside WorldBegin must start from a clean (non-moving) transform.
+    if (currentXform->next != NULL) {
+        delete currentXform->next;
+        currentXform->next = NULL;
+    }
 
     // Update the sequence number
     stats.runningSequenceNumber++;

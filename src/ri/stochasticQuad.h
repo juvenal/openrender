@@ -448,7 +448,6 @@ for (y = ymin; y <= ymax; y++) {
                 if (x + left > bounds[1]) {
                     continue;
                 }
-                continue;
                 if (y + top < bounds[2]) {
                     continue;
                 }

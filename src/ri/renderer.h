@@ -393,7 +393,9 @@ class CRenderer {
         static CObject *offendingObject;                        // This points to the object creating an error
         static vector worldBmin, worldBmax;                     // The bounding box of the world
         static CXform *world;                                   // The world xform
-        static matrix fromWorld, toWorld;                       // Some misc matrices
+        static matrix fromWorld, toWorld;                       // Camera matrices at shutter open (t=0)
+        static matrix fromWorld1, toWorld1;                     // Camera matrices at shutter close (t=1)
+        static bool cameraHasMotion;                            // True when world->next != NULL at WorldBegin
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;

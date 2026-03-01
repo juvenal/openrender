@@ -522,6 +522,26 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
         }
     }
 
+    // Camera motion blur: apply per-ray relative camera motion to account
+    // for a moving camera defined by a pre-world MotionBegin/MotionEnd block.
+    // The relative motion M(t) = fromWorld * lerp(toWorld, toWorld1, t) is
+    // identity at t=0 and correctly composes the camera motion at other times.
+    if (CRenderer::cameraHasMotion && (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION)) {
+        cRay = rays;
+        for (i = numShading; i > 0; i--, cRay++) {
+            const float t = cRay->time;
+            if (t > 0.0f) {
+                matrix interp, relMotion;
+                for (int mi = 0; mi < 16; mi++)
+                    interp[mi] = CRenderer::toWorld[mi] * (1.0f - t) + CRenderer::toWorld1[mi] * t;
+                mulmm(relMotion, CRenderer::fromWorld, interp);
+                mulmp(cRay->from, relMotion, cRay->from);
+                mulmv(cRay->dir, relMotion, cRay->dir);
+                normalizev(cRay->dir);
+            }
+        }
+    }
+
     // Setup the ray differentials
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         const float a = CRenderer::dxdPixel / CRenderer::imagePlane;
