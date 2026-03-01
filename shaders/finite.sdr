@@ -3,17 +3,21 @@ light
 #!parameters:
 uniform	float	intensity	=	1
 uniform	color	lightcolor	=	1
-uniform	vector	location	=	 [ 0 0 0 ]
+uniform	point	location	=	"shader"  [ 0 0 0 ]
 #!variables:
-varying	vector	temporary_0
-uniform	vector	temporary_1
+uniform	vector	temporary_0
+varying	vector	temporary_1
 uniform	vector	temporary_2
 #!Init:
+	vfromf            	temporary_0 0 0 0
+	pfrom             	location "shader" temporary_0
 	return            
 #!Code:
-	vuvector           temporary_0 location
-	subvv             	L Ps temporary_0
+	vuvector           temporary_1 location
+	illuminate        	 temporary_1  #!Label2
 	vfromf            	temporary_2 intensity
-	mulvv             	temporary_1 temporary_2 lightcolor
-	vuvector           Cl temporary_1
+	mulvv             	temporary_0 temporary_2 lightcolor
+	vuvector           Cl temporary_0
+#!Label2:
+	endilluminate     
 	return            

@@ -6,9 +6,9 @@ Clipping 1 100000
 Transform [1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1]
 ScreenWindow -0.414336 0.414336 -0.31075 0.31075
 WorldBegin
-LightSource "ambientlight" 1 "intensity" [1.2]
-LightSource "finite" 2 "location" [-11 0 0] "intensity" [0.4]
-LightSource "finite" 3 "location" [0 10 10] "intensity" [0.6]
+LightSource "ambientlight" 1 "intensity" [4]
+LightSource "finite" 2 "location" [-11 0 0] "intensity" [0.9]
+LightSource "finite" 3 "location" [0 10 10] "intensity" [0.8]
 Translate -1 10 -1.5
 Rotate 20 1 0 0
 Rotate -30 0 0 1
