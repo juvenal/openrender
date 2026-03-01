@@ -80,7 +80,8 @@ add_library(openrender_common_flags INTERFACE)
 # Enable modern C++ warnings and optimizations
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(openrender_common_flags INTERFACE
-        -Wall -Wextra -Wpedantic
+        -Wall -Wextra
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
         $<$<CONFIG:Debug>:-g -O0>
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
     )

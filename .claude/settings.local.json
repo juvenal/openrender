@@ -27,7 +27,12 @@
       "Bash(git add:*)",
       "Bash(wc:*)",
       "Bash(head:*)",
-      "Bash(awk NR>=86 && NR<=110:*)"
+      "Bash(awk NR>=86 && NR<=110:*)",
+      "Bash(gcc:*)",
+      "Bash(DISPLAYS=build/src/file:build/src/framebuffer MODULES=build/src/ri ./build/orender:*)",
+      "Bash(DISPLAYS=build/src/file:build/src/framebuffer MODULES=build/src/ri build/src/orender/orender:*)",
+      "Bash(build/src/orender/orender:*)",
+      "Bash(export:*)"
     ]
   }
 }

@@ -44,17 +44,23 @@ add_executable(oshader ${oshader_sources})
 target_compile_features(oshader PRIVATE c_std_17 cxx_std_20)
 
 # Strict warning flags for clean, standard-conforming code
+# -Wpedantic is CXX-only: GCC C17 emits pedantic errors at every zero-arg LOG macro
+# call site (##__VA_ARGS__ GNU extension), blocking the build. GCC C++20 does not
+# warn about ##__VA_ARGS__, so C++ files are clean with -Wpedantic.
+# C-only flags are gated to avoid GCC "valid for C/ObjC but not C++" warnings.
 target_compile_options(oshader PRIVATE
 	-Wall
 	-Wextra
-	-Wpedantic
-	-Wold-style-definition
-	-Wstrict-prototypes
-	-Wmissing-prototypes
 	-Wmissing-declarations
 	-Wnull-dereference
 	-Wshadow
-	$<$<COMPILE_LANGUAGE:CXX>:-Wsuggest-override>
+	$<$<COMPILE_LANGUAGE:C>:
+		-Wold-style-definition
+		-Wstrict-prototypes
+		-Wmissing-prototypes>
+	$<$<COMPILE_LANGUAGE:CXX>:
+		-Wpedantic
+		-Wsuggest-override>
 )
 
 target_link_libraries(oshader openrendercommon)

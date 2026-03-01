@@ -46,10 +46,16 @@ static inline const char* _log_level_str(LogLevel level) {
 
 /* ##__VA_ARGS__ is a widely-supported GNU extension that removes a leading comma
  * when __VA_ARGS__ is empty, allowing LOG_DEBUG("msg") without extra format args.
- * Suppress the pedantic warning for these macro definitions. */
+ * Clang names it "-Wgnu-zero-variadic-macro-arguments"; GCC lumps it under
+ * "-Wpedantic" with no dedicated sub-flag. Both compiler pragma blocks are provided.
+ * Note: on GCC the pedantic warning fires at call sites, not at the definition;
+ * the primary C-file suppression comes from the oshader CMakeLists.txt config. */
 #ifdef __clang__
 #  pragma clang diagnostic push
 #  pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wpedantic"
 #endif
 
 #define LOG(level, fmt, ...) do { \
@@ -73,6 +79,8 @@ static inline const char* _log_level_str(LogLevel level) {
 
 #ifdef __clang__
 #  pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#  pragma GCC diagnostic pop
 #endif
 
 #endif // LOGGING_H

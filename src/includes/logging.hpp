@@ -71,9 +71,9 @@ void log(LogLevel level, LogMessage msg, Args&&... args) {
     log_output->flush();
 }
 
-#define log_debug(fmt, ...) log(LogLevel::DEBUG, LogMessage{fmt}, ##__VA_ARGS__)
-#define log_info(fmt, ...)  log(LogLevel::INFO,  LogMessage{fmt}, ##__VA_ARGS__)
-#define log_warn(fmt, ...)  log(LogLevel::WARN,  LogMessage{fmt}, ##__VA_ARGS__)
-#define log_error(fmt, ...) log(LogLevel::ERROR, LogMessage{fmt}, ##__VA_ARGS__)
+#define log_debug(fmt, ...) log(LogLevel::DEBUG, LogMessage{fmt} __VA_OPT__(,) __VA_ARGS__)
+#define log_info(fmt, ...)  log(LogLevel::INFO,  LogMessage{fmt} __VA_OPT__(,) __VA_ARGS__)
+#define log_warn(fmt, ...)  log(LogLevel::WARN,  LogMessage{fmt} __VA_OPT__(,) __VA_ARGS__)
+#define log_error(fmt, ...) log(LogLevel::ERROR, LogMessage{fmt} __VA_OPT__(,) __VA_ARGS__)
 
 #endif // LOGGING_HPP

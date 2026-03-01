@@ -65,6 +65,7 @@
 /*									*/
 /************************************************************************/
 
+#include <stdint.h>
 #include "logging.h"
 #include "pp.h"
 #include "ppext.h"
