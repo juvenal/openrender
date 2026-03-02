@@ -418,8 +418,7 @@ void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayed
     // Set the delayed object
     delayed = cDelayed;
 
-    // CAttributes		*cAttributes	=	cDelayed->attributes;
-    CAttributes *cAttributes = NULL;
+    CAttributes *cAttributes = cDelayed->attributes;
     if (currentOptions->flags & OPTIONS_FLAGS_INHERIT_ATTRIBUTES) {
         cAttributes = getAttributes(FALSE);
     }
@@ -681,6 +680,25 @@ void CRendererContext::RiWorldBegin(void) {
 
     // Define the world coordinate system
     CRenderer::defineCoordinateSystem(coordinateWorldSystem, currentXform->from, currentXform->to, COORDINATE_WORLD);
+
+    // Auto-bind defaultsurface when no Surface statement was given (PRMan/BMRT compatible)
+    if (currentAttributes->surface == NULL) {
+        CShaderInstance *cShader = getShader(RI_DEFAULTSURFACE, SL_SURFACE, 0, NULL, NULL);
+        if (cShader != NULL) {
+            CAttributes *attrs = getAttributes(TRUE);
+            attrs->surface = cShader;
+            attrs->checkParameters();
+        }
+    }
+
+    // Auto-bind defaultlight when no LightSource statement was given
+    if (currentAttributes->lightSources == NULL) {
+        CShaderInstance *cShader = getShader("defaultlight", SL_LIGHTSOURCE, 0, NULL, NULL);
+        if (cShader != NULL) {
+            CAttributes *attrs = getAttributes(TRUE);
+            attrs->addLight(cShader);
+        }
+    }
 
     // Start the renderer. beginFrame() captures camera motion from currentXform->next
     // (fromWorld1/toWorld1) before we discard the motion chain below.

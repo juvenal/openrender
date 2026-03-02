@@ -50,6 +50,18 @@ Thumbs.db
 *.swo
 *~
 
+# Images in root project
+/*.tif
+/*.jpg
+/*.jpeg
+/*.png
+/*.pic
+/*.gif
+/*.bmp
+/*.svg
+/*.webp
+/*.ico
+
 # Temporary files
 *.tmp
 *.temp

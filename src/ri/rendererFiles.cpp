@@ -527,8 +527,6 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
     CFileResource *file;
 
     assert(name != NULL);
-    if (strcmp(name, RI_DEFAULTSURFACE) == 0)
-        name = RI_MATTE;
 
     assert(globalFiles != NULL);
 
