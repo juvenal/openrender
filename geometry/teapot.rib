@@ -8,7 +8,7 @@
 #
 ObjectBegin "teapot"
   AttributeBegin
-    # To convert Z-up → Y-up (standard RenderMan), uncomment:
+    # To convert Z-up → Y-up (RenderMan standard):
     Rotate 90 1 0 0
 
     # Bicubic Bézier basis, uniform step 3

@@ -57,7 +57,8 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "\t\tmiddle\t\tzoom\n");
         fprintf(stdout, "\t\tright\t\tpan\n");
         return 1;
-    } else {
+    }
+    else {
         char tmp[OS_MAX_PATH_LENGTH + 7];
 
         snprintf(tmp, sizeof(tmp), "oshow:%s", argv[1]);

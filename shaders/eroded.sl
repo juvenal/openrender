@@ -15,8 +15,8 @@ eroded (float Ks = 0.4,
           i;
     point Nf,
           W = transform("object", P),
-          x = (1, 0, 0),
-          V = normalize(-I);
+          x = (1, 0, 0);
+    vector V = normalize(-I);
 
     for (i = 0; i < 6.0; i += 1.0) {
         /* Calculate a simple fractal 1/f noise function */
