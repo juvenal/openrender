@@ -382,7 +382,7 @@ void CRenderer::processServerRequest(T32 req, int index) {
         rcRecv(netServers[index], fileName, nameLength, FALSE);
 
         // Figure out what type of file it is
-        if (strstr(fileName, ".sdr") != NULL)
+        if (strstr(fileName, ".sdr") != NULL || strstr(fileName, ".rslo") != NULL)
             search = shaderPath;
         else if (strstr(fileName, ".dll") != NULL)
             search = proceduralPath;

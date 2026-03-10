@@ -1,0 +1,9 @@
+Display "test_rslo.tif" "file" "rgba"
+Format 128 128 1
+Projection "perspective" "fov" [30]
+
+WorldBegin
+    Translate 0 0 5
+    Surface "test_materials" "Kd" [0.8]
+    Sphere 1 -1 1 360
+WorldEnd

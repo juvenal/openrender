@@ -2838,10 +2838,13 @@ int	CScriptContext::compile(FILE *in,char *outName) {
 
 		if (outName == nullptr) {
 			// If there's no compile error, dump the compiled code
-			tmp	=	new char[strlen(sdr->shaderName)+5];
+			tmp	=	new char[strlen(sdr->shaderName)+6];
 
 			strcpy(tmp,sdr->shaderName);
-			strcat(tmp,".sdr");
+			if (sdr->legacySdr)
+				strcat(tmp,".sdr");
+			else
+				strcat(tmp,".rslo");
 		} else {
 			tmp	=	outName;
 		}

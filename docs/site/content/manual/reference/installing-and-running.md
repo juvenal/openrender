@@ -181,3 +181,21 @@ Your binary distribution should have the following structure:
 |   |   | `displays/` |   | The display drivers. |
 |   |   | `tutorials/` |   | The Pixie tutorials/examples |
 |   |   | `doc/` |   | Documentation for Pixie |
+
+## Compiling Shaders
+
+Pixie uses the `oshader` compiler to compile RenderMan Shading Language (.sl) files into compiled object files (.rslo).
+
+To compile a shader:
+```bash
+oshader my_shader.sl
+```
+This will produce `my_shader.rslo`.
+
+### Legacy Compatibility
+For backward compatibility, the renderer and tools also support the older `.sdr` extension. If you need to force the compiler to output `.sdr` files, use the `--legacy-sdr` flag:
+```bash
+oshader --legacy-sdr my_shader.sl
+```
+
+The renderer (`orender`) and shader info tool (`sdrinfo`) will automatically search for `.rslo` files first, and fall back to `.sdr` if the newer format is not found.

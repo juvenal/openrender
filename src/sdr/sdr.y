@@ -1295,8 +1295,33 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 	char			tmp[512];
 	const	char	*currentPath;
 	char			*dest;
+	char			baseName[512];
 
-	sdrin	=	fopen(in,"r");
+	// Strip explicit extensions
+	strncpy(baseName, in, sizeof(baseName));
+	baseName[sizeof(baseName)-1] = '\0';
+	char *dot = strrchr(baseName, '.');
+	if (dot && (strcmp(dot, ".sdr") == 0 || strcmp(dot, ".rslo") == 0)) {
+		*dot = '\0';
+	}
+
+	// 1. Try .rslo (always prioritized)
+	snprintf(tmp, sizeof(tmp), "%s.rslo", baseName);
+	sdrin = fopen(tmp, "r");
+
+	// 2. Try .sdr if .rslo fails
+	if (sdrin == NULL) {
+		snprintf(tmp, sizeof(tmp), "%s.sdr", baseName);
+		sdrin = fopen(tmp, "r");
+		if (sdrin) {
+			fprintf(stdout, "[INFO] sdr: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
+		}
+	}
+
+	// 3. Try original name if both failed (in case it was a non-standard name)
+	if (sdrin == NULL) {
+		sdrin = fopen(in, "r");
+	}
 
 	if (sdrin == NULL) {
 		if (searchpath != NULL) {
@@ -1313,21 +1338,22 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 							*dest++	=	'/';
 						}
 
-						sprintf(dest,in);
-						if (strstr(dest,".sdr") == NULL) {
-							strcat(dest,".sdr");
-						}
-
+						// Dual-extension search protocol
+						char *pathEnd = dest;
+						
+						// 1. Try .rslo
+						snprintf(pathEnd, sizeof(tmp) - (pathEnd - tmp), "%s.rslo", baseName);
 						osFixSlashes(tmp);
+						sdrin = fopen(tmp, "r");
 
-						if (strncmp(tmp,"\\\\",2) == 0) {
-							tmp[1]	=	tmp[2];
-							tmp[2]	=	':';
-							tmp[3]	=	'\\';
-
-							sdrin	=	fopen(tmp+1,"r");
-						} else {
-							sdrin	=	fopen(tmp,"r");
+						// 2. Try .sdr if .rslo fails
+						if (sdrin == NULL) {
+							snprintf(pathEnd, sizeof(tmp) - (pathEnd - tmp), "%s.sdr", baseName);
+							osFixSlashes(tmp);
+							sdrin = fopen(tmp, "r");
+							if (sdrin) {
+								fprintf(stdout, "[INFO] sdr: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
+							}
 						}
 
 						if (sdrin != NULL)	break;

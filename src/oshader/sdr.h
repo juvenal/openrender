@@ -349,6 +349,7 @@ class CScriptContext {
         int compileError;   // The number of compiler errors
         int compileWarning; // The number of compiler warnings
         int settings;       // The compiler settings
+        int legacySdr;      // Force .sdr output extension
 
         CFunction *rootFunction;                // The topmost function
         CFunction *shaderFunction;              // The shader function

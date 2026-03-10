@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (2025-12-18) Added Homebrew setup guide and quickstart script for openRender (133fe82).
 - (2026-01-02–2026-01-04) Added new shaders, debugging scripts, wood rendering examples, custom geometry directory, Utah Teapot RIB, and NSI PDF references (3186153, 9483a60, 12f9aef, c95d2df, 8f6148d).
 - (2026-02-08–2026-02-10) Added comprehensive README for openRender and Geometry RIB statement support with updated geometry definitions (7cd1eed, 43b23a0, a992b91).
+- (2026-03-10) Added compiled shader extension `.rslo` support and dual-lookup logic for backward compatibility.
 
 ### Changed
 
 - (2025-08-27) Standardized source formatting and cleaned up the build process (17b40c9, 6f91888).
+- (2026-03-10) Updated `oshader` to output `.rslo` by default and added `--legacy-sdr` flag.
 - (2025-12-07) Updated framebuffer classes, algebra/align headers, and header comments to Doxygen style; added a `.clang-format` configuration; established the project constitution (3be02d7, 0e1b9a5, d121092, 8e6ba32, 855b25a).
 - (2025-12-08) Updated CMake installation paths and modernized the codebase for C++20/C17 with 64-bit portable I/O for photon maps, point clouds, and deep shadow maps (fdcdc94, 3952bf1, a9348a9, f23095a, 602559f, 15cb212).
 - (2025-12-16–2025-12-18) Updated CMake configuration and project structure, merged upstream changes, refreshed project configuration, and standardized shader formatting (a26eca0, 09029dd, ad42a3d, a8da1a3).
