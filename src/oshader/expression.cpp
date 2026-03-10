@@ -35,7 +35,8 @@
 // Max token size used in value() buffer sizing — matches pp.h TOKENSIZE
 static constexpr int TOKENSIZE = 5100;
 
-extern CScriptContext *sdr;
+// `sdr` is declared extern thread_local in sdr.h (included above via sdr.h).
+// No local re-declaration needed.
 
 // Safe fprintf wrapper: only writes if out is non-null (replaces the former
 // `#define fprintf if (out != NULL) fprintf` which was undefined behaviour).

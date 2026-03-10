@@ -208,6 +208,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         float *nPtr = varying[VARIABLE_N];
         for (int k = 0; k < num; k++, nPtr += 3) {
             if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                warning(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
                 nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
             }
         }
@@ -347,6 +348,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         float *nPtr = varying[VARIABLE_N];
         for (int k = 0; k < num; k++, nPtr += 3) {
             if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                warning(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
                 nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
             }
         }
@@ -666,6 +668,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                     float *nPtr = varying[VARIABLE_N];
                     for (int k = 0; k < numVertices; k++, nPtr += 3) {
                         if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                            warning(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
                             nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
                         }
                     }

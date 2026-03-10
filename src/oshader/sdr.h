@@ -369,7 +369,10 @@ class CScriptContext {
                                          // I may want to add this functionality later.
         TSearchpath *dsoPath;            // Points to the DSO path
 
-        int passNo;          // 0 - error check, 1 - code generation
+        // collectingVariables: true during the variable-collection traversal
+        // (formerly "passNo == 0") that populates the variables list before
+        // code is emitted.  false during actual code emission.
+        bool collectingVariables;
         int lineNo;          // The current line no
         int statementLineNo; // The line number we started parsing
         char *sourceFile;    // The current source file
@@ -399,7 +402,10 @@ class CScriptContext {
                                    // Compilation flags
 };
 
-extern CScriptContext *sdr;
+// thread_local: each compiler thread owns its own context pointer.
+// Defined in the Bison grammar prologue (sl.y) and set at the start of
+// CScriptContext::compile().
+extern thread_local CScriptContext *sdr;
 extern void addDSO(char *, char *);
 
 #endif

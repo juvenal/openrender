@@ -27,6 +27,8 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
+#include <random>
+
 #include "common/algebra.h"
 #include "common/global.h" // The global header file
 #include "common/os.h"
@@ -169,49 +171,22 @@ void sampleCosineHemisphere(float *R, const float *Z, const float theta, CSobol<
 void sampleSphere(float *P, CSobol<3> &generator);
 
 ///////////////////////////////////////////////////////////////////////
-// rand() replacements
+// Thread-safe random number generators (replaces non-thread-safe rand()/random())
+// Uses a per-thread Mersenne Twister so concurrent shading threads never share state.
 ///////////////////////////////////////////////////////////////////////
 
-// TODO: rand() and random() are not thread safe
+// Variants of urand and irand that work without a shading context.
+// Each calling thread gets its own mt19937 instance seeded from std::random_device.
 
-#ifndef HAVE_RANDOM
-// rand() does not return random lower-order bits, so fix it up since this
-// platform doesn't have random().
-
-#ifdef _WINDOWS
-static inline long int orender_random() {
-    // On Windows RAND_MAX is less than 0x7fffffff
-    return rand();
-}
-#else
-static inline long int orender_random() {
-    long int retval;
-
-    // Note that we are assuming RAND_MAX >= 0x7fffffff
-    // If you're on an arch with sizeof(int) <= 2, this won't work
-    // but then again, why would you be rendering there...
-
-    retval = (rand() >> 15) & 0x0000ffff;
-    retval |= rand() & 0x7fff0000;
-
-    return retval;
-}
-#endif
-#else
-// When system has random(), alias to it
-#define orender_random random
-#endif
-
-// The variants of urand and irand that work without a shading context
-
-// Note that RAND_MAX is specific to rand().  random() always has a max
-// of 0x7fffffff
 static inline float _urand() {
-    return orender_random() / (float)0x7fffffff;
+    thread_local std::mt19937 rng{std::random_device{}()};
+    return static_cast<float>(rng()) / static_cast<float>(std::mt19937::max());
 }
 
 static inline long int _irand() {
-    return orender_random();
+    thread_local std::mt19937 rng{std::random_device{}()};
+    // Shift right by 1 to guarantee a non-negative value (max 0x7fffffff)
+    return static_cast<long int>(rng() >> 1);
 }
 
 #endif

@@ -537,7 +537,8 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
     } else {
         char shaderLocation[OS_MAX_PATH_LENGTH];
 
-        if (CRenderer::locateFileEx(shaderLocation, name, "sdr", path) == TRUE) {
+        if (CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE ||
+            CRenderer::locateFileEx(shaderLocation, name, "sdr", path) == TRUE) {
             cShader = parseShader(name, shaderLocation);
 
             if (cShader != NULL) {

@@ -28,11 +28,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "irBuilder.h"
 #include "logging.h"
 #include "opcodes.h" // This file holds the constant strings
+#include "passes/passDCE.h"
+#include "passes/passManager.h"
+#include "passes/passUniformLifting.h"
 #include "ri/dso.h"
 #include "ri/shadeop.h"
 #include "sdr.h"
+#include "sdrEmitter.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	symbol
@@ -731,7 +736,7 @@ CScriptContext::CScriptContext(int s) {
 
     sourceFile = nullptr;
 
-    passNo = 0;
+    collectingVariables = false;
     lineNo = 1;          // The line no in the code
     statementLineNo = 1; // The starting line number for parsing
     compileError = 0;    // The number of compiler CScriptContext::errors
@@ -1352,7 +1357,7 @@ void CScriptContext::addVariable(CVariable *cVariable) {
 
         cVariable->cName = strdup(tmp);
 
-        if (passNo == 0)
+        if (collectingVariables)
             variables->push(cVariable);
     }
 }
@@ -1441,13 +1446,15 @@ void CScriptContext::generateCode(const char *o) {
     if (compileError != 0)
         return;
 
-    passNo = 0;
-    // Code generation
+    // Phase 1: variable collection — traverse the AST with no output file so
+    // that addVariable() populates the variables list (parameters, temporaries).
+    collectingVariables = true;
     runtimeFunctionStack->push(shaderFunction);
     if (shaderFunction->initExpression != nullptr)
-        shaderFunction->initExpression->getCode(out, nullptr);
+        shaderFunction->initExpression->getCode(nullptr, nullptr);
     if (shaderFunction->code != nullptr)
-        shaderFunction->code->getCode(out, nullptr);
+        shaderFunction->code->getCode(nullptr, nullptr);
+    collectingVariables = false;
 
     if (compileError != 0)
         return;
@@ -1569,19 +1576,25 @@ void CScriptContext::generateCode(const char *o) {
         }
     }
 
-    passNo = 1;
+    // Phase 2: Build IR, run optimization passes, emit via SdrEmitter.
+    // CIRBuilder::build() captures getCode() output into an IRModule.
+    // Passes operate on the IRModule in place.
+    // CSdrEmitter::emitFunctions() writes #!Init: and #!Code: to the file.
+    {
+        CIRBuilder builder(*this);
+        std::unique_ptr<IRModule> mod = builder.build();
 
-    uniformParameters();
-    fprintf(out, "#!Init:\n");
-    if (shaderFunction->initExpression != nullptr)
-        shaderFunction->initExpression->getCode(out, nullptr);
-    fprintf(out, "%s\n", opcodeReturn);
-    restoreParameters();
+        // Run optimization passes.
+        const bool dumpIR = (getenv("OPENRENDER_DUMP_IR") != nullptr);
+        CPassManager pm;
+        pm.addPass(std::make_unique<CUniformLiftingPass>());
+        pm.addPass(std::make_unique<CDCEPass>());
+        pm.run(*mod, dumpIR);
 
-    fprintf(out, "#!Code:\n");
-    if (shaderFunction->code != nullptr)
-        shaderFunction->code->getCode(out, nullptr);
-    fprintf(out, "%s\n", opcodeReturn);
+        // Emit the (optimized) Init and Code sections.
+        CSdrEmitter emitter;
+        emitter.emitFunctions(*mod, out);
+    }
 
     fclose(out);
 }

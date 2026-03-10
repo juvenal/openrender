@@ -74,11 +74,11 @@
 //////////////////////////////////////////////////////////////////////////
 // Here's the only global CVariable
 //////////////////////////////////////////////////////////////////////////
-	// NOTE: `sdr` is intentionally a global rather than being threaded through
-	// yyparse() via %define api.pure full. Making the parser pure would require
-	// significant architectural changes to pass sdr through all actions, which is
-	// out of scope for this modernization pass.
-	CScriptContext		*sdr;
+	// `sdr` is thread_local so that concurrent shader compilations (one per
+	// thread) never share state.  Making the Bison parser pure (%define api.pure
+	// full) and threading the context through every grammar action would require
+	// pervasive changes that are deferred to a later refactoring pass.
+	thread_local CScriptContext *sdr;
 	
 // This macro can be used to record the last parsed line number for accurate error reporting
 #define	checkPoint()	sdr->statementLineNo	=	sdr->lineNo

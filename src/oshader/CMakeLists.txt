@@ -6,14 +6,17 @@ set(oshader_sources
 	opcodes.cpp
 	sdr.cpp
 #	sl.cpp
-	pp1.c
-	pp2.c
-	pp3.c
-	pp4.c
-	pp5.c
-	pp6.c
-	pp7.c
-	pp8.c)
+	# Preprocessor: pp1.c–pp8.c combined into one TU via the EXTERN/MAIN
+	# convention described in pp_all.c.  Individual pp*.c files are NOT
+	# listed here; they are included transitively from pp_all.c.
+	pp_all.c
+	# Layer 2 IR infrastructure
+	ir.cpp
+	irBuilder.cpp
+	sdrEmitter.cpp
+	passes/passManager.cpp
+	passes/passDCE.cpp
+	passes/passUniformLifting.cpp)
 
 include_directories(AFTER ../includes)
 

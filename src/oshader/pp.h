@@ -46,6 +46,12 @@
 /************************************************************************/
 
 #define VERSION "Logical Systems Version 96.1" /* Version info */
+/* The EXTERN/MAIN block intentionally has NO include guard so that it is
+ * re-evaluated on every inclusion.  This allows pp_all.c to include all
+ * eight pp*.c files in one translation unit: pp1.c includes pp.h with MAIN
+ * defined (EXTERN=""), then pp2–pp8 include pp.h without MAIN (EXTERN="extern").
+ * Everything below this block IS guarded so that struct/type definitions are
+ * compiled only once. */
 #ifdef MAIN
 #define EXTERN /* Inside main() routine, make internal */
 #define I_BRZERO = {0}
@@ -55,6 +61,12 @@
 #define I_BRZERO
 #define I_ZERO
 #endif /* MAIN */
+
+/* Guard the rest of pp.h (constants, structs, variable declarations) so they
+ * are only compiled once per translation unit, even when pp.h is re-included
+ * by multiple pp*.c files compiled together via pp_all.c. */
+#ifndef PP_H_TYPES
+#define PP_H_TYPES
 
 /*	Define TRUE and FALSE if not already defined			*/
 
@@ -605,3 +617,5 @@ EXTERN int Orig_disk I_ZERO; /* Original disk	*/
 /*
  *	End of pp.h
  */
+
+#endif /* PP_H_TYPES */
