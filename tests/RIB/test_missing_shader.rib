@@ -1,0 +1,9 @@
+Display "test_missing_shader.tif" "file" "rgba"
+Format 128 128 1
+Projection "perspective" "fov" [30]
+
+WorldBegin
+    Translate 0 0 5
+    Surface "non_existent_shader_at_all"
+    Sphere 1 -1 1 360
+WorldEnd

@@ -277,7 +277,8 @@ install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 # Install shaders
 file(GLOB shader_sl_files shaders/*.sl)
 file(GLOB shader_sdr_files shaders/*.sdr)
-install(FILES ${shader_sl_files} ${shader_sdr_files} DESTINATION ${OPENRENDER_SHADERDIR})
+file(GLOB shader_rslo_files shaders/*.rslo)
+install(FILES ${shader_sl_files} ${shader_sdr_files} ${shader_rslo_files} DESTINATION ${OPENRENDER_SHADERDIR})
 
 # Install geometry files
 file(GLOB geometry_rib_files geometry/*.rib)

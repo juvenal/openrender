@@ -77,7 +77,7 @@ Installed to: `${OPENRENDER_SHADERDIR}` → `/usr/local/shaders/`
 
 Includes:
 - `.sl` files - Shader source files (RenderMan Shading Language)
-- `.sdr` files - Compiled shader files
+- `.sdr` / `.rslo` files - Compiled shader files
 
 Examples:
 - Surface shaders: `plastic.sl`, `matte.sl`, `metal.sl`, etc.
@@ -143,7 +143,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   └── openexr.so
 ├── shaders/             # Shader files (54 files)
 │   ├── *.sl
-│   └── *.sdr
+│   └── *.sdr / *.rslo
 ├── share/
 │   ├── man/man1/        # Man pages
 │   │   ├── orender.1
