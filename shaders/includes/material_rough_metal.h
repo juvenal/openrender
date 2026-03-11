@@ -1,0 +1,18 @@
+/**
+ * material_rough_metal():
+ *     Compute the color of the surface using a simple metal-like BRDF.
+ *     To give a metallic appearance, both diffuse and specular components
+ *     are scaled by the color of the metal. It's recommended that Kd < 0.1
+ *     Ks > 0.5, and roughness > 0.15 to give a believable metallic appearance.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+color MaterialRoughMetal(normal Nf;
+                         color basecolor;
+                         float Ka, Kd, Ks, roughness) {
+    extern vector I;
+
+    return basecolor * (Ka * ambient() + Kd * diffuse(Nf) +
+                        Ks * specular(Nf, -normalize(I), roughness));
+}

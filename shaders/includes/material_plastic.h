@@ -1,0 +1,16 @@
+/**
+ * material_plastic():
+ *     Compute the color of a surface using a simple plastic-like BRDF.
+ *     Typical values are Ka = 1, Kd = 0.8, Ks = 0.5, roughness = 0.1.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+color MaterialPlastic(normal Nf;
+                      color basecolor;
+                      float Ka, Kd, Ks, roughness) {
+    extern vector I;
+
+    return basecolor * (Ka * ambient() + Kd * diffuse(Nf))
+           + Ks * specular(Nf, -normalize(I), roughness);
+}

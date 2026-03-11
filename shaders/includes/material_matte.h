@@ -1,0 +1,14 @@
+/**
+ * material_matte():
+ *     Compute the color of a surface using a simple Lambertian BRDF.
+ *     Typical values are Ka = 1, Kd = 0.8.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+color MaterialMatte(normal Nf;
+                    color basecolor;
+                    float Ka, Kd) {
+    
+    return basecolor * (Ka * ambient() + Kd * diffuse(Nf));
+}
