@@ -31,6 +31,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "sdr/sdr.h"
+#include "logging.hpp"
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	main
@@ -39,6 +40,9 @@
 // Comments				:
 int main(int argc, char *argv[]) {
     char tmp[1024];
+
+    // Default log level is NONE for CLI tools unless explicitly overridden.
+    set_log_level(LogLevel::NONE);
 
     if (argc > 1) {
         TSdrShader *cShader;

@@ -40,7 +40,9 @@
 #include "ri.h"
 #include "riInterface.h"
 #include "ri_config.h"
+#include "rib.h"
 #include "ribOut.h"
+#include "logging.hpp"
 
 //////////////////////////////////////////////////////////////////
 // Token definitions
@@ -633,6 +635,24 @@ RiBegin(RtToken name) {
 
     // Init the renderer
     RiInit();
+
+    // Load renderer defaults from a .orenderrc RIB, if present, before any user RIBs.
+    // This file is treated as pure RIB and is parsed into the same state as the main RIBs.
+    const char *renderHome = osEnvironment("ORENDERHOME");
+    if (renderHome != NULL) {
+        char rcPath[OS_MAX_PATH_LENGTH];
+        snprintf(rcPath, sizeof(rcPath), "%s/.orenderrc", renderHome);
+
+        if (osFileExists(rcPath) == TRUE) {
+            log_debug("Loading .orenderrc from '{}'", rcPath);
+            ribParse(rcPath, NULL);
+            log_info("Loaded .orenderrc defaults from '{}'", rcPath);
+        } else {
+            log_debug("No .orenderrc found at '{}'", rcPath);
+        }
+    } else {
+        log_debug("ORENDERHOME not set; skipping .orenderrc defaults");
+    }
 
     // Alter the state if we're inside a runprogram
     if (insideRunProgram) {

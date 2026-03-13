@@ -173,7 +173,8 @@ int main(int argc, char *argv[]) {
     int error = ERR_NONE;
     int legacySdr = FALSE;
 
-    LOG_INIT(stderr, LOG_LEVEL_WARN);
+    // Default log level is NONE; can be overridden via -x or -d.
+    LOG_INIT(stderr, LOG_LEVEL_NONE);
 
     sourceFiles = new CList<char *>;
 
@@ -226,6 +227,23 @@ int main(int argc, char *argv[]) {
                     LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
                 else {
                     LOG_ERROR("Unknown log level: %s", argv[i]);
+                    exit(1);
+                }
+            }
+        }
+        else if (strcmp(argv[i], "-x") == 0) {
+            if (++i < argc) {
+                int level = atoi(argv[i]);
+                if (level == 1)
+                    LOG_SET_LEVEL(LOG_LEVEL_ERROR);
+                else if (level == 2)
+                    LOG_SET_LEVEL(LOG_LEVEL_WARN);
+                else if (level == 3)
+                    LOG_SET_LEVEL(LOG_LEVEL_INFO);
+                else if (level == 4)
+                    LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
+                else {
+                    LOG_ERROR("Unknown numeric log level: %s", argv[i]);
                     exit(1);
                 }
             }

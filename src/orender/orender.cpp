@@ -31,6 +31,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "ri/ri.h"
+#include "logging.hpp"
 
 #ifdef _WINDOWS
 #include <process.h>
@@ -143,6 +144,7 @@ void printUsage() {
     printf("    -s <serverlist> Render on network servers in <serverlist>\n");
     printf("                    <serverlist> specified as <IP[:port],IP[:port],...>\n");
     printf("    -v              Display version information\n");
+    printf("    -x <level>      Set log level: 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG (default: NONE)\n");
     printf("    -h              Display this help\n\n");
     printf("Environment variables:\n");
     printf("  OPENRENDERHOME   openRender installation path\n");
@@ -595,6 +597,7 @@ int main(int argc, char *argv[]) {
     int frameBufferOnly = FALSE;
     int displayStats = FALSE;
     int displayProgress = FALSE;
+    int logLevelArg = 0;
     int numThreads = -1;
     int localChildren = 0;
 
@@ -604,6 +607,9 @@ int main(int argc, char *argv[]) {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 #endif
+
+    // Default log level is NONE (no application-level logging unless requested)
+    set_log_level(LogLevel::NONE);
 
     // Register the exit stuff
     snprintf(managerString, sizeof(managerString), "");
@@ -641,6 +647,11 @@ int main(int argc, char *argv[]) {
         }
         else if (strcmp(argv[i], "-q") == 0) {
             silent = TRUE;
+        }
+        else if (strcmp(argv[i], "-x") == 0) {
+            if (++i < argc) {
+                logLevelArg = atoi(argv[i]);
+            }
         }
         else if (strcmp(argv[i], "-c") == 0) {
             client = TRUE;
@@ -763,6 +774,17 @@ int main(int argc, char *argv[]) {
     if ((client | server | localserver) && numThreads > 0) {
         fprintf(stderr, "Using threads is currently not possible for network or multiprocess renders; turning off threads.\n");
         numThreads = 0;
+    }
+
+    // Apply log level selection if requested (-x)
+    if (logLevelArg == 1) {
+        set_log_level(LogLevel::ERROR);
+    } else if (logLevelArg == 2) {
+        set_log_level(LogLevel::WARN);
+    } else if (logLevelArg == 3) {
+        set_log_level(LogLevel::INFO);
+    } else if (logLevelArg == 4) {
+        set_log_level(LogLevel::DEBUG);
     }
 
     // Launch into daemon mode if appropriate

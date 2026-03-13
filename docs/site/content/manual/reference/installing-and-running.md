@@ -135,30 +135,36 @@ before running pixie.
 
 ## Common instructions for using Pixie
 
-You must set PIXIEHOME environment variable to the location of your binary distribution. You may also want to add PIXIEHOME/bin to your path and add the lib directory into your LD_LIBRARY_PATH on Unix and DYLIB_LIBRARY_PATH on OSX.
+You must set **ORENDERHOME** (the render root directory) to the location of your installation. At install time this corresponds to the CMake install destination: for a self-contained install it is the same as the install prefix (e.g. `/usr/local` or `/usr/local/openrender`); for a system/FHS install it is typically `share/openRender` under the prefix (e.g. `/usr/local/share/openRender`). You may also want to add the `bin` directory to your `PATH` and the `lib` directory to `LD_LIBRARY_PATH` on Unix or `DYLD_LIBRARY_PATH` on macOS.
 
 For Windows XP:
 
 - Open Control Panel -> System -> Advanced -> Environment Variables
 - Hit New
-- Variable name: PIXIEHOME
-- Variable value: <path-to-pixie>
+- Variable name: ORENDERHOME
+- Variable value: <path-to-openrender-install>
 
 For bash:
 
-- export PIXIEHOME=<path-to-pixie>
-- export PATH=$PATH:$PIXIEHOME/bin
-- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PIXIEHOME/lib
+- export ORENDERHOME=<path-to-openrender-install>
+- export PATH=$PATH:$ORENDERHOME/bin
+- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORENDERHOME/lib
 
 You can add these lines in your ".profile" script in your home directory (~/.profile).
 
 For tcsh:
 
-- setenv PIXIEHOME <path-to-pixie>
-- setp path=($path $PIXIEHOME/bin)
-- setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH:$PIXIEHOME/lib
+- setenv ORENDERHOME <path-to-openrender-install>
+- set path=($path $ORENDERHOME/bin)
+- setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH:$ORENDERHOME/lib
 
 You can add these lines in your ".tcshrc" script in your home directory (~/.tcshrc).
+
+### ORENDERHOME and default configuration (`.orenderrc`)
+
+The renderer looks for a default configuration file at **`$ORENDERHOME/.orenderrc`**. When you run `make install` (or the equivalent), the project’s `.orenderrc` is installed into the ORENDERHOME destination (the same directory that holds shaders, ribs, etc. for self-contained installs, or `share/openRender` for system installs). You can override the render root at runtime by setting `ORENDERHOME` to a different directory; the renderer will then look for `.orenderrc` at `$ORENDERHOME/.orenderrc`. The file contains pure RIB and is parsed before your scene RIBs, so you can set default options (e.g. `Format`, `PixelSamples`, search paths) there.
+
+To verify the installed configuration: install to a test prefix, set `ORENDERHOME` to that directory, and run `orender` on a simple RIB; with log level INFO (e.g. `orender -x 3 scene.rib`) you should see a message that `.orenderrc` was loaded.
 
 You can also specify search paths for various external resources that Pixie may need using:
 
@@ -168,7 +174,7 @@ Option "searchpath" "..." "..."
 
 Your binary distribution should have the following structure:
 
-|   | `Pixie/` |   |   | This is your PIXIEHOME |
+|   | `openrender/` (or install prefix) |   |   | Set **ORENDERHOME** to this directory |
 |---|---|---|---|---|
 |   |   | `bin/` |   | The executables are here. |
 |   |   |   | `orender` | The RIB renderer. |
@@ -181,6 +187,7 @@ Your binary distribution should have the following structure:
 |   |   | `displays/` |   | The display drivers. |
 |   |   | `tutorials/` |   | The Pixie tutorials/examples |
 |   |   | `doc/` |   | Documentation for Pixie |
+|   |   | `.orenderrc` |   | Default renderer config (pure RIB); loaded at `RiBegin` when `ORENDERHOME` is set |
 
 ## Compiling Shaders
 

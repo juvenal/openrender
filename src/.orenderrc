@@ -1,0 +1,14 @@
+########################################################################
+# Any customizations can be put in this file.  It's just straight RIB.
+########################################################################
+
+Format 640 480 1
+PixelSamples 2 2      # Note: we locally override the published standard
+Option "searchpath" "shader" ["&:.:/usr/local/shaders"]
+Option "searchpath" "texture" ["&:.:/usr/local/textures"]
+#Option "searchpath" "module" ["&:.:/usr/local/modules"]
+#Option "searchpath" "geometry" ["&:.:/usr/local/geometry"]
+Option "searchpath" "archive" ["&:.:/usr/local/models"]
+Option "searchpath" "display" ["&:.:/usr/local/displays"]
+Option "searchpath" "procedural" ["&:.:/usr/local/procedural"]
+Option "searchpath" "resource" ["&:.:/usr/local/resource"]

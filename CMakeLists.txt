@@ -40,7 +40,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 include(GNUInstallDirs)
 
 # ###########################################################################
-# ########## Options 
+# ########## Options
 # ###########################################################################
 option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(BUILD_SHOW "Build the show program" ON)
@@ -147,9 +147,13 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version_config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/version_config.h @ONLY)
 
-# Make generated headers available to all targets
+# Make generated and project headers available to all targets
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(openrender_common_flags INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/includes)
+target_include_directories(openrender_common_flags INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/includes
+)
 target_compile_definitions(openrender_common_flags INTERFACE HAVE_CONFIG_H)
 
 # ###########################################################################
@@ -163,7 +167,7 @@ find_package(PkgConfig REQUIRED)
 find_package(TIFF REQUIRED)
 message(STATUS "Found TIFF: ${TIFF_VERSION}")
 
-# PNG library  
+# PNG library
 find_package(PNG REQUIRED)
 message(STATUS "Found PNG: ${PNG_VERSION}")
 
@@ -206,7 +210,7 @@ if(BUILD_SHOW)
             OUTPUT_VARIABLE FLTK_LDFLAGS
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-        
+
         # Create imported target for FLTK
         add_library(FLTK::FLTK INTERFACE IMPORTED)
         separate_arguments(FLTK_CFLAGS)
@@ -215,7 +219,7 @@ if(BUILD_SHOW)
             INTERFACE_COMPILE_OPTIONS "${FLTK_CFLAGS}"
             INTERFACE_LINK_OPTIONS "SHELL:${FLTK_LDFLAGS}"
         )
-        
+
         message(STATUS "Found FLTK: ${FLTK_VERSION}")
         set(HAVE_FLTK ON)
     else()
@@ -245,6 +249,7 @@ endif()
 # Set installation directories using modern CMake approach
 if(INSTALL_SELFCONTAINED)
 	# Self-contained installation (all files under CMAKE_INSTALL_PREFIX)
+	set(OPENRENDER_HOMEDIR "${CMAKE_INSTALL_PREFIX}")
 	set(OPENRENDER_DOCDIR ${CMAKE_INSTALL_DOCDIR})
 	set(OPENRENDER_SHADERDIR "shaders")
 	set(OPENRENDER_RIBDIR "ribs")
@@ -255,6 +260,7 @@ if(INSTALL_SELFCONTAINED)
 	set(OPENRENDER_MODULESDIR "modules")
 else()
 	# System installation (follows FHS)
+	set(OPENRENDER_HOMEDIR "${CMAKE_INSTALL_DATAROOTDIR}/openRender")
 	set(OPENRENDER_DOCDIR ${CMAKE_INSTALL_DOCDIR}/openRender)
 	set(OPENRENDER_SHADERDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/shaders)
 	set(OPENRENDER_RIBDIR ${CMAKE_INSTALL_DATAROOTDIR}/openRender/ribs)
@@ -266,11 +272,22 @@ else()
 endif()
 
 
+# Install .orenderrc into ORENDERHOME so runtime finds default renderer configuration
+set(ORENDERRC_SRC "${CMAKE_SOURCE_DIR}/.orenderrc")
+if(NOT EXISTS "${ORENDERRC_SRC}")
+	set(ORENDERRC_SRC "${CMAKE_SOURCE_DIR}/src/.orenderrc")
+endif()
+if(EXISTS "${ORENDERRC_SRC}")
+	install(FILES "${ORENDERRC_SRC}" DESTINATION "${OPENRENDER_HOMEDIR}" RENAME ".orenderrc")
+else()
+	message(WARNING "No .orenderrc found at project root or src/; install will not deploy default renderer config")
+endif()
+
 # Install documentation
 set(doc_files AUTHORS.md ChangeLog.md COPYING.md DEVNOTES.md INSTALL.md LICENSE.md NEWS.md README.md)
 install(FILES ${doc_files} DESTINATION ${OPENRENDER_DOCDIR})
 
-# Install man pages  
+# Install man pages
 file(GLOB man_files man/*.1)
 install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 

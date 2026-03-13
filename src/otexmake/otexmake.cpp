@@ -31,6 +31,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "ri/ri.h"
+#include "logging.hpp"
 
 const char *tileSizeArgument = "-tilesize";
 const char *resizeModeArgument = "-resize";
@@ -73,6 +74,9 @@ int main(int argc, char *argv[]) {
     int i;
     const char *textureMode = "texture";
     int processed;
+
+    // Default log level is NONE for CLI tools unless explicitly overridden.
+    set_log_level(LogLevel::NONE);
 
     RtToken tokens[50];
     RtPointer vals[50];

@@ -27,14 +27,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-
-#ifdef __APPLE__
-#include <CoreServices/CoreServices.h>
 #include <sys/stat.h>
-#ifdef check // Apple's library defines "check"
-#undef check
-#endif
-#endif
 
 #include "options.h"
 #include "ri_config.h"
@@ -77,7 +70,8 @@ static TSearchpath *optionsCloneSearchPath(TSearchpath *cPath) {
         if (lPath == NULL) {
             lPath = ncPath;
             nPath = ncPath;
-        } else {
+        }
+        else {
             lPath->next = ncPath;
             lPath = ncPath;
         }
@@ -140,33 +134,34 @@ COptions::CDisplay::CDisplay(const CDisplay *other) {
             parameters[i] = other->parameters[i];
             parameters[i].name = strdup(other->parameters[i].name);
             switch (parameters[i].type) {
-            case FLOAT_PARAMETER:
-                parameters[i].data = new float[parameters[i].numItems];
-                memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float));
-                break;
-            case VECTOR_PARAMETER:
-                parameters[i].data = new float[parameters[i].numItems * 3];
-                memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 3);
-                break;
-            case MATRIX_PARAMETER:
-                parameters[i].data = new float[parameters[i].numItems * 16];
-                memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 16);
-                break;
-            case STRING_PARAMETER:
-                char *str;
+                case FLOAT_PARAMETER:
+                    parameters[i].data = new float[parameters[i].numItems];
+                    memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float));
+                    break;
+                case VECTOR_PARAMETER:
+                    parameters[i].data = new float[parameters[i].numItems * 3];
+                    memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 3);
+                    break;
+                case MATRIX_PARAMETER:
+                    parameters[i].data = new float[parameters[i].numItems * 16];
+                    memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 16);
+                    break;
+                case STRING_PARAMETER:
+                    char *str;
 
-                str = strdup((char *)other->parameters[i].data);
-                parameters[i].data = str;
-                break;
-            case INTEGER_PARAMETER:
-                parameters[i].data = new int[parameters[i].numItems];
-                memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(int));
-                break;
-            default:
-                break;
+                    str = strdup((char *)other->parameters[i].data);
+                    parameters[i].data = str;
+                    break;
+                case INTEGER_PARAMETER:
+                    parameters[i].data = new int[parameters[i].numItems];
+                    memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(int));
+                    break;
+                default:
+                    break;
             }
         }
-    } else {
+    }
+    else {
         numParameters = 0;
         parameters = NULL;
     }
@@ -191,14 +186,14 @@ COptions::CDisplay::~CDisplay() {
 
         for (i = 0; i < numParameters; i++) {
             switch (parameters[i].type) {
-            case FLOAT_PARAMETER:
-            case VECTOR_PARAMETER:
-            case MATRIX_PARAMETER:
-                delete[] (float *)parameters[i].data;
-                break;
-            case STRING_PARAMETER:
-                free((char *)parameters[i].data);
-                break;
+                case FLOAT_PARAMETER:
+                case VECTOR_PARAMETER:
+                case MATRIX_PARAMETER:
+                    delete[] (float *)parameters[i].data;
+                    break;
+                case STRING_PARAMETER:
+                    free((char *)parameters[i].data);
+                    break;
             }
 
             free(parameters[i].name);
@@ -264,58 +259,8 @@ COptions::COptions() {
 
     hider = strdup("stochastic");
 
-#ifdef __APPLE__
-    // Support for finding resources in Mac OS X bundles and standard Mac OS X file system locations
-
-    // Find the application bundle's plug-in and Resources directory
-    char path[OS_MAX_PATH_LENGTH];
-    char pathtmp[OS_MAX_PATH_LENGTH];
-    CFBundleRef bundle = CFBundleGetMainBundle();
-    if (bundle) {
-        CFURLRef url = CFBundleCopyBuiltInPlugInsURL(bundle);
-        if (url) {
-            Boolean validpath = CFURLGetFileSystemRepresentation(url, true, (UInt8 *)path, OS_MAX_PATH_LENGTH);
-            if (validpath)
-                setenv("PIXIEAPPPLUGINS", (const char *)path, 1);
-            CFRelease(url);
-        }
-        url = CFBundleCopyResourcesDirectoryURL(bundle);
-        if (url) {
-            Boolean validpath = CFURLGetFileSystemRepresentation(url, true, (UInt8 *)path, OS_MAX_PATH_LENGTH);
-            if (validpath)
-                setenv("PIXIEAPPRESOURCES", (const char *)path, 1);
-            CFRelease(url);
-        }
-        CFRelease(bundle);
-    }
-
-    // Find the application support directory (~/Library/Application Support/Pixie/PlugIns), and set the
-    // PIXIEUSERDIR environment variable to that directory
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(pathtmp, OS_MAX_PATH_LENGTH, "%s/Library/Application Support/Pixie", home);
-        mkdir(pathtmp, 0755);
-        setenv("PIXIEUSERDIR", (const char *)pathtmp, 1);
-    }
-
-    // Find the application support directory (/Library/Application Support/Pixie/PlugIns), and set the
-    // PIXIELOCALDIR environment variable to that directory
-    snprintf(pathtmp, OS_MAX_PATH_LENGTH, "/Library/Application Support/Pixie");
-    mkdir(pathtmp, 0755);
-    setenv("PIXIELOCALDIR", (const char *)pathtmp, 1);
-
-    // Default home, unless overridden with environment
-    setenv("PIXIEHOME", "/Library/Pixie", 0);
-
-    archivePath = optionsGetSearchPath(".:%RIBS%:%PIXIEHOME%/ribs", NULL);
-    proceduralPath = optionsGetSearchPath(".:%PROCEDURALS%:%PIXIEUSERDIR%/procedurals:%PIXIELOCALDIR%/procedurals:%PIXIEAPPPLUGINS%:%PIXIEHOME%/procedurals", NULL);
-    texturePath = optionsGetSearchPath(".:%TEXTURES%:%PIXIEUSERDIR%/textures:%PIXIELOCALDIR%/textures:%PIXIEAPPRESOURCES%/textures:%PIXIEHOME%/textures", NULL);
-    shaderPath = optionsGetSearchPath(".:%SHADERS%:%PIXIEUSERDIR%/shaders:%PIXIELOCALDIR%/shaders:%PIXIEAPPRESOURCES%/shaders:%PIXIEHOME%/shaders", NULL);
-    displayPath = optionsGetSearchPath("%DISPLAYS%:%PIXIEUSERDIR%/displays:%PIXIELOCALDIR%/displays:%PIXIEAPPPLUGINS%:%PIXIEHOME%/displays", NULL);
-    modulePath = optionsGetSearchPath("%MODULES%:%PIXIEUSERDIR%/modules:%PIXIELOCALDIR%/modules:%PIXIEAPPPLUGINS%:%PIXIEHOME%/modules", NULL);
-    geometryPath = optionsGetSearchPath(".:%GEOMETRIES%:" OPENRENDER_GEOMETRIES, NULL);
-
-#else
+    // Unified search paths across all platforms. Environment expansion is handled
+    // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
     archivePath = optionsGetSearchPath(".:%RIBS%:" OPENRENDER_RIBS, NULL);
     proceduralPath = optionsGetSearchPath(".:%PROCEDURALS%:" OPENRENDER_PROCEDURALS, NULL);
     texturePath = optionsGetSearchPath(".:%TEXTURES%:" OPENRENDER_TEXTURES, NULL);
@@ -323,7 +268,6 @@ COptions::COptions() {
     displayPath = optionsGetSearchPath(".:%DISPLAYS%:" OPENRENDER_DISPLAYS, NULL);
     modulePath = optionsGetSearchPath(".:%MODULES%:" OPENRENDER_MODULES, NULL);
     geometryPath = optionsGetSearchPath(".:%GEOMETRIES%:" OPENRENDER_GEOMETRIES, NULL);
-#endif
 
     pixelXsamples = 2;
     pixelYsamples = 2;
@@ -449,7 +393,8 @@ COptions::COptions(const COptions *o) {
             nDisplay->next = displays;
             displays = nDisplay;
         }
-    } else {
+    }
+    else {
         displays = NULL;
     }
 
@@ -463,21 +408,24 @@ COptions::COptions(const COptions *o) {
             nPlane->next = clipPlanes;
             clipPlanes = nPlane;
         }
-    } else {
+    }
+    else {
         clipPlanes = NULL;
     }
 
     if (o->fromRGB != NULL) {
         fromRGB = new float[3 * nColorComps];
         memcpy(fromRGB, o->fromRGB, 3 * nColorComps * sizeof(float));
-    } else {
+    }
+    else {
         fromRGB = NULL;
     }
 
     if (o->toRGB != NULL) {
         toRGB = new float[3 * nColorComps];
         memcpy(toRGB, o->toRGB, 3 * nColorComps * sizeof(float));
-    } else {
+    }
+    else {
         toRGB = NULL;
     }
 
@@ -547,18 +495,19 @@ COptions::~COptions() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	COptions
-// Method				:	convertColor
-// Description			:	Convert color to RGB space from whatever space entered
-// Return Value			:	-
-// Comments				:
+// Class        : COptions
+// Method       : convertColor
+// Description  : Convert color to RGB space from whatever space entered
+// Return Value : -
+// Comments     :
 void COptions::convertColor(vector &c, const float *f) const {
     int i, j;
     if (toRGB == NULL) {
         c[COMP_R] = f[0];
         c[COMP_G] = f[1];
         c[COMP_B] = f[2];
-    } else {
+    }
+    else {
         for (i = 0; i < 3; i++) {
             c[i] = 0;
             for (j = 0; j < (int)nColorComps; j++)
@@ -568,38 +517,44 @@ void COptions::convertColor(vector &c, const float *f) const {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	COptions
-// Method				:	pickSearchpath
-// Description			:	Pick a searchpath from name
-// Return Value			:	-
-// Comments				:
+// Class        : COptions
+// Method       : pickSearchpath
+// Description  : Pick a searchpath from name
+// Return Value : -
+// Comments     :
 TSearchpath *COptions::pickSearchpath(const char *name) {
 
     if (strstr(name, "rib") != NULL) {
         return archivePath;
-
-    } else if (strstr(name, "tif") != NULL) {
+    }
+    else if (strstr(name, "tif") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "tiff") != NULL) {
+    }
+    else if (strstr(name, "tiff") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "tex") != NULL) {
+    }
+    else if (strstr(name, "tex") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "tx") != NULL) {
+    }
+    else if (strstr(name, "tx") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "ptc") != NULL) {
+    }
+    else if (strstr(name, "ptc") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "bm") != NULL) {
+    }
+    else if (strstr(name, "bm") != NULL) {
         return texturePath;
-
-    } else if (strstr(name, "sdr") != NULL) {
+    }
+    else if (strstr(name, "sdr") != NULL) {
         return shaderPath;
-
-    } else if (strstr(name, osModuleExtension) != NULL) {
+    }
+    else if (strstr(name, "rslo") != NULL) {
+        return shaderPath;
+    }
+    else if (strstr(name, "oslo") != NULL) {
+        return shaderPath;
+    }
+    else if (strstr(name, osModuleExtension) != NULL) {
         return proceduralPath;
     }
 
@@ -607,10 +562,10 @@ TSearchpath *COptions::pickSearchpath(const char *name) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	optionsGetSearchPath
-// Description			:	Get the searchpath
-// Return Value			:	-
-// Comments				:
+// Function     : optionsGetSearchPath
+// Description  : Get the searchpath
+// Return Value : -
+// Comments     :
 TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
     TSearchpath *newPath = NULL;
     TSearchpath *lastPath = NULL;
@@ -636,7 +591,8 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
 
                 if ((*dest == '/') || (*dest == '\\')) { // The last character has to be a slash
                     dest++;
-                } else {
+                }
+                else {
                     dest++;
                     *dest++ = '/';
                 }
@@ -650,7 +606,8 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                     tmp[2] = ':';
                     tmp[3] = '\\';
                     cPath->directory = strdup(tmp + 1);
-                } else {
+                }
+                else {
                     cPath->directory = strdup(tmp);
                 }
                 cPath->next = NULL;
@@ -658,7 +615,8 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                 if (lastPath == NULL) {
                     lastPath = cPath;
                     newPath = cPath;
-                } else {
+                }
+                else {
                     lastPath->next = cPath;
                     lastPath = cPath;
                 }
@@ -670,7 +628,8 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                 break;
 
             currentPath++;
-        } else if (*currentPath == '%') {
+        }
+        else if (*currentPath == '%') {
             const char *endOfCurrentPath = strchr(currentPath + 1, '%');
             char environmentVariable[OS_MAX_PATH_LENGTH];
 
@@ -711,7 +670,8 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                                     if (lastPath == NULL) {
                                         lastPath = partPathList;
                                         newPath = partPathList;
-                                    } else {
+                                    }
+                                    else {
                                         lastPath->next = partPathList;
                                     }
                                     // Find the new last path
@@ -724,13 +684,15 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                                 break;
                             valueStart = valueEnd + 1;
                         }
-                    } else {
+                    }
+                    else {
                         // No ':' in value, just copy it directly
                         strcpy(dest, value);
                         dest += strlen(value);
                     }
                     currentPath = endOfCurrentPath + 1;
-                } else {
+                }
+                else {
                     // If this environment variable was not defined, scrap the entire
                     // path in progress b/c it will not be correct without this env variable
                     dest = tmp;
@@ -739,10 +701,12 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                     if (!currentPath)
                         currentPath = strchr(endOfCurrentPath, '\0'); // ...or end if last path
                 }
-            } else {
+            }
+            else {
                 currentPath++;
             }
-        } else if ((*currentPath == '@') || (*currentPath == '&')) {
+        }
+        else if ((*currentPath == '@') || (*currentPath == '&')) {
             for (cPath = oldPath; cPath != NULL; cPath = cPath->next) {
                 TSearchpath *nPath = new TSearchpath;
 
@@ -752,13 +716,15 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                 if (lastPath == NULL) {
                     lastPath = nPath;
                     newPath = nPath;
-                } else {
+                }
+                else {
                     lastPath->next = nPath;
                     lastPath = nPath;
                 }
             }
             currentPath++;
-        } else {
+        }
+        else {
             *dest++ = *currentPath++;
         }
     }
@@ -792,47 +758,57 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             type = TYPE_INTEGER;
             value = &bucketWidth;
             return TRUE;
-        } else if (strcmp(name, RI_METABUCKETS) == 0) {
+        }
+        else if (strcmp(name, RI_METABUCKETS) == 0) {
             type = TYPE_INTEGER;
             value = &netXBuckets;
             return TRUE;
-        } else if (strcmp(name, RI_GRIDSIZE) == 0) {
+        }
+        else if (strcmp(name, RI_GRIDSIZE) == 0) {
             type = TYPE_INTEGER;
             value = &maxGridSize;
             return TRUE;
-        } else if (strcmp(name, RI_EYESPLITS) == 0) {
+        }
+        else if (strcmp(name, RI_EYESPLITS) == 0) {
             type = TYPE_INTEGER;
             value = &maxEyeSplits;
             return TRUE;
-        } else if (strcmp(name, RI_TEXTUREMEMORY) == 0) {
+        }
+        else if (strcmp(name, RI_TEXTUREMEMORY) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = maxTextureSize / 1000;
             return TRUE;
-        } else if (strcmp(name, RI_BRICKMEMORY) == 0) {
+        }
+        else if (strcmp(name, RI_BRICKMEMORY) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = maxBrickSize / 1000;
             return TRUE;
-        } else if (strcmp(name, RI_NUMTHREADS) == 0) {
+        }
+        else if (strcmp(name, RI_NUMTHREADS) == 0) {
             type = TYPE_INTEGER;
             value = &numThreads;
             return TRUE;
-        } else if (strcmp(name, RI_THREADSTRIDE) == 0) {
+        }
+        else if (strcmp(name, RI_THREADSTRIDE) == 0) {
             type = TYPE_INTEGER;
             value = &threadStride;
             return TRUE;
-        } else if (strcmp(name, RI_GEOCACHEMEMORY) == 0) {
+        }
+        else if (strcmp(name, RI_GEOCACHEMEMORY) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = geoCacheMemory / 1000;
             return TRUE;
-        } else if (strcmp(name, RI_INHERITATTRIBUTES) == 0) {
+        }
+        else if (strcmp(name, RI_INHERITATTRIBUTES) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & OPTIONS_FLAGS_INHERIT_ATTRIBUTES) != 0;
             return TRUE;
-        } else if (strcmp(name, "frame") == 0) {
+        }
+        else if (strcmp(name, "frame") == 0) {
             type = TYPE_INTEGER;
             value = &frame;
             return TRUE;
@@ -844,16 +820,19 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             type = TYPE_FLOAT;
             value = &jitter;
             return TRUE;
-        } else if (strcmp(name, RI_EMIT) == 0) {
+        }
+        else if (strcmp(name, RI_EMIT) == 0) {
             type = TYPE_INTEGER;
             value = &numEmitPhotons;
             return TRUE;
-        } else if (strcmp(name, RI_SAMPLESPECTRUM) == 0) {
+        }
+        else if (strcmp(name, RI_SAMPLESPECTRUM) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & OPTIONS_FLAGS_SAMPLESPECTRUM) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_SAMPLEMOTION) == 0) {
+        }
+        else if (strcmp(name, RI_SAMPLEMOTION) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & OPTIONS_FLAGS_SAMPLEMOTION) != 0;
@@ -874,11 +853,13 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             type = TYPE_INTEGER;
             value = &endofframe;
             return TRUE;
-        } else if (strcmp(name, RI_FILELOG) == 0) {
+        }
+        else if (strcmp(name, RI_FILELOG) == 0) {
             type = TYPE_STRING;
             value = filelog;
             return TRUE;
-        } else if (strcmp(name, RI_PROGRESS) == 0) {
+        }
+        else if (strcmp(name, RI_PROGRESS) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & OPTIONS_FLAGS_PROGRESS) != 0;

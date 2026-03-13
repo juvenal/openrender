@@ -27,6 +27,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "ri/ri.h"
+#include "logging.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +38,9 @@
 // Return Value			:	1 on failure, 0 on success
 // Comments				:
 int main(int argc, char *argv[]) {
+
+    // Default log level is NONE for CLI tools unless explicitly overridden.
+    set_log_level(LogLevel::NONE);
 
     if (argc == 1) {
         fprintf(stdout, "Usage: oshow <options> <file_name>[,mode]\n");

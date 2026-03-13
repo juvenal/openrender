@@ -742,14 +742,18 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Compute the world to NDC transform required by the shadow maps
     mulmm(worldToNDC, toNDC, fromWorld);
 
-    // Create a default display if not there
+    // Create a default display if none was specified in the RIB / options
     if (displays == NULL) {
-        // (globalMemory is checkpointed)
-        displays = (COptions::CDisplay *)ralloc(sizeof(COptions::CDisplay), CRenderer::globalMemory);
-        displays->next = NULL;
-        displays->outDevice = (char *)RI_FILE;
-        displays->outName = (char *)"ri.tif";
-        displays->outSamples = (char *)RI_RGBA;
+        // Allocate from the frame-global memory and run the CDisplay constructor
+        void *displayMem = ralloc(sizeof(COptions::CDisplay), CRenderer::globalMemory);
+        COptions::CDisplay *defaultDisplay = new (displayMem) COptions::CDisplay();
+
+        defaultDisplay->next = NULL;
+        defaultDisplay->outDevice = (char *)RI_FILE;
+        defaultDisplay->outName = (char *)"ri.tif";
+        defaultDisplay->outSamples = (char *)RI_RGBA;
+
+        displays = defaultDisplay;
     }
 
     // The sample offsets

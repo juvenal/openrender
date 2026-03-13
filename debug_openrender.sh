@@ -2,11 +2,11 @@
 # Comprehensive debugging script for orender skeleton TIFF issue
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "${SCRIPT_DIR}" || exit 1
 
 export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:${PWD}/openrender/lib"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PWD}/openrender/lib"
-export PIXIEHOME="${PWD}/openrender"
+export ORENDERHOME="${PWD}/openrender"
 export DISPLAYS="${PWD}/openrender/displays"
 export GEOMETRIES="${PWD}/openrender/geometry"
 export SHADERS="${PWD}/openrender/shaders:."
@@ -18,7 +18,7 @@ echo "=== Debugging orender Skeleton TIFF Issue ==="
 echo ""
 echo "Environment:"
 echo "  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-echo "  PIXIEHOME=${PIXIEHOME}"
+echo "  ORENDERHOME=${ORENDERHOME}"
 echo "  DISPLAYS=${DISPLAYS}"
 echo "  GEOMETRIES=${GEOMETRIES}"
 echo "  SHADERS=${SHADERS}"
@@ -61,14 +61,14 @@ else
 fi
 echo ""
 
-echo "Checking for defaults.rib..."
-DEFAULTS_RIB="examples/rib/.openrender/defaults.rib"
+echo "Checking for .orenderrc..."
+DEFAULTS_RIB="${ORENDERHOME}/.orenderrc"
 if [ -f "${DEFAULTS_RIB}" ]; then
-    echo "  ✓ Found defaults.rib"
+    echo "  ✓ Found .orenderrc"
     echo "  Contents:"
     cat "${DEFAULTS_RIB}" | sed 's/^/    /'
 else
-    echo "  ✗ defaults.rib not found at ${DEFAULTS_RIB}"
+    echo "  ✗ .orenderrc not found at ${DEFAULTS_RIB}"
 fi
 echo ""
 

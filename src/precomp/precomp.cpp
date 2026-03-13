@@ -31,6 +31,7 @@
 
 #include "common/algebra.h"
 #include "common/global.h"
+#include "logging.hpp"
 #include "ri/renderer.h"
 #include "ri/reyes.h"
 
@@ -547,6 +548,9 @@ int precomputeStochasticPrimitivesH() {
 // Return Value			:	0 on success, 1 on failure
 // Comments				:
 int main(int argc, char *argv[]) {
+
+    // Default log level is NONE for CLI-style utilities unless explicitly overridden.
+    set_log_level(LogLevel::NONE);
 
     // Warning: Re-running this will totally alter the noise values you get
     /*if (precomputeNoiseData() == TRUE) {
