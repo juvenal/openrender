@@ -1,5 +1,5 @@
 /**
- * material_rough_metal():
+ * MaterialRoughMetal():
  *     Compute the color of the surface using a simple metal-like BRDF.
  *     To give a metallic appearance, both diffuse and specular components
  *     are scaled by the color of the metal. It's recommended that Kd < 0.1

@@ -1,5 +1,5 @@
 /**
- * material_thin_plastic():
+ * MaterialThinPlastic():
  *     Compute the color of a surface using a simple, thin, plastic-like BRDF.
  *     We call it _thin_ because it  includes a transmission component to allow
  *     light from the _back_ of the surface to affect the appearance.

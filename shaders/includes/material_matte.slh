@@ -1,5 +1,5 @@
 /**
- * material_matte():
+ * MaterialMatte():
  *     Compute the color of a surface using a simple Lambertian BRDF.
  *     Typical values are Ka = 1, Kd = 0.8.
  *
