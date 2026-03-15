@@ -524,20 +524,35 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
 
     // Camera motion blur: apply per-ray relative camera motion to account
     // for a moving camera defined by a pre-world MotionBegin/MotionEnd block.
-    // The relative motion M(t) = fromWorld * lerp(toWorld, toWorld1, t) is
-    // identity at t=0 and correctly composes the camera motion at other times.
+    // For rotation, use quaternion slerp so rays trace the correct arc.
+    // For pure translation, the original matrix LERP is exact and cheaper.
     if (CRenderer::cameraHasMotion && (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION)) {
         cRay = rays;
         for (i = numShading; i > 0; i--, cRay++) {
             const float t = cRay->time;
             if (t > 0.0f) {
-                matrix interp, relMotion;
-                for (int mi = 0; mi < 16; mi++)
-                    interp[mi] = CRenderer::toWorld[mi] * (1.0f - t) + CRenderer::toWorld1[mi] * t;
-                mulmm(relMotion, CRenderer::fromWorld, interp);
-                mulmp(cRay->from, relMotion, cRay->from);
-                mulmv(cRay->dir, relMotion, cRay->dir);
-                normalizev(cRay->dir);
+                if (CRenderer::cameraHasRotation) {
+                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+                    quaternion Rjt;
+                    slerpq(Rjt, identQ, CRenderer::relRotQ, t);
+                    matrix Mjt;
+                    qtoR(Mjt, Rjt);
+                    mulmp(cRay->from, Mjt, cRay->from);
+                    cRay->from[0] += t * CRenderer::relTrans[0];
+                    cRay->from[1] += t * CRenderer::relTrans[1];
+                    cRay->from[2] += t * CRenderer::relTrans[2];
+                    mulmv(cRay->dir, Mjt, cRay->dir);
+                    normalizev(cRay->dir);
+                } else {
+                    // Pure translation: matrix LERP is exact.
+                    matrix interp, relMotion;
+                    for (int mi = 0; mi < 16; mi++)
+                        interp[mi] = CRenderer::toWorld[mi] * (1.0f - t) + CRenderer::toWorld1[mi] * t;
+                    mulmm(relMotion, CRenderer::fromWorld, interp);
+                    mulmp(cRay->from, relMotion, cRay->from);
+                    mulmv(cRay->dir, relMotion, cRay->dir);
+                    normalizev(cRay->dir);
+                }
             }
         }
     }

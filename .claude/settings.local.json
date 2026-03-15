@@ -41,7 +41,11 @@
       "Bash(cd /Users/juvenal/Projects/Development/CLI/openrender && build/src/oshader/oshader openrender/shaders/ambientlight.sl openrender/shaders/defaultsurface.sl openrender/shaders/defaultlight.sl openrender/shaders/finite.sl openrender/shaders/blue_marble.sl -o /tmp/ 2>&1)",
       "Bash(cd /Users/juvenal/Projects/Development/CLI/openrender && for sl in openrender/shaders/*.sl; do build/src/oshader/oshader \"$sl\" 2>&1; done | grep -E \"error|warning|compiled\" | head -20)",
       "Bash(cd /Users/juvenal/Projects/Development/CLI/openrender && for sl in openrender/shaders/*.sl; do build/src/oshader/oshader \"$sl\" 2>&1; done | grep -E \"error|warning\" | head -20)",
-      "Bash(cd /Users/juvenal/Projects/Development/CLI/openrender && OPENRENDER_DUMP_IR=1 build/src/oshader/oshader openrender/shaders/ambientlight.sl -o /tmp/test.rslo 2>&1)"
+      "Bash(cd /Users/juvenal/Projects/Development/CLI/openrender && OPENRENDER_DUMP_IR=1 build/src/oshader/oshader openrender/shaders/ambientlight.sl -o /tmp/test.rslo 2>&1)",
+      "Bash(pdfinfo:*)",
+      "Bash(which ffmpeg:*)",
+      "Bash(sips:*)",
+      "Bash(sleep:*)"
     ]
   }
 }

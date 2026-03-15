@@ -191,6 +191,9 @@ CObject *CRenderer::offendingObject = NULL;                              // init
 matrix CRenderer::fromWorld, CRenderer::toWorld;                         // initialized in beginFrame
 matrix CRenderer::fromWorld1, CRenderer::toWorld1;                       // initialized in beginFrame
 bool CRenderer::cameraHasMotion = false;                                  // initialized in beginFrame
+quaternion CRenderer::relRotQ       = {0, 0, 0, 1};                      // initialized in beginFrame
+vector     CRenderer::relTrans      = {0, 0, 0};                          // initialized in beginFrame
+bool       CRenderer::cameraHasRotation = false;                          // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame
@@ -457,10 +460,31 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         movmm(fromWorld1, x->next->from);
         movmm(toWorld1,   x->next->to);
         cameraHasMotion = true;
+
+        // Decompose relative motion (cam_t0 -> cam_t1) into rotation quaternion
+        // and translation so the rasterizer can do slerp-based arc interpolation.
+        // relMotion = (world->cam at t=1) * (cam->world at t=0) = cam_t0->cam_t1
+        matrix relMotion;
+        mulmm(relMotion, fromWorld1, toWorld);
+
+        relTrans[0] = relMotion[element(0, 3)];
+        relTrans[1] = relMotion[element(1, 3)];
+        relTrans[2] = relMotion[element(2, 3)];
+
+        // qfromR reads only the top-left 3×3 rotation block, ignoring translation.
+        qfromR(relRotQ, relMotion);
+        normalizeq(relRotQ);
+
+        // Detect non-trivial rotation: identity quaternion is (0,0,0,1).
+        // Compute squared distance from identity in quaternion space.
+        const float dq = relRotQ[0] * relRotQ[0] + relRotQ[1] * relRotQ[1] +
+                         relRotQ[2] * relRotQ[2] + (relRotQ[3] - 1.0f) * (relRotQ[3] - 1.0f);
+        cameraHasRotation = (dq > 1e-8f);
     } else {
         movmm(fromWorld1, x->from);
         movmm(toWorld1,   x->to);
-        cameraHasMotion = false;
+        cameraHasMotion   = false;
+        cameraHasRotation = false;
     }
 
     assert(pixelXsamples > 0);

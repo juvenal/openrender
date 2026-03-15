@@ -504,6 +504,34 @@ void CRendererContext::addObject(CObject *o) {
             initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]); mulmp(corners[7], relMotion, vtmp);
             for (int ci = 0; ci < 8; ci++)
                 addBox(o->bmin, o->bmax, corners[ci]);
+
+            // For camera rotation, the arc between t=0 and t=1 can reach positions
+            // well outside the chord-based bounding box. Sample the arc at several
+            // intermediate times and expand the bbox to cover the full rotation sweep.
+            if (CRenderer::cameraHasRotation) {
+                static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
+                const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+                for (int ti = 0; ti < 3; ti++) {
+                    const float jt = kArcTimes[ti];
+                    quaternion Rjt;
+                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                    matrix Mjt;
+                    qtoR(Mjt, Rjt);
+                    Mjt[element(0, 3)] = jt * CRenderer::relTrans[0];
+                    Mjt[element(1, 3)] = jt * CRenderer::relTrans[1];
+                    Mjt[element(2, 3)] = jt * CRenderer::relTrans[2];
+                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]); mulmp(corners[0], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]); mulmp(corners[1], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]); mulmp(corners[2], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]); mulmp(corners[3], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]); mulmp(corners[4], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]); mulmp(corners[5], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]); mulmp(corners[6], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]); mulmp(corners[7], Mjt, vtmp);
+                    for (int ci = 0; ci < 8; ci++)
+                        addBox(o->bmin, o->bmax, corners[ci]);
+                }
+            }
         }
 
         // Render the object

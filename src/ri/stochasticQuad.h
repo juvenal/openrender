@@ -442,17 +442,22 @@ for (y = ymin; y <= ymax; y++) {
         for (j = 0; j < vdiv; j++) {
             for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
 
-                if (x + left < bounds[0]) {
-                    continue;
-                }
-                if (x + left > bounds[1]) {
-                    continue;
-                }
-                if (y + top < bounds[2]) {
-                    continue;
-                }
-                if (y + top > bounds[3]) {
-                    continue;
+                // For camera rotation, arc pixels can be outside the precomputed
+                // chord-based per-quad bounds. Skip bounds check; the area test
+                // in checkPixel() is the correct containment gating.
+                if (!CRenderer::cameraHasRotation) {
+                    if (x + left < bounds[0]) {
+                        continue;
+                    }
+                    if (x + left > bounds[1]) {
+                        continue;
+                    }
+                    if (y + top < bounds[2]) {
+                        continue;
+                    }
+                    if (y + top > bounds[3]) {
+                        continue;
+                    }
                 }
                 lodCheck();
 
@@ -475,10 +480,57 @@ for (y = ymin; y <= ymax; y++) {
                 vector v1movTmp;
                 vector v2movTmp;
                 vector v3movTmp;
-                interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
-                interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
-                interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
-                interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                if (CRenderer::cameraHasRotation) {
+                    // Camera rotation: LERP of raster-space positions traces a
+                    // chord instead of the correct arc.
+                    // Fix: unproject each vertex from raster-space back to
+                    // camera-space, apply slerp(I, relRotQ, jt) rotation
+                    // (+ lerped translation), then re-project to raster-space.
+                    // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
+                    //                    0         1      2   3..5  6..8    9
+                    const float jt = pixel->jt;
+                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+                    quaternion Rjt;
+                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                    matrix Mjt;
+                    qtoR(Mjt, Rjt);
+                    const float tx = jt * CRenderer::relTrans[0];
+                    const float ty = jt * CRenderer::relTrans[1];
+                    const float tz = jt * CRenderer::relTrans[2];
+
+                    // Unproject sample coords -> screen -> camera, rotate, re-project -> sample.
+                    // vertex buffer is in sample space: screen_x = sampleX / dSampledx + pixelLeft
+                    // camX = screen_x * camZ * invImagePlane
+                    // re-project: sampleX' = (imagePlane * camX' / camZ' - pixelLeft) * dSampledx
+
+#define APPLY_CAM_ROT(vOut, vIn)                                                                            \
+                    {                                                                                       \
+                        const float _z   = (vIn)[COMP_Z];                                                  \
+                        const float _sx  = (vIn)[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;   \
+                        const float _sy  = (vIn)[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;    \
+                        float _cp[3] = {_sx * _z * CRenderer::invImagePlane,                              \
+                                        _sy * _z * CRenderer::invImagePlane, _z};                          \
+                        float _rp[3];                                                                      \
+                        mulmp(_rp, Mjt, _cp);                                                              \
+                        _rp[0] += tx; _rp[1] += ty; _rp[2] += tz;                                         \
+                        (vOut)[COMP_X] = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) \
+                                         * CRenderer::dSampledx;                                           \
+                        (vOut)[COMP_Y] = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop)  \
+                                         * CRenderer::dSampledy;                                           \
+                        (vOut)[COMP_Z] = _rp[2];                                                           \
+                    }
+
+                    APPLY_CAM_ROT(v0movTmp, v0)
+                    APPLY_CAM_ROT(v1movTmp, v1)
+                    APPLY_CAM_ROT(v2movTmp, v2)
+                    APPLY_CAM_ROT(v3movTmp, v3)
+#undef APPLY_CAM_ROT
+                } else {
+                    interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
+                    interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
+                    interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
+                    interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                }
                 v0 = v0movTmp;
                 v1 = v1movTmp;
                 v2 = v2movTmp;
@@ -608,6 +660,13 @@ for (j = 0; j < vdiv; j++) {
             ymax = yres;
         }
 
+        // For camera rotation, the arc can reach pixels outside the chord-based
+        // per-quad bounds. Expand to the full bucket to ensure arc coverage.
+        if (CRenderer::cameraHasRotation) {
+            xmin = 0; xmax = xres;
+            ymin = 0; ymax = yres;
+        }
+
 // Figure our if we have to do the slow rasterization
 #ifdef STOCHASTIC_FOCAL_BLUR
 #define SLOW_RASTER
@@ -705,10 +764,57 @@ for (j = 0; j < vdiv; j++) {
                 vector v1movTmp;
                 vector v2movTmp;
                 vector v3movTmp;
-                interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
-                interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
-                interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
-                interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                if (CRenderer::cameraHasRotation) {
+                    // Camera rotation: LERP of raster-space positions traces a
+                    // chord instead of the correct arc.
+                    // Fix: unproject each vertex from raster-space back to
+                    // camera-space, apply slerp(I, relRotQ, jt) rotation
+                    // (+ lerped translation), then re-project to raster-space.
+                    // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
+                    //                    0         1      2   3..5  6..8    9
+                    const float jt = pixel->jt;
+                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+                    quaternion Rjt;
+                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                    matrix Mjt;
+                    qtoR(Mjt, Rjt);
+                    const float tx = jt * CRenderer::relTrans[0];
+                    const float ty = jt * CRenderer::relTrans[1];
+                    const float tz = jt * CRenderer::relTrans[2];
+
+                    // Unproject sample coords -> screen -> camera, rotate, re-project -> sample.
+                    // vertex buffer is in sample space: screen_x = sampleX / dSampledx + pixelLeft
+                    // camX = screen_x * camZ * invImagePlane
+                    // re-project: sampleX' = (imagePlane * camX' / camZ' - pixelLeft) * dSampledx
+
+#define APPLY_CAM_ROT(vOut, vIn)                                                                            \
+                    {                                                                                       \
+                        const float _z   = (vIn)[COMP_Z];                                                  \
+                        const float _sx  = (vIn)[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;   \
+                        const float _sy  = (vIn)[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;    \
+                        float _cp[3] = {_sx * _z * CRenderer::invImagePlane,                              \
+                                        _sy * _z * CRenderer::invImagePlane, _z};                          \
+                        float _rp[3];                                                                      \
+                        mulmp(_rp, Mjt, _cp);                                                              \
+                        _rp[0] += tx; _rp[1] += ty; _rp[2] += tz;                                         \
+                        (vOut)[COMP_X] = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) \
+                                         * CRenderer::dSampledx;                                           \
+                        (vOut)[COMP_Y] = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop)  \
+                                         * CRenderer::dSampledy;                                           \
+                        (vOut)[COMP_Z] = _rp[2];                                                           \
+                    }
+
+                    APPLY_CAM_ROT(v0movTmp, v0)
+                    APPLY_CAM_ROT(v1movTmp, v1)
+                    APPLY_CAM_ROT(v2movTmp, v2)
+                    APPLY_CAM_ROT(v3movTmp, v3)
+#undef APPLY_CAM_ROT
+                } else {
+                    interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
+                    interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
+                    interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
+                    interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                }
                 v0 = v0movTmp;
                 v1 = v1movTmp;
                 v2 = v2movTmp;

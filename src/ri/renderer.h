@@ -396,6 +396,9 @@ class CRenderer {
         static matrix fromWorld, toWorld;                       // Camera matrices at shutter open (t=0)
         static matrix fromWorld1, toWorld1;                     // Camera matrices at shutter close (t=1)
         static bool cameraHasMotion;                            // True when world->next != NULL at WorldBegin
+        static quaternion relRotQ;                              // Rotation quaternion of relMotion (cam_t0 -> cam_t1)
+        static vector     relTrans;                             // Translation part of relMotion (cam_t0 -> cam_t1)
+        static bool       cameraHasRotation;                   // True when relMotion contains a non-trivial rotation
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;

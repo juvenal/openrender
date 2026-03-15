@@ -809,3 +809,42 @@ inline void qfromR(SCALAR_TYPE *q, const SCALAR_TYPE *R) {
     q[2] = (SCALAR_TYPE)c;
     q[3] = (SCALAR_TYPE)d;
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Spherical linear interpolation between two unit quaternions.
+// Convention matches qfromR/qtoR: q = (x, y, z, scalar).
+// t = 0 returns q0, t = 1 returns q1, intermediate values trace the
+// shortest great-circle arc on the unit 4-sphere.
+inline void slerpq(SCALAR_TYPE *result,
+                   const SCALAR_TYPE *q0,
+                   const SCALAR_TYPE *q1,
+                   SCALAR_TYPE t) {
+    double dot = (double)q0[0] * q1[0] + (double)q0[1] * q1[1] +
+                 (double)q0[2] * q1[2] + (double)q0[3] * q1[3];
+
+    // Ensure shortest arc: if dot < 0 the quaternions are on opposite
+    // hemispheres — negate one to force the short path.
+    SCALAR_TYPE q1s[4];
+    q1s[0] = q1[0]; q1s[1] = q1[1]; q1s[2] = q1[2]; q1s[3] = q1[3];
+    if (dot < 0.0) {
+        dot     = -dot;
+        q1s[0]  = -q1s[0]; q1s[1] = -q1s[1];
+        q1s[2]  = -q1s[2]; q1s[3] = -q1s[3];
+    }
+
+    if (dot > 0.9995) {
+        // Quaternions are nearly identical — use normalised LERP to avoid
+        // divide-by-zero in the general branch.
+        for (int i = 0; i < 4; i++)
+            result[i] = q0[i] * (1 - t) + q1s[i] * t;
+        normalizeq(result);
+    } else {
+        const double theta0    = acos(dot);          // angle between q0 and q1
+        const double theta     = theta0 * (double)t; // angle at time t
+        const double sinTheta0 = sin(theta0);
+        const double s0        = cos(theta) - dot * sin(theta) / sinTheta0;
+        const double s1        = sin(theta) / sinTheta0;
+        for (int i = 0; i < 4; i++)
+            result[i] = (SCALAR_TYPE)(s0 * q0[i] + s1 * q1s[i]);
+    }
+}

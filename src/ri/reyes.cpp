@@ -1303,6 +1303,42 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             if (cVertex[2] > zmax)
                 zmax = cVertex[2];
         }
+
+        // For camera rotation, the arc between t=0 and t=1 raster-space positions
+        // can bulge outside the chord-based bounding box. Sample intermediate times
+        // and expand the grid-level bounds to cover the full arc.
+        if (CRenderer::cameraHasRotation) {
+            static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
+            const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+            for (int ti = 0; ti < 3; ti++) {
+                const float jt = kArcTimes[ti];
+                quaternion Rjt;
+                slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                matrix Mjt;
+                qtoR(Mjt, Rjt);
+                const float tx = jt * CRenderer::relTrans[0];
+                const float ty_t = jt * CRenderer::relTrans[1];
+                const float tz = jt * CRenderer::relTrans[2];
+                for (cVertex = grid->vertices, i = grid->numVertices; i > 0; i--, cVertex += numVertexSamples) {
+                    const float _z  = cVertex[COMP_Z];
+                    // vertex buffer is in sample space; un-project to screen then camera
+                    const float _sx = cVertex[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;
+                    const float _sy = cVertex[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;
+                    float _cp[3] = {_sx * _z * CRenderer::invImagePlane, _sy * _z * CRenderer::invImagePlane, _z};
+                    float _rp[3];
+                    mulmp(_rp, Mjt, _cp);
+                    _rp[0] += tx; _rp[1] += ty_t; _rp[2] += tz;
+                    if (_rp[2] > C_EPSILON) {
+                        const float rxjt = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
+                        const float ryjt = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
+                        if (rxjt < xmin) xmin = rxjt;
+                        if (rxjt > xmax) xmax = rxjt;
+                        if (ryjt < ymin) ymin = ryjt;
+                        if (ryjt > ymax) ymax = ryjt;
+                    }
+                }
+            }
+        }
     }
 
     if (CRenderer::aperture != 0) {
