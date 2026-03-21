@@ -1,0 +1,18 @@
+##RenderMan RIB
+version 3.04
+Display "spotlight_scene" "file" "rgba"
+Format 640 480 1
+Projection "perspective" "fov" 35
+Translate 0 0 5
+WorldBegin
+    # Define a white spotlight
+    LightSource "spotlight" 1 "intensity" 1000 
+                "coneangle" 0.3 
+                "from" [0 2 0] "to" [0 0 0]
+    
+    # Surface shader on a plane
+    Attribute "identifier" "name" ["plane"]
+    Surface "plastic"
+    Polygon "P" [-2 -1 2 2 -1 2 2 -1 -2 -2 -1 -2]
+WorldEnd
+

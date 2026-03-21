@@ -48,7 +48,7 @@ bool CDCEPass::isSafeToRemove(const std::string &opcode) {
     // Keep this conservative — when in doubt, leave the instruction.
     static const char *pureOpcodes[] = {
         // Move / assign
-        "movff", "movvv", "movmm", "movss",
+        "moveff", "movevv", "movemm", "movess",
         "vufloat", "vuvector", "vumatrix", "vustring",
         // Arithmetic — float
         "addf", "subf", "mulf", "divf", "negf",
