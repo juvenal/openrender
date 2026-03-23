@@ -16,7 +16,9 @@ set(oshader_sources
 	sdrEmitter.cpp
 	passes/passManager.cpp
 	passes/passDCE.cpp
-	passes/passUniformLifting.cpp)
+	passes/passUniformLifting.cpp
+	passes/passConstFold.cpp
+	passes/passCSE.cpp)
 
 include_directories(AFTER ../includes)
 

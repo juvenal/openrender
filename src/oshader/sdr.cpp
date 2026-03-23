@@ -31,6 +31,8 @@
 #include "irBuilder.h"
 #include "logging.h"
 #include "opcodes.h" // This file holds the constant strings
+#include "passes/passConstFold.h"
+#include "passes/passCSE.h"
 #include "passes/passDCE.h"
 #include "passes/passManager.h"
 #include "passes/passUniformLifting.h"
@@ -1587,7 +1589,9 @@ void CScriptContext::generateCode(const char *o) {
         // Run optimization passes.
         const bool dumpIR = (getenv("OPENRENDER_DUMP_IR") != nullptr);
         CPassManager pm;
+        pm.addPass(std::make_unique<CConstFoldPass>());
         pm.addPass(std::make_unique<CUniformLiftingPass>());
+        pm.addPass(std::make_unique<CCSEPass>());
         pm.addPass(std::make_unique<CDCEPass>());
         pm.run(*mod, dumpIR);
 

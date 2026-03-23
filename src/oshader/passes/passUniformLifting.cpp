@@ -28,7 +28,7 @@ bool CUniformLiftingPass::isUniformSafeOpcode(const std::string &opcode) {
     // state).  Their result can be UNIFORM if all operands are UNIFORM.
     static const char *uniformSafe[] = {
         // Move / constant load
-        "movff", "movvv", "movmm", "movss",
+        "moveff", "movevv", "movemm", "movess",
         "vufloat", "vuvector", "vumatrix", "vustring",
         // Arithmetic — float
         "addf", "subf", "mulf", "divf", "negf",
