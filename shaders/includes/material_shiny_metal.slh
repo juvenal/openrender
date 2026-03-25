@@ -1,0 +1,26 @@
+/**
+ * MaterialShinyMetal():
+ *     Compute the color of a surface using a simple Lambertian BRDF.
+ *     Typical values are Ka = 1, Kd = 0.8.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+#include "sample_environment.slh"
+
+color
+MaterialShinyMetal (normal Nf;
+                    color basecolor;
+                    float Ka, Kd, Ks, roughness, Kr, blur;
+                    DECLARE_ENVPARAMS) {
+
+    extern point P;
+    extern vector I;
+    vector IN = normalize(I),
+           V = -IN,
+           R = reflect(IN, Nf);
+
+    return basecolor * (Ka * ambient() + Kd * diffuse(Nf) +
+                        Ks * specular(Nf, V, roughness) +
+                        SampleEnvironment(P, R, Kr, blur, ENVPARAMS));
+}

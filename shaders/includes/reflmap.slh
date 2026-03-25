@@ -1,0 +1,20 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ */
+
+color
+ReflMap (string reflname;
+         point P;
+         float blur;
+         output float alpha) {
+
+    point Pndc = transform ("NDC", P);
+    float x = xcomp(Pndc),
+          y = ycomp(Pndc);
+    alpha = float texture (reflname[3], x, y, "blur", blur, "fill", 1);
+    return color texture (reflname, x, y, "blur", blur);
+}

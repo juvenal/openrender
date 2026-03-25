@@ -1,9 +1,9 @@
 /**
- *
- *
- *
- *
- *
+ * raysphere - calculate the intersection of ray (E, I) with a sphere
+ * centered at the origin and with radius r. We return the number of 
+ * intersections found (0, 1, or 2). and place the distances to the
+ * intersections in t0, t1 (always with t0 <= t1). Ignore any hits
+ * closer than eps.
  */
 
 float
@@ -41,11 +41,19 @@ raysphere (point E; vector I;
 
 
 /**
- *
- *
- *
- *
- *
+ * Environment() - A replacement of ordinary environment() lookups, this
+ * function ray traces against an environment sphere of known, finite
+ * radius. Inputs are:
+ *    envname - filename of environment map
+ *    envspace - name of space environment map was made in
+ *    envrad - approximate supposed radius of environment sphere
+ *    P, R - position and direction of traced ray
+ *    blur - amount of additional blur to add to environment map
+ * Outputs are:
+ *    return value - the color of incoming environment light
+ *    alpha - opacity of environment map lookup in the direction R
+ * Warning - the environment call itself takes derivatives, causing
+ * trouble if called inside a loop of varying conditional! Be cautious
  */
 
 color

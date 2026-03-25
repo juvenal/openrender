@@ -1,0 +1,38 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ */
+
+#include "reflmap.slh"
+#include "environment.slh"
+
+#define ENVPARAMS  envname, envspace, envrad
+
+#define DECLARE_ENVPARAMS                            \
+        string envname, envspace; uniform float envrad
+
+#define DECLARE_DEFAULTED_ENVPARAMS                  \
+        string envname = "", envspace = "world";     \
+        uniform float envrad = 100
+
+color
+SampleEnvironment (point P;
+                   vector R;
+                   float Kr, blur;
+                   DECLARE_ENVPARAMS) {
+
+    color C = 0;
+    float alpha;
+    if (envname != "") {
+        if (envspace == "NDC") {
+            C = ReflMap (envname, P, blur, alpha);
+        }
+        else {
+            C = Environment (envname, envspace, envrad, P, R, blur, alpha);
+        }
+    }
+    return Kr * C;
+}

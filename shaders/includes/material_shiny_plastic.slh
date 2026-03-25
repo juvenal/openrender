@@ -1,0 +1,29 @@
+/**
+ * MaterialShinyPlastic():
+ *     Compute the color of a surface using a simple Lambertian BRDF.
+ *     Typical values are Ka = 1, Kd = 0.8.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+#include "sample_environment.slh"
+
+color
+MaterialShinyPlastic (normal Nf;
+                      color basecolor;
+                      float Ka, Kd, Ks, roughness, Kr, blur, ior;
+                      DECLARE_ENVPARAMS) {
+    
+    extern vector I;
+    extern point P;
+    vector IN = normalize(I),
+           V = -IN,
+           R, T;
+    float fkr, fkt;
+
+    fresnel (IN, Nf, 1/ior, fkr, fkt, R, T);
+    fkt = 1 - fkr;
+    return fkt * basecolor * (Ka * ambient() + Kd * diffuse(Nf)) +
+                             (Ks * fkr) * specular(Nf, V, roughness) +
+                             SampleEnvironment(P, R, fkr * Kr, blur, ENVPARAMS);
+}
