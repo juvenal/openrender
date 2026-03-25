@@ -377,24 +377,26 @@ int main(int argc, char *argv[]) {
         currentCompiler->compile(in, outName);
 
         // Ditch the compiler
-        if (currentCompiler->compileError)
+        if (currentCompiler->compileError) {
             error = ERR_COMPILE;
-
-        // Inform compiled file
-        char sdrName[OS_MAX_PATH_LENGTH];
-        const char *compiledBasename = nullptr;
-        if (outName != nullptr) {
-            const char *outSep = strrchr(outName, OS_DIR_SEPERATOR);
-            compiledBasename = (outSep != nullptr) ? outSep + 1 : outName;
         }
-        else if (currentCompiler->shaderName != nullptr) {
-            if (currentCompiler->legacySdr)
-                snprintf(sdrName, sizeof(sdrName), "%s.sdr", currentCompiler->shaderName);
-            else
-                snprintf(sdrName, sizeof(sdrName), "%s.rslo", currentCompiler->shaderName);
-            compiledBasename = sdrName;
+        else {
+            // Inform compiled file (only on success)
+            char sdrName[OS_MAX_PATH_LENGTH];
+            const char *compiledBasename = nullptr;
+            if (outName != nullptr) {
+                const char *outSep = strrchr(outName, OS_DIR_SEPERATOR);
+                compiledBasename = (outSep != nullptr) ? outSep + 1 : outName;
+            }
+            else if (currentCompiler->shaderName != nullptr) {
+                if (currentCompiler->legacySdr)
+                    snprintf(sdrName, sizeof(sdrName), "%s.sdr", currentCompiler->shaderName);
+                else
+                    snprintf(sdrName, sizeof(sdrName), "%s.rslo", currentCompiler->shaderName);
+                compiledBasename = sdrName;
+            }
+            fprintf(stderr, "... compiled %s\n", compiledBasename != nullptr ? compiledBasename : "(unknown)");
         }
-        fprintf(stderr, "... compiled %s\n", compiledBasename != nullptr ? compiledBasename : "(unknown)");
 
         // Cleanup
         delete currentCompiler;

@@ -31,8 +31,8 @@
 #include "irBuilder.h"
 #include "logging.h"
 #include "opcodes.h" // This file holds the constant strings
-#include "passes/passConstFold.h"
 #include "passes/passCSE.h"
+#include "passes/passConstFold.h"
 #include "passes/passDCE.h"
 #include "passes/passManager.h"
 #include "passes/passUniformLifting.h"
@@ -288,7 +288,8 @@ CVariable *CFunction::getVariable(const char *name, int probe) {
         if (parent != nullptr) {
             return parent->getVariable(name, probe);
         }
-    } else {
+    }
+    else {
         if (probe == TRUE) {
             if (parent != nullptr) {
                 return parent->getVariable(name, probe);
@@ -342,18 +343,23 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
                                         continue;
                                     else
                                         break;
-                                } else
+                                }
+                                else
                                     continue;
                             }
-                        } else {
+                        }
+                        else {
                             if (returnType & SLC_NONE) {
-                            } else {
+                            }
+                            else {
                                 break;
                             }
                         }
-                    } else
+                    }
+                    else
                         break;
-                } else {
+                }
+                else {
                     // Do the return values match ?
                     if (cFun->returnValue != nullptr) {
                         if ((returnType & SLC_TYPE_MASK) & (cFun->returnValue->type & SLC_TYPE_MASK)) {
@@ -362,17 +368,21 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
                                     continue;
                                 else
                                     break;
-                            } else
+                            }
+                            else
                                 continue;
                         }
-                    } else {
+                    }
+                    else {
                         if (returnType & SLC_NONE) {
-                        } else {
+                        }
+                        else {
                             break;
                         }
                     }
                 }
-            } else
+            }
+            else
                 break;
         }
 
@@ -423,7 +433,8 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
                     return cFun;
                 if ((returnType & SLC_MATRIX) & (cFun->returnValue->type & SLC_VECTOR))
                     return cFun;
-            } else
+            }
+            else
                 return cFun;
         }
     }
@@ -449,30 +460,30 @@ CFunctionPrototype::CFunctionPrototype(const char *name, const char *p, int comp
     this->dso = FALSE;
 
     switch (prototype[0]) {
-    case 'f':
-        functionType = SLC_FLOAT;
-        break;
-    case 'v':
-        functionType = SLC_VECTOR | SLC_VVECTOR;
-        break;
-    case 'n':
-        functionType = SLC_VECTOR | SLC_VNORMAL;
-        break;
-    case 'p':
-        functionType = SLC_VECTOR | SLC_VPOINT;
-        break;
-    case 'c':
-        functionType = SLC_VECTOR | SLC_VCOLOR;
-        break;
-    case 'm':
-        functionType = SLC_MATRIX;
-        break;
-    case 's':
-        functionType = SLC_STRING;
-        break;
-    default:
-        functionType = SLC_NONE;
-        break;
+        case 'f':
+            functionType = SLC_FLOAT;
+            break;
+        case 'v':
+            functionType = SLC_VECTOR | SLC_VVECTOR;
+            break;
+        case 'n':
+            functionType = SLC_VECTOR | SLC_VNORMAL;
+            break;
+        case 'p':
+            functionType = SLC_VECTOR | SLC_VPOINT;
+            break;
+        case 'c':
+            functionType = SLC_VECTOR | SLC_VCOLOR;
+            break;
+        case 'm':
+            functionType = SLC_MATRIX;
+            break;
+        case 's':
+            functionType = SLC_STRING;
+            break;
+        default:
+            functionType = SLC_NONE;
+            break;
     }
 }
 
@@ -531,21 +542,26 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
         if ((prototype[0] == 'f') || (prototype[0] == 'F')) {
             if (!(dt & SLC_FLOAT))
                 return FALSE;
-        } else if ((prototype[0] == 'v') || (prototype[0] == 'V') ||
-                   (prototype[0] == 'p') || (prototype[0] == 'P') ||
-                   (prototype[0] == 'n') || (prototype[0] == 'N') ||
-                   (prototype[0] == 'c') || (prototype[0] == 'C')) {
+        }
+        else if ((prototype[0] == 'v') || (prototype[0] == 'V') ||
+                 (prototype[0] == 'p') || (prototype[0] == 'P') ||
+                 (prototype[0] == 'n') || (prototype[0] == 'N') ||
+                 (prototype[0] == 'c') || (prototype[0] == 'C')) {
             if (!(dt & SLC_VECTOR))
                 return FALSE;
-        } else if ((prototype[0] == 's') || (prototype[0] == 'S')) {
+        }
+        else if ((prototype[0] == 's') || (prototype[0] == 'S')) {
             if (!(dt & SLC_STRING))
                 return FALSE;
-        } else if ((prototype[0] == 'm') || (prototype[0] == 'M')) {
+        }
+        else if ((prototype[0] == 'm') || (prototype[0] == 'M')) {
             if (!(dt & SLC_MATRIX))
                 return FALSE;
-        } else
+        }
+        else
             return FALSE;
-    } else {
+    }
+    else {
         if (prototype[0] != 'o')
             return FALSE;
     }
@@ -558,25 +574,31 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
     for (cPrototype = 2, cCode = pl->first(); (cCode != nullptr) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
         if (prototype[cPrototype] == '.') {
             continue;
-        } else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
+        }
+        else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 'v') || (prototype[cPrototype] == 'V') ||
-                   (prototype[cPrototype] == 'p') || (prototype[cPrototype] == 'P') ||
-                   (prototype[cPrototype] == 'n') || (prototype[cPrototype] == 'N') ||
-                   (prototype[cPrototype] == 'c') || (prototype[cPrototype] == 'C')) {
+        }
+        else if ((prototype[cPrototype] == 'v') || (prototype[cPrototype] == 'V') ||
+                 (prototype[cPrototype] == 'p') || (prototype[cPrototype] == 'P') ||
+                 (prototype[cPrototype] == 'n') || (prototype[cPrototype] == 'N') ||
+                 (prototype[cPrototype] == 'c') || (prototype[cPrototype] == 'C')) {
             if (cCode->type & SLC_VECTOR)
                 continue;
-        } else if ((prototype[cPrototype] == 's') || (prototype[cPrototype] == 'S')) {
+        }
+        else if ((prototype[cPrototype] == 's') || (prototype[cPrototype] == 'S')) {
             if (cCode->type & SLC_STRING)
                 continue;
-        } else if ((prototype[cPrototype] == 'm') || (prototype[cPrototype] == 'M')) {
+        }
+        else if ((prototype[cPrototype] == 'm') || (prototype[cPrototype] == 'M')) {
             if (cCode->type & SLC_MATRIX)
                 continue;
-        } else if ((prototype[cPrototype] == '+') || (prototype[cPrototype] == '*')) {
+        }
+        else if ((prototype[cPrototype] == '+') || (prototype[cPrototype] == '*')) {
             cPrototype -= 2;
             continue;
-        } else if (prototype[cPrototype] == '!') {
+        }
+        else if (prototype[cPrototype] == '!') {
             // Extract the parameter list
             // NOTE: We usually expect string - value pairs, but we will not do a strict check
             if (parameterList == false) {
@@ -587,7 +609,8 @@ int CFunctionPrototype::perfectMatch(const char *name, CList<CExpression *> *pl,
             cCode = pl->next();
             cPrototype--;
             continue;
-        } else
+        }
+        else
             return FALSE;
 
         return FALSE;
@@ -637,44 +660,53 @@ int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt
     for (cPrototype = 2, cCode = pl->first(); (cCode != nullptr) && (prototype[cPrototype] != '\0'); cCode = pl->next(), cPrototype++) {
         if (prototype[cPrototype] == '.') {
             continue;
-        } else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
+        }
+        else if ((prototype[cPrototype] == 'f') || (prototype[cPrototype] == 'F')) {
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 'v') || (prototype[cPrototype] == 'V')) {
+        }
+        else if ((prototype[cPrototype] == 'v') || (prototype[cPrototype] == 'V')) {
             if (cCode->type & SLC_VECTOR)
                 continue;
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 'n') || (prototype[cPrototype] == 'N')) {
+        }
+        else if ((prototype[cPrototype] == 'n') || (prototype[cPrototype] == 'N')) {
             if (cCode->type & SLC_VECTOR)
                 continue;
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 'p') || (prototype[cPrototype] == 'P')) {
+        }
+        else if ((prototype[cPrototype] == 'p') || (prototype[cPrototype] == 'P')) {
             if (cCode->type & SLC_VECTOR)
                 continue;
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 'c') || (prototype[cPrototype] == 'C')) {
+        }
+        else if ((prototype[cPrototype] == 'c') || (prototype[cPrototype] == 'C')) {
             if (cCode->type & SLC_VECTOR)
                 continue;
             if (cCode->type & SLC_FLOAT)
                 continue;
-        } else if ((prototype[cPrototype] == 's') || (prototype[cPrototype] == 'S')) {
+        }
+        else if ((prototype[cPrototype] == 's') || (prototype[cPrototype] == 'S')) {
             if (cCode->type & SLC_STRING)
                 continue;
-        } else if ((prototype[cPrototype] == 'm') || (prototype[cPrototype] == 'M')) {
+        }
+        else if ((prototype[cPrototype] == 'm') || (prototype[cPrototype] == 'M')) {
             if (cCode->type & SLC_MATRIX)
                 continue;
             if (cCode->type & SLC_FLOAT)
                 continue;
             if (cCode->type & SLC_VECTOR)
                 continue;
-        } else if ((prototype[cPrototype] == '+') || (prototype[cPrototype] == '*')) {
+        }
+        else if ((prototype[cPrototype] == '+') || (prototype[cPrototype] == '*')) {
             cPrototype -= 2;
             cCode = pl->prev();
             continue;
-        } else if (prototype[cPrototype] == '!') {
+        }
+        else if (prototype[cPrototype] == '!') {
             // Extract the parameter list
             // NOTE: We usually expect string - value pairs, but we will not do a strict check
             if (parameterList == false) {
@@ -685,7 +717,8 @@ int CFunctionPrototype::match(const char *name, CList<CExpression *> *pl, int dt
             cCode = pl->next();
             cPrototype--;
             continue;
-        } else {
+        }
+        else {
             return FALSE;
         }
 
@@ -1242,7 +1275,8 @@ void CScriptContext::define(CSymbol *s) {
             s->defFileName = nullptr;
 
         s->defLineNo = lineNo - 1;
-    } else {
+    }
+    else {
         s->defFileName = strdup("global");
         s->defLineNo = 0;
     }
@@ -1329,7 +1363,8 @@ void CScriptContext::addVariable(CVariable *cVariable) {
 
     if (cVariable->type & SLC_PARAMETER) {
         variables->push(cVariable);
-    } else {
+    }
+    else {
         if (cVariable->cName != nullptr)
             return;
 
@@ -1346,7 +1381,8 @@ void CScriptContext::addVariable(CVariable *cVariable) {
                         collusion = TRUE;
                         break;
                     }
-                } else {
+                }
+                else {
                     if (strcmp(tmp, tVar->symbolName) == 0) {
                         count++;
                         snprintf(tmp, sizeof(tmp), "%s_%d", cVariable->symbolName, count);
@@ -1471,27 +1507,27 @@ void CScriptContext::generateCode(const char *o) {
     fprintf(out, "#!version %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
     switch (shaderType) {
-    case SLC_SURFACE:
-        fprintf(out, "surface\n");
-        break;
-    case SLC_LIGHT:
-        fprintf(out, "light\n");
-        break;
-    case SLC_DISPLACEMENT:
-        fprintf(out, "displacement\n");
-        break;
-    case SLC_VOLUME:
-        fprintf(out, "volume\n");
-        break;
-    case SLC_TRANSFORMATION:
-        fprintf(out, "transformation\n");
-        break;
-    case SLC_IMAGER:
-        fprintf(out, "imager\n");
-        break;
-    default:
-        fprintf(out, "generic\n");
-        break;
+        case SLC_SURFACE:
+            fprintf(out, "surface\n");
+            break;
+        case SLC_LIGHT:
+            fprintf(out, "light\n");
+            break;
+        case SLC_DISPLACEMENT:
+            fprintf(out, "displacement\n");
+            break;
+        case SLC_VOLUME:
+            fprintf(out, "volume\n");
+            break;
+        case SLC_TRANSFORMATION:
+            fprintf(out, "transformation\n");
+            break;
+        case SLC_IMAGER:
+            fprintf(out, "imager\n");
+            break;
+        default:
+            fprintf(out, "generic\n");
+            break;
     }
 
     // Print the parameters
@@ -1507,7 +1543,8 @@ void CScriptContext::generateCode(const char *o) {
             // Write the container class
             if (cParameter->type & SLC_UNIFORM) {
                 fprintf(out, "uniform\t");
-            } else {
+            }
+            else {
                 fprintf(out, "varying\t");
             }
 
@@ -1525,7 +1562,8 @@ void CScriptContext::generateCode(const char *o) {
                     fprintf(out, "color\t");
                 else
                     fprintf(out, "vector\t");
-            } else if (cParameter->type & SLC_STRING)
+            }
+            else if (cParameter->type & SLC_STRING)
                 fprintf(out, "string\t");
             else if (cParameter->type & SLC_MATRIX)
                 fprintf(out, "matrix\t");
@@ -1538,7 +1576,8 @@ void CScriptContext::generateCode(const char *o) {
 
             if (cParameter->defaultValue != nullptr) {
                 fprintf(out, "\t=\t%s\n", cParameter->defaultValue);
-            } else {
+            }
+            else {
                 fprintf(out, "\n");
             }
         }
@@ -1555,7 +1594,8 @@ void CScriptContext::generateCode(const char *o) {
             // Write the container class
             if (cVariable->type & SLC_UNIFORM) {
                 fprintf(out, "uniform\t");
-            } else {
+            }
+            else {
                 fprintf(out, "varying\t");
             }
 
@@ -1564,7 +1604,8 @@ void CScriptContext::generateCode(const char *o) {
                 fprintf(out, "float\t");
             else if (cVariable->type & SLC_VECTOR) {
                 fprintf(out, "vector\t");
-            } else if (cVariable->type & SLC_STRING)
+            }
+            else if (cVariable->type & SLC_STRING)
                 fprintf(out, "string\t");
             else if (cVariable->type & SLC_MATRIX)
                 fprintf(out, "matrix\t");
@@ -1573,7 +1614,8 @@ void CScriptContext::generateCode(const char *o) {
 
             if (cVariable->type & SLC_ARRAY) {
                 fprintf(out, "[%d]\n", cVariable->numItems);
-            } else
+            }
+            else
                 fprintf(out, "\n");
         }
     }
@@ -1666,11 +1708,11 @@ void CScriptContext::enumerateDso(const char *name) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CScriptContext
-// Method				:	CScriptContext::error(char *,...)
-// Description			:	Print an CScriptContext::error message and terminate
-// Return Value			:
-// Comments				:
+// Class         :  CScriptContext
+// Method        :  CScriptContext::error(char *,...)
+// Description   :  Print an CScriptContext::error message and terminate
+// Return Value  :
+// Comments      :
 void CScriptContext::error(const char *mes, ...) {
     compileError++;
 
@@ -1686,7 +1728,7 @@ void CScriptContext::error(const char *mes, ...) {
     size_t len = strlen(msg);
     if (len > 0 && msg[len - 1] == '\n')
         msg[len - 1] = '\0';
-    LOG_ERROR("%s", msg);
+    fprintf(stderr, "%s", msg);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1801,7 +1843,8 @@ CVariable *CScriptContext::lockRegister(int type, int numItems) {
             if (cVar->type & SLC_UNIFORM) {
                 if (!(type & SLC_UNIFORM))
                     continue;
-            } else {
+            }
+            else {
                 if (type & SLC_UNIFORM)
                     continue;
             }
