@@ -3,7 +3,7 @@
  *
  */
 
-#include "includes/material_shiny_plastic.slh"
+#include "material_shiny_plastic.slh"
 
 surface
 shinyplastic (float Ka = 1,

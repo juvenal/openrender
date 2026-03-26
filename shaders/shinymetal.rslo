@@ -4,7 +4,7 @@ surface
 uniform	float	Ka	=	1
 uniform	float	Kd	=	0.1
 uniform	float	Ks	=	1
-uniform	float	roughtness	=	0.2
+uniform	float	roughness	=	0.2
 uniform	float	Kr	=	0.8
 uniform	float	blur	=	0
 uniform	string	envname	=	""
@@ -62,7 +62,7 @@ varying	float	temporary_24
 	vufloat  temporary_1 Ka
 	vufloat  temporary_2 Kd
 	vufloat  temporary_3 Ks
-	vufloat  temporary_4 roughtness
+	vufloat  temporary_4 roughness
 	vufloat  temporary_5 Kr
 	vufloat  temporary_6 blur
 	normalize	("v=v")  IN I
