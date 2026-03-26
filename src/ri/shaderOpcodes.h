@@ -201,30 +201,32 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {       \
         illuminateBegin(Pl, NULL, NULL);                        \
     } else {                                                    \
-        float *Ps = varying[VARIABLE_PS];                       \
-        float *L = varying[VARIABLE_L];                         \
-        const float *Ns = currentShadingState->Ns;              \
-        const float *costheta = currentShadingState->costheta;  \
-                                                                \
-        for (int i = numVertices; i > 0; --i, ++tags) {         \
-            if (*tags) {                                        \
-                (*tags)++;                                      \
-            } else {                                            \
-                subvv(L, Ps, Pl);                               \
-                                                                \
-                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) { \
-                    (*tags)++;                                  \
-                    --numActive;                                \
-                    ++numPassive;                               \
-                }                                               \
-            }                                                   \
-                                                                \
-            Pl += 3;                                            \
-            L += 3;                                             \
-            Ps += 3;                                            \
-            Ns += 3;                                            \
-            ++costheta;                                         \
-        }                                                       \
+        float *Ps = varying[VARIABLE_PS];                                   \
+        float *L = varying[VARIABLE_L];                                     \
+        const float *Ns    = currentShadingState->Ns;                       \
+        const float *Ngeom = varying[VARIABLE_NG];                          \
+        const float *costheta = currentShadingState->costheta;              \
+                                                                            \
+        for (int i = numVertices; i > 0; --i, ++tags) {                     \
+            if (*tags) {                                                    \
+                (*tags)++;                                                  \
+            } else {                                                        \
+                subvv(L, Ps, Pl);                                           \
+                                                                            \
+                if (dotvv(Ngeom, L) > -(*costheta) * lengthv(L)) {         \
+                    (*tags)++;                                              \
+                    --numActive;                                            \
+                    ++numPassive;                                           \
+                }                                                           \
+            }                                                               \
+                                                                            \
+            Pl    += 3;                                                     \
+            L     += 3;                                                     \
+            Ps    += 3;                                                     \
+            Ns    += 3;                                                     \
+            Ngeom += 3;                                                     \
+            ++costheta;                                                     \
+        }                                                                   \
                                                                 \
         if (numActive == 0) {                                   \
             jmp(argument(1));                                   \
@@ -252,32 +254,34 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {                                       \
         illuminateBegin(Pf, Nf, thetaf);                                                        \
     } else {                                                                                    \
-        float *Ps = varying[VARIABLE_PS];                                                       \
-        float *L = varying[VARIABLE_L];                                                         \
-        const float *Ns = currentShadingState->Ns;                                              \
-        const float *costheta = currentShadingState->costheta;                                  \
-                                                                                                \
-        for (int i = numVertices; i > 0; --i, ++tags) {                                         \
-            if (*tags) {                                                                        \
-                (*tags)++;                                                                      \
-            } else {                                                                            \
-                subvv(L, Ps, Pf);                                                               \
-                const float Lm = lengthv(L);                                                    \
-                if ((dotvv(Nf, L) < cos(*thetaf) * Lm) || (dotvv(Ns, L) > -(*costheta) * Lm)) { \
-                    (*tags)++;                                                                  \
-                    --numActive;                                                                \
-                    ++numPassive;                                                               \
-                }                                                                               \
-            }                                                                                   \
-                                                                                                \
-            Pf += 3;                                                                            \
-            Nf += 3;                                                                            \
-            ++thetaf;                                                                           \
-            L += 3;                                                                             \
-            Ps += 3;                                                                            \
-            Ns += 3;                                                                            \
-            ++costheta;                                                                         \
-        }                                                                                       \
+        float *Ps = varying[VARIABLE_PS];                                                                   \
+        float *L = varying[VARIABLE_L];                                                                     \
+        const float *Ns    = currentShadingState->Ns;                                                       \
+        const float *Ngeom = varying[VARIABLE_NG];                                                          \
+        const float *costheta = currentShadingState->costheta;                                              \
+                                                                                                            \
+        for (int i = numVertices; i > 0; --i, ++tags) {                                                     \
+            if (*tags) {                                                                                    \
+                (*tags)++;                                                                                  \
+            } else {                                                                                        \
+                subvv(L, Ps, Pf);                                                                           \
+                const float Lm = lengthv(L);                                                                \
+                if ((dotvv(Nf, L) < cos(*thetaf) * Lm) || (dotvv(Ngeom, L) > -(*costheta) * Lm)) {        \
+                    (*tags)++;                                                                              \
+                    --numActive;                                                                            \
+                    ++numPassive;                                                                           \
+                }                                                                                           \
+            }                                                                                               \
+                                                                                                            \
+            Pf    += 3;                                                                                     \
+            Nf    += 3;                                                                                     \
+            ++thetaf;                                                                                       \
+            L     += 3;                                                                                     \
+            Ps    += 3;                                                                                     \
+            Ns    += 3;                                                                                     \
+            Ngeom += 3;                                                                                     \
+            ++costheta;                                                                                     \
+        }                                                                                                   \
                                                                                                 \
         if (numActive == 0) {                                                                   \
             jmp(argument(3));                                                                   \
