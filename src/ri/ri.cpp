@@ -2491,9 +2491,17 @@ RiErrorPrint(RtInt code, RtInt severity, const char *message) {
         fflush(stderr);
 
         RiLastError = code;
-    } else {
+    } else if (severity == RIE_WARNING) {
+        // RIB-level issues: always print regardless of log level
         fprintf(stdout, "%s", message);
         fflush(stdout);
+    } else {
+        // RIE_INFO — algorithm/geometry events: respect the -x log level
+        // Printed only when -x 3 (INFO) or -x 4 (DEBUG) is passed
+        if (current_log_level <= LogLevel::INFO) {
+            fprintf(stdout, "%s", message);
+            fflush(stdout);
+        }
     }
 }
 
