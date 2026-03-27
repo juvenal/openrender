@@ -62,6 +62,9 @@ Thumbs.db
 /*.webp
 /*.ico
 
+# Images stored
+.build-images
+
 # Temporary files
 *.tmp
 *.temp
