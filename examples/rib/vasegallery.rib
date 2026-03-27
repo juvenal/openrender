@@ -5,7 +5,7 @@ Format 900 500 1
 PixelSamples 2 2
 ShadingRate 0.25
 
-Display "vasegallery1.tif" "file" "rgba"
+Display "vasegallery.tif" "file" "rgba"
 Projection "orthographic"
 ScreenWindow -10 80 -40 10
 
@@ -45,7 +45,6 @@ WorldBegin
       LightSource "uberlight" 4 "string lighttype" ["omni"] "intensity" [0.35] "float nonspecular" [.7]
     AttributeEnd
     Illuminate 4 1
-
   TransformEnd
 
 ########################################################################
@@ -81,10 +80,10 @@ WorldBegin
   AttributeBegin
     Translate 64 0 0
     Color 1 .3 .05
-    TransformBegin
+    #TransformBegin
       #Scale 5 5 5
       Surface "clay"
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
@@ -92,63 +91,63 @@ WorldBegin
   AttributeBegin
     Translate 0 0 -16
     #Color 1 .3 .05
-    TransformBegin
-      Scale 3.5 3.5 3.5
+    #TransformBegin
+    #  Scale 3.5 3.5 3.5
       Surface "matte" "Kd" [0.8]
       Displacement "stucco" "float Km" [0.15]
       Attribute "displacementbound" "sphere" [0.15] "coordinatesystem" ["shader"]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 16 0 -16
     #Color 1 .3 .05
-    TransformBegin
+    #TransformBegin
       #Scale 3.5 3.5 3.5
       Surface "matte" "Kd" [0.7]
       Displacement "castucco" "float Km" [0.04] "float freq" [1.5]
       Attribute "displacementbound" "sphere" [0.04] "coordinatesystem" ["shader"]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 32 0 -16
     #Color 1 .3 .05
-    TransformBegin
-      Scale 3.5 3.5 3.5
+    #TransformBegin
+    #  Scale 3.5 3.5 3.5
       Surface "plastic" "Kd" [0.7]
       Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.1]
       Displacement "dented" "float power" [1] "float Km" [0.05]
                    #"float Km" [0.04] "float freq" [1.25]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 48 0 -16
     #Color 1 .3 .05
-    TransformBegin
-      Scale 3.5 3.5 3.5
+    #TransformBegin
+    #  Scale 3.5 3.5 3.5
       Surface "plastic" "Kd" [0.7]
       Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.1]
       Displacement "dented"  "float power" [2] "float Km" [0.075]
                    #"float Km" [0.04] "float freq" [1.25]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 64 0 -16
     #Color 1 .3 .05
-    TransformBegin
-      Scale 3.5 3.5 3.5
+    #TransformBegin
+    #  Scale 3.5 3.5 3.5
       Surface "plastic" "Kd" [0.7]
       Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.15]
       Displacement "dented"  "float power" [3] "float Km" [0.125]
                    #"float Km" [0.04] "float freq" [1.25]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
@@ -156,10 +155,10 @@ WorldBegin
   AttributeBegin
     Translate 0 0 -32
     #Color 1 .3 .05
-    TransformBegin
-      Scale 5 5 5
+    #TransformBegin
+    #  Scale 5 5 5
       Surface "veinedmarble"
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
@@ -167,44 +166,44 @@ WorldBegin
   AttributeBegin
     Translate 16 0 -32
     #Color 1 .3 .05
-    TransformBegin
-      Scale 3.5 3.5 3.5
+    #TransformBegin
+    #  Scale 3.5 3.5 3.5
       Surface "greenmarble"
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 32 0 -32
     #Color 1 .3 .05
-    TransformBegin
-      Scale 10 10 10
+    #TransformBegin
+    #  Scale 10 10 10
       Surface "wood2"
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 48 0 -32
     #Color 1 .3 .05
-    TransformBegin
-      Translate 7 7 0
-      Scale 6 6 6
-      Rotate 10 1 1 0
+    #TransformBegin
+    #  Translate 7 7 0
+    #  Scale 6 6 6
+    #  Rotate 10 1 1 0
       Surface "oak" "float divotdepth" [0.007]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
   AttributeBegin
     Translate 64 0 -32
     #Color 1 .3 .05
-    TransformBegin
-      Translate 10 10 0
-      Scale 6 6 6
-      Rotate 10 1 1 0
+    #TransformBegin
+    #  Translate 10 10 0
+    #  Scale 6 6 6
+    #  Rotate 10 1 1 0
       Surface "oak" "float divotdepth" [0] "float roughness" [0.075] "float Ks" [1.4] "float Kd" [0.3] "float grainy" [0.5] "color Cdarkwood" [0.07 0.04 0.014]
-    TransformEnd
+    #TransformEnd
     Geometry "vase"
   AttributeEnd
 
