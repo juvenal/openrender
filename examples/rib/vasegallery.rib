@@ -1,0 +1,230 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+Format 900 500 1
+PixelSamples 2 2
+ShadingRate 0.25
+
+Display "vasegallery1.tif" "file" "rgba"
+Projection "orthographic"
+ScreenWindow -10 80 -40 10
+
+Rotate -103.02 1 0 0
+Translate 0 -40 -15
+
+WorldBegin
+
+  TransformBegin
+    CoordSysTransform "camera"
+    # Ambient light
+    LightSource "ambientlight" 1 "intensity" [0.01]
+    Illuminate 1 1
+
+    # Key light
+    AttributeBegin
+      Translate 800 1200 -1000
+      #Rotate -20 0 1 0
+      #Rotate 30 1 0 0
+      LightSource "uberlight" 2 "string lighttype" ["omni"] "intensity" [0.8] "lightcolor" [1 .95 .9]
+    AttributeEnd
+    Illuminate 2 1
+
+    # Fill light
+    AttributeBegin
+      Translate -500 500 -1000
+      #Rotate -20 0 1 0
+      #Rotate 30 1 0 0
+      Declare "lighttype" "string"
+      LightSource "uberlight" 3 "lighttype" ["omni"] "intensity" [0.2] "float nonspecular" [1] "lightcolor" [.95 .95 1]
+    AttributeEnd
+    Illuminate 3 1
+
+    # Rim light
+    AttributeBegin
+      Translate -600 600 900
+      LightSource "uberlight" 4 "string lighttype" ["omni"] "intensity" [0.35] "float nonspecular" [.7]
+    AttributeEnd
+    Illuminate 4 1
+
+  TransformEnd
+
+########################################################################
+  AttributeBegin
+    Translate 0 0 0
+    Color 1 .3 .05
+    Surface "roughmetal" "roughness" [0.3] "Ks" [1.5]
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 16 0 0
+    Color 1 .3 .05
+    Surface "shiny" "roughness" [0.3] "Ks" [1.5] "Kd" [0.15] "float Kr" [0.4]
+            "string envname" ["reflection"]
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 32 0 0
+    Color 1 .3 .05
+    Surface "plastic"
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 48 0 0
+    Color 1 .3 .05
+    Surface "shinyplastic" "string envname" ["reflection"]
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 64 0 0
+    Color 1 .3 .05
+    TransformBegin
+      #Scale 5 5 5
+      Surface "clay"
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+########################################################################
+  AttributeBegin
+    Translate 0 0 -16
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 3.5 3.5 3.5
+      Surface "matte" "Kd" [0.8]
+      Displacement "stucco" "float Km" [0.15]
+      Attribute "displacementbound" "sphere" [0.15] "coordinatesystem" ["shader"]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 16 0 -16
+    #Color 1 .3 .05
+    TransformBegin
+      #Scale 3.5 3.5 3.5
+      Surface "matte" "Kd" [0.7]
+      Displacement "castucco" "float Km" [0.04] "float freq" [1.5]
+      Attribute "displacementbound" "sphere" [0.04] "coordinatesystem" ["shader"]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 32 0 -16
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 3.5 3.5 3.5
+      Surface "plastic" "Kd" [0.7]
+      Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.1]
+      Displacement "dented" "float power" [1] "float Km" [0.05]
+                   #"float Km" [0.04] "float freq" [1.25]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 48 0 -16
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 3.5 3.5 3.5
+      Surface "plastic" "Kd" [0.7]
+      Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.1]
+      Displacement "dented"  "float power" [2] "float Km" [0.075]
+                   #"float Km" [0.04] "float freq" [1.25]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 64 0 -16
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 3.5 3.5 3.5
+      Surface "plastic" "Kd" [0.7]
+      Attribute "displacementbound" "coordinatesystem" ["shader"] "sphere" [.15]
+      Displacement "dented"  "float power" [3] "float Km" [0.125]
+                   #"float Km" [0.04] "float freq" [1.25]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+########################################################################
+  AttributeBegin
+    Translate 0 0 -32
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 5 5 5
+      Surface "veinedmarble"
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+
+  AttributeBegin
+    Translate 16 0 -32
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 3.5 3.5 3.5
+      Surface "greenmarble"
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 32 0 -32
+    #Color 1 .3 .05
+    TransformBegin
+      Scale 10 10 10
+      Surface "wood2"
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 48 0 -32
+    #Color 1 .3 .05
+    TransformBegin
+      Translate 7 7 0
+      Scale 6 6 6
+      Rotate 10 1 1 0
+      Surface "oak" "float divotdepth" [0.007]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+  AttributeBegin
+    Translate 64 0 -32
+    #Color 1 .3 .05
+    TransformBegin
+      Translate 10 10 0
+      Scale 6 6 6
+      Rotate 10 1 1 0
+      Surface "oak" "float divotdepth" [0] "float roughness" [0.075] "float Ks" [1.4] "float Kd" [0.3] "float grainy" [0.5] "color Cdarkwood" [0.07 0.04 0.014]
+    TransformEnd
+    Geometry "vase"
+  AttributeEnd
+
+########################################################################
+  AttributeBegin
+    Color .65 .65 .65
+    Attribute "visibility" "integer reflection" [0]
+    Surface "constant"
+    Sphere 5000 -5000 5000 -360
+  AttributeEnd
+
+
+#####
+#  AttributeBegin
+#    ConcatTransform [1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1]
+#    TransformBegin
+#      Translate 0 0 5
+#      CoordinateSystem "vase"
+#    TransformEnd
+#  AttributeEnd
+#####
+
+WorldEnd
