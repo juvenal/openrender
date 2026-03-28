@@ -189,8 +189,15 @@ int main(int argc, char *argv[]) {
     ppargv[ppargc++] = defineProgramName;
 
     if (includeEnv != nullptr) {
-        ppargv[ppargc++] = "-i";
-        ppargv[ppargc++] = includeEnv;
+        char *envCopy = strdup(includeEnv);
+        char *tok = strtok(envCopy, ":");
+        while (tok != nullptr) {
+            ppargv[ppargc++] = "-i";
+            ppargv[ppargc++] = tok;
+            tok = strtok(nullptr, ":");
+        }
+        // envCopy intentionally not freed — ppargv holds raw pointers into it
+        // and must remain valid through the preprocess() call below.
     }
 
     // Require some parameters, or else print help and exit
