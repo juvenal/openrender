@@ -54,7 +54,7 @@ varying	vector	temporary_8
 	length	("f=v")  lv temporary_2
 	vufloat  temporary_4 radius
 	flt  temporary_1 lu temporary_4
-	vufloat  temporary_5 radius
+	moveff  temporary_5 temporary_4
 	flt  temporary_4 lv temporary_5
 	or  temporary_0 temporary_1 temporary_4
 	if temporary_0 #!Label15
@@ -63,7 +63,7 @@ varying	vector	temporary_8
 	vufloat  temporary_4 radius
 	flt  temporary_1 lu temporary_4
 	if temporary_1 #!Label17
-	vufloat  temporary_5 radius
+	moveff  temporary_5 temporary_4
 	subff  temporary_4 temporary_5 lu
 	vfromf  temporary_2 temporary_4
 	normalize	("v=v")  temporary_3 dpdu
@@ -73,7 +73,7 @@ varying	vector	temporary_8
 	vufloat  temporary_4 radius
 	flt  temporary_1 lv temporary_4
 	if temporary_1 #!Label19
-	vufloat  temporary_5 radius
+	moveff  temporary_5 temporary_4
 	subff  temporary_4 temporary_5 lv
 	vfromf  temporary_3 temporary_4
 	normalize	("v=v")  temporary_7 dpdv

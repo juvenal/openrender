@@ -22,7 +22,7 @@ varying	float	temporary_7
 #!Code:
 	vuvector  temporary_1 from
 	illuminate temporary_1 #!Label2
-	vuvector  temporary_6 from
+	movevv  temporary_6 temporary_1
 	visibility	("f=pp")  temporary_5 Ps temporary_6
 	vufloat  temporary_7 intensity
 	mulff  temporary_4 temporary_5 temporary_7

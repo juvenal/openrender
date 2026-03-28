@@ -47,7 +47,7 @@ varying	vector	temporary_17
 varying	vector	temporary_18
 varying	vector	temporary_19
 #!Init:
-	negf  temporary_1 4
+	vufloat  temporary_1 -4
 	vfromf  temporary_0 0 0 temporary_1
 	pfrom  center "world" temporary_0
 	vfromf  temporary_0 0 0 1
@@ -85,7 +85,7 @@ varying	vector	temporary_19
 	vufloat  temporary_9 0
 	felt  temporary_7 temporary_8 temporary_9
 	if temporary_7 #!Label12
-	vufloat  yfract 0
+	moveff  yfract temporary_9
 	moveff  xfract yfract
 #!Label12:
 	else #!Label11
@@ -102,9 +102,9 @@ varying	vector	temporary_19
 	dot  offset temporary_2 temporary_10
 	vufloat  temporary_8 paneheight
 	mod	("f=ff")  modulus offset temporary_8
-	vufloat  temporary_12 0
+	moveff  temporary_12 temporary_9
 	fgt  temporary_9 offset temporary_12
-	vufloat  temporary_14 paneheight
+	moveff  temporary_14 temporary_8
 	divff  temporary_13 offset temporary_14
 	vufloat  temporary_14 yorder
 	flt  temporary_12 temporary_13 temporary_14
@@ -137,9 +137,9 @@ varying	vector	temporary_19
 	dot  offset temporary_2 temporary_10
 	vufloat  temporary_8 panewidth
 	mod	("f=ff")  modulus offset temporary_8
-	vufloat  temporary_12 0
+	moveff  temporary_12 yfract
 	fgt  temporary_9 offset temporary_12
-	vufloat  temporary_14 panewidth
+	moveff  temporary_14 temporary_8
 	divff  temporary_13 offset temporary_14
 	vufloat  temporary_14 xorder
 	flt  temporary_12 temporary_13 temporary_14
@@ -164,7 +164,7 @@ varying	vector	temporary_19
 	smoothstep	("f=fff")  xfract temporary_9 temporary_12 modulus
 #!Label18:
 	else #!Label17
-	vufloat  xfract 0
+	moveff  xfract yfract
 #!Label17:
 	endif
 #!Label11:

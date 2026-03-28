@@ -17,7 +17,7 @@ varying	vector	temporary_8
 	return            
 #!Code:
 	normalize	("v=v")  N N
-	divff  temporary_1 3.141592654 2
+	vufloat  temporary_1 1.570796327
 	vufloat  temporary_0 temporary_1
 	illuminate P N temporary_0 #!Label2
 	visibility	("f=pp")  temporary_6 P Ps

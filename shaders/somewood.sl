@@ -16,20 +16,29 @@
  */
 
 surface
-somewood(float Ka=1, Kd=.6, Ks=0.4, roughness=.6, grain=12, swirl=0.1, swirlfreq=.1;
-	point c0=point "shader" (0,0,0), c1=point "shader" (0,0,1);
-	color specularcolor = color (1,1,1), darkcolor = color (.67,.49,.27); float darkfactor = 1)
+somewood (float Ka = 1,
+                Kd = 0.6,
+                Ks = 0.4,
+                roughness = 0.6,
+                grain = 12,
+                swirl = 0.1,
+                swirlfreq = 0.1;
+          point c0 = point "shader" (0, 0, 0),
+                c1 = point "shader" (0, 0, 1);
+          color specularcolor = color (1, 1, 1),
+                darkcolor = color (0.67, 0.49, 0.27);
+          float darkfactor = 1)
 {
-    point		 cP, C1, C0, PP, Nf, V, newP;
-    float		 dd, pd, alpha, nn;
-    color		 Cwood;
+    point  cP, C1, C0, PP, Nf, V, newP;
+    float  dd, pd, alpha, nn;
+    color  Cwood;
 
     Nf = faceforward( normalize(N), I );
     V = -normalize(I);
 
     /* Compute the distance from P to the line (c0, c1). */
-    C1 = transform("shader",c1);
-    C0 = transform("shader",c0);
+    C1 = transform("shader", c1);
+    C0 = transform("shader", c0);
     cP = normalize(C1 - C0);
     newP = transform("shader",P);
     PP = newP - C0;
@@ -47,15 +56,15 @@ somewood(float Ka=1, Kd=.6, Ks=0.4, roughness=.6, grain=12, swirl=0.1, swirlfreq
 
     /* Compute the scale factor to be applied to the color to generate the
        grain.  The factor will vary between (1-darkfactor) and 1. */
-    alpha = mod(grain*dd, 1);
+    alpha = mod(grain * dd, 1);
     alpha *= alpha;
 
     /* Finally, compute the output color.  It is a specular surface scaled by
        the grain pattern. The specularity also varies with the grain:
        darker wood is more specular */
     Oi = Os;
-    Cwood = mix(darkcolor,Cs,alpha);
-    Ci = Os * (Cwood * ( Ka*ambient() + Kd*diffuse(Nf) ) +
-	clamp((1-alpha+(1-darkfactor)),0.75,1) * Ks * specularcolor *
-	specular(Nf,V,roughness) );
+    Cwood = mix(darkcolor, Cs, alpha);
+    Ci = Os * (Cwood * (Ka * ambient() + Kd * diffuse(Nf)) +
+               clamp((1 - alpha + (1 - darkfactor)), 0.75, 1) *
+               Ks * specularcolor * specular(Nf, V, roughness));
 }

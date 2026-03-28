@@ -40,7 +40,7 @@ varying	vector	temporary_11
 	vuvector  temporary_2 axis
 	vufloat  temporary_3 coneangle
 	illuminate temporary_1 temporary_2 temporary_3 #!Label4
-	vuvector  temporary_5 axis
+	movevv  temporary_5 temporary_2
 	dot  temporary_4 L temporary_5
 	length	("f=v")  temporary_6 L
 	divff  cosangle temporary_4 temporary_6

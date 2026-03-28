@@ -2,16 +2,16 @@
 surface
 #!parameters:
 uniform	float	Ka	=	1
-uniform	float	Kd	=	.6
+uniform	float	Kd	=	0.6
 uniform	float	Ks	=	0.4
-uniform	float	roughness	=	.6
+uniform	float	roughness	=	0.6
 uniform	float	grain	=	12
 uniform	float	swirl	=	0.1
-uniform	float	swirlfreq	=	.1
+uniform	float	swirlfreq	=	0.1
 uniform	point	c0	=	"shader"  [ 0 0 0 ]
 uniform	point	c1	=	"shader"  [ 0 0 1 ]
 uniform	color	specularcolor	=	 [ 1 1 1 ]
-uniform	color	darkcolor	=	 [ .67 .49 .27 ]
+uniform	color	darkcolor	=	 [ 0.67 0.49 0.27 ]
 uniform	float	darkfactor	=	1
 #!variables:
 uniform	vector	temporary_0
@@ -134,13 +134,13 @@ varying	float	temporary_13
 	mulvv  temporary_9 temporary_10 temporary_11
 	addvv  temporary_7 temporary_8 temporary_9
 	mulvv  temporary_5 Cwood temporary_7
-	vufloat  temporary_13 1
+	moveff  temporary_13 temporary_3
 	subff  temporary_12 temporary_13 alpha_1
 	subff  temporary_6 1 darkfactor
 	vufloat  temporary_13 temporary_6
 	addff  temporary_4 temporary_12 temporary_13
 	vufloat  temporary_12 0.75
-	vufloat  temporary_13 1
+	moveff  temporary_13 temporary_3
 	clamp	("f=fff")  temporary_3 temporary_4 temporary_12 temporary_13
 	vufloat  temporary_4 Ks
 	mulff  temporary_2 temporary_3 temporary_4

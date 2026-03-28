@@ -29,7 +29,7 @@ uniform	vector	temporary_9
 	vufloat  temporary_1 6.0
 	flt  temporary_0 i temporary_1
 	for temporary_0
-	vufloat  temporary_3 .5
+	vufloat  temporary_3 0.5
 	vfromf  temporary_6 size
 	mulvv  temporary_5 P2 temporary_6
 	noise	("f=p")  temporary_4 temporary_5

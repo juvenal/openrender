@@ -27,7 +27,7 @@ varying	vector	temporary_13
 #!Code:
 	vufloat  sum 0
 	vufloat  freq 4.0
-	vufloat  i 0
+	moveff  i sum
 	forbegin #!Label4 #!Label5 #!Label6
 #!Label4:
 	vufloat  temporary_1 6

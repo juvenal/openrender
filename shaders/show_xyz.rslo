@@ -23,9 +23,9 @@ varying	float	temporary_7
 varying	float	temporary_8
 varying	float	temporary_9
 #!Init:
-	negf  xmin 1
-	negf  ymin 1
-	negf  zmin 1
+	vufloat  xmin -1
+	moveff  ymin xmin
+	moveff  zmin xmin
 	return            
 #!Code:
 	feql  temporary_3 xmax xmin

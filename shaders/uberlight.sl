@@ -199,30 +199,32 @@
  */
 float
 clipSuperellipse (point Q;          /* Test point on the x-y plane */
-		  float a, b;       /* Inner superellipse */
-		  float A, B;       /* Outer superellipse */
-		  float roundness;  /* Same roundness for both ellipses */
-		 )
+          float a, b;       /* Inner superellipse */
+          float A, B;       /* Outer superellipse */
+          float roundness;  /* Same roundness for both ellipses */
+         )
 {
     float result = 0;
     float x = abs(xcomp(Q)), y = abs(ycomp(Q));
     if (x != 0 || y != 0) {  /* avoid degenerate case */
-	if (roundness < 1.0e-6) {
-	    /* Simpler case of a square */
-	    result = 1 - (1-smoothstep(a,A,x)) * (1-smoothstep(b,B,y));
-	} else if (roundness > 0.9999) {
-	    /* Simple case of a circle */
-	    float sqr (float x) { return x*x; }
-	    float q = a * b / sqrt (sqr(b*x) + sqr(a*y));
-	    float r = A * B / sqrt (sqr(B*x) + sqr(A*y));
-	    result = smoothstep (q, r, 1);
-	} else {
-	    /* Harder, rounded corner case */
-	    float re = 2/roundness;   /* roundness exponent */
-	    float q = a * b * pow (pow(b*x, re) + pow(a*y, re), -1/re);
-	    float r = A * B * pow (pow(B*x, re) + pow(A*y, re), -1/re);
-	    result = smoothstep (q, r, 1);
-	}
+        if (roundness < 1.0e-6) {
+            /* Simpler case of a square */
+            result = 1 - (1-smoothstep(a,A,x)) * (1-smoothstep(b,B,y));
+        }
+        else if (roundness > 0.9999) {
+            /* Simple case of a circle */
+            float sqr (float x) { return x*x; }
+            float q = a * b / sqrt (sqr(b*x) + sqr(a*y));
+            float r = A * B / sqrt (sqr(B*x) + sqr(A*y));
+            result = smoothstep (q, r, 1);
+        }
+        else {
+            /* Harder, rounded corner case */
+            float re = 2/roundness;   /* roundness exponent */
+            float q = a * b * pow (pow(b*x, re) + pow(a*y, re), -1/re);
+            float r = A * B * pow (pow(B*x, re) + pow(A*y, re), -1/re);
+            result = smoothstep (q, r, 1);
+        }
     }
     return result;
 }
@@ -240,18 +242,18 @@ clipSuperellipse (point Q;          /* Test point on the x-y plane */
  *   - attenuation factor based on the falloff and shaping
  */
 float
-ShapeLightVolume (point PL;                      /* Point in light space */
-		  string lighttype;              /* what kind of light */
-		  vector axis;                   /* light axis */
-                  float znear, zfar;             /* z clipping */
-		  float nearedge, faredge;
-		  float falloff, falloffdist;    /* distance falloff */
-		  float maxintensity;
-		  float shearx, sheary;          /* shear the direction */
-		  float width, height;           /* xy superellipse */
-		  float hedge, wedge, roundness;
-		  float beamdistribution;        /* angle falloff */
-		  )
+ShapeLightVolume (point PL;              /* Point in light space */
+          string lighttype;              /* what kind of light */
+          vector axis;                   /* light axis */
+          float znear, zfar;             /* z clipping */
+          float nearedge, faredge;
+          float falloff, falloffdist;    /* distance falloff */
+          float maxintensity;
+          float shearx, sheary;          /* shear the direction */
+          float width, height;           /* xy superellipse */
+          float hedge, wedge, roundness;
+          float beamdistribution;        /* angle falloff */
+          )
 {	
     /* Examine the z depth of PL to apply the (possibly smooth) cuton and
      * cutoff.
@@ -260,32 +262,34 @@ ShapeLightVolume (point PL;                      /* Point in light space */
     float PLlen = length(PL);
     float Pz;
     if (lighttype == "spot") {
-	Pz = zcomp(PL);
-    } else {
-	/* For omni or area lights, use distance from the light */
-	Pz = PLlen;
+        Pz = zcomp(PL);
+    }
+    else {
+        /* For omni or area lights, use distance from the light */
+        Pz = PLlen;
     }
     atten *= smoothstep (znear-nearedge, znear, Pz);
     atten *= 1 - smoothstep (zfar, zfar+faredge, Pz);
     
     /* Distance falloff */
     if (falloff != 0) {
-	if (PLlen > falloffdist) {
-	    atten *= pow (falloffdist/PLlen, falloff);
-	} else {
-	    float s = log (1/maxintensity);
-	    float beta = -falloff/s;
-	    atten *= (maxintensity * exp (s * pow(PLlen/falloffdist, beta)));
-	}
+        if (PLlen > falloffdist) {
+            atten *= pow (falloffdist/PLlen, falloff);
+        }
+        else {
+            float s = log (1/maxintensity);
+            float beta = -falloff/s;
+            atten *= (maxintensity * exp (s * pow(PLlen/falloffdist, beta)));
+        }
     }
 
     /* Clip to superellipse */
     if (lighttype != "omni" && beamdistribution > 0)
-	atten *= pow (zcomp(normalize(vector PL)), beamdistribution);
+        atten *= pow (zcomp(normalize(vector PL)), beamdistribution);
     if (lighttype == "spot") {
-	atten *= 1 - clipSuperellipse (PL/Pz-point(shearx,sheary,0),
-				       width, height,
-				       width+wedge, height+hedge, roundness);
+        atten *= 1 - clipSuperellipse(PL/Pz-point(shearx,sheary,0),
+                                      width, height,
+                                      width+wedge, height+hedge, roundness);
     }
     return atten;
 }
@@ -299,11 +303,10 @@ ShapeLightVolume (point PL;                      /* Point in light space */
  */
 float
 BlockerContribution (point P1, P2;
-		     string blockercoords;
-		     float blockerwidth, blockerheight;
-		     float blockerwedge, blockerhedge;
-		     float blockerround;
-                    )
+                     string blockercoords;
+                     float blockerwidth, blockerheight;
+                     float blockerwedge, blockerhedge;
+                     float blockerround)
 {
     float unoccluded = 1;
     /* Get the surface and light positions in blocker coords */
@@ -311,56 +314,56 @@ BlockerContribution (point P1, P2;
     point Pb2 = transform (blockercoords, P2);
     /* Blocker works only if it's straddled by ray endpoints. */
     if (zcomp(Pb2)*zcomp(Pb1) < 0) {
-	vector Vlight = (Pb1 - Pb2);
-	point Pplane = Pb1 - Vlight*(zcomp(Pb1)/zcomp(Vlight));
-	unoccluded *= clipSuperellipse (Pplane, blockerwidth, blockerheight,
-					blockerwidth+blockerwedge,
-					blockerheight+blockerhedge,
-					blockerround);
+        vector Vlight = (Pb1 - Pb2);
+        point Pplane = Pb1 - Vlight*(zcomp(Pb1)/zcomp(Vlight));
+        unoccluded *= clipSuperellipse(Pplane, blockerwidth, blockerheight,
+                                       blockerwidth+blockerwedge,
+                                       blockerheight+blockerhedge,
+                                       blockerround);
     }
     return unoccluded;
 }
 
 
 
-
-light uberlight (
-           /* Basic intensity and color of the light */
-           string lighttype = "spot";
-           float intensity = 1;
-	   color lightcolor = color (1,1,1);
-	   /* Z shaping and distance falloff */
-	   float cuton = 0.01, cutoff = 1.0e6, nearedge = 0, faredge = 0;
-	   float falloff = 0, falloffdist = 1, maxintensity = 1;
-	   float parallelrays = 0;
-	   /* xy shaping of the cross section and angle falloff */
-	   float shearx = 0, sheary = 0;
-	   float width = 1, height = 1, wedge = .1, hedge = .1;
-	   float roundness = 1;
-	   float beamdistribution = 0;
-	   /* Cookie or slide to control light cross-sectional color */
-	   string slidename = "";
-	   /* Noisy light */
-	   float noiseamp = 0, noisefreq = 4;
-	   vector noiseoffset = 0;
-	   /* Shadows */
-	   string shadowname = "";
-	   float shadowblur = 0, shadowsamples = 1;
+light
+uberlight (
+       /* Basic intensity and color of the light */
+       string lighttype = "spot";
+       float intensity = 1;
+       color lightcolor = color (1,1,1);
+       /* Z shaping and distance falloff */
+       float cuton = 0.01, cutoff = 1.0e6, nearedge = 0, faredge = 0;
+       float falloff = 0, falloffdist = 1, maxintensity = 1;
+       float parallelrays = 0;
+       /* xy shaping of the cross section and angle falloff */
+       float shearx = 0, sheary = 0;
+       float width = 1, height = 1, wedge = .1, hedge = .1;
+       float roundness = 1;
+       float beamdistribution = 0;
+       /* Cookie or slide to control light cross-sectional color */
+       string slidename = "";
+       /* Noisy light */
+       float noiseamp = 0, noisefreq = 4;
+       vector noiseoffset = 0;
+       /* Shadows */
+       string shadowname = "";
+       float shadowblur = 0, shadowsamples = 1;
 #ifdef ENTROPY
-	   float shadowbias = -1;
+       float shadowbias = -1;
 #else
-	   float shadowbias = 0.01;
+       float shadowbias = 0.01;
 #endif
-	   color shadowcolor = 0;
-	   /* Fake blocker shadow */
-	   string blockercoords = "";
-	   float blockerwidth=1, blockerheight=1;
-	   float blockerwedge=.1, blockerhedge=.1, blockerround=1;
-	   /* Miscellaneous controls */
-	   float nonspecular = 0;
-	   output varying float __nonspecular = 0;
-	   output float __nondiffuse = 0;
-	   output float __foglight = 1; )
+       color shadowcolor = 0;
+       /* Fake blocker shadow */
+       string blockercoords = "";
+       float blockerwidth=1, blockerheight=1;
+       float blockerwedge=.1, blockerhedge=.1, blockerround=1;
+       /* Miscellaneous controls */
+       float nonspecular = 0;
+       output varying float __nonspecular = 0;
+       output float __nondiffuse = 0;
+       output float __foglight = 1)
 {
     /* For simplicity, assume that the light is at the origin of shader
      * space and aimed in the +z direction.  So to move or orient the
@@ -385,77 +388,80 @@ light uberlight (
 #endif
     uniform float angle;
     if (lighttype == "spot") {                  /* Spot light */
-	uniform float maxradius = 1.4142136 * max(height+hedge+abs(sheary),
-						  width+wedge+abs(shearx));
-	angle = atan(maxradius);
-    } else if (lighttype == "arealight") {	/* Area (geometry) light */
-	angle = PI/2;
-    } else {                                    /* Omnidirectional light */
-	angle = PI;
+        uniform float maxradius = 1.4142136 * max(height + hedge + abs(sheary),
+                                                  width + wedge + abs(shearx));
+        angle = atan(maxradius);
+    }
+    else if (lighttype == "arealight") {	/* Area (geometry) light */
+        angle = PI / 2;
+    }
+    else {                                    /* Omnidirectional light */
+        angle = PI;
     }
     __nonspecular = nonspecular;
 
     illuminate (from, axis, angle) {
-	/* Accumulate attenuation of the light as it is affected by various
-	 * blockers and whatnot.  Start with no attenuation (i.e., a 
-	 * multiplicative attenuation of 1.
-	 */
-	float atten;
-	color lcol = lightcolor;
+        /* Accumulate attenuation of the light as it is affected by various
+        * blockers and whatnot.  Start with no attenuation (i.e., a 
+        * multiplicative attenuation of 1.
+        */
+        float atten;
+        color lcol = lightcolor;
 
-	/* Basic light shaping - the volumetric shaping is all encapsulated
-	 * in the ShapeLightVolume function.
-	 */
-	if (intensity == 0)  /* Guard against divide-by-zero errors */
-	    atten = 0;
-	else
-	    atten = ShapeLightVolume (PL, lighttype, axis, cuton, cutoff,
-				      nearedge, faredge, falloff, falloffdist,
-				      maxintensity/intensity, shearx, sheary,
-				      width, height, hedge, wedge, roundness,
-				      beamdistribution);
+        /* Basic light shaping - the volumetric shaping is all encapsulated
+        * in the ShapeLightVolume function.
+        */
+        if (intensity == 0)  /* Guard against divide-by-zero errors */
+            atten = 0;
+        else
+            atten = ShapeLightVolume (PL, lighttype, axis, cuton, cutoff,
+                                      nearedge, faredge, falloff, falloffdist,
+                                      maxintensity/intensity, shearx, sheary,
+                                      width, height, hedge, wedge, roundness,
+                                      beamdistribution);
 
-	/* Project a slide or use a cookie */
-	if (slidename != "") {
-	    point Pslide = PL / point (width+wedge, height+hedge, 1);
-	    float zslide = zcomp(Pslide);
-	    float xslide = 0.5+0.5*xcomp(Pslide)/zslide;
-	    float yslide = 0.5-0.5*ycomp(Pslide)/zslide;
-	    lcol *= color texture (slidename, xslide, yslide);
-	}
-	
-	/* If the volume says we aren't being lit, skip the remaining tests */
-	if (atten > 0) {
-	    /* Apply noise */
-	    if (noiseamp > 0) {
-		float n = noise (noisefreq * (PL+noiseoffset) * point(1,1,0));
-		n = smoothstep (0, 1, 0.5 + noiseamp * (n-0.5));
-		atten *= n;
-	    }
+        /* Project a slide or use a cookie */
+        if (slidename != "") {
+            point Pslide = PL / point (width+wedge, height+hedge, 1);
+            float zslide = zcomp(Pslide);
+            float xslide = 0.5+0.5*xcomp(Pslide)/zslide;
+            float yslide = 0.5-0.5*ycomp(Pslide)/zslide;
+            lcol *= color texture (slidename, xslide, yslide);
+        }
+        
+        /* If the volume says we aren't being lit, skip the remaining tests */
+        if (atten > 0) {
+            /* Apply noise */
+            if (noiseamp > 0) {
+                float n = noise (noisefreq * (PL+noiseoffset) * point(1,1,0));
+                n = smoothstep (0, 1, 0.5 + noiseamp * (n-0.5));
+                atten *= n;
+            }
 
-	    /* Apply shadows */
-	    float unoccluded = 1;
-	    if (shadowname != "")
-		unoccluded *= 1 - shadow (shadowname, Ps, "blur", shadowblur,
-					  "samples", shadowsamples,
-					  "bias", shadowbias);
-	    point shadoworigin;
-	    if (parallelrays == 0)
-		 shadoworigin = from;
-	    else shadoworigin = point "shader" (xcomp(PL), ycomp(PL), cuton);
-	    /* Apply blocker fake shadows */
-	    if (blockercoords != "") {
-		unoccluded *= 
-		    BlockerContribution (Ps, shadoworigin, blockercoords,
-					 blockerwidth, blockerheight,
-					 blockerwedge, blockerhedge,
-					 blockerround);
-	    }
-	    lcol = mix (shadowcolor, lcol, unoccluded);
-	    __nonspecular = 1 - unoccluded * (1 - __nonspecular);
-	}
-	Cl = (atten*intensity) * lcol;
-	if (parallelrays != 0)
-	    L = axis * length(Ps-from);
+            /* Apply shadows */
+            float unoccluded = 1;
+            if (shadowname != "")
+                unoccluded *= 1 - shadow (shadowname, Ps, "blur", shadowblur,
+                            "samples", shadowsamples,
+                            "bias", shadowbias);
+            point shadoworigin;
+            if (parallelrays == 0)
+                shadoworigin = from;
+            else
+                shadoworigin = point "shader" (xcomp(PL), ycomp(PL), cuton);
+            /* Apply blocker fake shadows */
+            if (blockercoords != "") {
+                unoccluded *= 
+                    BlockerContribution (Ps, shadoworigin, blockercoords,
+                            blockerwidth, blockerheight,
+                            blockerwedge, blockerhedge,
+                            blockerround);
+            }
+            lcol = mix (shadowcolor, lcol, unoccluded);
+            __nonspecular = 1 - unoccluded * (1 - __nonspecular);
+        }
+        Cl = (atten*intensity) * lcol;
+        if (parallelrays != 0)
+            L = axis * length(Ps-from);
     }
 }
