@@ -13,7 +13,7 @@ Templates requiring updates:
 Follow-up TODOs: None
 -->
 
-# Pixie Constitution
+# openRender Constitution
 
 ## Core Principles
 
