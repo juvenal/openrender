@@ -1,9 +1,11 @@
 ##RenderMan RIB-Structure 1.1
 version 3.03
-#Display "fuzzy-3.tif" "framebuffer" "rgba"
+Display "motion-3-raytrace.tif" "file" "rgba"
 Projection "perspective" "fov" 45
+Hider "raytrace"
 Format 400 300 1
-DepthOfField 2 1 5
+PixelSamples 3 3
+#DepthOfField 2 1 5
 Shutter 0 1
 
 Translate 0 0 10

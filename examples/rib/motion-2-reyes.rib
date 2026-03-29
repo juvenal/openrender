@@ -1,9 +1,10 @@
 ##RenderMan RIB-Structure 1.1
 version 3.03
-#Display "fuzzy-2.tif" "framebuffer" "rgba"
+Display "motion-2-reyes.tif" "file" "rgba"
 Projection "perspective" "fov" 45
+PixelSamples 3 3
 Format 400 300 1
-DepthOfField 2 1 5
+#DepthOfField 2 1 5
 Shutter 0 1
 
 Translate 0 0 5
