@@ -1,13 +1,14 @@
 /**
  * raysphere - calculate the intersection of ray (E, I) with a sphere
- * centered at the origin and with radius r. We return the number of 
+ * centered at the origin and with radius r. We return the number of
  * intersections found (0, 1, or 2). and place the distances to the
  * intersections in t0, t1 (always with t0 <= t1). Ignore any hits
  * closer than eps.
  */
 
 float
-raysphere (point E; vector I;
+raysphere (point E;
+           vector I;
            float r,
                  eps;
            output float t0, t1)

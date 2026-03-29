@@ -1,0 +1,43 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+color
+LocIllumOrenNayar (normal N;
+                   vector V;
+                   float  roughness)
+{
+    float sigma2 = roughness * roughness;
+    float A = 1 - 0.5 * sigma2 / (sigma2 + 0.33);
+    float B = 0.45 * sigma2 / (sigma2 + 0.09);
+    /* */
+    float theta_r = acos(V . N);
+    vector V_perp_N = normalize(V - N * (V . N));
+
+    color C = 0;
+    extern point P;
+    illuminance (P, N, PI / 2) {
+        /* */
+        extern vector L;
+        extern color Cl;
+        float nondiff = 0;
+        lightsource("__nondiffuse", nondiff);
+        if (nondiff < 1) {
+            vector LN = normalize(L);
+            float cos_theta_i = LN . N;
+            float cos_phi_diff = V_perp_N . normalize(LN - N * cos_theta_i);
+            float theta_i = acos(cos_theta_i);
+            float alpha = max(theta_i, theta_r);
+            float beta = min(theta_i, theta_r);
+            C += (1 - nondiff) * Cl * cos_theta_i *
+                 (A + B * max(0, cos_phi_diff) * sin(alpha) * tan(beta));
+        }
+    }
+    return C;
+}
