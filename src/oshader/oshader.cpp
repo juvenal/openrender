@@ -48,7 +48,7 @@
 extern "C" int preprocess(char *, FILE *, int, char **);
 
 // The environment variables to be searched for the preprocessor and include files
-#define INCLUDE "INCLUDE" // The default include path for the preprocessor
+#define SHADERS_INCLUDE "SHADERS_INCLUDE" // The default include path for the preprocessor
 
 // Return codes
 #define ERR_NONE 0       // No error
@@ -119,7 +119,7 @@ static void printUsage() {
     printf("      %s                  Display this help\n", argumentHelp);
     printf("      %s <level>          Set log verbosity: error|warn|info|debug (default: warn)\n\n", argumentLogLevel);
     printf("Environment variables:\n");
-    printf("  INCLUDE            Additional include paths for the preprocessor\n");
+    printf("  SHADERS_INCLUDE    Additional include paths for the preprocessor\n");
 }
 
 /**
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
     const char *ppargv[100];
     int ppargc;
     char *outName = nullptr;
-    char *includeEnv = osEnvironment(INCLUDE);
+    char *includeEnv = osEnvironment(SHADERS_INCLUDE);
     int error = ERR_NONE;
     int legacySdr = FALSE;
 
