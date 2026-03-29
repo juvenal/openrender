@@ -33,7 +33,8 @@
 #include "pp1.c"
 
 /* After pp1.c, MAIN is defined in the macro namespace.
- * Undefine it so the remaining files get extern declarations via pp.h. */
+ * Undefine it so the remaining files get extern declarations via pp.h.
+ */
 #undef MAIN
 
 #include "pp2.c"

@@ -488,6 +488,7 @@ void CRendererContext::addObject(CObject *o) {
             // next_to = xform->to * fromWorld * toWorld1  (inverse of next_from)
             mulmm(privXform->next->to, privXform->to, CRenderer::fromWorld, CRenderer::toWorld1);
             privXform->next->flip = privXform->flip;
+            privXform->cameraMotion = true;  // mark so transform() uses SLERP for rotation
 
             // Expand the bounding box to cover the t=1 camera-space position.
             // relMotion maps t=0 camera-space points into t=1 camera-space.

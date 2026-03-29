@@ -46,7 +46,8 @@
       "Bash(which ffmpeg:*)",
       "Bash(sips:*)",
       "Bash(sleep:*)",
-      "Bash(grep -rn \"->intersect\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.cpp)"
+      "Bash(grep -rn \"->intersect\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.cpp)",
+      "Bash(grep -rn \"#include.*algebra\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.h)"
     ]
   }
 }

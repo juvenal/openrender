@@ -1457,6 +1457,24 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         float originalArea = 0; // This is the total area of the grid without mb/dof
         float expandedArea = 0; // This is the total area of the grid with mb/dof
 
+        // Precompute arc-time rotation matrices for per-quad arc bounds expansion.
+        // Reusing the same 3 sample times as the grid-level arc loop (t=0.25,0.5,0.75).
+        matrix arcMjt[3];
+        float arcTx[3], arcTy[3], arcTz[3];
+        const bool doArcBounds = CRenderer::cameraHasRotation && (grid->flags & RASTER_MOVING);
+        if (doArcBounds) {
+            static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
+            static const quaternion identQ  = {0.0f, 0.0f, 0.0f, 1.0f};
+            for (int ti = 0; ti < 3; ti++) {
+                quaternion Rjt;
+                slerpq(Rjt, identQ, CRenderer::relRotQ, kArcTimes[ti]);
+                qtoR(arcMjt[ti], Rjt);
+                arcTx[ti] = kArcTimes[ti] * CRenderer::relTrans[0];
+                arcTy[ti] = kArcTimes[ti] * CRenderer::relTrans[1];
+                arcTz[ti] = kArcTimes[ti] * CRenderer::relTrans[2];
+            }
+        }
+
         // Bound every quad
         for (j = 0; j < vdiv; j++) {
             for (i = 0; i < udiv; i++, bounds += 4) {
@@ -1578,6 +1596,42 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                     ybound[1] += mcoc;
                 }
 
+                // Expand per-quad bounds to cover the full arc for camera rotation.
+                // Sample the 4 quad vertices at t=0.25, 0.5, 0.75 and include those
+                // projected positions in xbound/ybound. This makes bounds[0..3] arc-correct
+                // so SLOW_RASTER can cull properly without a full-bucket fallback.
+                if (doArcBounds) {
+                    const float *qv[4] = {
+                        cVertex,
+                        cVertex + numVertexSamples,
+                        cVertex + numVertexSamples * (udiv + 1),
+                        cVertex + numVertexSamples * (udiv + 2)
+                    };
+                    for (int ti = 0; ti < 3; ti++) {
+                        for (int vi = 0; vi < 4; vi++) {
+                            const float _z  = qv[vi][COMP_Z];
+                            if (_z <= C_EPSILON) continue;
+                            const float _sx = qv[vi][COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;
+                            const float _sy = qv[vi][COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;
+                            float _cp[3] = {_sx * _z * CRenderer::invImagePlane,
+                                            _sy * _z * CRenderer::invImagePlane, _z};
+                            float _rp[3];
+                            mulmp(_rp, arcMjt[ti], _cp);
+                            _rp[0] += arcTx[ti]; _rp[1] += arcTy[ti]; _rp[2] += arcTz[ti];
+                            if (_rp[2] > C_EPSILON) {
+                                const float rxjt = (CRenderer::imagePlane * _rp[0] / _rp[2]
+                                                    - CRenderer::pixelLeft) * CRenderer::dSampledx;
+                                const float ryjt = (CRenderer::imagePlane * _rp[1] / _rp[2]
+                                                    - CRenderer::pixelTop) * CRenderer::dSampledy;
+                                if (rxjt < xbound[0]) xbound[0] = rxjt;
+                                if (rxjt > xbound[1]) xbound[1] = rxjt;
+                                if (ryjt < ybound[0]) ybound[0] = ryjt;
+                                if (ryjt > ybound[1]) ybound[1] = ryjt;
+                            }
+                        }
+                    }
+                }
+
                 expandedArea += (xbound[1] - xbound[0]) * (ybound[1] - ybound[0]);
 
                 bounds[0] = (int)floor(xbound[0]); // xmin
@@ -1587,7 +1641,11 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             }
         }
 
-        // Check if we have xtreme mb/dof
+        // Check if we have xtreme mb/dof.
+        // For camera rotation, arc-correct per-quad bounds (expanded above) allow
+        // XTREME's bounds culling to work correctly. XTREME is preferred here because
+        // it computes SLERP+qtoR once per pixel (outer loop), while SLOW_RASTER would
+        // recompute it per (quad x pixel).
         if ((expandedArea / originalArea) > 10.0f) {
             grid->flags |= RASTER_XTREME;
         }

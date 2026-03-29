@@ -27,6 +27,8 @@
 #ifndef OBJECTMISC_H
 #define OBJECTMISC_H
 
+#include "renderer.h"
+
 ///////////////////////////////////////////////////////////////////////
 // Function				:	transform
 // Description			:	Transform bunch of points from one space to another
@@ -188,8 +190,34 @@ inline void transform(float *oFrom, float *oDir, const CXform *xform, CRay *ray)
         mulmp(tmp[3], xform->next->to, to);
 
         interpolatev(oFrom, tmp[0], tmp[2], ray->time);
-        interpolatev(tmp[4], tmp[1], tmp[3], ray->time);
-        subvv(oDir, tmp[4], oFrom);
+
+        if (xform->cameraMotion && CRenderer::cameraHasRotation) {
+            // For camera rotation, LERP of world-space endpoints produces non-uniform
+            // angular speed (chord, not arc). Apply SLERP in camera space instead,
+            // matching the stochastic hider's APPLY_CAM_ROT macro.
+            //
+            // relRotQ is the rotation of relMotion (cam_t0 → cam_t1), in camera space.
+            // ray->dir is in camera space.  Correct formula:
+            //   oDir = toWorld * SLERP(I, relRotQ, t) * ray->dir
+            static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
+            quaternion Rjt;
+            matrix Mjt;
+            vector dir_cam_t;
+            // relRotQ = cam_t0 → cam_t1 rotation.  For rays we need the inverse:
+            // toWorld_t = toWorld * SLERP(I, relRotQ^{-1}, t)
+            // Unit quaternion inverse = conjugate: negate xyz, keep w.
+            const quaternion relRotQ_inv = {-CRenderer::relRotQ[0],
+                                            -CRenderer::relRotQ[1],
+                                            -CRenderer::relRotQ[2],
+                                             CRenderer::relRotQ[3]};
+            slerpq(Rjt, identQ, relRotQ_inv, ray->time);
+            qtoR(Mjt, Rjt);
+            mulmv(dir_cam_t, Mjt, ray->dir);            // rotate camera-space direction
+            mulmv(oDir, CRenderer::toWorld, dir_cam_t); // transform to world space
+        } else {
+            interpolatev(tmp[4], tmp[1], tmp[3], ray->time);
+            subvv(oDir, tmp[4], oFrom);
+        }
     } else {
         vector to, tmp;
         addvv(to, ray->from, ray->dir);

@@ -433,6 +433,20 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + CRenderer::jitter * (urand() - (float)0.5) + (float)0.5) * invXsamples; // Center the sample location in the pixel
                         cRay->y = (float)top + (float)(j + y - CRenderer::ySampleOffset + CRenderer::jitter * (urand() - (float)0.5) + (float)0.5) * invYsamples;
 
+                        // Stratified time sampling — assign each ray to a time stratum based on
+                        // its sub-pixel position, matching the stochastic hider's formula exactly.
+                        // This eliminates the graininess and exaggerated arc extent caused by
+                        // pure urand() sampling (which covers [0,1] vs stochastic's [0.5/N², (N²-0.5)/N²]).
+                        {
+                            const int nx = CRenderer::pixelXsamples;
+                            const int ny = CRenderer::pixelYsamples;
+                            const int sub_x = (i + x) % nx;
+                            const int sub_y = (j + y) % ny;
+                            cRay->time = ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION)
+                                          ? (sub_y * nx + sub_x + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(nx * ny)
+                                          : 0.0f);
+                        }
+
                         rayPointers[numShading++] = cRay;
                         cRay++;
 
@@ -491,7 +505,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             subvv(cRay->dir, to, from);
             normalizev(cRay->dir);
 
-            cRay->time = ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) ? urand() : 0);
+            // cRay->time is pre-assigned with stratified sampling in sample()
             cRay->t = C_INFINITY;
             cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
             cRay->tmin = 0;
@@ -515,47 +529,18 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             subvv(cRay->dir, to, from);
             normalizev(cRay->dir);
 
-            cRay->time = ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) ? urand() : 0);
+            // cRay->time is pre-assigned with stratified sampling in sample()
             cRay->t = C_INFINITY;
             cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
             cRay->tmin = 0;
         }
     }
 
-    // Camera motion blur: apply per-ray relative camera motion to account
-    // for a moving camera defined by a pre-world MotionBegin/MotionEnd block.
-    // For rotation, use quaternion slerp so rays trace the correct arc.
-    // For pure translation, the original matrix LERP is exact and cheaper.
-    if (CRenderer::cameraHasMotion && (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION)) {
-        cRay = rays;
-        for (i = numShading; i > 0; i--, cRay++) {
-            const float t = cRay->time;
-            if (t > 0.0f) {
-                if (CRenderer::cameraHasRotation) {
-                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-                    quaternion Rjt;
-                    slerpq(Rjt, identQ, CRenderer::relRotQ, t);
-                    matrix Mjt;
-                    qtoR(Mjt, Rjt);
-                    mulmp(cRay->from, Mjt, cRay->from);
-                    cRay->from[0] += t * CRenderer::relTrans[0];
-                    cRay->from[1] += t * CRenderer::relTrans[1];
-                    cRay->from[2] += t * CRenderer::relTrans[2];
-                    mulmv(cRay->dir, Mjt, cRay->dir);
-                    normalizev(cRay->dir);
-                } else {
-                    // Pure translation: matrix LERP is exact.
-                    matrix interp, relMotion;
-                    for (int mi = 0; mi < 16; mi++)
-                        interp[mi] = CRenderer::toWorld[mi] * (1.0f - t) + CRenderer::toWorld1[mi] * t;
-                    mulmm(relMotion, CRenderer::fromWorld, interp);
-                    mulmp(cRay->from, relMotion, cRay->from);
-                    mulmv(cRay->dir, relMotion, cRay->dir);
-                    normalizev(cRay->dir);
-                }
-            }
-        }
-    }
+    // Camera motion blur is handled entirely by the per-object xform interpolation
+    // in transform() (objectMisc.h): addObject() sets privXform->next for each static
+    // object when cameraHasMotion, and transform() lerps between xform->to and
+    // xform->next->to at cRay->time.  No explicit ray transformation is needed here —
+    // applying one would double-count the camera motion and cancel the blur.
 
     // Setup the ray differentials
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {

@@ -439,25 +439,39 @@ for (y = ymin; y <= ymax; y++) {
         const int vdiv = grid->vdiv;
         const int flags = grid->flags;
 
+        // Hoist SLERP+qtoR out of the inner quad loop: the rotation matrix depends
+        // only on pixel->jt, which is the same for all quads tested against this pixel.
+        // Computing it once per pixel instead of once per (pixel × quad) is ~udiv*vdiv× faster.
+#ifdef STOCHASTIC_MOVING
+        matrix Mjt_pix;
+        float tx_pix = 0.0f, ty_pix = 0.0f, tz_pix = 0.0f;
+        if (CRenderer::cameraHasRotation) {
+            static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
+            quaternion Rjt_pix;
+            slerpq(Rjt_pix, identQ, CRenderer::relRotQ, pixel->jt);
+            qtoR(Mjt_pix, Rjt_pix);
+            tx_pix = pixel->jt * CRenderer::relTrans[0];
+            ty_pix = pixel->jt * CRenderer::relTrans[1];
+            tz_pix = pixel->jt * CRenderer::relTrans[2];
+        }
+#endif
+
         for (j = 0; j < vdiv; j++) {
             for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
 
-                // For camera rotation, arc pixels can be outside the precomputed
-                // chord-based per-quad bounds. Skip bounds check; the area test
-                // in checkPixel() is the correct containment gating.
-                if (!CRenderer::cameraHasRotation) {
-                    if (x + left < bounds[0]) {
-                        continue;
-                    }
-                    if (x + left > bounds[1]) {
-                        continue;
-                    }
-                    if (y + top < bounds[2]) {
-                        continue;
-                    }
-                    if (y + top > bounds[3]) {
-                        continue;
-                    }
+                // Per-quad bounds are arc-expanded in insertGrid() for camera rotation,
+                // so bounds culling is now correct unconditionally.
+                if (x + left < bounds[0]) {
+                    continue;
+                }
+                if (x + left > bounds[1]) {
+                    continue;
+                }
+                if (y + top < bounds[2]) {
+                    continue;
+                }
+                if (y + top > bounds[3]) {
+                    continue;
                 }
                 lodCheck();
 
@@ -488,15 +502,8 @@ for (y = ymin; y <= ymax; y++) {
                     // (+ lerped translation), then re-project to raster-space.
                     // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
                     //                    0         1      2   3..5  6..8    9
-                    const float jt = pixel->jt;
-                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-                    quaternion Rjt;
-                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
-                    matrix Mjt;
-                    qtoR(Mjt, Rjt);
-                    const float tx = jt * CRenderer::relTrans[0];
-                    const float ty = jt * CRenderer::relTrans[1];
-                    const float tz = jt * CRenderer::relTrans[2];
+                    // Rotation matrix pre-computed per-pixel as Mjt_pix above
+                    // (hoisted out of the quad loop — same jt for all quads at this pixel).
 
                     // Unproject sample coords -> screen -> camera, rotate, re-project -> sample.
                     // vertex buffer is in sample space: screen_x = sampleX / dSampledx + pixelLeft
@@ -511,8 +518,8 @@ for (y = ymin; y <= ymax; y++) {
                         float _cp[3] = {_sx * _z * CRenderer::invImagePlane,                              \
                                         _sy * _z * CRenderer::invImagePlane, _z};                          \
                         float _rp[3];                                                                      \
-                        mulmp(_rp, Mjt, _cp);                                                              \
-                        _rp[0] += tx; _rp[1] += ty; _rp[2] += tz;                                         \
+                        mulmp(_rp, Mjt_pix, _cp);                                                          \
+                        _rp[0] += tx_pix; _rp[1] += ty_pix; _rp[2] += tz_pix;                             \
                         (vOut)[COMP_X] = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) \
                                          * CRenderer::dSampledx;                                           \
                         (vOut)[COMP_Y] = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop)  \
@@ -660,12 +667,8 @@ for (j = 0; j < vdiv; j++) {
             ymax = yres;
         }
 
-        // For camera rotation, the arc can reach pixels outside the chord-based
-        // per-quad bounds. Expand to the full bucket to ensure arc coverage.
-        if (CRenderer::cameraHasRotation) {
-            xmin = 0; xmax = xres;
-            ymin = 0; ymax = yres;
-        }
+        // Per-quad bounds are now arc-expanded in insertGrid() for camera rotation,
+        // so no full-bucket fallback is needed here.
 
 // Figure our if we have to do the slow rasterization
 #ifdef STOCHASTIC_FOCAL_BLUR

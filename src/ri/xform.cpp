@@ -41,6 +41,7 @@ CXform::CXform() {
     atomicIncrement(&stats.numXforms);
 
     next = NULL;
+    cameraMotion = false;
 
     identitym(from);
     identitym(to);
@@ -64,6 +65,7 @@ CXform::CXform(CXform *a) {
     movmm(from, a->from);
     movmm(to, a->to);
     flip = a->flip;
+    cameraMotion = a->cameraMotion;
 }
 
 ///////////////////////////////////////////////////////////////////////
