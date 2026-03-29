@@ -45,7 +45,8 @@
       "Bash(pdfinfo:*)",
       "Bash(which ffmpeg:*)",
       "Bash(sips:*)",
-      "Bash(sleep:*)"
+      "Bash(sleep:*)",
+      "Bash(grep -rn \"->intersect\" /Volumes/Projects/Development/CLI/openrender/src/ri/*.cpp)"
     ]
   }
 }
