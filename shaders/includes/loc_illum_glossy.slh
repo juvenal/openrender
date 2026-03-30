@@ -1,0 +1,37 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+color
+LocIllumGlossy (normal N;
+                vector V;
+                float  roughness,
+                       sharpness)
+{
+    color C = 0;
+    float w = 0.18 * (1 - sharpness);
+    extern point P;
+    illuminance(P, N, PI / 2) {
+        /*   */
+        extern vector L;
+        extern color Cl;
+        float nonspec = 0;
+        lightsource("__nonspecular", nonspec);
+        if (nonspec < 1) {
+            vector H = normalize(normalize(L) + V);
+            C += Cl * ((1 - nonspec) * 
+                       smoothstep(0.72 - w, 0.72 + w, pow(max(0, N .H), 1 / roughness)));
+        }
+    }
+    return C;
+}

@@ -10,18 +10,18 @@ Rotate -30  1 0 0
 Rotate  20  0 1 0
 Scale 1 1 -1
 WorldBegin
-    TransformBegin
-        LightSource "spotlight" 1 "intensity" 1
-                    "coneangle" 0.3
-                    "from" [0 1 0] "to" [0 0 0]
-    TransformEnd
+  TransformBegin
+    LightSource "spotlight" 1 "intensity" 1
+                "coneangle" 0.3
+                "from" [0 1 0] "to" [0 0 0]
+  TransformEnd
 
-    Surface "plastic"
-    AttributeBegin
-        Polygon "P" [-0.5 0 -0.5  -0.5 0 0.5  0.5 0 0.5  0.5 0 -0.5]
-                "st" [0 0  0 1  1 1  1 0]
-        Translate 0 0.35 0
-        Displacement "dented"
-        Sphere 0.15 -0.15 0.15 360
-    AttributeEnd
+  Surface "plastic"
+  AttributeBegin
+    Polygon "P" [-0.5 0 -0.5  -0.5 0 0.5  0.5 0 0.5  0.5 0 -0.5]
+            "st" [0 0  0 1  1 1  1 0]
+    Translate 0 0.35 0
+    Displacement "dented"
+    Sphere 0.15 -0.15 0.15 360
+  AttributeEnd
 WorldEnd

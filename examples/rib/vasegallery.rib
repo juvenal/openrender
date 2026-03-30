@@ -13,7 +13,6 @@ Rotate -103.02 1 0 0
 Translate 0 -40 -15
 
 WorldBegin
-
   TransformBegin
     CoordSysTransform "camera"
     # Ambient light
