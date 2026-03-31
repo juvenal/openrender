@@ -925,31 +925,79 @@ if (numExtraNonCompChannels > 0) {
 }
 
 // Filter the samples
-for (int y = 0; y < yres; y++) {
-    for (sy = 0; sy < filterHeight; sy++) {
-        for (sx = 0; sx < filterWidth; sx++) {
-            float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
-            const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
-            const float xOffset = sx - halfFilterWidth;
-            const float yOffset = sy - halfFilterHeight;
-            const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
+if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
+    for (int y = 0; y < yres; y++) {
+        for (sy = 0; sy < filterHeight; sy++) {
+            for (sx = 0; sx < filterWidth; sx++) {
+                float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
+                const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
+                const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
 
-            for (i = 0; i < xres; i++) {
-                int es;
+                for (i = 0; i < xres; i++) {
+                    int es;
 
-                pixelLine[0] += filterResponse * sampleLine[2];
-                pixelLine[1] += filterResponse * sampleLine[3];
-                pixelLine[2] += filterResponse * sampleLine[4];
-                pixelLine[3] += filterResponse * sampleLine[0];
+                    pixelLine[0] += filterResponse * sampleLine[2];
+                    pixelLine[1] += filterResponse * sampleLine[3];
+                    pixelLine[2] += filterResponse * sampleLine[4];
+                    pixelLine[3] += filterResponse * sampleLine[0];
 
-                // Filter the extra samples here
-                for (es = 0; es < CRenderer::numExtraSamples; es++) {
-                    pixelLine[5 + es] += filterResponse * sampleLine[6 + es];
+                    // Filter the extra samples here
+                    for (es = 0; es < CRenderer::numExtraSamples; es++) {
+                        pixelLine[5 + es] += filterResponse * sampleLine[6 + es];
+                    }
+
+                    // Advance
+                    pixelLine += CRenderer::numSamples;
+                    sampleLine += sampleLineDisplacement;
                 }
+            }
+        }
+    }
+} else {
+    // Continuous mode: evaluate filter function at exact sample positions and normalize per pixel
+    float *filterNorm = (float *)ralloc(xres * sizeof(float), threadMemory);
 
-                // Advance
-                pixelLine += CRenderer::numSamples;
-                sampleLine += sampleLineDisplacement;
+    for (int y = 0; y < yres; y++) {
+        memset(filterNorm, 0, xres * sizeof(float));
+        float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
+
+        for (sy = 0; sy < filterHeight; sy++) {
+            for (sx = 0; sx < filterWidth; sx++) {
+                const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
+                // Position of this sample relative to the pixel center, in pixel units
+                const float cy = (sy - halfFilterHeight + 0.5f) / (float)CRenderer::pixelYsamples;
+                const float cx = (sx - halfFilterWidth  + 0.5f) / (float)CRenderer::pixelXsamples;
+                const float filterResponse = CRenderer::pixelFilter(
+                    cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
+
+                float *pLine = pixelLine;
+                const float *sLine = sampleLine;
+                for (i = 0; i < xres; i++) {
+                    int es;
+
+                    pLine[0] += filterResponse * sLine[2];
+                    pLine[1] += filterResponse * sLine[3];
+                    pLine[2] += filterResponse * sLine[4];
+                    pLine[3] += filterResponse * sLine[0];
+
+                    for (es = 0; es < CRenderer::numExtraSamples; es++) {
+                        pLine[5 + es] += filterResponse * sLine[6 + es];
+                    }
+
+                    filterNorm[i] += filterResponse;
+                    pLine  += CRenderer::numSamples;
+                    sLine  += sampleLineDisplacement;
+                }
+            }
+        }
+
+        // Normalize each pixel by accumulated filter weight
+        float *pLine = pixelLine;
+        for (i = 0; i < xres; i++, pLine += CRenderer::numSamples) {
+            if (filterNorm[i] > 0) {
+                const float inv = 1.0f / filterNorm[i];
+                for (int j = 0; j < CRenderer::numSamples; j++)
+                    pLine[j] *= inv;
             }
         }
     }

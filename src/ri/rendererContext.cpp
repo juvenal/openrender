@@ -1408,6 +1408,15 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                             options->depthFilter = DEPTH_MID;
                         else
                             error(CODE_BADTOKEN, "Unknown depth filter: \"%s\"\n", val);
+                    } else if (strcmp(tokens[i], "filter") == 0) {
+                        const char *val = ((const char **)params[i])[0];
+                        if (strcmp(val, "continuous") == 0)
+                            options->pixelFilterMode = COptions::FILTER_MODE_CONTINUOUS;
+                        else {
+                            if (strcmp(val, "precomputed") != 0)
+                                warning(CODE_BADTOKEN, "Unknown filter mode: \"%s\", defaulting to \"precomputed\"\n", val);
+                            options->pixelFilterMode = COptions::FILTER_MODE_PRECOMPUTED;
+                        }
                         optionEndCheck
                     }
 
@@ -1453,6 +1462,22 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                         } else {
                                             error(CODE_BADTOKEN, "User option: \"%s\" is predeclared declared or declared inline\n", name);
                                         }
+                                    }
+                                }
+                            }
+                            else if (strcmp(name, "pixelfilter") == 0) {
+                                for (i = 0; i < n; i++) {
+                                    if (strcmp(tokens[i], "mode") == 0) {
+                                        const char *val = ((const char **)params[i])[0];
+                                        if (strcmp(val, "continuous") == 0)
+                                            options->pixelFilterMode = COptions::FILTER_MODE_CONTINUOUS;
+                                        else {
+                                            if (strcmp(val, "precomputed") != 0)
+                                                warning(CODE_BADTOKEN, "Unknown filter mode: \"%s\", defaulting to \"precomputed\"\n", val);
+                                            options->pixelFilterMode = COptions::FILTER_MODE_PRECOMPUTED;
+                                        }
+                                    } else {
+                                        error(CODE_BADTOKEN, "Unknown pixelfilter option: \"%s\"\n", tokens[i]);
                                     }
                                 }
                             }

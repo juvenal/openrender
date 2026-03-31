@@ -1,7 +1,7 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 Declare "location" "uniform point"
-#Hider "raytrace"
+Option "hider" "filter" "continuous"
 Projection "perspective"
 Clipping 1 100000
 Transform [1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1]
@@ -14,10 +14,6 @@ WorldBegin
   Rotate 20 1 0 0
   Rotate -30 0 0 1
   Color [0.2 0.8 0.1]
-  Surface "brushedmetal" "Ka" [0.05] "Kd" [0.2] "Ks" [0.7] "xroughness" [0.15] "yroughness" [0.3]
-  # Surface "blue_marble"
-  # Surface "matte"
-  # Surface "metal"
-  # Surface "mtorPhong"
+  Surface "blue_marble"
   Geometry "teapot"
 WorldEnd

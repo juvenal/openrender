@@ -278,6 +278,7 @@ COptions::COptions() {
     pixelFilterWidth = 2;
     pixelFilterHeight = 2;
     pixelFilter = RiCatmullRomFilter;
+    pixelFilterMode = FILTER_MODE_PRECOMPUTED;
 
     colorQuantizer[0] = 0;   // Zero
     colorQuantizer[1] = 255; // One

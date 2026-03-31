@@ -230,6 +230,7 @@ int CRenderer::xSampleOffset, CRenderer::ySampleOffset;      // initialized in b
 float CRenderer::sampleClipRight, CRenderer::sampleClipLeft; // initialized in beginFrame
 float CRenderer::sampleClipTop, CRenderer::sampleClipBottom; // initialized in beginFrame
 float *CRenderer::pixelFilterKernel;                         // initialized in beginFrame
+int    CRenderer::pixelFilterMode;                           // initialized in beginFrame
 
 float CRenderer::leftX, CRenderer::leftZ, CRenderer::leftD;       // initialized in beginClipping
 float CRenderer::rightX, CRenderer::rightZ, CRenderer::rightD;    // initialized in beginClipping
@@ -380,6 +381,7 @@ static void copyOptions(const COptions *o) {
     CRenderer::pixelFilterWidth = o->pixelFilterWidth;
     CRenderer::pixelFilterHeight = o->pixelFilterHeight;
     CRenderer::pixelFilter = o->pixelFilter;
+    CRenderer::pixelFilterMode = o->pixelFilterMode;
     memcpy(CRenderer::colorQuantizer, o->colorQuantizer, 5 * sizeof(float));
     memcpy(CRenderer::depthQuantizer, o->depthQuantizer, 5 * sizeof(float));
     movvv(CRenderer::opacityThreshold, o->opacityThreshold);

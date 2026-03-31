@@ -468,12 +468,16 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
         }
     }
 
-    // At this point, fb should contain the framebuffer, normalize the framebuffer
+    // Normalize each pixel by accumulated filter weights (both modes).
+    // Precomputed kernel sums to 1 per sample, but multiple samples accumulate
+    // per pixel; fbContribution tracks the true total weight applied.
     for (i = 0; i < xpixels * ypixels; i++) {
-        const float invContribution = 1 / fbContribution[i];
+        if (fbContribution[i] > 0) {
+            const float invContribution = 1.0f / fbContribution[i];
 
-        for (int k = 0; k < CRenderer::numSamples; k++) {
-            fbPixels[i * CRenderer::numSamples + k] *= invContribution;
+            for (int k = 0; k < CRenderer::numSamples; k++) {
+                fbPixels[i * CRenderer::numSamples + k] *= invContribution;
+            }
         }
     }
 }
@@ -610,41 +614,46 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
             pb = bottomBound;
         }
 
-        /*
-        for (pixelY=pt;pixelY<=pb;pixelY++) {
-            for (pixelX=pl;pixelX<=pr;pixelX++) {
-                const int	px				=	(int) floor((x - (pixelX + 0.5f))*filterWidth) + filterWidth>>1;
-                const int	py				=	(int) floor((y - (pixelY + 0.5f))*filterWidth) + filterHeight>>1;
-                const float	contribution	=	CRenderer::pixelFilterKernel[py*filterWidth+px];
-                float		*dest			=	&fbPixels[((pixelY-top)*xpixels+pixelX-left)*CRenderer::numSamples];
-                const float	*src			=	fbs;
+        if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
+            const float halfFilterWidth  = filterWidth  * 0.5f;
+            const float halfFilterHeight = filterHeight * 0.5f;
+            for (pixelY = pt; pixelY <= pb; pixelY++) {
+                for (pixelX = pl; pixelX <= pr; pixelX++) {
+                    int px = (int)floor((pixelX + 0.5f - x) * CRenderer::pixelXsamples + halfFilterWidth);
+                    int py = (int)floor((pixelY + 0.5f - y) * CRenderer::pixelYsamples + halfFilterHeight);
+                    if (px < 0) px = 0; else if (px >= filterWidth)  px = filterWidth  - 1;
+                    if (py < 0) py = 0; else if (py >= filterHeight) py = filterHeight - 1;
+                    const float contribution = CRenderer::pixelFilterKernel[py * filterWidth + px];
+                    const int pixelIdx = (pixelY - top) * xpixels + pixelX - left;
+                    float *dest = &fbPixels[pixelIdx * CRenderer::numSamples];
+                    const float *src = fbs;
 
-                assert((top+ypixels) > pixelY);
-                assert((left+xpixels) > pixelX);
+                    assert((top + ypixels) > pixelY);
+                    assert((left + xpixels) > pixelX);
 
-                for (int j=CRenderer::numSamples;j>0;j--) {
-                    *dest++	+=	(*src++)*contribution;
+                    fbContribution[pixelIdx] += contribution;
+
+                    for (int j = CRenderer::numSamples; j > 0; j--)
+                        *dest++ += (*src++) * contribution;
                 }
             }
-        }
-        */
+        } else {
+            float cx, cy;
+            for (cy = pt + 0.5f - y, pixelY = pt; pixelY <= pb; pixelY++, cy++) {
+                for (cx = pl + 0.5f - x, pixelX = pl; pixelX <= pr; pixelX++, cx++) {
+                    const float contribution = CRenderer::pixelFilter(cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
+                    float *dest = &fbPixels[((pixelY - top) * xpixels + pixelX - left) * CRenderer::numSamples];
+                    const float *src = fbs;
 
-        float cx, cy;
-        for (cy = pt + 0.5f - y, pixelY = pt; pixelY <= pb; pixelY++, cy++) {
-            for (cx = pl + 0.5f - x, pixelX = pl; pixelX <= pr; pixelX++, cx++) {
-                const float contribution = CRenderer::pixelFilter(cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
-                float *dest = &fbPixels[((pixelY - top) * xpixels + pixelX - left) * CRenderer::numSamples];
-                const float *src = fbs;
+                    assert((top + ypixels) > pixelY);
+                    assert((left + xpixels) > pixelX);
 
-                assert((top + ypixels) > pixelY);
-                assert((left + xpixels) > pixelX);
+                    // Save the contribution for later normalization
+                    fbContribution[((pixelY - top) * xpixels + pixelX - left)] += contribution;
 
-                // Save the contribution for later normalization
-                fbContribution[((pixelY - top) * xpixels + pixelX - left)] += contribution;
-
-                // Accumulate the pixel filter results
-                for (int j = CRenderer::numSamples; j > 0; j--) {
-                    *dest++ += (*src++) * contribution;
+                    // Accumulate the pixel filter results
+                    for (int j = CRenderer::numSamples; j > 0; j--)
+                        *dest++ += (*src++) * contribution;
                 }
             }
         }

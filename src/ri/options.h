@@ -176,6 +176,10 @@ class COptions {
 
         float pixelFilterWidth, pixelFilterHeight; // Pixel filter data
         RtFilterFunc pixelFilter;
+        int pixelFilterMode;                       // FILTER_MODE_PRECOMPUTED or FILTER_MODE_CONTINUOUS
+
+        static const int FILTER_MODE_PRECOMPUTED = 0;
+        static const int FILTER_MODE_CONTINUOUS  = 1;
 
         float colorQuantizer[5]; // The quantization data
         float depthQuantizer[5];

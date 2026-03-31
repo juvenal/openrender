@@ -430,6 +430,9 @@ class CRenderer {
         static int xSampleOffset, ySampleOffset;                                       // The amount of offset around each bucket in samples
         static float sampleClipRight, sampleClipLeft, sampleClipTop, sampleClipBottom; // The actual rendering window in samples
         static float *pixelFilterKernel;                                               // The precomputed pixel filter kernel
+        static const int FILTER_MODE_PRECOMPUTED = COptions::FILTER_MODE_PRECOMPUTED;
+        static const int FILTER_MODE_CONTINUOUS  = COptions::FILTER_MODE_CONTINUOUS;
+        static int pixelFilterMode;                                                    // Active filter mode
 
         static float leftX, leftZ, leftD; // The clipping plane equations
         static float rightX, rightZ, rightD;

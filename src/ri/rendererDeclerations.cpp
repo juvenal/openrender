@@ -111,6 +111,8 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_EMIT, "int");
     declareVariable(RI_SAMPLESPECTRUM, "int");
     declareVariable(RI_DEPTHFILTER, "string");
+    declareVariable("filter", "string");
+    declareVariable("mode", "string");
 
     declareVariable(RI_MAXDEPTH, "int");
 
