@@ -776,6 +776,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         defaultDisplay->outDevice = (char *)RI_FILE;
         defaultDisplay->outName = (char *)"ri.tif";
         defaultDisplay->outSamples = (char *)RI_RGBA;
+        defaultDisplay->quantizer[0] = 0;  // Float output for implicit display (no Display/Quantize in RIB)
 
         displays = defaultDisplay;
     }
