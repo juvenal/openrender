@@ -39,6 +39,9 @@ DSO													return SCRL_DSO;
 \"[^\"]*\"											{   yylval.string	=	rstrdup(yytext+1,CRenderer::globalMemory);	yylval.string[strlen(yylval.string)-1] = '\0'; osProcessEscapes(yylval.string); return SCRL_TEXT_VALUE;}
 [a-zA-Z\_][a-zA-Z0-9\_]*							{	yylval.string	=	rstrdup(yytext,CRenderer::globalMemory); return SCRL_IDENTIFIER_VALUE; }
 \#\![a-zA-Z][a-zA-Z0-9\_]*							{	yylval.string	=	rstrdup(yytext,CRenderer::globalMemory); return SCRL_LABEL_VALUE; }
+(-([0-9]*\.[0-9]+)([eE][+-]?[0-9]+)?)				{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
+(-([0-9]+\.[0-9]*)([eE][+-]?[0-9]+)?)				{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
+(-([0-9]+)([eE][+-]?[0-9]+)?)						{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
 (([0-9]*\.[0-9]+)([eE][+-]?[0-9]+)?)				{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
 (([0-9]+\.[0-9]*)([eE][+-]?[0-9]+)?)				{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
 (([0-9]+)([eE][+-]?[0-9]+)?)						{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
