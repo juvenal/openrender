@@ -1651,7 +1651,7 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
 
     if (strcmp(name, rendererinfoRenderer) == 0) {
         char **d = (char **)dest;
-        d[0] = (char *)"openRender";
+        d[0] = (char *)OPENRENDER_PROJECT_NAME;
         return TRUE;
     } else if (strcmp(name, rendererinfoVersion) == 0) {
         float *d = (float *)dest;

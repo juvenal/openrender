@@ -113,7 +113,7 @@ void exitFunction() {
 // Comments				:
 void printVersion() {
     printf("orender - A RenderMan CLI Renderer\n");
-    printf("openRender - Open Rendering Tools %s (Adheres to the RenderMan Standard)\n", openrender_version_string());
+    printf(OPENRENDER_PROJECT_NAME " - Open Rendering Tools %s (Adheres to the RenderMan Standard)\n", openrender_version_string());
     printf("   (c) Copyright 2025-2026 by Juvenal A. Silva Jr.  All rights reserved.\n\n");
     printf("       The RenderMan (R) Interface Procedures and RIB Protocol are:\n");
     printf("            Copyright 1988, 1989, Pixar. All rights reserved.\n");
@@ -147,7 +147,7 @@ void printUsage() {
     printf("    -x <level>      Set log level: 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG (default: NONE)\n");
     printf("    -h              Display this help\n\n");
     printf("Environment variables:\n");
-    printf("  OPENRENDERHOME   openRender installation path\n");
+    printf("  OPENRENDERHOME   " OPENRENDER_PROJECT_NAME " installation path\n");
     printf("  SHADERS          Shader search path\n");
 }
 

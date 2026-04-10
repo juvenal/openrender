@@ -109,7 +109,7 @@ void *findParameter(const char *name, ParameterType type, int numItems) {
             return &CRenderer::gain;
     } else if (strcmp(name, "Software") == 0) {
         if ((numItems == 1) && (type == STRING_PARAMETER))
-            return (void *)"Pixie";
+            return (void *)OPENRENDER_PROJECT_NAME;
     } else if (strcmp(name, "type") == 0 && currentDisplay) {
         if ((numItems == 1) && (type == STRING_PARAMETER))
             return (void *)currentDisplay->outDevice;
