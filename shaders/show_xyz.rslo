@@ -35,7 +35,7 @@ varying	float	temporary_9
 	or  temporary_1 temporary_2 temporary_3
 	vufloat  temporary_0 temporary_1
 	if temporary_0 #!Label4
-	printf	("o=sffffff")  "bad bounding box %f %f %f %f %f %f in show_xyz()" xmin xmax ymin ymax zmin zmax
+	printf	("o=sffffff")  "bad bounding box %f %f %f %f %f %f in show_xyz()\n" xmin xmax ymin ymax zmin zmax
 #!Label4:
 	else #!Label3
 	subff  temporary_2 xmax xmin

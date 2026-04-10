@@ -18,7 +18,7 @@ show_xyz (float xmin = -1,
 
     /* Check for zero scale components. */
     if (xmax == xmin || ymax == ymin || zmax == zmin) {
-        printf( "bad bounding box %f %f %f %f %f %f in show_xyz()",
+        printf( "bad bounding box %f %f %f %f %f %f in show_xyz()\n",
                 xmin, xmax, ymin, ymax, zmin, zmax);
     }
     else {
