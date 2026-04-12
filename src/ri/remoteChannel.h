@@ -59,12 +59,12 @@ class CRemoteChannel {
         CRemoteChannel(const char *n, int f, int d) : name(strdup(n)), flags(f), channelType(d), remoteId(-1) {}
         virtual ~CRemoteChannel() { free(name); };
 
-        virtual int sendSetupData(SOCKET s) { return TRUE; }
-        virtual int setup(SOCKET s) { return TRUE; }
-        virtual int sendRemoteBucket(SOCKET s, int, int) { return TRUE; }
-        virtual int recvRemoteBucket(SOCKET s, int, int) { return TRUE; }
-        virtual int sendRemoteFrame(SOCKET s) { return TRUE; }
-        virtual int recvRemoteFrame(SOCKET s) { return TRUE; }
+        virtual int sendSetupData(SOCKET /*s*/) { return TRUE; }
+        virtual int setup(SOCKET /*s*/) { return TRUE; }
+        virtual int sendRemoteBucket(SOCKET /*s*/, int, int) { return TRUE; }
+        virtual int recvRemoteBucket(SOCKET /*s*/, int, int) { return TRUE; }
+        virtual int sendRemoteFrame(SOCKET /*s*/) { return TRUE; }
+        virtual int recvRemoteFrame(SOCKET /*s*/) { return TRUE; }
 
     public:
         char *name;

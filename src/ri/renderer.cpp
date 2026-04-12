@@ -666,7 +666,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         toScreen[element(3, 1)] = 0;
         toScreen[element(3, 2)] = 1;
         toScreen[element(3, 3)] = 0;
-    } else {
+    }
+    else {
         // NDC
         toNDC[element(0, 0)] = 1 / (screenRight - screenLeft);
         toNDC[element(0, 1)] = 0;

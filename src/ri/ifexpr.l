@@ -1,5 +1,6 @@
 %option never-interactive
 %option noyywrap
+%option nounput noinput
 %%
 \(													return IF_OPEN;
 \)													return IF_CLOSE;

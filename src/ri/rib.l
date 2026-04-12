@@ -24,7 +24,8 @@ static	TRibFile	*ribStack	=	NULL;
 
 %}
 %option never-interactive
-%option noyywrap 
+%option noyywrap
+%option nounput noinput 
 %%
 Declare												return RIB_DECLARE;
 FrameBegin											return RIB_FRAME_BEGIN;

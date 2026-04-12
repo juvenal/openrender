@@ -547,7 +547,7 @@ int precomputeStochasticPrimitivesH() {
 // Description			:	Do the thing baby
 // Return Value			:	0 on success, 1 on failure
 // Comments				:
-int main(int argc, char *argv[]) {
+int main(int, char**) {
 
     // Default log level is NONE for CLI-style utilities unless explicitly overridden.
     set_log_level(LogLevel::NONE);

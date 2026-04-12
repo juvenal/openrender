@@ -164,8 +164,6 @@ void CZbuffer::rasterEnd(float *fb2, int /*noObjects*/) {
     const int yres = height;
     const int filterWidth = CRenderer::pixelXsamples + 2 * CRenderer::xSampleOffset;
     const int filterHeight = CRenderer::pixelYsamples + 2 * CRenderer::ySampleOffset;
-    const float invPixelXsamples = 1 / (float)CRenderer::pixelXsamples;
-    const float invPixelYsamples = 1 / (float)CRenderer::pixelYsamples;
     float *tmp;
 
     assert(CRenderer::numSamples == 5);

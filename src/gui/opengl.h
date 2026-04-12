@@ -48,10 +48,10 @@ class CView {
         CView() {}
         virtual ~CView() {}
 
-        virtual void draw() = 0;                          // The draw the data
-        virtual void bound(float *bmin, float *bmax) = 0; // Bound the data
-        virtual int keyDown(int key) { return FALSE; }    // Called when the user presses a key
-                                                          // return TRUE if the data needs to be updated
+        virtual void draw() = 0;                            // The draw the data
+        virtual void bound(float *bmin, float *bmax) = 0;   // Bound the data
+        virtual int keyDown(int /*key*/) { return FALSE; }  // Called when the user presses a key
+                                                            // return TRUE if the data needs to be updated
 
         // The classes can use the following functions for drawing primitives
         static TGlTrianglesFunction drawTriangles;  // The function to draw bunch of triangles

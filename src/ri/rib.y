@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 #undef alloca
 #define	YYMAXDEPTH	100000
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
 
 #include "common/global.h"
@@ -492,7 +493,7 @@ static	RtErrorHandler	getErrorHandler(char *n) {
 
 
 %}
-%pure-parser
+%define api.pure
 %token	RIB_DECLARE
 %token	RIB_FRAME_BEGIN
 %token	RIB_FRAME_END
@@ -1922,8 +1923,6 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				ribPL
 				{
 					int	numExpectedVertices;
-					int	numExpectedPatches	=	1;
-
 
 					if (strcmp($2,RI_BILINEAR) == 0) {
 						numExpectedVertices	=	4;
@@ -2828,18 +2827,19 @@ ribComm:		RIB_STRUCTURE_COMMENT
 
 %%
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "lex.rib.cpp"
+#pragma GCC diagnostic pop
 
 // Our position in the rib file
-static	int		ribStart	=	0;
-static	int		ribStep		=	5*(1<<10);	// Parse 5 KB at a time
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	riberror
 // Description			:	Parser error file
 // Return Value			:	-
 // Comments				:
-void	riberror(const char *s,...) {
+void	riberror(const char * /*s*/,...) {
 	warning(CODE_BADFILE,"RIB Parse error\n");
 }
 
