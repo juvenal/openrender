@@ -778,7 +778,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         defaultDisplay->outDevice = (char *)RI_FILE;
         defaultDisplay->outName = (char *)"ri.tif";
         defaultDisplay->outSamples = (char *)RI_RGBA;
-        defaultDisplay->quantizer[0] = 0;  // Float output for implicit display (no Display/Quantize in RIB)
+        // quantizer[0] stays at -1 (from CDisplay ctor) so findParameter("quantize")
+        // returns CRenderer::colorQuantizer — same 8-bit path as explicit Display
 
         displays = defaultDisplay;
     }
