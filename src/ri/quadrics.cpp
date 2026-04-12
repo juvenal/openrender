@@ -3210,6 +3210,7 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***local
 
     // Note that the normals are computed by dPdu x dPdv, meaning that the normal vector may be degenerate
     normalFix();
+    tangentFix();
 
     up &= ~parametersF;
 }

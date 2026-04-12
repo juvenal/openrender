@@ -1,6 +1,7 @@
 ##RenderMan RIB-Structure 1.1
 version 3.03
-Display "camera-motion-small.tif" "file" "rgba"
+Hider "raytrace"
+Display "camera-motion-small-raytrace.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 400 300 1
 Shutter 0 1

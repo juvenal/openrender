@@ -73,6 +73,65 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
         }                                                               \
     }
 
+// This macro fixes degenerate dPdu/dPdv tangent vectors (e.g., at patch poles
+// where the analytical derivative is zero). When dPdu=(0,0,0), normalize(dPdu)
+// returns (0,0,0) and anisotropic shading models produce maximum specular.
+// Mirrors normalFix() exactly but for VARIABLE_DPDU and VARIABLE_DPDV.
+#define tangentFix()                                                            \
+    {                                                                           \
+        float *dPdu = varying[VARIABLE_DPDU];                                   \
+                                                                                \
+        for (int i = numVertices; i > 0; i--, dPdu += 3) {                     \
+            if (dotvv(dPdu, dPdu) < C_EPSILON * C_EPSILON) {                    \
+                const float *u   = varying[VARIABLE_U];                         \
+                const float *v   = varying[VARIABLE_V];                         \
+                const float *cDu = varying[VARIABLE_DPDU];                      \
+                const float  cu  = u[numVertices - i];                          \
+                const float  cv  = v[numVertices - i];                          \
+                float        cd  = C_INFINITY;                                  \
+                const float *closest = dPdu;                                    \
+                int j;                                                          \
+                                                                                \
+                for (j = numVertices; j > 0; j--, cDu += 3, u++, v++) {        \
+                    if (dotvv(cDu, cDu) > 0) {                                  \
+                        const float du = cu - u[0];                             \
+                        const float dv = cv - v[0];                             \
+                        float d = du * du + dv * dv;                            \
+                        if (d < cd) { cd = d; closest = cDu; }                  \
+                    }                                                            \
+                }                                                               \
+                                                                                \
+                movvv(dPdu, closest);                                           \
+            }                                                                   \
+        }                                                                       \
+                                                                                \
+        float *dPdv = varying[VARIABLE_DPDV];                                   \
+                                                                                \
+        for (int i = numVertices; i > 0; i--, dPdv += 3) {                     \
+            if (dotvv(dPdv, dPdv) < C_EPSILON * C_EPSILON) {                    \
+                const float *u   = varying[VARIABLE_U];                         \
+                const float *v   = varying[VARIABLE_V];                         \
+                const float *cDv = varying[VARIABLE_DPDV];                      \
+                const float  cu  = u[numVertices - i];                          \
+                const float  cv  = v[numVertices - i];                          \
+                float        cd  = C_INFINITY;                                  \
+                const float *closest = dPdv;                                    \
+                int j;                                                          \
+                                                                                \
+                for (j = numVertices; j > 0; j--, cDv += 3, u++, v++) {        \
+                    if (dotvv(cDv, cDv) > 0) {                                  \
+                        const float du = cu - u[0];                             \
+                        const float dv = cv - v[0];                             \
+                        float d = du * du + dv * dv;                            \
+                        if (d < cd) { cd = d; closest = cDv; }                  \
+                    }                                                            \
+                }                                                               \
+                                                                                \
+                movvv(dPdv, closest);                                           \
+            }                                                                   \
+        }                                                                       \
+    }
+
 ///////////////////////////////////////////////////////////////////////
 // Function				:	makeCubicBound
 // Description			:	Converts the control vertices to Bezier control vertices

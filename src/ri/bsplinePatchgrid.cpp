@@ -366,6 +366,7 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
 
     // Make sure we don't have any zero normals
     normalFix();
+    tangentFix();
 
     // Turn off the processed parameters
     up &= ~(PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_DPDTIME | variables->parameters);

@@ -331,6 +331,7 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
 
     // Fix the degenerate normals
     normalFix();
+    tangentFix();
 
     // Turn off the parameters we computed
     up &= ~(PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_DPDTIME | this->vertexData->parameters);

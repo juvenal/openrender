@@ -814,7 +814,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         } else {
             // We're shading a regular grid, so take the shortcut while computing the surface derivatives
-            int i, j;
+            int i;
             const float shadingRate = currentAttributes->shadingRate;
 
             assert(dim == SHADING_2D_GRID);
@@ -825,7 +825,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             currentShadingState->numPassive = 0;
 
             // First sample the object at the grid vertices
-            usedParameters |= PARAMETER_P;
+            usedParameters |= PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV;
 
             // Sample the object
             object->sample(0, numVertices, varying, locals, usedParameters);
@@ -833,244 +833,55 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             // Interpolate the various variables defined on the object
             object->interpolate(numVertices, varying, locals);
 
-            // We're rasterizing, so the derivative information is already available
-            memBegin(threadMemory);
-
-            // This array holds the projected xy pixel positions for the vertices
-            float *xy = (float *)ralloc(numVertices * 2 * sizeof(float), threadMemory);
-            const float *P = varying[VARIABLE_P];
-
-            // Project the grid vertices first
-            // PS: The offset is not important, so do not compute it
-            float maxdPixeldxy;
-            if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
-                maxdPixeldxy = CRenderer::dPixeldy;
-            } else {
-                maxdPixeldxy = CRenderer::dPixeldx;
-            }
-            const float dPixeldx = (currentAttributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE) ? 1.0f : CRenderer::dPixeldx;
-            const float dPixeldy = (currentAttributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE) ? 1.0f : CRenderer::dPixeldy;
+            // Compute I (incident ray direction, camera space)
             if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
-                float *cXy = xy;
-
-                for (i = numVertices; i > 0; i--) {
-                    cXy[0] = (P[COMP_X] * CRenderer::imagePlane / P[COMP_Z]) * dPixeldx;
-                    cXy[1] = (P[COMP_Y] * CRenderer::imagePlane / P[COMP_Z]) * dPixeldy;
-                    cXy += 2;
-                    P += 3;
-                }
-
-                // Compute the I
+                // For perspective: I = P (camera-space position is the ray direction * t)
                 memcpy(varying[VARIABLE_I], varying[VARIABLE_P], numVertices * 3 * sizeof(float));
             } else {
-                float *cXy = xy;
-
-                for (i = numVertices; i > 0; i--) {
-                    cXy[0] = P[COMP_X] * dPixeldx;
-                    cXy[1] = P[COMP_Y] * dPixeldy;
-                    cXy += 2;
-                    P += 3;
-                }
-
-                // Compute the I
                 float *I = varying[VARIABLE_I];
-                P = varying[VARIABLE_P];
+                const float *P = varying[VARIABLE_P];
                 for (i = numVertices; i > 0; i--, I += 3, P += 3)
                     initv(I, 0, 0, P[COMP_Z]);
             }
 
-            float *du = varying[VARIABLE_DU];
-            float *dv = varying[VARIABLE_DV];
-            const float *u = varying[VARIABLE_U];
-            const float *v = varying[VARIABLE_V];
+            // Compute per-vertex du/dv using the same geometry-based formula as the
+            // raytrace hider (SHADING_2D path, lines 757-786), scaled by shadingRate
+            // so REYES shading-rate semantics are preserved.  This replaces the old
+            // screen-projection approach, which was tessellation-dependent and lacked
+            // the sin(angle) correction for oblique surfaces.
+            {
+                float *du           = varying[VARIABLE_DU];
+                float *dv           = varying[VARIABLE_DV];
+                const float *dPdu_p = varying[VARIABLE_DPDU];
+                const float *dPdv_p = varying[VARIABLE_DPDV];
+                const float *I_p    = varying[VARIABLE_I];
+                const bool isPersp  = (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE);
 
-#ifdef USE_EXTRAPOLATED_DERIV
-#define extrapolateDerivU()                                                             \
-    if (uVertices > 3) {                                                                \
-        const float A = (cDU[-3] - cDU[-2]) / ((cU[-3] - cU[-2]) * (cU[-3] - cU[-1])) - \
-                        (cDU[-1] - cDU[-2]) / ((cU[-1] - cU[-2]) * (cU[-3] - cU[-1]));  \
-        const float B = (cDU[-1] - cDU[-2] + A * (cU[-2] * cU[-2] - cU[-1] * cU[-1])) / \
-                        (cU[-1] - cU[-2]);                                              \
-        const float C = (cDU[-1] - A * cU[-1] * cU[-1] - B * cU[-1]);                   \
-        d = A * cU[0] * cU[0] + B * cU[0] + C;                                          \
-    }
+                for (i = 0; i < numVertices; i++, I_p += 3, dPdu_p += 3, dPdv_p += 3) {
+                    const float lengthu = dotvv(dPdu_p, dPdu_p);
+                    const float lengthv = dotvv(dPdv_p, dPdv_p);
+                    const float lengthi = dotvv(I_p, I_p);
 
-#define extrapolateDerivV()                                                                                                                                     \
-    if (vVertices > 3) {                                                                                                                                        \
-        const float A = (cDV[-uVertices * 3] - cDV[-uVertices * 2]) / ((cV[-uVertices * 3] - cV[-uVertices * 2]) * (cV[-uVertices * 3] - cV[-uVertices * 1])) - \
-                        (cDV[-uVertices * 1] - cDV[-uVertices * 2]) / ((cV[-uVertices * 1] - cV[-uVertices * 2]) * (cV[-uVertices * 3] - cV[-uVertices * 1]));  \
-        const float B = (cDV[-uVertices * 1] - cDV[-uVertices * 2] + A * (cV[-uVertices * 2] * cV[-uVertices * 2] - cV[-uVertices * 1] * cV[-uVertices * 1])) / \
-                        (cV[-uVertices * 1] - cV[-uVertices * 2]);                                                                                              \
-        const float C = (cDV[-uVertices * 1] - A * cV[-uVertices * 1] * cV[-uVertices * 1] - B * cV[-uVertices * 1]);                                           \
-        d = A * cV[0] * cV[0] + B * cV[0] + C;                                                                                                                  \
-    }
+                    // Ray footprint in camera space at depth t, scaled by shadingRate
+                    const float dest = isPersp
+                        ? shadingRate * CRenderer::dxdPixel / CRenderer::imagePlane * sqrtf(lengthi)
+                        : shadingRate * CRenderer::dxdPixel;
 
-#else
-#define extrapolateDerivU()
-#define extrapolateDerivV()
-#endif
+                    // ku = sin(angle between I and dPdu): perpendicular component
+                    float ku = dotvv(I_p, dPdu_p);
+                    ku = isqrtf((lengthu * lengthi - ku * ku) / (lengthu * lengthi + C_EPSILON));
+                    float dud = ku * dest * isqrtf(lengthu) + C_EPSILON;
+                    if (dud > 1.0f) dud = 1.0f;
 
-#define MAX_DIFFERENTIAL_DISCREPANCY 4 * shadingRate
+                    float kv = dotvv(I_p, dPdv_p);
+                    kv = isqrtf((lengthv * lengthi - kv * kv) / (lengthv * lengthi + C_EPSILON));
+                    float dvd = kv * dest * isqrtf(lengthv) + C_EPSILON;
+                    if (dvd > 1.0f) dvd = 1.0f;
 
-            if (!(currentAttributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE)) {
-                // Compute the du
-                for (i = 0; i < vVertices; i++) {
-                    const int tmp = i * uVertices;
-                    float *cDU = du + tmp;
-                    const float *cU = u + tmp;
-                    float *cXy = xy + tmp * 2;
-                    float d = 0;
-
-                    for (j = uVertices - 1; j > 0; j--) {
-                        const float dx = cXy[2] - cXy[0];
-                        const float dy = cXy[3] - cXy[1];
-                        float cSr = shadingRate * isqrtf(dx * dx + dy * dy);
-                        if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
-                            cSr = MAX_DIFFERENTIAL_DISCREPANCY;
-                        d = cSr * (cU[1] - cU[0]);
-                        if (1 < d) {
-                            d = 1;
-                        }
-                        if (C_EPSILON > d) {
-                            d = C_EPSILON;
-                        }
-                        assert(d > 0);
-                        assert(d <= 1);
-                        cDU[0] = d;
-                        cDU += 1;
-                        cU += 1;
-                        cXy += 2;
-                    }
-
-                    extrapolateDerivU();
-
-                    cDU[0] = d;
-                }
-
-                // Compute the dv,dPdv
-                for (i = 0; i < uVertices; i++) {
-                    float *cDV = dv + i;
-                    const float *cV = v + i;
-                    float *cXy = xy + i * 2;
-                    float d = 0;
-
-                    for (j = 0; j < vVertices - 1; j++) {
-                        const float dx = cXy[uVertices * 2] - cXy[0];
-                        const float dy = cXy[uVertices * 2 + 1] - cXy[1];
-                        float cSr = shadingRate * isqrtf(dx * dx + dy * dy);
-                        if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
-                            cSr = MAX_DIFFERENTIAL_DISCREPANCY;
-                        d = cSr * (cV[uVertices] - cV[0]);
-                        if (C_EPSILON > d) {
-                            d = C_EPSILON;
-                        }
-                        if (1 < d) {
-                            d = 1;
-                        }
-                        assert(d > 0);
-                        assert(d <= 1);
-                        cDV[0] = d;
-                        cDV += uVertices;
-                        cV += uVertices;
-                        cXy += uVertices * 2;
-                    }
-
-                    extrapolateDerivV();
-
-                    cDV[0] = d;
-                }
-
-            } else {
-                // Non raster orient
-                vector tmp1, tmp2;
-
-                // Compute the du
-                for (i = 0; i < vVertices; i++) {
-                    const int tmp = i * uVertices;
-                    float *cDU = du + tmp;
-                    const float *cU = u + tmp;
-                    float *cXy = xy + tmp * 2;
-                    float d = 0;
-
-                    P = varying[VARIABLE_P] + tmp * 3;
-                    for (j = uVertices - 1; j > 0; j--) {
-                        initv(tmp1, cXy[2] - P[3], cXy[3] - P[4], P[5] - 1);
-                        initv(tmp2, cXy[0] - P[0], cXy[1] - P[1], P[2] - 1);
-                        const float dx = maxdPixeldxy * (cXy[2] - cXy[0]);
-                        const float dy = maxdPixeldxy * (cXy[3] - cXy[1]);
-                        const float dz = maxdPixeldxy * (lengthv(tmp1) - lengthv(tmp2));
-
-                        float cSr = shadingRate * isqrtf(dx * dx + dy * dy + dz * dz);
-                        if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
-                            cSr = MAX_DIFFERENTIAL_DISCREPANCY;
-                        d = cSr * (cU[1] - cU[0]);
-                        if (1 < d) {
-                            d = 1;
-                        }
-                        if (C_EPSILON > d) {
-                            d = C_EPSILON;
-                        }
-                        assert(d > 0);
-                        assert(d <= 1);
-                        cDU[0] = d;
-                        cDU += 1;
-                        cU += 1;
-                        P += 3;
-                        cXy += 2;
-                    }
-
-                    extrapolateDerivU();
-
-                    cDU[0] = d;
-                }
-
-                // Compute the dv,dPdv
-                for (i = 0; i < uVertices; i++) {
-                    float *cDV = dv + i;
-                    const float *cV = v + i;
-                    float *cXy = xy + i * 2;
-                    float d = 0;
-
-                    P = varying[VARIABLE_P] + i * 3;
-                    for (j = 0; j < vVertices - 1; j++) {
-                        initv(tmp1, cXy[uVertices * 2] - P[uVertices * 3 + 0], cXy[uVertices * 2 + 1] - P[uVertices * 3 + 1], P[uVertices * 3 + 2] - 1);
-                        initv(tmp2, cXy[0] - P[0], cXy[1] - P[1], P[2] - 1);
-
-                        const float dx = maxdPixeldxy * (cXy[uVertices * 2] - cXy[0]);
-                        const float dy = maxdPixeldxy * (cXy[uVertices * 2 + 1] - cXy[1]);
-                        const float dz = maxdPixeldxy * (lengthv(tmp1) - lengthv(tmp2));
-
-                        float cSr = shadingRate * isqrtf(dx * dx + dy * dy + dz * dz);
-                        if (cSr > MAX_DIFFERENTIAL_DISCREPANCY)
-                            cSr = MAX_DIFFERENTIAL_DISCREPANCY;
-                        d = cSr * (cV[uVertices] - cV[0]);
-                        if (C_EPSILON > d) {
-                            d = C_EPSILON;
-                        }
-                        if (1 < d) {
-                            d = 1;
-                        }
-                        assert(d > 0);
-                        assert(d <= 1);
-                        cDV[0] = d;
-                        cDV += uVertices;
-                        cV += uVertices;
-                        P += uVertices * 3;
-                        cXy += uVertices * 2;
-                    }
-
-                    extrapolateDerivV();
-
-                    cDV[0] = d;
+                    du[i] = dud;
+                    dv[i] = dvd;
                 }
             }
-
-#undef MAX_DIFFERENTIAL_DISCREPANCY
-#undef extrapolateDerivU
-#undef extrapolateDerivV
-
-            // Done and done
-            memEnd(threadMemory);
         }
     } else {
         // No derivative information is needed
