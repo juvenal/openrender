@@ -27,7 +27,6 @@
 int								dsolex(void );				// Forward definition for stupid yacc
 void							dsoerror(const char *,...);
 
-static	char					nameBuffer[256];
 static	char					prototypeBuffer[256];
 static	char					*currentPrototype;
 static	char					*funName;
@@ -128,7 +127,10 @@ dsoType:		DSO_VOID
 				;
 %%
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "lex.dso.cpp"
+#pragma GCC diagnostic pop
 
 
 ///////////////////////////////////////////////////////////////////////

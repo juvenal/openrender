@@ -52,6 +52,9 @@
  * defined (EXTERN=""), then pp2–pp8 include pp.h without MAIN (EXTERN="extern").
  * Everything below this block IS guarded so that struct/type definitions are
  * compiled only once. */
+#undef EXTERN
+#undef I_BRZERO
+#undef I_ZERO
 #ifdef MAIN
 #define EXTERN /* Inside main() routine, make internal */
 #define I_BRZERO = {0}

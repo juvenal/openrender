@@ -1,5 +1,6 @@
 %option never-interactive
 %option noyywrap
+%option nounput noinput
 %%
 \#\!parameters										return SCRL_PARAMETERS;
 \#\!variables										return SCRL_VARIABLES;

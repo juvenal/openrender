@@ -519,7 +519,7 @@ CShadingContext::~CShadingContext() {
 // Description			:	Add an object into the scene
 // Return Value			:
 // Comments				:
-void CShadingContext::drawObject(CObject *cObject) {
+void CShadingContext::drawObject(CObject *) {
     // This function must be overriden
 }
 
@@ -1241,7 +1241,7 @@ int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable
 // Description			:	Execute light sources
 // Return Value			:	-
 // Comments				:
-int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
+int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
     if (currentAttributes->interior != NULL)
@@ -1255,7 +1255,7 @@ int CShadingContext::incidentParameter(void *dest, const char *name, CVariable *
 // Description			:	Execute light sources
 // Return Value			:	-
 // Comments				:
-int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
+int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
     if (currentAttributes->exterior != NULL)

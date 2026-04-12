@@ -180,6 +180,9 @@ message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
 set(openrendertiff_libs TIFF::TIFF PNG::PNG)
 
 # Threads
+# Prefer -pthread compiler/link flag over -lpthread to avoid duplicate
+# library warnings when linking against FLTK (which adds -lpthread via fltk-config).
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # Math library (Unix systems)

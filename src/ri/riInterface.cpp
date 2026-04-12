@@ -54,70 +54,70 @@ void CRiInterface::RiWorldBegin(void) {
 void CRiInterface::RiWorldEnd(void) {
 }
 
-void CRiInterface::RiFormat(int xres, int yres, float aspect) {
+void CRiInterface::RiFormat(int, int, float) {
 }
 
-void CRiInterface::RiFrameAspectRatio(float aspect) {
+void CRiInterface::RiFrameAspectRatio(float) {
 }
 
-void CRiInterface::RiScreenWindow(float left, float right, float bot, float top) {
+void CRiInterface::RiScreenWindow(float, float, float, float) {
 }
 
-void CRiInterface::RiCropWindow(float xmin, float xmax, float ymin, float ymax) {
+void CRiInterface::RiCropWindow(float, float, float, float) {
 }
 
-void CRiInterface::RiProjectionV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiProjectionV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiClipping(float hither, float yon) {
+void CRiInterface::RiClipping(float, float) {
 }
 
-void CRiInterface::RiClippingPlane(float x, float y, float z, float nx, float ny, float nz) {
+void CRiInterface::RiClippingPlane(float, float, float, float, float, float) {
 }
 
-void CRiInterface::RiDepthOfField(float fstop, float focallength, float focaldistance) {
+void CRiInterface::RiDepthOfField(float, float, float) {
 }
 
-void CRiInterface::RiShutter(float smin, float smax) {
+void CRiInterface::RiShutter(float, float) {
 }
 
-void CRiInterface::RiPixelVariance(float variance) {
+void CRiInterface::RiPixelVariance(float) {
 }
 
-void CRiInterface::RiPixelSamples(float xsamples, float ysamples) {
+void CRiInterface::RiPixelSamples(float, float) {
 }
 
-void CRiInterface::RiPixelFilter(float (*function)(float, float, float, float), float xwidth, float ywidth) {
+void CRiInterface::RiPixelFilter(float (*)(float, float, float, float), float, float) {
 }
 
-void CRiInterface::RiExposure(float gain, float gamma) {
+void CRiInterface::RiExposure(float, float) {
 }
 
-void CRiInterface::RiImagerV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiImagerV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiQuantize(const char *type, int one, int qmin, int qmax, float ampl) {
+void CRiInterface::RiQuantize(const char *, int, int, int, float) {
 }
 
-void CRiInterface::RiDisplayV(const char *name, const char *type, const char *mode, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiDisplayV(const char *, const char *, const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt n, RtToken tokens[], RtPointer params[]) {
+void CRiInterface::RiCustomDisplayV(const char *, RtToken, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt, RtToken[], RtPointer[]) {
 }
 
-void CRiInterface::RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiDisplayChannelV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiHiderV(const char *type, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiHiderV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiColorSamples(int N, float *nRGB, float *RGBn) {
+void CRiInterface::RiColorSamples(int, float *, float *) {
 }
 
-void CRiInterface::RiRelativeDetail(float relativedetail) {
+void CRiInterface::RiRelativeDetail(float) {
 }
 
-void CRiInterface::RiOptionV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiOptionV(const char *, int, const char *[], const void *[]) {
 }
 
 void CRiInterface::RiAttributeBegin(void) {
@@ -126,108 +126,108 @@ void CRiInterface::RiAttributeBegin(void) {
 void CRiInterface::RiAttributeEnd(void) {
 }
 
-void CRiInterface::RiColor(float *Cs) {
+void CRiInterface::RiColor(float *) {
 }
 
-void CRiInterface::RiOpacity(float *Cs) {
+void CRiInterface::RiOpacity(float *) {
 }
 
-void CRiInterface::RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4) {
+void CRiInterface::RiTextureCoordinates(float, float, float, float, float, float, float, float) {
 }
 
-void *CRiInterface::RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
+void *CRiInterface::RiLightSourceV(const char *, int, const char *[], const void *[]) {
     return NULL;
 }
 
-void *CRiInterface::RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
+void *CRiInterface::RiAreaLightSourceV(const char *, int, const char *[], const void *[]) {
     return NULL;
 }
 
-void CRiInterface::RiIlluminate(const void *light, int onoff) {
+void CRiInterface::RiIlluminate(const void *, int) {
 }
 
-void CRiInterface::RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiSurfaceV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiAtmosphereV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiInteriorV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiExteriorV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiShadingRate(float size) {
+void CRiInterface::RiShadingRate(float) {
 }
 
-void CRiInterface::RiShadingInterpolation(const char *type) {
+void CRiInterface::RiShadingInterpolation(const char *) {
 }
 
-void CRiInterface::RiMatte(int onoff) {
+void CRiInterface::RiMatte(int) {
 }
 
-void CRiInterface::RiBound(float *bound) {
+void CRiInterface::RiBound(float *) {
 }
 
-void CRiInterface::RiDetail(float *bound) {
+void CRiInterface::RiDetail(float *) {
 }
 
-void CRiInterface::RiDetailRange(float minvis, float lowtran, float uptran, float maxvis) {
+void CRiInterface::RiDetailRange(float, float, float, float) {
 }
 
-void CRiInterface::RiGeometricApproximation(const char *type, float value) {
+void CRiInterface::RiGeometricApproximation(const char *, float) {
 }
 
-void CRiInterface::RiGeometricRepresentation(const char *type) {
+void CRiInterface::RiGeometricRepresentation(const char *) {
 }
 
-void CRiInterface::RiOrientation(const char *orientation) {
+void CRiInterface::RiOrientation(const char *) {
 }
 
 void CRiInterface::RiReverseOrientation(void) {
 }
 
-void CRiInterface::RiSides(int nsides) {
+void CRiInterface::RiSides(int) {
 }
 
 void CRiInterface::RiIdentity(void) {
 }
 
-void CRiInterface::RiTransform(float transform[][4]) {
+void CRiInterface::RiTransform(float [][4]) {
 }
 
-void CRiInterface::RiConcatTransform(float transform[][4]) {
+void CRiInterface::RiConcatTransform(float [][4]) {
 }
 
-void CRiInterface::RiPerspective(float fov) {
+void CRiInterface::RiPerspective(float) {
 }
 
-void CRiInterface::RiTranslate(float dx, float dy, float dz) {
+void CRiInterface::RiTranslate(float, float, float) {
 }
 
-void CRiInterface::RiRotate(float angle, float dx, float dy, float dz) {
+void CRiInterface::RiRotate(float, float, float, float) {
 }
 
-void CRiInterface::RiScale(float dx, float dy, float dz) {
+void CRiInterface::RiScale(float, float, float) {
 }
 
-void CRiInterface::RiSkew(float angle, float dx1, float dy1, float dz1, float dx2, float dy2, float dz2) {
+void CRiInterface::RiSkew(float, float, float, float, float, float, float) {
 }
 
-void CRiInterface::RiDeformationV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiDeformationV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiDisplacementV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiDisplacementV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiCoordinateSystem(const char *space) {
+void CRiInterface::RiCoordinateSystem(const char *) {
 }
 
-void CRiInterface::RiCoordSysTransform(const char *space) {
+void CRiInterface::RiCoordSysTransform(const char *) {
 }
 
-RtPoint *CRiInterface::RiTransformPoints(const char *fromspace, const char *tospace, int npoints, RtPoint *points) {
+RtPoint *CRiInterface::RiTransformPoints(const char *, const char *, int, RtPoint *) {
     return NULL;
 }
 
@@ -237,88 +237,88 @@ void CRiInterface::RiTransformBegin(void) {
 void CRiInterface::RiTransformEnd(void) {
 }
 
-void CRiInterface::RiAttributeV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiAttributeV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiPolygonV(int nvertices, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPolygonV(int, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiGeneralPolygonV(int nloops, int *nverts, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiGeneralPolygonV(int, int *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiPointsPolygonsV(int npolys, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPointsPolygonsV(int, int *, int *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPointsGeneralPolygonsV(int, int *, int *, int *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], int vstep) {
+void CRiInterface::RiBasis(float [][4], int, float [][4], int) {
 }
 
-void CRiInterface::RiPatchV(const char *type, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPatchV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiPatchMeshV(const char *type, int nu, const char *uwrap, int nv, const char *vwrap, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPatchMeshV(const char *, int, const char *, int, const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiNuPatchV(int nu, int uorder, float *uknot, float umin, float umax, int nv, int vorder, float *vknot, float vmin, float vmax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiNuPatchV(int, int, float *, float, float, int, int, float *, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w) {
+void CRiInterface::RiTrimCurve(int, int *, int *, float *, float *, float *, int *, float *, float *, float *) {
 }
 
-void CRiInterface::RiSphereV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiSphereV(float, float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiConeV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiConeV(float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiCylinderV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiCylinderV(float, float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiHyperboloidV(float *point1, float *point2, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiHyperboloidV(float *, float *, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiParaboloidV(float rmax, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiParaboloidV(float, float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiDiskV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiDiskV(float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiTorusV(float majorrad, float minorrad, float phimin, float phimax, float thetamax, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiTorusV(float, float, float, float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *)) {
+void CRiInterface::RiProcedural(void *, float *, void (*)(void *, float), void (*)(void *)) {
 }
 
-void CRiInterface::RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiGeometryV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiCurvesV(const char *degree, int ncurves, int nverts[], const char *wrap, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiCurvesV(const char *, int, int[], const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiPointsV(int npts, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiPointsV(int, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiSubdivisionMeshV(const char *, int, int[], int[], int, const char *[], int[], int[], float[], int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiBlobbyV(int nleaf, int ncode, int code[], int nflt, float flt[], int nstr, const char *str[], int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiProcDelayedReadArchive(const char *data, float detail) {
+void CRiInterface::RiProcDelayedReadArchive(const char *, float) {
 }
 
-void CRiInterface::RiProcRunProgram(const char *data, float detail) {
+void CRiInterface::RiProcRunProgram(const char *, float) {
 }
 
-void CRiInterface::RiProcDynamicLoad(const char *data, float detail) {
+void CRiInterface::RiProcDynamicLoad(const char *, float) {
 }
 
 void CRiInterface::RiProcFree(const char *) {
 }
 
-void CRiInterface::RiSolidBegin(const char *type) {
+void CRiInterface::RiSolidBegin(const char *) {
 }
 
 void CRiInterface::RiSolidEnd(void) {
@@ -331,51 +331,51 @@ void *CRiInterface::RiObjectBegin(void) {
 void CRiInterface::RiObjectEnd(void) {
 }
 
-void CRiInterface::RiObjectInstance(const void *handle) {
+void CRiInterface::RiObjectInstance(const void *) {
 }
 
-void CRiInterface::RiMotionBeginV(int N, float times[]) {
+void CRiInterface::RiMotionBeginV(int, float[]) {
 }
 
 void CRiInterface::RiMotionEnd(void) {
 }
 
-void CRiInterface::RiMakeTextureV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeTextureV(const char *, const char *, const char *, const char *, float (*)(float, float, float, float), float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiMakeBumpV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeBumpV(const char *, const char *, const char *, const char *, float (*)(float, float, float, float), float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiMakeLatLongEnvironmentV(const char *pic, const char *tex, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeLatLongEnvironmentV(const char *, const char *, float (*)(float, float, float, float), float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float fov, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeCubeFaceEnvironmentV(const char *, const char *, const char *, const char *, const char *, const char *, const char *, float, float (*)(float, float, float, float), float, float, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiMakeShadowV(const char *pic, const char *tex, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeShadowV(const char *, const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiMakeBrickMapV(int nb, const char **src, const char *dest, int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiMakeBrickMapV(int, const char **, const char *, int, const char *[], const void *[]) {
 }
 
 void CRiInterface::RiErrorHandler(void (*handler)(int, int, const char *)) {
     errorHandler = handler;
 }
 
-void CRiInterface::RiArchiveRecord(const char *type, const char *format, va_list args) {
+void CRiInterface::RiArchiveRecord(const char *, const char *, va_list) {
 }
 
-void CRiInterface::RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int n, const char *tokens[], const void *params[]) {
+void CRiInterface::RiReadArchiveV(const char *, void (*)(const char *, ...), int, const char *[], const void *[]) {
 }
 
-void *CRiInterface::RiArchiveBeginV(const char *name, int n, const char *tokens[], const void *parms[]) {
+void *CRiInterface::RiArchiveBeginV(const char *, int, const char *[], const void *[]) {
     return NULL;
 }
 
 void CRiInterface::RiArchiveEnd(void) {
 }
 
-void CRiInterface::RiResourceV(const char *handle, const char *type, int n, const char *tokens[], const void *parms[]) {
+void CRiInterface::RiResourceV(const char *, const char *, int, const char *[], const void *[]) {
 }
 
 void CRiInterface::RiResourceBegin(void) {
@@ -384,10 +384,10 @@ void CRiInterface::RiResourceBegin(void) {
 void CRiInterface::RiResourceEnd(void) {
 }
 
-void CRiInterface::RiIfBeginV(const char *expr, int n, const char *tokens[], const void *parms[]) {
+void CRiInterface::RiIfBeginV(const char *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiElseIfV(const char *expr, int n, const char *tokens[], const void *parms[]) {
+void CRiInterface::RiElseIfV(const char *, int, const char *[], const void *[]) {
 }
 
 void CRiInterface::RiElse(void) {

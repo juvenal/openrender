@@ -98,9 +98,9 @@ void exitFunction() {
     }
     else if (numLocalServers > 0) {
         // we have open local sockets, close them
-        int i = closesocket(listenSock);
+        (void)closesocket(listenSock);
         for (int j = 0; j < numLocalServers; j++) {
-            i = closesocket(localServerSockets[j]);
+            (void)closesocket(localServerSockets[j]);
         }
         // we may wish to kill subprocesses here
     }
@@ -295,7 +295,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
     struct sockaddr_in me;
     int listenPort;
     char *tmp = managerString + strlen(managerString);
-    int i, j;
+    int i;
 
 #ifdef _WINDOWS
     WSADATA wsaData;
@@ -335,7 +335,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
     if (bind(sock, (struct sockaddr *)&me, sizeof(me)) < 0) {
         if (silent == FALSE)
             fprintf(stderr, "Bind error\n");
-        j = closesocket(sock);
+        (void)closesocket(sock);
         return FALSE;
     }
 
@@ -343,7 +343,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
     socklen_t namelen = sizeof(me);
     if (getsockname(sock, (struct sockaddr *)&me, &namelen) < 0) {
         fprintf(stderr, "Could not determine port for bound socket\n");
-        j = closesocket(sock);
+        (void)closesocket(sock);
         return FALSE;
     }
     listenPort = ntohs(me.sin_port);
@@ -355,7 +355,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
     if (listen(sock, SOMAXCONN) < 0) {
         if (silent == FALSE)
             fprintf(stderr, "Socket error\n");
-        j = closesocket(sock);
+        (void)closesocket(sock);
         return FALSE;
     }
 
@@ -407,7 +407,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
 
     // pre-accept the local servers
 
-    snprintf(tmp, sizeof(tmp), "locservers=");
+    strcpy(tmp, "locservers=");
     tmp += strlen(tmp);
 
     // accept the connections
@@ -426,7 +426,7 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
         if (select((int)sock + 1, &fds, NULL, NULL, &timeout) <= 0) {
             if (silent == FALSE)
                 fprintf(stderr, "Timeout waiting for socket\n");
-            j = closesocket(sock);
+            (void)closesocket(sock);
             return FALSE;
         }
 
@@ -451,13 +451,13 @@ int runLocalServers(int numChildren, char *ribFile, char *managerString) {
         else {
             if (silent == FALSE)
                 fprintf(stderr, "Socket error\n");
-            j = closesocket(sock);
+            (void)closesocket(sock);
             return FALSE;
         }
     }
 
     // Close socket before exiting
-    j = closesocket(sock);
+    (void)closesocket(sock);
 
     return TRUE;
 }

@@ -69,7 +69,7 @@ CPLLookup::~CPLLookup() {
 // Description			:	The default action simply prints an error
 // Return Value			:	-
 // Comments				:
-void CPLLookup::bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader) {
+void CPLLookup::bind(const char *name, int &, int, void *, CShaderInstance *shader) {
     error(CODE_BADTOKEN, "Unknown parameter: \"%s\" in shader %s\n", name, shader->getName());
 }
 
@@ -154,7 +154,7 @@ void CTextureLookup::bind(const char *name, int &opIndex, int step, void *data, 
 // Description			:	Initialize the scratch for this lookup
 // Return Value			:	-
 // Comments				:
-void CTextureLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
+void CTextureLookup::init(CShadingScratch *scratch, const CAttributes *) {
     scratch->textureParams.filter = filter;
     scratch->textureParams.blur = 0;
     scratch->textureParams.width = 1;
@@ -352,7 +352,7 @@ void CPhotonMapLookup::bind(const char *name, int &opIndex, int step, void *data
 // Description			:	Initialize the scratch for this lookup
 // Return Value			:	-
 // Comments				:
-void CPhotonMapLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
+void CPhotonMapLookup::init(CShadingScratch *scratch, const CAttributes *) {
     scratch->photonmapParams.estimator = 0;
 }
 
@@ -401,7 +401,7 @@ CTexture3dLookup::~CTexture3dLookup() {
 // Description			:	Bind the texture3d/bake3d parameters
 // Return Value			:	-
 // Comments				:
-void CTexture3dLookup::bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader) {
+void CTexture3dLookup::bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *) {
 
     // Find the parameter and bind it
     if (strcmp(name, "coordsystem") == 0) {
@@ -434,7 +434,7 @@ void CTexture3dLookup::bind(const char *name, int &opIndex, int step, void *data
 // Description			:	Initialize the scratch for this lookup
 // Return Value			:	-
 // Comments				:
-void CTexture3dLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
+void CTexture3dLookup::init(CShadingScratch *scratch, const CAttributes *) {
     scratch->texture3dParams.coordsys = "";
     scratch->texture3dParams.interpolate = 0;
     scratch->texture3dParams.radius = 0;
@@ -479,7 +479,7 @@ COcclusionLookup::~COcclusionLookup() {
 // Description			:	Bind the indirectdiffuse/occlusion parameters
 // Return Value			:	-
 // Comments				:
-void COcclusionLookup::bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader) {
+void COcclusionLookup::bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *) {
 
     // Find the parameter and bind it
     if (strcmp(name, "coordsystem") == 0) {
@@ -624,7 +624,7 @@ void CFilterLookup::bind(const char *name, int &opIndex, int step, void *data, C
 // Description			:	Initialize the scratch for this lookup
 // Return Value			:	-
 // Comments				:
-void CFilterLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
+void CFilterLookup::init(CShadingScratch *scratch, const CAttributes *) {
     scratch->textureParams.width = 1.0f;
 }
 
@@ -671,7 +671,7 @@ class CShaderFloatVariable : public CGatherVariable {
 // Comments				:
 class CRayOriginVariable : public CGatherVariable {
     public:
-        void record(float *dest, int nr, CGatherRay **r, float **varying) {
+        void record(float *dest, int nr, CGatherRay **r, float **) {
 
             for (int i = nr; i > 0; --i) {
                 const CGatherRay *ray = (CGatherRay *)(*r++);
@@ -687,7 +687,7 @@ class CRayOriginVariable : public CGatherVariable {
 // Comments				:
 class CRayDirVariable : public CGatherVariable {
     public:
-        void record(float *dest, int nr, CGatherRay **r, float **varying) {
+        void record(float *dest, int nr, CGatherRay **r, float **) {
 
             for (int i = nr; i > 0; --i) {
                 const CGatherRay *ray = (CGatherRay *)(*r++);
@@ -703,7 +703,7 @@ class CRayDirVariable : public CGatherVariable {
 // Comments				:
 class CRayLengthVariable : public CGatherVariable {
     public:
-        void record(float *dest, int nr, CGatherRay **r, float **varying) {
+        void record(float *dest, int nr, CGatherRay **r, float **) {
 
             for (int i = nr; i > 0; --i) {
                 const CGatherRay *ray = (CGatherRay *)(*r++);
@@ -753,8 +753,6 @@ CGatherLookup::~CGatherLookup() {
 // Return Value			:	-
 // Comments				:
 void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance *shader) {
-    CGatherVariable *nVar = NULL;
-
     if (strncmp(output, "surface:", 8) == 0) {
         CVariable *var = CRenderer::retrieveVariable(output + 8);
         if (var == NULL)
@@ -773,7 +771,6 @@ void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance
                 outVar->next = outputs;
                 outputs = outVar;
                 numOutputs++;
-                nVar = outVar;
             } else if (var->type == TYPE_FLOAT) {
                 CShaderFloatVariable *outVar = new CShaderFloatVariable;
                 outVar->shade = TRUE;
@@ -782,7 +779,6 @@ void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance
                 outVar->next = outputs;
                 outputs = outVar;
                 numOutputs++;
-                nVar = outVar;
             } else {
                 error(CODE_BADTOKEN, "Unknown output variable type for gather in shader %s\n", shader->getName());
             }
@@ -793,21 +789,18 @@ void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-        nVar = outVar;
     } else if (strcmp(output, "ray:direction") == 0) {
         CRayDirVariable *outVar = new CRayDirVariable;
         outVar->destIndex = destIndex;
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-        nVar = outVar;
     } else if (strcmp(output, "ray:length") == 0) {
         CRayLengthVariable *outVar = new CRayLengthVariable;
         outVar->destIndex = destIndex;
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-        nVar = outVar;
     } else {
         error(CODE_BADTOKEN, "Unknown output variable for gather in shader %s\n", shader->getName());
     }

@@ -84,7 +84,7 @@ class CDebugView : public CView {
         // Stuff inherited from CView
         void draw();
         void bound(float *bmin, float *bmax);
-        int keyDown(int key) { return FALSE; }
+        int keyDown(int) { return FALSE; }
 
     private:
         vector bmin, bmax;

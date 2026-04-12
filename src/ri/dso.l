@@ -1,5 +1,6 @@
 %option never-interactive
-%option noyywrap 
+%option noyywrap
+%option nounput noinput
 %%
 void							return DSO_VOID;
 float							return DSO_FLOAT;

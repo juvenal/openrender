@@ -286,7 +286,7 @@ void CRibOut::RiDisplayV(const char *name, const char *type, const char *mode, i
     writePL(n, tokens, params);
 }
 
-void CRibOut::RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt n, RtToken tokens[], RtPointer params[]) {
+void CRibOut::RiCustomDisplayV(const char *, RtToken, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt, RtToken[], RtPointer[]) {
     error(CODE_INCAPABLE, "Can not serialize custom displays.\n");
 }
 
@@ -608,7 +608,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                             out("CoordSysTransform \"%s\"\n", space);
                         }
 
-                        RtPoint *CRibOut::RiTransformPoints(const char *fromspace, const char *tospace, int npoints, RtPoint *points) {
+                        RtPoint *CRibOut::RiTransformPoints(const char *, const char *, int, RtPoint *) {
                             errorHandler(RIE_SYSTEM, RIE_ERROR, "Failed to output TransformPoints\n");
                             return NULL;
                         }
@@ -806,14 +806,12 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
 
                                                             void CRibOut::RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) {
                                                                 int i, j;
-                                                                int snverts = 0;
                                                                 int sverts = 0;
                                                                 int nvertices = 0;
                                                                 int k = 0;
 
                                                                 out("PointsGeneralPolygons [");
                                                                 for (i = 0; i < npolys; i++) {
-                                                                    snverts += nloops[i];
                                                                     out("%d ", nloops[i]);
                                                                     for (j = 0; j < nloops[i]; j++, k++) {
                                                                         sverts += nverts[k];
@@ -857,6 +855,8 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                         ubasis_str = "hermite";
                                                                     else if (ubasis == RiPowerBasis)
                                                                         ubasis_str = "power";
+                                                                    else
+                                                                        ubasis_str = "bezier";
 
                                                                     const char *vbasis_str;
                                                                     if (vbasis == RiBezierBasis)
@@ -869,6 +869,8 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                         vbasis_str = "hermite";
                                                                     else if (vbasis == RiPowerBasis)
                                                                         vbasis_str = "power";
+                                                                    else
+                                                                        vbasis_str = "bezier";
 
                                                                     out("Basis \"%s\" %d \"%s\" %d\n",
                                                                         ubasis_str, ustep,
@@ -1121,7 +1123,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                 writePL(4, 4, 4, 1, n, tokens, params);
                                                             }
 
-                                                            void CRibOut::RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *)) {
+                                                            void CRibOut::RiProcedural(void *, float *, void (*)(void *, float), void (*)(void *)) {
                                                                 errorHandler(RIE_UNIMPLEMENT, RIE_ERROR, "Failed to output procedural geometry\n");
                                                             }
 
@@ -1228,17 +1230,17 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                 writePL(numVertices, numVertices, numFacevaryings, nfaces, n, tokens, params);
                                                             }
 
-                                                            void CRibOut::RiBlobbyV(int nleaf, int ncode, int code[], int nflt, float flt[], int nstr, const char *str[], int n, const char *tokens[], const void *params[]) {
+                                                            void CRibOut::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
                                                                 errorHandler(RIE_UNIMPLEMENT, RIE_ERROR, "Blobby primitive is not implemented\n");
                                                             }
 
-                                                            void CRibOut::RiProcDelayedReadArchive(const char *data, float detail) {
+                                                            void CRibOut::RiProcDelayedReadArchive(const char *, float) {
                                                             }
 
-                                                            void CRibOut::RiProcRunProgram(const char *data, float detail) {
+                                                            void CRibOut::RiProcRunProgram(const char *, float) {
                                                             }
 
-                                                            void CRibOut::RiProcDynamicLoad(const char *data, float detail) {
+                                                            void CRibOut::RiProcDynamicLoad(const char *, float) {
                                                             }
 
                                                             void CRibOut::RiProcFree(const char *) {
@@ -1334,7 +1336,7 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                                                                 }
                                                             }
 
-                                                            void CRibOut::RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int n, const char *tokens[], const void *params[]) {
+                                                            void CRibOut::RiReadArchiveV(const char *filename, void (*)(const char *, ...), int, const char *[], const void *[]) {
                                                                 out("ReadArchive \"%s\"\n", filename);
                                                             }
 

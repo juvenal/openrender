@@ -1177,7 +1177,7 @@ slColorParameter:
 				SCRL_FLOAT_VALUE
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
-					float	*def	=	(float *) newVariable($2,TYPE_COLOR,(int) $4,TRUE);
+					(void)newVariable($2,TYPE_COLOR,(int) $4,TRUE);
 				}
 				;
 
@@ -1219,7 +1219,7 @@ slVectorParameter:
 				SCRL_FLOAT_VALUE
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
-					float	*def	=	(float *) newVariable($2,TYPE_VECTOR,(int) $4,TRUE);
+					(void)newVariable($2,TYPE_VECTOR,(int) $4,TRUE);
 				}
 				;
 
@@ -1261,7 +1261,7 @@ slNormalParameter:
 				SCRL_FLOAT_VALUE
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
-					float	*def	=	(float *) newVariable($2,TYPE_NORMAL,(int) $4,TRUE);
+					(void)newVariable($2,TYPE_NORMAL,(int) $4,TRUE);
 				}
 				;
 
@@ -1303,7 +1303,7 @@ slPointParameter:
 				SCRL_FLOAT_VALUE
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
-					float 	*def	=	(float *) newVariable($2,TYPE_POINT,(int) $4,TRUE);
+					(void)newVariable($2,TYPE_POINT,(int) $4,TRUE);
 				}
 				;
 
@@ -1802,8 +1802,6 @@ slShaderLine:
 slDSO:			SCRL_DSO
 				SCRL_IDENTIFIER_VALUE
 				{
-					char	*dsoName	=	$2;
-
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numCode++;					// opcode
@@ -2039,7 +2037,11 @@ slOperand:
 				;
 
 %%
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "lex.sl.cpp"
+#pragma GCC diagnostic pop
 
 int	slLineno	=	0;
 
@@ -2297,10 +2299,9 @@ CShader	*shaderCreate(const char *shaderName) {
 
 	{
 		TSlVariable	*cVar;
-		int			i,numGlobals=0;
+		int			numGlobals=0;
 
 		cShader->parameters				=	NULL;
-		i								=	0;
 		while(currentData.definedVariables != NULL) {
 			cVar							=	currentData.definedVariables;
 			currentData.definedVariables	=	cVar->next;
@@ -2316,7 +2317,6 @@ CShader	*shaderCreate(const char *shaderName) {
 
 			// Delete the variable
 			delete cVar;
-			i++;
 		}
 
 		cShader->numGlobals	=	numGlobals;

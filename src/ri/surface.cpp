@@ -37,10 +37,6 @@
 #include "stats.h"
 #include "surface.h"
 
-const int SPLIT_NONE = 0;
-const int SPLIT_U = 1;
-const int SPLIT_V = 2;
-const int SPLIT_UV = 3;
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	minCocPixels
@@ -1917,8 +1913,6 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
 void CTesselationPatch::splitToChildren(CShadingContext *context) {
     const int udiv = 4;
     const int vdiv = 4;
-
-    float **varying = context->currentShadingState->varying;
 
     const double ustep = (umax - umin) / (double)udiv;
     const double vstep = (vmax - vmin) / (double)vdiv;

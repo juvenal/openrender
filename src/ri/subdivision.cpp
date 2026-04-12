@@ -82,8 +82,6 @@ CSubdivision::CSubdivision(CAttributes *a, CXform *x, CVertexData *var, CParamet
 // Return Value			:	-
 // Comments				:
 CSubdivision::~CSubdivision() {
-    const int K = 2 * N + 8;
-
     delete[] vertex;
 
     if (parameters != NULL)

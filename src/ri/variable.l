@@ -23,6 +23,7 @@
 %}
 %option never-interactive
 %option noyywrap
+%option nounput noinput
 %%
 global												return	VAR_GLOBAL;
 constant											return	VAR_CONSTANT;

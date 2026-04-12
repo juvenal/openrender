@@ -990,7 +990,8 @@ void CRendererContext::RiExposure(float gain, float gamma) {
     options->gain = gain;
 }
 
-void CRendererContext::RiImagerV(const char *name, int n, const char *tokens[], const void *params[]) {
+void CRendererContext::RiImagerV(const char *, int, const char *[], const void *[]) {
+    // Unimplemented: imager shaders are not supported.
     error(CODE_INCAPABLE, "Imager shaders are not currently supported\n");
 }
 
@@ -1034,7 +1035,7 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
 
         strcpy(tmp, name);
         if ((extensionPos = strchr(tmp, '.')) != NULL) {
-            sprintf(extensionPos, "_z");
+            snprintf(extensionPos, 3, "_z");
             strcat(tmp, strchr(name, '.'));
         } else {
             strcat(tmp, "_z");
@@ -1049,7 +1050,7 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
 
         strcpy(tmp, name);
         if ((extensionPos = strchr(tmp, '.')) != NULL) {
-            sprintf(extensionPos, "_z");
+            snprintf(extensionPos, 3, "_z");
             strcat(tmp, strchr(name, '.'));
         } else {
             strcat(tmp, "_z");
@@ -1150,7 +1151,8 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
     }
 }
 
-void CRendererContext::RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction startFunction, RtDisplayDataFunction dataFunction, RtDisplayFinishFunction finishFunction, RtInt n, RtToken tokens[], RtPointer params[]) {
+void CRendererContext::RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction startFunction, RtDisplayDataFunction dataFunction, RtDisplayFinishFunction finishFunction, RtInt, RtToken[], RtPointer[]) {
+    // Partial: custom display registered; inline parameters (n/tokens/params) are not processed.
     COptions *options = getOptions(TRUE);
     COptions::CDisplay *cDisplay = new COptions::CDisplay;
     cDisplay->outDevice = strdup("custom");
@@ -1164,12 +1166,12 @@ void CRendererContext::RiCustomDisplayV(const char *name, RtToken mode, RtDispla
 }
 
 void CRendererContext::RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) {
-    int i, j;
+    int i;
 
     CDisplayChannel *nChannel = CRenderer::declareDisplayChannel(channel);
 
     if (nChannel != NULL) {
-        for (j = 0, i = 0; i < n; i++) {
+        for (i = 0; i < n; i++) {
             CVariable *cVar;
             CVariable tVar;
 
@@ -1210,7 +1212,6 @@ void CRendererContext::RiDisplayChannelV(const char *channel, int n, const char 
                 } else {
                     error(CODE_BADTOKEN, "Invalid display channel parameter: %s\n", tokens[i]);
                 }
-                j++;
             } else {
                 error(CODE_BADTOKEN, "Display channel parameter \"%s\" not defined\n", tokens[i]);
             }
@@ -1779,7 +1780,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                             attributes->shadingRate = sqrtf(size);
                         }
 
-                        void CRendererContext::RiShadingInterpolation(const char *type) {
+                        void CRendererContext::RiShadingInterpolation(const char *) {
+                            // Unimplemented: renderer always uses smooth shading interpolation.
                         }
 
                         void CRendererContext::RiMatte(int onoff) {
@@ -1895,7 +1897,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                             }
                         }
 
-                        void CRendererContext::RiGeometricRepresentation(const char *type) {
+                        void CRendererContext::RiGeometricRepresentation(const char *) {
+                            // Unimplemented: arbitrary geometric representation is not supported.
                             if (CRenderer::netNumServers > 0)
                                 return;
 
@@ -2111,20 +2114,20 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                             mulmm(xform->next->to, to0, world->next->to);
                                         }
                                     }
-                                }
 
-                                // Orientation check
-                                if (determinantm(xform->from) < 0)
-                                    nflip = 1;
-                                else
-                                    nflip = 0;
+                                    // Orientation check
+                                    if (determinantm(xform->from) < 0)
+                                        nflip = 1;
+                                    else
+                                        nflip = 0;
 
-                                if (nflip != xform->flip) {
-                                    CAttributes *attributes = getAttributes(TRUE);
+                                    if (nflip != xform->flip) {
+                                        CAttributes *attributes = getAttributes(TRUE);
 
-                                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                                        attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-                                    xform->flip = nflip;
+                                        xform->flip = nflip;
+                                    }
                                 }
                                 break;
                             case 2:
@@ -2158,20 +2161,20 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                             mulmm(xform->next->to, to1, world->next->to);
                                         }
                                     }
-                                }
 
-                                // Orientation check
-                                if (determinantm(xform->from) < 0)
-                                    nflip = 1;
-                                else
-                                    nflip = 0;
+                                    // Orientation check
+                                    if (determinantm(xform->from) < 0)
+                                        nflip = 1;
+                                    else
+                                        nflip = 0;
 
-                                if (nflip != xform->flip) {
-                                    CAttributes *attributes = getAttributes(TRUE);
+                                    if (nflip != xform->flip) {
+                                        CAttributes *attributes = getAttributes(TRUE);
 
-                                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                                        attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-                                    xform->flip = nflip;
+                                        xform->flip = nflip;
+                                    }
                                 }
                                 break;
                             default:
@@ -2225,20 +2228,20 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                         mulmm(tmp, to0, xform->next->to);
                                         movmm(xform->next->to, tmp);
                                     }
-                                }
 
-                                // Orientation check
-                                if (determinantm(xform->from) < 0)
-                                    nflip = 1;
-                                else
-                                    nflip = 0;
+                                    // Orientation check
+                                    if (determinantm(xform->from) < 0)
+                                        nflip = 1;
+                                    else
+                                        nflip = 0;
 
-                                if (nflip != xform->flip) {
-                                    CAttributes *attributes = getAttributes(TRUE);
+                                    if (nflip != xform->flip) {
+                                        CAttributes *attributes = getAttributes(TRUE);
 
-                                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                                        attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-                                    xform->flip = nflip;
+                                        xform->flip = nflip;
+                                    }
                                 }
                                 break;
                             case 2:
@@ -2262,20 +2265,20 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
                                     mulmm(tmp, to1, xform->next->to);
                                     movmm(xform->next->to, tmp);
-                                }
 
-                                // Orientation check
-                                if (determinantm(xform->from) < 0)
-                                    nflip = 1;
-                                else
-                                    nflip = 0;
+                                    // Orientation check
+                                    if (determinantm(xform->from) < 0)
+                                        nflip = 1;
+                                    else
+                                        nflip = 0;
 
-                                if (nflip != xform->flip) {
-                                    CAttributes *attributes = getAttributes(TRUE);
+                                    if (nflip != xform->flip) {
+                                        CAttributes *attributes = getAttributes(TRUE);
 
-                                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                                        attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-                                    xform->flip = nflip;
+                                        xform->flip = nflip;
+                                    }
                                 }
                                 break;
                             default:
@@ -2610,7 +2613,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                             }
                         }
 
-                        void CRendererContext::RiDeformationV(const char *name, int n, const char *tokens[], const void *params[]) {
+                        void CRendererContext::RiDeformationV(const char *, int, const char *[], const void *[]) {
+                            // Unimplemented: deformation shaders are not supported.
                             if (CRenderer::netNumServers > 0)
                                 return;
 
@@ -2764,6 +2768,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                 warning(CODE_BADTOKEN, "Deprecated attribute \"%s\" will be ignored\n", tokens[i]);
                                             attributeCheck(RI_MAXSUBDIVISION, dummy, 1, 100000, int)
                                                 warning(CODE_BADTOKEN, "Deprecated attribute \"%s\" will be ignored\n", tokens[i]);
+                                                (void)dummy;
                                             attributeCheck(RI_MINSPLITS, attributes->minSplits, 0, 100000, int)
                                                 attributeCheck(RI_BOUNDEXPAND, attributes->rasterExpand, -C_INFINITY, C_INFINITY, float)
                                                     attributeCheckFlag(RI_BINARY, attributes->flags, ATTRIBUTES_FLAGS_BINARY_DICE)
@@ -3086,7 +3091,6 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 int i, j, k;
 
                                                                 int sloops;      // The size of the loops array
-                                                                int snverts;     // The size of the nverts array
                                                                 int sverts;      // The size of the verts array
                                                                 int numVertices; // The number of vertices
 
@@ -3099,13 +3103,11 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 checkGeometryOrDiscard();
 
                                                                 sloops = npolys;
-                                                                snverts = 0;
                                                                 sverts = 0;
                                                                 numVertices = 0;
                                                                 k = 0;
 
                                                                 for (i = 0; i < sloops; i++) {
-                                                                    snverts += nloops[i];
                                                                     for (j = 0; j < nloops[i]; j++, k++) {
                                                                         sverts += nverts[k];
                                                                     }
@@ -3467,7 +3469,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 memEnd(CRenderer::globalMemory);
                                                             }
 
-                                                            void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float umin, float umax, int nv, int vorder, float *vknot, float vmin, float vmax, int n, const char *tokens[], const void *params[]) {
+                                                            void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float /*umin*/, float /*umax*/, int nv, int vorder, float *vknot, float /*vmin*/, float /*vmax*/, int n, const char *tokens[], const void *params[]) {
+    // Partial: NURBS patch created; umin/umax/vmin/vmax knot-range clamps are accepted per spec but not applied.
                                                                 CXform *xform;
                                                                 CAttributes *attributes;
                                                                 float *p0, *p1;
@@ -3520,7 +3523,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 memEnd(CRenderer::globalMemory);
                                                             }
 
-                                                            void CRendererContext::RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w) {
+                                                            void CRendererContext::RiTrimCurve(int, int *, int *, float *, float *, float *, int *, float *, float *, float *) {
+                                                                // Unimplemented: trim curves are not supported.
                                                                 if (CRenderer::netNumServers > 0)
                                                                     return;
 
@@ -4703,15 +4707,16 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 addObject(new CSubdivMesh(attributes, xform, pl, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs));
                                                             }
 
-                                                            void CRendererContext::RiBlobbyV(int nleaf, int ncode, int code[], int nflt, float flt[], int nstr, const char *str[], int n, const char *tokens[], const void *params[]) {
-
+                                                            void CRendererContext::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
+                                                                // Unimplemented: blobby primitives are not supported.
                                                                 if (CRenderer::netNumServers > 0)
                                                                     return;
 
                                                                 error(CODE_INCAPABLE, "Blobby primitives are not currently supported\n");
                                                             }
 
-                                                            void CRendererContext::RiSolidBegin(const char *type) {
+                                                            void CRendererContext::RiSolidBegin(const char *) {
+                                                                // Unimplemented: CSG (constructive solid geometry) is not supported.
                                                                 if (CRenderer::netNumServers > 0)
                                                                     return;
 
@@ -4815,7 +4820,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 makeCylindericalEnvironment(pic, tex, options->texturePath, RI_PERIODIC, RI_CLAMP, filterfunc, swidth, twidth, n, tokens, params);
                                                             }
 
-                                                            void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float fov, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+                                                            void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float /*fov*/, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
+                                                                // Partial: cube-face environment assembled; fov is accepted per spec but not applied to the projection.
                                                                 COptions *options;
 
                                                                 if (CRenderer::netClient != INVALID_SOCKET)
@@ -4845,11 +4851,12 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 makeBrickMap(nb, src, dest, options->texturePath, n, tokens, params);
                                                             }
 
-                                                            void CRendererContext::RiArchiveRecord(const char *type, const char *format, va_list args) {
-                                                                // We're not archiving
+                                                            void CRendererContext::RiArchiveRecord(const char *, const char *, va_list) {
+                                                                // Unimplemented: archive recording is not supported — calls are silently ignored.
                                                             }
 
-                                                            void CRendererContext::RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int n, const char *tokens[], const void *params[]) {
+                                                            void CRendererContext::RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int, const char *[], const void *[]) {
+                                                                // Partial: archive file is parsed; inline parameters (n/tokens/params) are accepted per spec but not evaluated.
                                                                 char tmp[OS_MAX_PATH_LENGTH];
 
                                                                 if ((filename[0] != '-') && (filename[0] != '|')) {
@@ -4868,7 +4875,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 }
                                                             }
 
-                                                            void *CRendererContext::RiArchiveBeginV(const char *name, int n, const char *tokens[], const void *parms[]) {
+                                                            void *CRendererContext::RiArchiveBeginV(const char *name, int, const char *[], const void *[]) {
+                                                                // Partial: archive begin/end supported; inline parameters (n/tokens/parms) are accepted per spec but not evaluated.
 
                                                                 // Make sure we have the temporary directory created
                                                                 if (!osFileExists(CRenderer::temporaryPath))
@@ -5050,7 +5058,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 currentResource = savedResources->pop();
                                                             }
 
-                                                            void CRendererContext::RiIfBeginV(const char *expr, int n, const char *tokens[], const void *parms[]) {
+                                                            void CRendererContext::RiIfBeginV(const char *expr, int, const char *[], const void *[]) {
+                                                                // Partial: conditional expression is parsed; inline parameters (n/tokens/parms) are accepted per spec but not evaluated.
 
                                                                 if (riExecTag == 0) {
                                                                     if (ifParse(expr)) {
@@ -5065,7 +5074,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 }
                                                             }
 
-                                                            void CRendererContext::RiElseIfV(const char *expr, int n, const char *tokens[], const void *parms[]) {
+                                                            void CRendererContext::RiElseIfV(const char *expr, int, const char *[], const void *[]) {
+                                                                // Partial: conditional expression is parsed; inline parameters (n/tokens/parms) are accepted per spec but not evaluated.
 
                                                                 if (riExecTag == 0) {
                                                                     ignoreCommand = TRUE;
@@ -5127,7 +5137,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                 tmp[0] = '\0';
 
                                                                 if (severity != RIE_INFO && ribFile)
-                                                                    sprintf(tmp, "%s (%d): ", ribFile, ribCommandLineno);
+                                                                    snprintf(tmp, len, "%s (%d): ", ribFile, ribCommandLineno);
 
                                                                 if (attributes && attributes->name) {
                                                                     strcat(tmp, "(");
@@ -5143,7 +5153,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                                                                         FILE *out = fopen(currentOptions->filelog, "a");
 
                                                                         if (out != NULL) {
-                                                                            fprintf(out, tmp);
+                                                                            fprintf(out, "%s", tmp);
 
                                                                             fclose(out);
                                                                         }

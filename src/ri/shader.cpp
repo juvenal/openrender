@@ -155,7 +155,7 @@ void CShader::analyse() {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CShaderInstance::CShaderInstance(CAttributes *a, CXform *x) {
+CShaderInstance::CShaderInstance(CAttributes *, CXform *x) {
     atomicIncrement(&stats.numShaderInstances);
 
     attach();
@@ -727,6 +727,6 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
 // Return Value			:	-
 // Comments				:	You can trigger this function from the compiled shader
 //							code by debug ("f=o")
-void debugFunction(float *op) {
+void debugFunction(float *) {
     fprintf(stderr, "Debug\n");
 }

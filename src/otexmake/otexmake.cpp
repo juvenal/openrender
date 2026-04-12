@@ -33,7 +33,11 @@
 #include "ri/ri.h"
 #include "logging.hpp"
 
-const char *tileSizeArgument = "-tilesize";
+// TODO: tileSize — tiled texture output was planned to allow writing mipmapped
+//   textures in tiled format (e.g. 32×32 tiles) for better cache locality during
+//   rendering. The tile size would need to be forwarded to the RiMakeTexture*
+//   family of calls once the underlying texture writer supports it.
+// const char *tileSizeArgument = "-tilesize";
 const char *resizeModeArgument = "-resize";
 const char *smodeArgument = "-smode";
 const char *tmodeArgument = "-tmode";
@@ -41,8 +45,13 @@ const char *filterArgument = "-filter";
 const char *filterWidthArgument = "-filterwidth";
 const char *sfilterWidthArgument = "-sfilterwidth";
 const char *tfilterWidthArgument = "-tfilterwidth";
-const char *inputPathArgument = "-input";
-const char *outputPathArgument = "-output";
+// TODO: inPath / outPath — search-path prefixes for input and output files were
+//   planned so that otexmake could locate source images and write results relative
+//   to configurable directories (similar to -searchpath in other RenderMan tools).
+//   To complete this, inPath/outPath would need to be prepended to files[0]/files[1]
+//   before the RiMake* calls, with proper path separator handling via osFixSlashes.
+// const char *inputPathArgument  = "-input";
+// const char *outputPathArgument = "-output";
 const char *shadowArgument = "-shadow";
 const char *envlatArgument = "-envlatl";
 const char *envcubeArgument = "-envcube";
@@ -58,14 +67,14 @@ void printUsage() {
 }
 
 int main(int argc, char *argv[]) {
-    int tileSize = 32;
+    // int tileSize = 32;  // TODO: see tileSizeArgument comment above
     const char *resizeMode = "up";
     const char *smode = "periodic";
     const char *tmode = "periodic";
     float filterWidth = 3;
     float filterHeight = 3;
-    const char *inPath = ".";
-    const char *outPath = ".";
+    // const char *inPath  = ".";  // TODO: see inputPathArgument/outputPathArgument comment above
+    // const char *outPath = ".";
     float fov = 90;
     RtFilterFunc filter = RiCatmullRomFilter;
     float maxerror = 0.002f;
@@ -100,9 +109,9 @@ int main(int argc, char *argv[]) {
             textureMode = "envcube";
         } else if (strcmp(argv[i], texture3dArgument) == 0) {
             textureMode = "texture3d";
-        } else if (strcmp(argv[i], tileSizeArgument) == 0) {
-            i++;
-            tileSize = atoi(argv[i]);
+        // } else if (strcmp(argv[i], tileSizeArgument) == 0) {  // TODO: see tileSizeArgument comment above
+        //     i++;
+        //     tileSize = atoi(argv[i]);
         } else if (strcmp(argv[i], resizeModeArgument) == 0) {
             i++;
             resizeMode = argv[i];
@@ -149,12 +158,12 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], maxdepthArgument) == 0) {
             i++;
             maxDepth = (int)atoi(argv[i]);
-        } else if (strcmp(argv[i], inputPathArgument) == 0) {
-            i++;
-            inPath = argv[i];
-        } else if (strcmp(argv[i], outputPathArgument) == 0) {
-            i++;
-            outPath = argv[i];
+        // } else if (strcmp(argv[i], inputPathArgument) == 0) {  // TODO: see inputPathArgument/outputPathArgument comment above
+        //     i++;
+        //     inPath = argv[i];
+        // } else if (strcmp(argv[i], outputPathArgument) == 0) {
+        //     i++;
+        //     outPath = argv[i];
         } else {
             files[currentFile++] = argv[i];
         }

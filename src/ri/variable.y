@@ -202,11 +202,14 @@ varItems:	VAR_OPEN
 			;
 %%
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include	"lex.var.cpp"
+#pragma GCC diagnostic pop
 
 static	int	numErrors	=	0;
 
-void	varerror(const char *str) {
+void	varerror(const char *) {
 	//error(CODE_BADTOKEN,"Variable declaration error \"%s\" \"%s\"\n",(currentName == NULL ? "NULL" : currentName),currentDecl);
 	numErrors++;
 }

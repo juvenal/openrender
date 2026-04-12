@@ -82,7 +82,7 @@ class CTextureBlock {
 // Description			:	Handle errors coming from the libtiff
 // Return Value			:	-
 // Comments				:
-static void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
+static void tiffErrorHandler(const char *, const char *fmt, va_list ap) {
     char tmp[1024];
 
     vsnprintf(tmp, sizeof(tmp), fmt, ap);
@@ -1755,7 +1755,7 @@ class CCubicEnvironment : public CEnvironment {
         void getResolution(float *r) { sides[0]->getResolution(r); }
         const char *getTextureType() { return "environment"; }
         int getNumChannels() { return sides[0]->getNumChannels(); }
-        int getViewMatrix(float *m) { return FALSE; }
+        int getViewMatrix(float *) { return FALSE; }
         int getProjectionMatrix(float *) { return FALSE; }
 
         CTexture *sides[6];
@@ -1802,7 +1802,7 @@ class CSphericalEnvironment : public CEnvironment {
         void getResolution(float *r) { side->getResolution(r); }
         const char *getTextureType() { return "environment"; }
         int getNumChannels() { return side->getNumChannels(); }
-        int getViewMatrix(float *m) { return FALSE; }
+        int getViewMatrix(float *) { return FALSE; }
         int getProjectionMatrix(float *) { return FALSE; }
 
         CTexture *side;
@@ -1866,7 +1866,7 @@ class CCylindericalEnvironment : public CEnvironment {
         void getResolution(float *r) { side->getResolution(r); }
         const char *getTextureType() { return "environment"; }
         int getNumChannels() { return side->getNumChannels(); }
-        int getViewMatrix(float *m) { return FALSE; }
+        int getViewMatrix(float *) { return FALSE; }
         int getProjectionMatrix(float *) { return FALSE; }
 
         CTexture *side;
@@ -1878,7 +1878,7 @@ class CCylindericalEnvironment : public CEnvironment {
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-float CDummyTexture::lookupz(float u, float v, float z, CShadingContext *context) {
+float CDummyTexture::lookupz(float, float, float, CShadingContext *) {
     return 0;
 }
 
@@ -1888,7 +1888,7 @@ float CDummyTexture::lookupz(float u, float v, float z, CShadingContext *context
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyTexture::lookup(float *dest, float u, float v, CShadingContext *context) {
+void CDummyTexture::lookup(float *dest, float, float, CShadingContext *context) {
     initv(dest, context->currentShadingState->scratch.textureParams.fill);
 }
 
@@ -1898,7 +1898,7 @@ void CDummyTexture::lookup(float *dest, float u, float v, CShadingContext *conte
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyTexture::lookup4(float *dest, const float *u, const float *v, CShadingContext *context) {
+void CDummyTexture::lookup4(float *dest, const float *, const float *, CShadingContext *context) {
     initv(dest, context->currentShadingState->scratch.textureParams.fill);
 }
 
@@ -1908,7 +1908,7 @@ void CDummyTexture::lookup4(float *dest, const float *u, const float *v, CShadin
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyEnvironment::lookup(float *dest, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+void CDummyEnvironment::lookup(float *dest, const float *, const float *, const float *, const float *, CShadingContext *context) {
     initv(dest, context->currentShadingState->scratch.textureParams.fill);
 }
 
@@ -1918,7 +1918,7 @@ void CDummyEnvironment::lookup(float *dest, const float *D0, const float *D1, co
 // Return Value			:	TRUE on success
 // Comments				:
 template <class T>
-static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, int &dstart, int width, int height, const char *smode, const char *tmode, T enforcer) {
+static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, int &dstart, int width, int height, const char *smode, const char *tmode, T) {
     uint32 fileWidth, fileHeight;
     uint32 tileWidth, tileHeight;
     uint16 numSamples;
@@ -2017,7 +2017,7 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 // Return Value			:	The texture
 // Comments				:
 template <class T>
-static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int &dstart, T enforcer) {
+static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int &dstart, T) {
     TIFFSetDirectory(in, dstart);
     uint32 width = 0;
     uint32 height = 0;

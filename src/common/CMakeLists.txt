@@ -7,7 +7,7 @@ install(TARGETS openrendercommon LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
 if(UNIX)
-	target_link_libraries(openrendercommon PUBLIC pthread dl)
+	target_link_libraries(openrendercommon PUBLIC Threads::Threads dl)
 endif(UNIX)
 
 if(APPLE)

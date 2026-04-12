@@ -123,7 +123,7 @@ inline void getContainer(FILE *out, CVariable *dest, CVariable *src) {
     } else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
-            const char *opcode;
+            const char *opcode = nullptr;
 
             // Uniform to varying assignment
             if (src->type & SLC_FLOAT) {
@@ -160,7 +160,7 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
     } else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
-            const char *opcode;
+            const char *opcode = nullptr;
             CVariable *cVar;
             CExpression *exp = getConversion(dest->type, src);
             int allocated = FALSE;
@@ -218,7 +218,7 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
     } else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
-            const char *opcode;
+            const char *opcode = nullptr;
             CVariable *cVar;
             int allocated = FALSE;
 
@@ -638,7 +638,7 @@ CArrayExpression::~CArrayExpression() {
 // Return Value			:	-
 // Comments				:
 void CArrayExpression::getCode(FILE *out, CVariable *dest) {
-    const char *opcode;
+    const char *opcode = nullptr;
 
     if (dest == nullptr) {
         // We have to be assigned to something
@@ -710,7 +710,7 @@ CTerminalExpression::~CTerminalExpression() {
 // Return Value			:	-
 // Comments				:
 void CTerminalExpression::getCode(FILE *out, CVariable *dest) {
-    const char *opcode;
+    const char *opcode = nullptr;
 
     if (dest == nullptr) {
         sdr->warning("Useless assignment\n");
@@ -766,7 +766,7 @@ CConstantTerminalExpression::~CConstantTerminalExpression() {
 // Return Value			:	-
 // Comments				:
 void CConstantTerminalExpression::getCode(FILE *out, CVariable *dest) {
-    const char *opcode;
+    const char *opcode = nullptr;
 
     if (dest == nullptr) {
         sdr->warning("Useless constant expression\n");
@@ -1687,7 +1687,7 @@ CArrayAssignmentExpression::~CArrayAssignmentExpression() {
 // Return Value			:	-
 // Comments				:
 void CArrayAssignmentExpression::getCode(FILE *out, CVariable *dest) {
-    const char *opcode;
+    const char *opcode = nullptr;
 
     lock(opi, index); // Get float index
     lock(op, second); // Get the second code

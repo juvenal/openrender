@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
         const char *openrenderHome = osEnvironment("OPENRENDERHOME");
         const char *shaders = osEnvironment("SHADERS");
 
-        sprintf(tmp, ".");
+        strcpy(tmp, ".");
 
         if (openrenderHome != NULL) {
             strcat(tmp, ":");

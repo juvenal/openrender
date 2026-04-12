@@ -49,9 +49,9 @@ class CPLLookup {
         // This function must be overwritten to bind a particular variable
         virtual void bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader);
         // This function can be overridden to perform initialization not dependant on values
-        virtual void init(CShadingScratch *scratch, const CAttributes *attributes) {}
+        virtual void init(CShadingScratch *, const CAttributes *) {}
         // This function can be overridden to perform initialization dependant on values
-        virtual void postBind(CShadingScratch *scratch) {}
+        virtual void postBind(CShadingScratch *) {}
         void add(const char *name, int opIndex, int step, void *data, size_t dest);
 
         const void *instance; // The instance that has the PL

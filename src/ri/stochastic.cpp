@@ -536,7 +536,7 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
             }
             else {
                 for (; cSample != NULL;) {
-                    const float *color = cSample->color;
+                    // const float *color = cSample->color;
                     const float *opacity = cSample->opacity;
 
                     int isMatte = (opacity[0] < 0 || opacity[1] < 0 || opacity[2] < 0);

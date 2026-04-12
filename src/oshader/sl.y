@@ -526,7 +526,7 @@ slFunctionParameter:
 slFunctionParameterIdentifierList:
 		SL_IDENTIFIER_VALUE							// Default Parameter values are not supported yet
 		{
-			sdr->newParameter($1,sdr->desired(),1);	// Add the Parameter to the current CFunction
+			(void)sdr->newParameter($1,sdr->desired(),1);	// Add the Parameter to the current CFunction
 		}
 		SL_COMMA
 		slFunctionParameterIdentifierList
@@ -536,8 +536,8 @@ slFunctionParameterIdentifierList:
 	|
 		SL_IDENTIFIER_VALUE
 		{
-			sdr->newParameter($1,sdr->desired(),1);
-	
+			(void)sdr->newParameter($1,sdr->desired(),1);
+
 			$$			=	new CNullExpression;
 		}
 	|
@@ -545,7 +545,7 @@ slFunctionParameterIdentifierList:
 		SL_OPEN_SQR_PARANTHESIS
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			sdr->newParameter($1,sdr->desired() | SLC_ARRAY,-1);
+			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY,-1);
 		}
 		SL_COMMA
 		slFunctionParameterIdentifierList
@@ -558,7 +558,7 @@ slFunctionParameterIdentifierList:
 		slFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);			
+			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);
 		}
 		SL_COMMA
 		slFunctionParameterIdentifierList
@@ -570,7 +570,7 @@ slFunctionParameterIdentifierList:
 		SL_OPEN_SQR_PARANTHESIS
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			sdr->newParameter($1,sdr->desired() | SLC_ARRAY, 1);
+			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, 1);
 			
 			$$	=	new CNullExpression;
 		}
@@ -580,8 +580,8 @@ slFunctionParameterIdentifierList:
 		slFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);
-			
+			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);
+
 			$$	=	new CNullExpression;
 		}
 		;
@@ -809,7 +809,7 @@ slShaderParameterIdentifierList:
 slBlock:
 		SL_OPEN_CRL_PARANTHESIS
 		{
-			CFunction	*cFun	=	sdr->newFunction(constantBlockName);
+			(void)sdr->newFunction(constantBlockName);
 		}
 		slStatements
 		SL_CLOSE_CRL_PARANTHESIS
@@ -1312,9 +1312,9 @@ slWhileStartStatement:
 		slAritmeticExpression
 		SL_CLOSE_PARANTHESIS
 		{
-			CFunction	*cFun	=	sdr->newFunction(constantLoopName);
-			
-			$$	=	$3;	
+			(void)sdr->newFunction(constantLoopName);
+
+			$$	=	$3;
 		}
 		;
 
@@ -1323,7 +1323,7 @@ slWhileStatement:
 		slWhileStartStatement
 		slMatchedStatement
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
@@ -1333,8 +1333,7 @@ slUnmatchedWhileStatement:
 		slWhileStartStatement
 		slUnmatchedStatement
 		{
-
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
@@ -1645,7 +1644,7 @@ slUpdateStatement:
 slForStartStatement:
 		SL_FOR
 		{
-			CFunction	*cFun	=	sdr->newFunction(constantLoopName);
+			(void)sdr->newFunction(constantLoopName);
 		}
 
 slForStatement:
@@ -1659,7 +1658,7 @@ slForStatement:
 		SL_CLOSE_PARANTHESIS
 		slMatchedStatement
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CForLoop($3,$5,$7,$9);
 		}
@@ -1676,7 +1675,7 @@ slUnmatchedForStatement:
 		SL_CLOSE_PARANTHESIS
 		slUnmatchedStatement
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CForLoop($3,$5,$7,$9);
 		}
@@ -1875,7 +1874,7 @@ slUnmatchedGatherStatement:
 slIlluminanceStartStatement:
 		SL_ILLUMINANCE
 		{
-			CFunction	*cCFunction	=	sdr->newFunction(constantLoopName);
+			(void)sdr->newFunction(constantLoopName);
 
 			sdr->requiredShaderContext	|=	SLC_SURFACE;
 		}
@@ -1887,10 +1886,10 @@ slIlluminanceStatement:
 		SL_CLOSE_PARANTHESIS
 		slMatchedStatement
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CIlluminationLoop($3,$5);
-			
+
 		}
 		;
 
@@ -1901,7 +1900,7 @@ slUnmatchedIlluminanceStatement:
 		SL_CLOSE_PARANTHESIS
 		slUnmatchedStatement
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			(void)sdr->popFunction();
 
 			$$	=	new CIlluminationLoop($3,$5);
 		}
@@ -2120,9 +2119,6 @@ slAritmeticExpression:
 		SL_COLON
 		slAritmeticExpression
 		{
-			int	ft	=	$3->type;
-			int	st	=	$5->type;
-
 			if (($3->type & SLC_TYPE_MASK) == ($5->type & SLC_TYPE_MASK)) {
 				$$	=	new CConditionalExpression($3->type,$1,$3,$5);
 			} else {
@@ -2484,7 +2480,6 @@ slFunctionCall:
 		{
 			CFunctionPrototype		*cFun;
 			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
-			const char				*funName	=	$1;
 
 			// Clear the desired type flags
 			sdr->undesire();
@@ -2580,7 +2575,6 @@ slFunCall:
 		{
 			CFunction				*cFun;
 			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
-			const char				*funName	=	$1;
 
 			// Clear the desired type flags
 			sdr->undesire();
@@ -2602,37 +2596,36 @@ slFunCall:
 
 			// If not found, check the predefined CFunctions
 			if (cFun == nullptr) {
-				CFunctionPrototype	*cFun;
-				const char			*fName	=	$1;
+				CFunctionPrototype	*cProto;
 				// Check the builtin CFunctions
 
-				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-					if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
+				for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
+					if (cProto->perfectMatch($1,parameters,sdr->desired())) break;
 				}
 
-				if (cFun == nullptr) {
-					for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-						if (cFun->match($1,parameters,sdr->desired())) break;
+				if (cProto == nullptr) {
+					for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
+						if (cProto->match($1,parameters,sdr->desired())) break;
 					}
 				}
 
 				// Check if there is a DSO implementing this function
-				if (cFun == nullptr) {
+				if (cProto == nullptr) {
 					sdr->enumerateDso($1);
 
-					for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-						if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
+					for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
+						if (cProto->perfectMatch($1,parameters,sdr->desired())) break;
 					}
 
-					if (cFun == nullptr) {
-						for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-							if (cFun->match($1,parameters,sdr->desired())) break;
+					if (cProto == nullptr) {
+						for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
+							if (cProto->match($1,parameters,sdr->desired())) break;
 						}
 					}
 				}
 
-				if (cFun != nullptr) {
-					$$	=	new CBuiltinExpression(cFun,parameters);
+				if (cProto != nullptr) {
+					$$	=	new CBuiltinExpression(cProto,parameters);
 				} else {
 					sdr->error("Function \"%s\" is not found\n",$1);
 					if (parameters->numItems != 0) {
@@ -2817,7 +2810,10 @@ slFunctionCallParameters:
 %%
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include	"lex.sl.cpp"
+#pragma GCC diagnostic pop
 
 
 
@@ -2859,7 +2855,7 @@ int	CScriptContext::compile(FILE *in,char *outName) {
 }
 
 
-void	yyerror(const char *mes) {
+void	yyerror(const char *) {
 	if (yytext && yytext[0])
 		sdr->error("Parse error before '%s'\n",yytext);
 	else

@@ -1271,7 +1271,11 @@ slOperand:
 		;
 
 %%
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "lex.sdr.cpp"
+#pragma GCC diagnostic pop
 
 int	slLineno	=	0;
 

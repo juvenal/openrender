@@ -52,7 +52,7 @@ const char *resizeNoneMode = "none";
 // Description			:	Handle errors coming from the libtiff
 // Return Value			:	-
 // Comments				:
-static void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
+static void tiffErrorHandler(const char *, const char *fmt, va_list ap) {
     char tmp[1024];
 
     vsnprintf(tmp, sizeof(tmp), fmt, ap);
@@ -65,7 +65,7 @@ static void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
 // Description			:	Append a layer of image into an image file
 // Return Value			:	-
 // Comments				:
-static void appendLayer(TIFF *out, int dstart, int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) {
+static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) {
     int x, y;
     unsigned char *tileData;
     int pixelSize;
@@ -252,7 +252,7 @@ void *readLayer(TIFF *in, int *width, int *height, int *bitsperpixel, int *numSa
 // Return Value			:
 // Comments				:
 template <class T>
-void copyData(T *from, int fw, int fh, int x, int y, int w, int h, T *to, int tw, int th, int tx, int ty, int numSamples) {
+void copyData(T *from, int fw, int, int x, int y, int w, int h, T *to, int tw, int, int tx, int ty, int numSamples) {
     int i, j;
 
     for (j = 0; j < h; j++)
@@ -271,7 +271,7 @@ void copyData(T *from, int fw, int fh, int x, int y, int w, int h, T *to, int tw
 // Return Value			:
 // Comments				:
 template <class T>
-void initData(T *to, int width, int height, int x, int y, int w, int h, int numSamples, T n) {
+void initData(T *to, int width, int, int x, int y, int w, int h, int numSamples, T n) {
     int i, j, s;
 
     for (j = 0; j < h; j++)
@@ -286,7 +286,7 @@ void initData(T *to, int width, int height, int x, int y, int w, int h, int numS
 // Return Value			:
 // Comments				:
 template <class T>
-void initDataValues(T *to, int width, int height, int x, int y, int w, int h, int numSamples, T *v) {
+void initDataValues(T *to, int width, int, int x, int y, int w, int h, int numSamples, T *v) {
     int i, j, s;
 
     for (j = 0; j < h; j++)
@@ -447,10 +447,8 @@ void filterScaleImage(int width, int height, int targetWidth, int targetHeight, 
 
             float xo = x * widthRatio;
             float yo = y * heightRatio;
-            int xoi = (int)floor(xo);
-            int yoi = (int)floor(yo);
-            //			float	xof		=	xo-xoi;
-            //			float	yof		=	yo-yoi;
+            //			float	xof		=	xo-(int)floor(xo);
+            //			float	yof		=	yo-(int)floor(yo);
 
             // FIXME: should periodic textures filter from the other side?
 
@@ -758,7 +756,7 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
             if (output != NULL) {
                 int dstart = 0;
 
-                sprintf(modes, "%s,%s", smode, tmode);
+                snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
                 TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_TEXTURE);
                 TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
@@ -778,7 +776,7 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
 // Description			:	Create a single sided environment map
 // Return Value			:
 // Comments				:
-void makeSideEnvironment(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int shadow) {
+void makeSideEnvironment(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
     char inputFileName[OS_MAX_PATH_LENGTH];
 
     getResizeMode(numParams, params, vals);
@@ -854,7 +852,7 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
 // Description			:	Create an environment map where each side is a pyramid
 // Return Value			:
 // Comments				:
-void makeCubicEnvironment(const char *px, const char *py, const char *pz, const char *nx, const char *ny, const char *nz, const char *output, const char *smode, const char *tmode, TSearchpath *path, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int shadow) {
+void makeCubicEnvironment(const char *px, const char *py, const char *pz, const char *nx, const char *ny, const char *nz, const char *output, const char *smode, const char *tmode, TSearchpath *path, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
     char inputFileName[OS_MAX_PATH_LENGTH];
     const char *names[6];
 
@@ -967,7 +965,7 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
             if (output != NULL) {
                 int dstart = 0;
 
-                sprintf(modes, "%s,%s", smode, tmode);
+                snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
                 // Write out the data
                 TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SPHERICAL_ENVIRONMENT);
@@ -1023,7 +1021,7 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
             if (output != NULL) {
                 int dstart = 0;
 
-                sprintf(modes, "%s,%s", smode, tmode);
+                snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
                 TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_CYLINDER_ENVIRONMENT);
                 TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);

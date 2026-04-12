@@ -44,7 +44,6 @@
 
 #undef new
 
-const unsigned int FACE_MOVING = 2;             // Set if the face is moving
 const unsigned int FACE_INTEPOLATEBOUNDARY = 4; // Set if we're interpolating the boundary
 
 const float bsplineBasis[16] = {
@@ -1612,7 +1611,7 @@ CSubdivMesh::~CSubdivMesh() {
 // Description			:	Intersect the thing
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *cRay) {
+void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
