@@ -73,7 +73,7 @@ class CPointHierarchy : public CTexture3d, public CMap<CPointCloudPoint> {
 
         // CView interface
         void draw() {}
-        void bound(float *bmin, float *bmax) {}
+        void bound(float *, float *) {}
 };
 
 #endif

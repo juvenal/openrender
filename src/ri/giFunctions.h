@@ -190,7 +190,6 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
     if ((cache = lookup->map) == NULL) {                                                                                                   \
         const float *from, *to;                                                                                                            \
         findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                                                 \
-        const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;                                             \
         osLock(CRenderer::shaderMutex);                                                                                                    \
         const char *mode = scratch->occlusionParams.cacheMode;                                                                             \
         if (scratch->occlusionParams.pointHierarchyName != NULL)                                                                           \
@@ -257,8 +256,8 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
     scratch->traceParams.samples = savedSamples; \
     plEnd();
 #else
-#define IDEXPR_PRE
-#define IDEXPR
+#define IDEXPR_PRE(...)
+#define IDEXPR(...)
 #define IDEXPR_UPDATE
 #define IDEXPR_POST(__occlusion)
 #endif
@@ -299,6 +298,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
     res += 3;                \
     op2 += 3;                \
     op3 += 3;                \
+    (void)op3;               \
     plStep();
 
 #define PHOTONMAPEXPR_POST \

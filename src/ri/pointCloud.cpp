@@ -47,7 +47,7 @@ int CPointCloud::drawChannel = 0;
 // Description			:	Ctor
 // Return Value			:
 // Comments				:	for a write-mode map, ch and nc must be provided
-CPointCloud::CPointCloud(const char *n, const float *from, const float *to, const float *toNDC, const char *channelDefs, int write) : CMap<CPointCloudPoint>(), CTexture3d(n, from, to, toNDC) {
+CPointCloud::CPointCloud(const char *n, const float *from, const float *to, const float *toNDC, const char *channelDefs, int write) : CTexture3d(n, from, to, toNDC), CMap<CPointCloudPoint>() {
     // Create our data areas
     flush = write;
     maxdP = 0;
@@ -69,7 +69,7 @@ CPointCloud::CPointCloud(const char *n, const float *from, const float *to, cons
 // Description			:	Ctor
 // Return Value			:
 // Comments				:	for a write-mode map via ptcapi, ch and nc must be provided
-CPointCloud::CPointCloud(const char *n, const float *from, const float *to, const float *toNDC, int numChannels, char **channelNames, char **channelTypes, int write) : CMap<CPointCloudPoint>(), CTexture3d(n, from, to, toNDC) {
+CPointCloud::CPointCloud(const char *n, const float *from, const float *to, const float *toNDC, int numChannels, char **channelNames, char **channelTypes, int write) : CTexture3d(n, from, to, toNDC), CMap<CPointCloudPoint>() {
     // Create our data areas
     flush = write;
     maxdP = 0;
@@ -91,7 +91,7 @@ CPointCloud::CPointCloud(const char *n, const float *from, const float *to, cons
 // Description			:	Ctor
 // Return Value			:
 // Comments				:	for a write-mode map, ch and nc must be provided
-CPointCloud::CPointCloud(const char *n, const float *from, const float *to, FILE *in) : CMap<CPointCloudPoint>(), CTexture3d(n, from, to) {
+CPointCloud::CPointCloud(const char *n, const float *from, const float *to, FILE *in) : CTexture3d(n, from, to), CMap<CPointCloudPoint>() {
 
     // Create our data areas
     flush = FALSE;
@@ -205,7 +205,7 @@ void CPointCloud::write() {
 // Return Value			:
 // Comments				:	Nl	must be normalized
 //							Il	must be normalized
-void CPointCloud::lookup(float *Cl, const float *Pl, const float *Nl, float radius) {
+void CPointCloud::lookup(float *Cl, const float *Pl, const float *Nl, float) {
     const int maxFound = 16;
     const CPointCloudPoint **indices = (const CPointCloudPoint **)alloca((maxFound + 1) * sizeof(CPointCloudPoint *));
     float *distances = (float *)alloca((maxFound + 1) * sizeof(float));

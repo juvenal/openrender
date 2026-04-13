@@ -186,9 +186,6 @@ CPatchGrid::CPatchGrid(CAttributes *a, CXform *x, CVertexData *var, CParameter *
 // Return Value			:	-
 // Comments				:
 CPatchGrid::~CPatchGrid() {
-    int numVertices = (nu + 2) * (nv + 2);
-    int realNumVertices = (nu * nv);
-
     delete[] Pu;
     delete[] Pv;
     delete[] vertex;

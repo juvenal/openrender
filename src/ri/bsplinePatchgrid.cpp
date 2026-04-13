@@ -54,7 +54,6 @@ CBSplinePatchGrid::CBSplinePatchGrid(CAttributes *a, CXform *x, CVertexData *var
     this->uMult = uMult;
     this->vMult = vMult;
 
-    const int numVertices = (nu * nv);
     int i, j, k;
     matrix ut;
     matrix bsplinebasis;

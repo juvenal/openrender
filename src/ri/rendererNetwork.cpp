@@ -554,7 +554,7 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
         }
 
         // Save the name of the host
-        sprintf(temporary, ":%d", port);
+        snprintf(temporary, sizeof(temporary), ":%d", port);
         strcat(hostName, temporary);
 
         // Count the number of servers

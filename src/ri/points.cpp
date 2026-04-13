@@ -320,7 +320,7 @@ void CPoints::dice(CShadingContext *rasterizer) {
 // Description			:	Push all the defined variables into the arrays
 // Return Value			:	-
 // Comments				:
-void CPoints::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &usedParameters) const {
+void CPoints::sample(int, int, float **varying, float ***locals, unsigned int &usedParameters) const {
     CVertexData *variables = base->variables;
     const int vertexSize = variables->vertexSize;
     float *vertexData = (float *)alloca(numPoints * vertexSize * sizeof(float));

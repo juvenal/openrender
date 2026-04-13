@@ -29,7 +29,8 @@
 // illumination <P> <begin> <end>  [ <category> ]
 #define ILLUMINATION1RUNLIGHT_PRE \
     char **lightCat;              \
-    operand(3, lightCat, char **);
+    operand(3, lightCat, char **); \
+    (void)lightCat;
 
 #define ILLUMINATION_RUNLIGHTS runLights(P, N, costheta);
 
@@ -55,6 +56,7 @@
         costheta[i] = -1;                                                             \
     }                                                                                 \
     runlightsExpr;                                                                    \
+    (void)P; (void)N;                                                                 \
     if ((*currentLight = *lights) != NULL) {                                          \
         enterLightingConditional();                                                   \
         /* copy the light's variables in */                                           \
@@ -86,7 +88,8 @@ DEFOPCODE(IlluminationCat1, "illuminance", 4, ILLUMINATION1EXPR_PRE(ILLUMINATION
 // illumination <P> <axis> <angle> <begin> <end>  [ <category> ]
 #define ILLUMINATION2RUNLIGHT_PRE \
     char **lightCat;              \
-    operand(5, lightCat, char **);
+    operand(5, lightCat, char **); \
+    (void)lightCat;
 
 #define ILLUMINATION2EXPR_PRE(lightCatPreExpr, runlightsExpr)                     \
     const float *angle;                                                           \
@@ -107,6 +110,7 @@ DEFOPCODE(IlluminationCat1, "illuminance", 4, ILLUMINATION1EXPR_PRE(ILLUMINATION
     for (int i = 0; i < numVertices; ++i)                                         \
         costheta[i] = (float)cos(angle[i]);                                       \
     runlightsExpr;                                                                \
+    (void)P; (void)N;                                                             \
     if ((*currentLight = *lights) != NULL) {                                      \
         enterLightingConditional();                                               \
         /* copy the light's variables in */                                       \

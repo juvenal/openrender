@@ -741,7 +741,8 @@ DEFOPCODE(VUString, "vustring", 2, OPERANDS2EXPR_PRE(float *, const float *), SU
     int op1Step;                      \
     operand(0, res, _t);              \
     operandSize(1, op1, op1Step, _t); \
-    operand(2, op2, const float *);
+    operand(2, op2, const float *);   \
+    (void)op1Step;
 
 #define ARRAY_UPDATE(__rs) \
     res += __rs;           \
@@ -776,7 +777,8 @@ DEFOPCODE(USFromA, "usfroma", 3, ARRAY_PRE(char **), SFROMAEXPR, UARRAY_UPDATE(1
     int resStep;                      \
     operandSize(0, res, resStep, _t); \
     operand(1, op1, const float *);   \
-    operand(2, op2, _t);
+    operand(2, op2, _t);              \
+    (void)resStep;
 
 #define ARRAY_UPDATE(__os) \
     res += resStep;        \

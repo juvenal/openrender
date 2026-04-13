@@ -198,8 +198,6 @@ CBilinearPatch::CBilinearPatch(CAttributes *a, CXform *x, CVertexData *v, CParam
 // Return Value			:	-
 // Comments				:	-
 CBilinearPatch::~CBilinearPatch() {
-    const int vertexSize = (variables->moving ? variables->vertexSize * 2 : variables->vertexSize);
-
     atomicDecrement(&stats.numGprims);
 
     if (parameters != NULL)
@@ -576,8 +574,6 @@ CBicubicPatch::CBicubicPatch(CAttributes *a, CXform *x, CVertexData *v, CParamet
 // Return Value			:	-
 // Comments				:	-
 CBicubicPatch::~CBicubicPatch() {
-    const int vertexSize = (variables->moving ? variables->vertexSize * 2 : variables->vertexSize);
-
     atomicDecrement(&stats.numGprims);
 
     if (parameters != NULL)
@@ -895,8 +891,6 @@ CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *
 // Return Value			:	-
 // Comments				:	-
 CNURBSPatch::~CNURBSPatch() {
-    const int vertexSize = (variables->moving ? variables->vertexSize * 2 : variables->vertexSize);
-
     atomicDecrement(&stats.numGprims);
 
     if (parameters != NULL)
@@ -917,7 +911,6 @@ void CNURBSPatch::precomputeVertexData(double *vertex, const double *uCoefficien
     const int vs = (variables->moving ? vertexSize * 2 : vertexSize);
     int i, j, k;
     double *cVertex;
-    double *tmp = (double *)alloca(uOrder * vOrder * sizeof(double));
 
     for (cVertex = vertex, i = 0; i < vertexSize; i++, cVertex += uOrder * vOrder) {
         int u, v;
@@ -1421,8 +1414,6 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
         }
     } else {
         int i, j;
-        float uMult;
-        float vMult;
         int upatches, vpatches;
         const int us = attributes->uStep;
         const int vs = attributes->vStep;
@@ -1442,9 +1433,6 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
             vpatches = (vVertices) / vs;
         else
             vpatches = ((vVertices - 4) / vs) + 1;
-
-        uMult = 1 / (float)upatches;
-        vMult = 1 / (float)vpatches;
 
         // Note that u basis and v basis are swapped to take the transpose into account done during the precomputation
         transposem(ub, attributes->uBasis);
@@ -1549,7 +1537,7 @@ void CPatchMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) con
 // Description			:	Intersect a ray with this pritimive
 // Return Value			:	-
 // Comments				:
-void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *ray) {
+void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1797,7 +1785,7 @@ void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *ray) {
+void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1843,8 +1831,6 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 
     const int uvertices = uVertices;
     const int vvertices = vVertices;
-    const int upatches = uPatches;
-    const int vpatches = vPatches;
     const int uvaryings = uVertices - uOrder + 2;
     const int vvaryings = vVertices - vOrder + 2;
 

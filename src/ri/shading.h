@@ -221,6 +221,7 @@ class CRayBundle {
         int depth;                   // The transparency depth of the bundle
         CShaderInstance *postShader; // The shader to execute after the raytrace
 
+        virtual ~CRayBundle() = default;
         virtual int postTraceAction() = 0;                  // The function to be called after the rays are traced
         virtual void postShade(int, CRay **, float **) = 0; // The function that's called with the shade results
         virtual void postShade(int, CRay **) = 0;           // The function that's called with the rays that don't intersect anything

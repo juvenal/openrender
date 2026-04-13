@@ -1269,8 +1269,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                 // check declaration against the shader parameter
                 if (cVar->numFloats != sVar->numFloats ||
                     cVar->type != sVar->type ||
-                    (cVar->container == CONTAINER_UNIFORM || cVar->container == CONTAINER_CONSTANT) &&
-                        (sVar->container != CONTAINER_UNIFORM) && (sVar->container != CONTAINER_CONSTANT)) {
+                    ((cVar->container == CONTAINER_UNIFORM || cVar->container == CONTAINER_CONSTANT) &&
+                        (sVar->container != CONTAINER_UNIFORM) && (sVar->container != CONTAINER_CONSTANT))) {
 
                     // We used the global declaration to check the number of items, but it mismatches the shader, do not bind
                     // Don't warn either
@@ -1391,8 +1391,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                 }
                 char *sDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_S) + 2, CRenderer::globalMemory);
                 char *tDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_T) + 2, CRenderer::globalMemory);
-                sprintf(sDeclTemp, "%s %s", decl, RI_S);
-                sprintf(tDeclTemp, "%s %s", decl, RI_T);
+                snprintf(sDeclTemp, strlen(decl) + strlen(RI_S) + 2, "%s %s", decl, RI_S);
+                snprintf(tDeclTemp, strlen(decl) + strlen(RI_T) + 2, "%s %s", decl, RI_T);
 
                 sDecl = sDeclTemp;
                 tDecl = tDeclTemp;

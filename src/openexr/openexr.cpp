@@ -58,7 +58,7 @@ class CExrFramebuffer {
         // Description			:	Ctor
         // Return Value			:	-
         // Comments				:
-        CExrFramebuffer(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
+        CExrFramebuffer(const char *name, int width, int height, int numSamples, const char * /*samples*/, TDisplayParameterFunction findParameter) {
             int i;
             float *tmp;
             char *software;

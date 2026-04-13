@@ -430,31 +430,35 @@ void CRenderer::getDisplayName(char *out, const char *in, const char *displayTyp
             if (width > 0) {
                 widthString[width] = '\0';
                 sscanf(widthString, "%d", &width);
-                sprintf(widthString, "%%0%dd", width);
+                snprintf(widthString, sizeof(widthString), "%%0%dd", width);
             } else {
-                sprintf(widthString, "%%d");
+                snprintf(widthString, sizeof(widthString), "%%d");
             }
 
+            char numBuf[32];
             switch (*cIn++) {
             case 'f':
-                sprintf(cOut, widthString, (int)frame);
+                snprintf(numBuf, sizeof(numBuf), widthString, (int)frame);
+                strcpy(cOut, numBuf);
                 while (*cOut != '\0')
                     cOut++;
                 break;
             case 's':
-                sprintf(cOut, widthString, stats.sequenceNumber);
+                snprintf(numBuf, sizeof(numBuf), widthString, stats.sequenceNumber);
+                strcpy(cOut, numBuf);
                 while (*cOut != '\0')
                     cOut++;
                 break;
             case 'n':
-                sprintf(cOut, widthString, stats.runningSequenceNumber);
+                snprintf(numBuf, sizeof(numBuf), widthString, stats.runningSequenceNumber);
+                strcpy(cOut, numBuf);
                 while (*cOut != '\0')
                     cOut++;
                 break;
             case 'h':
                 char hostName[1024];
                 gethostname(hostName, 1024);
-                sprintf(cOut, hostName);
+                strcpy(cOut, hostName);
                 while (*cOut != '\0')
                     cOut++;
                 break;
@@ -464,17 +468,17 @@ void CRenderer::getDisplayName(char *out, const char *in, const char *displayTyp
                     cOut++;
                 break;
             case 'p':
-                sprintf(cOut, "0");
+                strcpy(cOut, "0");
                 while (*cOut != '\0')
                     cOut++;
                 break;
             case 'P':
-                sprintf(cOut, "0");
+                strcpy(cOut, "0");
                 while (*cOut != '\0')
                     cOut++;
                 break;
             case '#':
-                sprintf(cOut, "#");
+                strcpy(cOut, "#");
                 while (*cOut != '\0')
                     cOut++;
                 break;
@@ -631,7 +635,7 @@ void CRenderer::computeDisplayData() {
                 dspNumExtraChannels++;
                 isNewChannel = TRUE;
             }
-            memcpy(datas[numDisplays].channels + dspNumChannels, oChannel, sizeof(CDisplayChannel));
+            memcpy((void *)(datas[numDisplays].channels + dspNumChannels), oChannel, sizeof(CDisplayChannel));
             if (oChannel->fill) {
                 // ensure a deep copy
                 datas[numDisplays].channels[dspNumChannels].fill = new float[oChannel->numSamples];

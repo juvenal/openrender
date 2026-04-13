@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 // The RI implementation
+#pragma clang diagnostic ignored "-Wvarargs"
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -426,7 +427,6 @@ static int frameEnd = 0;
 static int frameStep = 0;
 static int ignoreFrame = FALSE;
 static int currentBlock = 0;
-static int raytracingInited = FALSE;
 static int allowedCommands = RENDERMAN_ALL_BLOCKS;
 static int archiveNesting = 0;
 
@@ -974,7 +974,7 @@ RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
 }
 
 EXTERN(RtFloat)
-RiBoxFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
+RiBoxFilter(RtFloat, RtFloat, RtFloat, RtFloat) {
     return 1;
 }
 
@@ -996,7 +996,7 @@ RiTriangleFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
 }
 
 EXTERN(RtFloat)
-RiCatmullRomFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
+RiCatmullRomFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     float r2 = (x * x + y * y);
     float r = sqrtf(r2);
 
@@ -1076,14 +1076,13 @@ RiSincFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
 }
 
 EXTERN(RtFloat)
-RiBesselFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
+RiBesselFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     const float x2 = x * x;
     const float y2 = y * y;
 
     if (x2 + y2 < 0.0001f)
         return 1.0f;
 
-    const float w = x2 / (xwidth * xwidth) + y2 / (ywidth * ywidth);
     const float d = sqrtf(x2 + y2);
     return (float)(j1(d * 2) / d);
 }
@@ -2113,7 +2112,7 @@ RiBlobbyV(RtInt nleaf, RtInt ncode, RtInt code[], RtInt nflt, RtFloat flt[], RtI
 }
 
 EXTERN(RtVoid)
-RiProcDelayedReadArchive(void *data, RtFloat detail) {
+RiProcDelayedReadArchive(void *data, RtFloat) {
     CDelayedData *delayed = (CDelayedData *)data;
 
     renderMan->RiReadArchiveV(delayed->generator, NULL, 0, NULL, NULL);
@@ -2155,7 +2154,7 @@ RiProcRunProgram(void *data, RtFloat detail) {
                 close(fdin[1]);
 
                 // repoen as files, close the fd versions
-                sprintf(tmp, "|%d", fdin[0]);
+                snprintf(tmp, sizeof(tmp), "|%d", fdin[0]);
                 FILE *out = fdopen(fdout[1], "wb");
 
                 if (out != NULL) {
@@ -2469,7 +2468,7 @@ RiErrorHandler(const RtErrorHandler handler) {
 }
 
 EXTERN(RtVoid)
-RiErrorIgnore(RtInt code, RtInt severity, const char *message) {
+RiErrorIgnore(RtInt code, RtInt severity, const char *) {
     if ((severity == RIE_ERROR) || (severity == RIE_SEVERE)) {
         RiLastError = code;
     }
@@ -2506,7 +2505,7 @@ RiErrorPrint(RtInt code, RtInt severity, const char *message) {
 }
 
 EXTERN(RtVoid)
-RiErrorAbort(RtInt code, RtInt severity, const char *message) {
+RiErrorAbort(RtInt code, RtInt severity, const char *) {
     if ((severity == RIE_ERROR) || (severity == RIE_SEVERE)) {
         RiLastError = code;
 

@@ -213,7 +213,7 @@ void CPhotonHider::renderingLoop() {
 // Description			:	Solar begin hook
 // Return Value			:	-
 // Comments				:
-void CPhotonHider::solarBegin(const float *L, const float *theta) {
+void CPhotonHider::solarBegin(const float *L, const float *) {
     if (L == NULL) {
         // FIXME: Don't know how to handle this
     } else {

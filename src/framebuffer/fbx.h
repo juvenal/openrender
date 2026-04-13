@@ -72,7 +72,6 @@ class CXDisplay : public CDisplay {
         pthread_t thread;
         void *imageData;
         int imageDepth;
-        int scanWidth;
         int windowUp;
         int windowDown;
         Window xcanvas;

@@ -89,7 +89,7 @@ CDelayedObject::~CDelayedObject() {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::intersect(CShadingContext *context, CRay *cRay) {
+void CDelayedObject::intersect(CShadingContext *context, CRay *) {
 
     // Process the object
     if (processed == FALSE) {
@@ -182,7 +182,7 @@ CDelayedInstance::~CDelayedInstance() {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::intersect(CShadingContext *context, CRay *cRay) {
+void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
 
     // Process the instance
     if (processed == FALSE) {

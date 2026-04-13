@@ -784,6 +784,7 @@ DEFFUNC(Ambient, "ambient", "c=", AMBIENTEXPR_PRE, AMBIENTEXPR, AMBIENTEXPR_UPDA
     const float *N = op;                                                          \
                                                                                   \
     runLights(P, N, costheta);                                                    \
+    (void)P;                                                                      \
     /* initialize output appropriately */                                         \
     float *R = res;                                                               \
     tags = tagStart;                                                              \
@@ -810,6 +811,7 @@ DEFFUNC(Ambient, "ambient", "c=", AMBIENTEXPR_PRE, AMBIENTEXPR, AMBIENTEXPR_UPDA
             nd = &_nd;                                                            \
             ndStep = 0;                                                           \
         }                                                                         \
+        (void)ndStep;                                                             \
         const float *L = (*currentLight)->savedState[0];                          \
         const float *Cl = (*currentLight)->savedState[1];                         \
         R = res;                                                                  \
@@ -857,6 +859,7 @@ DEFLIGHTFUNC(Diffuse, "diffuse", "c=n", DIFFUSEEXPR_PRE, DIFFUSEEXPR, DIFFUSEEXP
         costheta[i] = (float)cos(op3[i]);                                         \
     N = op2;                                                                      \
     runLights(P, N, costheta);                                                    \
+    (void)P;                                                                      \
     /* initialize output appropriately */                                         \
     float *R = res;                                                               \
     tags = tagStart;                                                              \
@@ -883,6 +886,7 @@ DEFLIGHTFUNC(Diffuse, "diffuse", "c=n", DIFFUSEEXPR_PRE, DIFFUSEEXPR, DIFFUSEEXP
             nd = &_nd;                                                            \
             ndStep = 0;                                                           \
         }                                                                         \
+        (void)ndStep;                                                             \
         const float *L = (*currentLight)->savedState[0];                          \
         const float *Cl = (*currentLight)->savedState[1];                         \
         R = res;                                                                  \
@@ -931,6 +935,7 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
     const float *P = varying[VARIABLE_P];                                         \
     const float *N = op1;                                                         \
     runLights(P, N, costheta);                                                    \
+    (void)P;                                                                      \
     /* initialize output appropriately */                                         \
     float *R = res;                                                               \
     float *power = powers;                                                        \
@@ -962,6 +967,7 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
             ns = &_ns;                                                            \
             nsStep = 0;                                                           \
         }                                                                         \
+        (void)nsStep;                                                             \
         const float *L = (*currentLight)->savedState[0];                          \
         const float *Cl = (*currentLight)->savedState[1];                         \
         const float *V = op2;                                                     \
@@ -1017,6 +1023,7 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
     const float *P = varying[VARIABLE_P];                                            \
     const float *N = op1;                                                            \
     runLights(P, N, costheta);                                                       \
+    (void)P;                                                                         \
     /* initialize output appropriately */                                            \
     float *R = res;                                                                  \
     const float *V = op2;                                                            \
@@ -1052,6 +1059,7 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
             ns = &_ns;                                                               \
             nsStep = 0;                                                              \
         }                                                                            \
+        (void)nsStep;                                                                \
         const float *L = (*currentLight)->savedState[0];                             \
         const float *Cl = (*currentLight)->savedState[1];                            \
         const float *size = op3;                                                     \
@@ -1316,10 +1324,10 @@ DEFFUNC(IncidentM, "incident", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR), PAR
 DEFLINKFUNC(Opposite2, "opposite", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Opposite3, "opposite", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Opposite4, "opposite", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeV, "opposite", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRV(ACCESSOR_INTERIOR), PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Opposite, "opposite", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRF(ACCESSOR_INTERIOR), PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeS, "opposite", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRS(ACCESSOR_INTERIOR), PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeM, "opposite", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRM(ACCESSOR_INTERIOR), PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeV, "opposite", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Opposite, "opposite", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeS, "opposite", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeM, "opposite", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 /* note the accessor for the remaining functions is not used */
@@ -1372,6 +1380,7 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
     operand(1, op1, const char **);                                  \
     operand(2, op2, const char **);                                  \
     operandSize(3, op3, op3sz, _t);                                  \
+    (void)op3sz;                                                     \
                                                                      \
     CTextureInfoBase *textureInfo;                                   \
     if ((textureInfo = lookup->map) == NULL) {                       \
@@ -1557,7 +1566,8 @@ DEFFUNC(ShaderNames, "shadername", "s=s", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     dvFloat(dsdv, s);                                                                                                        \
     dvFloat(dtdv, t);                                                                                                        \
                                                                                                                              \
-    i = 0;
+    i = 0;                                                                                                                   \
+    (void)op2;
 
 #define TEXTUREFEXPR                                             \
     plReady();                                                   \
@@ -1656,7 +1666,8 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
         lookup->map = tex = CRenderer::getTexture(*op1);               \
         osUnlock(CRenderer::shaderMutex);                              \
     }                                                                  \
-    scratch->textureParams.filter = lookup->filter;
+    scratch->textureParams.filter = lookup->filter;                   \
+    (void)op2;
 
 #define TEXTUREFFULLEXPR             \
     plReady();                       \
@@ -1795,7 +1806,8 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     scratch->textureParams.filter = lookup->filter;                                                                          \
                                                                                                                              \
     duVector(dDdu, D);                                                                                                       \
-    dvVector(dDdv, D);
+    dvVector(dDdv, D);                                                                                                       \
+    (void)op2; (void)N; (void)P;
 
 #define ENVIRONMENTEXPR(__float)                                            \
     plReady();                                                              \
@@ -1878,8 +1890,8 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     plEnd();
 
 #else
-#define ENVIRONMENTEXPR_PRE
-#define ENVIRONMENTEXPR
+#define ENVIRONMENTEXPR_PRE(...)
+#define ENVIRONMENTEXPR(...)
 #define ENVIRONMENTEXPR_UPDATE
 #define ENVIRONMENTEXPR_POST(__float)
 #endif
@@ -1995,7 +2007,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
 
 #else
 #define SHADOWEXPR_PRE
-#define SHADOWEXPR
+#define SHADOWEXPR(...)
 #define SHADOWEXPR_UPDATE
 #define SHADOWEXPR_POST(__float)
 #endif

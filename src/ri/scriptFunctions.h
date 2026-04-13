@@ -35,7 +35,8 @@
 
 #define FUN1EXPR_PRE \
     float *res;      \
-    operand(0, res, float *);
+    operand(0, res, float *); \
+    (void)res;
 
 #define FUN1EXPR_UPDATE(__rs) \
     res += __rs;
@@ -682,25 +683,25 @@ DEFFUNC(Match, "match", "f=ss", FUN3SEXPR_PRE, MATCHEXPR, FUN3EXPR_UPDATE(1, 1, 
                 break;                                                                                                                                                                                                                                                           \
             if (*str == 'f') {                                                                                                                                                                                                                                                   \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "%f", *af[cp]);                                                                                                                                                                                                                                     \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%f", *af[cp]);                                                                                                                                                                                        \
             } else if (*str == 'd') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "%d", (int)*af[cp]);                                                                                                                                                                                                                                \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%d", (int)*af[cp]);                                                                                                                                                                                   \
             } else if (*str == 'c') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
             } else if (*str == 'n') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
             } else if (*str == 'p') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
             } else if (*str == 's') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "%s", *as[cp]);                                                                                                                                                                                                                                     \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%s", *as[cp]);                                                                                                                                                                                        \
             } else if (*str == 'm') {                                                                                                                                                                                                                                            \
                 cp++;                                                                                                                                                                                                                                                            \
-                sprintf(tmp, "((%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f))", af[cp][0], af[cp][1], af[cp][2], af[cp][3], af[cp][4], af[cp][5], af[cp][6], af[cp][7], af[cp][8], af[cp][9], af[cp][10], af[cp][11], af[cp][12], af[cp][13], af[cp][14], af[cp][15]); \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "((%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f))", af[cp][0], af[cp][1], af[cp][2], af[cp][3], af[cp][4], af[cp][5], af[cp][6], af[cp][7], af[cp][8], af[cp][9], af[cp][10], af[cp][11], af[cp][12], af[cp][13], af[cp][14], af[cp][15]); \
             } else {                                                                                                                                                                                                                                                             \
                 *tmp = *str;                                                                                                                                                                                                                                                     \
                 tmp++;                                                                                                                                                                                                                                                           \
@@ -742,7 +743,7 @@ DEFFUNC(Match, "match", "f=ss", FUN3SEXPR_PRE, MATCHEXPR, FUN3EXPR_UPDATE(1, 1, 
 #define PRINTFEXPR                        \
     if (vertexN < numRealVertices) {      \
         PRINTEXPR(output, res, opf, ops); \
-        printf(output);                   \
+        printf("%s", output);             \
     }
 
 #define PRINTF_UPDATE                        \
@@ -787,6 +788,7 @@ DEFFUNC(Printf, "printf", "o=s.*", PRINTFEXPR_PRE, PRINTFEXPR, PRINTF_UPDATE, PR
                                                                                 \
     operandSize(0, res, resStep, char **);                                      \
     operandSize(1, strArg, strStep, char **);                                   \
+    (void)resStep; (void)strStep;                                               \
     argumentcount(numArguments);                                                \
     numArguments--;                                                             \
     numArguments--;                                                             \

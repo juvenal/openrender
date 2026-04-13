@@ -141,7 +141,7 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
 // Description			:	This function is used by the hiders to request a job
 // Return Value			:	-
 // Comments				:	-
-void CRenderer::dispatchPhoton(int thread, CJob &job) {
+void CRenderer::dispatchPhoton(int, CJob &job) {
 
     // Lock
     osLock(jobMutex);

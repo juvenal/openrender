@@ -159,7 +159,7 @@ void error(EErrorCode code, const char *mes, ...) {
     va_list args;
 
     va_start(args, mes);
-    vsprintf(tmp, mes, args);
+    vsnprintf(tmp, sizeof(tmp), mes, args);
 
     renderMan->RiError(translate(code), RIE_ERROR, tmp);
     va_end(args);
@@ -175,7 +175,7 @@ void warning(EErrorCode code, const char *mes, ...) {
     va_list args;
 
     va_start(args, mes);
-    vsprintf(tmp, mes, args);
+    vsnprintf(tmp, sizeof(tmp), mes, args);
 
     renderMan->RiError(translate(code), RIE_WARNING, tmp);
     va_end(args);
@@ -191,7 +191,7 @@ void fatal(EErrorCode code, const char *mes, ...) {
     va_list args;
 
     va_start(args, mes);
-    vsprintf(tmp, mes, args);
+    vsnprintf(tmp, sizeof(tmp), mes, args);
 
     renderMan->RiError(translate(code), RIE_SEVERE, tmp);
     va_end(args);
@@ -207,7 +207,7 @@ void info(EErrorCode code, const char *mes, ...) {
     va_list args;
 
     va_start(args, mes);
-    vsprintf(tmp, mes, args);
+    vsnprintf(tmp, sizeof(tmp), mes, args);
 
     renderMan->RiError(translate(code), RIE_INFO, tmp);
     va_end(args);

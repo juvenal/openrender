@@ -237,13 +237,12 @@ void CShadingContext::dvFloat(float *dest, const float *src) {
 
     // Dv executing on a 2D raytraced surface
     case SHADING_2D: {
-        const int numVertices = currentShadingState->numVertices;
         const int numRealVertices = currentShadingState->numRealVertices;
         const float *dsrc = src + numRealVertices;
         float *ddest = dest + numRealVertices;
         const float *dv = currentShadingState->varying[VARIABLE_DV];
 
-        assert(numVertices == numRealVertices * 3);
+        assert(currentShadingState->numVertices == numRealVertices * 3);
 
         for (int i = numRealVertices; i > 0; --i) {
 
@@ -313,12 +312,11 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
 
     // Dv executing on a 2D raytraced surface
     case SHADING_2D: {
-        const int numVertices = currentShadingState->numVertices;
         const int numRealVertices = currentShadingState->numRealVertices;
         const float *dsrc = src + numRealVertices;
         float *ddest = dest + numRealVertices;
 
-        assert(numVertices == numRealVertices * 3);
+        assert(currentShadingState->numVertices == numRealVertices * 3);
 
         for (int i = numRealVertices; i > 0; --i) {
 
@@ -569,13 +567,12 @@ void CShadingContext::dvVector(float *dest, const float *src) {
 
     // Dv executing on a 2D raytraced surface
     case SHADING_2D: {
-        const int numVertices = currentShadingState->numVertices;
         const int numRealVertices = currentShadingState->numRealVertices;
         const float *dsrc = src + numRealVertices * 3;
         float *ddest = dest + numRealVertices * 3;
         const float *dv = currentShadingState->varying[VARIABLE_DV];
 
-        assert(numVertices == numRealVertices * 3);
+        assert(currentShadingState->numVertices == numRealVertices * 3);
 
         for (int i = numRealVertices; i > 0; --i) {
 
@@ -659,12 +656,11 @@ void CShadingContext::DvVector(float *dest, const float *src) {
 
     // Dv executing on a 2D raytraced surface
     case SHADING_2D: {
-        const int numVertices = currentShadingState->numVertices;
         const int numRealVertices = currentShadingState->numRealVertices;
         const float *dsrc = src + numRealVertices * 3;
         float *ddest = dest + numRealVertices * 3;
 
-        assert(numVertices == numRealVertices * 3);
+        assert(currentShadingState->numVertices == numRealVertices * 3);
 
         for (int i = numRealVertices; i > 0; --i) {
 

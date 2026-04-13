@@ -96,7 +96,7 @@ CImplicit::~CImplicit() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CImplicit::intersect(CShadingContext *context, CRay *ray) {
+void CImplicit::intersect(CShadingContext *, CRay *ray) {
     float tmin, tmax;
     vector lastP, P;
     float lastF, F;
@@ -208,7 +208,7 @@ void CImplicit::dice(CShadingContext *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CImplicit::instantiate(CAttributes *a, CXform *x, CRendererContext *context) const {
+void CImplicit::instantiate(CAttributes *, CXform *, CRendererContext *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -196,8 +196,6 @@ CBrickMap::CBrickMap(FILE *in, const char *name, const float *from, const float 
         }
 
         if (hasNodes) {
-            CBrickNode *prevNode = NULL;
-
             // Read linked list of nodes for this bucket
             while (TRUE) {
                 CBrickNode *cNode = new CBrickNode;
@@ -891,11 +889,10 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
 // Return Value			:	-
 // Comments				:
 void CBrickMap::compact(const char *outFileName, float maxVariation) {
-    int numNodes;
     CBrickNode *cNode;
     CVoxel *cVoxel, *tVoxel;
     CBrick *cBrick;
-    int i, j, k, vCnt, nullCnt, numCulled;
+    int i, j, k, vCnt;
 
     FILE *outfile = ropen(outFileName, "wb+", fileBrickMap);
 
@@ -914,9 +911,6 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
         newHash[i] = NULL;
 
     // Collect the loaded bricks into an array
-    numCulled = 0;
-    numNodes = 0;
-    nullCnt = 0;
     for (i = 0; i < BRICK_HASHSIZE; i++) {
 
         for (cNode = activeBricks[i]; cNode != NULL; cNode = cNode->next) {
@@ -947,8 +941,7 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
                         for (j = 0; j < dataSize; j++)
                             dataMean[j] += data[j];
                         vCnt++;
-                    } else
-                        nullCnt++;
+                    }
 
                     if (cVoxel->next != NULL) {
                         cVoxel = cVoxel->next;
@@ -962,7 +955,6 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
 
             // Skip if we have no data in this brick
             if (vCnt == 0) {
-                numCulled++;
                 continue;
             }
 
@@ -1005,7 +997,6 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
 
             // Do not write this brick if variation too low
             if (maxVar < maxVariation && cNode->d > 0) {
-                numCulled++;
                 continue;
             }
 
@@ -1016,7 +1007,6 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
             tNode->next = newHash[i];
             newHash[i] = tNode;
             tNode->brick = NULL;
-            numNodes++;
 
             // write it out to a new location
             fseek(outfile, 0, SEEK_END);
@@ -1624,7 +1614,7 @@ void CBrickMap::brickQuickSort(CBrickNode **nodes, int start, int end) {
 // Description			:	This function creates the 3D baed texture from point cloud representation
 // Return Value			:	-
 // Comments				:
-void makeBrickMap(int nb, const char **src, const char *dest, TSearchpath *searchPath, int n, const char **tokens, const void **params) {
+void makeBrickMap(int /*nb*/, const char **src, const char *dest, TSearchpath *searchPath, int n, const char **tokens, const void **params) {
     char tempName[OS_MAX_PATH_LENGTH];
     char fileName[OS_MAX_PATH_LENGTH];
     int i;
@@ -1655,7 +1645,7 @@ void makeBrickMap(int nb, const char **src, const char *dest, TSearchpath *searc
 
             // create backing store in a temp file
             // FIXME: make osTempname not always prefix dir
-            sprintf(tempName, "%s.tmp", dest);
+            snprintf(tempName, sizeof(tempName), "%s.tmp", dest);
 
             CPointCloud *cPtCloud = new CPointCloud(filePointCloud, identityMatrix, identityMatrix, in);
             CBrickMap *cBMap = new CBrickMap(tempName, cPtCloud->bmin, cPtCloud->bmax, identityMatrix, identityMatrix, cPtCloud->toNDC, cPtCloud->channels, cPtCloud->numChannels, maxDepth);

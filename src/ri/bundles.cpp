@@ -314,7 +314,7 @@ void CGatherBundle::postShade(int nr, CRay **r, float **varying) {
 // Description			:
 // Return Value			:	-
 // Comments				:
-void CGatherBundle::postShade(int nr, CRay **r) {
+void CGatherBundle::postShade(int, CRay **) {
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -72,10 +72,6 @@ class CPhotonHider : public CShadingContext {
         float bias; // The initial intersection bias
 
         float powerScale; // The scaling factor for individual photon powers
-        float minPower;   // The variables to find the range of the illumination
-        float maxPower;   // for the current light
-        float avgPower;
-        float numPower;
 
         float photonPower; // The scale factor for the current batch
 

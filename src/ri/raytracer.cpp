@@ -308,8 +308,6 @@ CRaytracer::~CRaytracer() {
 void CRaytracer::renderingLoop() {
     int left;
     int top;
-    int width;
-    int height;
     CRenderer::CJob job;
 
     memBegin(threadMemory);
@@ -425,9 +423,6 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                 } else {
                     mx = mxLimit;
                 }
-                const int my_const = my;
-                const int mx_const = mx;
-
                 for (y = 0; y < my; y++) {
                     for (x = 0; x < mx; x++) {
                         cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + CRenderer::jitter * (urand() - (float)0.5) + (float)0.5) * invXsamples; // Center the sample location in the pixel

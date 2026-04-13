@@ -69,7 +69,7 @@ void CRenderer::initFiles() {
 // Description			:	This callback function is used to remove the temporary files
 // Return Value			:
 // Comments				:
-static int rcClearTemp(const char *fileName, void *userData) {
+static int rcClearTemp(const char *fileName, void *) {
     osDeleteFile(fileName);
 
     return TRUE;
@@ -87,7 +87,7 @@ void CRenderer::shutdownFiles() {
     if (osFileExists(temporaryPath)) {
         char tmp[OS_MAX_PATH_LENGTH];
 
-        sprintf(tmp, "%s*", temporaryPath);
+        snprintf(tmp, sizeof(tmp), "%s*", temporaryPath);
         osFixSlashes(tmp);
         osEnumerate(tmp, rcClearTemp, NULL);
         osDeleteDir(temporaryPath);
@@ -123,7 +123,7 @@ int CRenderer::locateFileEx(char *result, const char *name, const char *extensio
     if (dotpos == NULL || (seppos != NULL && dotpos < seppos)) {
         char tmp[OS_MAX_PATH_LENGTH];
 
-        sprintf(tmp, "%s.%s", name, extension);
+        snprintf(tmp, sizeof(tmp), "%s.%s", name, extension);
 
         return locateFile(result, tmp, searchpath);
     } else {
@@ -180,7 +180,7 @@ int CRenderer::locateFile(char *result, const char *name, TSearchpath *searchpat
         // Only filename
         // Look at the search path
         for (; searchpath != NULL; searchpath = searchpath->next) {
-            sprintf(result, "%s%s", searchpath->directory, name);
+            snprintf(result, OS_MAX_PATH_LENGTH, "%s%s", searchpath->directory, name);
             osFixSlashes(result);
             if (osFileExists(result)) {
                 info(CODE_RESOLUTION, "\"%s\" -> \"%s\"\n", name, result);
@@ -189,7 +189,7 @@ int CRenderer::locateFile(char *result, const char *name, TSearchpath *searchpat
         }
 
         // Last resort, look into the temporary directory
-        sprintf(result, "%s%s", temporaryPath, name);
+        snprintf(result, OS_MAX_PATH_LENGTH, "%s%s", temporaryPath, name);
         osFixSlashes(result);
         if (osFileExists(result)) {
             info(CODE_RESOLUTION, "\"%s\" -> \"%s\"\n", name, result);
@@ -654,7 +654,7 @@ static int dsoLoadCallback(const char *file, void *ud) {
         {
             char tmp[OS_MAX_PATH_LENGTH];
 
-            sprintf(tmp, "%s_shadeops", name);
+            snprintf(tmp, sizeof(tmp), "%s_shadeops", name);
 
             shadeops = (SHADEOP_SPEC *)osResolve(module, tmp);
         }
@@ -740,7 +740,7 @@ CDSO *CRenderer::getDSO(const char *name, const char *prototype) {
     TSearchpath *inPath = proceduralPath;
     char searchPath[OS_MAX_PATH_LENGTH];
     for (; inPath != NULL; inPath = inPath->next) {
-        sprintf(searchPath, "%s*.%s", inPath->directory, osModuleExtension);
+        snprintf(searchPath, sizeof(searchPath), "%s*.%s", inPath->directory, osModuleExtension);
         osEnumerate(searchPath, dsoLoadCallback, userData);
     }
 

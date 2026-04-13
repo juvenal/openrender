@@ -73,7 +73,7 @@ CDLObject::~CDLObject() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CDLObject::intersect(CShadingContext *context, CRay *ray) {
+void CDLObject::intersect(CShadingContext *, CRay *ray) {
     vector oN;
     float t;
 
@@ -140,7 +140,7 @@ void CDLObject::dice(CShadingContext *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CDLObject::instantiate(CAttributes *a, CXform *x, CRendererContext *context) const {
+void CDLObject::instantiate(CAttributes *, CXform *, CRendererContext *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

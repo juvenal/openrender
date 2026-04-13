@@ -258,7 +258,7 @@ CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
         sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->N, 3);
         sampleReadSuccess = sampleReadSuccess && readVector(in, cSample->irradiance, 3);
 
-        float32_p coverage_f;
+        float32_p coverage_f = 0;
         sampleReadSuccess = sampleReadSuccess && readFloat32(in, coverage_f);
         cSample->coverage = coverage_f;
 
@@ -266,7 +266,7 @@ CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
         sampleReadSuccess = sampleReadSuccess && readFloat32Array(in, cSample->gP, 21); // Translational gradient
         sampleReadSuccess = sampleReadSuccess && readFloat32Array(in, cSample->gR, 21); // Rotational gradient
 
-        float32_p dP_f;
+        float32_p dP_f = 0;
         sampleReadSuccess = sampleReadSuccess && readFloat32(in, dP_f);
         cSample->dP = dP_f;
 

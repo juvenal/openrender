@@ -194,6 +194,9 @@ COptions::CDisplay::~CDisplay() {
                 case STRING_PARAMETER:
                     free((char *)parameters[i].data);
                     break;
+                case INTEGER_PARAMETER:
+                    delete[] (int *)parameters[i].data;
+                    break;
             }
 
             free(parameters[i].name);
@@ -741,7 +744,7 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
 // Description			:	Find the value of a particular option
 // Return Value			:	-
 // Comments				:
-int COptions::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &floatValue) const {
+int COptions::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &) const {
 
     // Check the common case first
     if ((category == NULL) || (strcmp(category, RI_USER) == 0)) {

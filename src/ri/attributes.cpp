@@ -372,7 +372,7 @@ CVariable *CAttributes::findParameter(const char *name) {
 // Description			:	Restore some portion of the shading state from another attribute block
 // Return Value			:	-
 // Comments				:
-void CAttributes::restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int hiding) {
+void CAttributes::restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/) {
     if (shading) {
         if (surface != NULL)
             surface->detach();
@@ -474,7 +474,7 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
 // Description			:	Find a particular attribute
 // Return Value			:	-
 // Comments				:
-int CAttributes::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &floatValue) const {
+int CAttributes::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float & /*floatValue*/) const {
 
     // Make the common case fast
     if ((category == NULL) || (strcmp(category, RI_USER) == 0)) {

@@ -90,7 +90,7 @@ void CObject::dice(CShadingContext *rasterizer) {
     }
 }
 
-static float getDisp(const float *mat, float disp) {
+static float getDisp(const float *mat, float) {
     float tmp[4], tmp2[4];
     int i;
     float alpha;
@@ -271,7 +271,7 @@ void CObject::cluster(CShadingContext *context) {
 // Description			:	Set the children objects
 // Return Value			:
 // Comments				:
-void CObject::setChildren(CShadingContext *context, CObject *allChildren) {
+void CObject::setChildren(CShadingContext *, CObject *allChildren) {
 
     // If raytraced, attach to the children
     if (raytraced()) {

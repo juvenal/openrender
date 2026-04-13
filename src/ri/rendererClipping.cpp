@@ -59,11 +59,6 @@ void CRenderer::beginClipping() {
     } else {
         maxY = pixelTop;
     }
-    const float minX_const = minX;
-    const float maxX_const = maxX;
-    const float minY_const = minY;
-    const float maxY_const = maxY;
-
     // Compute the equations of the clipping planes
     // The visible points are:
     // Px*leftX		+ Pz*leftZ		+ leftD		>=	0	&&

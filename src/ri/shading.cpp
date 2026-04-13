@@ -635,7 +635,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         if ((currentAttributes->displacement == NULL) ||
             ((usedParameters & PARAMETER_RAYTRACE) && (!(currentAttributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)))) {
 #endif
-            const int savedParameters = usedParameters;
+            [[maybe_unused]] const int savedParameters = usedParameters;
 
             // No, just sample the geometry
             // Note: we pass NULL for each of the locals here because we do not wish

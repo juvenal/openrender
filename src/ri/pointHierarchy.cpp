@@ -101,7 +101,7 @@ static inline float ff(const float *rP, const float *rN, const float *oP, const 
 // Description			:	Ctor
 // Return Value			:
 // Comments				:
-CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in) : CMap<CPointCloudPoint>(), CTexture3d(n, from, to) {
+CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in) : CTexture3d(n, from, to), CMap<CPointCloudPoint>() {
 
     // Try to read the point cloud
 
@@ -165,7 +165,7 @@ void CPointHierarchy::computeHierarchy() {
         tmp[i - 1] = i;
 
     // Compute the map hierarchy
-    const int root = cluster(CMap<CPointCloudPoint>::numItems, tmp);
+    cluster(CMap<CPointCloudPoint>::numItems, tmp);
 
     // Root is always the first item in the array
     assert(root == 0);
@@ -463,7 +463,7 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
 // Description			:	Lookup smtg
 // Return Value			:
 // Comments				:
-void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *dPdul, const float *dPdvl, const float *Nl, CShadingContext *context) {
+void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const float *, const float *Nl, CShadingContext *context) {
     const CShadingScratch *scratch = &(context->currentShadingState->scratch);
     const float maxsolidangle = scratch->occlusionParams.maxSolidAngle;
     int *stack = (int *)alloca(POINTHIERARCHY_STACK_SIZE * sizeof(int));

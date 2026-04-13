@@ -68,7 +68,7 @@ CSphereLight::~CSphereLight() {
 // Description			:	Called when we need to illuminate a point
 // Return Value			:	-
 // Comments				:
-void CSphereLight::illuminate(CShadingContext *context, float **locals) {
+void CSphereLight::illuminate(CShadingContext *context, float **) {
     CShadingState *currentShadingState = context->currentShadingState;
 
 #define sampleSphere(cP)                       \
@@ -285,7 +285,7 @@ int CSphereLight::getParameter(const char *param, void *val, CVariable **, int *
 // Description			:	Execute the shader
 // Return Value			:	-
 // Comments				:	Should never be called
-void CSphereLight::execute(CShadingContext *context, float **locals) {
+void CSphereLight::execute(CShadingContext *, float **) {
     // Should never be called
     assert(FALSE);
 }
@@ -377,7 +377,7 @@ CQuadLight::~CQuadLight() {
 // Description			:	Called chen we need to illuminate a point
 // Return Value			:	-
 // Comments				:
-void CQuadLight::illuminate(CShadingContext *context, float **locals) {
+void CQuadLight::illuminate(CShadingContext *context, float **) {
     CShadingState *currentShadingState = context->currentShadingState;
 
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
@@ -648,7 +648,7 @@ int CQuadLight::getParameter(const char *param, void *val, CVariable **, int *) 
 // Description			:	Execute the shader
 // Return Value			:	-
 // Comments				:	Should never be called
-void CQuadLight::execute(CShadingContext *context, float **locals) {
+void CQuadLight::execute(CShadingContext *, float **) {
     // Should never be called
     assert(FALSE);
 }

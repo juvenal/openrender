@@ -117,7 +117,7 @@ int CRenderer::requestRemoteChannel(CRemoteChannel *serverChannel) {
 //							newly created channel to the list if successful
 // Return Value			:
 // Comments				:	called from CRendererContext:processServerRequest
-int CRenderer::processChannelRequest(int index, SOCKET s) {
+int CRenderer::processChannelRequest(int, SOCKET s) {
     int channelNameLength = 0;
     int channelType = 0;
     CRemoteChannel *rChannel = NULL;
@@ -424,7 +424,7 @@ CRemoteTSMChannel::CRemoteTSMChannel(const char *name, FILE *f, int *idx, int xb
 // Description			:	send a buckets worth of tsm data
 // Return Value			:	success or failure
 // Comments				:
-int CRemoteTSMChannel::sendRemoteBucket(SOCKET s, int x, int y) {
+int CRemoteTSMChannel::sendRemoteBucket(SOCKET s, int, int) {
     // Record current position, seek back to tile start
     long curPos = ftell(tsmFile);
     fseek(tsmFile, lastPosition, SEEK_SET);
@@ -708,11 +708,11 @@ int CRemotePtCloudChannel::sendSetupData(SOCKET s) {
     channelDef[0] = '\0';
     int i = 0;
     while (i < (cloud->numChannels - 1)) {
-        sprintf(ptr, "%s,", cloud->channels[i].name);
+        snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channels[i].name);
         ptr += strlen(cloud->channels[i].name) + 1;
         i++;
     }
-    sprintf(ptr, "%s", cloud->channels[cloud->numChannels - 1].name);
+    strcpy(ptr, cloud->channels[cloud->numChannels - 1].name);
 
     rcSend(s, channelDef, 1024, FALSE);
 

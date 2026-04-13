@@ -1305,7 +1305,7 @@ CPolygonMesh::~CPolygonMesh() {
 // Description			:	Intersect with a ray
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::intersect(CShadingContext *r, CRay *ray) {
+void CPolygonMesh::intersect(CShadingContext *r, CRay *) {
 
     if (children == NULL)
         create(r);
@@ -1349,12 +1349,6 @@ void CPolygonMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) c
 // Comments				:
 inline void createQuad(const int *vindices, const int vi0, const int vi1, const int vi2, const int vi3, CMeshData &data) {
     CPolygonQuad *cQuad;
-    const float *P = data.meshP;
-    const float *vs0 = P + vindices[vi0] * 3;
-    const float *vs1 = P + vindices[vi1] * 3;
-    const float *vs2 = P + vindices[vi2] * 3;
-    const float *vs3 = P + vindices[vi3] * 3;
-
     // Create the triangle
     cQuad = new CPolygonQuad(data.meshAttributes, data.meshXform, data.mesh, vindices[vi0], vindices[vi1], vindices[vi3], vindices[vi2], data.meshFacevaryingNumber + vi0, data.meshFacevaryingNumber + vi1, data.meshFacevaryingNumber + vi3, data.meshFacevaryingNumber + vi2, data.meshUniformNumber);
 

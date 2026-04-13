@@ -189,7 +189,7 @@ void CPhotonMap::reset() {
 // Description			:	Write the photon map into a file
 // Return Value			:
 // Comments				:
-void CPhotonMap::write(const CXform *world) {
+void CPhotonMap::write(const CXform *) {
     // Note: write is multithread safe, though it will
     // only ever be called in a single-threaded state
     // we do this so it manages the modifying state properly

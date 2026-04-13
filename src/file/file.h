@@ -76,7 +76,7 @@ class CFileFramebuffer {
         // Description			:	Write image data to the file
         // Return Value			:	-
         // Comments				:
-        virtual void write(int x, int y, int w, int h, float *data) {};
+        virtual void write(int /*x*/, int /*y*/, int /*w*/, int /*h*/, float * /*data*/) {};
 
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CFileFramebuffer

@@ -405,6 +405,15 @@ int CRenderer::findCoordinateSystem(const char *name, const float *&from, const 
             to = currentXform->to;
             break;
         }
+        case COLOR_RGB:
+        case COLOR_HSL:
+        case COLOR_HSV:
+        case COLOR_XYZ:
+        case COLOR_CIE:
+        case COLOR_YIQ:
+        case COLOR_XYY:
+        case COORDINATE_CUSTOM:
+            break;
         }
 
         return TRUE;

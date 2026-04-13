@@ -57,5 +57,5 @@ CResource::~CResource() {
 // Description			:	Restore whatever that was saved in this resource
 // Return Value			:	-
 // Comments				:
-void CResource::restore(CAttributes *attributes, CXform *xform) {
+void CResource::restore(CAttributes *, CXform *) {
 }

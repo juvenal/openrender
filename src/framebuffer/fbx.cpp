@@ -286,8 +286,6 @@ CXDisplay::~CXDisplay() {
  *
  */
 void CXDisplay::main() {
-    int i, j;
-
     assert(display != NULL);
     assert(failure == FALSE);
 
@@ -296,7 +294,6 @@ void CXDisplay::main() {
 
     XSetWindowAttributes window_attributes;
     unsigned long window_mask;
-    XSizeHints window_hints;
     int running = TRUE;
 
     window_attributes.border_pixel = BlackPixel(display, screen);
@@ -314,8 +311,6 @@ void CXDisplay::main() {
                             CopyFromParent,
                             window_mask,
                             &window_attributes);
-
-    int scanSize;
 
     switch (imageDepth) {
         case 15:
@@ -487,7 +482,7 @@ void CXDisplay::finish() {
         unsigned char dr = (unsigned char)nr;            \
         unsigned char dg = (unsigned char)ng;            \
         unsigned char db = (unsigned char)nb;            \
-        unsigned char da = (unsigned char)na;            \
+        unsigned char da = (unsigned char)na; (void)da;   \
         *dest++ = colorPacker(dr, dg, db, da);           \
         src += inc;                                      \
     }
@@ -605,8 +600,6 @@ DEFINE_DATA_HANDLER(abgr32, color_abgr, get_pix_abgr)
  *
  */
 int CXDisplay::data(int x, int y, int w, int h, float *d) {
-    int i, j;
-
     if (windowDown)
         return FALSE;
 

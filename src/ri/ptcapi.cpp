@@ -40,7 +40,7 @@ struct PtcPointCloudInternal {
 // Description			:	Create a point cloud file
 // Return Value			:
 // Comments				:	Handle
-PtcPointCloud PtcCreatePointCloudFile(char *filename, int nvars, char **vartypes, char **varnames, float *world2eye, float *world2ndc, float *format) {
+PtcPointCloud PtcCreatePointCloudFile(char *filename, int nvars, char **vartypes, char **varnames, float *world2eye, float *world2ndc, float *) {
     PtcPointCloudInternal *ptcInternal = new PtcPointCloudInternal;
 
     matrix eye2world;

@@ -308,7 +308,7 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CSphere::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CSphere::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     const float *u = varying[VARIABLE_U] + start;
     const float *v = varying[VARIABLE_V] + start;
     float *sinu = (float *)alloca(numVertices * 4 * sizeof(float));
@@ -544,7 +544,7 @@ void CSphere::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) const
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, float vmax, float umax) {
+void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, float vmax, float) {
     float maxRadius;
     float vmi;
     if (vmax < vmin) {
@@ -743,7 +743,7 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDisk::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CDisk::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     const float *u = varying[VARIABLE_U] + start;
     const float *v = varying[VARIABLE_V] + start;
 
@@ -940,7 +940,7 @@ void CDisk::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) const {
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CDisk::computeObjectBound(float *bmin, float *bmax, float r, float z, float umax) {
+void CDisk::computeObjectBound(float *bmin, float *bmax, float r, float z, float) {
     r = absf(r);
 
     initv(bmin, -r, -r, z);
@@ -1142,7 +1142,7 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCone::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CCone::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     const float *u = varying[VARIABLE_U] + start;
     const float *v = varying[VARIABLE_V] + start;
 
@@ -1357,7 +1357,7 @@ void CCone::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) const {
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CCone::computeObjectBound(float *bmin, float *bmax, float r, float height, float umax) {
+void CCone::computeObjectBound(float *bmin, float *bmax, float r, float height, float) {
 
     r = absf(r);
 
@@ -1569,7 +1569,7 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CParaboloid::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CParaboloid::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     const float *u = varying[VARIABLE_U] + start;
     const float *v = varying[VARIABLE_V] + start;
 
@@ -1799,7 +1799,7 @@ void CParaboloid::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) c
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CParaboloid::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float umax) {
+void CParaboloid::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float) {
     r = absf(r);
 
     float minZ2;
@@ -2006,7 +2006,7 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCylinder::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CCylinder::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     float *u = varying[VARIABLE_U] + start;
     float *v = varying[VARIABLE_V] + start;
 
@@ -2234,7 +2234,7 @@ void CCylinder::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) con
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CCylinder::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float umax) {
+void CCylinder::computeObjectBound(float *bmin, float *bmax, float r, float zmin, float zmax, float) {
     r = absf(r);
 
     float minZ2;
@@ -2500,7 +2500,7 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CHyperboloid::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CHyperboloid::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     float *u = varying[VARIABLE_U] + start;
     float *v = varying[VARIABLE_V] + start;
     float *sinu = (float *)alloca(numVertices * 2 * sizeof(float));
@@ -2567,8 +2567,6 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
             for (int i = 0; i < numVertices; ++i) {
                 const float x = cp1[COMP_X] + dx[i] * v[i];
                 const float y = cp1[COMP_Y] + dy[i] * v[i];
-                const float z = cp1[COMP_Z] + dz[i] * v[i];
-
                 dPdu[COMP_X] = -x * umax[i] * sinu[i] - y * umax[i] * cosu[i];
                 dPdu[COMP_Y] = x * umax[i] * cosu[i] - y * umax[i] * sinu[i];
                 dPdu[COMP_Z] = 0;
@@ -2622,8 +2620,6 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
             for (int i = 0; i < numVertices; ++i) {
                 const float x = p1[COMP_X] + dx * v[i];
                 const float y = p1[COMP_Y] + dy * v[i];
-                const float z = p1[COMP_Z] + dz * v[i];
-
                 dPdu[COMP_X] = -x * umax * sinu[i] - y * umax * cosu[i];
                 dPdu[COMP_Y] = x * umax * cosu[i] - y * umax * sinu[i];
                 dPdu[COMP_Z] = 0;
@@ -2761,7 +2757,7 @@ void CHyperboloid::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) 
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CHyperboloid::computeObjectBound(float *bmin, float *bmax, float *p1, float *p2, float umax) {
+void CHyperboloid::computeObjectBound(float *bmin, float *bmax, float *p1, float *p2, float) {
     float d = p1[COMP_X] * p1[COMP_X] + p1[COMP_Y] * p1[COMP_Y];
     float d2 = p2[COMP_X] * p2[COMP_X] + p2[COMP_Y] * p2[COMP_Y];
 
@@ -3017,7 +3013,7 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CToroid::sample(int start, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CToroid::sample(int start, int numVertices, float **varying, float ***, unsigned int &up) const {
     float *u = varying[VARIABLE_U] + start;
     float *v = varying[VARIABLE_V] + start;
     float *sinu = (float *)alloca(numVertices * 4 * sizeof(float));
@@ -3252,7 +3248,7 @@ void CToroid::instantiate(CAttributes *a, CXform *x, CRendererContext *cx) const
 // Description			:	Compute the bounding box in the object space
 // Return Value			:	-
 // Comments				:
-void CToroid::computeObjectBound(float *bmin, float *bmax, float rmin, float rmax, float vmin, float vmax, float umax) {
+void CToroid::computeObjectBound(float *bmin, float *bmax, float rmin, float rmax, float, float, float) {
     float r = absf(rmin) + absf(rmax);
 
     bmin[COMP_X] = -r;
