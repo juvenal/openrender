@@ -225,7 +225,7 @@ int gettoken(int f) {
                         /*
                          *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
                          */
-                        /* FALLTHROUGH */
+                        __attribute__((fallthrough));
                     case F_FRAC:
                         if (istype(t, C_D))
                             /* Fraction ok so far */ break;

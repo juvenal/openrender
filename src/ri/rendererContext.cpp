@@ -2048,6 +2048,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
                                     xform->flip = nflip;
                                 }
+                                break;
                             default:
                                 break;
                             }

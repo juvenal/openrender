@@ -214,6 +214,7 @@ char *docall(struct symtab *p, char *internal, char *internal_limit) {
 
                 case EOF:
                     end_of_file(); /* Unexpected end of file */
+                    break;
 
                 default:
                     break;
