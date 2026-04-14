@@ -1,0 +1,40 @@
+/**
+ * MaterialMatte():
+ *     Compute the color of a surface using a simple Lambertian BRDF.
+ *     Typical values are Ka = 1, Kd = 0.8.
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+#include "filterwidth.slh"
+#include "loc_illum_glossy.slh"
+#include "loc_illum_cel_diffuse.slh"
+
+color
+MaterialCel(normal Nf;
+             color Cs;
+             float Ka, Kd, Ks,
+                   roughness, specsharpness)
+
+{    
+    extern vector I;
+    vector IN = normalize(I),
+            V = -IN;
+    return Cs * (Ka * ambient() + Kd * LocIllumCelDiffuse(Nf)) +
+                 Ks * LocIllumGlossy(Nf, V, roughness/10, specsharpness);
+}
+
+color
+CelOutline(normal N;
+            float outlinethickness)
+
+{
+    extern float du, dv;
+    extern color Ci, Oi;
+    extern vector I;
+    float angle = abs(normalize(N) . normalize(I));
+    float dangle = filterwidth(angle);
+    float border = 1 - filterstep(5 * outlinethickness, angle/dangle);
+    Oi = mix(Oi, color(1), border);
+    return mix(Ci, color(0), border);
+}

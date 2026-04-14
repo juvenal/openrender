@@ -1,0 +1,13 @@
+/**
+ *
+ *
+ *
+ *
+ * openRender: RenderMan compliant renderer
+ */
+
+
+#define MINFILTWIDTH 1.0e-6
+
+#define filterwidth(x) max(abs(Du(x)*du)+abs(Dv(x)*dv), MINFILTWIDTH)
+#define filterwidthp(p) max(sqrt(area(p)), MINFILTWIDTH)

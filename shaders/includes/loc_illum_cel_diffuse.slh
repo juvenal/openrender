@@ -1,0 +1,32 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+color
+LocIllumCelDiffuse (normal N)
+{
+    color C = 0;
+    extern point P;
+    illuminance(P, N, PI / 2) {
+        /*   */
+        extern vector L;
+        extern color Cl;
+        float nondiff = 0;
+        lightsource("__nondiffuse", nondiff);
+        if (nondiff < 1) {
+            C += Cl * ((1 - nondiff) * 
+                       smoothstep(0, 0.1, N . normalize(L)));
+        }
+    }
+    return C;
+}
