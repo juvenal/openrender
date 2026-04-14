@@ -443,7 +443,7 @@ for (y = ymin; y <= ymax; y++) {
         // only on pixel->jt, which is the same for all quads tested against this pixel.
         // Computing it once per pixel instead of once per (pixel × quad) is ~udiv*vdiv× faster.
 #ifdef STOCHASTIC_MOVING
-        matrix Mjt_pix;
+        matrix Mjt_pix = {};
         float tx_pix = 0.0f, ty_pix = 0.0f, tz_pix = 0.0f;
         if (CRenderer::cameraHasRotation) {
             static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};

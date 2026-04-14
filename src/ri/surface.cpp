@@ -146,7 +146,7 @@ void CPatch::dice(CShadingContext *r) {
         object->getDicingStats(depth, minDivU, minDivV);
 
         // No, probe the surface and find the bounding box
-        float *Pmov;
+        float *Pmov = nullptr;
         float maxBound;
         int up, vp;
         int k;

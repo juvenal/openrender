@@ -109,7 +109,7 @@ void cur_user(void) {
 void do_line(char at_bol) /* TRUE if already at BOL */
 {
     char buf[TOKENSIZE + 1];
-    char filen[FILENAMESIZE + 1];
+    char filen[FILENAMESIZE + 4];
     int n;
 
     n = Tokenline - Outline; /* Difference in line #s */

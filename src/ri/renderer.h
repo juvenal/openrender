@@ -570,11 +570,13 @@ inline void camera2screen(int n, float *P) {
 inline void distance2pixels(int n, float *dist, float *P) {
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         for (; n > 0; n--, P += 3) {
-            *dist++ = CRenderer::dPixeldx * CRenderer::imagePlane * dist[0] / P[COMP_Z];
+            float d = dist[0];
+            *dist++ = CRenderer::dPixeldx * CRenderer::imagePlane * d / P[COMP_Z];
         }
     } else {
         for (; n > 0; n--, P += 3) {
-            *dist++ = CRenderer::dPixeldx * dist[0];
+            float d = dist[0];
+            *dist++ = CRenderer::dPixeldx * d;
         }
     }
 }

@@ -356,8 +356,9 @@ void CSubdivision::interpolate(int numVertices, float **varying, float ***locals
         dPdv = varying[VARIABLE_DPDV];
 
         for (i = numVertices; i > 0; i--) {
-            *u++ = (*u) * uMult + uOrg;
-            *v++ = (*v) * vMult + vOrg;
+            float uval = *u, vval = *v;
+            *u++ = uval * uMult + uOrg;
+            *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);

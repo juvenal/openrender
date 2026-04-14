@@ -95,6 +95,24 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(openrender_common_flags INTERFACE
         $<$<COMPILE_LANGUAGE:CXX>:-Wformat-security>
     )
+
+    # Clang omits -Wunused-but-set-variable from -Wextra; add it explicitly so
+    # both Clang and GCC enforce the same diagnostic coverage.
+    target_compile_options(openrender_common_flags INTERFACE
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wunused-but-set-variable>
+    )
+
+    # Clang omits -Wimplicit-fallthrough from -Wextra; add it explicitly so
+    # all targets (not just oshader) catch unannotated switch fall-throughs on macOS.
+    target_compile_options(openrender_common_flags INTERFACE
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wimplicit-fallthrough>
+    )
+
+    # Clang's equivalent of GCC's -Wsequence-point; catches undefined behavior
+    # from reading and modifying a variable in the same unsequenced expression.
+    target_compile_options(openrender_common_flags INTERFACE
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wunsequenced>
+    )
 endif()
 
 # ###########################################################################

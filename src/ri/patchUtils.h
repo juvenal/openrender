@@ -27,16 +27,7 @@
 
 #include "common/algebra.h"
 
-// The inverse of the Bezier basis
-static matrix invBezier = {0, 0, 0, 1.0f,
-                           0, 0, 1.0f / 3.0f, 1.0f,
-                           0, 1.0f / 3.0f, 2.0f / 3.0f, 1.0f,
-                           1.0f, 1.0f, 1.0f, 1.0f};
 
-static dmatrix dinvBezier = {0, 0, 0, 1.0,
-                             0, 0, 1.0 / 3.0, 1.0,
-                             0, 1.0 / 3.0, 2.0 / 3.0, 1.0,
-                             1.0, 1.0, 1.0, 1.0};
 
 // This macro is used to fix the degenerate normal vectors
 #define normalFix()                                                     \

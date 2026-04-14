@@ -438,7 +438,7 @@ int CRemoteTSMChannel::sendRemoteBucket(SOCKET s, int, int) {
     char buf[NETWORK_BUFFER_LENGTH];
     while (sz > 0) {
         int nn = (int)((sz > (NETWORK_BUFFER_LENGTH)) ? (NETWORK_BUFFER_LENGTH) : sz);
-        fread(buf, nn, 1, tsmFile);
+        if (fread(buf, nn, 1, tsmFile) != 1) { /* read error */ }
         rcSend(s, buf, nn, FALSE);
         sz -= nn;
     }

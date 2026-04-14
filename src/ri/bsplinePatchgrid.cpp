@@ -33,6 +33,12 @@
 #include "shading.h"
 #include "stats.h"
 
+// The inverse of the Bezier basis (float)
+static matrix invBezier = {0, 0, 0, 1.0f,
+                           0, 0, 1.0f / 3.0f, 1.0f,
+                           0, 1.0f / 3.0f, 2.0f / 3.0f, 1.0f,
+                           1.0f, 1.0f, 1.0f, 1.0f};
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBSplinePatchGrid
 // Method				:	CBSplinePatchGrid
@@ -229,6 +235,7 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
 
     { // Do the vertices
         float *intr = (float *)alloca(numVertices * vertexSize * sizeof(float));
+        memset(intr, 0, numVertices * vertexSize * sizeof(float));
         float *dPdu = varying[VARIABLE_DPDU] + start * 3;
         float *dPdv = varying[VARIABLE_DPDV] + start * 3;
         float *N = varying[VARIABLE_NG] + start * 3;
@@ -391,8 +398,8 @@ void CBSplinePatchGrid::interpolate(int numVertices, float **varying, float ***l
         dPdv = varying[VARIABLE_DPDV];
 
         for (i = numVertices; i > 0; i--) {
-            *u++ = (*u) * uMult + uOrg;
-            *v++ = (*v) * vMult + vOrg;
+            float uval = *u; *u++ = uval * uMult + uOrg;
+            float vval = *v; *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);

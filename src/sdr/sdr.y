@@ -1274,6 +1274,7 @@ slOperand:
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include "lex.sdr.cpp"
 #pragma GCC diagnostic pop
 
@@ -1296,10 +1297,10 @@ void			sdrerror(const char *s) {
 // Comments				:
 TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 	TSdrShader		*cShader;
-	char			tmp[512];
+	char			baseName[512];
+	char			tmp[sizeof(baseName) + 6];
 	const	char	*currentPath;
 	char			*dest;
-	char			baseName[512];
 
 	// Strip explicit extensions
 	strncpy(baseName, in, sizeof(baseName));

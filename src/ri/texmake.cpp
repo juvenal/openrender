@@ -212,8 +212,8 @@ static void appendPyramid(TIFF *out, int &dstart, int numSamples, int bitsperpix
 void *readLayer(TIFF *in, int *width, int *height, int *bitsperpixel, int *numSamples) {
     unsigned char *data;
     int i;
-    uint32 w, h;
-    uint16 ns, bp;
+    uint32_t w, h;
+    uint16_t ns, bp;
     int pixelSize;
 
     TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &w);

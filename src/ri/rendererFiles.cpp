@@ -85,7 +85,7 @@ void CRenderer::shutdownFiles() {
 
     // Ditch the temporary files created
     if (osFileExists(temporaryPath)) {
-        char tmp[OS_MAX_PATH_LENGTH];
+        char tmp[OS_MAX_PATH_LENGTH + 1];
 
         snprintf(tmp, sizeof(tmp), "%s*", temporaryPath);
         osFixSlashes(tmp);

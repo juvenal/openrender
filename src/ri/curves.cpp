@@ -134,8 +134,10 @@ void CCurve::interpolate(int numVertices, float **varying, float ***locals) cons
     // Normalize the v parameter
     float *v = varying[VARIABLE_V];
     int i;
-    for (i = numVertices; i > 0; i--)
-        *v++ = (gvmax - gvmin) * v[0] + gvmin;
+    for (i = numVertices; i > 0; i--) {
+        float vval = v[0];
+        *v++ = (gvmax - gvmin) * vval + gvmin;
+    }
 
     // Get the width
     const float *size;

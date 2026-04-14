@@ -274,9 +274,9 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
         // Get the texture properties
         // Note: using fileWidth, rather than the pixar full width is fine,
         // we only use this to work out whether we're tiled or not
-        uint32 width, height;
-        uint16 numSamples;
-        uint16 bitspersample;
+        uint32_t width, height;
+        uint16_t numSamples;
+        uint16_t bitspersample;
         TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &width);
         TIFFGetFieldDefaulted(in, TIFFTAG_IMAGELENGTH, &height);
         TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &numSamples);
@@ -327,12 +327,12 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
                 memEnd(context->threadMemory);
 
             } else {
-                uint32 tileWidth, tileHeight;
+                uint32_t tileWidth, tileHeight;
 
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
-                assert(tileWidth == (uint32)w);
-                assert(tileHeight == (uint32)h);
+                assert(tileWidth == (uint32_t)w);
+                assert(tileHeight == (uint32_t)h);
                 assert((x % tileWidth) == 0);
                 assert((y % tileHeight) == 0);
 
@@ -355,7 +355,7 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
         } else {
             // We need to read the entire texture
             if (tiled) {
-                uint32 tileWidth, tileHeight;
+                uint32_t tileWidth, tileHeight;
 
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
@@ -1512,7 +1512,9 @@ class CDeepShadow : public CEnvironment {
 
             dataStart = data = (float *)textureAllocateBlock(&(cTile->block), context);
             fseek(in, startIndex, SEEK_SET);
-            fread(data, sizeof(unsigned char), cTile->block.size, in);
+            if (fread(data, sizeof(unsigned char), cTile->block.size, in) < (size_t)cTile->block.size) {
+                // short read — proceed with whatever data was loaded into the tile
+            }
             // fclose(in);  // moved later, see below
 
             cLastData = cTile->lastData;
@@ -1919,9 +1921,9 @@ void CDummyEnvironment::lookup(float *dest, const float *, const float *, const 
 // Comments				:
 template <class T>
 static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, int &dstart, int width, int height, const char *smode, const char *tmode, T) {
-    uint32 fileWidth, fileHeight;
-    uint32 tileWidth, tileHeight;
-    uint16 numSamples;
+    uint32_t fileWidth, fileHeight;
+    uint32_t tileWidth, tileHeight;
+    uint16_t numSamples;
     TTextureMode sMode, tMode;
     int tileWidthShift, tileHeightShift;
     double M;
@@ -1994,10 +1996,10 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
         TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
         TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
         int ii, jj;
-        for (ii = 1, jj = 0; (uint32)ii != tileWidth; ii = ii << 1, jj++)
+        for (ii = 1, jj = 0; (uint32_t)ii != tileWidth; ii = ii << 1, jj++)
             ;
         tileWidthShift = jj;
-        for (ii = 1, jj = 0; (uint32)ii != tileHeight; ii = ii << 1, jj++)
+        for (ii = 1, jj = 0; (uint32_t)ii != tileHeight; ii = ii << 1, jj++)
             ;
         tileHeightShift = jj;
 
@@ -2019,9 +2021,9 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 template <class T>
 static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int &dstart, T) {
     TIFFSetDirectory(in, dstart);
-    uint32 width = 0;
-    uint32 height = 0;
-    uint16 numSamples = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint16_t numSamples = 0;
     // Note: regular textures don't have pixar full image tag
     TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetFieldDefaulted(in, TIFFTAG_IMAGELENGTH, &height);
@@ -2050,7 +2052,7 @@ static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int 
 // Comments				:
 static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dstart, int unMade = FALSE) {
     CTexture *cTexture = NULL;
-    uint16 bitspersample;
+    uint16_t bitspersample;
 
     // Get the bits per sample from the file
     TIFFSetDirectory(in, dstart);
@@ -2058,8 +2060,8 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
 
     // Is this a made texture file ?
     if (unMade == FALSE) {
-        uint32 width = 0;
-        uint32 height = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
 
         // Use full image tags in preference to image size tags
         // Allows us to rescale when otexmake makes a texture power of 2

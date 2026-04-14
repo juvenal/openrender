@@ -306,7 +306,7 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
         illuminateEnd();                                  \
     } else {                                              \
         const float *L = varying[VARIABLE_L];             \
-        float *Lsave;                                     \
+        float *Lsave = nullptr;                           \
                                                           \
         saveLighting(Lsave);                              \
         for (int i = 0; i < numVertices; ++i, ++tags) {   \
@@ -444,7 +444,7 @@ DEFOPCODE(Solar2, "solar", 3, SOLAR2EXPR_PRE, NULL_EXPR, NULL_EXPR, SOLAR2EXPR_P
         solarEnd();                                       \
     } else {                                              \
         const float *L = varying[VARIABLE_L];             \
-        float *Lsave;                                     \
+        float *Lsave = nullptr;                           \
                                                           \
         saveLighting(Lsave);                              \
         for (int i = 0; i < numVertices; ++i, ++tags) {   \

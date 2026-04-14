@@ -227,7 +227,7 @@ void osFixSlashes(char *st) {
 // Description         :   Create a path to a directory suitable
 //                     :   for storing temporary files.
 // Return Value        :   -
-// Comments            :   The directory will end with / or \
+// Comments            :   The directory will end with a slash or a backslash
 //                     :   Does not create the directory.
 //                     :   Path is only unique within this process.
 void osTempdir(char *result, size_t resultsize) {

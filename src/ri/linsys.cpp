@@ -38,7 +38,7 @@
 // Comments				:
 template <class T>
 int ludcmp(T **a, int n, int *indx, T *d) {
-    int i, imax, j, k;
+    int i, imax = 0, j, k;
     T big, dum, sum, temp;
     T *vv;
 

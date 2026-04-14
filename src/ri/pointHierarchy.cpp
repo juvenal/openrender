@@ -181,7 +181,7 @@ void CPointHierarchy::computeHierarchy() {
 // Return Value			:	-
 // Comments				:
 int CPointHierarchy::average(int numItems, int *indices) {
-    CMapNode node;
+    CMapNode node = {};
 
     // PASS 1:	Average the position/normal
     initv(node.P, 0);

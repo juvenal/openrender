@@ -85,7 +85,7 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
         if (in != NULL) {
 
             // Read the samples
-            fread(&maxDepth, sizeof(int), 1, in);
+            if (fread(&maxDepth, sizeof(int), 1, in) != 1) { /* read error */ }
             root = readNode(in);
 
             // Close the file

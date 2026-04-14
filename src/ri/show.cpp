@@ -84,10 +84,10 @@ CShow::CShow(int thread) : CShadingContext(thread) {
                     int version[4], i;
                     char *t;
 
-                    fread(&magic, sizeof(int), 1, in);
+                    if (fread(&magic, sizeof(int), 1, in) != 1) { /* read error */ }
 
                     if (magic == magicNumber) {
-                        fread(version, sizeof(int), 4, in);
+                        if (fread(version, sizeof(int), 4, in) != 4) { /* read error */ }
 
                         if (!((version[0] == VERSION_MAJOR) || (version[1] == VERSION_MINOR))) {
                             error(CODE_VERSION, "File \"%s\" is from an incompatible version\n", fileName);
@@ -96,9 +96,9 @@ CShow::CShow(int thread) : CShadingContext(thread) {
                                 error(CODE_VERSION, "File \"%s\" is binary an incompatible (generated on a machine with different word size)\n", fileName);
                             } else {
 
-                                fread(&i, sizeof(int), 1, in);
+                                if (fread(&i, sizeof(int), 1, in) != 1) { /* read error */ }
                                 t = (char *)alloca((i + 1) * sizeof(char));
-                                fread(t, sizeof(char), i + 1, in);
+                                if (fread(t, sizeof(char), i + 1, in) != (size_t)(i + 1)) { /* read error */ }
 
                                 info(CODE_PRINTF, "File:    %s\n", fileName);
                                 info(CODE_PRINTF, "Version: %d.%d.%d\n", version[0], version[1], version[2]);

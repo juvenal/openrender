@@ -205,8 +205,8 @@ DEFOPCODE(Forend3, "forend", 0, FOREND3EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR
 
 // FIXME: this optmization 'breaks' varying breaks! because they need to exit the conditional
 // in which they are defined.  No easy fix
-//							if (numActive == 0) {												\
-//								jmp(lastConditional->forEnd);									\
+//							if (numActive == 0) {
+//								jmp(lastConditional->forEnd);
 //							}
 
 DEFOPCODE(Break1, "break", 1, BREAK1EXPR_PRE, NULL_EXPR, NULL_EXPR, BREAK1EXPR_POST, 0)

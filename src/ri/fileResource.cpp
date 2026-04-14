@@ -94,7 +94,7 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
         int version[4];
         char *t;
 
-        fread(&magic, 1, sizeof(int), f);
+        if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */ }
 
         if (magic != magicNumber) {
             if (magic == magicNumberReversed) {
@@ -108,7 +108,7 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
             return NULL;
         }
 
-        fread(version, 3, sizeof(int), f);
+        if (fread(version, 3, sizeof(int), f) != 3) { /* read error */ }
 
         if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
             // Always report file version errors
@@ -118,7 +118,7 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
         }
 
         // intentionally read separately for backward compatibility
-        fread(version + 3, 1, sizeof(int), f);
+        if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */ }
 
         if (version[3] != sizeof(int *)) {
             // Always report file wordsize errors
@@ -127,9 +127,9 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
             return NULL;
         }
 
-        fread(&i, 1, sizeof(int), f);
+        if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */ }
         t = (char *)alloca((i + 1) * sizeof(char));
-        fread(t, i + 1, sizeof(char), f);
+        if (fread(t, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */ }
 
         if (strcmp(t, type) != 0) {
             if (probe == FALSE)
@@ -158,7 +158,7 @@ FILE *ropen(const char *name, char *type) {
         return NULL;
     }
 
-    fread(&magic, 1, sizeof(int), f);
+    if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */ }
 
     if (magic != magicNumber) {
         if (magic == magicNumberReversed) {
@@ -170,7 +170,7 @@ FILE *ropen(const char *name, char *type) {
         return NULL;
     }
 
-    fread(version, 3, sizeof(int), f);
+    if (fread(version, 3, sizeof(int), f) != 3) { /* read error */ }
 
     if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
         error(CODE_BADFILE, "File \"%s\" is of incompatible version\n", name);
@@ -179,7 +179,7 @@ FILE *ropen(const char *name, char *type) {
     }
 
     // intentionally read separately for backward compatibility
-    fread(version + 3, 1, sizeof(int), f);
+    if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */ }
 
     if (version[3] != sizeof(int *)) {
         error(CODE_BADFILE, "File \"%s\" is binary incompatible (generated on a machine with different word size)\n", name);
@@ -187,8 +187,8 @@ FILE *ropen(const char *name, char *type) {
         return NULL;
     }
 
-    fread(&i, 1, sizeof(int), f);
-    fread(type, i + 1, sizeof(char), f);
+    if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */ }
+    if (fread(type, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */ }
 
     return f;
 }

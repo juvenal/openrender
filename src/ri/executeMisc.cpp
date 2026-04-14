@@ -848,9 +848,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
 // Return Value			:	-
 // Comments				:
 void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int probeOnly) {
-    CTraceRay *interiorRayBase, *cInteriorRay;
+    CTraceRay *interiorRayBase = nullptr, *cInteriorRay = nullptr;
     CTraceRay *exteriorRayBase, *cExteriorRay;
-    CTraceRay **interiorRaysBase, **exteriorRaysBase, **cInteriorRays, **cExteriorRays;
+    CTraceRay **interiorRaysBase = nullptr, **exteriorRaysBase, **cInteriorRays = nullptr, **cExteriorRays;
     const CShadingScratch *scratch = &(currentShadingState->scratch);
     const int shootStep = CRenderer::shootStep;
     int numInteriorRemaining = shootStep;

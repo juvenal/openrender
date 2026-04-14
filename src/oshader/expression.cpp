@@ -402,10 +402,10 @@ void CTwoExpressions::getCode(FILE *out, CVariable *dest) {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CVectorExpression::CVectorExpression(CExpression *x, CExpression *y, CExpression *z) : CExpression(SLC_VECTOR | (x->type & y->type & z->type & SLC_UNIFORM)) {
-    this->x = getConversion(SLC_FLOAT, x);
-    this->y = getConversion(SLC_FLOAT, y);
-    this->z = getConversion(SLC_FLOAT, z);
+CVectorExpression::CVectorExpression(CExpression *xExpr, CExpression *yExpr, CExpression *zExpr) : CExpression(SLC_VECTOR | (xExpr->type & yExpr->type & zExpr->type & SLC_UNIFORM)) {
+    this->x = getConversion(SLC_FLOAT, xExpr);
+    this->y = getConversion(SLC_FLOAT, yExpr);
+    this->z = getConversion(SLC_FLOAT, zExpr);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -905,9 +905,9 @@ void CUnaryExpression::getCode(FILE *out, CVariable *dest) {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CSysConversionExpression::CSysConversionExpression(int t, const char *opcode, const char *system, CExpression *ft) : CExpression(t | (ft->type & SLC_UNIFORM)) {
-    this->opcode = opcode;
-    this->system = strdup(system);
+CSysConversionExpression::CSysConversionExpression(int t, const char *opcodeStr, const char *sysName, CExpression *ft) : CExpression(t | (ft->type & SLC_UNIFORM)) {
+    this->opcode = opcodeStr;
+    this->system = strdup(sysName);
     this->first = ft;
 }
 
@@ -1531,12 +1531,12 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CConditionalExpression::CConditionalExpression(int type, CExpression *condition, CExpression *first, CExpression *second) : CExpression(type) {
-    this->condition = getConversion(SLC_FLOAT, condition);
-    this->trueExpression = getConversion(type, first);
-    this->falseExpression = getConversion(type, second);
+CConditionalExpression::CConditionalExpression(int exprType, CExpression *condExpr, CExpression *first, CExpression *second) : CExpression(exprType) {
+    this->condition = getConversion(SLC_FLOAT, condExpr);
+    this->trueExpression = getConversion(exprType, first);
+    this->falseExpression = getConversion(exprType, second);
 
-    if (!(condition->type & SLC_UNIFORM))
+    if (!(condExpr->type & SLC_UNIFORM))
         this->type &= ~SLC_UNIFORM;
     if (!(trueExpression->type & SLC_UNIFORM))
         this->type &= ~SLC_UNIFORM;
@@ -1829,7 +1829,7 @@ void CArrayMove::getCode(FILE *out, CVariable *dest) {
     int i;
     CExpression *cExpression;
     char tmp[32];
-    const char *opcode;
+    const char *opcode = nullptr;
 
     if (dest != nullptr) {
         sdr->error("Nested array assignments are not supported yet\n");
@@ -1875,7 +1875,7 @@ void CArrayMove::getCode(FILE *out, CVariable *dest) {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CUpdateExpression::CUpdateExpression(CVariable *f, const char *opcodeFloat, const char *opcodeVector, int pre, CExpression *s) : CExpression(f->type) {
+CUpdateExpression::CUpdateExpression(CVariable *f, const char *floatOpcode, const char *vectorOpcode, int isPre, CExpression *s) : CExpression(f->type) {
     first = f;
     second = getConversion(f->type & SLC_TYPE_MASK, s);
 
@@ -1889,9 +1889,9 @@ CUpdateExpression::CUpdateExpression(CVariable *f, const char *opcodeFloat, cons
         }
     }
 
-    this->opcodeFloat = opcodeFloat;
-    this->opcodeVector = opcodeVector;
-    this->pre = pre;
+    this->opcodeFloat = floatOpcode;
+    this->opcodeVector = vectorOpcode;
+    this->pre = isPre;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1912,7 +1912,7 @@ CUpdateExpression::~CUpdateExpression() {
 // Return Value			:	-
 // Comments				:
 void CUpdateExpression::getCode(FILE *out, CVariable *dest) {
-    const char *opcode, *opcodeM;
+    const char *opcode = nullptr, *opcodeM = nullptr;
 
     lock(op, second);
 

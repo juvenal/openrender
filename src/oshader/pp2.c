@@ -178,9 +178,7 @@ char *docall(struct symtab *p, char *internal, char *internal_limit) {
 
                     pcount = 1;  /* Wrap -- make comma fake */
                     done = TRUE; /* We are finished */
-
-                    /* Fall through for end of param list */
-
+                    __attribute__((fallthrough)); /* end of param list */
                 case ',':
                     if (pcount == 1) {
                         addit = FALSE; /* Do not add */
@@ -809,7 +807,7 @@ void dodefine(int mactype, int no_flag, const char *pragma_name) {
     char *bodyp;          /* Pointer into body		*/
     int lasttok;          /* Last token fetched in loop	*/
     int macctr;           /* Level ctr for #macro/#endm	*/
-    char name[TOKENSIZE]; /* Name buffer	*/
+    char name[TOKENSIZE + 1]; /* Name buffer	*/
     struct param *pp;     /* Param proto pointer		*/
     struct symtab *sy;    /* Symbol table ptr		*/
     int t;                /* Token type			*/

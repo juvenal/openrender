@@ -204,6 +204,7 @@ varItems:	VAR_OPEN
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include	"lex.var.cpp"
 #pragma GCC diagnostic pop
 

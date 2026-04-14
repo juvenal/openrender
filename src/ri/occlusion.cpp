@@ -164,10 +164,10 @@ int COcclusionCuller::probeRect(int *xbound, int *ybound, int bw, int bh, int bl
     int queryDepth = depth;
     int w = bw, h = bh;
 
-    int xmin;
-    int xmax;
-    int ymin;
-    int ymax;
+    int xmin = 0;
+    int xmax = 0;
+    int ymin = 0;
+    int ymax = 0;
 
     // search for a small enough query area, to keep query cost down
     // this has the nice property that large objects are less accurately

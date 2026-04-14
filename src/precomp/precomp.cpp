@@ -219,7 +219,7 @@ int precomputeSubdivisionData() {
     basis[14] = 0 / 6.0;
     basis[15] = 0 / 6.0;
 
-    fread(&Nmax, sizeof(int), 1, f);
+    if (fread(&Nmax, sizeof(int), 1, f) != 1) { /* read error */ }
 
     ev = (TEvalStruct **)malloc((Nmax - 2) * sizeof(TEvalStruct *));
 
@@ -239,11 +239,11 @@ int precomputeSubdivisionData() {
         ev[i]->Phi2[1] = (double *)malloc(K * 16 * sizeof(double));
         ev[i]->Phi2[2] = (double *)malloc(K * 16 * sizeof(double));
 
-        fread(ev[i]->val, sizeof(double), K, f);
-        fread(ev[i]->vecI, sizeof(double), K * K, f);
-        fread(ev[i]->Phi[0], sizeof(double), K * 16, f);
-        fread(ev[i]->Phi[1], sizeof(double), K * 16, f);
-        fread(ev[i]->Phi[2], sizeof(double), K * 16, f);
+        if (fread(ev[i]->val,    sizeof(double), K,      f) != (size_t)K)      { /* read error */ }
+        if (fread(ev[i]->vecI,  sizeof(double), K * K,  f) != (size_t)(K * K)) { /* read error */ }
+        if (fread(ev[i]->Phi[0],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
+        if (fread(ev[i]->Phi[1],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
+        if (fread(ev[i]->Phi[2],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
 
         {
             int oi, oj, ok;

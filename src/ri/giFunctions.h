@@ -493,7 +493,7 @@ DEFSHORTFUNC(GatherHeader, "gatherHeader", "o=spnff!", GATHERHEADEREXPR_PRE, GAT
     float *op2f;                          \
     const float *P = varying[VARIABLE_P]; \
     const float *I = varying[VARIABLE_I]; \
-    int stepSize;                         \
+    int stepSize = 0;                     \
     operand(0, res, float *);             \
     operand(1, op1, const char **);       \
     operand(2, op2f, float *);            \

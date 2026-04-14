@@ -2040,6 +2040,7 @@ slOperand:
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include "lex.sl.cpp"
 #pragma GCC diagnostic pop
 

@@ -55,6 +55,12 @@
 
 %require "3.0"
 
+// The grammar has one known, benign shift/reduce conflict: a parenthesized
+// arithmetic expression ( expr ) is ambiguous between slAritmeticTerminalValue
+// and slVectorMatrixExpression (since arithmetic reduces to VM).  Bison
+// resolves it by preferring shift, which is the correct behavior.
+%expect 1
+
 %{
 //////////////////////////////////////////////////////////////////////////
 // Misc C definitions
@@ -1233,7 +1239,7 @@ slReturnStatement:
 			}
 
 			// Figure out what the return type is and desire it
-			CParameter	*retParam = cFun->returnValue;
+			CParameter	*retParam = (cFun != nullptr) ? cFun->returnValue : nullptr;
 			if (retParam) {
 				int returnType = retParam->type;
 				sdr->desire(returnType);
@@ -2812,6 +2818,7 @@ slFunctionCallParameters:
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include	"lex.sl.cpp"
 #pragma GCC diagnostic pop
 

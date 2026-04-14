@@ -552,8 +552,8 @@ void rndrd(int port) {
 #endif
 
             // Handle the message
-            recv(peer, (char *)buffer[1].string, (BUFFERSIZE - 1) * sizeof(T64), 0);
-            if (strncmp(buffer[1].string, " quit", 5) == 0) {
+            recv(peer, (char *)&buffer[1], (BUFFERSIZE - 1) * sizeof(T64), 0);
+            if (strncmp((char *)&buffer[1], " quit", 5) == 0) {
                 noRestart = TRUE;
                 running = FALSE;
             }
@@ -585,7 +585,7 @@ void rndrd(int port) {
 int main(int argc, char *argv[]) {
     int i;
     char managerString[1024];
-    char managerString2[1024];
+    char managerString2[2048];
     int server = FALSE;
     int client = FALSE;
     int localserver = FALSE;
@@ -612,7 +612,7 @@ int main(int argc, char *argv[]) {
     set_log_level(LogLevel::NONE);
 
     // Register the exit stuff
-    snprintf(managerString, sizeof(managerString), "");
+    managerString[0] = '\0';
     gargc = argc;
     gargv = argv;
     isDaemon = FALSE;

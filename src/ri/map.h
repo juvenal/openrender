@@ -116,12 +116,12 @@ class CMap {
         // Return Value			:
         // Comments				:
         void read(FILE *in) {
-            fread(&numItems, sizeof(int), 1, in);
-            fread(&maxItems, sizeof(int), 1, in);
+            if (fread(&numItems, sizeof(int), 1, in) != 1) { /* read error */ }
+            if (fread(&maxItems, sizeof(int), 1, in) != 1) { /* read error */ }
             items = new T[maxItems + 1];
-            fread(items, sizeof(T), numItems + 1, in);
-            fread(bmin, sizeof(float), 3, in);
-            fread(bmax, sizeof(float), 3, in);
+            if (fread(items, sizeof(T), numItems + 1, in) != (size_t)(numItems + 1)) { /* read error */ }
+            if (fread(bmin, sizeof(float), 3, in) != 3) { /* read error */ }
+            if (fread(bmax, sizeof(float), 3, in) != 3) { /* read error */ }
 
             numItemsh = numItems >> 1;
         }

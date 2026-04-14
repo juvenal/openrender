@@ -456,13 +456,15 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
             if (oVariable->usageMarker == (PARAMETER_S | PARAMETER_T)) {
                 if (declaredVariables->find("s", nVariable)) {
                     nVariable->container = cVariable.container;
-                } else
+                } else {
                     assert(FALSE);
+                }
 
                 if (declaredVariables->find("t", nVariable)) {
                     nVariable->container = cVariable.container;
-                } else
+                } else {
                     assert(FALSE);
+                }
             }
 
             return oVariable;

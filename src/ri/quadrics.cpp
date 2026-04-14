@@ -3177,9 +3177,9 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***, uns
                     const float cosv = cosf(v[i] * (vmaxEnd - vminEnd) + vminEnd);
                     const float sinv = sinf(v[i] * (vmaxEnd - vminEnd) + vminEnd);
                     const float r = rminEnd * cosv;
-                    Pstart[COMP_Z] = rminEnd * sinv;
-                    Pstart[COMP_X] = (rmaxEnd + r) * cosu;
-                    Pstart[COMP_Y] = (rmaxEnd + r) * sinu;
+                    Pend[COMP_Z] = rminEnd * sinv;
+                    Pend[COMP_X] = (rmaxEnd + r) * cosu;
+                    Pend[COMP_Y] = (rmaxEnd + r) * sinu;
                     mulmp(Pend, fromEnd, Pend);
                 }
 

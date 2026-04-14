@@ -520,6 +520,7 @@ void CXDisplay::finish() {
                     unsigned short *dest = &((unsigned short *)imageData)[((i + y) * width + x)]; \
                     STUFF_ALPHA_ROW_16(colorPacker, src[0], src[1], src[2], src[3], 4)            \
                 }                                                                                 \
+                __attribute__((fallthrough));                                                     \
             default:                                                                              \
                 for (i = 0; i < h; i++) {                                                         \
                     const float *src = &d[i * w * numSamples];                                    \
@@ -562,6 +563,7 @@ void CXDisplay::finish() {
                     unsigned int *dest = &((unsigned int *)imageData)[((i + y) * width + x)];               \
                     STUFF_ALPHA_ROW(colorPacker, colorUnpacker, src[0], src[1], src[2], src[3], 4)          \
                 }                                                                                           \
+                __attribute__((fallthrough));                                                               \
             default:                                                                                        \
                 for (i = 0; i < h; i++) {                                                                   \
                     const float *src = &d[i * w * numSamples];                                              \

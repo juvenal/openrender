@@ -33,6 +33,12 @@
 #include "memory.h"
 #include "patchUtils.h"
 #include "patches.h"
+
+// The inverse of the Bezier basis (double — used for high-precision intermediate computations)
+static dmatrix dinvBezier = {0, 0, 0, 1.0,
+                             0, 0, 1.0 / 3.0, 1.0,
+                             0, 1.0 / 3.0, 2.0 / 3.0, 1.0,
+                             1.0, 1.0, 1.0, 1.0};
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
@@ -513,8 +519,9 @@ void CBilinearPatch::interpolate(int numVertices, float **varying, float ***loca
         int i;
 
         for (i = numVertices; i > 0; i--) {
-            *u++ = (*u) * uMult + uOrg;
-            *v++ = (*v) * vMult + vOrg;
+            float uval = *u, vval = *v;
+            *u++ = uval * uMult + uOrg;
+            *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);
@@ -817,8 +824,9 @@ void CBicubicPatch::interpolate(int numVertices, float **varying, float ***local
         int i;
 
         for (i = numVertices; i > 0; i--) {
-            *u++ = (*u) * uMult + uOrg;
-            *v++ = (*v) * vMult + vOrg;
+            float uval = *u, vval = *v;
+            *u++ = uval * uMult + uOrg;
+            *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);
@@ -1315,8 +1323,9 @@ void CNURBSPatch::interpolate(int numVertices, float **varying, float ***locals)
         int i;
 
         for (i = numVertices; i > 0; i--) {
-            *u++ = (*u) * uMult + uOrg;
-            *v++ = (*v) * vMult + vOrg;
+            float uval = *u, vval = *v;
+            *u++ = uval * uMult + uOrg;
+            *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);

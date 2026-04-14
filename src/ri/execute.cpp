@@ -526,7 +526,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 #define BREAK goto execEnd;
 
     // Uninitialized local variables
-    CGatherBundle *lastGather;
+    CGatherBundle *lastGather = nullptr;
 
     // This is the current shader we're executing
     CShader *currentShader = cInstance->parent;

@@ -1780,10 +1780,10 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
             osUnlock(CRenderer::shaderMutex);                                                                                \
         }                                                                                                                    \
     }                                                                                                                        \
-    CTraceLocation *rays;                                                                                                    \
-    int numRays;                                                                                                             \
-    const float *P, *N;                                                                                                      \
-    float *dPdu, *dPdv;                                                                                                      \
+    CTraceLocation *rays = nullptr;                                                                                          \
+    int numRays = 0;                                                                                                         \
+    const float *P = nullptr, *N = nullptr;                                                                                  \
+    float *dPdu = nullptr, *dPdv = nullptr;                                                                                  \
     if (tex == NULL) {                                                                                                       \
         rays = (CTraceLocation *)ralloc(currentShadingState->numVertices * sizeof(CTraceLocation), threadMemory);            \
         P = varying[VARIABLE_P];                                                                                             \

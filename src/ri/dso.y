@@ -23,6 +23,7 @@
 
 #include "common/os.h"
 #include "ri_config.h"
+#include "dso.h"
 
 int								dsolex(void );				// Forward definition for stupid yacc
 void							dsoerror(const char *,...);
@@ -129,6 +130,7 @@ dsoType:		DSO_VOID
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include "lex.dso.cpp"
 #pragma GCC diagnostic pop
 

@@ -555,6 +555,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wnull-dereference"
 #include "lex.if.cpp"
 #pragma GCC diagnostic pop
 

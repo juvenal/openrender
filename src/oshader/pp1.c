@@ -359,7 +359,7 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
 #endif /* DEBUG */
                 case '?':
                     usage(FALSE); /* Give usage info and quit */
-
+                    __attribute__((fallthrough));
                 default:
                     fprintf(STDERR, "FATAL: Bad option: %s\n", s);
                     usage(TRUE);
@@ -645,8 +645,8 @@ void init(void) {
     strncpy(_Time, &str[11], 8); /* Pull time portion out of string */
     _Time[8] = '\0';
 
-    strncpy(Date, &str[4], 7);      /* Pull month and day out of string */
-    strncpy(&Date[7], &str[20], 4); /* Pull year out of string */
+    memcpy(Date, &str[4], 7);       /* Pull month and day out of string */
+    memcpy(&Date[7], &str[20], 4);  /* Pull year out of string */
     Date[11] = '\0';
 #endif /* (HOST == H_CPM) OR (HOST == H_MPW) */
 

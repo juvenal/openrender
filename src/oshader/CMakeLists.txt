@@ -56,6 +56,7 @@ target_compile_features(oshader PRIVATE c_std_17 cxx_std_20)
 target_compile_options(oshader PRIVATE
 	-Wall
 	-Wextra
+	-Wimplicit-fallthrough
 	-Wmissing-declarations
 	-Wnull-dereference
 	-Wshadow

@@ -48,8 +48,8 @@ CDebugView::CDebugView(const char *fileName, int append) {
         if (file == NULL)
             file = fopen(fileName, "w+b");
         if (!feof(file)) {
-            fread(bmin, sizeof(float), 3, file);
-            fread(bmax, sizeof(float), 3, file);
+            if (fread(bmin, sizeof(float), 3, file) != 3) { /* read error */ }
+            if (fread(bmax, sizeof(float), 3, file) != 3) { /* read error */ }
             fseek(file, 0, SEEK_END);
         } else {
             fwrite(bmin, sizeof(float), 3, file);
@@ -70,8 +70,8 @@ CDebugView::CDebugView(FILE *in, const char *fn) {
     writing = FALSE;
     fileName = fn;
 
-    fread(bmin, sizeof(float), 3, file);
-    fread(bmax, sizeof(float), 3, file);
+    if (fread(bmin, sizeof(float), 3, file) != 3) { /* read error */ }
+    if (fread(bmax, sizeof(float), 3, file) != 3) { /* read error */ }
 }
 
 ///////////////////////////////////////////////////////////////////////

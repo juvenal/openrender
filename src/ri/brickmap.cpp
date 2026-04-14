@@ -421,7 +421,7 @@ void CBrickMap::store(const float *data, const float *cP, const float *cN, float
 
     int depth = (int)ceil(log(side * LEAF_FACTOR / dP) * InvLog2); // This is the depth we want to add
     CBrick *cBrick;
-    CBrickNode *cNode;
+    CBrickNode *cNode = nullptr;
     vector P, N;
 
     float clampedDepth_bm2;
@@ -831,7 +831,7 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
     uint32_t b;
 
     // work out which top-level voxels are present
-    fread(bs, sizeof(uint32_t) * BRICK_PRESENCE_LONGS, 1, file);
+    if (fread(bs, sizeof(uint32_t) * BRICK_PRESENCE_LONGS, 1, file) != 1) { /* read error */ }
 
     // read those that are
     for (i = 0, cVoxel = cBrick->voxels; i < BRICK_PRESENCE_LONGS; i++) {
@@ -841,7 +841,7 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
             float *vdata = (float *)(cVoxel + 1);
 
             if (b & 0x80000000L) {
-                fread(cVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file);
+                if (fread(cVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */ }
 
                 if (cVoxel->next != NULL) {
                     cVoxel->next = NULL;
@@ -850,7 +850,7 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
                         tVoxel = (CVoxel *)new char[sizeof(CVoxel) + dataSize * sizeof(float)];
                         currentMemory += sizeof(CVoxel) + dataSize * sizeof(float);
 
-                        fread(tVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file);
+                        if (fread(tVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */ }
 
                         if (tVoxel->next != NULL) {
                             tVoxel->next = cVoxel->next;

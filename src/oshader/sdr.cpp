@@ -71,11 +71,11 @@ CSymbol::~CSymbol() {
 // Description			:	Init the structure
 // Comments				:	The first parameter is the name of the variable as referenced in the code and
 //							the second parameter is the function defining this variable
-CVariable::CVariable(const char *name, int type, int multiplicity) : CSymbol(name) {
+CVariable::CVariable(const char *name, int varType, int multiplicity) : CSymbol(name) {
 
     // Sanity check
     if (multiplicity > 1) {
-        if (!(type & SLC_ARRAY)) {
+        if (!(varType & SLC_ARRAY)) {
             sdr->error("Variable \"%s\" has more than one items (%d) but is not an array\n", name, multiplicity);
         }
     }
@@ -87,7 +87,7 @@ CVariable::CVariable(const char *name, int type, int multiplicity) : CSymbol(nam
     }
 
     // Record
-    this->type = type;
+    this->type = varType;
     this->numItems = multiplicity; // Note that numItems field only makes sense if the ARRAY field
     cName = nullptr;               // of the type is set
 }
@@ -122,7 +122,7 @@ char *CVariable::codeName() {
 //							from 0. Thus this function replaces the actual parameter name with "$0", "$1" ...
 //							so that later on, the occurance of these parameters in the code can be translated
 //							to the actual parameter names in the caller's context
-CParameter::CParameter(const char *name, int type, int multiplicity) : CVariable(name, type, multiplicity) {
+CParameter::CParameter(const char *name, int varType, int multiplicity) : CVariable(name, varType, multiplicity) {
     defaultValue = nullptr;
     mapping = nullptr;
 }
@@ -453,10 +453,10 @@ CFunction *CFunction::getFunction(const char *name, CList<CExpression *> *args, 
 // Description			:	Init the data structures
 // Return Value			:
 // Comments				:
-CFunctionPrototype::CFunctionPrototype(const char *name, const char *p, int compatible, int nonuniform) : CSymbol(name) {
+CFunctionPrototype::CFunctionPrototype(const char *name, const char *p, int compatible, int isNonuniform) : CSymbol(name) {
     prototype = strdup(p);
     compatibleShaders = compatible;
-    this->nonuniform = nonuniform;
+    this->nonuniform = isNonuniform;
     this->dso = FALSE;
 
     switch (prototype[0]) {

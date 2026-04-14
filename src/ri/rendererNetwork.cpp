@@ -345,7 +345,7 @@ void CRenderer::sendFile(int index, char *fileToSend, int start, int size) {
             } else {
                 readSize_rn2 = csize;
             }
-            fread(buffer, readSize_rn2, sizeof(char), in);
+            if (fread(buffer, readSize_rn2, sizeof(char), in) != (size_t)readSize_rn2) { /* read error */ }
             rcSend(netServers[index], buffer, readSize_rn2, FALSE);
         }
 

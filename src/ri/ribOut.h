@@ -38,6 +38,8 @@
 
 class CVariable;
 
+extern const int ribOutScratchSize;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRibOut
 // Description			:	This class implements a RIB file output
@@ -228,7 +230,7 @@ class CRibOut : public CRiInterface {
         // Return Value			:	-
         // Comments				:
         void vout(const char *mes, va_list args) {
-            const int l = vsnprintf(scratch, sizeof(scratch), mes, args);
+            const int l = vsnprintf(scratch, ribOutScratchSize, mes, args);
 
 #ifdef HAVE_ZLIB
             if (outputCompressed)
@@ -251,7 +253,7 @@ class CRibOut : public CRiInterface {
 
             va_start(args, mes);
 
-            const int l = vsnprintf(scratch, sizeof(scratch), mes, args);
+            const int l = vsnprintf(scratch, ribOutScratchSize, mes, args);
 
 #ifdef HAVE_ZLIB
             if (outputCompressed)

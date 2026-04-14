@@ -510,8 +510,8 @@ class CPqueue {
 template <class T>
 class CMemPool {
     public:
-        CMemPool(int itemsPerBank = 100) {
-            this->itemsPerBank = itemsPerBank; // The number of items to allocate at a time
+        CMemPool(int bankSize = 100) {
+            this->itemsPerBank = bankSize; // The number of items to allocate at a time
             allocatedBanks = NULL;
             freeItems = NULL;
         }

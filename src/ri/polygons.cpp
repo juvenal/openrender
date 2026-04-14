@@ -1566,7 +1566,7 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
     CTriVertex *vertices;
     CTriVertex *cVertex, *pVertex, *nVertex;
     float *xy;
-    int majorAxis, minorAxis;
+    int majorAxis = COMP_Y, minorAxis = COMP_Z;
     vector normal;
     const float *P;
     int reverse;
