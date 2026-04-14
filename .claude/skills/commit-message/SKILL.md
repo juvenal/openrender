@@ -106,8 +106,6 @@ The body follows the subject line after **one blank line**. It must:
    fix (e.g., "brickmap.cpp, debug.cpp, texture.cpp" or "all fread() callers
    in the RI pipeline").
 
-4. **End with the attribution line** (see Step 6) separated by a blank line.
-
 Body line width: 72 characters maximum (wrap prose, but keep code snippets on
 one line even if longer).
 
@@ -148,21 +146,9 @@ git commit -m "$(cat <<'EOF'
 
 <Category heading 2>:
   - <change description, files affected>
-
-Co-Authored-By: <Agent Name> <agent@email>
 EOF
 )"
 ```
-
-**Attribution values by agent:**
-
-| Agent        | Co-Authored-By line                                              |
-|--------------|------------------------------------------------------------------|
-| Claude Code  | `Claude Sonnet 4.6 <noreply@anthropic.com>`                     |
-| Gemini CLI   | `Gemini CLI <noreply@google.com>`                               |
-| Codex        | `OpenAI Codex <noreply@openai.com>`                             |
-| Qwen         | `Qwen Agent <noreply@alibaba-inc.com>`                          |
-| opencode     | `opencode Agent <noreply@sst.dev>`                              |
 
 ---
 
@@ -239,8 +225,6 @@ CMake / Clang alignment (CMakeLists.txt, src/oshader/CMakeLists.txt):
   add -Wunused-but-set-variable, -Wunsequenced, -Wimplicit-fallthrough
   for Clang/AppleClang so the same diagnostic categories surface on
   macOS builds without loosening any existing flags
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 ---
@@ -254,5 +238,4 @@ Before running `git commit`, confirm:
 - [ ] Body opens with a motivation sentence
 - [ ] Changes grouped by category with bullet points
 - [ ] No secrets, binaries, or build artifacts staged
-- [ ] `Co-Authored-By:` line present with correct agent identity
 - [ ] HEREDOC used to pass the message (preserves newlines)

@@ -61,6 +61,7 @@ Thumbs.db
 /*.svg
 /*.webp
 /*.ico
+.attic
 
 # Images stored
 .build-images
