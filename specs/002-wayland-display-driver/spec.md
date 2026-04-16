@@ -71,12 +71,17 @@ As a renderer user, I want to interact with the display window (resize, close, m
 - **FR-002**: System MUST create native Wayland display surfaces for rendering output
 - **FR-003**: System MUST present rendered frames to Wayland display surfaces without tearing or corruption
 - **FR-004**: System MUST support common Wayland protocols for window management (xdg-shell)
-- **FR-005**: System MUST handle Wayland compositor disconnect gracefully without crashing
-- **FR-006**: System MUST fall back to X11 display driver when Wayland is unavailable
-- **FR-007**: System MUST log display driver selection decision for debugging purposes
-- **FR-008**: System MUST support configurable display output (enable/disable display window)
-- **FR-009**: System MUST handle window close events and terminate rendering gracefully
+- **FR-005**: System MUST handle Wayland compositor disconnect by gracefully dropping the Wayland output while allowing the rendering process to continue if other display or file outputs are active
+- **FR-006**: System MUST prioritize Wayland detection and fallback to X11 display driver only if Wayland is unavailable (unless X11 is already active as another display)
+- **FR-007**: System MUST log all display driver events, selection decisions, and errors using `@src/includes/logging.hpp`, respecting the active log level adjusted at runtime
+- **FR-008**: System MUST support multiple concurrent display outputs (e.g., Wayland, X11, and file output simultaneously)
+- **FR-009**: System MUST handle window close events by dropping the affected Wayland output while continuing other active renders; if it was the last active display, the system SHOULD terminate rendering gracefully
 - **FR-010**: System MUST support both software and hardware-accelerated Wayland rendering paths
+- **FR-011**: System MUST re-allocate Wayland buffers on window resize events to match new dimensions and continue rendering immediately
+- **FR-012**: System MUST run the Wayland event loop and presentation logic in a dedicated thread to ensure UI responsiveness during rendering operations
+- **FR-013**: System MUST use ARGB8888 (32-bit with alpha) as the primary pixel format for Wayland buffers
+- **FR-014**: System MUST support HiDPI scaling using both integer (wl_surface) and fractional (wp_fractional_scaling_v1) protocols
+- **FR-015**: System MUST support basic Wayland input events (keyboard, mouse) and propagate them to the main renderer loop
 
 ### Key Entities
 
@@ -125,10 +130,11 @@ As a renderer user, I want to interact with the display window (resize, close, m
 ### In Scope
 
 - Native Wayland display driver implementation
+- Support for multiple concurrent display outputs
 - Automatic display system detection and selection
 - Basic window management (create, destroy, resize events)
 - Frame presentation and buffer management for Wayland
-- Graceful fallback to X11 when Wayland unavailable
+- Resilience to individual display failures (continue rendering on other outputs)
 - Build system integration (CMake detection, library linking)
 - Documentation and troubleshooting guides
 
@@ -159,8 +165,8 @@ As a renderer user, I want to interact with the display window (resize, close, m
 ### Reliability
 
 - **NFR-007**: Display driver failures MUST NOT crash the rendering process
-- **NFR-008**: System MUST recover from temporary compositor connection loss
-- **NFR-009**: Display driver MUST log errors and warnings to standard renderer logging system
+- **NFR-008**: System MUST handle compositor connection loss by logging a `LogLevel::ERROR` (via `logging.hpp`) and removing the Wayland output without interrupting the core rendering loop
+- **NFR-009**: Display driver MUST log all lifecycle events using the project's standard logging macros (`log_info`, etc.)
 
 ## Security & Compliance
 
@@ -169,6 +175,22 @@ As a renderer user, I want to interact with the display window (resize, close, m
 - **SEC-003**: Display driver MUST not leak sensitive render data to system logs or error messages
 
 ## Clarifications
+
+### Session 2026-04-15
+
+- Q: How should Wayland failures affect a multi-display setup? → A: Drop Wayland output only; keep rendering on others.
+- Q: What logging standard should be followed? → A: Use `src/includes/logging.hpp` and respect runtime log levels.
+- Q: Which pixel format should the Wayland display driver prioritize? → A: ARGB8888 (32-bit, with alpha)
+- Q: How should the Wayland display driver handle high-DPI (HiDPI) scaling? → A: Support both integer and fractional scaling
+- Q: How should the Wayland display driver handle "Window Close" events from the compositor? → A: Drop Wayland output, continue rendering on others
+- Q: How should the display driver handle input events like keyboard or mouse? → A: Support basic input events (keyboard, mouse)
+- Q: How should the automatic display driver detection prioritize Wayland versus X11? → A: Wayland first, then X11 fallback
+
+### Session 2026-04-13
+
+- Q: How should the renderer handle window resizing in Wayland? → A: Re-allocate buffer and continue rendering immediately
+- Q: How should the display driver handle Wayland compositor crashes or disconnections? → A: Log error and continue rendering on other outputs (drop Wayland only)
+- Q: How should the system handle display output on Wayland in a multi-threaded rendering environment? → A: Dedicated thread for Wayland event loop
 
 ### Session 2026-01-24
 
