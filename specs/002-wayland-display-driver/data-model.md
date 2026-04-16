@@ -16,6 +16,7 @@
 - **Event Management**:
     - `pthread_t`: Dedicated thread for `wl_display_dispatch` (FR-012).
     - `display_loop_mutex`: Thread-safety for surface/buffer updates.
+    - **Input Queue**: A thread-safe FIFO queue (`std::queue` with mutex) to propagate keyboard/mouse events from the Wayland event thread to the main renderer loop (FR-015).
 
 ## Display Configuration
 

@@ -76,7 +76,7 @@ As a renderer user, I want to interact with the display window (resize, close, m
 - **FR-007**: System MUST log all display driver events, selection decisions, and errors using `@src/includes/logging.hpp`, respecting the active log level adjusted at runtime
 - **FR-008**: System MUST support multiple concurrent display outputs (e.g., Wayland, X11, and file output simultaneously)
 - **FR-009**: System MUST handle window close events by dropping the affected Wayland output while continuing other active renders; if it was the last active display, the system SHOULD terminate rendering gracefully
-- **FR-010**: System MUST support both software and hardware-accelerated Wayland rendering paths
+- **FR-010**: System SHOULD support hardware-accelerated Wayland rendering paths (initial implementation MAY use software rendering)
 - **FR-011**: System MUST re-allocate Wayland buffers on window resize events to match new dimensions and continue rendering immediately
 - **FR-012**: System MUST run the Wayland event loop and presentation logic in a dedicated thread to ensure UI responsiveness during rendering operations
 - **FR-013**: System MUST use ARGB8888 (32-bit with alpha) as the primary pixel format for Wayland buffers
@@ -197,5 +197,4 @@ As a renderer user, I want to interact with the display window (resize, close, m
 - Q: Which Wayland library implementation should be used? → A: Use standard Wayland client library (libwayland-client) with xdg-shell protocol
 - Q: Should implementation start with software or hardware rendering? → A: Software rendering first, then hardware acceleration
 - Q: How should driver selection logging be handled? → A: Log at INFO level by default, with ERROR/WARNING for failures
-- Q: How should compositor disconnect be handled? → A: Terminate rendering process immediately
 - Q: Should both software and hardware rendering paths be supported? → A: Support both software and hardware rendering paths

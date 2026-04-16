@@ -32,6 +32,31 @@
   #include "fbw.h" // Windoze framebuffer
 #else
   #include "fbx.h" // X-Windoze framebuffer
+  #ifdef HAVE_WAYLAND
+    #include "fbwl.h" // Wayland framebuffer
+    #include <wayland-client.h>
+  #endif
+#endif
+
+#if defined(HAVE_WAYLAND) && !defined(_WINDOWS)
+/*
+ * Function: isWaylandAvailable
+ *
+ * Description:
+ *     Checks if a Wayland compositor is available at runtime.
+ *
+ * Return:
+ *     TRUE if Wayland is available, FALSE otherwise.
+ *
+ */
+static int isWaylandAvailable() {
+    struct wl_display *d = wl_display_connect(NULL);
+    if (d) {
+        wl_display_disconnect(d);
+        return TRUE;
+    }
+    return FALSE;
+}
 #endif
 
 /*
@@ -121,15 +146,27 @@ void *displayStart(const char *name,
                    const char *samples,
                    TDisplayParameterFunction findParameter) {
     (void)findParameter; // Suppress unused parameter warning
+    CDisplay *cWindow = NULL;
 
 #ifdef _WINDOWS
-    CWinDisplay *cWindow = new CWinDisplay(name, samples, width, height, numSamples);
+    cWindow = new CWinDisplay(name, samples, width, height, numSamples);
 #else
-    CXDisplay *cWindow = new CXDisplay(name, samples, width, height, numSamples);
+  #ifdef HAVE_WAYLAND
+    if (isWaylandAvailable()) {
+        cWindow = new CWDisplay(name, samples, width, height, numSamples);
+    }
+
+    if (!cWindow || cWindow->failure == TRUE) {
+        if (cWindow) delete cWindow;
+        cWindow = new CXDisplay(name, samples, width, height, numSamples);
+    }
+  #else
+    cWindow = new CXDisplay(name, samples, width, height, numSamples);
+  #endif
 #endif
 
-    if (cWindow->failure == TRUE) {
-        delete cWindow;
+    if (cWindow == NULL || cWindow->failure == TRUE) {
+        if (cWindow) delete cWindow;
         return NULL;
     }
     else {

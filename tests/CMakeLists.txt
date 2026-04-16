@@ -25,6 +25,11 @@ set_tests_properties(Portability64Bit PROPERTIES
 # add_executable(test_atomics test_atomics.cpp)
 # add_test(NAME AtomicOperations COMMAND test_atomics)
 
+# Add test subdirectories
+add_subdirectory(framebuffer)
+
 # Print test information
 message(STATUS "Configured tests:")
 message(STATUS "  - test_64bit_portability")
+message(STATUS "  - WaylandDisplayTests")
+message(STATUS "  - DisplayCommonTests")
