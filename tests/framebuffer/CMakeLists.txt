@@ -2,8 +2,17 @@
 
 find_package(X11 REQUIRED)
 
+# Mark Wayland protocol sources as generated so CMake doesn't require them to
+# exist at configure time (they are produced by add_custom_command in
+# src/framebuffer/CMakeLists.txt during the build step).
+set_source_files_properties(
+    ${CMAKE_BINARY_DIR}/src/framebuffer/xdg-shell-protocol.c
+    ${CMAKE_BINARY_DIR}/src/framebuffer/fractional-scale-v1-protocol.c
+    PROPERTIES GENERATED TRUE
+)
+
 # Wayland-specific tests
-add_executable(test_fb_wl 
+add_executable(test_fb_wl
     test_fb_wl.cpp 
     ${CMAKE_SOURCE_DIR}/src/framebuffer/fbwl.cpp
     ${CMAKE_SOURCE_DIR}/src/framebuffer/fbx.cpp
@@ -19,6 +28,11 @@ target_include_directories(test_fb_wl PRIVATE
     ${X11_INCLUDE_DIR}
 )
 target_compile_definitions(test_fb_wl PRIVATE HAVE_WAYLAND)
+
+# Ensure Wayland protocol headers (.h) are generated before this target
+# compiles — they are produced by add_custom_command in src/framebuffer as
+# a side-effect of building the framebuffer target.
+add_dependencies(test_fb_wl framebuffer)
 
 # Common display tests (fallback/detection)
 add_executable(test_fb_common test_fb_common.cpp)
