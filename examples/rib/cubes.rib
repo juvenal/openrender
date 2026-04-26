@@ -1,0 +1,396 @@
+##RenderMan RIB-Structure 1.1
+version 3.03
+WorldBegin
+  Sides 1
+  Translate 0 0 1.5
+  Rotate 30 -1 0 0
+  Rotate 30 0 -1 0
+  AttributeBegin
+    Translate -0.5 -0.5 -0.5
+    Scale 0.25 0.25 0.25
+    Color [0.25 0.25 0.25]
+    TransformBegin
+      Translate 0.5 0.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.25 0.5]
+    TransformBegin
+      Translate 0.5 0.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.25 0.75]
+    TransformBegin
+      Translate 0.5 0.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.25 1]
+    TransformBegin
+      Translate 0.5 0.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.5 0.25]
+    TransformBegin
+      Translate 0.5 1.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.5 0.5]
+    TransformBegin
+      Translate 0.5 1.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.5 0.75]
+    TransformBegin
+      Translate 0.5 1.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.5 1]
+    TransformBegin
+      Translate 0.5 1.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.75 0.25]
+    TransformBegin
+      Translate 0.5 2.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.75 0.5]
+    TransformBegin
+      Translate 0.5 2.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.75 0.75]
+    TransformBegin
+      Translate 0.5 2.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 0.75 1]
+    TransformBegin
+      Translate 0.5 2.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 1 0.25]
+    TransformBegin
+      Translate 0.5 3.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 1 0.5]
+    TransformBegin
+      Translate 0.5 3.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 1 0.75]
+    TransformBegin
+      Translate 0.5 3.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.25 1 1]
+    TransformBegin
+      Translate 0.5 3.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.25 0.25]
+    TransformBegin
+      Translate 1.5 0.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.25 0.5]
+    TransformBegin
+      Translate 1.5 0.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.25 0.75]
+    TransformBegin
+      Translate 1.5 0.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.25 1]
+    TransformBegin
+      Translate 1.5 0.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.5 0.25]
+    TransformBegin
+      Translate 1.5 1.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.5 0.5]
+    TransformBegin
+      Translate 1.5 1.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.5 0.75]
+    TransformBegin
+      Translate 1.5 1.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.5 1]
+    TransformBegin
+      Translate 1.5 1.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.75 0.25]
+    TransformBegin
+      Translate 1.5 2.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.75 0.5]
+    TransformBegin
+      Translate 1.5 2.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.75 0.75]
+    TransformBegin
+      Translate 1.5 2.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 0.75 1]
+    TransformBegin
+      Translate 1.5 2.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 1 0.25]
+    TransformBegin
+      Translate 1.5 3.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 1 0.5]
+    TransformBegin
+      Translate 1.5 3.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 1 0.75]
+    TransformBegin
+      Translate 1.5 3.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.5 1 1]
+    TransformBegin
+      Translate 1.5 3.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.25 0.25]
+    TransformBegin
+      Translate 2.5 0.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.25 0.5]
+    TransformBegin
+      Translate 2.5 0.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.25 0.75]
+    TransformBegin
+      Translate 2.5 0.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.25 1]
+    TransformBegin
+      Translate 2.5 0.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.5 0.25]
+    TransformBegin
+      Translate 2.5 1.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.5 0.5]
+    TransformBegin
+      Translate 2.5 1.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.5 0.75]
+    TransformBegin
+      Translate 2.5 1.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.5 1]
+    TransformBegin
+      Translate 2.5 1.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.75 0.25]
+    TransformBegin
+      Translate 2.5 2.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.75 0.5]
+    TransformBegin
+      Translate 2.5 2.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.75 0.75]
+    TransformBegin
+      Translate 2.5 2.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 0.75 1]
+    TransformBegin
+      Translate 2.5 2.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 1 0.25]
+    TransformBegin
+      Translate 2.5 3.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 1 0.5]
+    TransformBegin
+      Translate 2.5 3.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 1 0.75]
+    TransformBegin
+      Translate 2.5 3.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [0.75 1 1]
+    TransformBegin
+      Translate 2.5 3.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.25 0.25]
+    TransformBegin
+      Translate 3.5 0.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.25 0.5]
+    TransformBegin
+      Translate 3.5 0.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.25 0.75]
+    TransformBegin
+      Translate 3.5 0.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.25 1]
+    TransformBegin
+      Translate 3.5 0.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.5 0.25]
+    TransformBegin
+      Translate 3.5 1.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.5 0.5]
+    TransformBegin
+      Translate 3.5 1.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.5 0.75]
+    TransformBegin
+      Translate 3.5 1.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.5 1]
+    TransformBegin
+      Translate 3.5 1.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.75 0.25]
+    TransformBegin
+      Translate 3.5 2.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.75 0.5]
+    TransformBegin
+      Translate 3.5 2.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.75 0.75]
+    TransformBegin
+      Translate 3.5 2.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 0.75 1]
+    TransformBegin
+      Translate 3.5 2.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 1 0.25]
+    TransformBegin
+      Translate 3.5 3.5 0.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 1 0.5]
+    TransformBegin
+      Translate 3.5 3.5 1.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 1 0.75]
+    TransformBegin
+      Translate 3.5 3.5 2.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+    Color [1 1 1]
+    TransformBegin
+      Translate 3.5 3.5 3.5
+      Scale 0.8 0.8 0.8
+      Geometry "cube"
+    TransformEnd
+  AttributeEnd
+WorldEnd

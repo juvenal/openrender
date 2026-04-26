@@ -1,0 +1,35 @@
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+color
+diffuse (normal Nn)
+{
+    extern point P;
+    color C = 0;
+    illuminance (P, Nn, PI/2) {
+        float nondiff = 0;
+        lightsource("__nondiffuse", nondiff);
+        C += Cl * (1 - nondiff) * (Nn . normalize(L));
+    }
+    return C;
+}
+
+color
+specular (normal Nn; vector V; float roughness)
+{
+    extern point P;
+    color C = 0;
+    illuminance (P, Nn, PI/2) {
+        float nonspec = 0;
+        lightsource("__nonspecular", nonspec);
+        vector H = normalize(normalize(L) + V);
+        C += Cl * (1 - nonspec) * pow(max(0, Nn . H), 1 / roughness);
+    }
+    return C;
+}
