@@ -74,6 +74,7 @@ class CWDisplay : public CDisplay {
         pthread_t thread;
         pthread_mutex_t mutex;
         int windowUp;
+        int wakeup_pipe[2];
         std::queue<InputEvent> input_queue;
 };
 

@@ -22,7 +22,10 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
 #include <unistd.h>
 
 #define TRUE 1
@@ -180,14 +183,27 @@ static const struct wp_fractional_scale_v1_listener fractional_scale_listener = 
     fractional_scale_handle_preferred_scale
 };
 
+static void keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size) {
+    (void)data; (void)keyboard; (void)format; (void)size;
+    close(fd); // must release the fd the compositor sent us
+}
+
+static void keyboard_handle_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys) {
+    (void)data; (void)keyboard; (void)serial; (void)surface; (void)keys;
+}
+
+static void keyboard_handle_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface) {
+    (void)data; (void)keyboard; (void)serial; (void)surface;
+}
+
 static void keyboard_handle_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
     (void)keyboard; (void)serial; (void)time;
     CWDisplay *d = (CWDisplay *)data;
-    
+
     pthread_mutex_lock(&d->mutex);
     InputEvent ev = { InputEvent::KEYBOARD, key, state };
     d->input_queue.push(ev);
-    
+
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED && (key == 1 || key == 16)) {
         log_info("Exit key pressed, closing Wayland window");
         d->windowUp = FALSE;
@@ -195,13 +211,21 @@ static void keyboard_handle_key(void *data, struct wl_keyboard *keyboard, uint32
     pthread_mutex_unlock(&d->mutex);
 }
 
+static void keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
+    (void)data; (void)keyboard; (void)serial; (void)mods_depressed; (void)mods_latched; (void)mods_locked; (void)group;
+}
+
+static void keyboard_handle_repeat_info(void *data, struct wl_keyboard *keyboard, int32_t rate, int32_t delay) {
+    (void)data; (void)keyboard; (void)rate; (void)delay;
+}
+
 static const struct wl_keyboard_listener keyboard_listener = {
-    NULL, // keymap
-    NULL, // enter
-    NULL, // leave
+    keyboard_handle_keymap,
+    keyboard_handle_enter,
+    keyboard_handle_leave,
     keyboard_handle_key,
-    NULL, // modifiers
-    NULL  // repeat_info
+    keyboard_handle_modifiers,
+    keyboard_handle_repeat_info
 };
 
 static void seat_handle_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
@@ -258,8 +282,13 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     this->shm_data = NULL;
     this->pool_size = 0;
     this->windowUp = FALSE;
+    this->wakeup_pipe[0] = this->wakeup_pipe[1] = -1;
 
     pthread_mutex_init(&this->mutex, NULL);
+    if (pipe(this->wakeup_pipe) == -1) {
+        log_error("Failed to create wakeup pipe for Wayland driver");
+        this->wakeup_pipe[0] = this->wakeup_pipe[1] = -1;
+    }
 
     log_info("Initializing Wayland display driver for window '{}'", name);
 
@@ -362,6 +391,9 @@ CWDisplay::~CWDisplay() {
     if (this->registry) wl_registry_destroy(this->registry);
     if (this->display) wl_display_disconnect(this->display);
 
+    if (this->wakeup_pipe[0] >= 0) close(this->wakeup_pipe[0]);
+    if (this->wakeup_pipe[1] >= 0) close(this->wakeup_pipe[1]);
+
     pthread_mutex_destroy(&this->mutex);
 }
 
@@ -379,11 +411,31 @@ CWDisplay::~CWDisplay() {
  *
  */
 void CWDisplay::main() {
-    while (this->windowUp) {
-        if (wl_display_dispatch(this->display) == -1) {
-            log_error("Wayland display dispatch error, terminating event loop");
-            this->windowUp = FALSE;
+    int wl_fd = wl_display_get_fd(display);
+    while (windowUp) {
+        if (wl_display_flush(display) == -1 && errno != EAGAIN) {
+            log_error("Wayland display flush error, terminating event loop");
+            windowUp = FALSE;
             break;
+        }
+        struct pollfd fds[2] = {
+            { wl_fd,          POLLIN, 0 },
+            { wakeup_pipe[0], POLLIN, 0 }
+        };
+        int ret = poll(fds, wakeup_pipe[0] >= 0 ? 2 : 1, -1);
+        if (ret == -1) {
+            if (errno == EINTR) continue;
+            log_error("Wayland display poll error, terminating event loop");
+            windowUp = FALSE;
+            break;
+        }
+        if (wakeup_pipe[0] >= 0 && (fds[1].revents & POLLIN)) break; // woken by finish()
+        if (fds[0].revents & POLLIN) {
+            if (wl_display_dispatch(display) == -1) {
+                log_error("Wayland display dispatch error, terminating event loop");
+                windowUp = FALSE;
+                break;
+            }
         }
     }
 }
@@ -460,5 +512,60 @@ int CWDisplay::data(int x, int y, int w, int h, float *data) {
  *
  */
 void CWDisplay::finish() {
-    this->windowUp = FALSE;
+    // Update title to signal rendering complete
+    if (xdg_toplevel) {
+        xdg_toplevel_set_title(xdg_toplevel, "openRender \xe2\x80\x94 Rendering Complete");
+        wl_display_flush(display);
+    }
+
+    // Interrupt the poll-based event loop and wait for the thread to stop cleanly
+    if (wakeup_pipe[1] >= 0)
+        write(wakeup_pipe[1], "\0", 1);
+    pthread_join(thread, NULL);
+    // Thread has stopped — we now have exclusive access to the Wayland connection.
+
+    if (wakeup_pipe[1] < 0) {
+        // Pipe was never created (pipe() failed at startup) — nothing to detach
+        return;
+    }
+
+    // Double-fork: detach the window as an independent process so orender exits immediately
+    pid_t pid = fork();
+    if (pid < 0) return; // fork failed — graceful degradation: window closes with process
+    if (pid > 0) {
+        // Parent (orender): null all Wayland objects so the destructor becomes a no-op,
+        // then return so orender can finish normally
+        close(wakeup_pipe[0]); wakeup_pipe[0] = -1;
+        close(wakeup_pipe[1]); wakeup_pipe[1] = -1;
+        display = NULL; registry = NULL; compositor = NULL; shm = NULL;
+        xdg_wm_base = NULL; fractional_scale_manager = NULL; seat = NULL;
+        surface = NULL; xdg_surface = NULL; xdg_toplevel = NULL;
+        fractional_scale = NULL; keyboard = NULL; pointer = NULL;
+        buffer = NULL; shm_data = NULL;
+        waitpid(pid, NULL, 0); // wait microseconds for intermediate child to exit
+        return;
+    }
+
+    // Intermediate child: fork the grandchild then exit immediately (so init reaps it)
+    pid_t pid2 = fork();
+    if (pid2 > 0) _exit(0);
+
+    // Grandchild: fully detached display process — keep window open until user closes it
+    setsid();
+    if (wakeup_pipe[0] >= 0) close(wakeup_pipe[0]);
+    if (wakeup_pipe[1] >= 0) close(wakeup_pipe[1]);
+    wakeup_pipe[0] = wakeup_pipe[1] = -1;
+
+    int devnull = open("/dev/null", O_RDWR);
+    if (devnull >= 0) {
+        dup2(devnull, 0); dup2(devnull, 1); dup2(devnull, 2);
+        if (devnull > 2) close(devnull);
+    }
+
+    // Simple blocking dispatch — no wakeup pipe needed in a single-process event loop
+    windowUp = TRUE;
+    while (windowUp) {
+        if (wl_display_dispatch(display) == -1) break;
+    }
+    _exit(0);
 }

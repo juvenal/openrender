@@ -74,6 +74,8 @@ class CXDisplay : public CDisplay {
         int imageDepth;
         int windowUp;
         int windowDown;
+        int wakeup_pipe[2];
+        bool exitedViaPipe;
         Window xcanvas;
         Display *display;
         int screen;

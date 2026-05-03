@@ -22,6 +22,11 @@
 #include "common/global.h"
 #include "framebuffer.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+
 #define color_15_bgr(r, g, b, a) ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
 #define color_15_bgr_rev(r, g, b, a) ((g >> 3) << 13) | ((b >> 3) << 8) | ((r >> 3) << 3) | (g >> 5)
 #define color_15_rgb(r, g, b, a) ((b >> 3) << 10) | ((g >> 3) << 5) | (r >> 3)
@@ -250,6 +255,12 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
 
         if (imageData != NULL) {
             displayName = strdup(name);
+            exitedViaPipe = false;
+            wakeup_pipe[0] = wakeup_pipe[1] = -1;
+            if (pipe(wakeup_pipe) == -1) {
+                fprintf(stderr, "openRender: Failed to create wakeup pipe for X11 driver\n");
+                wakeup_pipe[0] = wakeup_pipe[1] = -1;
+            }
             pthread_create(&thread, NULL, displayThread, this);
         }
     }
@@ -270,6 +281,8 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
  */
 CXDisplay::~CXDisplay() {
     free(displayName);
+    if (wakeup_pipe[0] >= 0) close(wakeup_pipe[0]);
+    if (wakeup_pipe[1] >= 0) close(wakeup_pipe[1]);
 }
 
 /*
@@ -358,53 +371,66 @@ void CXDisplay::main() {
 
     windowUp = TRUE;
 
+    int x11_fd = ConnectionNumber(display);
     while (running) {
-        XEvent x_event;
-        XExposeEvent exp_event;
+        // Drain all pending events (non-blocking)
+        while (XPending(display)) {
+            XEvent x_event;
+            XNextEvent(display, &x_event);
+            switch (x_event.type) {
+                case Expose: {
+                    XExposeEvent e = x_event.xexpose;
+                    XPutImage(display, xcanvas, image_gc, xim,
+                              e.x, e.y, e.x, e.y, e.width, e.height);
+                    XFlush(display);
+                } break;
+                case KeyPress: {
+                    KeySym key = XLookupKeysym(&x_event.xkey, 0);
+                    if (key == XK_Escape || key == XK_q) running = FALSE;
+                } break;
+                case DestroyNotify:
+                    running = FALSE;
+                    break;
+                case ClientMessage: {
+                    const long *data = x_event.xclient.data.l;
+                    if ((Atom)(data[0]) == WM_DELETE_WINDOW) running = FALSE;
+                } break;
+            }
+        }
+        if (!running) break;
 
-        XNextEvent(display, &x_event);
-        switch (x_event.type) {
-            case Expose:
-                exp_event = x_event.xexpose;
-                XPutImage(display,
-                          xcanvas,
-                          image_gc,
-                          xim,
-                          exp_event.x,
-                          exp_event.y,
-                          exp_event.x,
-                          exp_event.y,
-                          exp_event.width,
-                          exp_event.height);
-                XFlush(display);
-                break;
-            case KeyPress:
-            {
-                KeySym key = XLookupKeysym(&x_event.xkey, 0);
-                if (key == XK_Escape || key == XK_q) {
-                    running = FALSE;
-                }
-            } break;
-            case DestroyNotify:
-                running = FALSE;
-                break;
-            case ClientMessage:
-            {
-                const long *data = x_event.xclient.data.l;
-                if ((Atom)(data[0]) == WM_DELETE_WINDOW) {
-                    running = FALSE;
-                }
-            } break;
+        // Wait for an X11 event or a wakeup signal from finish()
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(x11_fd, &fds);
+        int maxfd = x11_fd;
+        if (wakeup_pipe[0] >= 0) {
+            FD_SET(wakeup_pipe[0], &fds);
+            if (wakeup_pipe[0] > maxfd) maxfd = wakeup_pipe[0];
+        }
+        int ret = select(maxfd + 1, &fds, NULL, NULL, NULL);
+        if (ret == -1) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        if (wakeup_pipe[0] >= 0 && FD_ISSET(wakeup_pipe[0], &fds)) {
+            exitedViaPipe = true;
+            break;
         }
     }
 
     windowDown = TRUE;
-
-    XUnmapWindow(display, xcanvas);
-    XFreeGC(display, image_gc);
-    XDestroyImage(xim);
-    XDestroyWindow(display, xcanvas);
-    XCloseDisplay(display);
+    if (!exitedViaPipe) {
+        // Normal exit (user closed window): clean up X11 resources here
+        XUnmapWindow(display, xcanvas);
+        XFreeGC(display, image_gc);
+        XDestroyImage(xim); // also frees imageData
+        xim = NULL;
+        XDestroyWindow(display, xcanvas);
+        XCloseDisplay(display);
+        display = NULL;
+    }
+    // If exitedViaPipe: leave all X11 resources open for the grandchild process
 }
 
 /*
@@ -423,10 +449,82 @@ void CXDisplay::main() {
 void CXDisplay::finish() {
     if (!windowDown) {
         XPutImage(display, xcanvas, image_gc, xim, 0, 0, 0, 0, width, height);
+        XStoreName(display, xcanvas, "openRender \xe2\x80\x94 Rendering Complete");
         XFlush(display);
     }
 
+    // Interrupt the select-based event loop and wait for the thread to stop cleanly
+    if (wakeup_pipe[1] >= 0)
+        write(wakeup_pipe[1], "\0", 1);
     pthread_join(thread, NULL);
+    // Thread has stopped. If user already closed the window, display==NULL already.
+
+    if (!exitedViaPipe || !display) {
+        // Window was closed by user before finish() was called — nothing to detach
+        return;
+    }
+
+    // Double-fork: detach the window as an independent process so orender exits immediately
+    pid_t pid = fork();
+    if (pid < 0) return; // fork failed — graceful degradation
+    if (pid > 0) {
+        // Parent (orender): null X11 objects so the destructor becomes a no-op
+        if (wakeup_pipe[0] >= 0) { close(wakeup_pipe[0]); wakeup_pipe[0] = -1; }
+        if (wakeup_pipe[1] >= 0) { close(wakeup_pipe[1]); wakeup_pipe[1] = -1; }
+        display = NULL;
+        xim = NULL; // imageData is now owned by grandchild via xim
+        waitpid(pid, NULL, 0);
+        return;
+    }
+
+    // Intermediate child: fork grandchild then exit immediately (init will reap grandchild)
+    pid_t pid2 = fork();
+    if (pid2 > 0) _exit(0);
+
+    // Grandchild: detached display process — keep window open until user closes it
+    setsid();
+    if (wakeup_pipe[0] >= 0) close(wakeup_pipe[0]);
+    if (wakeup_pipe[1] >= 0) close(wakeup_pipe[1]);
+    wakeup_pipe[0] = wakeup_pipe[1] = -1;
+
+    int devnull = open("/dev/null", O_RDWR);
+    if (devnull >= 0) {
+        dup2(devnull, 0); dup2(devnull, 1); dup2(devnull, 2);
+        if (devnull > 2) close(devnull);
+    }
+
+    // Simple blocking event loop — no wakeup pipe needed (single-threaded grandchild)
+    int running2 = TRUE;
+    while (running2) {
+        XEvent x_event;
+        XNextEvent(display, &x_event);
+        switch (x_event.type) {
+            case Expose: {
+                XExposeEvent e = x_event.xexpose;
+                XPutImage(display, xcanvas, image_gc, xim,
+                          e.x, e.y, e.x, e.y, e.width, e.height);
+                XFlush(display);
+            } break;
+            case KeyPress: {
+                KeySym key = XLookupKeysym(&x_event.xkey, 0);
+                if (key == XK_Escape || key == XK_q) running2 = FALSE;
+            } break;
+            case DestroyNotify:
+                running2 = FALSE;
+                break;
+            case ClientMessage: {
+                const long *data = x_event.xclient.data.l;
+                if ((Atom)(data[0]) == WM_DELETE_WINDOW) running2 = FALSE;
+            } break;
+        }
+    }
+
+    XUnmapWindow(display, xcanvas);
+    XFreeGC(display, image_gc);
+    XDestroyImage(xim); // also frees imageData
+    XDestroyWindow(display, xcanvas);
+    XCloseDisplay(display);
+    _exit(0);
 }
 
 /*

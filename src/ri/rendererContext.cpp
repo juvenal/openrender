@@ -72,6 +72,9 @@
 #include "xform.h"
 #include "zbuffer.h"
 
+// Defined in ri.cpp — true when orender was invoked with -d
+extern bool riAddFramebuffer();
+
 // include "isfinite" macro on Windows systems
 #if defined(_WINDOWS) && (!defined(isfinite))
 #define isfinite(x) _finite(x)
@@ -696,6 +699,14 @@ void CRendererContext::RiFrameEnd(void) {
 
 // WorldBegin - End stuff
 void CRendererContext::RiWorldBegin(void) {
+    // If -d flag given, add framebuffer display on top of whatever the RIB defined.
+    // Must run before optionBegin() snapshots currentOptions into a new copy.
+    if (riAddFramebuffer()) {
+        if (currentOptions->displays == NULL)
+            RiDisplayV("ri.tif", RI_FILE, RI_RGBA, 0, NULL, NULL);
+        RiDisplayV("+ri", RI_FRAMEBUFFER, RI_RGB, 0, NULL, NULL);
+    }
+
     optionBegin();
     attributeBegin();
     xformBegin();
