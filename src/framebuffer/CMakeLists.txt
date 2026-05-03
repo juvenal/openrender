@@ -29,6 +29,24 @@ if(UNIX AND NOT APPLE)
 			COMMAND wayland-scanner private-code ${FRACTIONAL_SCALE_XML} fractional-scale-v1-protocol.c
 			DEPENDS ${FRACTIONAL_SCALE_XML}
 		)
+
+		set(XDG_DECORATION_XML "/usr/share/wayland-protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
+		if(EXISTS "${XDG_DECORATION_XML}")
+			add_custom_command(
+				OUTPUT xdg-decoration-unstable-v1-client-protocol.h
+				COMMAND wayland-scanner client-header ${XDG_DECORATION_XML} xdg-decoration-unstable-v1-client-protocol.h
+				DEPENDS ${XDG_DECORATION_XML}
+			)
+			add_custom_command(
+				OUTPUT xdg-decoration-unstable-v1-protocol.c
+				COMMAND wayland-scanner private-code ${XDG_DECORATION_XML} xdg-decoration-unstable-v1-protocol.c
+				DEPENDS ${XDG_DECORATION_XML}
+			)
+			set(HAVE_XDG_DECORATION ON)
+		else()
+			message(STATUS "xdg-decoration protocol not found — server-side decorations disabled")
+			set(HAVE_XDG_DECORATION OFF)
+		endif()
 	endif(WAYLAND_FOUND)
 endif(UNIX AND NOT APPLE)
 
@@ -52,6 +70,10 @@ elseif(UNIX AND NOT APPLE)
 			list(APPEND FB_LIBS ${WAYLAND_LIBRARIES})
 			list(APPEND FB_INCS ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 			list(APPEND FB_DEFS HAVE_WAYLAND)
+			if(HAVE_XDG_DECORATION)
+				list(APPEND FB_SRCS xdg-decoration-unstable-v1-protocol.c xdg-decoration-unstable-v1-client-protocol.h)
+				list(APPEND FB_DEFS HAVE_XDG_DECORATION)
+			endif()
 		endif()
 
 		add_library(framebuffer MODULE ${FB_SRCS})
@@ -75,18 +97,24 @@ endif()
 
 # Standalone Wayland module (optional, for explicit use)
 if(WAYLAND_FOUND)
-	add_library(fbwl MODULE 
-		framebuffer.cpp 
-		fbwl.cpp 
+	set(FBWL_SRCS
+		framebuffer.cpp
+		fbwl.cpp
 		${framebuffer_headers}
 		xdg-shell-client-protocol.h
 		xdg-shell-protocol.c
 		fractional-scale-v1-client-protocol.h
 		fractional-scale-v1-protocol.c
 	)
+	set(FBWL_DEFS HAVE_WAYLAND)
+	if(HAVE_XDG_DECORATION)
+		list(APPEND FBWL_SRCS xdg-decoration-unstable-v1-protocol.c xdg-decoration-unstable-v1-client-protocol.h)
+		list(APPEND FBWL_DEFS HAVE_XDG_DECORATION)
+	endif()
+	add_library(fbwl MODULE ${FBWL_SRCS})
 	target_include_directories(fbwl PRIVATE ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 	target_link_libraries(fbwl openrendercommon ${WAYLAND_LIBRARIES} pthread)
 	set_target_properties(fbwl PROPERTIES PREFIX "")
 	install(TARGETS fbwl LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
-	target_compile_definitions(fbwl PRIVATE HAVE_WAYLAND)
+	target_compile_definitions(fbwl PRIVATE ${FBWL_DEFS})
 endif(WAYLAND_FOUND)

@@ -83,6 +83,9 @@ class CXDisplay : public CDisplay {
         XImage *xim;
         Atom WM_DELETE_WINDOW;
         Atom WM_PROTOCOLS;
+        Atom _NET_WM_NAME;
+        Atom _NET_WM_PID;
+        Atom UTF8_STRING;
         char *displayName;
 };
 

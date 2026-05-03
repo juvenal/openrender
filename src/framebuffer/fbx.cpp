@@ -117,8 +117,11 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
         failure = TRUE;
     }
     else {
-        WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", 0);
-        WM_PROTOCOLS = XInternAtom(display, "WM_PROTOCOLS", 0);
+        WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", False);
+        WM_PROTOCOLS     = XInternAtom(display, "WM_PROTOCOLS",     False);
+        _NET_WM_NAME     = XInternAtom(display, "_NET_WM_NAME",     False);
+        _NET_WM_PID      = XInternAtom(display, "_NET_WM_PID",      False);
+        UTF8_STRING      = XInternAtom(display, "UTF8_STRING",      False);
 
         screen = DefaultScreen(display);
         imageDepth = DefaultDepth(display, screen);
@@ -358,9 +361,33 @@ void CXDisplay::main() {
 
     XMapWindow(display, xcanvas);
 
-    XChangeProperty(display, xcanvas, WM_PROTOCOLS, XA_ATOM, 32, 0, (unsigned char *)&WM_DELETE_WINDOW, 1);
+    XSetWMProtocols(display, xcanvas, &WM_DELETE_WINDOW, 1);
 
+    XWMHints *wm_hints = XAllocWMHints();
+    if (wm_hints) {
+        wm_hints->flags         = InputHint | StateHint;
+        wm_hints->input         = True;
+        wm_hints->initial_state = NormalState;
+        XSetWMHints(display, xcanvas, wm_hints);
+        XFree(wm_hints);
+    }
+
+    XClassHint *class_hint = XAllocClassHint();
+    if (class_hint) {
+        class_hint->res_name  = (char *)"openrender";
+        class_hint->res_class = (char *)"OpenRender";
+        XSetClassHint(display, xcanvas, class_hint);
+        XFree(class_hint);
+    }
+
+    XChangeProperty(display, xcanvas, _NET_WM_NAME, UTF8_STRING, 8,
+                    PropModeReplace,
+                    (unsigned char *)displayName, (int)strlen(displayName));
     XStoreName(display, xcanvas, displayName);
+
+    pid_t wm_pid = getpid();
+    XChangeProperty(display, xcanvas, _NET_WM_PID, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)&wm_pid, 1);
 
     XSelectInput(display, xcanvas, ExposureMask | StructureNotifyMask | KeyPressMask);
 
@@ -449,7 +476,11 @@ void CXDisplay::main() {
 void CXDisplay::finish() {
     if (!windowDown) {
         XPutImage(display, xcanvas, image_gc, xim, 0, 0, 0, 0, width, height);
-        XStoreName(display, xcanvas, "openRender \xe2\x80\x94 Rendering Complete");
+        const char *done_title = "openRender \xe2\x80\x94 Rendering Complete";
+        XChangeProperty(display, xcanvas, _NET_WM_NAME, UTF8_STRING, 8,
+                        PropModeReplace,
+                        (unsigned char *)done_title, (int)strlen(done_title));
+        XStoreName(display, xcanvas, done_title);
         XFlush(display);
     }
 
@@ -492,6 +523,12 @@ void CXDisplay::finish() {
         dup2(devnull, 0); dup2(devnull, 1); dup2(devnull, 2);
         if (devnull > 2) close(devnull);
     }
+
+    // Update _NET_WM_PID to reflect the new (grandchild) process
+    pid_t gpid = getpid();
+    XChangeProperty(display, xcanvas, _NET_WM_PID, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)&gpid, 1);
+    XFlush(display);
 
     // Simple blocking event loop — no wakeup pipe needed (single-threaded grandchild)
     int running2 = TRUE;

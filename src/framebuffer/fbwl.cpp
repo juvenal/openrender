@@ -92,6 +92,11 @@ static void registry_handler(void *data, struct wl_registry *registry, uint32_t 
         d->fractional_scale_manager = (struct wp_fractional_scale_manager_v1 *)wl_registry_bind(registry, id, &wp_fractional_scale_manager_v1_interface, 1);
     } else if (strcmp(interface, "wl_seat") == 0) {
         d->seat = (struct wl_seat *)wl_registry_bind(registry, id, &wl_seat_interface, 1);
+#ifdef HAVE_XDG_DECORATION
+    } else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0) {
+        d->decoration_manager = (struct zxdg_decoration_manager_v1 *)
+            wl_registry_bind(registry, id, &zxdg_decoration_manager_v1_interface, 1);
+#endif
     }
 }
 
@@ -283,6 +288,10 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     this->pool_size = 0;
     this->windowUp = FALSE;
     this->wakeup_pipe[0] = this->wakeup_pipe[1] = -1;
+#ifdef HAVE_XDG_DECORATION
+    this->decoration_manager = NULL;
+    this->toplevel_decoration = NULL;
+#endif
 
     pthread_mutex_init(&this->mutex, NULL);
     if (pipe(this->wakeup_pipe) == -1) {
@@ -327,7 +336,19 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
 
     this->xdg_toplevel = xdg_surface_get_toplevel(this->xdg_surface);
     xdg_toplevel_set_title(this->xdg_toplevel, name);
+    xdg_toplevel_set_app_id(this->xdg_toplevel, "openrender");
     xdg_toplevel_add_listener(this->xdg_toplevel, &xdg_toplevel_listener, this);
+
+#ifdef HAVE_XDG_DECORATION
+    if (this->decoration_manager) {
+        this->toplevel_decoration =
+            zxdg_decoration_manager_v1_get_toplevel_decoration(
+                this->decoration_manager, this->xdg_toplevel);
+        zxdg_toplevel_decoration_v1_set_mode(
+            this->toplevel_decoration,
+            ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+    }
+#endif
 
     wl_surface_commit(this->surface);
     wl_display_roundtrip(this->display);
@@ -380,6 +401,10 @@ CWDisplay::~CWDisplay() {
     if (this->fractional_scale) wp_fractional_scale_v1_destroy(this->fractional_scale);
     if (this->keyboard) wl_keyboard_destroy(this->keyboard);
     if (this->pointer) wl_pointer_destroy(this->pointer);
+#ifdef HAVE_XDG_DECORATION
+    if (this->toplevel_decoration) zxdg_toplevel_decoration_v1_destroy(this->toplevel_decoration);
+    if (this->decoration_manager) zxdg_decoration_manager_v1_destroy(this->decoration_manager);
+#endif
     if (this->xdg_toplevel) xdg_toplevel_destroy(this->xdg_toplevel);
     if (this->xdg_surface) xdg_surface_destroy(this->xdg_surface);
     if (this->surface) wl_surface_destroy(this->surface);
@@ -542,6 +567,9 @@ void CWDisplay::finish() {
         surface = NULL; xdg_surface = NULL; xdg_toplevel = NULL;
         fractional_scale = NULL; keyboard = NULL; pointer = NULL;
         buffer = NULL; shm_data = NULL;
+#ifdef HAVE_XDG_DECORATION
+        toplevel_decoration = NULL; decoration_manager = NULL;
+#endif
         waitpid(pid, NULL, 0); // wait microseconds for intermediate child to exit
         return;
     }
