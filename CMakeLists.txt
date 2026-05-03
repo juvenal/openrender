@@ -36,7 +36,13 @@ endif()
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 
 
-# Use standard CMAKE_INSTALL_PREFIX and GNUInstallDirs
+# Use standard CMAKE_INSTALL_PREFIX and GNUInstallDirs.
+# Default CMAKE_INSTALL_LIBDIR to 'lib' so installs are consistent across
+# platforms — GNUInstallDirs would otherwise pick 'lib64' on Fedora/RHEL
+# multilib systems. Users who need lib64 can pass -DCMAKE_INSTALL_LIBDIR=lib64.
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib" CACHE PATH "Object code libraries installation directory")
+endif()
 include(GNUInstallDirs)
 
 # ###########################################################################

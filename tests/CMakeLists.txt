@@ -31,5 +31,3 @@ add_subdirectory(framebuffer)
 # Print test information
 message(STATUS "Configured tests:")
 message(STATUS "  - test_64bit_portability")
-message(STATUS "  - WaylandDisplayTests")
-message(STATUS "  - DisplayCommonTests")

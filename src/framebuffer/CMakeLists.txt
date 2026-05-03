@@ -32,12 +32,14 @@ if(UNIX AND NOT APPLE)
 	endif(WAYLAND_FOUND)
 endif(UNIX AND NOT APPLE)
 
-# Standard framebuffer module (X11 + Wayland fallback on Linux)
+# Framebuffer display module — platform-specific
 if(WIN32)
 	add_library(framebuffer MODULE framebuffer.cpp fbw.cpp ${framebuffer_headers})
 	target_link_libraries(framebuffer openrendercommon)
-else(WIN32)
-	find_package( X11 REQUIRED )
+
+elseif(UNIX AND NOT APPLE)
+	# Linux: X11 base + optional Wayland
+	find_package(X11 REQUIRED)
 	if(X11_FOUND)
 		set(FB_SRCS framebuffer.cpp fbx.cpp ${framebuffer_headers})
 		set(FB_LIBS ${X11_LIBRARIES})
@@ -56,13 +58,20 @@ else(WIN32)
 		target_include_directories(framebuffer PRIVATE ${FB_INCS})
 		target_link_libraries(framebuffer openrendercommon ${FB_LIBS} pthread)
 		target_compile_definitions(framebuffer PRIVATE ${FB_DEFS})
-	else(X11_FOUND)
+	else()
 		message(FATAL_ERROR "Could not find X11 libs, cannot build framebuffer.so")
-	endif(X11_FOUND)
-endif(WIN32)
+	endif()
 
-set_target_properties(framebuffer PROPERTIES PREFIX "")
-install(TARGETS framebuffer LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
+elseif(APPLE)
+	# macOS: Quartz/Cocoa driver — not yet implemented (planned as fbq.cpp)
+	message(STATUS "macOS framebuffer display driver not yet implemented (planned: Quartz/Cocoa)")
+
+endif()
+
+if(TARGET framebuffer)
+	set_target_properties(framebuffer PROPERTIES PREFIX "")
+	install(TARGETS framebuffer LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
+endif()
 
 # Standalone Wayland module (optional, for explicit use)
 if(WAYLAND_FOUND)
