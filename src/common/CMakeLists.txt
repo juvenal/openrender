@@ -1,6 +1,7 @@
 file(GLOB openrendercommon_headers *.h)
 
 add_library(openrendercommon STATIC os.cpp algebra.cpp ${openrendercommon_headers})
+set_target_properties(openrendercommon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(openrendercommon PUBLIC openrender_common_flags)
 install(TARGETS openrendercommon LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

@@ -83,22 +83,28 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
 
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
         const int numVertices = currentShadingState->numVertices;
+        if (numVertices == 0) return;
         float *Pf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *Nf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *thetaf = (float *)alloca(numVertices * sizeof(float));
+        memset(Pf, 0, numVertices * 3 * sizeof(float));
+        memset(Nf, 0, numVertices * 3 * sizeof(float));
+        memset(thetaf, 0, numVertices * sizeof(float));
         int i;
         float *cP = Pf;
         float *cN = Nf;
+        float *cTheta = thetaf;
         float *L;
         float *CL;
 
         // Generate points on the surface
-        for (i = numVertices; i > 0; i--, cP += 3, cN += 3) {
+        for (i = numVertices; i > 0; i--, cP += 3, cN += 3, cTheta++) {
             sampleSphere(cP);
             normalizev(cP);
             movvv(cN, cP);
             mulvf(cP, radius);
             addvv(cP, from);
+            *cTheta = (float)(C_PI / 2.0);
         }
 
         // Call the hook handle
@@ -382,9 +388,13 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
 
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
         const int numVertices = currentShadingState->numVertices;
+        if (numVertices == 0) return;
         float *Pf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *Nf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *thetaf = (float *)alloca(numVertices * sizeof(float));
+        memset(Pf, 0, numVertices * 3 * sizeof(float));
+        memset(Nf, 0, numVertices * 3 * sizeof(float));
+        memset(thetaf, 0, numVertices * sizeof(float));
         int i;
         float *cP = Pf;
         float *cN = Nf;

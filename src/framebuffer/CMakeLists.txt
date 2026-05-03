@@ -1,17 +1,83 @@
 file(GLOB framebuffer_headers *.h)
 
+# Check for Wayland dependencies (Linux only)
+if(UNIX AND NOT APPLE)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(WAYLAND wayland-client wayland-protocols>=1.24)
+	if(WAYLAND_FOUND)
+		# Generate Wayland protocol headers
+		set(XDG_SHELL_XML "/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml")
+		set(FRACTIONAL_SCALE_XML "/usr/share/wayland-protocols/staging/fractional-scale/fractional-scale-v1.xml")
+		
+		add_custom_command(
+			OUTPUT xdg-shell-client-protocol.h
+			COMMAND wayland-scanner client-header ${XDG_SHELL_XML} xdg-shell-client-protocol.h
+			DEPENDS ${XDG_SHELL_XML}
+		)
+		add_custom_command(
+			OUTPUT xdg-shell-protocol.c
+			COMMAND wayland-scanner private-code ${XDG_SHELL_XML} xdg-shell-protocol.c
+			DEPENDS ${XDG_SHELL_XML}
+		)
+		add_custom_command(
+			OUTPUT fractional-scale-v1-client-protocol.h
+			COMMAND wayland-scanner client-header ${FRACTIONAL_SCALE_XML} fractional-scale-v1-client-protocol.h
+			DEPENDS ${FRACTIONAL_SCALE_XML}
+		)
+		add_custom_command(
+			OUTPUT fractional-scale-v1-protocol.c
+			COMMAND wayland-scanner private-code ${FRACTIONAL_SCALE_XML} fractional-scale-v1-protocol.c
+			DEPENDS ${FRACTIONAL_SCALE_XML}
+		)
+	endif(WAYLAND_FOUND)
+endif(UNIX AND NOT APPLE)
+
+# Standard framebuffer module (X11 + Wayland fallback on Linux)
 if(WIN32)
 	add_library(framebuffer MODULE framebuffer.cpp fbw.cpp ${framebuffer_headers})
+	target_link_libraries(framebuffer openrendercommon)
 else(WIN32)
 	find_package( X11 REQUIRED )
 	if(X11_FOUND)
-		add_library(framebuffer MODULE framebuffer.cpp fbx.cpp ${framebuffer_headers})
-		target_include_directories(framebuffer PRIVATE ${X11_INCLUDE_DIR})
+		set(FB_SRCS framebuffer.cpp fbx.cpp ${framebuffer_headers})
+		set(FB_LIBS ${X11_LIBRARIES})
+		set(FB_INCS ${X11_INCLUDE_DIR})
+		set(FB_DEFS "")
+
+		if(WAYLAND_FOUND)
+			message(STATUS "Integrating Wayland support into framebuffer module")
+			list(APPEND FB_SRCS fbwl.cpp xdg-shell-protocol.c xdg-shell-client-protocol.h fractional-scale-v1-protocol.c fractional-scale-v1-client-protocol.h)
+			list(APPEND FB_LIBS ${WAYLAND_LIBRARIES})
+			list(APPEND FB_INCS ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+			list(APPEND FB_DEFS HAVE_WAYLAND)
+		endif()
+
+		add_library(framebuffer MODULE ${FB_SRCS})
+		target_include_directories(framebuffer PRIVATE ${FB_INCS})
+		target_link_libraries(framebuffer openrendercommon ${FB_LIBS} pthread)
+		target_compile_definitions(framebuffer PRIVATE ${FB_DEFS})
 	else(X11_FOUND)
 		message(FATAL_ERROR "Could not find X11 libs, cannot build framebuffer.so")
 	endif(X11_FOUND)
 endif(WIN32)
 
-target_link_libraries(framebuffer openrendercommon ${X11_LIBRARIES})
 set_target_properties(framebuffer PROPERTIES PREFIX "")
 install(TARGETS framebuffer LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
+
+# Standalone Wayland module (optional, for explicit use)
+if(WAYLAND_FOUND)
+	add_library(fbwl MODULE 
+		framebuffer.cpp 
+		fbwl.cpp 
+		${framebuffer_headers}
+		xdg-shell-client-protocol.h
+		xdg-shell-protocol.c
+		fractional-scale-v1-client-protocol.h
+		fractional-scale-v1-protocol.c
+	)
+	target_include_directories(fbwl PRIVATE ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+	target_link_libraries(fbwl openrendercommon ${WAYLAND_LIBRARIES} pthread)
+	set_target_properties(fbwl PROPERTIES PREFIX "")
+	install(TARGETS fbwl LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
+	target_compile_definitions(fbwl PRIVATE HAVE_WAYLAND)
+endif(WAYLAND_FOUND)

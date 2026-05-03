@@ -422,7 +422,7 @@ static int nTokens, mTokens; // Parameter list info
 static RtToken *tokens = NULL;
 static RtPointer *values = NULL;
 static CArray<int> blocks; // The block stack
-static int framebufferOnly = FALSE;
+static int addFramebuffer = FALSE;
 static int frameRangeActive = FALSE;
 static int frameBegin = 0;
 static int frameEnd = 0;
@@ -598,7 +598,7 @@ RiBegin(RtToken name) {
             int riRib, riNet;
 
             if (extract(riRibFile, "fbonly:", name))
-                framebufferOnly = TRUE;
+                addFramebuffer = TRUE;
 
             if (extract(riRibFile, "frames:", name)) {
                 if (sscanf(riRibFile, "%d:%d:%d", &frameBegin, &frameStep, &frameEnd) == 3) {
@@ -662,11 +662,6 @@ RiBegin(RtToken name) {
         currentBlock = RENDERMAN_WORLD_BLOCK;
     }
 
-    if (framebufferOnly) {
-        framebufferOnly = FALSE;
-        RiDisplay("ri", RI_FRAMEBUFFER, RI_RGB, RI_NULL);
-        framebufferOnly = TRUE;
-    }
 }
 
 EXTERN(RtVoid)
@@ -920,11 +915,10 @@ RiDisplayV(const char *name, RtToken type, RtToken mode, RtInt n, RtToken tokens
     if (check("RiDisplay", VALID_OPTION_BLOCKS))
         return;
 
-    if (framebufferOnly)
-        return;
-
     renderMan->RiDisplayV(name, type, mode, n, tokens, params);
 }
+
+bool riAddFramebuffer() { return addFramebuffer != FALSE; }
 
 EXTERN(RtVoid)
 RiCustomDisplay(const char *name, RtToken mode, RtDisplayStartFunction startFunc, RtDisplayDataFunction dataFunc, RtDisplayFinishFunction endFunc, ...) {
@@ -939,9 +933,6 @@ RiCustomDisplay(const char *name, RtToken mode, RtDisplayStartFunction startFunc
 EXTERN(RtVoid)
 RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction startFunc, RtDisplayDataFunction dataFunc, RtDisplayFinishFunction endFunc, RtInt n, RtToken tokens[], RtPointer params[]) {
     if (check("RiCustomDisplay", VALID_OPTION_BLOCKS))
-        return;
-
-    if (framebufferOnly)
         return;
 
     renderMan->RiCustomDisplayV(name, mode, startFunc, dataFunc, endFunc, n, tokens, params);
