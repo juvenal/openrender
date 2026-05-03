@@ -2,6 +2,7 @@
 version 3.03
 Display "motion-3-reyes.tif" "file" "rgba"
 Projection "perspective" "fov" 45
+Hider "stochastic"
 Format 400 300 1
 PixelSamples 3 3
 #DepthOfField 2 1 5
