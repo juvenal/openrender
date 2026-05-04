@@ -185,8 +185,9 @@ static void libdecor_handle_error(struct libdecor *ctx, enum libdecor_error erro
     log_error("libdecor error {}: {}", (int)error, message);
 }
 
-static const struct libdecor_interface libdecor_iface = {
-    libdecor_handle_error
+static struct libdecor_interface libdecor_iface = {
+    libdecor_handle_error,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL  // reserved0-9
 };
 
 static void frame_configure(struct libdecor_frame *frame, struct libdecor_configuration *config, void *user_data) {
@@ -246,10 +247,12 @@ static void frame_commit(struct libdecor_frame *frame, void *user_data) {
     (void)frame; (void)user_data;
 }
 
-static const struct libdecor_frame_interface frame_iface = {
+static struct libdecor_frame_interface frame_iface = {
     frame_configure,
     frame_close,
-    frame_commit
+    frame_commit,
+    NULL,  // dismiss_popup
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL  // reserved0-9
 };
 
 #endif // HAVE_LIBDECOR
