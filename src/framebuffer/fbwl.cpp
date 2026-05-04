@@ -86,17 +86,14 @@ static void registry_handler(void *data, struct wl_registry *registry, uint32_t 
         d->compositor = (struct wl_compositor *)wl_registry_bind(registry, id, &wl_compositor_interface, 1);
     } else if (strcmp(interface, "wl_shm") == 0) {
         d->shm = (struct wl_shm *)wl_registry_bind(registry, id, &wl_shm_interface, 1);
+#ifndef HAVE_LIBDECOR
     } else if (strcmp(interface, "xdg_wm_base") == 0) {
         d->xdg_wm_base = (struct xdg_wm_base *)wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
+#endif
     } else if (strcmp(interface, "wp_fractional_scale_manager_v1") == 0) {
         d->fractional_scale_manager = (struct wp_fractional_scale_manager_v1 *)wl_registry_bind(registry, id, &wp_fractional_scale_manager_v1_interface, 1);
     } else if (strcmp(interface, "wl_seat") == 0) {
         d->seat = (struct wl_seat *)wl_registry_bind(registry, id, &wl_seat_interface, 1);
-#ifdef HAVE_XDG_DECORATION
-    } else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0) {
-        d->decoration_manager = (struct zxdg_decoration_manager_v1 *)
-            wl_registry_bind(registry, id, &zxdg_decoration_manager_v1_interface, 1);
-#endif
     }
 }
 
@@ -108,6 +105,8 @@ static const struct wl_registry_listener registry_listener = {
     registry_handler,
     registry_remover
 };
+
+#ifndef HAVE_LIBDECOR
 
 static void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial) {
     (void)data;
@@ -127,19 +126,14 @@ static const struct xdg_surface_listener xdg_surface_listener = {
     xdg_surface_configure
 };
 
-static void xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel, int32_t width, int32_t height, struct wl_array *states) {
-    (void)xdg_toplevel; (void)states;
-    CWDisplay *d = (CWDisplay *)data;
+static void xdg_wl_resize(CWDisplay *d, int32_t width, int32_t height) {
     if (width > 0 && height > 0 && (width != d->width || height != d->height)) {
         log_info("Wayland window resizing to {}x{}", width, height);
         pthread_mutex_lock(&d->mutex);
-        
         if (d->buffer) wl_buffer_destroy(d->buffer);
         if (d->shm_data) munmap(d->shm_data, d->pool_size);
-
         d->width = width;
         d->height = height;
-
         int stride = d->width * 4;
         d->pool_size = stride * d->height;
         int fd = os_create_anonymous_file(d->pool_size);
@@ -159,9 +153,13 @@ static void xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel
             log_error("Failed to create SHM file for resize");
             d->failure = TRUE;
         }
-
         pthread_mutex_unlock(&d->mutex);
     }
+}
+
+static void xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel, int32_t width, int32_t height, struct wl_array *states) {
+    (void)xdg_toplevel; (void)states;
+    xdg_wl_resize((CWDisplay *)data, width, height);
 }
 
 static void xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel) {
@@ -177,6 +175,84 @@ static const struct xdg_toplevel_listener xdg_toplevel_listener = {
     NULL, // configure_bounds
     NULL  // wm_capabilities
 };
+
+#endif // !HAVE_LIBDECOR
+
+#ifdef HAVE_LIBDECOR
+
+static void libdecor_handle_error(struct libdecor *ctx, enum libdecor_error error, const char *message) {
+    (void)ctx;
+    log_error("libdecor error {}: {}", (int)error, message);
+}
+
+static const struct libdecor_interface libdecor_iface = {
+    libdecor_handle_error
+};
+
+static void frame_configure(struct libdecor_frame *frame, struct libdecor_configuration *config, void *user_data) {
+    CWDisplay *d = (CWDisplay *)user_data;
+    int new_width = d->width, new_height = d->height;
+    libdecor_configuration_get_content_size(config, frame, &new_width, &new_height);
+
+    if (new_width > 0 && new_height > 0 && (new_width != d->width || new_height != d->height)) {
+        log_info("Wayland window resizing to {}x{}", new_width, new_height);
+        pthread_mutex_lock(&d->mutex);
+        if (d->buffer) { wl_buffer_destroy(d->buffer); d->buffer = NULL; }
+        if (d->shm_data) { munmap(d->shm_data, d->pool_size); d->shm_data = NULL; }
+        d->width = new_width;
+        d->height = new_height;
+        int stride = d->width * 4;
+        d->pool_size = stride * d->height;
+        int fd = os_create_anonymous_file(d->pool_size);
+        if (fd >= 0) {
+            d->shm_data = mmap(NULL, d->pool_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            if (d->shm_data != MAP_FAILED) {
+                struct wl_shm_pool *pool = wl_shm_create_pool(d->shm, fd, d->pool_size);
+                d->buffer = wl_shm_pool_create_buffer(pool, 0, d->width, d->height, stride, WL_SHM_FORMAT_ARGB8888);
+                wl_shm_pool_destroy(pool);
+            } else {
+                log_error("Failed to mmap SHM buffer for resize");
+                d->shm_data = NULL;
+                d->failure = TRUE;
+            }
+            close(fd);
+        } else {
+            log_error("Failed to create SHM file for resize");
+            d->failure = TRUE;
+        }
+        pthread_mutex_unlock(&d->mutex);
+    }
+
+    struct libdecor_state *state = libdecor_state_new(d->width, d->height);
+    libdecor_frame_commit(frame, state, config);
+    libdecor_state_free(state);
+
+    if (d->surface && d->buffer) {
+        wl_surface_attach(d->surface, d->buffer, 0, 0);
+        wl_surface_damage(d->surface, 0, 0, d->width, d->height);
+        wl_surface_commit(d->surface);
+    }
+    d->initialConfigured = true;
+}
+
+static void frame_close(struct libdecor_frame *frame, void *user_data) {
+    (void)frame;
+    CWDisplay *d = (CWDisplay *)user_data;
+    log_info("Wayland window close requested");
+    d->windowUp = FALSE;
+}
+
+static void frame_commit(struct libdecor_frame *frame, void *user_data) {
+    (void)frame; (void)user_data;
+}
+
+static const struct libdecor_frame_interface frame_iface = {
+    frame_configure,
+    frame_close,
+    frame_commit
+};
+
+#endif // HAVE_LIBDECOR
 
 static void fractional_scale_handle_preferred_scale(void *data, struct wp_fractional_scale_v1 *fractional_scale, uint32_t scale) {
     (void)fractional_scale;
@@ -274,12 +350,9 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     this->registry = NULL;
     this->compositor = NULL;
     this->shm = NULL;
-    this->xdg_wm_base = NULL;
     this->fractional_scale_manager = NULL;
     this->seat = NULL;
     this->surface = NULL;
-    this->xdg_surface = NULL;
-    this->xdg_toplevel = NULL;
     this->fractional_scale = NULL;
     this->keyboard = NULL;
     this->pointer = NULL;
@@ -288,9 +361,14 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     this->pool_size = 0;
     this->windowUp = FALSE;
     this->wakeup_pipe[0] = this->wakeup_pipe[1] = -1;
-#ifdef HAVE_XDG_DECORATION
-    this->decoration_manager = NULL;
-    this->toplevel_decoration = NULL;
+#ifdef HAVE_LIBDECOR
+    this->libdecor_ctx = NULL;
+    this->libdecor_frame = NULL;
+    this->initialConfigured = false;
+#else
+    this->xdg_wm_base = NULL;
+    this->xdg_surface = NULL;
+    this->xdg_toplevel = NULL;
 #endif
 
     pthread_mutex_init(&this->mutex, NULL);
@@ -312,48 +390,24 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     wl_registry_add_listener(this->registry, &registry_listener, this);
     wl_display_roundtrip(this->display);
 
-    if (!this->compositor || !this->shm || !this->xdg_wm_base) {
-        log_error("Wayland compositor, SHM, or XDG WM Base not available");
+    if (!this->compositor || !this->shm) {
+        log_error("Wayland compositor or SHM not available");
         this->failure = TRUE;
         return;
     }
-
-    xdg_wm_base_add_listener(this->xdg_wm_base, &xdg_wm_base_listener, this);
 
     if (this->seat) {
         wl_seat_add_listener(this->seat, &seat_listener, this);
     }
 
     this->surface = wl_compositor_create_surface(this->compositor);
-    
+
     if (this->fractional_scale_manager) {
         this->fractional_scale = wp_fractional_scale_manager_v1_get_fractional_scale(this->fractional_scale_manager, this->surface);
         wp_fractional_scale_v1_add_listener(this->fractional_scale, &fractional_scale_listener, this);
     }
 
-    this->xdg_surface = xdg_wm_base_get_xdg_surface(this->xdg_wm_base, this->surface);
-    xdg_surface_add_listener(this->xdg_surface, &xdg_surface_listener, this);
-
-    this->xdg_toplevel = xdg_surface_get_toplevel(this->xdg_surface);
-    xdg_toplevel_set_title(this->xdg_toplevel, name);
-    xdg_toplevel_set_app_id(this->xdg_toplevel, "openrender");
-    xdg_toplevel_add_listener(this->xdg_toplevel, &xdg_toplevel_listener, this);
-
-#ifdef HAVE_XDG_DECORATION
-    if (this->decoration_manager) {
-        this->toplevel_decoration =
-            zxdg_decoration_manager_v1_get_toplevel_decoration(
-                this->decoration_manager, this->xdg_toplevel);
-        zxdg_toplevel_decoration_v1_set_mode(
-            this->toplevel_decoration,
-            ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-    }
-#endif
-
-    wl_surface_commit(this->surface);
-    wl_display_roundtrip(this->display);
-
-    // Buffer allocation (T009)
+    // Pre-allocate SHM buffer at initial size (frame_configure or first data() may resize)
     int stride = width * 4;
     this->pool_size = stride * height;
     int fd = os_create_anonymous_file(this->pool_size);
@@ -373,6 +427,45 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
         log_error("Failed to create anonymous SHM file");
         this->failure = TRUE;
     }
+
+    if (this->failure) return;
+
+#ifdef HAVE_LIBDECOR
+    this->libdecor_ctx = libdecor_new(this->display, &libdecor_iface);
+    if (!this->libdecor_ctx) {
+        log_error("Failed to create libdecor context");
+        this->failure = TRUE;
+        return;
+    }
+    this->libdecor_frame = libdecor_decorate(this->libdecor_ctx, this->surface, &frame_iface, this);
+    libdecor_frame_set_title(this->libdecor_frame, name);
+    libdecor_frame_set_app_id(this->libdecor_frame, "openrender");
+    libdecor_frame_map(this->libdecor_frame);
+
+    // Wait for the initial configure event before starting the event thread
+    while (!this->initialConfigured && !this->failure) {
+        if (libdecor_dispatch(this->libdecor_ctx, 16) < 0) break;
+    }
+#else
+    if (!this->xdg_wm_base) {
+        log_error("XDG WM Base not available");
+        this->failure = TRUE;
+        return;
+    }
+    xdg_wm_base_add_listener(this->xdg_wm_base, &xdg_wm_base_listener, this);
+
+    this->xdg_surface = xdg_wm_base_get_xdg_surface(this->xdg_wm_base, this->surface);
+    xdg_surface_add_listener(this->xdg_surface, &xdg_surface_listener, this);
+
+    this->xdg_toplevel = xdg_surface_get_toplevel(this->xdg_surface);
+    xdg_toplevel_set_title(this->xdg_toplevel, name);
+    xdg_toplevel_set_app_id(this->xdg_toplevel, "openrender");
+    xdg_toplevel_add_listener(this->xdg_toplevel, &xdg_toplevel_listener, this);
+
+    wl_surface_attach(this->surface, this->buffer, 0, 0);
+    wl_surface_commit(this->surface);
+    wl_display_roundtrip(this->display);
+#endif
 
     this->windowUp = TRUE;
     pthread_create(&this->thread, NULL, displayThread, this);
@@ -401,16 +494,17 @@ CWDisplay::~CWDisplay() {
     if (this->fractional_scale) wp_fractional_scale_v1_destroy(this->fractional_scale);
     if (this->keyboard) wl_keyboard_destroy(this->keyboard);
     if (this->pointer) wl_pointer_destroy(this->pointer);
-#ifdef HAVE_XDG_DECORATION
-    if (this->toplevel_decoration) zxdg_toplevel_decoration_v1_destroy(this->toplevel_decoration);
-    if (this->decoration_manager) zxdg_decoration_manager_v1_destroy(this->decoration_manager);
-#endif
+#ifdef HAVE_LIBDECOR
+    if (this->libdecor_frame) libdecor_frame_unref(this->libdecor_frame);
+    if (this->libdecor_ctx) libdecor_unref(this->libdecor_ctx);
+#else
     if (this->xdg_toplevel) xdg_toplevel_destroy(this->xdg_toplevel);
     if (this->xdg_surface) xdg_surface_destroy(this->xdg_surface);
+    if (this->xdg_wm_base) xdg_wm_base_destroy(this->xdg_wm_base);
+#endif
     if (this->surface) wl_surface_destroy(this->surface);
     if (this->seat) wl_seat_destroy(this->seat);
     if (this->fractional_scale_manager) wp_fractional_scale_manager_v1_destroy(this->fractional_scale_manager);
-    if (this->xdg_wm_base) xdg_wm_base_destroy(this->xdg_wm_base);
     if (this->compositor) wl_compositor_destroy(this->compositor);
     if (this->shm) wl_shm_destroy(this->shm);
     if (this->registry) wl_registry_destroy(this->registry);
@@ -436,7 +530,11 @@ CWDisplay::~CWDisplay() {
  *
  */
 void CWDisplay::main() {
+#ifdef HAVE_LIBDECOR
+    int wl_fd = libdecor_get_fd(libdecor_ctx);
+#else
     int wl_fd = wl_display_get_fd(display);
+#endif
     while (windowUp) {
         if (wl_display_flush(display) == -1 && errno != EAGAIN) {
             log_error("Wayland display flush error, terminating event loop");
@@ -456,7 +554,11 @@ void CWDisplay::main() {
         }
         if (wakeup_pipe[0] >= 0 && (fds[1].revents & POLLIN)) break; // woken by finish()
         if (fds[0].revents & POLLIN) {
+#ifdef HAVE_LIBDECOR
+            if (libdecor_dispatch(libdecor_ctx, 0) < 0) {
+#else
             if (wl_display_dispatch(display) == -1) {
+#endif
                 log_error("Wayland display dispatch error, terminating event loop");
                 windowUp = FALSE;
                 break;
@@ -538,10 +640,17 @@ int CWDisplay::data(int x, int y, int w, int h, float *data) {
  */
 void CWDisplay::finish() {
     // Update title to signal rendering complete
+#ifdef HAVE_LIBDECOR
+    if (libdecor_frame) {
+        libdecor_frame_set_title(libdecor_frame, "openRender \xe2\x80\x94 Rendering Complete");
+        wl_display_flush(display);
+    }
+#else
     if (xdg_toplevel) {
         xdg_toplevel_set_title(xdg_toplevel, "openRender \xe2\x80\x94 Rendering Complete");
         wl_display_flush(display);
     }
+#endif
 
     // Interrupt the poll-based event loop and wait for the thread to stop cleanly
     if (wakeup_pipe[1] >= 0)
@@ -563,12 +672,13 @@ void CWDisplay::finish() {
         close(wakeup_pipe[0]); wakeup_pipe[0] = -1;
         close(wakeup_pipe[1]); wakeup_pipe[1] = -1;
         display = NULL; registry = NULL; compositor = NULL; shm = NULL;
-        xdg_wm_base = NULL; fractional_scale_manager = NULL; seat = NULL;
-        surface = NULL; xdg_surface = NULL; xdg_toplevel = NULL;
-        fractional_scale = NULL; keyboard = NULL; pointer = NULL;
+        fractional_scale_manager = NULL; seat = NULL;
+        surface = NULL; fractional_scale = NULL; keyboard = NULL; pointer = NULL;
         buffer = NULL; shm_data = NULL;
-#ifdef HAVE_XDG_DECORATION
-        toplevel_decoration = NULL; decoration_manager = NULL;
+#ifdef HAVE_LIBDECOR
+        libdecor_frame = NULL; libdecor_ctx = NULL;
+#else
+        xdg_wm_base = NULL; xdg_surface = NULL; xdg_toplevel = NULL;
 #endif
         waitpid(pid, NULL, 0); // wait microseconds for intermediate child to exit
         return;
@@ -592,8 +702,14 @@ void CWDisplay::finish() {
 
     // Simple blocking dispatch — no wakeup pipe needed in a single-process event loop
     windowUp = TRUE;
+#ifdef HAVE_LIBDECOR
+    while (windowUp) {
+        if (libdecor_dispatch(libdecor_ctx, -1) < 0) break;
+    }
+#else
     while (windowUp) {
         if (wl_display_dispatch(display) == -1) break;
     }
+#endif
     _exit(0);
 }

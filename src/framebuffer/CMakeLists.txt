@@ -30,24 +30,15 @@ if(UNIX AND NOT APPLE)
 			DEPENDS ${FRACTIONAL_SCALE_XML}
 		)
 
-		set(XDG_DECORATION_XML "/usr/share/wayland-protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
-		if(EXISTS "${XDG_DECORATION_XML}")
-			add_custom_command(
-				OUTPUT xdg-decoration-unstable-v1-client-protocol.h
-				COMMAND wayland-scanner client-header ${XDG_DECORATION_XML} xdg-decoration-unstable-v1-client-protocol.h
-				DEPENDS ${XDG_DECORATION_XML}
-			)
-			add_custom_command(
-				OUTPUT xdg-decoration-unstable-v1-protocol.c
-				COMMAND wayland-scanner private-code ${XDG_DECORATION_XML} xdg-decoration-unstable-v1-protocol.c
-				DEPENDS ${XDG_DECORATION_XML}
-			)
-			set(HAVE_XDG_DECORATION ON)
-		else()
-			message(STATUS "xdg-decoration protocol not found — server-side decorations disabled")
-			set(HAVE_XDG_DECORATION OFF)
-		endif()
 	endif(WAYLAND_FOUND)
+
+	# libdecor: cross-compositor window decoration (CSD on GNOME, SSD on KDE/Weston)
+	pkg_check_modules(LIBDECOR libdecor-0)
+	if(LIBDECOR_FOUND)
+		message(STATUS "Found libdecor: window decorations enabled for Wayland")
+	else()
+		message(STATUS "libdecor not found — Wayland windows will be undecorated on GNOME")
+	endif()
 endif(UNIX AND NOT APPLE)
 
 # Framebuffer display module — platform-specific
@@ -70,9 +61,10 @@ elseif(UNIX AND NOT APPLE)
 			list(APPEND FB_LIBS ${WAYLAND_LIBRARIES})
 			list(APPEND FB_INCS ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 			list(APPEND FB_DEFS HAVE_WAYLAND)
-			if(HAVE_XDG_DECORATION)
-				list(APPEND FB_SRCS xdg-decoration-unstable-v1-protocol.c xdg-decoration-unstable-v1-client-protocol.h)
-				list(APPEND FB_DEFS HAVE_XDG_DECORATION)
+			if(LIBDECOR_FOUND)
+				list(APPEND FB_LIBS ${LIBDECOR_LIBRARIES})
+				list(APPEND FB_INCS ${LIBDECOR_INCLUDE_DIRS})
+				list(APPEND FB_DEFS HAVE_LIBDECOR)
 			endif()
 		endif()
 
@@ -107,13 +99,18 @@ if(WAYLAND_FOUND)
 		fractional-scale-v1-protocol.c
 	)
 	set(FBWL_DEFS HAVE_WAYLAND)
-	if(HAVE_XDG_DECORATION)
-		list(APPEND FBWL_SRCS xdg-decoration-unstable-v1-protocol.c xdg-decoration-unstable-v1-client-protocol.h)
-		list(APPEND FBWL_DEFS HAVE_XDG_DECORATION)
+	if(LIBDECOR_FOUND)
+		list(APPEND FBWL_DEFS HAVE_LIBDECOR)
 	endif()
 	add_library(fbwl MODULE ${FBWL_SRCS})
-	target_include_directories(fbwl PRIVATE ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
-	target_link_libraries(fbwl openrendercommon ${WAYLAND_LIBRARIES} pthread)
+	set(FBWL_INCS ${WAYLAND_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+	set(FBWL_LIBS ${WAYLAND_LIBRARIES})
+	if(LIBDECOR_FOUND)
+		list(APPEND FBWL_INCS ${LIBDECOR_INCLUDE_DIRS})
+		list(APPEND FBWL_LIBS ${LIBDECOR_LIBRARIES})
+	endif()
+	target_include_directories(fbwl PRIVATE ${FBWL_INCS})
+	target_link_libraries(fbwl openrendercommon ${FBWL_LIBS} pthread)
 	set_target_properties(fbwl PROPERTIES PREFIX "")
 	install(TARGETS fbwl LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
 	target_compile_definitions(fbwl PRIVATE ${FBWL_DEFS})

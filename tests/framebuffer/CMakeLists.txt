@@ -6,6 +6,7 @@ if(UNIX AND NOT APPLE)
     find_package(PkgConfig)
     if(PkgConfig_FOUND)
         pkg_check_modules(WAYLAND wayland-client)
+        pkg_check_modules(LIBDECOR libdecor-0)
     endif()
 
     if(WAYLAND_FOUND)
@@ -18,6 +19,21 @@ if(UNIX AND NOT APPLE)
             PROPERTIES GENERATED TRUE
         )
 
+        set(TEST_FB_WL_LIBS openrender_common_flags wayland-client pthread openrendercommon ${X11_LIBRARIES})
+        set(TEST_FB_WL_INCS
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_BINARY_DIR}
+            ${CMAKE_BINARY_DIR}/src/framebuffer
+            ${X11_INCLUDE_DIR}
+        )
+        set(TEST_FB_WL_DEFS HAVE_WAYLAND)
+
+        if(LIBDECOR_FOUND)
+            list(APPEND TEST_FB_WL_LIBS ${LIBDECOR_LIBRARIES})
+            list(APPEND TEST_FB_WL_INCS ${LIBDECOR_INCLUDE_DIRS})
+            list(APPEND TEST_FB_WL_DEFS HAVE_LIBDECOR)
+        endif()
+
         add_executable(test_fb_wl
             test_fb_wl.cpp
             ${CMAKE_SOURCE_DIR}/src/framebuffer/fbwl.cpp
@@ -26,14 +42,9 @@ if(UNIX AND NOT APPLE)
             ${CMAKE_BINARY_DIR}/src/framebuffer/xdg-shell-protocol.c
             ${CMAKE_BINARY_DIR}/src/framebuffer/fractional-scale-v1-protocol.c
         )
-        target_link_libraries(test_fb_wl PRIVATE openrender_common_flags wayland-client pthread openrendercommon ${X11_LIBRARIES})
-        target_include_directories(test_fb_wl PRIVATE
-            ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_BINARY_DIR}
-            ${CMAKE_BINARY_DIR}/src/framebuffer
-            ${X11_INCLUDE_DIR}
-        )
-        target_compile_definitions(test_fb_wl PRIVATE HAVE_WAYLAND)
+        target_link_libraries(test_fb_wl PRIVATE ${TEST_FB_WL_LIBS})
+        target_include_directories(test_fb_wl PRIVATE ${TEST_FB_WL_INCS})
+        target_compile_definitions(test_fb_wl PRIVATE ${TEST_FB_WL_DEFS})
 
         # Ensure Wayland protocol headers (.h) are generated before this target
         # compiles — they are produced by add_custom_command in src/framebuffer as

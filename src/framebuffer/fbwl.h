@@ -23,8 +23,8 @@
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
 #include "fractional-scale-v1-client-protocol.h"
-#ifdef HAVE_XDG_DECORATION
-#include "xdg-decoration-unstable-v1-client-protocol.h"
+#ifdef HAVE_LIBDECOR
+#include <libdecor.h>
 #endif
 #include <pthread.h>
 #include <queue>
@@ -61,16 +61,18 @@ class CWDisplay : public CDisplay {
         struct wl_registry *registry;
         struct wl_compositor *compositor;
         struct wl_shm *shm;
-        struct xdg_wm_base *xdg_wm_base;
         struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
         struct wl_seat *seat;
         struct wl_surface *surface;
+        struct wp_fractional_scale_v1 *fractional_scale;
+#ifdef HAVE_LIBDECOR
+        struct libdecor *libdecor_ctx;
+        struct libdecor_frame *libdecor_frame;
+        bool initialConfigured;
+#else
+        struct xdg_wm_base *xdg_wm_base;
         struct xdg_surface *xdg_surface;
         struct xdg_toplevel *xdg_toplevel;
-        struct wp_fractional_scale_v1 *fractional_scale;
-#ifdef HAVE_XDG_DECORATION
-        struct zxdg_decoration_manager_v1 *decoration_manager;
-        struct zxdg_toplevel_decoration_v1 *toplevel_decoration;
 #endif
         struct wl_keyboard *keyboard;
         struct wl_pointer *pointer;
