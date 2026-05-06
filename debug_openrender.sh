@@ -76,8 +76,8 @@ echo "=== Running orender with debug output ==="
 echo "Command: ${ORENDER_BIN} ${RIB_FILE}"
 echo ""
 
-# Run with debug output
-"${ORENDER_BIN}" "${RIB_FILE}" 2>&1 | tee /tmp/orender_debug.log
+# Run with debug output and framebuffer display
+"${ORENDER_BIN}" -d "${RIB_FILE}" 2>&1 | tee /tmp/orender_debug.log
 
 echo ""
 echo "=== Debug output saved to /tmp/orender_debug.log ==="
