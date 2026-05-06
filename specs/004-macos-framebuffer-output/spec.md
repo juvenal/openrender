@@ -4,6 +4,15 @@
 **Created**: 2026-05-06  
 **Status**: Draft  
 
+## Clarifications
+
+### Session 2026-05-06
+
+- Q: When the user closes the framebuffer window before the render finishes, what should the renderer do? → A: Continue rendering to completion; the display is simply dismissed.
+- Q: If the display helper cannot be launched at render start, what should orender do? → A: Warn the user and continue rendering without the display window.
+- Q: When the renderer is killed mid-render, what should the display window do? → A: Show the last rendered state, retitle to "Interrupted" (or equivalent), and remain open until the user closes it.
+- Q: When tile updates arrive faster than the display can redraw, how should the helper handle the backlog? → A: Queue all tiles and display every one in order; no tiles are skipped, even if display lags behind the renderer.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - macOS Framebuffer Window (Priority: P1)
@@ -49,7 +58,7 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 
 **Acceptance Scenarios**:
 
-1. **Given** the display window is open and updating, **When** the renderer process is killed, **Then** the display window detects the disconnection and either closes or shows the last state with an "Interrupted" or equivalent title.
+1. **Given** the display window is open and updating, **When** the renderer process is killed, **Then** the display window detects the disconnection, retitles to "Interrupted" (or equivalent), shows the last rendered state, and remains open until the user closes it.
 2. **Given** the renderer exits before sending any pixel data, **When** the display window detects disconnection, **Then** the window closes without leaving dangling resources.
 
 ---
@@ -57,10 +66,10 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 ### Edge Cases
 
 - What happens if the renderer starts but produces no pixel tiles before sending the completion signal?
-- What happens if the display window is closed by the user before the render completes?
+- If the display window is closed by the user before the render completes, the render continues to completion unaffected; closing the window is a display-only action with no effect on the rendering pipeline.
 - How does the system behave when the renderer crashes without sending a completion signal?
-- What happens if the display helper fails to launch (e.g., missing binary, insufficient permissions)?
-- How are very-large renders handled when pixel tile updates arrive faster than the display can redraw?
+- If the display helper fails to launch (e.g., missing binary, insufficient permissions), orender emits a warning to the user and continues rendering to completion without a display window; the render is never aborted for a display failure.
+- When pixel tile updates arrive faster than the display can redraw, the helper queues all tiles and displays every one in order; no tiles are skipped. Display may lag behind the renderer during bursts but must catch up once the render completes.
 
 ## Requirements *(mandatory)*
 
@@ -68,11 +77,13 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 
 - **FR-001**: The framebuffer display MUST be available on macOS in addition to Linux.
 - **FR-002**: The framebuffer display window MUST open before the first pixel tile is delivered, so the user sees the window appear at render start.
-- **FR-003**: The window MUST update progressively as pixel tiles are produced by the renderer, reflecting render progress in near-real time.
+- **FR-003**: The window MUST update progressively as pixel tiles are produced by the renderer. Every tile MUST be displayed in order; no tiles may be skipped. Display may lag behind the renderer during high-throughput bursts but MUST show all tiles by the time the render session ends.
 - **FR-004**: The window MUST remain open after rendering completes, allowing the user to inspect the result at their leisure.
 - **FR-005**: The renderer process MUST return control to the terminal immediately after rendering completes; it MUST NOT block waiting for the user to close the window.
 - **FR-006**: The window title MUST indicate rendering status: active during render, and a distinct "complete" state when done.
-- **FR-007**: If the renderer exits without completing normally, the display window MUST detect the disconnection and not leave orphaned processes.
+- **FR-007**: If the renderer exits without completing normally, the display window MUST detect the disconnection, retitle to "Interrupted" (or equivalent), preserve the last rendered state on screen, and remain open until the user closes it — leaving no orphaned processes.
+- **FR-012**: Closing the display window while a render is in progress MUST NOT abort or interrupt the render; the renderer continues to completion independently.
+- **FR-013**: If the display helper fails to launch, orender MUST emit a warning message and continue rendering to completion without a display window; a display failure MUST NOT be treated as a fatal render error.
 - **FR-008**: The Linux Wayland framebuffer backend MUST be migrated to the new display architecture, preserving all observable behavior.
 - **FR-009**: The Linux X11 framebuffer backend MUST be migrated to the new display architecture, preserving all observable behavior.
 - **FR-010**: All three backends (macOS, Linux Wayland, Linux X11) MUST use the same communication protocol between the renderer and the display window.

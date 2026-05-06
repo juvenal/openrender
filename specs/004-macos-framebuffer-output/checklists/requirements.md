@@ -33,3 +33,4 @@
 
 - All items pass. Spec is ready for `/speckit-plan`.
 - Implementation technical details (IPC protocol, file structure) are documented in `FRAMEBUFFER_GUIDE.md` and will be applied during planning.
+- Clarification session 2026-05-06: 4 questions answered — window-closed-early behavior, helper launch failure, interrupted render window state, tile queuing policy. All resolved.
