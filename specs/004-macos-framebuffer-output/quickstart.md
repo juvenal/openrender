@@ -74,13 +74,13 @@ Use type `"rgba"` if your shaders produce alpha output.
 
 ## Debugging the IPC Protocol
 
-Set `OPENRENDER_FB_DEBUG=1` before running `orender` to enable verbose TLV packet logging on stderr:
+Set `ORENDER_LOG_LEVEL=4` before running `orender` to enable verbose debug logging on stderr. This env var is inherited by `orender-fb-macos` via `posix_spawn`, so both sides emit debug output:
 
 ```bash
-OPENRENDER_FB_DEBUG=1 ORENDERHOME="$(pwd)/openrender" ... build/src/orender/orender scene.rib
+ORENDER_LOG_LEVEL=4 ORENDERHOME="$(pwd)/openrender" ... build/src/orender/orender scene.rib
 ```
 
-This logs each START / DATA / DONE / QUIT packet (opcode, length, coordinates for DATA) to stderr.
+This logs (from the driver side): first tile sent, sendData failures, finish() lifecycle, and whether an existing helper was reused or a new one was spawned. (From the helper side): tile receipt and session lifecycle events.
 
 ## macOS Helper Details
 
@@ -97,6 +97,26 @@ tests/framebuffer/send-test-frame.sh /tmp/orender-fb-test.sock 320 240
 The HUD window appears immediately upon receiving the START packet.
 
 **Menu**: File > Save Image... (TIFF or PNG), File > Quit. No other menu items.
+
+### Helper Persistence and Window Management
+
+`orender-fb-macos` is a **long-lived process** — it does not exit after each render:
+
+- The first `orender` run spawns the helper. The socket path is `/tmp/orender-fb-<uid>.sock` (fixed per user).
+- Each subsequent `orender` run connects directly to the already-running helper — no new spawn.
+- Each render session opens its **own new window**. All windows remain open until closed.
+- Closing a window removes it from the helper's tracking. **Closing the last window exits the helper.**
+- On the next `orender` run after the helper has exited, a fresh helper is spawned automatically.
+
+### Checking the Socket
+
+```bash
+# See if the helper is currently running and listening
+ls -la /tmp/orender-fb-$(id -u).sock
+
+# List all running helper processes
+pgrep -l orender-fb-macos
+```
 
 ## Linux Helper Details
 
@@ -119,8 +139,11 @@ Tests cover:
 
 ## Key Invariants
 
-- The helper is **always** started before the driver connects. Drivers wait up to 5 seconds for the socket to appear.
+- The driver first attempts to connect to an existing helper; it only spawns a new one if none is listening. Newly spawned helpers are waited on for up to 5 seconds.
 - Every DATA tile sent by the driver **will** be displayed (no dropping); display may lag but catches up.
-- Closing the framebuffer window does **not** abort the render.
+- Closing a framebuffer window does **not** abort the render; the render continues unaffected.
+- Each render opens its own window; all windows remain open until the user closes them.
+- The helper exits only when the user closes all open windows (or when QUIT is received).
 - A render failure or missing helper emits a warning to stderr but the render continues.
 - After `displayFinish()` returns, the renderer process exits; the helper owns its own lifecycle.
+- The helper's stdio (stdin/stdout/stderr) is redirected to `/dev/null` at spawn time. This is required to prevent the helper from holding orender's controlling TTY, which would cause orender to hang in its C-runtime cleanup phase after `main()` returns.

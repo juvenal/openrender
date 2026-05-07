@@ -10,15 +10,44 @@ The display driver (`fbq.cpp`, `fbx.cpp`, `fbwl.cpp`) and the display helper (`o
 
 ## Socket Lifecycle
 
-1. The **helper** is spawned first via `posix_spawn`. It receives the socket path as `argv[1]`.
-2. The **helper** creates the socket, binds it, and begins listening before signalling readiness.
-3. The **driver** connects to the socket path after spawn.
-4. Exactly **one connection** is accepted per session. The helper does not accept a second connection.
-5. When the connection is closed (by either side), the session ends.
+### Per-session (single render)
 
-**Socket path format**: `/tmp/orender-fb-<renderer-pid>.sock`
+1. The **driver** attempts to connect to the fixed socket path (`tryConnectExisting`). If a helper is already listening, the driver uses it directly (skips steps 2–3).
+2. If no helper is listening: the driver unlinks any stale socket file, then spawns the helper via `posix_spawn`. The helper receives the socket path as `argv[1]`.
+3. The **helper** creates the socket, binds it, begins listening, and accepts the driver's connection.
+4. The driver sends START; tile DATA packets follow; DONE signals completion.
+5. After DONE, the driver closes its socket fd and exits. The helper's server socket remains open (see Persistent Helper Lifecycle below).
 
-The renderer PID guarantees uniqueness across concurrent render processes.
+**Socket path format**: `/tmp/orender-fb-<uid>.sock`
+
+The path is fixed per OS user (`getuid()`). All renders from the same user share one path and one helper process. Renders from different users use separate sockets and separate helpers.
+
+### Persistent Helper Lifecycle
+
+The helper is a long-lived process. It does **not** exit after each render:
+
+```
+[Startup] → bind() + listen() → [Waiting]
+                                     │
+                              accept() blocks
+                                     │  new render connects
+                                     ▼
+                              [Active session]
+                                     │  DONE received
+                                     │  (close clientFd, keep serverFd open)
+                                     ▼
+                              [Waiting] ← loops back to accept()
+                                     │  QUIT received OR last window closed
+                                     ▼
+                              [Exit] → NSApp.terminate()
+```
+
+- After **DONE**: helper closes `clientFd`, loops back to `accept()`.
+- After **QUIT**: helper closes `serverFd`, dispatches `NSApp.terminate(nil)`, exits.
+- After **unexpected disconnect with tiles**: retitle window "Interrupted", loop back to `accept()`.
+- After **unexpected disconnect with no tiles**: close `serverFd`, exit.
+
+This means successive orender runs do **not** spawn a new helper when one is already running — they connect to the persistent helper, which opens a new window for each session.
 
 ## Packet Format
 
@@ -136,7 +165,7 @@ May be sent by **either side**. Signals graceful shutdown.
 | Socket connect timeout (> 5s) | Emit warning to stderr; continue render without display | Exit with non-zero code |
 | Partial/corrupt packet received | N/A (driver always writes complete packets) | Close connection; treat as interruption |
 | DATA before START | N/A | Discard; emit warning to stderr |
-| Second connect attempt | N/A | Reject (close immediately) |
+| Connection while session active | Kernel queues it (backlog = 1); helper accepts after current session ends | N/A |
 
 ## Versioning
 

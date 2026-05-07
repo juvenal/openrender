@@ -13,6 +13,12 @@
 - Q: When the renderer is killed mid-render, what should the display window do? → A: Show the last rendered state, retitle to "Interrupted" (or equivalent), and remain open until the user closes it.
 - Q: When tile updates arrive faster than the display can redraw, how should the helper handle the backlog? → A: Queue all tiles and display every one in order; no tiles are skipped, even if display lags behind the renderer.
 
+### Session 2026-05-07 (implementation learnings)
+
+- Q: Should the helper persist between successive renders, or exit after each render completes? → A: The helper persists. After DONE it loops back to `accept()`, ready for the next render session. It exits only when the user explicitly closes all windows.
+- Q: Should successive renders reuse the same window, or open a new window each time? → A: Each render opens its own new window. All windows remain visible until the user closes them individually. Closing the last window exits the helper.
+- Q: Should successive orender invocations spawn a new helper process every time? → A: No. orender first attempts to connect to an existing helper on the fixed socket path. Only if no helper is listening does it unlink the stale socket and spawn a fresh one. This avoids accumulating helper processes across renders.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - macOS Framebuffer Window (Priority: P1)
@@ -29,6 +35,8 @@ A user running orender on macOS specifies a framebuffer output in their RIB file
 2. **Given** the display window is open, **When** the renderer produces pixel tiles, **Then** the window updates to show each tile within 1 second of production under normal rendering loads (per SC-003).
 3. **Given** rendering is complete, **When** the DONE signal is sent, **Then** the window title changes to reflect "Rendering Complete" (or equivalent) and the orender process exits.
 4. **Given** the orender process has exited, **When** the user examines the window, **Then** the window remains open and interactive until the user closes it manually.
+5. **Given** a render has completed and its window is still open, **When** orender is run again, **Then** a second window opens for the new render; the first window remains visible with its completed image.
+6. **Given** multiple windows are open, **When** the user closes individual windows, **Then** each window closes independently; the helper process exits only when the last window is closed.
 
 ---
 
@@ -88,6 +96,8 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 - **FR-011**: The display helper component MUST be co-installed alongside the orender executable so no manual setup is required by the user.
 - **FR-012**: Closing the display window while a render is in progress MUST NOT abort or interrupt the render; the renderer continues to completion independently.
 - **FR-013**: If the display helper fails to launch, orender MUST emit a warning message and continue rendering to completion without a display window; a display failure MUST NOT be treated as a fatal render error.
+- **FR-014**: Each orender invocation that produces framebuffer output MUST open its own new display window. All windows from previous renders MUST remain visible until explicitly closed by the user. The helper process MUST NOT be restarted per render; it persists across sessions and exits only when the user closes all open windows.
+- **FR-015**: On each new render, the display driver MUST first attempt to connect to an already-running helper on the fixed per-user socket path. A new helper process MUST only be spawned when no existing helper is listening. This prevents accumulating multiple helper processes across successive orender runs.
 
 ### Key Entities
 
@@ -112,9 +122,10 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 
 - macOS 12.0 (Monterey) or later is the minimum supported macOS version; earlier versions are out of scope.
 - The display helper is a separate executable co-located with orender and does not require user installation steps.
-- A single render produces a single framebuffer window; multiple concurrent renders producing multiple windows are out of scope.
+- Each render session opens a new window; all previously opened windows remain visible until the user closes them. The helper is a persistent process — it is not restarted per render.
 - The pixel tile format passed from the renderer to the display driver (color depth, channel layout) remains unchanged from the current Linux implementation.
 - The Linux migration replaces only the internal window-management mechanism; the rendering pipeline, RIB interface, and all user-visible behavior are preserved exactly.
 - Communication between the renderer and display helper uses a local channel (no network) and is not exposed outside the local machine.
 - The display helper for Linux will reuse the existing Wayland/X11 window code; only the process lifecycle and communication model change.
 - Multiple displays and screen selection are out of scope; the window opens on the primary display.
+- The fixed socket path is per-user (`/tmp/orender-fb-<uid>.sock`). Concurrent renders from the same user share the same helper; concurrent renders from different users use separate helpers.

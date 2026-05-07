@@ -1,23 +1,23 @@
 /**
- * fbx.h — Linux IPC display driver.
+ * fbq.h — macOS IPC display driver.
  *
- * CXDisplay spawns orender-fb-linux via posix_spawn and forwards tile data
+ * CQDisplay spawns orender-fb-macos via posix_spawn and forwards tile data
  * over a Unix domain socket using the TLV protocol defined in fbipc.h.
- * The helper process handles all X11/Wayland display logic.
  */
 
-#ifndef FBX_H
-#define FBX_H
+#ifndef FBQ_H
+#define FBQ_H
 
 #include "framebuffer.h"
 #include "fbipc.h"
 #include <mutex>
 #include <sys/types.h>
 
-class CXDisplay : public CDisplay {
+class CQDisplay : public CDisplay {
 public:
-    CXDisplay(const char *name, const char *samples, int width, int height, int numSamples);
-    ~CXDisplay() override;
+    CQDisplay(const char *name, const char *samples, int width, int height,
+              int numSamples, const char *argv0);
+    ~CQDisplay() override;
 
     int  data(int x, int y, int w, int h, float *d) override;
     void finish() override;
@@ -28,7 +28,8 @@ private:
     pid_t   helperPid;
     bool        disconnected;
     int         numSamplesVal;
+    int         tilesSent = 0;
     std::mutex  writeMutex;
 };
 
-#endif // FBX_H
+#endif // FBQ_H

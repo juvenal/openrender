@@ -72,33 +72,47 @@ Logical entity representing the lifetime of one render's display, from socket co
 
 | Attribute | Type | Notes |
 |-----------|------|-------|
-| socketPath | string | Temporary path, e.g., `/tmp/orender-fb-<pid>.sock` |
+| socketPath | string | Fixed per-user path, e.g., `/tmp/orender-fb-<uid>.sock` |
 | state | SessionState | See state machine below |
 | imageBuffer | ImageBuffer | Backing pixel store |
 | tileQueue | queue\<DataPayload\> | FIFO, drained sequentially on display thread |
 | windowTitle | string | Set from START title; updated on DONE/disconnect |
 
-**Session State Machine**:
+**Driver-Side State Machine** (per `CQDisplay` instance):
 
 ```
  [Idle]
-    │  posix_spawn helper + connect socket
+    │  tryConnectExisting() succeeds → reuse existing helper
+    │  tryConnectExisting() fails → unlink socket, posix_spawn helper
     ▼
 [Connecting]
-    │  socket accepted + START packet sent
+    │  socket connected + START packet sent
     ▼
 [Active] ──── DATA packets ──── (self)
-    │  DONE packet sent
+    │  DONE packet sent; socket closed; orender exits
     ▼
-[Complete]
-    │  user closes window OR QUIT received
-    ▼
-[Closed]
+[Closed]   ← driver object destroyed
+```
 
-[Active] ──── unexpected disconnect ──── [Interrupted]
-    │  user closes window
+**Helper-Side State Machine** (per `SocketServer` outer loop):
+
+```
+ [Waiting]  ← initial state after bind/listen, and after each session
+    │  accept() returns new clientFd
     ▼
-[Closed]
+[Active] ──── START / DATA ────────────── (self)
+    │  DONE received                    │  unexpected disconnect, tileCount > 0
+    ├──────────────────────────────────► [Interrupted window] ──→ [Waiting]
+    ▼  (close clientFd, keep serverFd)
+[Waiting]  ← loops back to accept()
+
+[Active/Waiting] ──── QUIT received OR last window closed
+    ▼
+[Exiting] → NSApp.terminate()
+
+[Active] ──── unexpected disconnect, tileCount == 0
+    ▼
+[Exiting] → NSApp.terminate()
 ```
 
 ---
@@ -147,11 +161,18 @@ The `orender-fb-macos` process entity.
 
 | Component | Responsibility |
 |-----------|----------------|
-| `SocketServer` | Binds Unix socket, accepts single connection, reads TLV stream |
-| `ImageStore` | `@MainActor ObservableObject`; owns `ImageBuffer`, manages `tileQueue` |
-| `ContentView` | SwiftUI view; renders `Image(cgImage:)` from `ImageStore` |
-| `AppDelegate` | Creates `NSPanel` (HUD style), sets window title, handles menu actions |
+| `SocketServer` | Binds Unix socket; outer `accept()` loop (one iteration per render session); reads TLV stream on background DispatchQueue; keeps `serverFd` open between sessions |
+| `ImageStore` | `@MainActor ObservableObject`; owns `CGContext` pixel buffer; applies tiles; tracks `completed`/`interrupted` state; publishes `windowTitle` via Combine |
+| `ContentView` | SwiftUI `Image(cgImage:)` observing `ImageStore.cgImage` |
+| `AppDelegate` | Maintains `sessions: [Session]` array (one entry per open window); `handleStart()` always creates a new `NSPanel`; `windowWillClose()` removes entry and calls `NSApp.terminate()` when array empties |
 | `Protocol` | TLV constants and payload decoders |
+
+**Session struct** (AppDelegate-private):
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `panel` | NSPanel | The window for this render |
+| `observer` | AnyCancellable | Combine sink: `ImageStore.windowTitle` → `panel.title`; cancelled on window close |
 
 ---
 
@@ -161,6 +182,6 @@ The `orender-fb-linux` process entity.
 
 | Component | Responsibility |
 |-----------|----------------|
-| `SocketServer` | Binds Unix socket, accepts single connection, reads TLV stream |
+| `SocketServer` | Binds Unix socket; outer accept loop (persistent across render sessions); reads TLV stream |
 | Display backend | Existing X11 (`CXDisplay::main()`) or Wayland (`CWDisplay::main()`) window loop, adapted to receive data from socket instead of in-process thread |
 | `main()` | Parses args (socket path, display preference), runs display backend loop |

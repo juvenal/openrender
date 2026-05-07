@@ -19,8 +19,8 @@ Add a native macOS Cocoa framebuffer display window and migrate all three frameb
 **Target Platform**: macOS 12.0+ (orender-fb-macos Swift helper), Linux x86_64/arm64 (orender-fb-linux), renderer plugin (all Unix platforms)  
 **Project Type**: Library module (framebuffer.so display plugin) + helper executables  
 **Performance Goals**: Terminal returns within 1 second of render completion; pixel tiles visible within 1 second of production under normal loads; tile queue memory < 200 MB for renders ≤ 4K RGBA  
-**Constraints**: No fork on macOS; no third-party dependencies; all tiles displayed in order (no dropping); closing window does not abort render  
-**Scale/Scope**: Single render per session; single window per render; macOS 12–26, Linux (Wayland + X11)
+**Constraints**: No fork on macOS; no third-party dependencies; all tiles displayed in order (no dropping); closing a window does not abort the render; helper stdio redirected to `/dev/null` (TTY safety); `proc_pidpath()` used instead of `_NSGetExecutablePath()` (CoreServices-free)  
+**Scale/Scope**: Multiple renders per helper session; one window per render (all stay open until user closes); macOS 12–26, Linux (Wayland + X11)
 
 ## Constitution Check
 
@@ -144,3 +144,22 @@ tests/framebuffer/                  # NEW: test suite
 |-----------|------------|--------------------------------------|
 | Swift language in a C++20 project | macOS ObjC/Swift runtime locks are not fork-safe (macOS ≥ 10.13). A native macOS GUI window requires Cocoa/AppKit. Swift is the canonical Apple platform language and is significantly safer and more maintainable than Objective-C++ for new code. | Objective-C++ (`fbq.mm`) would satisfy the C++ constitution letter but violates the spirit (it introduces ObjC semantics into a C++ codebase). C++ with direct CoreGraphics calls would bypass AppKit safety guarantees. Swift + SwiftUI is maximally isolated (separate executable, separate CMake target, zero C++ coupling). |
 | New helper executables alongside the display plugin | The entire point of the feature is to decouple window lifetime from renderer lifetime. The helper must be a separate process. | An in-process approach (thread) is what we have today on Linux; it cannot work on macOS due to fork-safety constraints, and the spec (FR-010) requires a unified model across all platforms. |
+
+## Implementation Notes (Deviations from Original Plan)
+
+These were discovered during implementation and are not obvious from the plan above. See `research.md` D-10 through D-14 for full rationale.
+
+### Socket Path: PID-based → UID-based fixed path
+The plan described a PID-based socket path. The implementation uses a fixed per-user path (`/tmp/orender-fb-<uid>.sock`). Without a fixed path, successive orender runs cannot locate the already-running helper, defeating the reuse mechanism.
+
+### Helper Lifecycle: Single-connection → Persistent outer accept loop
+The original plan described the helper accepting one connection and exiting after DONE. The implementation keeps the server socket open and loops back to `accept()` after each DONE. This is required to support multiple windows (FR-014) and helper reuse (FR-015). The `quitOldHelper()` mechanism was removed; `tryConnectExisting()` replaces it.
+
+### Driver Constructor Logic: Always spawn → Try-reuse-first
+`CQDisplay::CQDisplay()` now calls `tryConnectExisting()` first. Only if that returns -1 does it unlink the socket and spawn a fresh helper. This eliminates the `quitOldHelper()` + unconditional spawn pattern.
+
+### orender Terminal Hang Fix: /dev/null stdio redirect
+After all application code completed, orender hung in the C-runtime stdio flush phase. Root cause: the spawned helper inherits orender's controlling TTY; AppKit modifies terminal state. Fix: redirect child fds 0/1/2 to `/dev/null` via `posix_spawn_file_actions_adddup2` before spawn. `POSIX_SPAWN_SETSID` was tried and broke the helper (disrupts Mach bootstrap port lookup required by AppKit / WindowServer).
+
+### CoreServices Elimination: `proc_pidpath()` instead of `_NSGetExecutablePath()`
+`_NSGetExecutablePath()` implicitly pulls CoreServices, which initializes background threads that prevent `main()` from returning cleanly. Replaced with `proc_pidpath(getpid(), buf, sizeof(buf))` from `<libproc.h>`, which stays in `libSystem.B.dylib`. The `PUBLIC -framework CoreServices` link was removed from `src/common/CMakeLists.txt`.

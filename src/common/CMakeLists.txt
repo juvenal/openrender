@@ -12,9 +12,6 @@ if(UNIX)
 endif(UNIX)
 
 if(APPLE)
-	# some Apple specific dependencies
-	target_link_libraries(openrendercommon PUBLIC "-framework CoreServices")
-
 	# install name for dylibs on Mac
 	set_target_properties(openrendercommon PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 endif(APPLE)

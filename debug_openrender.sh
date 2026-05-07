@@ -73,7 +73,7 @@ fi
 echo ""
 
 echo "=== Running orender with debug output ==="
-echo "Command: ${ORENDER_BIN} ${RIB_FILE}"
+echo "Command: ${ORENDER_BIN} -d ${RIB_FILE}"
 echo ""
 
 # Run with debug output and framebuffer display

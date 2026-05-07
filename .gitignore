@@ -11,9 +11,18 @@ cmake_install.cmake
 CTestTestfile.cmake
 Makefile
 
+# SwiftPM
+.build/
+
 # CMake builds
-build
-build-test
+build/
+build-*/
+cmake-build-*/
+
+# Xcode derived/generated
+DerivedData/
+*.xcworkspace
+xcuserdata/
 
 # Project test installs
 openrender/

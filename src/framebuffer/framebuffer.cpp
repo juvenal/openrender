@@ -20,43 +20,39 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <cstdlib>
 
 #include "common/global.h"
 #include "framebuffer.h"
 #include "ri/dsply.h"
+#include "logging.hpp"
+
+// framebuffer.so is loaded with RTLD_NOW (no RTLD_GLOBAL), so its
+// current_log_level is separate from the main binary's copy.
+// Sync to ORENDER_LOG_LEVEL set by orender before dlopen.
+namespace {
+    struct FbLogInit {
+        FbLogInit() {
+            const char* env = std::getenv("ORENDER_LOG_LEVEL");
+            int v = env ? std::atoi(env) : 0;
+            if      (v >= 4) set_log_level(LogLevel::DEBUG);
+            else if (v == 3) set_log_level(LogLevel::INFO);
+            else if (v == 2) set_log_level(LogLevel::WARN);
+            else if (v == 1) set_log_level(LogLevel::ERROR);
+            else             set_log_level(LogLevel::NONE);
+        }
+    } fb_log_init;
+}
 
 #define TRUE 1
 #define FALSE 0
 
 #ifdef _WINDOWS
-  #include "fbw.h" // Windoze framebuffer
+  #include "fbw.h" // Windows framebuffer
+#elif defined(__APPLE__)
+  #include "fbq.h" // macOS IPC framebuffer (orender-fb-macos helper)
 #else
-  #include "fbx.h" // X-Windoze framebuffer
-  #ifdef HAVE_WAYLAND
-    #include "fbwl.h" // Wayland framebuffer
-    #include <wayland-client.h>
-  #endif
-#endif
-
-#if defined(HAVE_WAYLAND) && !defined(_WINDOWS)
-/*
- * Function: isWaylandAvailable
- *
- * Description:
- *     Checks if a Wayland compositor is available at runtime.
- *
- * Return:
- *     TRUE if Wayland is available, FALSE otherwise.
- *
- */
-static int isWaylandAvailable() {
-    struct wl_display *d = wl_display_connect(NULL);
-    if (d) {
-        wl_display_disconnect(d);
-        return TRUE;
-    }
-    return FALSE;
-}
+  #include "fbx.h" // Linux IPC framebuffer (orender-fb-linux helper)
 #endif
 
 /*
@@ -150,19 +146,10 @@ void *displayStart(const char *name,
 
 #ifdef _WINDOWS
     cWindow = new CWinDisplay(name, samples, width, height, numSamples);
+#elif defined(__APPLE__)
+    cWindow = new CQDisplay(name, samples, width, height, numSamples, nullptr);
 #else
-  #ifdef HAVE_WAYLAND
-    if (isWaylandAvailable()) {
-        cWindow = new CWDisplay(name, samples, width, height, numSamples);
-    }
-
-    if (!cWindow || cWindow->failure == TRUE) {
-        if (cWindow) delete cWindow;
-        cWindow = new CXDisplay(name, samples, width, height, numSamples);
-    }
-  #else
     cWindow = new CXDisplay(name, samples, width, height, numSamples);
-  #endif
 #endif
 
     if (cWindow == NULL || cWindow->failure == TRUE) {
@@ -218,7 +205,9 @@ void displayFinish(void *im) {
 
     assert(cWindow != NULL);
 
+    log_debug("displayFinish: calling finish()");
     cWindow->finish();
-
+    log_debug("displayFinish: finish() returned, deleting window");
     delete cWindow;
+    log_debug("displayFinish: done");
 }

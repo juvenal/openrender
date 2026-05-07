@@ -122,3 +122,70 @@ This reuses all existing pixel-format conversion code with minimal change — it
 **Alternatives considered**:
 - Swift Package Manager (`swift build`) invoked via CMake `ExternalProject_Add`: More complex, introduces a second build system boundary.
 - `xcodebuild` custom command: Requires Xcode project file maintenance, not portable.
+
+---
+
+### D-10: Fixed Per-User Socket Path (UID-Based)
+
+**Decision**: The Unix socket path is `/tmp/orender-fb-<uid>.sock` (fixed per OS user), not `/tmp/orender-fb-<pid>.sock` (per renderer process).
+
+**Rationale**: A PID-based path would create a unique socket per invocation. The driver would always find no existing helper, always spawn a fresh one, and the old helper's socket would become unreachable (nothing listening on the old PID-based path). The `quitOldHelper()` mechanism — which relies on connecting to the fixed path to send QUIT — requires the path to be stable across invocations. More importantly, since the helper is now persistent (see D-12), a fixed path lets successive orender runs find and reuse it. The path is still isolated per user (no cross-user socket sharing).
+
+**Consequence**: Concurrent renders from the same user share one helper process. This is intentional — the helper manages multiple windows. Concurrent renders from different users get separate sockets and separate helpers.
+
+**Alternatives considered**:
+- PID-based path: New socket per render, always spawns a new helper, accumulates zombie windows. Rejected.
+- Named path in `$TMPDIR`: More robust on macOS (user-specific temp dir), but `/tmp/orender-fb-<uid>.sock` is simpler and works in practice for a local tool.
+
+---
+
+### D-11: orender Terminal Hang — Root Cause and Fix
+
+**Decision**: Redirect the spawned helper's stdin/stdout/stderr to `/dev/null` using `posix_spawn_file_actions_adddup2` before spawning.
+
+**Rationale**: Investigation revealed that after all orender application code completed (including `RiEnd()`, all atexit handlers, and the complete shutdown sequence), the process hung in the C-runtime stdio flush phase — after `return` from `main()` but before the actual `_exit()`. Using `_exit()` instead of `return` exited immediately, confirming the hang is in C-runtime cleanup, not application code.
+
+**Root cause**: `orender-fb-macos` inherits orender's controlling TTY (file descriptors 0/1/2). AppKit modifies terminal state during initialization. When orender's C-runtime subsequently tries to flush stdio to the TTY, the flush blocks because the child still holds the TTY in a modified state.
+
+**Fix**: Redirect child fds 0/1/2 to `/dev/null` before exec via `posix_spawn_file_actions_t`. The helper is a GUI app and never reads stdin or writes to the terminal, so this redirect is a pure win.
+
+**Failed alternative**: `POSIX_SPAWN_SETSID` (creates a new session for the child, completely detaching it from the controlling TTY). This broke the helper — it failed to connect to the WindowServer within the 5-second timeout. Cause: a new session has a different (empty) Mach bootstrap namespace; AppKit needs the parent's bootstrap port to connect to the WindowServer. `POSIX_SPAWN_SETPGROUP` (used instead) creates a new process group — no controlling TTY for Ctrl-C propagation — without touching the session or Mach ports.
+
+---
+
+### D-12: Helper Persistence — Outer Accept Loop
+
+**Decision**: The helper keeps its server socket open after each render completes and loops back to `accept()`. It exits only when the user closes all open windows (or when QUIT is received).
+
+**Rationale**: The original design closed the server fd immediately after the first `accept()`, meaning after DONE the socket was no longer listening. Any subsequent orender run would fail to connect (ENOENT or ECONNREFUSED on the socket file), causing `quitOldHelper()` to silently no-op and then spawn a fresh helper. Result: N renders → N helper windows open simultaneously. The fix is to keep `serverFd` open throughout the helper's lifetime and re-enter `accept()` after each DONE, making the helper a long-lived service.
+
+**Session lifecycle** (revised):
+1. Helper starts → `bind()` + `listen()` + enter outer `accept()` loop
+2. orender connects → `accept()` returns client fd → inner read loop begins
+3. START received → new window created
+4. DATA packets → tile updates applied
+5. DONE received → window titled "Rendering Complete"; `clientFd` closed; outer loop continues back to `accept()`
+6. orender reconnects for next render → go to step 2 (new window is created)
+7. QUIT received (or user closes last window) → `serverFd` closed; `NSApp.terminate()` called; process exits
+
+**Connection close without DONE (interrupted)**: If the socket EOF is detected and at least one tile was received, the window retitles to "Interrupted" and stays open; outer loop continues to `accept()` for the next render. If no tiles were received, the helper exits.
+
+---
+
+### D-13: Executable Path Resolution — `proc_pidpath()` vs `_NSGetExecutablePath()`
+
+**Decision**: Use `proc_pidpath(getpid(), buf, sizeof(buf))` from `<libproc.h>` to resolve the current executable path on macOS.
+
+**Rationale**: `_NSGetExecutablePath()` (from `<mach-o/dyld.h>`) implicitly pulls in CoreServices. CoreServices initializes background framework threads during initialization. These threads hold a reference to the process's CFRunLoop, which prevents `main()` from returning cleanly — the C runtime blocks waiting for the background threads to drain. `proc_pidpath()` calls a single Mach trap to the kernel (via `libproc`), stays entirely in `libSystem.B.dylib`, and initializes no frameworks.
+
+**Consequence**: Removing CoreServices from the `openrendercommon` CMake target (`src/common/CMakeLists.txt`) was required — no source file in that library actually uses CoreServices symbols.
+
+---
+
+### D-14: Multiple Windows per Helper — `sessions` Array in AppDelegate
+
+**Decision**: `AppDelegate` tracks all open windows in a `sessions: [Session]` array (each entry: panel + Combine title observer). `handleStart()` always creates a new panel. `windowWillClose()` removes the entry; `NSApp.terminate()` fires only when the array empties.
+
+**Rationale**: Users want to compare results across renders. Reusing a single panel (replacing the previous render's image) would destroy that ability. Keeping all windows open requires tracking them explicitly so the helper knows when to exit. A flat array keyed by panel identity (`===`) is the simplest structure — no panel-to-session dictionary needed because closure is infrequent and the array is short.
+
+**Title observer per session**: Each panel's window title is synced to its `ImageStore.windowTitle` via a `sink` subscriber stored in the `Session` struct. This subscriber is cancelled when the struct is removed from the array (on window close), preventing updates to a deallocated panel.

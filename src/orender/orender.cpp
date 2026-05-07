@@ -776,15 +776,21 @@ int main(int argc, char *argv[]) {
         numThreads = 0;
     }
 
-    // Apply log level selection if requested (-x)
+    // Apply log level selection if requested (-x).
+    // Also export ORENDER_LOG_LEVEL so DSO plugins (framebuffer.so) and
+    // spawned subprocesses (orender-fb-macos) can sync to the same level.
     if (logLevelArg == 1) {
         set_log_level(LogLevel::ERROR);
+        setenv("ORENDER_LOG_LEVEL", "1", 1);
     } else if (logLevelArg == 2) {
         set_log_level(LogLevel::WARN);
+        setenv("ORENDER_LOG_LEVEL", "2", 1);
     } else if (logLevelArg == 3) {
         set_log_level(LogLevel::INFO);
+        setenv("ORENDER_LOG_LEVEL", "3", 1);
     } else if (logLevelArg == 4) {
         set_log_level(LogLevel::DEBUG);
+        setenv("ORENDER_LOG_LEVEL", "4", 1);
     }
 
     // Launch into daemon mode if appropriate
