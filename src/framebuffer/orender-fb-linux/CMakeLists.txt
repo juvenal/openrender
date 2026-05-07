@@ -68,5 +68,16 @@ target_link_libraries(orender-fb-linux PRIVATE ${HELPER_LIBS})
 target_compile_features(orender-fb-linux PRIVATE cxx_std_20)
 target_compile_definitions(orender-fb-linux PRIVATE ${HELPER_DEFS})
 
+# Copy binary into the main build output directory for easy development testing
+# (mirrors the macOS helper's POST_BUILD copy so ORENDERHOME/bin/ resolution works)
+add_custom_command(TARGET orender-fb-linux POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "$<TARGET_FILE:orender-fb-linux>"
+            "${CMAKE_BINARY_DIR}/orender-fb-linux"
+    COMMENT "Copying orender-fb-linux to build root"
+)
+
+# Install alongside the orender executable so makeHelperPath($ORENDERHOME/bin/)
+# resolution works at runtime (consistent with orender-fb-macos install location)
 install(TARGETS orender-fb-linux
-        RUNTIME DESTINATION "${OPENRENDER_DISPLAYSDIR}")
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
