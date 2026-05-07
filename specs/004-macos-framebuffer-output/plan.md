@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a native macOS Cocoa framebuffer display window and migrate all three framebuffer backends (macOS, Linux X11, Linux Wayland) to a shared helper-executable IPC model. The renderer spawns a standalone display helper (`orender-fb` on macOS, `orender-fb-linux` on Linux) via `posix_spawn`, connects to it over a Unix domain socket, and streams TLV-encoded pixel tiles to it. The helper owns the window lifecycle independently, allowing the renderer process to exit immediately after rendering while the window remains open for inspection.
+Add a native macOS Cocoa framebuffer display window and migrate all three framebuffer backends (macOS, Linux X11, Linux Wayland) to a shared helper-executable IPC model. The renderer spawns a standalone display helper (`orender-fb-macos` on macOS, `orender-fb-linux` on Linux) via `posix_spawn`, connects to it over a Unix domain socket, and streams TLV-encoded pixel tiles to it. The helper owns the window lifecycle independently, allowing the renderer process to exit immediately after rendering while the window remains open for inspection.
 
 **macOS helper**: Swift 6.3, SwiftUI + AppKit, `NSPanel` with HUD style, minimum deployment macOS 12.0.  
 **Linux helper**: C++ (C++20), reuses existing X11/Wayland window code, refactored as a socket server.  
@@ -16,7 +16,7 @@ Add a native macOS Cocoa framebuffer display window and migrate all three frameb
 **Primary Dependencies**: AppKit, SwiftUI, Foundation (macOS helper — system frameworks only); libX11, wayland-client, libdecor (Linux helper — existing); CMake 4.x with Swift language support  
 **Storage**: N/A (display-only; no persistence except user-initiated Save Image as TIFF/PNG)  
 **Testing**: CTest integration (existing); new unit tests via C++ catch-style or CTest scripts; Swift XCTest for `Protocol.swift` and `ImageStore.swift`  
-**Target Platform**: macOS 12.0+ (orender-fb Swift helper), Linux x86_64/arm64 (orender-fb-linux), renderer plugin (all Unix platforms)  
+**Target Platform**: macOS 12.0+ (orender-fb-macos Swift helper), Linux x86_64/arm64 (orender-fb-linux), renderer plugin (all Unix platforms)  
 **Project Type**: Library module (framebuffer.so display plugin) + helper executables  
 **Performance Goals**: Terminal returns within 1 second of render completion; pixel tiles visible within 1 second of production under normal loads; tile queue memory < 200 MB for renders ≤ 4K RGBA  
 **Constraints**: No fork on macOS; no third-party dependencies; all tiles displayed in order (no dropping); closing window does not abort render  
@@ -31,7 +31,7 @@ Add a native macOS Cocoa framebuffer display window and migrate all three frameb
 | I. Clean Code | ✅ PASS | Each class has single responsibility. Protocol header isolated. Driver and helper fully decoupled. |
 | II. Language Standards | ✅ PASS with justification | C++20 for all C++ files. Swift 6.3 for macOS helper — justified as macOS platform-specific language (see Complexity Tracking). |
 | III. TDD (NON-NEGOTIABLE) | ✅ PASS | Tests written first for: TLV encode/decode, driver socket logic, image buffer tile application. SwiftUI visual layer is not unit-tested (impractical), but `ImageStore` and `Protocol.swift` are unit-tested. |
-| IV. CLI | ✅ PASS | `orender-fb <socket-path>` CLI. Warnings to stderr. Helper exits non-zero on startup failure. |
+| IV. CLI | ✅ PASS | `orender-fb-macos <socket-path>` CLI. Warnings to stderr. Helper exits non-zero on startup failure. |
 | V. Minimal Dependencies | ✅ PASS | macOS: system frameworks only. Linux: existing system libraries (X11, Wayland) already in use. No new third-party dependencies. |
 | VI. Platform Targeting | ✅ PASS | Platform code isolated: `fbq.cpp` (Apple), `fbx.cpp`/`fbwl.cpp` (Linux), `fbw.cpp` (Windows, unchanged). `#ifdef APPLE` guard in `framebuffer.cpp`. |
 | VII. Documentation | ⚠️ REQUIRED | Hugo site must be updated to document new framebuffer architecture, IPC protocol, macOS support, and platform-specific build notes. See tasks. |
@@ -65,8 +65,8 @@ src/framebuffer/
 ├── fbwl.h                          # MODIFIED: same as fbx
 ├── fbwl.cpp                        # MODIFIED: same as fbx
 ├── framebuffer.cpp                 # MODIFIED: add #ifdef APPLE branch for CQDisplay
-├── CMakeLists.txt                  # MODIFIED: add APPLE target, orender-fb, orender-fb-linux
-├── orender-fb/                     # NEW: Swift/SwiftUI macOS helper executable
+├── CMakeLists.txt                  # MODIFIED: add APPLE target, orender-fb-macos, orender-fb-linux
+├── orender-fb-macos/                     # NEW: Swift/SwiftUI macOS helper executable
 │   ├── CMakeLists.txt              #   Swift target, MACOSX_BUNDLE, deployment macOS 12.0
 │   ├── Info.plist                  #   LSUIElement=NO; bundle identifier
 │   └── Sources/
@@ -88,7 +88,7 @@ tests/framebuffer/                  # NEW: test suite
 └── CMakeLists.txt
 ```
 
-**Structure Decision**: Single-project layout. The display plugin (`framebuffer.so`) and helpers are in `src/framebuffer/`. New code is isolated in `orender-fb/` and `orender-fb-linux/` subdirectories to minimize impact on the existing module structure. Windows (`fbw.cpp`) is left unchanged.
+**Structure Decision**: Single-project layout. The display plugin (`framebuffer.so`) and helpers are in `src/framebuffer/`. New code is isolated in `orender-fb-macos/` and `orender-fb-linux/` subdirectories to minimize impact on the existing module structure. Windows (`fbw.cpp`) is left unchanged.
 
 ## Implementation Phases
 
@@ -104,10 +104,10 @@ tests/framebuffer/                  # NEW: test suite
 2. Write tests for `CQDisplay::data()`: DATA packet encoding, sequential send.
 3. Write tests for `CQDisplay::finish()`: DONE packet, socket close, graceful helper exit.
 4. Implement `CQDisplay` to pass all tests.
-5. Update `framebuffer.cpp` with `#ifdef APPLE` dispatch to `CQDisplay`.
+5. Update `framebuffer.cpp` with `#ifdef __APPLE__` dispatch to `CQDisplay`.
 6. Update `src/framebuffer/CMakeLists.txt` with `APPLE` branch.
 
-### Phase C — macOS Helper (`orender-fb`)
+### Phase C — macOS Helper (`orender-fb-macos`)
 
 1. Write unit tests for `Protocol.swift` — TLV parser for all packet types.
 2. Write unit tests for `ImageStore` — tile queuing, ordered drain, CGContext update, title transitions.
@@ -116,7 +116,7 @@ tests/framebuffer/                  # NEW: test suite
 5. Implement `ContentView.swift` — SwiftUI `Image(cgImage:)` observing `ImageStore`.
 6. Implement `AppDelegate.swift` — `NSPanel` with `.hudWindow | .closable | .titled`; menu with Save Image (TIFF/PNG via NSSavePanel) and Quit; `panel.orderFrontRegardless()` for non-focus-stealing launch; disconnection → retitle "Interrupted".
 7. Implement `main.swift` — `NSApplication` setup, `.regular` activation policy, delegate wiring, socket path from `CommandLine.arguments[1]`.
-8. Add `orender-fb` CMake target with Swift 6, deployment target macOS 12.0, `MACOSX_BUNDLE`.
+8. Add `orender-fb-macos` CMake target with Swift 6, deployment target macOS 12.0, `MACOSX_BUNDLE`.
 
 ### Phase D — Linux Driver Refactor (`fbx.cpp`, `fbwl.cpp`)
 

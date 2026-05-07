@@ -9,7 +9,7 @@ This feature adds a macOS Cocoa framebuffer display window and migrates all thre
 ## Key Concepts
 
 - **Display driver** (`fbq.cpp` / `fbx.cpp` / `fbwl.cpp`): C++ IPC clients loaded as `framebuffer.so`. They spawn the helper and send TLV packets over a Unix socket.
-- **Display helper** (`orender-fb` on macOS, `orender-fb-linux` on Linux): Standalone executables that host the window and receive pixel data. They run independently of the renderer after `displayFinish()`.
+- **Display helper** (`orender-fb-macos` on macOS, `orender-fb-linux` on Linux): Standalone executables that host the window and receive pixel data. They run independently of the renderer after `displayFinish()`.
 - **IPC protocol**: TLV binary over Unix domain socket. See `contracts/ipc-protocol.md` and `src/framebuffer/fbipc.h` for packet definitions.
 
 ## Repository Layout (Post-Implementation)
@@ -22,7 +22,7 @@ src/framebuffer/
 ├── fbwl.h / fbwl.cpp           # Linux Wayland IPC client (refactored)
 ├── framebuffer.cpp             # Platform dispatch — adds Apple branch
 ├── CMakeLists.txt              # Updated for all platforms
-├── orender-fb/                 # Swift/SwiftUI macOS helper (new)
+├── orender-fb-macos/                 # Swift/SwiftUI macOS helper (new)
 │   ├── CMakeLists.txt
 │   ├── Info.plist
 │   └── Sources/
@@ -45,7 +45,7 @@ cmake --build build --config Release
 ```
 
 The build system detects the platform:
-- **macOS**: Builds `framebuffer.so` (with `fbq.cpp`) + `orender-fb` Swift executable
+- **macOS**: Builds `framebuffer.so` (with `fbq.cpp`) + `orender-fb-macos` Swift executable
 - **Linux**: Builds `framebuffer.so` (with `fbx.cpp` + optional `fbwl.cpp`) + `orender-fb-linux`
 
 The helpers are installed to `${OPENRENDER_DISPLAYSDIR}/../bin/` (co-located with `orender`).
@@ -84,11 +84,11 @@ This logs each START / DATA / DONE / QUIT packet (opcode, length, coordinates fo
 
 ## macOS Helper Details
 
-`orender-fb` is a standalone executable (not a `.app` bundle). It can be run manually for testing:
+`orender-fb-macos` is a standalone executable (not a `.app` bundle). It can be run manually for testing:
 
 ```bash
 # Start helper manually on a test socket
-build/src/framebuffer/orender-fb /tmp/orender-fb-test.sock &
+build/src/framebuffer/orender-fb-macos /tmp/orender-fb-test.sock &
 
 # Send a minimal START + DATA + DONE using the provided test tool
 tests/framebuffer/send-test-frame.sh /tmp/orender-fb-test.sock 320 240

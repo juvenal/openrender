@@ -143,7 +143,7 @@ Abstract base: `CDisplay` (existing). Each platform subclass implements IPC clie
 
 ### HelperApp (Swift — macOS)
 
-The `orender-fb` process entity.
+The `orender-fb-macos` process entity.
 
 | Component | Responsibility |
 |-----------|----------------|

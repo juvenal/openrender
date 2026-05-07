@@ -54,7 +54,8 @@
       "Bash(xcodebuild -version)",
       "Bash(sw_vers)",
       "Bash(swiftc --version)",
-      "Bash(xcrun --sdk macosx --show-sdk-version)"
+      "Bash(xcrun --sdk macosx --show-sdk-version)",
+      "Bash(bash *)"
     ]
   }
 }

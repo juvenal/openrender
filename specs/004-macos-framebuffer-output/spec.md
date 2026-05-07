@@ -26,7 +26,7 @@ A user running orender on macOS specifies a framebuffer output in their RIB file
 **Acceptance Scenarios**:
 
 1. **Given** a RIB file with a framebuffer Display statement, **When** orender runs on macOS, **Then** a display window appears before any pixels are rendered.
-2. **Given** the display window is open, **When** the renderer produces pixel tiles, **Then** the window updates to show each tile within a short delay after it is produced.
+2. **Given** the display window is open, **When** the renderer produces pixel tiles, **Then** the window updates to show each tile within 1 second of production under normal rendering loads (per SC-003).
 3. **Given** rendering is complete, **When** the DONE signal is sent, **Then** the window title changes to reflect "Rendering Complete" (or equivalent) and the orender process exits.
 4. **Given** the orender process has exited, **When** the user examines the window, **Then** the window remains open and interactive until the user closes it manually.
 
@@ -59,15 +59,15 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 **Acceptance Scenarios**:
 
 1. **Given** the display window is open and updating, **When** the renderer process is killed, **Then** the display window detects the disconnection, retitles to "Interrupted" (or equivalent), shows the last rendered state, and remains open until the user closes it.
-2. **Given** the renderer exits before sending any pixel data, **When** the display window detects disconnection, **Then** the window closes without leaving dangling resources.
+2. **Given** the renderer exits before sending any pixel data, **When** the display window detects disconnection, **Then** the window closes immediately and releases all resources without leaving orphaned processes.
 
 ---
 
 ### Edge Cases
 
-- What happens if the renderer starts but produces no pixel tiles before sending the completion signal?
+- If the renderer sends DONE without having sent any pixel tiles, the window shows its initial checkerboard/empty canvas state, retitles to "Rendering Complete", and remains open until the user closes it.
 - If the display window is closed by the user before the render completes, the render continues to completion unaffected; closing the window is a display-only action with no effect on the rendering pipeline.
-- How does the system behave when the renderer crashes without sending a completion signal?
+- If the renderer crashes without sending a completion signal (neither DONE nor QUIT), the display window treats this as an interrupted render: if at least one tile was received, it retitles to "Interrupted" and stays open; if no tiles were received, it closes immediately.
 - If the display helper fails to launch (e.g., missing binary, insufficient permissions), orender emits a warning to the user and continues rendering to completion without a display window; the render is never aborted for a display failure.
 - When pixel tile updates arrive faster than the display can redraw, the helper queues all tiles and displays every one in order; no tiles are skipped. Display may lag behind the renderer during bursts but must catch up once the render completes.
 
@@ -81,13 +81,13 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 - **FR-004**: The window MUST remain open after rendering completes, allowing the user to inspect the result at their leisure.
 - **FR-005**: The renderer process MUST return control to the terminal immediately after rendering completes; it MUST NOT block waiting for the user to close the window.
 - **FR-006**: The window title MUST indicate rendering status: active during render, and a distinct "complete" state when done.
-- **FR-007**: If the renderer exits without completing normally, the display window MUST detect the disconnection, retitle to "Interrupted" (or equivalent), preserve the last rendered state on screen, and remain open until the user closes it — leaving no orphaned processes.
-- **FR-012**: Closing the display window while a render is in progress MUST NOT abort or interrupt the render; the renderer continues to completion independently.
-- **FR-013**: If the display helper fails to launch, orender MUST emit a warning message and continue rendering to completion without a display window; a display failure MUST NOT be treated as a fatal render error.
+- **FR-007**: If the renderer exits without completing normally, the display window MUST detect the disconnection. If at least one pixel tile was received, the window MUST retitle to "Interrupted" (or equivalent), preserve the last rendered state on screen, and remain open until the user closes it. If no pixel tiles were received, the window MUST close immediately and release all resources. In both cases, no orphaned processes must remain.
 - **FR-008**: The Linux Wayland framebuffer backend MUST be migrated to the new display architecture, preserving all observable behavior.
 - **FR-009**: The Linux X11 framebuffer backend MUST be migrated to the new display architecture, preserving all observable behavior.
 - **FR-010**: All three backends (macOS, Linux Wayland, Linux X11) MUST use the same communication protocol between the renderer and the display window.
 - **FR-011**: The display helper component MUST be co-installed alongside the orender executable so no manual setup is required by the user.
+- **FR-012**: Closing the display window while a render is in progress MUST NOT abort or interrupt the render; the renderer continues to completion independently.
+- **FR-013**: If the display helper fails to launch, orender MUST emit a warning message and continue rendering to completion without a display window; a display failure MUST NOT be treated as a fatal render error.
 
 ### Key Entities
 
@@ -103,14 +103,14 @@ A user starts a render that uses framebuffer output, then kills the renderer bef
 
 - **SC-001**: macOS users can complete a full framebuffer render session (window opens, receives tiles, render completes, window stays open) for any valid RIB with a framebuffer Display statement.
 - **SC-002**: The orender command exits within 1 second of render completion on all supported platforms — the terminal is never blocked by the framebuffer window.
-- **SC-003**: Pixel tiles appear in the framebuffer window within 1 second of being produced by the renderer under normal rendering loads.
+- **SC-003**: Pixel tiles appear in the framebuffer window within 1 second of being produced by the renderer under normal rendering loads. During high-throughput bursts, display may lag per FR-003; all tiles MUST be visible by the time the render session ends.
 - **SC-004**: No orphaned windows or processes remain after an interrupted render on any supported platform.
 - **SC-005**: All current Linux framebuffer regression tests continue to pass after migration to the new architecture.
 - **SC-006**: The new macOS backend passes the same test scenarios applied to Linux backends.
 
 ## Assumptions
 
-- macOS 10.13 or later is the minimum supported macOS version; earlier versions are out of scope.
+- macOS 12.0 (Monterey) or later is the minimum supported macOS version; earlier versions are out of scope.
 - The display helper is a separate executable co-located with orender and does not require user installation steps.
 - A single render produces a single framebuffer window; multiple concurrent renders producing multiple windows are out of scope.
 - The pixel tile format passed from the renderer to the display driver (color depth, channel layout) remains unchanged from the current Linux implementation.

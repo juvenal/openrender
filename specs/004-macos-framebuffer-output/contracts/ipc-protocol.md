@@ -6,7 +6,7 @@
 
 ## Overview
 
-The display driver (`fbq.cpp`, `fbx.cpp`, `fbwl.cpp`) and the display helper (`orender-fb`, `orender-fb-linux`) communicate over a **Unix domain socket** using a **TLV (Type-Length-Value)** binary protocol. The driver is always the client; the helper is always the server.
+The display driver (`fbq.cpp`, `fbx.cpp`, `fbwl.cpp`) and the display helper (`orender-fb-macos`, `orender-fb-linux`) communicate over a **Unix domain socket** using a **TLV (Type-Length-Value)** binary protocol. The driver is always the client; the helper is always the server.
 
 ## Socket Lifecycle
 
@@ -150,5 +150,5 @@ Protocol version 1.0. No version negotiation handshake in v1 — both sides must
 | `src/framebuffer/fbq.cpp` | macOS IPC client (driver side) |
 | `src/framebuffer/fbx.cpp` | Linux X11 IPC client (driver side, refactored) |
 | `src/framebuffer/fbwl.cpp` | Linux Wayland IPC client (driver side, refactored) |
-| `src/framebuffer/orender-fb/Sources/Protocol.swift` | Swift TLV parser (helper side) |
+| `src/framebuffer/orender-fb-macos/Sources/Protocol.swift` | Swift TLV parser (helper side) |
 | `src/framebuffer/orender-fb-linux/main.cpp` | C++ TLV parser + window host (helper side) |

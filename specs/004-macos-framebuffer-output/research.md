@@ -52,7 +52,7 @@
 
 ### D-04: App Lifecycle — Standalone Executable (No Bundle)
 
-**Decision**: `orender-fb` is a standalone command-line executable that runs `NSApplication.shared.run()`. No `.app` bundle required.
+**Decision**: `orender-fb-macos` is a standalone command-line executable that runs `NSApplication.shared.run()`. No `.app` bundle required.
 
 **Rationale**: The helper is spawned by the display driver via `posix_spawn` with a socket path argument. A full `.app` bundle would complicate the build and spawn paths. A standalone executable that directly sets up `NSApplication` and runs the event loop is simpler and has no functional disadvantage. The macOS menu bar appears because `NSApplication` registers a menu regardless of bundle presence.
 
@@ -115,7 +115,7 @@ This reuses all existing pixel-format conversion code with minimal change — it
 
 ### D-09: Build System Integration for Swift
 
-**Decision**: Use CMake's native Swift language support (`enable_language(Swift)`) with a `MACOSX_BUNDLE` executable target for `orender-fb`. CMake 4.x has solid Swift support; the `orender-fb` target links only system frameworks (AppKit, Foundation).
+**Decision**: Use CMake's native Swift language support (`enable_language(Swift)`) with a `MACOSX_BUNDLE` executable target for `orender-fb-macos`. CMake 4.x has solid Swift support; the `orender-fb-macos` target links only system frameworks (AppKit, Foundation).
 
 **Rationale**: CMake 4.3.2 is available on the dev machine. CMake's Swift support handles dependency tracking and `@rpath` correctly. The helper does not need a full `.app` bundle structure for a `posix_spawn`'d tool, but using `MACOSX_BUNDLE` ensures the `Info.plist` is embedded for `NSApplication` initialization (required for proper menu bar registration on macOS).
 
