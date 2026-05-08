@@ -153,9 +153,12 @@ static void runLoop(int fd, SessionCtx &ctx) {
     // EOF without DONE/QUIT → interrupted
     if (ctx.state == SessionState::Active) {
         ctx.state = SessionState::Interrupted;
-        char tmp[256];
-        snprintf(tmp, sizeof(tmp), "Interrupted — %s", ctx.title);
-        strncpy(ctx.title, tmp, sizeof(ctx.title) - 1);
+        static const char kPrefix[] = "Interrupted \xe2\x80\x94 "; // "Interrupted — "
+        const size_t prefixLen = sizeof(kPrefix) - 1;
+        size_t titleLen = strnlen(ctx.title, sizeof(ctx.title) - prefixLen - 1);
+        memmove(ctx.title + prefixLen, ctx.title, titleLen);
+        memcpy(ctx.title, kPrefix, prefixLen);
+        ctx.title[prefixLen + titleLen] = '\0';
     }
 }
 

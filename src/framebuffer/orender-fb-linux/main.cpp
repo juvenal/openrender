@@ -106,6 +106,7 @@ static bool readExact(int fd, void *buf, size_t n) {
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <X11/keysym.h>
 
 #define color_argb(r, g, b, a) ((b << 24) | (g << 16) | (r << 8) | a)

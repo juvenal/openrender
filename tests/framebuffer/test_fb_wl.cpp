@@ -49,13 +49,14 @@ static int tests_failed = 0;
 
 // US1: Render Output to Wayland Display (P1)
 TEST(wayland_init) {
-    // This will fail if no Wayland compositor is running, but we check for failure flag
+    // This will fail if no Wayland compositor is running, but we check for failure flag.
+    // In the IPC model, failure==FALSE means the helper connected and START was sent;
+    // there is no in-process windowUp flag (the window lives in orender-fb-linux).
     CWDisplay *display = new CWDisplay("test", "rgba", 640, 480, 4);
     if (display->failure) {
-        printf("\n  [INFO] Wayland compositor not detected, skipping live init check.");
-    } else {
-        ASSERT(display->windowUp == 1);
+        printf("\n  [INFO] Helper unavailable (no compositor or helper binary), skipping live init check.");
     }
+    // Whether failure or not, no crash == pass
     delete display;
     ASSERT(true);
 }

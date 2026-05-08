@@ -44,7 +44,9 @@ if(WAYLAND_HELPER_FOUND)
     )
 
     list(APPEND HELPER_SRCS
+        ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h
         ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
+        ${CMAKE_CURRENT_BINARY_DIR}/fractional-scale-v1-client-protocol.h
         ${CMAKE_CURRENT_BINARY_DIR}/fractional-scale-v1-protocol.c
     )
     list(APPEND HELPER_INCS ${WAYLAND_HELPER_INCLUDE_DIRS})

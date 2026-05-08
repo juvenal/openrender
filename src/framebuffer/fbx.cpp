@@ -56,7 +56,15 @@ static int tryConnectExisting(const char *sockPath) {
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
+    // Use memcpy + explicit bound to avoid -Wformat-truncation / -Wstringop-truncation:
+    // on Linux sun_path is 108 bytes; socketPath[] is 256 bytes — the paths we generate
+    // are always short, but GCC's inliner sees the declaration sizes and warns.
+    {
+        size_t n = strlen(sockPath);
+        if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
+        memcpy(addr.sun_path, sockPath, n);
+        addr.sun_path[n] = '\0';
+    }
 
     if (connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0)
         return fd;
@@ -74,7 +82,15 @@ static int connectWithTimeout(const char *sockPath, int timeoutSecs) {
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
+    // Use memcpy + explicit bound to avoid -Wformat-truncation / -Wstringop-truncation:
+    // on Linux sun_path is 108 bytes; socketPath[] is 256 bytes — the paths we generate
+    // are always short, but GCC's inliner sees the declaration sizes and warns.
+    {
+        size_t n = strlen(sockPath);
+        if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
+        memcpy(addr.sun_path, sockPath, n);
+        addr.sun_path[n] = '\0';
+    }
 
     const int sleepUsec  = 50000;
     const int maxRetries = timeoutSecs * (1000000 / sleepUsec);
@@ -102,8 +118,7 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
     // Fixed socket path per user — shared across renders so successive orender
     // invocations reuse the same helper process and window.
     std::string sockStr = makeFixedSocketPath();
-    strncpy(socketPath, sockStr.c_str(), sizeof(socketPath) - 1);
-    socketPath[sizeof(socketPath) - 1] = '\0';
+    snprintf(socketPath, sizeof(socketPath), "%s", sockStr.c_str());
 
     // Try to connect to an existing helper that is idle between renders.
     // The helper keeps its server socket open (outer accept loop), so this
@@ -121,8 +136,8 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
 
         char helperPathBuf[4096];
         char socketPathBuf[256];
-        strncpy(helperPathBuf, helperPath.c_str(), sizeof(helperPathBuf) - 1);
-        strncpy(socketPathBuf, socketPath,         sizeof(socketPathBuf) - 1);
+        snprintf(helperPathBuf, sizeof(helperPathBuf), "%s", helperPath.c_str());
+        snprintf(socketPathBuf, sizeof(socketPathBuf), "%s", socketPath);
         char *helperArgv[3] = { helperPathBuf, socketPathBuf, nullptr };
 
         // Spawn in a new process group so Ctrl-C (SIGINT to orender's pgid)
