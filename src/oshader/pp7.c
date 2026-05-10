@@ -55,7 +55,7 @@
 /*									*/
 /************************************************************************/
 
-#include "logging.h"
+#include <stdio.h>
 #include "pp.h"
 #include "ppext.h"
 
@@ -80,7 +80,7 @@ void end_of_file(void) {
 /************************************************************************/
 
 void fatal(const char *s1, const char *s2) {
-    LOG_ERROR("FATAL: %s%s", s1, s2);
+    fprintf(stderr, "FATAL: %s%s\n", s1, s2);
     exit(TRUE);
 }
 
@@ -133,25 +133,14 @@ void out_of_memory(void) {
 /************************************************************************/
 
 void prmsg(const char *s1, const char *s2, const char *s3) {
-    int is_warn = (strcmp(s1, "Warning: ") == 0);
     if (s3[0] == 0) {
-        if (is_warn)
-            LOG_WARN("%s(%u) %s%s",
-                     Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
-                     LLine, s1, s2);
-        else
-            LOG_ERROR("%s(%u) %s%s",
-                      Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
-                      LLine, s1, s2);
+        fprintf(stderr, "%s(%u) %s%s\n",
+                Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+                LLine, s1, s2);
     } else {
-        if (is_warn)
-            LOG_WARN("%s(%u) %s%s \"%s\"",
-                     Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
-                     LLine, s1, s2, s3);
-        else
-            LOG_ERROR("%s(%u) %s%s \"%s\"",
-                      Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
-                      LLine, s1, s2, s3);
+        fprintf(stderr, "%s(%u) %s%s \"%s\"\n",
+                Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
+                LLine, s1, s2, s3);
     }
 }
 

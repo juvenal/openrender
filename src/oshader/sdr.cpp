@@ -29,7 +29,6 @@
 #include <string.h>
 
 #include "irBuilder.h"
-#include "logging.h"
 #include "opcodes.h" // This file holds the constant strings
 #include "passes/passCSE.h"
 #include "passes/passConstFold.h"
@@ -1728,7 +1727,7 @@ void CScriptContext::error(const char *mes, ...) {
     size_t len = strlen(msg);
     if (len > 0 && msg[len - 1] == '\n')
         msg[len - 1] = '\0';
-    fprintf(stderr, "%s", msg);
+    fprintf(stderr, "%s\n", msg);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1752,7 +1751,7 @@ void CScriptContext::warning(const char *mes, ...) {
     size_t len = strlen(msg);
     if (len > 0 && msg[len - 1] == '\n')
         msg[len - 1] = '\0';
-    LOG_WARN("%s", msg);
+    fprintf(stderr, "%s\n", msg);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1771,7 +1770,7 @@ void CScriptContext::fatal(const char *mes, ...) {
     size_t len = strlen(msg);
     if (len > 0 && msg[len - 1] == '\n')
         msg[len - 1] = '\0';
-    LOG_ERROR("%s", msg);
+    fprintf(stderr, "%s\n", msg);
 
     exit(-1);
 }

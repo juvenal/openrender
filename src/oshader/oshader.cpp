@@ -135,7 +135,7 @@ static void printUsage() {
     va_start(args, mes);
     vsnprintf(buf, sizeof(buf), mes, args);
     va_end(args);
-    LOG_ERROR("%s", buf);
+    fprintf(stderr, "%s\n", buf);
     exit(-1);
 }
 
