@@ -1,0 +1,55 @@
+/**
+
+
+
+
+
+ */
+
+#include "projections.slh"
+
+color
+GetColorTextureAndAlpha(string texturename;
+                        string projection;
+                        point  P;
+                        string whichspace;
+                        matrix xform;
+                        float  blur;
+                        float  alphachannel;
+                        output float alpha)
+{
+    float ss, tt, ds, dt;
+ 
+    ProjectTo2D(projection, P, whichspace, xform, ss, tt, ds, dt);
+    ds *= 0.5;
+    dt *= 0.5;
+ 
+    color Ct = color texture(texturename,
+                             ss - ds, tt - dt, ss + ds, tt - dt,
+                             ss - ds, tt + dt, ss + ds, tt + dt,
+                             "blur", blur);
+    alpha = float texture(texturename[alphachannel],
+                          ss - ds, tt - dt, ss + ds, tt - dt,
+                          ss - ds, tt + dt, ss + ds, tt + dt,
+                          "blur", blur, "fill", 1);
+
+    return Ct;
+}
+
+color
+ApplyColorTextureOver(color basecolor;
+                      string texturename;
+                      string projection;
+                      point  P;
+                      string whichspace;
+                      matrix xform;
+                      float  blur)
+{
+    float alpha;
+    color Ct = GetColorTextureAndAlpha(texturename,
+                                       projection, P,
+                                       whichspace, xform,
+                                       blur, 3, alpha);
+
+    return Ct + (1 - alpha) * basecolor;
+}

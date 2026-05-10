@@ -1,0 +1,18 @@
+/**
+
+
+
+
+ */
+
+normal Displace (vector dir;
+                 string space;
+                 float amp;
+                 float truedisp)
+{
+    extern point P;
+    float spacescale = length(vtransform(space, dir));
+    vector Ndisp = dir * (amp / spacescale);
+    P += truedisp * Ndisp;
+    return normalize(calculatenormal(P + (1 - truedisp) * Ndisp));
+}

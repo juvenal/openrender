@@ -1,0 +1,80 @@
+/**
+
+
+
+
+
+
+
+ */
+
+#include "filterwidth.slh"
+
+/* Project 3D points onto a unit sphere centered at the origin. */
+void spherical_projection(point p; output float ss, tt, ds, dt)
+{
+    extern float du, dv;
+    vector V = normalize(vector p);
+    ss = (-atan(ycomp(V), xcomp(V)) + PI) / (2 * PI);
+    tt = 0.5 - acos(zcomp(V)) / PI;
+    ds = filterwidth(ss);
+    if (ds > 0.5) {
+        ds = max(1 - ds, MINFILTWIDTH);
+    }
+    dt = filterwidth(tt);
+    if (dt > 0.5) {
+        dt = max(1 - dt, MINFILTWIDTH);
+    }
+}
+
+/* Project 3D points onto a cylinder about the z-axis between z=0 and z=1. */
+void cylindrical_projection(point p; output float ss, tt, ds, dt)
+{
+    extern float du, dv;
+    vector V = normalize(vector p);
+    ss = (-atan(ycomp(V), xcomp(V)) + PI) / (2 * PI);
+    tt = zcomp(p);
+    ds = filterwidth(ss);
+    if (ds > 0.5) {
+        ds = max(1 - ds, MINFILTWIDTH);
+    }
+    dt = filterwidth(tt);
+}
+
+void ProjectTo2D (string projection;
+                  point  P;
+                  string whichspace;
+                  matrix xform;
+                  output float ss, tt, ds, dt)
+{
+    point Pproj;
+    extern float du, dv;
+    if (projection == " st") {
+        extern float s, t;
+        Pproj = point(s, t, 0);
+    }
+    else {
+        Pproj = transform(whichspace, P);
+    }
+    Pproj = transform(xform, Pproj);
+    if (projection == "planar" || projection == "st") {
+        ss = xcomp(Pproj);
+        tt = ycomp(Pproj);
+        ds = filterwidth(ss);
+        dt = filterwidth(tt);
+    }
+    else if (projection == "perspective") {
+        float z = max(zcomp(Pproj), 1.0e-6);
+        ss = xcomp(Pproj) / z;
+        tt = ycomp(Pproj) / z;
+        ds = filterwidth(ss);
+        dt = filterwidth(tt);
+    }
+    /* Special cases for the projections that may wrap */
+    else if (projection == "spherical") {
+        spherical_projection(Pproj, ss, tt, ds, dt);
+    }
+    else if (projection == "cylindrical") {
+        cylindrical_projection(Pproj, ss, tt, ds, dt);
+    }
+}
