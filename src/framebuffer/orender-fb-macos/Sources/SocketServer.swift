@@ -41,8 +41,10 @@ public final class SocketServer: @unchecked Sendable {
             return
         }
 
-        // orender unlinks the socket path only when spawning a fresh helper.
-        // The helper must not unlink it — orender may reconnect without respawning.
+        // Remove any stale socket file so bind() doesn't get EADDRINUSE.
+        // This only runs at startup; reconnecting renders use the already-bound
+        // server socket via the outer accept() loop, never re-binding.
+        unlink(socketPath)
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)

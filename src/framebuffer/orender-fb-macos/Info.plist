@@ -5,9 +5,15 @@
     <key>CFBundleIdentifier</key>
     <string>org.openrender.orender-fb-macos</string>
     <key>CFBundleExecutable</key>
-    <string>orender-fb-macos</string>
+    <string>openRender</string>
     <key>CFBundleName</key>
-    <string>orender-fb-macos</string>
+    <string>openRender</string>
+    <key>CFBundleDisplayName</key>
+    <string>openRender</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2025–2026 Juvenal A. Silva Jr. All rights reserved.</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>
@@ -21,6 +27,8 @@
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSApplicationSupportsSecureRestorableState</key>
     <true/>
 </dict>
 </plist>

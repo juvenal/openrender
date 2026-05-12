@@ -16,8 +16,12 @@ guard CommandLine.arguments.count >= 2 else {
 }
 let socketPath = CommandLine.arguments[1]
 
+ProcessInfo.processInfo.processName = "openRender"
 let app      = NSApplication.shared
-app.setActivationPolicy(.regular)
+// Start as .accessory so the helper launches silently without stealing focus.
+// AppDelegate switches to .regular when the first render window appears, which
+// is when the Dock icon and menu bar should become visible.
+app.setActivationPolicy(.accessory)
 
 let server   = SocketServer(socketPath: socketPath)
 let delegate = AppDelegate()

@@ -1,7 +1,7 @@
 /**
  * fbx.cpp — Linux IPC display driver.
  *
- * Spawns orender-fb-linux via posix_spawn and streams TLV packets to it.
+ * Spawns orender-fb via posix_spawn and streams TLV packets to it.
  * Tries to reuse an existing helper before spawning; uses a fixed per-user
  * socket path so successive renders share one helper process.
  * If the helper fails to launch or the socket times out, emits a warning
@@ -132,7 +132,7 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
         unlink(socketPath);
 
         std::string exePath    = getExePath();
-        std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb-linux");
+        std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb");
 
         char helperPathBuf[4096];
         char socketPathBuf[256];
@@ -175,7 +175,7 @@ CXDisplay::CXDisplay(const char *name, const char *samples, int width, int heigh
         if (spawnErr != 0) {
             fprintf(stderr,
                     "openRender: framebuffer display unavailable — "
-                    "could not spawn orender-fb-linux (%s): %s\n",
+                    "could not spawn orender-fb (%s): %s\n",
                     helperPath.c_str(), strerror(spawnErr));
             failure = TRUE;
             return;

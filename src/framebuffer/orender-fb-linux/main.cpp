@@ -120,11 +120,12 @@ static bool runX11Window(int sockfd, SessionCtx &ctx) {
         return true; // not a QUIT, just a display failure
     }
 
-    Atom WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", False);
-    Atom WM_PROTOCOLS     = XInternAtom(display, "WM_PROTOCOLS",     False);
-    Atom _NET_WM_NAME     = XInternAtom(display, "_NET_WM_NAME",     False);
-    Atom _NET_WM_PID      = XInternAtom(display, "_NET_WM_PID",      False);
-    Atom UTF8_STRING      = XInternAtom(display, "UTF8_STRING",      False);
+    Atom WM_DELETE_WINDOW    = XInternAtom(display, "WM_DELETE_WINDOW",    False);
+    Atom WM_PROTOCOLS        = XInternAtom(display, "WM_PROTOCOLS",        False);
+    Atom _NET_WM_NAME        = XInternAtom(display, "_NET_WM_NAME",        False);
+    Atom _NET_WM_PID         = XInternAtom(display, "_NET_WM_PID",         False);
+    Atom _NET_WM_USER_TIME   = XInternAtom(display, "_NET_WM_USER_TIME",   False);
+    Atom UTF8_STRING         = XInternAtom(display, "UTF8_STRING",         False);
     (void)WM_PROTOCOLS;
 
     int screen = DefaultScreen(display);
@@ -163,6 +164,12 @@ static bool runX11Window(int sockfd, SessionCtx &ctx) {
                                 ctx.width, ctx.height, 32, ctx.width * 4);
 
     GC gc = XCreateGC(display, xcanvas, 0, nullptr);
+
+    // Set _NET_WM_USER_TIME to 0 before mapping to tell the WM this window was
+    // not opened by a recent user interaction — prevents focus stealing.
+    unsigned long zero = 0;
+    XChangeProperty(display, xcanvas, _NET_WM_USER_TIME, XA_CARDINAL, 32,
+                    PropModeReplace, reinterpret_cast<const unsigned char *>(&zero), 1);
 
     XMapWindow(display, xcanvas);
     XSetWMProtocols(display, xcanvas, &WM_DELETE_WINDOW, 1);

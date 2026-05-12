@@ -76,10 +76,26 @@ add_custom_command(TARGET orender-fb-linux POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE:orender-fb-linux>"
             "${CMAKE_BINARY_DIR}/orender-fb-linux"
+    # Also create orender-fb symlink in build root — the name the driver looks for.
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink
+            orender-fb-linux
+            "${CMAKE_BINARY_DIR}/orender-fb"
     COMMENT "Copying orender-fb-linux to build root"
 )
 
-# Install alongside the orender executable so makeHelperPath($ORENDERHOME/bin/)
-# resolution works at runtime (consistent with orender-fb-macos install location)
+# Install binary to libexec/ — it is a helper, not a user-facing command.
+# Two symlinks give consistent access:
+#   libexec/orender-fb  → orender-fb-linux   (within libexec, for direct invocation)
+#   bin/orender-fb      → ../libexec/orender-fb-linux  (picked up by makeHelperPath)
 install(TARGETS orender-fb-linux
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        RUNTIME DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
+
+install(CODE
+    "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        orender-fb-linux
+        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/orender-fb\")
+     file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+     execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        ../libexec/orender-fb-linux
+        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-fb\")"
+)

@@ -1,7 +1,7 @@
 /**
  * fbq.cpp — macOS IPC display driver.
  *
- * Spawns orender-fb-macos via posix_spawn and streams TLV packets to it.
+ * Spawns orender-fb via posix_spawn and streams TLV packets to it.
  * If the helper fails to launch or the socket times out, emits a warning
  * and renders without display (data() always returns TRUE).
  */
@@ -118,11 +118,11 @@ CQDisplay::CQDisplay(const char *name, const char *samples, int width, int heigh
     if (socketFd < 0) {
         // No existing helper is listening — remove any stale socket file and
         // spawn a fresh helper.
-        log_debug("no existing helper found; spawning orender-fb-macos");
+        log_debug("no existing helper found; spawning orender-fb");
         unlink(socketPath);
 
         std::string exePath  = (argv0 && argv0[0]) ? std::string(argv0) : getExePath();
-        std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb-macos");
+        std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb");
 
         char *helperArgv[3];
         char helperPathBuf[4096];
@@ -170,13 +170,13 @@ CQDisplay::CQDisplay(const char *name, const char *samples, int width, int heigh
         if (spawnErr != 0) {
             fprintf(stderr,
                     "openRender: framebuffer display unavailable — "
-                    "could not spawn orender-fb-macos (%s): %s\n",
+                    "could not spawn orender-fb (%s): %s\n",
                     helperPath.c_str(), strerror(spawnErr));
             failure = TRUE;
             return;
         }
         helperPid = pid;
-        log_debug("spawned orender-fb-macos pid={}", (int)pid);
+        log_debug("spawned orender-fb pid={}", (int)pid);
 
         socketFd = connectWithTimeout(socketPath, 5);
         if (socketFd < 0) {
@@ -189,7 +189,7 @@ CQDisplay::CQDisplay(const char *name, const char *samples, int width, int heigh
             return;
         }
     } else {
-        log_debug("reusing existing orender-fb-macos helper");
+        log_debug("reusing existing orender-fb helper");
     }
 
     // Send START packet (to either reused or freshly spawned helper)

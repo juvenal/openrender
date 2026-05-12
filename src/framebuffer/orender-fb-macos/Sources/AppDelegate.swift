@@ -22,6 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // One entry per open window. Removing all entries triggers app exit.
     private struct Session {
         let panel:    NSPanel
+        let store:    ImageStore
         let observer: AnyCancellable  // keeps panel title in sync with store
     }
     private var sessions: [Session] = []
@@ -31,6 +32,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // ---------------------------------------------------------------------------
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Bundle.main is the .app bundle when running from Contents/MacOS/;
+        // AppIcon.icns lives in Contents/Resources/ (also declared via CFBundleIconFile).
+        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) {
+            NSApp.applicationIconImage = icon
+        }
         buildMenu()
 
         // Wire SocketServer callbacks (all called on main queue by SocketServer)
@@ -75,12 +82,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         p.contentView          = NSHostingView(rootView: ContentView(store: s))
         p.delegate             = self
         p.isReleasedWhenClosed = false
+        p.hidesOnDeactivate    = false  // stay visible when orender/terminal has focus
+
+        // Switch from .accessory to .regular on the first window: this is when
+        // the Dock icon and menu bar should appear — not at process launch.
+        if sessions.isEmpty {
+            NSApp.setActivationPolicy(.regular)
+        }
 
         let obs = s.$windowTitle
             .receive(on: DispatchQueue.main)
             .sink { [weak p] newTitle in p?.title = newTitle }
 
-        sessions.append(Session(panel: p, observer: obs))
+        sessions.append(Session(panel: p, store: s, observer: obs))
         p.orderFrontRegardless()
     }
 
@@ -107,12 +121,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // ---------------------------------------------------------------------------
 
     private func buildMenu() {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+                      ?? "openRender"
+
         let mainMenu = NSMenu()
 
-        let appItem = NSMenuItem()
+        let appItem = NSMenuItem(title: appName, action: nil, keyEquivalent: "")
         mainMenu.addItem(appItem)
-        let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit orender-fb-macos",
+        let appMenu = NSMenu(title: appName)
+        appMenu.addItem(withTitle: "About \(appName)",
+                        action: #selector(showAbout(_:)),
+                        keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit \(appName)",
                         action: #selector(NSApplication.terminate(_:)),
                         keyEquivalent: "q")
         appItem.submenu = appMenu
@@ -131,11 +152,47 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     // ---------------------------------------------------------------------------
+    // About openRender
+    // ---------------------------------------------------------------------------
+
+    @objc private func showAbout(_ sender: Any?) {
+        let creditsText = """
+            Open Rendering Tools — RenderMan-compatible renderer.
+
+            © Copyright 2025–2026 Juvenal A. Silva Jr.
+            All rights reserved.
+
+            The RenderMan® Interface Procedures and RIB Protocol are:
+            Copyright 1988, 1989, Pixar. All rights reserved.
+            RenderMan® is a registered trademark of Pixar.
+            """
+        let credits = NSAttributedString(
+            string: creditsText,
+            attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]
+        )
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+                      ?? "openRender"
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName:    appName as NSString,
+            .applicationVersion: "1.0.0" as NSString,
+            .credits:            credits
+        ])
+    }
+
+    // ---------------------------------------------------------------------------
     // Save Image
     // ---------------------------------------------------------------------------
 
     @objc private func saveImage(_ sender: Any?) {
-        guard let img = store?.cgImage else { return }
+        // Resolve the store from the key window before the save panel takes focus.
+        let activeStore: ImageStore?
+        if let keyPanel = NSApp.keyWindow as? NSPanel,
+           let session  = sessions.first(where: { $0.panel === keyPanel }) {
+            activeStore = session.store
+        } else {
+            activeStore = store  // fallback: last render
+        }
+        guard let img = activeStore?.cgImage else { return }
         let savePanel = NSSavePanel()
         savePanel.title = "Save Framebuffer Image"
         savePanel.allowedContentTypes = [.tiff, .png]
