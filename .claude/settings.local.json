@@ -103,7 +103,18 @@
       "Bash(nm openrender/displays/framebuffer.so)",
       "Bash(nm /opt/homebrew/opt/libtiff/lib/libtiff.6.dylib)",
       "Bash(nm openrender/lib/libri.dylib)",
-      "Bash(nm openrender/bin/orender)"
+      "Bash(nm openrender/bin/orender)",
+      "Bash(identify \"/Volumes/Projects/Development/CLI/openrender/docs/media/Icon oR@2x.png\")",
+      "Bash(codesign -dvvv build/orender-fb-macos.app)",
+      "Read(//tmp/or-test-bundle/bin/**)",
+      "Read(//tmp/or-test-bundle/libexec/orender-fb-macos.app/**)",
+      "Bash(rm -rf /tmp/or-test-bundle)",
+      "Read(//tmp/or-test/bin/**)",
+      "Bash(rm -rf /tmp/or-test)",
+      "Read(//tmp/or-t/**)",
+      "Read(//tmp/or-t/bin/**)",
+      "Bash(rm -rf /tmp/or-t)",
+      "WebSearch"
     ]
   }
 }
