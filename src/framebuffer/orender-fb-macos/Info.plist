@@ -12,6 +12,8 @@
     <string>openRender</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2025–2026 Juvenal A. Silva Jr. All rights reserved.</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>

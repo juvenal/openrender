@@ -32,12 +32,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // ---------------------------------------------------------------------------
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Bundle.main is the .app bundle when running from Contents/MacOS/;
-        // AppIcon.icns lives in Contents/Resources/ (also declared via CFBundleIconFile).
-        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
-           let icon = NSImage(contentsOf: iconURL) {
-            NSApp.applicationIconImage = icon
-        }
         buildMenu()
 
         // Wire SocketServer callbacks (all called on main queue by SocketServer)

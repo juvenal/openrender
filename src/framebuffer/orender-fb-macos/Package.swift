@@ -11,10 +11,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "orender-fb-macos",
-            path: "Sources",
-            resources: [
-                .copy("AppIcon.icns")
-            ]
+            path: "Sources"
         )
     ]
 )

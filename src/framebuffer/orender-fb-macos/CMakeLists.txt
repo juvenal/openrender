@@ -29,11 +29,16 @@ set(FB_MACOS_BINARY   "${FB_MACOS_BUILD_DIR}/release/orender-fb-macos")
 set(FB_MACOS_APP_DIR  "${CMAKE_CURRENT_BINARY_DIR}/openRender.app")
 set(FB_MACOS_CONTENTS "${FB_MACOS_APP_DIR}/Contents")
 
-# Sources that trigger a rebuild (includes icon resource)
+# Sources that trigger a rebuild (includes both icon formats)
 file(GLOB_RECURSE FB_MACOS_SOURCES
     "${FB_MACOS_SRC_DIR}/Sources/*.swift"
     "${FB_MACOS_SRC_DIR}/Sources/*.icns"
 )
+
+# Path to the Apple Icon Composer .icon package (macOS Tahoe / Liquid Glass).
+# run_actool.cmake checks for its existence at build time — no configure-time
+# error if it is absent (plain .icns is the fallback).
+set(FB_MACOS_ICON_PKG "${FB_MACOS_SRC_DIR}/Sources/AppIcon.icon")
 
 add_custom_command(
     OUTPUT  "${FB_MACOS_BINARY}"
@@ -57,7 +62,14 @@ add_custom_command(
     COMMAND "${CMAKE_COMMAND}" -E copy
             "${FB_MACOS_SRC_DIR}/Sources/AppIcon.icns"
             "${FB_MACOS_CONTENTS}/Resources/AppIcon.icns"
-    # ── 3. Ad-hoc sign the complete bundle ────────────────────────────────────
+    # ── 3. Compile .icon asset catalog → Assets.car (macOS 26+ Liquid Glass) ──
+    # cmake -P delegates to run_actool.cmake which checks for AppIcon.icon at
+    # runtime; this avoids generator-expression tricks and stays VERBATIM-safe.
+    COMMAND "${CMAKE_COMMAND}"
+            "-DICON_PKG=${FB_MACOS_ICON_PKG}"
+            "-DRESOURCES_DIR=${FB_MACOS_CONTENTS}/Resources"
+            -P "${FB_MACOS_SRC_DIR}/run_actool.cmake"
+    # ── 4. Ad-hoc sign the complete bundle ────────────────────────────────────
     # --deep covers nested bundles (SwiftPM resource bundle).
     # --force -s - strips the linker-signed flag macOS 26 rejects on external
     # volumes and replaces it with a plain adhoc identity.
@@ -65,6 +77,7 @@ add_custom_command(
     DEPENDS ${FB_MACOS_SOURCES}
             "${FB_MACOS_SRC_DIR}/Package.swift"
             "${FB_MACOS_SRC_DIR}/Info.plist"
+            "${FB_MACOS_ICON_PKG}"
     COMMENT "Building openRender.app (Swift)"
     VERBATIM
 )

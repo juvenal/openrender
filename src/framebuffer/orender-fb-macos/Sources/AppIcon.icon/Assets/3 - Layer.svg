@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>3 - Layer</title>
+    <defs>
+        <linearGradient x1="0%" y1="56.7807349%" x2="92.9583829%" y2="42.5351495%" id="linearGradient-1">
+            <stop stop-color="color(display-p3 0.962 0.801 0.163)" stop-opacity="0.349609375" offset="0%"></stop>
+            <stop stop-color="color(display-p3 0.932 0.706 0.283)" stop-opacity="0.901577819" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="0%" y1="0.07449782%" x2="100%" y2="99.9255022%" id="linearGradient-2">
+            <stop stop-color="color(display-p3 1.000 0.786 0.047)" offset="0%"></stop>
+            <stop stop-color="color(display-p3 1.000 0.595 0.019)" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Template---App-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="3---Layer" fill-rule="nonzero">
+            <path d="M472.426082,355.330008 C472.426082,329.718322 484.241852,307.092047 502.437241,291.805843 C502.437241,291.805843 421.285881,256.738053 351.733559,307.479588 C332.611926,321.429675 314.862742,356.029386 298.486007,411.278721 C283.414198,401.649185 265.546875,396.093618 244.884037,394.612021 C208.962024,392.036289 183.667345,397.591855 169,411.278721 C202.152514,405.055035 229.582225,408.095361 251.289134,420.399698 C298.486007,447.152759 317.142975,480.039941 317.142975,480.039941 C325.765055,425.902437 335.71862,384.551329 370.070659,368.04017 C411.426688,348.162572 476.177477,381.727329 476.177477,378.809258 C473.976059,371.334506 472.426082,363.545501 472.426082,355.330008 Z" id="Shape" fill="url(#linearGradient-1)"></path>
+            <ellipse id="Oval" fill="url(#linearGradient-2)" cx="556.192258" cy="355.532028" rx="67.5026442" ry="67.4523375"></ellipse>
+        </g>
+    </g>
+</svg>

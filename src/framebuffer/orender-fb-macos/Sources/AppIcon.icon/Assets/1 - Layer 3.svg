@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>1 - Layer</title>
+    <defs>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-1">
+            <stop stop-color="color(display-p3 0.907 0.907 0.907)" stop-opacity="0.099475337" offset="0%"></stop>
+            <stop stop-color="color(display-p3 0.821 0.808 0.791)" stop-opacity="0.450980392" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Template---App-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="1---Layer" fill="url(#linearGradient-1)">
+            <polygon id="Rectangle" points="0 -4.54747351e-13 1024 -4.54747351e-13 1024 1024 0 1024"></polygon>
+        </g>
+    </g>
+</svg>
