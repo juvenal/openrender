@@ -8,13 +8,33 @@ IF(NOT DEFINED BISON_PREFIX_OUTPUTS)
  SET(BISON_PREFIX_OUTPUTS FALSE)
 ENDIF(NOT DEFINED BISON_PREFIX_OUTPUTS)
 
-IF(NOT BISON_EXECUTABLE)
- MESSAGE(STATUS "Looking for bison")
- FIND_PROGRAM(BISON_EXECUTABLE bison)
- IF(BISON_EXECUTABLE)
-   MESSAGE(STATUS "Looking for bison -- ${BISON_EXECUTABLE}")
- ENDIF(BISON_EXECUTABLE)
-ENDIF(NOT BISON_EXECUTABLE)
+IF(APPLE)
+  # macOS ships Bison 2.3 which predates %define api.pure (requires 2.6+).
+  # If BISON_EXECUTABLE is unset or points to the system bison, override it
+  # with Homebrew's version. Apple Silicon: /opt/homebrew/bin; Intel: /usr/local/bin.
+  IF(NOT BISON_EXECUTABLE OR BISON_EXECUTABLE STREQUAL "/usr/bin/bison")
+    MESSAGE(STATUS "Looking for bison (preferring Homebrew over system)")
+    FIND_PROGRAM(_bison_homebrew bison
+      HINTS /opt/homebrew/opt/bison/bin /opt/homebrew/bin
+            /usr/local/opt/bison/bin   /usr/local/bin
+      NO_DEFAULT_PATH)
+    IF(_bison_homebrew)
+      SET(BISON_EXECUTABLE "${_bison_homebrew}" CACHE PATH "Path to bison" FORCE)
+    ELSEIF(NOT BISON_EXECUTABLE)
+      FIND_PROGRAM(BISON_EXECUTABLE bison)
+    ENDIF()
+    UNSET(_bison_homebrew CACHE)
+    IF(BISON_EXECUTABLE)
+      MESSAGE(STATUS "Looking for bison -- ${BISON_EXECUTABLE}")
+    ENDIF()
+  ENDIF()
+ELSEIF(NOT BISON_EXECUTABLE)
+  MESSAGE(STATUS "Looking for bison")
+  FIND_PROGRAM(BISON_EXECUTABLE bison)
+  IF(BISON_EXECUTABLE)
+    MESSAGE(STATUS "Looking for bison -- ${BISON_EXECUTABLE}")
+  ENDIF()
+ENDIF()
 
 IF(BISON_EXECUTABLE)
  MACRO(BISON_FILE FILENAME OUTNAME PREFIX)
