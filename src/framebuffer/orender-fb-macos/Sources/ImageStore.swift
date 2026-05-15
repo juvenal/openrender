@@ -147,6 +147,7 @@ public final class ImageStore: ObservableObject {
     // ---------------------------------------------------------------------------
 
     private func floatToByte(_ f: Float) -> UInt8 {
-        UInt8(max(0, min(255, Int(f * 255.0 + 0.5))))
+        guard f.isFinite else { return f > 0 ? 255 : 0 }
+        return UInt8(max(0, min(255, Int(f * 255.0 + 0.5))))
     }
 }
