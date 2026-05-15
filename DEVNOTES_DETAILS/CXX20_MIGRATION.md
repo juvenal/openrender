@@ -1,12 +1,12 @@
-# Pixie C++20/C17 Migration Guide
+# openRender C++20/C17 Migration Guide
 
-**Version**: 2.2.6
+**Version**: 1.0.0
 **Date**: December 2025
 **Status**: Phase 2 Complete (Binary I/O Migration)
 
 ## Overview
 
-This document describes the migration of Pixie from C++17 to C++20 (for C++ code) and C17 (for C code), with comprehensive 64-bit portability improvements for x86_64 and ARM64 architectures.
+This document describes the migration of openRender from C++17 to C++20 (for C++ code) and C17 (for C code), with comprehensive 64-bit portability improvements for x86_64 and ARM64 architectures.
 
 ### Migration Phases
 
@@ -38,9 +38,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 - **GCC**: 10.0 or later
 - **Clang**: 10.0 or later
 - **AppleClang**: 12.0 or later (Xcode 12+)
-- **MSVC**: Visual Studio 2019 16.11 or later
+- **MSVC**: Untested (no minimum version enforced in build system)
 
-The build system now automatically verifies compiler support and will fail with a clear error message if your compiler is too old.
+The build system automatically verifies GCC/Clang compiler support and will fail with a clear error message if your compiler is too old.
 
 ### 2. Platform and Architecture Detection
 
@@ -50,18 +50,19 @@ Platform detection is now standardized and includes explicit ARM64 support:
 
 ```cpp
 // Platform macros
-#define PIXIE_PLATFORM_WINDOWS   // Windows (32 or 64-bit)
-#define PIXIE_PLATFORM_MACOS     // macOS (arm64 or x86_64)
-#define PIXIE_PLATFORM_LINUX     // Linux
+#define OPENRENDER_PLATFORM_WINDOWS  // Windows (32 or 64-bit)
+#define OPENRENDER_PLATFORM_MACOS    // macOS (arm64 or x86_64)
+#define OPENRENDER_PLATFORM_LINUX    // Linux
+#define OPENRENDER_PLATFORM_UNIX     // Linux or macOS (POSIX)
 
 // Architecture macros
-#define PIXIE_ARCH_X86_64        // Intel/AMD 64-bit
-#define PIXIE_ARCH_ARM64         // ARM 64-bit (Apple Silicon, etc.)
-#define PIXIE_ARCH_X86           // Intel/AMD 32-bit
-#define PIXIE_ARCH_ARM32         // ARM 32-bit
+#define OPENRENDER_ARCH_X86_64       // Intel/AMD 64-bit
+#define OPENRENDER_ARCH_ARM64        // ARM 64-bit (Apple Silicon, etc.)
+#define OPENRENDER_ARCH_X86          // Intel/AMD 32-bit
+#define OPENRENDER_ARCH_ARM32        // ARM 32-bit
 
 // Cache line size (always 64 bytes on supported platforms)
-#define PIXIE_CACHE_LINE_SIZE 64
+#define OPENRENDER_CACHE_LINE_SIZE 64
 ```
 
 **Breaking Change**: Removed manual `typedef` declarations for `uint32_t`, `uint64_t`, etc. on Windows. All code must now use standard types from `<cstdint>`.
@@ -121,6 +122,8 @@ if (!writeVector(file, vector, 3)) {
 }
 ```
 
+The library also provides `UInt32`, `Int64`, `Float64` variants and `readInt32Array` / `writeInt32Array` / `readFloat32Array` / `writeFloat32Array` bulk functions for array I/O with a single error check.
+
 **Key Benefits**:
 - Platform-independent (works on 32/64-bit, x86/ARM, little/big-endian)
 - Error checking on all operations
@@ -150,7 +153,7 @@ atomicDecrement(refCount);  // Returns new value
 - Explicit memory ordering (`memory_order_acq_rel`)
 - Portable across all platforms
 
-**Migration Note**: The old `src/ri/atomic.h` is still available for legacy code but will be removed in a future release. Update your code to use `atomic_modern.h`.
+**Migration Note**: The old `src/ri/atomic.h` is still available for legacy code but will be removed in a future release. Update your code to use `atomic_modern.h`. The modern header also includes legacy pointer-based overloads (`atomicIncrement(volatile int*)`) for backward compatibility with old call sites.
 
 ### 5. C++20 Constexpr Alignment Functions
 
@@ -195,7 +198,7 @@ constexpr bool isCacheLineAligned(std::size_t value) noexcept;
 
 #### 6.1 SOCKET Size Assertion (Windows 64-bit)
 
-**File**: `src/orender/orender.cpp` (lines 537-544)
+**File**: `src/orender/orender.cpp` (near the SOCKET peer storage block)
 
 **Problem**: Hard crash on Windows 64-bit where `SOCKET` is 64-bit but code assumed 32-bit.
 
@@ -209,11 +212,11 @@ static_assert(sizeof(SOCKET) <= sizeof(void*),
 buffer[0].pointer = reinterpret_cast<void*>(static_cast<uintptr_t>(peer));
 ```
 
-**Impact**: Pixie can now run on Windows 64-bit without crashing.
+**Impact**: openRender can now run on Windows 64-bit without crashing.
 
 #### 6.2 Format Specifier Warnings
 
-**File**: `src/orender/orender.cpp` (lines 648-656)
+**File**: `src/orender/orender.cpp` (near the socket size reporting block)
 
 All `sizeof()` results now use `%zu` format specifier instead of `%d`:
 
@@ -239,7 +242,7 @@ Compiler flag `-Wformat-security` is now enabled to catch these issues.
 - ✅ **Error handling**: Comprehensive error checking on all I/O operations
 - ✅ **File format**: Standardized on little-endian with automatic byte swapping
 
-**Impact**: Pixie's binary files (.brickmap, .ptc, .irr, .tsm) are now fully portable and secure.
+**Impact**: openRender's binary files (.brickmap, .ptc, .irr, .tsm) are now fully portable and secure.
 
 ### 1. Complete Binary I/O Migration
 
@@ -579,15 +582,15 @@ uint64_p swapped64 = byteswap64(value);
 ```cpp
 #include "common/align.h"
 
-#if defined(PIXIE_ARCH_ARM64)
+#if defined(OPENRENDER_ARCH_ARM64)
     // ARM64-specific code
-#elif defined(PIXIE_ARCH_X86_64)
+#elif defined(OPENRENDER_ARCH_X86_64)
     // x86_64-specific code
 #endif
 
-#if defined(PIXIE_PLATFORM_MACOS)
+#if defined(OPENRENDER_PLATFORM_MACOS)
     // macOS-specific code
-#elif defined(PIXIE_PLATFORM_LINUX)
+#elif defined(OPENRENDER_PLATFORM_LINUX)
     // Linux-specific code
 #endif
 ```
@@ -669,7 +672,7 @@ Files written on one platform can be read on any other supported platform:
 | macOS 11.0+ | x86_64 (Intel) | ✅ Fully Supported | ⏳ Pending |
 | Linux | x86_64 | ✅ Fully Supported | ⏳ Pending |
 | Linux | ARM64 | ✅ Should Work | ⏳ Untested |
-| Windows | x86_64 | ⚠️ Partial (SOCKET fix needed) | ⏳ Untested |
+| Windows | x86_64 | ⚠️ Partial (compiler check not enforced) | ⏳ Untested |
 
 **Legend**:
 - ✅ Fully Supported: All features work, well-tested
@@ -800,11 +803,11 @@ For questions or issues related to this migration:
 3. Consult the implementation plan for technical details
 4. Review commit history for specific changes
 
-**Migration Contact**: Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+**Migration Contact**: Juvenal A. Silva Jr. <juvenal.silva@v2-labs.press>
 
 ---
 
-**Document Version**: 2.0
-**Last Updated**: December 8, 2025
-**Phase 2 Completed**: December 8, 2025
+**Document Version**: 2.1
+**Last Updated**: May 2026 (renamed Pixie → openRender; macro prefixes corrected; MSVC status clarified)
+**Phase 2 Completed**: December 2025
 **Next Review**: Before Phase 3 implementation
