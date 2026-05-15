@@ -107,6 +107,27 @@ pixels[px * numSamples + 4]  = Z (depth, not used by imager)
 
 ---
 
+## Decision 8 — WorldBegin Guard Mechanism (resolves analysis issue I1)
+
+**Decision**: Add `bool inWorld{false}` as a member of `CRendererContext`. Set to `true` at the start of `RiWorldBegin()`, reset to `false` at the start of `RiWorldEnd()`. Use `if (inWorld)` as the guard in `RiImagerV()`.
+
+**Rationale**: `CRendererContext` has no existing "inside WorldBegin" flag. The options stack depth (`savedOptions->numItems`) cannot reliably distinguish "after RiFrameBegin, before WorldBegin" from "after WorldBegin without RiFrameBegin" — both leave depth == 1. The attributes and xform stacks have the same ambiguity. `CRenderer::hiderFlags` is a rendering-state flag, not a parse-state flag. A dedicated `bool inWorld` is the smallest, most explicit, and most robust solution. It adds one bool to `CRendererContext` and two one-line assignments; no other code is affected.
+
+**Alternatives considered**:
+
+- `savedOptions->numItems > N`: stack-depth check, ambiguous across FrameBegin/WorldBegin scopes
+- `CRenderer::hiderFlags != 0`: rendering state, not parse state; unreliable for net-render modes
+- No guard at all (post-WorldBegin changes silently ignored): violates FR-006 warning requirement
+
+**Implementation additions**:
+
+- `src/ri/rendererContext.h` or `rendererContext.cpp` member: `bool inWorld{false};`
+- `RiWorldBegin()` line 701: `inWorld = true;` (first line of function body)
+- `RiWorldEnd()` equivalent: `inWorld = false;` (first line)
+- `RiImagerV()` guard: `if (inWorld) { warning(...); log_warn(...); return; }`
+
+---
+
 ## Resolved: Shader Type Support
 
 No compiler or parser changes needed:

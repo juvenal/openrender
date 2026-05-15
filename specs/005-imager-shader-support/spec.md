@@ -65,7 +65,7 @@ A look development artist uses different imager parameter values in different sh
 - What happens when `RiImager` is called multiple times before `WorldBegin`? Only the last call should take effect (per RI Spec: imager is a global option, not a stack attribute).
 - What happens when the imager shader produces a `Ci` with negative values or values greater than 1? Values should be passed through to the display driver as-is (clamping is the driver's responsibility).
 - What happens if the imager shader is specified but the shader file cannot be found or fails to compile? The renderer must emit an error and render without an imager rather than crashing.
-- What happens when `Oi` (opacity) written by the imager is non-uniform across color channels (e.g., `Oi = (1, 0.5, 0)`)? The result must be passed through correctly to support non-standard compositing.
+- What happens when `Oi` (opacity) written by the imager is non-uniform across color channels (e.g., `Oi = (1, 0.5, 0)`)? Because the pixel buffer stores a single scalar `alpha` channel (not a 3-component Oi), the non-uniform write is folded to a scalar via channel average before being stored. Per-channel Oi precision is not preserved at this stage; shaders requiring non-uniform compositing control should operate on `Ci` directly.
 - What happens with multi-sample rendering (PixelSamples > 1)? The imager executes on the final filtered pixel value, not on individual samples.
 - What happens when no `Display` statement is present? Imager execution should not depend on the display driver type.
 - What happens when `RiImager` is called after `WorldBegin`? The renderer emits a warning naming the shader and ignores the call; the previously established imager state is preserved.

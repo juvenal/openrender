@@ -81,6 +81,7 @@ tests/
     ├── CMakeLists.txt                    ← NEW
     ├── test_imager_options.cpp           ← NEW (unit: option storage)
     ├── test_imager_guard.cpp             ← NEW (unit: WorldBegin guard)
+    ├── test_imager_execution.cpp         ← NEW (unit: CImagerExecutor)
     └── integration/
         ├── CMakeLists.txt               ← NEW
         ├── test_imager_render.cpp       ← NEW (end-to-end render test)
@@ -201,9 +202,14 @@ add_subdirectory(imager)
 
 ## Phase I: Core Storage & Guard
 
+### I.0 — `src/ri/rendererContext.h` (or top of `rendererContext.cpp`): Add `bool inWorld`
+
+Add member `bool inWorld{false};` to `CRendererContext`. Set `inWorld = true` as the first statement in `RiWorldBegin()` and `inWorld = false` as the first statement in `RiWorldEnd()`. This is the guard variable used by `RiImagerV()`. See research.md Decision 8 for rationale.
+
 ### I.1 — `src/ri/options.h`: Add `CShaderInstance *imager`
 
 Add field after the existing `hider` field (or alongside atmosphere/surface default shader fields if any). Update:
+
 - Default constructor: `imager = nullptr`
 - Destructor: `if (imager) imager->detach()`
 - Copy constructor: call `imager->attach()` if non-null
@@ -215,9 +221,11 @@ Replace the stub at line ~1004:
 ```cpp
 void CRendererContext::RiImagerV(const char *name, int n,
                                   const char *tokens[], const void *params[]) {
-    // WorldBegin guard (clarification Q3: warn + ignore)
-    if (/* world scope active */) {
-        warning(CODE_NOTOPTION, "Imager \"%s\" specified after WorldBegin; ignored\n", name);
+    // WorldBegin guard (clarification Q3: warn + ignore).
+    // inWorld is a new bool member of CRendererContext, set true in RiWorldBegin()
+    // and false in RiWorldEnd(). No existing flag covers this; see research.md Decision 8.
+    if (inWorld) {
+        warning(CODE_NOTOPTIONS, "Imager \"%s\" specified after WorldBegin; ignored\n", name);
         log_warn("RiImager '{}' called after WorldBegin, ignored", name);
         return;
     }
