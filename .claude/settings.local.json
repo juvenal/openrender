@@ -114,7 +114,13 @@
       "Read(//tmp/or-t/**)",
       "Read(//tmp/or-t/bin/**)",
       "Bash(rm -rf /tmp/or-t)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" GEOMETRIES=\"$\\(pwd\\)/openrender/geometry\" OPENRENDER_LOG_LEVEL=info ./build/src/orender/orender examples/rib/gumbo.rib)",
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" GEOMETRIES=\"$\\(pwd\\)/openrender/geometry\" OPENRENDER_LOG_LEVEL=debug ./build/src/orender/orender examples/rib/gumbo.rib)",
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" GEOMETRIES=\"$\\(pwd\\)/openrender/geometry\" ./build/src/orender/orender examples/rib/gumbo.rib)",
+      "Bash(cat)",
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_bad_imager.rib)",
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_good_imager.rib)"
     ]
   }
 }
