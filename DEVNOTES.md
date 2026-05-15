@@ -1,91 +1,41 @@
 # Developer Notes
 
+## Project Status
+
+| Area | Status | Detail File |
+|------|--------|-------------|
+| oshader compiler | Complete — IR, optimization passes, `.rslo` | [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) |
+| Imager shaders | Complete — all 7 spec variables, thread-safe | [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) |
+| Framebuffer — macOS | Complete — IPC helper, multi-window, TTY fix | [FRAMEBUFFER_GUIDE.md](DEVNOTES_DETAILS/FRAMEBUFFER_GUIDE.md) |
+| Framebuffer — Linux | Architecture done; **untested** | [FRAMEBUFFER_GUIDE.md](DEVNOTES_DETAILS/FRAMEBUFFER_GUIDE.md) |
+| Geometry statements | Complete — in-place expansion, circularity detection | [GEOMETRY_STATEMENT.md](DEVNOTES_DETAILS/GEOMETRY_STATEMENT.md) |
+| Hider parity | Partial — filtering and jitter done; motion blur, transparency pending | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
+| RISpec 3.2 gaps | 1 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
+
 ## Open Issues
 
-- [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
-- [ ] Moving raytraced surface (Incomplete: CRaytracer lacks native motion blur support)
+- [ ] Purging tessellations for raytracing (no cache eviction mechanism found)
+- [ ] Moving raytraced surface (`CRaytracer` lacks native motion blur support)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
-- [x] Bug: orender hangs after render completes when framebuffer output is active (FIXED — `posix_spawn_file_actions` redirects child stdio to `/dev/null`; see research.md D-11)
-- [x] Bug: Successive orender runs accumulate multiple framebuffer windows (FIXED — helper persists with outer `accept()` loop; driver tries `tryConnectExisting()` before spawning)
-- [ ] Framebuffer Linux migration — `orender-fb-linux` helper + refactor `fbx.cpp` / `fbwl.cpp` to IPC clients (Architecture fixed — role inversion corrected, UID socket path, tryConnectExisting, /dev/null redirect, SIGCHLD/SIGPIPE guards, persistent outer accept loop, multi-window threads. **Untested** — requires Linux build to validate end-to-end.)
+- [ ] Framebuffer Linux migration — requires Linux build to validate end-to-end
 - [ ] Irradiance accuracy issues
 
-## Development Notes
+## Todos
 
-### oshader Shading Language Compiler
+- [ ] OpenEXR input for textures (output is supported; input/texture reading is missing)
+- [ ] Trace subsets (`trace()` does not yet filter by subset)
+- [ ] Patch crack stitching (currently handled via displacement bounds)
+- [ ] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)
+- [ ] LLVM integration and binary shader compilation — see [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md)
 
-- [x] **IR-based Backend:** Transitioned to an Intermediate Representation (IR) module structure.
-- [x] **Optimization Passes:** Integrated Constant Folding, Common Subexpression Elimination (CSE), Dead Code Elimination (DCE), and Uniform Lifting.
-- [x] **New Extension (.rslo):** Updated compiled shader extension to `.rslo` for RenderMan Shading Language Object compatibility.
-- [x] **64-bit Compatibility:** Shader VM now uses IR with separated opcodes; alignment headers present.
-- [ ] **Roadmap:** Detailed plans for LLVM integration, binary shader compilation, and imager shader support are documented in [OSHADER_UPDATES.md](OSHADER_UPDATES.md).
+## See Also
 
-### Framebuffer Display Architecture (specs/004-macos-framebuffer-output)
-
-Unified IPC-based framebuffer display model: the renderer spawns a standalone helper executable, connects via a Unix domain socket (fixed per-user path `/tmp/orender-fb-<uid>.sock`), and streams TLV-encoded packets (START / DATA / DONE / QUIT). The helper owns the window lifecycle independently of the renderer.
-
-- [x] **TLV IPC protocol** (`src/framebuffer/fbipc.h`): shared C++ header — opcodes, packed packet structs, socket path utilities. Full spec in `specs/004-macos-framebuffer-output/contracts/ipc-protocol.md`.
-- [x] **macOS driver** (`src/framebuffer/fbq.h` / `fbq.cpp`): `CQDisplay` — `posix_spawn` helper, connect, send START/DATA/DONE. Tries to reuse existing helper before spawning.
-- [x] **macOS helper** (`src/framebuffer/orender-fb-macos/`): Swift 6.3 / AppKit / SwiftUI. `NSPanel` (HUD style). Persistent outer `accept()` loop — one new window per render; exits when user closes all windows.
-- [x] **Helper persistence**: After DONE, helper loops back to `accept()`. Successive renders reuse the same process. `tryConnectExisting()` in driver avoids redundant spawns.
-- [x] **Multiple windows**: Each render opens its own `NSPanel`. All remain visible until individually closed. `AppDelegate` tracks a `sessions: [Session]` array; `NSApp.terminate()` fires only when the array empties.
-- [x] **TTY hang fix**: `posix_spawn_file_actions_adddup2` redirects child stdin/stdout/stderr to `/dev/null`. Without this, AppKit modifies the inherited controlling TTY and orender's C-runtime stdio flush blocks after `main()` returns. `POSIX_SPAWN_SETSID` was tried and rejected (breaks Mach bootstrap port / WindowServer connection).
-- [x] **CoreServices elimination**: `proc_pidpath()` (`<libproc.h>`) replaces `_NSGetExecutablePath()`. CoreServices initializes background threads that prevent clean process exit. Removed `-framework CoreServices` from `src/common/CMakeLists.txt`.
-- [ ] **Linux X11 migration** (`src/framebuffer/fbx.cpp` + `orender-fb-linux/main.cpp`): Architecture synced to macOS reference. Fixed:
-  - `main.cpp` role inversion: helper now `bind()+listen()+accept()` (was incorrectly calling `connect()`)
-  - `fbx.cpp` socket path: `makeFixedSocketPath()` (UID-based, was PID-based)
-  - `fbx.cpp` `tryConnectExisting()`: reuses existing helper before spawning
-  - `fbx.cpp` `/dev/null` stdio redirect via `posix_spawn_file_actions_t`
-  - `fbx.cpp` failure flag: `failure = TRUE` on spawn/connect error (was `disconnected = true`)
-  - `fbx.cpp` `signal(SIGCHLD, SIG_IGN)` + `signal(SIGPIPE, SIG_IGN)` before `sendStart()`
-  - `main.cpp` persistent outer accept loop + per-session `pthread` (one window per render)
-  - `main.cpp` multi-window: threads stay alive until user closes window; helper exits when all windows close
-  - `orender-fb-linux/CMakeLists.txt`: install to `${CMAKE_INSTALL_BINDIR}` (was `DISPLAYSDIR`)
-  - **Requires Linux build + end-to-end test to validate**
-- [ ] **Linux Wayland migration** (`src/framebuffer/fbwl.cpp`): Same fixes applied as X11 above. `fbwl.cpp` not currently compiled into `framebuffer.so` (only `fbx.cpp` is); Wayland is handled within the helper binary via runtime detection. Untested.
-- [ ] **Documentation**: Hugo site page for new framebuffer IPC architecture and macOS build notes.
-
-**Key files**: `src/framebuffer/fbipc.h`, `fbq.cpp`, `orender-fb-macos/Sources/SocketServer.swift`, `AppDelegate.swift`  
-**Full spec**: `specs/004-macos-framebuffer-output/` (plan.md, research.md, contracts/ipc-protocol.md)
-
----
-
-### Geometry Statement Support
-
-- [x] **RiGeometry Implementation:** Custom RIB-based expansion for named geometry. See [GEOMETRY_STATEMENT.md](GEOMETRY_STATEMENT.md) for full implementation details and recursion safety mechanisms.
-
-### Hider Parity: Stochastic vs. Raytrace
-
-To ensure 'stochastic' and 'raytrace' hiders produce virtually identical images, the following areas must be aligned:
-
-- [x] **Unified Pixel Filtering:** Both hiders already utilize the global `CRenderer::pixelFilterKernel` precomputed in `beginFrame`, ensuring consistent anti-aliasing.
-- [x] **Sampling Distribution:** Both hiders respect `Option "hider" "float jitter"` for sample positions.
-- [ ] **Motion Blur Implementation:** `CRaytracer` needs to implement support for moving surfaces (interpolation of vertex positions over time) to match the stochastic hider's temporal sampling.
-- [ ] **Shading Interpolation & Derivatives:** Ensure that shading derivatives (Du, Dv) and variables like `s`, `t`, `u`, `v` are computed consistently. Stochastic hider shades at micro-polygon vertices, while Raytrace shades at intersection points.
-- [ ] **Displacement Parity:** Both hiders should use the same dicing/tessellation levels for displaced surfaces. Raytracer currently stubs some advanced displacement cases.
-- [ ] **Transparency Handling:** Align the `opacityThreshold` and `transmission` logic in `CRaytracer` with the fragment-based blending used in `CStochastic`.
-
-### Possible Optimization
-
-(To be documented.)
-
-### Todos
-
-- [ ] OpenEXR input for textures (Output is supported, but input/texture reading is missing)
-- [x] RiDisplayChannel & support (Done: Implemented in CRendererContext and CRibOut)
-- [x] Additional attributes, options visible from SL (Done: attribute() and option() implemented in oshader)
-- [x] bake, pointcloud and brickmap support (Done)
-- [x] RiFilter support (Done: RiPixelFilter implemented with standard kernels)
-- [ ] Trace subsets (Incomplete: trace() does not yet support filtering by subset)
-- [ ] Patch crack stitching (Incomplete: currently handled via displacement bounds)
-
-### Missing Specification Features (RISpec 3.2 Gaps)
-
-- [ ] **Imager Shaders (RiImager):** Currently stubbed in `src/ri/rendererContext.cpp:993`; returns `CODE_INCAPABLE`. Plan for full support in the next major version.
-- [ ] **Blobby Implicit Surfaces (RiBlobby):** Currently stubbed in `src/ri/rendererContext.cpp:4711`; returns `CODE_INCAPABLE`.
-- [ ] **NURBS Trim Curves (RiTrimCurve):** Currently stubbed in `src/ri/rendererContext.cpp:3527`; returns `CODE_INCAPABLE`.
-- [ ] **Solid Modeling / CSG (RiSolidBegin/End):** Constructive Solid Geometry is stubbed in `src/ri/rendererContext.cpp:4719`; returns `CODE_OPTIONAL`.
-- [ ] **Raytraced Motion Blur:** Standard hider supports it, but `CRaytracer` (`src/ri/raytracer.cpp`) needs implementation for moving surfaces (noted in `src/ri/curves.cpp:364`).
-- [ ] **Interior/Exterior Volume Shaders (RiInterior/RiExterior):** Logically unimplemented due to missing CSG support.
-- [ ] **Trace Subsets:** `trace()` in shading language (`src/ri/trace.cpp`) and built-in functions do not yet filter by the `subset` parameter.
+| File | Coverage |
+|------|----------|
+| [BUGS.md](DEVNOTES_DETAILS/BUGS.md) | Full open issues and resolved bugs with fix notes |
+| [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) | RenderMan Spec 3.2 compliance gaps |
+| [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) | Shader compiler and imager shader implementation |
+| [FRAMEBUFFER_GUIDE.md](DEVNOTES_DETAILS/FRAMEBUFFER_GUIDE.md) | Framebuffer IPC display architecture |
+| [GEOMETRY_STATEMENT.md](DEVNOTES_DETAILS/GEOMETRY_STATEMENT.md) | Geometry RIB statement implementation |
+| [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) | Stochastic vs. raytrace hider alignment |

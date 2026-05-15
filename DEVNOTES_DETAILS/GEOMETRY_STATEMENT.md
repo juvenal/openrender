@@ -18,7 +18,7 @@ Geometry "name" [ ...parameterlist... ]
 - The first token after `Geometry` is the geometry **name** (not a type like `"reference"`).
 - The renderer locates `name.rib` in the geometry path (e.g. the `geometry` directory).
 - The file must contain a block `ObjectBegin "name"` … `ObjectEnd`. Only the **contents** of that block (excluding the enclosing lines) are executed.
-- Expansion happens **in place**: the block’s RIB is run in the **current** graphics state (current transformation, attributes, etc.). No separate retained object is created.
+- Expansion happens **in place**: the block's RIB is run in the **current** graphics state (current transformation, attributes, etc.). No separate retained object is created.
 - If the included block contains another `Geometry "other"`, that geometry is resolved and expanded recursively. Circular includes are detected and reported.
 
 ## Example Usage
