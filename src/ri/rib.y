@@ -981,6 +981,8 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					// No parameter list checking is performed for the shaders
 					if (parameterListCheck()) {
 						RiImagerV($2,numParameters,tokens,vals);
+					} else {
+						warning(CODE_BADTOKEN,"Imager \"%s\" not loaded due to parameter errors above; use inline type syntax, e.g. \"color bgcolor\"\n",$2);
 					}
 				}
 				|

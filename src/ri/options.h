@@ -248,6 +248,8 @@ class COptions {
         EDepthFilter depthFilter; // Holds the depth filter type
 
         CUserAttributeDictionary userOptions; // User options
+
+        CShaderInstance *imager; // Active imager shader (null if none)
 };
 
 TSearchpath *optionsGetSearchPath(const char *, TSearchpath *); // Compute the search path

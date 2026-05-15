@@ -18,8 +18,9 @@ set(ri_sources
 	execute.cpp 
 	executeMisc.cpp 
 	fileResource.cpp 
-	hcshader.cpp 
-#	ifexpr.cpp 
+	hcshader.cpp
+#	ifexpr.cpp
+	imager.cpp
 	implicitSurface.cpp 
 	init.cpp 
 	irradiance.cpp 

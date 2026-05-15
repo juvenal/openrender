@@ -306,6 +306,7 @@ CRaytracer::~CRaytracer() {
 // Return Value			:	-
 // Comments				:
 void CRaytracer::renderingLoop() {
+    CRenderer::activeContext = this;
     int left;
     int top;
     CRenderer::CJob job;

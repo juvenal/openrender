@@ -362,6 +362,8 @@ COptions::COptions() {
     shootStep = 1000;
 
     depthFilter = DEPTH_MIN;
+
+    imager = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -438,6 +440,9 @@ COptions::COptions(const COptions *o) {
     globalIn = (o->globalIn != NULL ? strdup(o->globalIn) : NULL);
     globalOut = (o->globalOut != NULL ? strdup(o->globalOut) : NULL);
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
+
+    if (imager != nullptr)
+        imager->attach();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -496,6 +501,9 @@ COptions::~COptions() {
         free(globalOut);
     if (filelog != NULL)
         free(filelog);
+
+    if (imager != nullptr)
+        imager->detach();
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -1,0 +1,23 @@
+##RenderMan RIB
+# uv-gradient-test.rib — US2 integration test for P variable
+# Uses uvgradient imager shader: Ci = (P.x/64, P.y/32, 0)
+# Expected: top-left pixel ≈ (0.008, 0.016, 0) = (0.5/64, 0.5/32, 0)
+
+Display "##OUTPUT##" "file" "rgb"
+Format 64 32 1
+PixelSamples 1 1
+ShadingRate 1
+
+Imager "uvgradient"
+    "float xresolution" [64]
+    "float yresolution" [32]
+
+Projection "perspective" "fov" 45
+
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.5]
+
+    Surface "matte"
+    Translate 0 0 100
+    Sphere 0.1 -0.1 0.1 360
+WorldEnd

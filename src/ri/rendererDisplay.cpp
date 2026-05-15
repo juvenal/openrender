@@ -28,6 +28,8 @@
 #include <string.h>
 
 #include "displayChannel.h"
+#include "imager.h"
+#include "includes/logging.hpp"
 #include "error.h"
 #include "memory.h"
 #include "options.h"
@@ -265,6 +267,13 @@ void CRenderer::dispatch(int left, int top, int width, int height, float *pixels
     float *dest;
     int i, j, k, l;
     int srcStep, dstStep, disp;
+
+    // Execute imager shader (pre-display, pre-quantization, on linear float values)
+    if (imagerShader != nullptr) {
+        log_debug("dispatch: running imager for tile ({},{}) {}x{}", left, top, width, height);
+        CImagerExecutor executor;
+        executor.execute(*imagerShader, left, top, width, height, pixels, numSamples);
+    }
 
     // Send the pixels to the output servers
     for (i = 0; i < numDisplays; i++) {

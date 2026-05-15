@@ -1,10 +1,13 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 Declare "location" "uniform point"
+Declare "intensity" "uniform float"
+Declare "bgcolor" "uniform color"
 Projection "perspective"
 Clipping 1 100000
 Transform [1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1]
 ScreenWindow -0.414336 0.414336 -0.31075 0.31075
+Imager "background" "bgcolor" [0.6 0.8 0.3]
 WorldBegin
   LightSource "ambientlight" 1 "intensity" [0.6]
   LightSource "finite" 2 "location" [-11 0 0] "intensity" [0.4]

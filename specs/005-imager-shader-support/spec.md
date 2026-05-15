@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-15
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Implement the imager shader type per the RenderMan Interface Specification 3.2, with necessary adjustments to the framebuffer and file output display driver/plugin mechanisms.
 
@@ -69,6 +69,8 @@ A look development artist uses different imager parameter values in different sh
 - What happens with multi-sample rendering (PixelSamples > 1)? The imager executes on the final filtered pixel value, not on individual samples.
 - What happens when no `Display` statement is present? Imager execution should not depend on the display driver type.
 - What happens when `RiImager` is called after `WorldBegin`? The renderer emits a warning naming the shader and ignores the call; the previously established imager state is preserved.
+- **What happens when a RIB `Imager` statement uses parameter names without an inline type prefix (e.g., `"bgcolor"` instead of `"color bgcolor"`) and the parameter is not globally declared via `Declare`?** The RIB parser rejects the undeclared parameter, causing the entire `Imager` statement to be silently dropped — the shader is never loaded and the render continues as if no `Imager` was present. Because the render completes successfully with correct geometry and only the background effect is missing, this failure is invisible without a secondary diagnostic. The renderer MUST emit a warning naming the shader and stating it was not loaded, in addition to the per-parameter error. Users must always use the inline type syntax (`"type name"`, e.g., `"color bgcolor"`) or pre-declare parameters via `Declare` before using them in shader calls.
+- **What happens when the renderer dispatches tiles across multiple render threads while the imager is active?** The imager executes once per tile on the thread that dispatched that tile. Each thread must use its own isolated execution resources — if any resource is shared across threads, it will produce data races that corrupt output or crash. The failure mode is particularly dangerous because it is non-deterministic: renders may succeed in single-threaded mode or with small scene complexity but crash silently under load. The renderer MUST guarantee that imager execution is safe under any number of simultaneous render threads.
 
 ## Requirements *(mandatory)*
 
@@ -84,6 +86,8 @@ A look development artist uses different imager parameter values in different sh
 - **FR-008**: If the named imager shader cannot be located or loaded, the renderer MUST emit a descriptive error message and render without an imager (no crash, no silent corruption).
 - **FR-009**: The existing display driver plugin interface (`displayStart`, `displayData`, `displayFinish`) MUST NOT require modification — the imager executes as a pre-pass before the existing dispatch logic.
 - **FR-010**: The shader compiler (`oshader`) MUST already support the `imager` shader type declaration — no compiler changes are required (existing `SL_IMAGER` / `SHADER_IMAGER` support is confirmed present).
+- **FR-011**: When an `Imager` statement is rejected because one or more parameters lack type declarations, the renderer MUST emit a second, distinct warning that: (a) names the imager shader that was not loaded, (b) states it was not loaded as a consequence of the parameter errors above, and (c) directs the user to use inline type syntax (e.g., `"color bgcolor"`). The per-parameter error alone is insufficient — the user must be explicitly told the imager has no effect on this render. Silent failure is not acceptable for a statement whose absence produces a visually indistinguishable render.
+- **FR-012**: The imager MUST execute correctly when rendering is multi-threaded. Each concurrent render thread dispatching tiles MUST use its own isolated execution state — no shading resources, memory pages, or shader instance state may be shared across simultaneously-executing tiles. Correctness and output MUST be identical whether rendering uses one thread or many.
 
 ### Key Entities
 
@@ -101,6 +105,8 @@ A look development artist uses different imager parameter values in different sh
 - **SC-004**: Rendering a scene with an imager shader takes no more than 5% longer than rendering the same scene without one, for a scene where imager execution time is negligible (e.g., a trivially simple imager that does `Ci = Ci`).
 - **SC-005**: Parameter values supplied in the `Imager` RIB statement are received by the shader and produce different output than the shader's defaults — verified by two renders of the same scene with different parameter values.
 - **SC-006**: Specifying a non-existent imager shader name produces an error message containing the shader name and does not abort the renderer — the scene renders without an imager applied.
+- **SC-007**: When an `Imager` statement is dropped because of parameter type errors, the renderer emits two distinct messages: (1) a per-parameter error identifying the undeclared token, and (2) a follow-up warning explicitly stating that the named imager shader was not loaded and referring the user to inline type syntax. The output image must contain no imager effect (not a partial or corrupted one). This scenario must be distinguishable from a successful render by log output alone.
+- **SC-008**: Rendering a scene that uses an imager shader with four or more simultaneous render threads produces output that is pixel-identical to a single-threaded render of the same scene. No crash, data corruption, or non-deterministic pixel values may occur as a result of concurrent tile dispatch through the imager.
 
 ## Clarifications
 
@@ -109,6 +115,11 @@ A look development artist uses different imager parameter values in different sh
 - Q: Does the imager execute on raw linear floating-point pixel values, before any gamma correction or quantization step? → A: Yes — before gamma correction and quantization (Option A). Imager sees raw linear float values, matching RI Spec 3.2.
 - Q: What threading model should the imager shader instance use during parallel rendering? → A: Follow the existing threading model used by surface and atmosphere shaders (Option C) — no special-case concurrency logic.
 - Q: What should the renderer do if `RiImager` is called after `WorldBegin`? → A: Emit a warning naming the shader and ignore the call (Option A) — render continues with the previously established imager state.
+
+### Implementation Learnings 2026-05-15
+
+- **Silent Imager drop on undeclared parameters**: During integration testing with `gumbo.rib`, `Imager "background" "bgcolor" [0.6 0.8 0.3]` produced a clean render with no errors and no background effect. The RIB parser rejected `"bgcolor"` (no type prefix) and silently skipped the entire `Imager` statement — `RiImagerV()` was never called. The render succeeded because geometry was unaffected. The failure was invisible. This led to FR-011: the renderer must always emit a second, distinct warning when an Imager statement is dropped, beyond the individual parameter error. The correct RIB syntax is `"color bgcolor"` (inline type declaration) or a prior `Declare "bgcolor" "color"` statement.
+- **Multi-threaded crash in production render**: The first production render (`gumbo.rib`, 640×480, two pixel samples) crashed — the output file was 8 bytes (display opened but nothing written). Root cause: the imager executor used a single hard-coded thread-0 shading context for all render threads simultaneously, causing data races on the context's state pool and the shared global memory page. Single-threaded test renders passed because only one thread ran. This led to FR-012: each tile must run the imager through its own thread-local execution resources. The fix was non-invasive — a thread-local pointer set at the start of each render thread's loop — but the requirement must be stated explicitly in the spec so future executor implementations don't repeat the assumption.
 
 ## Assumptions
 

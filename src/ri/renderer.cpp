@@ -27,6 +27,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "includes/logging.hpp"
+
 #include "brickmap.h"
 #include "bundles.h"
 #include "curves.h"
@@ -99,6 +101,8 @@ const char *colorCieSystem = "cie";
 CMemPage *CRenderer::globalMemory = NULL;                                    // initialized in beginRenderer, destroyed in endRenderer
 CRendererContext *CRenderer::context = NULL;                                 // initialzied in beginRenderer
 CArray<CShaderInstance *> *CRenderer::allLights = NULL;                      // initialized in beginRenderer, destroyed in endRenderer
+CShaderInstance *CRenderer::imagerShader = nullptr;                          // initialized in beginFrame
+thread_local CShadingContext *CRenderer::activeContext = nullptr;             // set by each render thread at loop start
 CTrie<CNamedCoordinateSystem *> *CRenderer::definedCoordinateSystems = NULL; // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CVariable *> *CRenderer::declaredVariables = NULL;                     // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CFileResource *> *CRenderer::globalFiles = NULL;                       // initialized in initFiles, destroyed in shutdownFiles
@@ -445,6 +449,13 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
     // Make a local copy of the options
     copyOptions(o);
+
+    // Capture active imager shader for this frame
+    imagerShader = o->imager;
+    if (imagerShader)
+        log_info("beginFrame: imager shader active");
+    else
+        log_debug("beginFrame: no imager shader");
 
     // This is the memory we allocate our junk from (only permenant stuff for the entire frame)
     frameFiles = new CTrie<CFileResource *>;

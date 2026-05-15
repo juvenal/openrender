@@ -1,0 +1,24 @@
+##RenderMan RIB
+# dual-display-test.rib — FR-003 dual-display test
+# Two simultaneous Display statements; imager should be applied to both.
+# Expected: both output files contain the red background color.
+
+Display "##OUTPUT1##" "file" "rgb"
+Display "+##OUTPUT2##" "file" "rgb"
+Format 64 32 1
+PixelSamples 1 1
+ShadingRate 1
+
+Imager "background"
+    "color bgcolor" [1 0 0]
+
+Projection "perspective" "fov" 45
+
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.5]
+    LightSource "distantlight" 2 "intensity" [1.0] "from" [0 0 -1] "to" [0 0 0]
+
+    Surface "matte"
+    Translate -0.5 0 4
+    Sphere 0.6 -0.6 0.6 360
+WorldEnd

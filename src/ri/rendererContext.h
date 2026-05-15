@@ -234,6 +234,7 @@ class CRendererContext : public CRiInterface {
         COptions *currentOptions;
         CResource *currentResource;
         // Some RenderMan Interface related variables
+        bool inWorld{false};      // True between RiWorldBegin and RiWorldEnd
         int numExpectedMotions;  // The number of expected motions in a motion block
         int numMotions;          // The number of motions so far
         float *keyTimes;         // The key times

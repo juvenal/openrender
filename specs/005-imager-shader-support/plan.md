@@ -385,6 +385,16 @@ Include `"imager.h"` at the top of `rendererDisplay.cpp`.
 
 ---
 
+## Performance Validation (SC-004)
+
+SC-004 requires ≤5% frame-time overhead when an imager shader is active relative to no-imager rendering.
+
+**Methodology**: Manual profiling via wall-clock comparison of two renders of the same scene (identical geometry, lighting, image dimensions) — one with `Imager "background"` and one without. The imager adds one `executeChunk()` call per dispatch bucket, which copies pixel data into the shading state's pre-allocated varying arrays, runs the shader VM, and copies results back. For a trivial background shader (3 arithmetic ops per pixel) on a 512×512 image with 16×16 buckets, the per-bucket cost is O(256 × 3 ops) ≈ negligible relative to shading.
+
+**Acceptance**: If any production render shows >5% overhead due to imager execution, the fix path is: (a) skip `executeChunk` for buckets where all pixels are fully opaque (alpha=1, Oi=1), or (b) batch multiple shading states per chunk call. No timing infrastructure is added to the test suite; SC-004 is verified post-ship by manual profiling.
+
+---
+
 ## Complexity Tracking
 
 No constitution violations. All additions are isolated, additive, and follow established patterns.

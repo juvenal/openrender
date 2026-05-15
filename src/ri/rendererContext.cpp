@@ -29,6 +29,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "includes/logging.hpp"
+
 #include "brickmap.h"
 #include "bundles.h"
 #include "common/algebra.h"
@@ -699,6 +701,7 @@ void CRendererContext::RiFrameEnd(void) {
 
 // WorldBegin - End stuff
 void CRendererContext::RiWorldBegin(void) {
+    inWorld = true;
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.
     if (riAddFramebuffer()) {
@@ -757,6 +760,7 @@ void CRendererContext::RiWorldBegin(void) {
 }
 
 void CRendererContext::RiWorldEnd(void) {
+    inWorld = false;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     //
@@ -1001,9 +1005,28 @@ void CRendererContext::RiExposure(float gain, float gamma) {
     options->gain = gain;
 }
 
-void CRendererContext::RiImagerV(const char *, int, const char *[], const void *[]) {
-    // Unimplemented: imager shaders are not supported.
-    error(CODE_INCAPABLE, "Imager shaders are not currently supported\n");
+void CRendererContext::RiImagerV(const char *name, int n, const char *tokens[], const void *params[]) {
+    if (inWorld) {
+        warning(CODE_NOTOPTIONS, "Imager \"%s\" specified after WorldBegin; ignored\n", name);
+        log_warn("RiImager '{}' called after WorldBegin, ignored", name);
+        return;
+    }
+
+    log_info("RiImager: loading shader '{}'", name);
+
+    COptions *options  = getOptions(TRUE);
+    CShaderInstance *s = getShader(name, SL_IMAGER, n, tokens, params);
+
+    if (s == nullptr) {
+        log_error("RiImager: shader '{}' not found; no imager will be applied", name);
+        return;
+    }
+
+    if (options->imager != nullptr)
+        options->imager->detach();
+
+    options->imager = s;
+    log_debug("RiImager: shader '{}' stored in options", name);
 }
 
 void CRendererContext::RiQuantize(const char *type, int one, int qmin, int qmax, float ampl) {

@@ -380,6 +380,9 @@ class CRenderer {
         static int shootStep;                           // The number of rays to shoot at a time
         static EDepthFilter depthFilter;                // Holds the depth filter type
 
+        static CShaderInstance *imagerShader;                   // Active imager shader for this frame (null if none)
+        static thread_local CShadingContext *activeContext;     // Per-thread context for the calling render thread
+
         // Second, some other data structures
         static TMemCheckpoint frameCheckpoint;                  // A checkpoint in the global memory
         static CTrie<CFileResource *> *frameFiles;              // Files that have been loaded (they stick around only during the frame)

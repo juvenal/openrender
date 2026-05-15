@@ -1,0 +1,20 @@
+##RenderMan RIB
+# no-imager-regression.rib — US1 regression baseline
+# Same geometry as background-test.rib but NO Imager statement.
+# Expected: output is bit-identical across two renders (regression check).
+
+Display "##OUTPUT##" "file" "rgb"
+Format 64 32 1
+PixelSamples 1 1
+ShadingRate 1
+
+Projection "perspective" "fov" 45
+
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.5]
+    LightSource "distantlight" 2 "intensity" [1.0] "from" [0 0 -1] "to" [0 0 0]
+
+    Surface "matte"
+    Translate -0.5 0 4
+    Sphere 0.6 -0.6 0.6 360
+WorldEnd

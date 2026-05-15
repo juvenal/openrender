@@ -223,6 +223,7 @@ CReyes::~CReyes() {
 // Return Value			:	-
 // Comments				:
 void CReyes::renderingLoop() {
+    CRenderer::activeContext = this;
     CRenderer::CJob job;
 
 #define computeExtends                                                                                         \
