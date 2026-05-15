@@ -68,17 +68,18 @@ A look development artist uses different imager parameter values in different sh
 - What happens when `Oi` (opacity) written by the imager is non-uniform across color channels (e.g., `Oi = (1, 0.5, 0)`)? The result must be passed through correctly to support non-standard compositing.
 - What happens with multi-sample rendering (PixelSamples > 1)? The imager executes on the final filtered pixel value, not on individual samples.
 - What happens when no `Display` statement is present? Imager execution should not depend on the display driver type.
+- What happens when `RiImager` is called after `WorldBegin`? The renderer emits a warning naming the shader and ignores the call; the previously established imager state is preserved.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The renderer MUST execute the active imager shader once per output pixel, after all geometric shading and pixel filtering are complete but before pixel data is dispatched to display drivers.
+- **FR-001**: The renderer MUST execute the active imager shader once per output pixel, after all geometric shading and pixel filtering are complete but before any gamma correction, quantization, or display driver dispatch — the imager operates exclusively on raw linear floating-point pixel values.
 - **FR-002**: The renderer MUST expose the following standard RI Spec 3.2 per-pixel variables to the imager shader at execution time: `Ci` (current color, read/write), `Oi` (current opacity, read/write), `alpha` (pixel alpha, read/write), `P` (raster position, read-only), `ncomps` (number of color components, read-only), `time` (shutter open time, read-only), `dtime` (shutter duration, read-only).
 - **FR-003**: The renderer MUST apply the imager shader's written values of `Ci`, `Oi`, and `alpha` to the pixel data that is subsequently sent to every active display driver.
 - **FR-004**: `RiImager(name, ...)` / `RiImagerV()` MUST store the named shader and its parameter list as a global option, replacing any previously set imager for the current frame.
 - **FR-005**: The imager shader MUST receive any parameters declared in the `RiImager` call, with default values from the shader source used for parameters not supplied in the call.
-- **FR-006**: The renderer MUST treat the `Imager` statement as a global frame option — it MUST be valid only before `RiWorldBegin` and MUST NOT be subject to attribute push/pop.
+- **FR-006**: The renderer MUST treat the `Imager` statement as a global frame option — it MUST be valid only before `RiWorldBegin` and MUST NOT be subject to attribute push/pop. If `RiImager` is called after `WorldBegin`, the renderer MUST emit a warning naming the shader and ignore the call; the previously established imager (or no-imager state) remains in effect.
 - **FR-007**: If no `Imager` statement is present, the renderer MUST render without modification (no-op imager behavior, no performance overhead per pixel).
 - **FR-008**: If the named imager shader cannot be located or loaded, the renderer MUST emit a descriptive error message and render without an imager (no crash, no silent corruption).
 - **FR-009**: The existing display driver plugin interface (`displayStart`, `displayData`, `displayFinish`) MUST NOT require modification — the imager executes as a pre-pass before the existing dispatch logic.
@@ -101,13 +102,21 @@ A look development artist uses different imager parameter values in different sh
 - **SC-005**: Parameter values supplied in the `Imager` RIB statement are received by the shader and produce different output than the shader's defaults — verified by two renders of the same scene with different parameter values.
 - **SC-006**: Specifying a non-existent imager shader name produces an error message containing the shader name and does not abort the renderer — the scene renders without an imager applied.
 
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: Does the imager execute on raw linear floating-point pixel values, before any gamma correction or quantization step? → A: Yes — before gamma correction and quantization (Option A). Imager sees raw linear float values, matching RI Spec 3.2.
+- Q: What threading model should the imager shader instance use during parallel rendering? → A: Follow the existing threading model used by surface and atmosphere shaders (Option C) — no special-case concurrency logic.
+- Q: What should the renderer do if `RiImager` is called after `WorldBegin`? → A: Emit a warning naming the shader and ignore the call (Option A) — render continues with the previously established imager state.
+
 ## Assumptions
 
 - The shader compiler (`oshader`) already supports `imager` shader type compilation — confirmed by `SL_IMAGER = 4` in `src/ri/shader.h` and `SHADER_IMAGER` in `src/sdr/sdr.h`. No compiler changes are needed.
 - The RIB parser already supports the `Imager` statement — confirmed by the grammar rule in `src/ri/rib.y` that calls `RiImagerV()`. No parser changes are needed.
 - The existing shader execution infrastructure (variable binding, parameter passing, execution context) used for surface/atmosphere shaders is reusable for imager shaders with minimal adaptation.
-- The imager operates on the **filtered** pixel value (after `RiPixelFilter` is applied), consistent with the RI Spec definition of imager as a post-shading, pre-display image processing stage.
+- The imager operates on the **filtered** pixel value (after `RiPixelFilter` is applied) and before any gamma correction or quantization (`RiQuantize`), consistent with RI Spec 3.2 section on imager shaders. The imager always receives and writes raw linear floating-point values.
 - Only one imager shader is active per frame (the last `Imager` statement before `WorldBegin` wins). Multiple simultaneous imagers are out of scope.
-- Multi-threaded rendering is in scope — the per-pixel imager context must be thread-safe (no shared mutable state between pixel executions).
+- Multi-threaded rendering is in scope — the imager shader instance MUST follow the same threading model used by surface and atmosphere shaders (no special-case concurrency logic required).
 - Display driver plugins (`file`, `framebuffer`, `openexr`, `rgbe`) do not need modification — the imager output replaces the pixel values in the existing dispatch buffer before the current `displayData()` call path.
 - The `background.sl` shader in `shaders/` serves as the primary validation target, as it is the only existing imager shader in the project.
