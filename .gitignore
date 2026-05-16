@@ -75,6 +75,12 @@ Thumbs.db
 # Images stored
 .build-images
 
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # Temporary files
 *.tmp
 *.temp
