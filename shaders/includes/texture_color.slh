@@ -36,6 +36,29 @@ GetColorTextureAndAlpha(string texturename;
     return Ct;
 }
 
+
+float
+GetFloatTextureAndAlpha (string texturename;
+                         string projection;
+                         point P; string whichspace;
+                         matrix xform;
+                         float blur;
+                         uniform float alphachannel;
+                         output float alpha;
+    )
+{
+    float ss, tt, ds, dt;
+    ProjectTo2D (projection, P, whichspace, xform, ss, tt, ds, dt);
+    ds *= 0.5;  dt *= 0.5;
+    float val = float texture (texturename, ss - ds, tt - dt, ss + ds, tt - dt,
+                               ss - ds, tt + dt, ss + ds, tt + dt, "blur", blur);
+    alpha = float texture (texturename[alphachannel], ss - ds, tt - dt,
+                           ss + ds, tt - dt, ss - ds, tt + dt, ss + ds, tt + dt,
+                           "blur", blur, "fill", 1);
+    return val;
+}
+
+
 color
 ApplyColorTextureOver(color basecolor;
                       string texturename;
@@ -52,4 +75,20 @@ ApplyColorTextureOver(color basecolor;
                                        blur, 3, alpha);
 
     return Ct + (1 - alpha) * basecolor;
+}
+
+
+float
+ApplyFloatTextureOver (float baseval;
+                       string texturename;
+                       string projection;
+                       point P; string whichspace;
+                       matrix xform;
+                       float blur;
+    )
+{
+    float alpha;
+    float x = GetFloatTextureAndAlpha (texturename, projection, P, whichspace,
+                                        xform, blur, 3, alpha);
+    return x + (1 - alpha) * baseval;
 }

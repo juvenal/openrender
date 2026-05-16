@@ -6,6 +6,8 @@
  * openRender: RenderMan compliant renderer
  */
 
+#include "math_utilities.slh"
+
 
 #define MINFILTWIDTH 1.0e-6
 
