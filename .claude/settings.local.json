@@ -120,7 +120,8 @@
       "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" GEOMETRIES=\"$\\(pwd\\)/openrender/geometry\" ./build/src/orender/orender examples/rib/gumbo.rib)",
       "Bash(cat)",
       "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_bad_imager.rib)",
-      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_good_imager.rib)"
+      "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_good_imager.rib)",
+      "Bash(nm -gU /Volumes/Projects/Development/CLI/openrender/openrender/lib/libri.dylib)"
     ]
   }
 }
