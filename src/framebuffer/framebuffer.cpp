@@ -48,11 +48,9 @@ namespace {
 #define FALSE 0
 
 #ifdef _WINDOWS
-  #include "fbw.h" // Windows framebuffer
-#elif defined(__APPLE__)
-  #include "fbq.h" // macOS IPC framebuffer (orender-fb-macos helper)
+  #include "fbw.h"           // Windows: native GDI, no IPC
 #else
-  #include "fbx.h" // Linux IPC framebuffer (orender-fb-linux helper)
+  #include "fbipc_display.h" // macOS + Linux: IPC via orender-fb helper
 #endif
 
 /*
@@ -146,10 +144,8 @@ void *displayStart(const char *name,
 
 #ifdef _WINDOWS
     cWindow = new CWinDisplay(name, samples, width, height, numSamples);
-#elif defined(__APPLE__)
-    cWindow = new CQDisplay(name, samples, width, height, numSamples, nullptr);
 #else
-    cWindow = new CXDisplay(name, samples, width, height, numSamples);
+    cWindow = new CIPCDisplay(name, samples, width, height, numSamples);
 #endif
 
     if (cWindow == NULL || cWindow->failure == TRUE) {

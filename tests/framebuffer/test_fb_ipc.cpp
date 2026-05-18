@@ -1,15 +1,15 @@
 /**
  * Project: openRender
  *
- * File: test_fb_wl.cpp
+ * File: test_fb_ipc.cpp
  *
  * Description:
- *   Test suite for Wayland display driver (Passing Phase)
+ *   Test suite for the IPC display driver (CIPCDisplay)
  *
  * Authors:
- *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *   Juvenal A. Silva Jr. <juvenal.silva@v2-labs.press>
  *
- * Copyright (c) 2026, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ * Copyright (c) 2026, Juvenal A. Silva Jr. <juvenal.silva@v2-labs.press>
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <vector>
-#include "../../src/framebuffer/fbwl.h"
+#include "../../src/framebuffer/fbipc_display.h"
 
 // Test counter
 static int tests_passed = 0;
@@ -47,12 +47,11 @@ static int tests_failed = 0;
         }                                                          \
     } while (0)
 
-// US1: Render Output to Wayland Display (P1)
-TEST(wayland_init) {
-    // This will fail if no Wayland compositor is running, but we check for failure flag.
+// US1: Render Output to IPC Display
+TEST(ipc_init) {
     // In the IPC model, failure==FALSE means the helper connected and START was sent;
-    // there is no in-process windowUp flag (the window lives in orender-fb-linux).
-    CWDisplay *display = new CWDisplay("test", "rgba", 640, 480, 4);
+    // there is no in-process window (the window lives in orender-fb helper).
+    CIPCDisplay *display = new CIPCDisplay("test", "rgba", 640, 480, 4);
     if (display->failure) {
         printf("\n  [INFO] Helper unavailable (no compositor or helper binary), skipping live init check.");
     }
@@ -61,8 +60,8 @@ TEST(wayland_init) {
     ASSERT(true);
 }
 
-TEST(wayland_presentation) {
-    CWDisplay *display = new CWDisplay("test", "rgba", 640, 480, 4);
+TEST(ipc_presentation) {
+    CIPCDisplay *display = new CIPCDisplay("test", "rgba", 640, 480, 4);
     if (!display->failure) {
         float data[4] = {1.0f, 0.0f, 0.0f, 1.0f};
         ASSERT(display->data(0, 0, 1, 1, data) == 1);
@@ -79,17 +78,17 @@ TEST(security_validation) {
     } else {
         printf("\n  [INFO] Validating permissions for %s", xdg_runtime);
     }
-    // Buffer safety verified via bounds checking in CWDisplay::data
+    // Buffer safety verified via bounds checking in CIPCDisplay::data
     ASSERT(true);
 }
 
 int main() {
     printf("========================================\n");
-    printf("Wayland Display Driver Test Suite\n");
+    printf("IPC Display Driver Test Suite\n");
     printf("========================================\n\n");
 
-    run_test_wayland_init();
-    run_test_wayland_presentation();
+    run_test_ipc_init();
+    run_test_ipc_presentation();
     run_test_security_validation();
 
     printf("\n========================================\n");

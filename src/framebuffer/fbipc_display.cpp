@@ -1,17 +1,22 @@
 /**
- * fbwl.cpp — Linux Wayland IPC display driver.
+ * fbipc_display.cpp — unified IPC display driver.
  *
- * Spawns orender-fb via posix_spawn and streams TLV packets to it.
- * The helper auto-detects Wayland via WAYLAND_DISPLAY and falls back to X11.
- * Tries to reuse an existing helper before spawning; uses a fixed per-user
- * socket path so successive renders share one helper process.
- * If the helper fails to launch or times out, renders without display
- * (data() always returns TRUE).
+ * Replaces fbq.cpp (macOS), fbx.cpp (Linux X11), and fbwl.cpp (Linux Wayland).
+ * All three were identical except for the platform API used to locate the
+ * renderer's own executable. That single difference is isolated to getExePath()
+ * below; everything else is platform-neutral.
+ *
+ * Spawns orender-fb via posix_spawn and streams TLV packets over a Unix-domain
+ * socket. Tries to reuse an existing helper before spawning; uses a fixed
+ * per-user socket path so successive renders share one helper process.
+ * If the helper fails to launch or the socket times out, renders without
+ * display (data() always returns TRUE — display loss is non-fatal).
  */
 
-#include "fbwl.h"
+#include "fbipc_display.h"
 #include "fbipc.h"
 #include "common/global.h"
+#include "logging.hpp"
 
 #include <cstring>
 #include <cstdio>
@@ -25,16 +30,28 @@
 #include <sys/wait.h>
 #include <spawn.h>
 
+#ifdef __APPLE__
+  #include <libproc.h>
+#endif
+
 extern char **environ;
 
 #define TRUE  1
 #define FALSE 0
 
 // ---------------------------------------------------------------------------
-// Helper: get this process's executable path (Linux via /proc/self/exe)
+// Platform-specific: locate this process's own executable.
+// macOS: proc_pidpath() — stays in libSystem, avoids CoreServices linkage.
+// Linux: readlink("/proc/self/exe").
 // ---------------------------------------------------------------------------
 
-static std::string getWlExePath() {
+static std::string getExePath() {
+#ifdef __APPLE__
+    char buf[PROC_PIDPATHINFO_MAXSIZE];
+    int ret = proc_pidpath(getpid(), buf, sizeof(buf));
+    if (ret > 0) return std::string(buf);
+    return std::string();
+#else
     char buf[4096];
     ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
     if (len > 0) {
@@ -42,30 +59,36 @@ static std::string getWlExePath() {
         return std::string(buf);
     }
     return std::string();
+#endif
 }
 
 // ---------------------------------------------------------------------------
-// Helper: single non-blocking connect attempt to an existing helper.
+// Safely fill sockaddr_un.sun_path. Uses memcpy + explicit bound to avoid
+// -Wstringop-truncation / -Wformat-truncation on Linux (sun_path is 108 bytes
+// there; our paths are always short but GCC sees declaration sizes and warns).
+// ---------------------------------------------------------------------------
+
+static void fillSunPath(struct sockaddr_un &addr, const char *path) {
+    size_t n = strlen(path);
+    if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
+    memcpy(addr.sun_path, path, n);
+    addr.sun_path[n] = '\0';
+}
+
+// ---------------------------------------------------------------------------
+// Single non-blocking connect attempt to an existing helper.
 // Returns a connected fd on success, -1 if no helper is listening.
 // The helper keeps its server socket open between renders (outer accept loop),
 // so this succeeds when the helper is idle after finishing a previous render.
 // ---------------------------------------------------------------------------
 
-static int wlTryConnectExisting(const char *sockPath) {
+static int tryConnectExisting(const char *sockPath) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) return -1;
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    // Use memcpy + explicit bound to avoid -Wformat-truncation / -Wstringop-truncation:
-    // on Linux sun_path is 108 bytes; socketPath[] is 256 bytes — the paths we generate
-    // are always short, but GCC's inliner sees the declaration sizes and warns.
-    {
-        size_t n = strlen(sockPath);
-        if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
-        memcpy(addr.sun_path, sockPath, n);
-        addr.sun_path[n] = '\0';
-    }
+    fillSunPath(addr, sockPath);
 
     if (connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0)
         return fd;
@@ -74,26 +97,18 @@ static int wlTryConnectExisting(const char *sockPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: connect to socket with retry until timeoutSecs elapses
+// Connect with retry loop until timeoutSecs elapses (50 ms sleep between tries).
 // ---------------------------------------------------------------------------
 
-static int wlConnectWithTimeout(const char *sockPath, int timeoutSecs) {
+static int connectWithTimeout(const char *sockPath, int timeoutSecs) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) return -1;
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    // Use memcpy + explicit bound to avoid -Wformat-truncation / -Wstringop-truncation:
-    // on Linux sun_path is 108 bytes; socketPath[] is 256 bytes — the paths we generate
-    // are always short, but GCC's inliner sees the declaration sizes and warns.
-    {
-        size_t n = strlen(sockPath);
-        if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
-        memcpy(addr.sun_path, sockPath, n);
-        addr.sun_path[n] = '\0';
-    }
+    fillSunPath(addr, sockPath);
 
-    const int sleepUsec  = 50000;
+    const int sleepUsec  = 50000; // 50 ms
     const int maxRetries = timeoutSecs * (1000000 / sleepUsec);
 
     for (int i = 0; i < maxRetries; i++) {
@@ -107,14 +122,14 @@ static int wlConnectWithTimeout(const char *sockPath, int timeoutSecs) {
 }
 
 // ---------------------------------------------------------------------------
-// CWDisplay constructor
+// CIPCDisplay constructor
 // ---------------------------------------------------------------------------
 
-CWDisplay::CWDisplay(const char *name, const char *samples, int width, int height,
-                     int numSamples)
+CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
+                         int width, int height, int numSamples)
     : CDisplay(name, samples, width, height, numSamples),
       socketFd(-1), helperPid(-1), disconnected(false),
-      numSamplesVal(numSamples)
+      numSamplesVal(numSamples), tilesSent(0)
 {
     // Fixed socket path per user — shared across renders so successive orender
     // invocations reuse the same helper process and window.
@@ -125,14 +140,15 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     // The helper keeps its server socket open (outer accept loop), so this
     // succeeds whenever a previous render has finished but the window is
     // still visible.  On success we skip the spawn entirely.
-    socketFd = wlTryConnectExisting(socketPath);
+    socketFd = tryConnectExisting(socketPath);
 
     if (socketFd < 0) {
         // No existing helper is listening — remove any stale socket file and
         // spawn a fresh helper.
+        log_debug("no existing helper found; spawning orender-fb");
         unlink(socketPath);
 
-        std::string exePath    = getWlExePath();
+        std::string exePath    = getExePath();
         std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb");
 
         char helperPathBuf[4096];
@@ -163,7 +179,9 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
             posix_spawn_file_actions_addclose(&file_actions, devnull);
         }
 
-        // Prevent helper zombies and implicit wait during orender exit.
+        // Ignore SIGCHLD so the helper does not accumulate as a zombie when it
+        // exits, and so the C runtime does not implicitly block waiting for it
+        // during orender's own exit sequence.
         signal(SIGCHLD, SIG_IGN);
 
         pid_t pid;
@@ -182,8 +200,9 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
             return;
         }
         helperPid = pid;
+        log_debug("spawned orender-fb pid={}", (int)pid);
 
-        socketFd = wlConnectWithTimeout(socketPath, 5);
+        socketFd = connectWithTimeout(socketPath, 5);
         if (socketFd < 0) {
             fprintf(stderr,
                     "openRender: framebuffer display unavailable — "
@@ -193,13 +212,14 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
             failure = TRUE;
             return;
         }
+    } else {
+        log_debug("reusing existing orender-fb helper");
     }
 
     // Send START packet (to either reused or freshly spawned helper)
     signal(SIGPIPE, SIG_IGN);
-    if (!sendStart(socketFd, static_cast<uint32_t>(width),
-                   static_cast<uint32_t>(height),
-                   static_cast<uint32_t>(numSamples), name)) {
+    if (!sendStart(socketFd, (uint32_t)width, (uint32_t)height,
+                   (uint32_t)numSamples, name)) {
         fprintf(stderr, "openRender: framebuffer display — START send failed\n");
         close(socketFd);
         socketFd     = -1;
@@ -207,7 +227,7 @@ CWDisplay::CWDisplay(const char *name, const char *samples, int width, int heigh
     }
 }
 
-CWDisplay::~CWDisplay() {
+CIPCDisplay::~CIPCDisplay() {
     if (socketFd >= 0) {
         close(socketFd);
         socketFd = -1;
@@ -215,10 +235,10 @@ CWDisplay::~CWDisplay() {
 }
 
 // ---------------------------------------------------------------------------
-// data() — send DATA packet; always returns TRUE (display loss is non-fatal)
+// data() — send DATA packet; always returns TRUE (display failure not fatal)
 // ---------------------------------------------------------------------------
 
-int CWDisplay::data(int x, int y, int w, int h, float *d) {
+int CIPCDisplay::data(int x, int y, int w, int h, float *d) {
     if (disconnected || socketFd < 0) return TRUE;
 
     clampData(w, h, d); // operates on caller-owned buffer — safe before lock
@@ -230,24 +250,33 @@ int CWDisplay::data(int x, int y, int w, int h, float *d) {
     std::lock_guard<std::mutex> lock(writeMutex);
     if (disconnected || socketFd < 0) return TRUE; // re-check under lock
 
-    if (!sendData(socketFd, static_cast<uint32_t>(x), static_cast<uint32_t>(y),
-                  static_cast<uint32_t>(w), static_cast<uint32_t>(h),
-                  static_cast<uint32_t>(numSamplesVal), d)) {
+    tilesSent++;
+    if (tilesSent == 1)
+        log_debug("first tile sent ({},{} {}x{})", x, y, w, h);
+
+    if (!sendData(socketFd, (uint32_t)x, (uint32_t)y,
+                  (uint32_t)w, (uint32_t)h, (uint32_t)numSamplesVal, d)) {
+        log_debug("sendData failed after {} tiles", tilesSent);
         disconnected = true;
     }
     return TRUE;
 }
 
 // ---------------------------------------------------------------------------
-// finish() — send DONE and close; helper keeps window open independently
+// finish() — send DONE, close socket; renderer can exit immediately after
 // ---------------------------------------------------------------------------
 
-void CWDisplay::finish() {
+void CIPCDisplay::finish() {
+    log_debug("finish: disconnected={} socketFd={} tilesSent={}",
+              disconnected, socketFd, tilesSent);
     if (!disconnected && socketFd >= 0) {
         signal(SIGPIPE, SIG_IGN);
+        log_debug("finish: sending DONE");
         sendDone(socketFd);
+        log_debug("finish: DONE sent, closing socket");
         close(socketFd);
         socketFd = -1;
+        log_debug("finish: socket closed");
     }
-    // Helper continues running independently — do NOT wait for it
+    // Helper continues running independently — we do NOT wait for it
 }
