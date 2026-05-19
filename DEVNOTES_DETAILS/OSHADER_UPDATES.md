@@ -26,6 +26,15 @@ The move to an IR-based backend has enabled several critical optimization passes
 
 To align with modern RenderMan standards (RISpec 3.2+) and prepare for Open Shading Language (OSL) integration, the compiled shader extension has been changed from `.sdr` to `.rslo` (RenderMan Shading Language Object). The renderer maintains backward compatibility by attempting to load `.rslo` first, followed by `.sdr`.
 
+### Supertexmap Shader
+
+The new `supertexmap` surface shader (`supertexmap.sl`) provides a high-performance, multi-channel texture mapping solution.
+
+- **Per-Channel Mapping**: Supports independent texture maps for color (`Cs`), opacity (`Os`), specular (`Ks`), and displacement.
+- **Float Texture Support**: Leverages updated SLH helpers (`GetFloatTextureAndAlpha`) for high-precision scalar channels.
+- **Projection Modes**: Includes built-in support for multiple projection types: `st`, `planar`, `perspective`, `spherical`, and `cylindrical`.
+- **Utilities**: Integrated with `math_utilities.slh` for advanced matrix-based coordinate transformations.
+
 ---
 
 ## Future Roadmap: LLVM and Binary Shaders
