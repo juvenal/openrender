@@ -80,12 +80,6 @@ CRibOut::CRibAttributes::~CRibAttributes() {
 }
 
 CRibOut::CRibOut(const char *n) : CRiInterface() {
-    struct tm *newtime;
-    time_t aclock;
-
-    time(&aclock);
-    newtime = localtime(&aclock);
-
     outName = strdup(n);
     if (*outName == '|') {
         outFile = popen(outName + 1, "w");
@@ -112,39 +106,33 @@ CRibOut::CRibOut(const char *n) : CRiInterface() {
 
         outputIsPipe = FALSE;
     }
-    declaredVariables = new CTrie<CVariable *>;
-    numLightSources = 1;
-    numObjects = 1;
-    attributes = new CRibAttributes;
-    scratch = new char[ribOutScratchSize];
-
-    // Write a header
-    out("## openRender %s\n", openrender_version_string());
-    out("## Generated %s\n", asctime(newtime));
-
-    declareDefaultVariables();
+    completeInit();
 }
 
 CRibOut::CRibOut(FILE *o) : CRiInterface() {
+    outName = NULL;
+    outFile = o;
+    outputCompressed = FALSE;
+    outputIsPipe = FALSE;
+    completeInit();
+}
+
+void CRibOut::completeInit() {
     struct tm *newtime;
     time_t aclock;
 
     time(&aclock);
     newtime = localtime(&aclock);
 
-    outName = NULL;
-    outFile = o;
-    outputCompressed = FALSE;
-    outputIsPipe = FALSE;
     declaredVariables = new CTrie<CVariable *>;
     numLightSources = 1;
     numObjects = 1;
     attributes = new CRibAttributes;
     scratch = new char[ribOutScratchSize];
 
-    // Write a header
-    out("## openRender %s\n", openrender_version_string());
-    out("## Generated %s\n", asctime(newtime));
+    out("##RenderMan RIB-Structure 1.1\n");
+    out("##Creator openRender %s\n", openrender_version_string());
+    out("##CreationDate %s", asctime(newtime));
 
     declareDefaultVariables();
 }

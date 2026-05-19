@@ -212,6 +212,7 @@ class CRibOut : public CRiInterface {
         void writePL(int numVertex, int numVarying, int numFaceVarying, int numUniform, int, const char *[], const void *[]);
         void declareVariable(const char *, const char *);
         void declareDefaultVariables();
+        void completeInit();
 
         const char *outName;
         FILE *outFile;
