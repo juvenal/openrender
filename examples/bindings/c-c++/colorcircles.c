@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     RtInt  frame;
     float  scale;
     char   filename[64];
-    char*  renderer = RI_NULL;
+    RtToken renderer = RI_NULL;
 
     if (argc != 2) {
         fprintf(stderr,

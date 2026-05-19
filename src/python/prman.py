@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import shlex
+import time
 
 class Ri:
     # Standard Tokens
@@ -122,6 +123,7 @@ class Ri:
     RI_INFINITY = 1.0e38
     RI_EPSILON = 1.0e-10
     RI_NULL = None
+    VERSION = "1.0.0"
 
     def __init__(self):
         self._stream = None
@@ -163,6 +165,11 @@ class Ri:
             self._stream.flush()
 
     # 4.1.1 Graphics State
+    def _write_header(self):
+        self._stream.write("##RenderMan RIB-Structure 1.1\n")
+        self._stream.write(f"##Creator openRender {self.VERSION}\n")
+        self._stream.write(f"##CreationDate {time.asctime()}\n")
+
     def Begin(self, name=None, options=""):
         if name is None or name == "" or name == "render":
             self._stream = sys.stdout
@@ -180,6 +187,7 @@ class Ri:
                 bufsize=1
             )
             self._stream = self._proc.stdin
+        self._write_header()
 
     def End(self):
         if self._proc:

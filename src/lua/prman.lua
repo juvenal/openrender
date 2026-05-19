@@ -122,6 +122,7 @@ Ri.RI_TRUE = 1
 Ri.RI_INFINITY = 1.0e38
 Ri.RI_EPSILON = 1.0e-10
 Ri.RI_NULL = nil
+Ri.VERSION = "1.0.0"
 
 function Ri:new()
     local obj = {
@@ -195,6 +196,12 @@ function Ri:_write(cmd, ...)
 end
 
 -- 4.1.1 Graphics State
+local function write_header(stream, version)
+    stream:write("##RenderMan RIB-Structure 1.1\n")
+    stream:write("##Creator openRender " .. version .. "\n")
+    stream:write("##CreationDate " .. os.date("%a %b %d %H:%M:%S %Y") .. "\n")
+end
+
 function Ri:Begin(name, options)
     if name == nil or name == "" or name == "render" then
         self._stream = io.stdout
@@ -209,6 +216,7 @@ function Ri:Begin(name, options)
         self._stream = io.popen(cmd, "w")
         self._is_pipe = true
     end
+    write_header(self._stream, self.VERSION)
 end
 
 function Ri:End()
