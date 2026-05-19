@@ -37,15 +37,15 @@ DSO													return SCRL_DSO;
 \]													return SCRL_CLOSE_SQR_PARANTHESIS;
 \,													return SCRL_COMMA;
 
-\#\!version[ ]+[0-9]+\.[0-9]+\.[0-9]+\n				{	int	r,b,a;	sscanf(yytext+9,"%d.%d.%d",&r,&b,&a);	if ((r != VERSION_MAJOR) || (b != VERSION_MINOR)) sdrerror("Version mismatch");	}
-\"[^\"]*\"											{   strcpy(yylval.string,&yytext[1]);	yylval.string[strlen(yylval.string)-1] = '\0'; osProcessEscapes(yylval.string); return SCRL_TEXT_VALUE;}
-[a-zA-Z\_][a-zA-Z0-9\_]*							{	strcpy(yylval.string,yytext); return SCRL_IDENTIFIER_VALUE; }
-\#\![a-zA-Z][a-zA-Z0-9\_]*							{	strcpy(yylval.string,yytext); return SCRL_LABEL_VALUE; }
+\#\!version[ ]+[0-9]+\.[0-9]+\.[0-9]+\n				{	int	r,b,a;	sscanf(rslotext+9,"%d.%d.%d",&r,&b,&a);	if ((r != VERSION_MAJOR) || (b != VERSION_MINOR)) rsloerror("Version mismatch");	}
+\"[^\"]*\"											{   strcpy(rslolval.string,&rslotext[1]);	rslolval.string[strlen(rslolval.string)-1] = '\0'; osProcessEscapes(rslolval.string); return SCRL_TEXT_VALUE;}
+[a-zA-Z\_][a-zA-Z0-9\_]*							{	strcpy(rslolval.string,rslotext); return SCRL_IDENTIFIER_VALUE; }
+\#\![a-zA-Z][a-zA-Z0-9\_]*							{	strcpy(rslolval.string,rslotext); return SCRL_LABEL_VALUE; }
 
-[+-]?([0-9]+|([0-9]*(\.[0-9]+)?)([eE][+-]?[0-9]+)?)	{	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
-[+-]?([0-9]+|([0-9]+(\.[0-9]*)?)([eE][+-]?[0-9]+)?) {	sscanf(yytext,"%f",&yylval.real); return SCRL_FLOAT_VALUE; }
+[+-]?([0-9]+|([0-9]*(\.[0-9]+)?)([eE][+-]?[0-9]+)?)	{	sscanf(rslotext,"%f",&rslolval.real); return SCRL_FLOAT_VALUE; }
+[+-]?([0-9]+|([0-9]+(\.[0-9]*)?)([eE][+-]?[0-9]+)?) {	sscanf(rslotext,"%f",&rslolval.real); return SCRL_FLOAT_VALUE; }
 [\t ]												;
 
-\n													{	extern int slLineno; slLineno++; return SCRL_NL;	}
+\n													{	extern int rsloLineno; rsloLineno++; return SCRL_NL;	}
 %%
 

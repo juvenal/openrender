@@ -40,7 +40,7 @@
 #include "shader.h"
 #include "shaderPl.h"
 #include "shading.h"
-#include "slcode.h"
+#include "rslo_code.h"
 #include "surface.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -557,7 +557,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 
     // Execute
 execStart:
-    const ESlCode opcode = (ESlCode)code->opcode; // Get the opcode
+    const TRSLObjectCode opcode = (TRSLObjectCode)code->opcode; // Get the opcode
     int *tags = tagStart;                         // Set the tags to the start
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params)            \

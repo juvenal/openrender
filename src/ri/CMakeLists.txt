@@ -82,26 +82,27 @@ set(ri_sources
 if(USE_FLEX_BISON)
 	# this is to make sure generated bison cpp's include the correct lex.xxx.cpp
 	include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
+	include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 
 	# define flex targets
 	flex_file(dso.l lex.dso.cpp dso)
 	flex_file(rib.l lex.rib.cpp rib)
-	flex_file(sdr.l lex.sl.cpp sl)
+	flex_file(rslo.l lex.rslo.cpp rslo)
 	flex_file(variable.l lex.var.cpp var)
 	flex_file(ifexpr.l lex.if.cpp if)
 
 	# define bison targets (they depend on flex ones, via prefix - third arg)
 	bison_file(dso.y dso_generated.cpp dso)
 	bison_file(rib.y rib_generated.cpp rib)
-	bison_file(sdr.y sl_generated.cpp sl)
+	bison_file(rslo.y rslo_generated.cpp rslo)
 	bison_file(variable.y variable_generated.cpp var)
 	bison_file(ifexpr.y ifexpr_generated.cpp if)
 	
 	# add the generated bison cpp's
-	set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp sl_generated.cpp variable_generated.cpp ifexpr_generated.cpp)
+	set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp rslo_generated.cpp variable_generated.cpp ifexpr_generated.cpp)
 else(USE_FLEX_BISON)
 	# add the ones from the source tree
-	set(ri_sources ${ri_sources} dso.cpp rib.cpp sl.cpp variable.cpp ifexpr.cpp)
+	set(ri_sources ${ri_sources} dso.cpp rib.cpp rslo.cpp variable.cpp ifexpr.cpp)
 endif(USE_FLEX_BISON)
 
 

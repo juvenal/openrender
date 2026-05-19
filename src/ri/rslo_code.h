@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: slcode.h
+ * File: rslo_code.h
  *
  * Description:
- *   This file defines the interface for slcode.
+ *   This file defines the interface for rslo_code.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,14 +19,14 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	slcode.h
+//  File				:	rslo_code.h
 //  Classes				:	-
 //  Description			:	This file defines the entry point for all the
 //							shading language functions/opcodes
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef SLCODE_H
-#define SLCODE_H
+#ifndef RSLO_CODE_H
+#define RSLO_CODE_H
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) OPCODE_##name,
 
@@ -47,7 +47,7 @@ typedef enum {
 #include "scriptFunctions.h"
 #include "scriptOpcodes.h"
     OPCODE_NOP
-} ESlCode;
+} TRSLObjectCode;
 
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE

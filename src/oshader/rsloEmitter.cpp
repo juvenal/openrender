@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: sdrEmitter.cpp
+ * File: rsloEmitter.cpp
  *
  * Description:
- *   CSdrEmitter implementation: converts IRModule to .sdr text.
+ *   CRSLObjectEmitter implementation: converts IRModule to .rslo text.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -15,8 +15,8 @@
  *
  */
 
-#include "sdrEmitter.h"
-#include "sdr.h"      // for SLC_xxx constants
+#include "rsloEmitter.h"
+#include "rslo.h"      // for SLC_xxx constants
 
 #include <cstdio>
 #include <cassert>
@@ -26,10 +26,10 @@
 // The module stores version as "MAJOR.MINOR.PATCH" (already formatted).
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emit
+// CRSLObjectEmitter::emit
 // -------------------------------------------------------------------------
 
-void CSdrEmitter::emit(const IRModule &mod, FILE *out) {
+void CRSLObjectEmitter::emit(const IRModule &mod, FILE *out) {
     assert(out != nullptr);
 
     // Version line.
@@ -48,7 +48,7 @@ void CSdrEmitter::emit(const IRModule &mod, FILE *out) {
     emitFunctions(mod, out);
 }
 
-void CSdrEmitter::emitFunctions(const IRModule &mod, FILE *out) {
+void CRSLObjectEmitter::emitFunctions(const IRModule &mod, FILE *out) {
     assert(out != nullptr);
 
     // Init section.
@@ -63,10 +63,10 @@ void CSdrEmitter::emitFunctions(const IRModule &mod, FILE *out) {
 }
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emitParameters
+// CRSLObjectEmitter::emitParameters
 // -------------------------------------------------------------------------
 
-void CSdrEmitter::emitParameters(const IRModule &mod, FILE *out) {
+void CRSLObjectEmitter::emitParameters(const IRModule &mod, FILE *out) {
     fprintf(out, "#!parameters:\n");
     for (const IRVarInfo &v : mod.vars) {
         if (!v.isParameter()) continue;
@@ -87,10 +87,10 @@ void CSdrEmitter::emitParameters(const IRModule &mod, FILE *out) {
 }
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emitVariables
+// CRSLObjectEmitter::emitVariables
 // -------------------------------------------------------------------------
 
-void CSdrEmitter::emitVariables(const IRModule &mod, FILE *out) {
+void CRSLObjectEmitter::emitVariables(const IRModule &mod, FILE *out) {
     fprintf(out, "#!variables:\n");
     for (const IRVarInfo &v : mod.vars) {
         // Skip parameters and globals; skip SLC_NONE typed entries.
@@ -109,11 +109,11 @@ void CSdrEmitter::emitVariables(const IRModule &mod, FILE *out) {
 }
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emitTypeTokens
+// CRSLObjectEmitter::emitTypeTokens
 // -------------------------------------------------------------------------
 
 // static
-void CSdrEmitter::emitTypeTokens(const IRVarInfo &v, FILE *out) {
+void CRSLObjectEmitter::emitTypeTokens(const IRVarInfo &v, FILE *out) {
     // Container.
     if (v.isUniform())
         fprintf(out, "uniform\t");
@@ -142,10 +142,10 @@ void CSdrEmitter::emitTypeTokens(const IRVarInfo &v, FILE *out) {
 }
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emitFunction
+// CRSLObjectEmitter::emitFunction
 // -------------------------------------------------------------------------
 
-void CSdrEmitter::emitFunction(const IRFunction &fn, FILE *out) {
+void CRSLObjectEmitter::emitFunction(const IRFunction &fn, FILE *out) {
     for (const IRBlock &blk : fn.blocks) {
         // Emit block label if this is not the anonymous entry block.
         if (!blk.label.empty()) {
@@ -158,10 +158,10 @@ void CSdrEmitter::emitFunction(const IRFunction &fn, FILE *out) {
 }
 
 // -------------------------------------------------------------------------
-// CSdrEmitter::emitInstr
+// CRSLObjectEmitter::emitInstr
 // -------------------------------------------------------------------------
 
-void CSdrEmitter::emitInstr(const IRInstr &instr, FILE *out) {
+void CRSLObjectEmitter::emitInstr(const IRInstr &instr, FILE *out) {
     // Leading tab matches the original getCode() formatting.
     fprintf(out, "\t%s", instr.opcode.c_str());
 

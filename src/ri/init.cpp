@@ -35,7 +35,7 @@
 #include "ri_config.h"
 #include "shader.h"
 #include "shading.h"
-#include "slcode.h"
+#include "rslo_code.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //	Prototypes for shading language functions
@@ -511,7 +511,7 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
 
     // Execute
 execStart:
-    const ESlCode opcode = (ESlCode)code->opcode;
+    const TRSLObjectCode opcode = (TRSLObjectCode)code->opcode;
 
     tags = tagStart;
 

@@ -39,11 +39,11 @@ class CScriptContext;
 //
 // Usage in generateCode():
 //
-//   CIRBuilder builder(*sdr);
+//   CIRBuilder builder(*rslo);
 //   IRModule *mod = builder.build(out);   // captures getCode() output
 //
 // After build() returns, the caller runs passes on *mod, then calls
-// CSdrEmitter::emit(*mod, out) to write the final .sdr file.
+// CRSLObjectEmitter::emit(*mod, out) to write the final .sdr file.
 // -------------------------------------------------------------------------
 class CIRBuilder {
 public:

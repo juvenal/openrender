@@ -236,7 +236,7 @@ static	int					result		=	0;	// 0 - FALSE
 
 
 %}
-%union slval {
+%union ifval {
 	char	*string;
 	CExpr	expr;
 	float	real;

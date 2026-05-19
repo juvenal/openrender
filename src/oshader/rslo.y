@@ -1,7 +1,7 @@
 /**
  * Project: openRender
  *
- * File: sl.y
+ * File: rslo.y
  *
  * Description:
  *   The main parser file.
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sl.y
+//  File				:	rslo.y
 //  Classes				:	-
 //  Description			:	The main parser file
 //
@@ -56,8 +56,8 @@
 %require "3.0"
 
 // The grammar has one known, benign shift/reduce conflict: a parenthesized
-// arithmetic expression ( expr ) is ambiguous between slAritmeticTerminalValue
-// and slVectorMatrixExpression (since arithmetic reduces to VM).  Bison
+// arithmetic expression ( expr ) is ambiguous between rsloAritmeticTerminalValue
+// and rsloVectorMatrixExpression (since arithmetic reduces to VM).  Bison
 // resolves it by preferring shift, which is the correct behavior.
 %expect 1
 
@@ -72,22 +72,22 @@
 #include	"common/global.h"
 #include	"common/os.h"
 #include	"opcodes.h"
-#include	"sdr.h"
+#include	"rslo.h"
 
-	void				yyerror(const char *);			// Forward definition for stupid yacc
-	int					yylex(void );					// Forward definition for stupid yacc
+	void				rsloerror(const char *);			// Forward definition for stupid yacc
+	int					rslolex(void );					// Forward definition for stupid yacc
 														
 //////////////////////////////////////////////////////////////////////////
 // Here's the only global CVariable
 //////////////////////////////////////////////////////////////////////////
-	// `sdr` is thread_local so that concurrent shader compilations (one per
+	// `rslo` is thread_local so that concurrent shader compilations (one per
 	// thread) never share state.  Making the Bison parser pure (%define api.pure
 	// full) and threading the context through every grammar action would require
 	// pervasive changes that are deferred to a later refactoring pass.
-	thread_local CScriptContext *sdr;
+	thread_local CScriptContext *rslo;
 	
 // This macro can be used to record the last parsed line number for accurate error reporting
-#define	checkPoint()	sdr->statementLineNo	=	sdr->lineNo
+#define	checkPoint()	rslo->statementLineNo	=	rslo->lineNo
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -179,92 +179,92 @@
 %left			SL_EXTERN
 %left			SL_UNIFORM
 %left			SL_VARIABLE
-%start	slStart
+%start	rsloStart
 
 // Rule types
-%type<integer>		slTypeDecl
-%type<integer>		slInheritanceClass
-%type<integer>		slOutputClass
-%type<integer>		slContainerClass
-%type<integer>		slFloatSpecifier
-%type<integer>		slVectorSpecifier
-%type<integer>		slMatrixSpecifier
-%type<integer>		slStringSpecifier
-%type<integer>		slTypeSpecifier
-%type<real>			slFloatValue
-%type<code>			slFunctionParameters
-%type<code>			slFunctionParameter
-%type<code>			slFunctionParameterIdentifierList
-%type<integer>		slShaderType
-%type<code>			slShaderParameters
-%type<code>			slShaderParameter
-%type<code>			slShaderParameterInitializer
-%type<code>			slShaderParameterIdentifierToken
-%type<code>			slShaderParameterIdentifierList
-%type<code>			slBlock
-%type<code>			slVariableInitializer
-%type<code>			slVariableDeclarations
-%type<code>			slVariableIdentifierList
-%type<code>			slVariableIdentifierTail
-%type<code>			slStatement
-%type<code>			slStatements
-%type<code>			slMatchedStatement
-%type<code>			slUnmatchedStatement
-%type<code>			slBreakStatement
-%type<code>			slContinueStatement
-%type<code>			slReturnStatement
-%type<code>			slWhileStartStatement
-%type<code>			slWhileStatement
-%type<code>			slUnmatchedWhileStatement
-%type<code>			slAssignmentStatement
-%type<code>			slUpdateStatement
-%type<code>			slForStatement
-%type<code>			slUnmatchedForStatement
-%type<code>			slForInitStatement
-%type<code>			slForInitStatements
-%type<code>			slForCheckStatement
-%type<code>			slForIncrementStatement
-%type<code>			slForIncrementStatements
-%type<code>			slMatchedIfStatement
-%type<code>			slUnmatchedIfStatement
-%type<array>		slGatherParameterList
-%type<array>		slGatherHeader
-%type<code>			slMatchedGatherStatement
-%type<code>			slUnmatchedGatherStatement
-%type<code>			slIlluminanceStatement
-%type<code>			slUnmatchedIlluminanceStatement
-%type<code>			slIlluminateStatement
-%type<code>			slUnmatchedIlluminateStatement
-%type<code>			slSolarStatement
-%type<code>			slUnmatchedSolarStatement
-%type<array>		slArrayItems
-%type<array>		slArrayList
-%type<code>			slAritmeticExpression
-%type<code>			slAritmeticTerminalValue
-%type<code>			slAritmeticTypeCast
-%type<code>			slVectorMatrixExpression
-%type<code>			slVMExpression
-%type<code>			slFunctionCall
-%type<code>			slFunctionCallParameters
-%type<string>		slFunCallHeader
-%type<code>			slFunCall
-%type<string>		slTextureName
-%type<string>		slTextureCall
-%type<code>			slTextureNameSpecifier
-%type<code>			slTextureChannelSpecifier
+%type<integer>		rsloTypeDecl
+%type<integer>		rsloInheritanceClass
+%type<integer>		rsloOutputClass
+%type<integer>		rsloContainerClass
+%type<integer>		rsloFloatSpecifier
+%type<integer>		rsloVectorSpecifier
+%type<integer>		rsloMatrixSpecifier
+%type<integer>		rsloStringSpecifier
+%type<integer>		rsloTypeSpecifier
+%type<real>			rsloFloatValue
+%type<code>			rsloFunctionParameters
+%type<code>			rsloFunctionParameter
+%type<code>			rsloFunctionParameterIdentifierList
+%type<integer>		rsloShaderType
+%type<code>			rsloShaderParameters
+%type<code>			rsloShaderParameter
+%type<code>			rsloShaderParameterInitializer
+%type<code>			rsloShaderParameterIdentifierToken
+%type<code>			rsloShaderParameterIdentifierList
+%type<code>			rsloBlock
+%type<code>			rsloVariableInitializer
+%type<code>			rsloVariableDeclarations
+%type<code>			rsloVariableIdentifierList
+%type<code>			rsloVariableIdentifierTail
+%type<code>			rsloStatement
+%type<code>			rsloStatements
+%type<code>			rsloMatchedStatement
+%type<code>			rsloUnmatchedStatement
+%type<code>			rsloBreakStatement
+%type<code>			rsloContinueStatement
+%type<code>			rsloReturnStatement
+%type<code>			rsloWhileStartStatement
+%type<code>			rsloWhileStatement
+%type<code>			rsloUnmatchedWhileStatement
+%type<code>			rsloAssignmentStatement
+%type<code>			rsloUpdateStatement
+%type<code>			rsloForStatement
+%type<code>			rsloUnmatchedForStatement
+%type<code>			rsloForInitStatement
+%type<code>			rsloForInitStatements
+%type<code>			rsloForCheckStatement
+%type<code>			rsloForIncrementStatement
+%type<code>			rsloForIncrementStatements
+%type<code>			rsloMatchedIfStatement
+%type<code>			rsloUnmatchedIfStatement
+%type<array>		rsloGatherParameterList
+%type<array>		rsloGatherHeader
+%type<code>			rsloMatchedGatherStatement
+%type<code>			rsloUnmatchedGatherStatement
+%type<code>			rsloIlluminanceStatement
+%type<code>			rsloUnmatchedIlluminanceStatement
+%type<code>			rsloIlluminateStatement
+%type<code>			rsloUnmatchedIlluminateStatement
+%type<code>			rsloSolarStatement
+%type<code>			rsloUnmatchedSolarStatement
+%type<array>		rsloArrayItems
+%type<array>		rsloArrayList
+%type<code>			rsloAritmeticExpression
+%type<code>			rsloAritmeticTerminalValue
+%type<code>			rsloAritmeticTypeCast
+%type<code>			rsloVectorMatrixExpression
+%type<code>			rsloVMExpression
+%type<code>			rsloFunctionCall
+%type<code>			rsloFunctionCallParameters
+%type<string>		rsloFunCallHeader
+%type<code>			rsloFunCall
+%type<string>		rsloTextureName
+%type<string>		rsloTextureCall
+%type<code>			rsloTextureNameSpecifier
+%type<code>			rsloTextureChannelSpecifier
 %%
-slStart:		
+rsloStart:		
 		////////////////////////////////////////////////
 		// Initilization stuff
 		////////////////////////////////////////////////
 			{
 			}
-			slShader 
+			rsloShader 
 			{
 			}
 			;
 
-slContainerClass:
+rsloContainerClass:
 			SL_UNIFORM
 			{
 				$$	=	SLC_UNIFORM;
@@ -281,7 +281,7 @@ slContainerClass:
 			;
 
 
-slInheritanceClass:
+rsloInheritanceClass:
 			SL_EXTERN
 			{
 				$$	=	SLC_EXTERN;
@@ -292,7 +292,7 @@ slInheritanceClass:
 			}
 			;
 
-slOutputClass:
+rsloOutputClass:
 			SL_OUTPUT
 			{
 				$$	=	SLC_OUTPUT;
@@ -303,14 +303,14 @@ slOutputClass:
 			}
 			;
 
-slFloatSpecifier:
+rsloFloatSpecifier:
 			SL_FLOAT
 			{
 				$$	=	SLC_FLOAT;
 			}
 			;
 			
-slVectorSpecifier:
+rsloVectorSpecifier:
 			SL_COLOR
 			{
 				$$	=	SLC_VECTOR | SLC_VCOLOR;
@@ -332,14 +332,14 @@ slVectorSpecifier:
 			}
 			;
 			
-slMatrixSpecifier:
+rsloMatrixSpecifier:
 			SL_MATRIX
 			{
 				$$	=	SLC_MATRIX;
 			}
 			;
 			
-slStringSpecifier:
+rsloStringSpecifier:
 			SL_STRING
 			{
 				$$	=	SLC_STRING | SLC_UNIFORM;
@@ -348,29 +348,29 @@ slStringSpecifier:
 			
 			
 			
-slTypeSpecifier:
-			slFloatSpecifier
+rsloTypeSpecifier:
+			rsloFloatSpecifier
 			{
 				$$	=	$1;
 			}
 		|
-			slVectorSpecifier
+			rsloVectorSpecifier
 			{
 				$$	=	$1;
 			}
 		|
-			slMatrixSpecifier
+			rsloMatrixSpecifier
 			{
 				$$	=	$1;
 			}
 		|
-			slStringSpecifier
+			rsloStringSpecifier
 			{
 				$$	=	$1;
 			}
 			;
 			
-slFloatValue:	slAritmeticExpression
+rsloFloatValue:	rsloAritmeticExpression
 			{
 				$$	=	0;
 				
@@ -384,20 +384,20 @@ slFloatValue:	slAritmeticExpression
 						// Yes, convert it to float
 						$$	=	(float) atof(tmp);
 					} else
-						sdr->error("Expecting a simple float argument\n");
+						rslo->error("Expecting a simple float argument\n");
 				} else
-					sdr->error("Expecting a float argument\n");
+					rslo->error("Expecting a float argument\n");
 			}
 			;
 
-slTypeDecl:
-			slInheritanceClass
-			slOutputClass
-			slContainerClass
-			slTypeSpecifier
+rsloTypeDecl:
+			rsloInheritanceClass
+			rsloOutputClass
+			rsloContainerClass
+			rsloTypeSpecifier
 			{
 				$$	=	$1 | $2 | $3 | $4;
-				sdr->desire($$);
+				rslo->desire($$);
 				checkPoint();
 			}
 			;
@@ -411,38 +411,38 @@ slTypeDecl:
 		// and used from different shader bodies
 		//
 		////////////////////////////////////////////////
-slShader:		
-		slMainOrFunction
+rsloShader:		
+		rsloMainOrFunction
 		| 
-		slShader slMainOrFunction
+		rsloShader rsloMainOrFunction
 		;
 
-slMainOrFunction:
-		slMain | slFunction	;
+rsloMainOrFunction:
+		rsloMain | rsloFunction	;
 
 		////////////////////////////////////////////////
 		//
 		// A function declaration:
-		// slFunctionReturnType <CFunction_name> (
-		// slFunctionParameterList ) slBlock 
+		// rsloFunctionReturnType <CFunction_name> (
+		// rsloFunctionParameterList ) rsloBlock 
 		// 
 		//
 		////////////////////////////////////////////////
-slFunctionHeader:
-		slTypeDecl
+rsloFunctionHeader:
+		rsloTypeDecl
 		SL_IDENTIFIER_VALUE									// Name of the Function
 		SL_OPEN_PARANTHESIS
 		{
-			CFunction	*thisFunction	=	sdr->newFunction($2);
+			CFunction	*thisFunction	=	rslo->newFunction($2);
 			
 			if ($1 & (SLC_OUTPUT | SLC_EXTERN | SLC_RDONLY)) {
-				sdr->error("Invalid return type for function %s\n",$2);
+				rslo->error("Invalid return type for function %s\n",$2);
 				$1	&=	~(SLC_OUTPUT | SLC_EXTERN | SLC_RDONLY);
 			}
 
 			thisFunction->returnValue	=	new CParameter($2,$1,1);
 
-			sdr->undesire();
+			rslo->undesire();
 			checkPoint();
 		}
 		|
@@ -450,27 +450,27 @@ slFunctionHeader:
 		SL_IDENTIFIER_VALUE									// Name of the CFunction
 		SL_OPEN_PARANTHESIS
 		{
-			CFunction	*thisFunction	=	sdr->newFunction($2);
+			CFunction	*thisFunction	=	rslo->newFunction($2);
 			
 			thisFunction->returnValue	=	nullptr;
 			checkPoint();
 		}
 		;
 
-slFunction:
-		slFunctionHeader
-		slFunctionParameters							// CFunction Parameter list
+rsloFunction:
+		rsloFunctionHeader
+		rsloFunctionParameters							// CFunction Parameter list
 		SL_CLOSE_PARANTHESIS
-		slBlock
+		rsloBlock
 		{
-			CFunction	*cFun		=	sdr->popFunction();
+			CFunction	*cFun		=	rslo->popFunction();
 
 			cFun->initExpression	=	$2;
 			cFun->code				=	$4;
 
 			if (cFun->returnValue != nullptr)
 				if (cFun->returnValueGiven == FALSE) 
-					sdr->error("Return value not given for %s\n",cFun->symbolName);
+					rslo->error("Return value not given for %s\n",cFun->symbolName);
 
 			checkPoint();
 		}
@@ -480,16 +480,16 @@ slFunction:
 		////////////////////////////////////////////////
 		// CFunction Parameters
 		// No default Parameters
-slFunctionParameters:
-		slFunctionParameter								// Semi colon seperated
+rsloFunctionParameters:
+		rsloFunctionParameter								// Semi colon seperated
 		SL_SEMI_COLON 
-		slFunctionParameters
+		rsloFunctionParameters
 		{
 			$$	=	new CTwoExpressions($1,$3);
 			checkPoint();
 		}
 	|
-		slFunctionParameter
+		rsloFunctionParameter
 		{
 			$$	=	$1;
 			checkPoint();
@@ -498,28 +498,28 @@ slFunctionParameters:
 
 		////////////////////////////////////////////////
 		// A single parameter definition
-slFunctionParameter:
-		slTypeDecl
+rsloFunctionParameter:
+		rsloTypeDecl
 		{
-			int	type	=	sdr->desired();
+			int	type	=	rslo->desired();
 
 			if (type & (SLC_EXTERN)) {
-				sdr->error("Invalid parameter type\n");
+				rslo->error("Invalid parameter type\n");
 				type	&=	~(SLC_EXTERN);
 			}
 
 			if (type & SLC_OUTPUT) {
-				sdr->undesire();
-				sdr->desire(type);					// Make sure we mark the desired type as READ-ONLY
+				rslo->undesire();
+				rslo->desire(type);					// Make sure we mark the desired type as READ-ONLY
 			} else {
-				sdr->undesire();
-				sdr->desire(type | SLC_RDONLY);		// Make sure we mark the desired type as READ-ONLY
+				rslo->undesire();
+				rslo->desire(type | SLC_RDONLY);		// Make sure we mark the desired type as READ-ONLY
 			}
 		} 
-		slFunctionParameterIdentifierList
+		rsloFunctionParameterIdentifierList
 		{
 			$$					=	$3;
-			sdr->undesire();						// We're done with the type
+			rslo->undesire();						// We're done with the type
 		}
 		|
 		{
@@ -529,20 +529,20 @@ slFunctionParameter:
 
 		////////////////////////////////////////////////
 		// An identifier list for CFunction Parameters
-slFunctionParameterIdentifierList:
+rsloFunctionParameterIdentifierList:
 		SL_IDENTIFIER_VALUE							// Default Parameter values are not supported yet
 		{
-			(void)sdr->newParameter($1,sdr->desired(),1);	// Add the Parameter to the current CFunction
+			(void)rslo->newParameter($1,rslo->desired(),1);	// Add the Parameter to the current CFunction
 		}
 		SL_COMMA
-		slFunctionParameterIdentifierList
+		rsloFunctionParameterIdentifierList
 		{
 			$$	=	$4;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		{
-			(void)sdr->newParameter($1,sdr->desired(),1);
+			(void)rslo->newParameter($1,rslo->desired(),1);
 
 			$$			=	new CNullExpression;
 		}
@@ -551,23 +551,23 @@ slFunctionParameterIdentifierList:
 		SL_OPEN_SQR_PARANTHESIS
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY,-1);
+			(void)rslo->newParameter($1,rslo->desired() | SLC_ARRAY,-1);
 		}
 		SL_COMMA
-		slFunctionParameterIdentifierList
+		rsloFunctionParameterIdentifierList
 		{
 			$$	=	$6;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);
+			(void)rslo->newParameter($1,rslo->desired() | SLC_ARRAY, (int) $3);
 		}
 		SL_COMMA
-		slFunctionParameterIdentifierList
+		rsloFunctionParameterIdentifierList
 		{
 			$$	=	$7;
 		}
@@ -576,17 +576,17 @@ slFunctionParameterIdentifierList:
 		SL_OPEN_SQR_PARANTHESIS
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, 1);
+			(void)rslo->newParameter($1,rslo->desired() | SLC_ARRAY, 1);
 			
 			$$	=	new CNullExpression;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			(void)sdr->newParameter($1,sdr->desired() | SLC_ARRAY, (int) $3);
+			(void)rslo->newParameter($1,rslo->desired() | SLC_ARRAY, (int) $3);
 
 			$$	=	new CNullExpression;
 		}
@@ -596,35 +596,35 @@ slFunctionParameterIdentifierList:
 		//
 		// Main shader body definition
 		//
-slMain:	slShaderType							// Type of the shader
+rsloMain:	rsloShaderType							// Type of the shader
 		SL_IDENTIFIER_VALUE						// Name of the shader
 		SL_OPEN_PARANTHESIS
 		{
-			if (sdr->shaderType) {
-				sdr->error("Shader file contains multiple shaders\n");
-				sdr->lastFunction			=	sdr->shaderFunction;
+			if (rslo->shaderType) {
+				rslo->error("Shader file contains multiple shaders\n");
+				rslo->lastFunction			=	rslo->shaderFunction;
 			} else {
-				CFunction		*mainFunction	=	sdr->newFunction(constantShaderMain);
+				CFunction		*mainFunction	=	rslo->newFunction(constantShaderMain);
 
 				mainFunction->returnValue		=	nullptr;
 
-				sdr->shaderName				=	strdup($2);
-				sdr->shaderType				=	$1;
-				sdr->shaderFunction			=	mainFunction;
-				sdr->lastFunction			=	mainFunction;
+				rslo->shaderName				=	strdup($2);
+				rslo->shaderType				=	$1;
+				rslo->shaderFunction			=	mainFunction;
+				rslo->lastFunction			=	mainFunction;
 			}
 		}
-		slShaderParameters						// Shader Parameter list
+		rsloShaderParameters						// Shader Parameter list
 		SL_CLOSE_PARANTHESIS
 		{
-			sdr->restoreParameters();
+			rslo->restoreParameters();
 		}
-		slBlock
+		rsloBlock
 		{
-			CFunction	*cFun			=	sdr->popFunction();
+			CFunction	*cFun			=	rslo->popFunction();
 
 			for (CParameter	*cParameter=cFun->parameters->first();cParameter!=nullptr;cParameter=cFun->parameters->next()) {
-				sdr->variables->push(cParameter);
+				rslo->variables->push(cParameter);
 			}
 
 			cFun->initExpression	=	$5;
@@ -634,7 +634,7 @@ slMain:	slShaderType							// Type of the shader
 
 		////////////////////////////////////////////////
 		// Shader type
-slShaderType:	SL_SURFACE
+rsloShaderType:	SL_SURFACE
 		{
 			$$	=	SLC_SURFACE;
 		}
@@ -668,15 +668,15 @@ slShaderType:	SL_SURFACE
 
 		////////////////////////////////////////////////
 		// Shader Parameters
-slShaderParameters:
-		slShaderParameter 
+rsloShaderParameters:
+		rsloShaderParameter 
 		SL_SEMI_COLON
-		slShaderParameters
+		rsloShaderParameters
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
 	|
-		slShaderParameter
+		rsloShaderParameter
 		{
 			$$	=	$1;
 		}
@@ -684,8 +684,8 @@ slShaderParameters:
 
 		/////////////////////////////////////////////////
 		// A single shader Parameter
-slShaderParameter:
-		slTypeDecl
+rsloShaderParameter:
+		rsloTypeDecl
 		{
 			int	type	=	$1;
 
@@ -699,18 +699,18 @@ slShaderParameter:
 				type |= SLC_UNIFORM;	 
 			}
 			
-			sdr->undesire();
-			sdr->desire(type);
+			rslo->undesire();
+			rslo->desire(type);
 		}
-		slShaderParameterIdentifierList
+		rsloShaderParameterIdentifierList
 		{
 			$$	=	$3;
 		
 			if ($1 & (SLC_EXTERN)) {
-				sdr->error("Invalid parameter type for the shader\n");
+				rslo->error("Invalid parameter type for the shader\n");
 			}
 
-			sdr->undesire();
+			rslo->undesire();
 		}
 		|
 		{
@@ -720,70 +720,70 @@ slShaderParameter:
 
 		////////////////////////////////////////////////
 		// Shader Parameter initializer
-slShaderParameterInitializer:
+rsloShaderParameterInitializer:
 		SL_EQUAL
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			$$	=	getAssignment(sdr->variableList,$2);
+			$$	=	getAssignment(rslo->variableList,$2);
 		}
 		|
 		SL_EQUAL
-		slArrayList
+		rsloArrayList
 		{
-			$$	=	getAssignment(sdr->variableList,$2);
+			$$	=	getAssignment(rslo->variableList,$2);
 		}
 		;
 
 
-slShaderParameterIdentifierToken:
+rsloShaderParameterIdentifierToken:
 		SL_IDENTIFIER_VALUE
 		SL_COMMA
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_PARAMETER,1);
+			CParameter	*cParameter	=	rslo->newParameter($1,rslo->desired() | SLC_PARAMETER,1);
 
-			sdr->variableList->push(cParameter);	// Save the parameter so that we can generate init code later
+			rslo->variableList->push(cParameter);	// Save the parameter so that we can generate init code later
 		}
-		slShaderParameterIdentifierToken
+		rsloShaderParameterIdentifierToken
 		{
 			$$	=	$4;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_PARAMETER,1);
+			CParameter	*cParameter	=	rslo->newParameter($1,rslo->desired() | SLC_PARAMETER,1);
 
-			sdr->variableList->push(cParameter);
+			rslo->variableList->push(cParameter);
 		}
-		slShaderParameterInitializer
+		rsloShaderParameterInitializer
 		{
 			$$	=	$3;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_COMMA
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_PARAMETER | SLC_ARRAY,(int) $3);
+			CParameter	*cParameter	=	rslo->newParameter($1,rslo->desired() | SLC_PARAMETER | SLC_ARRAY,(int) $3);
 
-			sdr->variableList->push(cParameter);
+			rslo->variableList->push(cParameter);
 		}
-		slShaderParameterIdentifierToken
+		rsloShaderParameterIdentifierToken
 		{
 			$$	=	$7;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CParameter	*cParameter	=	sdr->newParameter($1,sdr->desired() | SLC_PARAMETER | SLC_ARRAY,(int) $3);
+			CParameter	*cParameter	=	rslo->newParameter($1,rslo->desired() | SLC_PARAMETER | SLC_ARRAY,(int) $3);
 
-			sdr->variableList->push(cParameter);
+			rslo->variableList->push(cParameter);
 		}
-		slShaderParameterInitializer
+		rsloShaderParameterInitializer
 		{
 			$$	=	$6;
 		}
@@ -795,15 +795,15 @@ slShaderParameterIdentifierToken:
 
 		;
 
-slShaderParameterIdentifierList:
-		slShaderParameterIdentifierToken
+rsloShaderParameterIdentifierList:
+		rsloShaderParameterIdentifierToken
 		{
 			$$	=	$1;
 		}
 	|
-		slShaderParameterIdentifierToken
+		rsloShaderParameterIdentifierToken
 		SL_COMMA
-		slShaderParameterIdentifierList
+		rsloShaderParameterIdentifierList
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
@@ -812,15 +812,15 @@ slShaderParameterIdentifierList:
 		
 		////////////////////////////////////////////////
 		// A block
-slBlock:
+rsloBlock:
 		SL_OPEN_CRL_PARANTHESIS
 		{
-			(void)sdr->newFunction(constantBlockName);
+			(void)rslo->newFunction(constantBlockName);
 		}
-		slStatements
+		rsloStatements
 		SL_CLOSE_CRL_PARANTHESIS
 		{
-			CFunction	*cFun	=	sdr->popFunction();
+			CFunction	*cFun	=	rslo->popFunction();
 
 			cFun->code			=	$3;
 
@@ -832,20 +832,20 @@ slBlock:
 		// A statement
 		////////////////////////////////////////////////
 		// Variable declarations in a block
-slVariableDeclarations:
-		slTypeDecl
-		slVariableIdentifierList
+rsloVariableDeclarations:
+		rsloTypeDecl
+		rsloVariableIdentifierList
 		{
 			CVariable	*cVar;
 
 			if ($1 & (SLC_OUTPUT | SLC_RDONLY)) {
-				sdr->error("Invalid container class for local variables\n");
+				rslo->error("Invalid container class for local variables\n");
 			}
 
 			// Remove the uninitialized variables from the list
-			while((cVar = (CVariable *) sdr->variableList->pop()) != nullptr);
+			while((cVar = (CVariable *) rslo->variableList->pop()) != nullptr);
 
-			sdr->undesire();
+			rslo->undesire();
 
 			$$	=	$2;
 		}
@@ -853,40 +853,40 @@ slVariableDeclarations:
 
 		////////////////////////////////////////////////
 		// Variable identifier list
-slVariableInitializer:
+rsloVariableInitializer:
 		SL_EQUAL
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			$$	=	getAssignment(sdr->variableList,$2);
+			$$	=	getAssignment(rslo->variableList,$2);
 		}
 		|
 		SL_EQUAL
-		slArrayList
+		rsloArrayList
 		{
-			$$	=	getAssignment(sdr->variableList,$2);
+			$$	=	getAssignment(rslo->variableList,$2);
 		}
 		;
 
-slVariableIdentifierList:
+rsloVariableIdentifierList:
 		SL_IDENTIFIER_VALUE
 		{
-			CVariable	*cVar	=	sdr->newVariable($1,sdr->desired(),1);
+			CVariable	*cVar	=	rslo->newVariable($1,rslo->desired(),1);
 
-			sdr->variableList->push(cVar);
+			rslo->variableList->push(cVar);
 		}
-		slVariableIdentifierTail
+		rsloVariableIdentifierTail
 		{
 			$$	=	$3;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		{
-			CVariable	*cVar	=	sdr->newVariable($1,sdr->desired(),1);
+			CVariable	*cVar	=	rslo->newVariable($1,rslo->desired(),1);
 
-			sdr->variableList->push(cVar);
+			rslo->variableList->push(cVar);
 		}
-		slVariableInitializer
-		slVariableIdentifierTail
+		rsloVariableInitializer
+		rsloVariableIdentifierTail
 		{
 			$$	=	new CTwoExpressions($3,$4);
 		}
@@ -894,38 +894,38 @@ slVariableIdentifierList:
 		
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CVariable	*cVar	=	sdr->newVariable($1,sdr->desired() | SLC_ARRAY,(int) $3);
+			CVariable	*cVar	=	rslo->newVariable($1,rslo->desired() | SLC_ARRAY,(int) $3);
 
-			sdr->variableList->push(cVar);
+			rslo->variableList->push(cVar);
 		}
-		slVariableIdentifierTail
+		rsloVariableIdentifierTail
 		{
 			$$	=	$6;
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slFloatValue
+		rsloFloatValue
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CVariable	*cVar	=	sdr->newVariable($1,sdr->desired() | SLC_ARRAY,(int) $3);
+			CVariable	*cVar	=	rslo->newVariable($1,rslo->desired() | SLC_ARRAY,(int) $3);
 
-			sdr->variableList->push(cVar);
+			rslo->variableList->push(cVar);
 		}
 
-		slVariableInitializer
-		slVariableIdentifierTail
+		rsloVariableInitializer
+		rsloVariableIdentifierTail
 		{
 			$$	=	new CTwoExpressions($6,$7);
 		}
 		;
 
-slVariableIdentifierTail:
+rsloVariableIdentifierTail:
 		SL_COMMA
-		slVariableIdentifierList
+		rsloVariableIdentifierList
 		{
 			$$	=	$2;
 			checkPoint();
@@ -940,21 +940,21 @@ slVariableIdentifierTail:
 
 		////////////////////////////////////////////////
 		// A general statement
-slStatement:
-		slUnmatchedStatement
+rsloStatement:
+		rsloUnmatchedStatement
 		{
 
 			$$	=	$1;
-			if (!(sdr->desired() & SLC_NONE))
-				sdr->fatalbailout();
+			if (!(rslo->desired() & SLC_NONE))
+				rslo->fatalbailout();
 			checkPoint();
 		}
 	|
-		slMatchedStatement
+		rsloMatchedStatement
 		{
 			$$	=	$1;
-			if (!(sdr->desired() & SLC_NONE))
-				sdr->fatalbailout();
+			if (!(rslo->desired() & SLC_NONE))
+				rslo->fatalbailout();
 			checkPoint();
 		}
 	|
@@ -962,25 +962,25 @@ slStatement:
 		{
 			// Recoverable error happened
 			$$	=	new CNullExpression;
-			if (!(sdr->desired() & SLC_NONE))
-				sdr->fatalbailout();
+			if (!(rslo->desired() & SLC_NONE))
+				rslo->fatalbailout();
 			checkPoint();
 		}
 
 		;
 
-slStatements:
-		slStatements
+rsloStatements:
+		rsloStatements
 		{
-			sdr->statementLineNo	=	sdr->lineNo;
+			rslo->statementLineNo	=	rslo->lineNo;
 		}
-		slStatement
+		rsloStatement
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
 	|
 		{
-			sdr->statementLineNo	=	sdr->lineNo;
+			rslo->statementLineNo	=	rslo->lineNo;
 			$$	=	new CNullExpression;
 		}
 		;
@@ -988,83 +988,83 @@ slStatements:
 
 		////////////////////////////////////////////////
 		// A Matched statement
-slMatchedStatement:
-		slForStatement
+rsloMatchedStatement:
+		rsloForStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slWhileStatement
+		rsloWhileStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slMatchedIfStatement
+		rsloMatchedIfStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slMatchedGatherStatement
+		rsloMatchedGatherStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slAssignmentStatement SL_SEMI_COLON
+		rsloAssignmentStatement SL_SEMI_COLON
 		{
 			$$	=	$1;
 		}
 	|
-		slUpdateStatement SL_SEMI_COLON
+		rsloUpdateStatement SL_SEMI_COLON
 		{
 			$$	=	$1;
 		}
 	|
-		slBreakStatement 
+		rsloBreakStatement 
 		{
 			$$	=	$1;
 		}
 	|
-		slContinueStatement 
+		rsloContinueStatement 
 		{
 			$$	=	$1;
 		}
 	|
-		slReturnStatement
+		rsloReturnStatement
 		{
 			$$	=	$1;
 		}
 	|	
-		slIlluminanceStatement
+		rsloIlluminanceStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slIlluminateStatement
+		rsloIlluminateStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slSolarStatement
+		rsloSolarStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slBlock
+		rsloBlock
 		{
 			$$	=	$1;
 		}
 	|
-		slVariableDeclarations
+		rsloVariableDeclarations
 		{
 			$$	=	$1;
 		}
 	|
-		slFunction
+		rsloFunction
 		{
 			$$	=	new CNullExpression;
 		}
 	|
-		slFunctionCall SL_SEMI_COLON
+		rsloFunctionCall SL_SEMI_COLON
 		{
 			$$	=	$1;
 		}
@@ -1077,38 +1077,38 @@ slMatchedStatement:
 
 		////////////////////////////////////////////////
 		// Unmatched shatement
-slUnmatchedStatement:
-		slUnmatchedIfStatement
+rsloUnmatchedStatement:
+		rsloUnmatchedIfStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedGatherStatement
+		rsloUnmatchedGatherStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedWhileStatement
+		rsloUnmatchedWhileStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedForStatement
+		rsloUnmatchedForStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedIlluminanceStatement
+		rsloUnmatchedIlluminanceStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedIlluminateStatement
+		rsloUnmatchedIlluminateStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUnmatchedSolarStatement
+		rsloUnmatchedSolarStatement
 		{
 			$$	=	$1;
 		}
@@ -1116,28 +1116,28 @@ slUnmatchedStatement:
 
 		////////////////////////////////////////////////
 		// Break statement
-slBreakStatement:
+rsloBreakStatement:
 		SL_BREAK SL_FLOAT_VALUE SL_SEMI_COLON
 		{
 			CFunction	*cFunction;
 			int			bc;
 			char		tmp[256];
 
-			if (sscanf($2,"%d",&bc) != 1) sdr->error("Invalid break count: %s\n",$2);
+			if (sscanf($2,"%d",&bc) != 1) rslo->error("Invalid break count: %s\n",$2);
 
-			if (bc <= 0) sdr->error("Bad break count: %s\n",$2);
+			if (bc <= 0) rslo->error("Bad break count: %s\n",$2);
 
-			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = rslo->functionStack->last(); cFunction != nullptr; cFunction = rslo->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
 				if (bc == 0) break;
 
-				sdr->error("Break target not found\n");
+				rslo->error("Break target not found\n");
 				break;
 			}
 
-			if (cFunction == nullptr) sdr->error("Break target not found\n");
+			if (cFunction == nullptr) rslo->error("Break target not found\n");
 
 			snprintf(tmp,sizeof(tmp),"%s\t%s\n",opcodeBreak,$2);
 
@@ -1150,19 +1150,19 @@ slBreakStatement:
 			char		tmp[256];
 			int			bc	=	(int) 1;
 
-			sdr->functionStack->push(sdr->lastFunction);
-			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
+			rslo->functionStack->push(rslo->lastFunction);
+			for(cFunction = rslo->functionStack->last(); cFunction != nullptr; cFunction = rslo->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
 				if (bc == 0) break;
 
-				sdr->error("Break target not found\n");
+				rslo->error("Break target not found\n");
 				break;
 			}
-			sdr->lastFunction	=	sdr->functionStack->pop();
+			rslo->lastFunction	=	rslo->functionStack->pop();
 
-			if (cFunction == nullptr) sdr->error("Break target not found\n");
+			if (cFunction == nullptr) rslo->error("Break target not found\n");
 
 			snprintf(tmp,sizeof(tmp),"%s\t1\n",opcodeBreak);
 
@@ -1172,28 +1172,28 @@ slBreakStatement:
 
 		////////////////////////////////////////////////
 		// Continue statement
-slContinueStatement:
+rsloContinueStatement:
 		SL_CONTINUE SL_FLOAT_VALUE SL_SEMI_COLON
 		{
 			CFunction	*cFunction;
 			char		tmp[256];
 			int			bc;
 
-			if (sscanf($2,"%d",&bc) != 1) sdr->error("Bad continue count: %s\n",$2);
+			if (sscanf($2,"%d",&bc) != 1) rslo->error("Bad continue count: %s\n",$2);
 
-			if (bc <= 0) sdr->error("Bad continue count: %s\n",$2);
+			if (bc <= 0) rslo->error("Bad continue count: %s\n",$2);
 
-			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = rslo->functionStack->last(); cFunction != nullptr; cFunction = rslo->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
 				if (bc == 0) break;
 
-				sdr->error("Continue target not found\n");
+				rslo->error("Continue target not found\n");
 				break;
 			}
 
-			if (cFunction == nullptr) sdr->error("Continue target not found\n");
+			if (cFunction == nullptr) rslo->error("Continue target not found\n");
 
 			snprintf(tmp,sizeof(tmp),"%s\t%s\n",opcodeContinue,$2);
 
@@ -1206,17 +1206,17 @@ slContinueStatement:
 			char		tmp[256];
 			int			bc	=	(int) 1;
 
-			for(cFunction = sdr->functionStack->last(); cFunction != nullptr; cFunction = sdr->functionStack->prev()) {
+			for(cFunction = rslo->functionStack->last(); cFunction != nullptr; cFunction = rslo->functionStack->prev()) {
 				if (strcmp(cFunction->symbolName,constantLoopName) == 0) bc--;
 				else if (strcmp(cFunction->symbolName,constantBlockName) == 0) continue;
 
 				if (bc == 0) break;
 				
-				sdr->error("Continue target not found\n");
+				rslo->error("Continue target not found\n");
 				break;
 			}
 
-			if (cFunction == nullptr) sdr->error("Continue target not found\n");
+			if (cFunction == nullptr) rslo->error("Continue target not found\n");
 
 			snprintf(tmp,sizeof(tmp),"%s\t1\n",opcodeContinue);
 
@@ -1226,13 +1226,13 @@ slContinueStatement:
 
 		////////////////////////////////////////////////
 		// Return statement
-slReturnStatement:
+rsloReturnStatement:
 		SL_RETURN 
 		{
-			CFunction	*cFun = sdr->lastFunction;
+			CFunction	*cFun = rslo->lastFunction;
 			
 			// Work out what we're returning from
-			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
+			for (cFun = rslo->functionStack->last(); cFun != nullptr; cFun = rslo->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
@@ -1242,41 +1242,41 @@ slReturnStatement:
 			CParameter	*retParam = (cFun != nullptr) ? cFun->returnValue : nullptr;
 			if (retParam) {
 				int returnType = retParam->type;
-				sdr->desire(returnType);
+				rslo->desire(returnType);
 			} else {
-				sdr->desire(SLC_NONE);
+				rslo->desire(SLC_NONE);
 			}
 		}
-		slAritmeticExpression SL_SEMI_COLON
+		rsloAritmeticExpression SL_SEMI_COLON
 		{
-			CFunction	*cFun	=	sdr->lastFunction;
+			CFunction	*cFun	=	rslo->lastFunction;
 			CExpression	*c;
 
-			sdr->undesire();
+			rslo->undesire();
 			
 			// Skip over loops
-			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
+			for (cFun = rslo->functionStack->last(); cFun != nullptr; cFun = rslo->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
 			}
 
 			if (cFun ==	nullptr) {
-				sdr->error("Return target not found\n");
+				rslo->error("Return target not found\n");
 				$$	=	new CNullExpression;
 			} else {
 				if (cFun->returnValue == nullptr) {
-					if (cFun == sdr->shaderFunction)
-						sdr->warning("Shader was not expecting a return statement\n");
+					if (cFun == rslo->shaderFunction)
+						rslo->warning("Shader was not expecting a return statement\n");
 					else
-						sdr->error("Function \"%s\" was not expecting a return value\n",cFun->symbolName);
+						rslo->error("Function \"%s\" was not expecting a return value\n",cFun->symbolName);
 					c	=	new CNullExpression;
 				} else {
 					// Warn if the actual return type is different from the declared return type. Some type conversions
 					// (like upconvert float to vector) can be done, but may not be intended.
 					if (($3->type & (SLC_FLOAT|SLC_VECTOR|SLC_STRING|SLC_MATRIX)) 
 						!= (cFun->returnValue->type & (SLC_FLOAT|SLC_VECTOR|SLC_STRING|SLC_MATRIX)))
-						sdr->warning("Return value of function \"%s\" does not match function declaration\n",cFun->symbolName);
+						rslo->warning("Return value of function \"%s\" does not match function declaration\n",cFun->symbolName);
 						
 					// if the return type is uniform, set the return value to uniform
 					if ($3->type & SLC_UNIFORM) cFun->returnValue->type |= SLC_UNIFORM;
@@ -1291,19 +1291,19 @@ slReturnStatement:
 	|
 		SL_RETURN SL_SEMI_COLON
 		{
-			CFunction	*cFun	=	sdr->lastFunction;
+			CFunction	*cFun	=	rslo->lastFunction;
 
 			// Skip over loops
-			for (cFun = sdr->functionStack->last(); cFun != nullptr; cFun = sdr->functionStack->prev()) {
+			for (cFun = rslo->functionStack->last(); cFun != nullptr; cFun = rslo->functionStack->prev()) {
 				if (strcmp(cFun->symbolName,constantBlockName) == 0) continue;
 				if (strcmp(cFun->symbolName,constantLoopName) == 0) continue;
 				break;
 			}
 
-			if (cFun ==	nullptr)	sdr->error("Return target not found\n");
+			if (cFun ==	nullptr)	rslo->error("Return target not found\n");
 			else {
 				if (cFun->returnValue != nullptr) {
-					sdr->error("Function \"%s\" was expecting a return value\n",cFun->symbolName);
+					rslo->error("Function \"%s\" was expecting a return value\n",cFun->symbolName);
 				}
 			}
 		}
@@ -1312,34 +1312,34 @@ slReturnStatement:
 
 		////////////////////////////////////////////////
 		// While statement
-slWhileStartStatement:
+rsloWhileStartStatement:
 		SL_WHILE
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
 		{
-			(void)sdr->newFunction(constantLoopName);
+			(void)rslo->newFunction(constantLoopName);
 
 			$$	=	$3;
 		}
 		;
 
 
-slWhileStatement:
-		slWhileStartStatement
-		slMatchedStatement
+rsloWhileStatement:
+		rsloWhileStartStatement
+		rsloMatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
 		;
 
-slUnmatchedWhileStatement:
-		slWhileStartStatement
-		slUnmatchedStatement
+rsloUnmatchedWhileStatement:
+		rsloWhileStartStatement
+		rsloUnmatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CForLoop(nullptr,$1,nullptr,$2);
 		}
@@ -1347,47 +1347,47 @@ slUnmatchedWhileStatement:
 
 		////////////////////////////////////////////////
 		// A general assignment statement
-slAssignmentStatement:
+rsloAssignmentStatement:
 		SL_IDENTIFIER_VALUE
 		SL_EQUAL
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {	
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CAssignmentExpression(cVar,$4);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_EQUAL
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else if (cVar->type & SLC_ARRAY) {
 				$$	=	new CArrayAssignmentExpression(cVar,$3,$7);
-				sdr->undesire();
+				rslo->undesire();
 			} else {
 				CList<CExpression *>	*dummyParams = new CList<CExpression *>;
 				CFunctionPrototype		*cFun;
@@ -1397,8 +1397,8 @@ slAssignmentStatement:
 				dummyParams->push($7);
 
 				// Check the builtin functions
-				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-					if (cFun->match("setcomp",dummyParams,sdr->desired())) break;
+				for (cFun = rslo->builtinFunctions->first(); cFun != nullptr; cFun = rslo->builtinFunctions->next()) {
+					if (cFun->match("setcomp",dummyParams,rslo->desired())) break;
 				}
 				
 				if (cFun == nullptr) {
@@ -1409,65 +1409,65 @@ slAssignmentStatement:
 					}
 					delete dummyParams;
 					// Report error
-					sdr->error("Can't assign to non array\n");
+					rslo->error("Can't assign to non array\n");
 					$$	=	new CNullExpression;
 				} else {
 					$$	=	new CBuiltinExpression(cFun,dummyParams);
 				}
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		;
 
 		////////////////////////////////////////////////
 		// A general assignment statement
-slUpdateStatement:
+rsloUpdateStatement:
 		SL_IDENTIFIER_VALUE
 		SL_INCREMENT_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,$4);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_DECREMENT_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeSubFloatFloat,opcodeSubVectorVector,FALSE,$4);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_INCREMENT
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,new CConstantTerminalExpression(SLC_FLOAT,strdup("1")));
 			}
@@ -1476,9 +1476,9 @@ slUpdateStatement:
 		SL_IDENTIFIER_VALUE
 		SL_DECREMENT
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CUpdateExpression(cVar,opcodeAddFloatFloat,opcodeAddVectorVector,FALSE,new CConstantTerminalExpression(SLC_FLOAT,strdup("-1")));
 			}
@@ -1487,98 +1487,98 @@ slUpdateStatement:
 		SL_IDENTIFIER_VALUE
 		SL_MULTIPLY_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeMulFloatFloat,opcodeMulVectorVector,FALSE,$4);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_DIVIDE_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CUpdateExpression(cVar,opcodeDivFloatFloat,opcodeDivVectorVector,FALSE,$4);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_INCREMENT_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 			
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_DECREMENT_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeSubFloatFloat,opcodeSubVectorVector,opcodeSubMatrixMatrix);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_INCREMENT
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,new CConstantTerminalExpression(SLC_FLOAT,strdup("1")),opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
 			}
@@ -1586,13 +1586,13 @@ slUpdateStatement:
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_DECREMENT
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
 			else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,new CConstantTerminalExpression(SLC_FLOAT,strdup("-1")),opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix);
 			}
@@ -1600,88 +1600,88 @@ slUpdateStatement:
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_MULTIPLY_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeMulFloatFloat,opcodeMulVectorVector,opcodeMulMatrixMatrix);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		SL_DIVIDE_BY
 		{
-			CVariable	*cVar				=	sdr->getVariable($1);
+			CVariable	*cVar				=	rslo->getVariable($1);
 
-			if (cVar == nullptr)	sdr->error("Identifier \"%s\" is not found\n",$1);
-			else				sdr->desire(cVar->type);
+			if (cVar == nullptr)	rslo->error("Identifier \"%s\" is not found\n",$1);
+			else				rslo->desire(cVar->type);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			CVariable			*cVar		=	sdr->getVariable($1);
+			CVariable			*cVar		=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
 				$$	=	new CNullExpression;
 			} else {
 				$$	=	new CArrayUpdateExpression(cVar,$3,$7,opcodeDivFloatFloat,opcodeDivVectorVector,opcodeDivMatrixMatrix);
-				sdr->undesire();
+				rslo->undesire();
 			}
 		}
 		;
 
 		////////////////////////////////////////////////
 		// A general for statement
-slForStartStatement:
+rsloForStartStatement:
 		SL_FOR
 		{
-			(void)sdr->newFunction(constantLoopName);
+			(void)rslo->newFunction(constantLoopName);
 		}
 
-slForStatement:
-		slForStartStatement
+rsloForStatement:
+		rsloForStartStatement
 		SL_OPEN_PARANTHESIS
-		slForInitStatement
+		rsloForInitStatement
 		SL_SEMI_COLON
-		slForCheckStatement
+		rsloForCheckStatement
 		SL_SEMI_COLON
-		slForIncrementStatement
+		rsloForIncrementStatement
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CForLoop($3,$5,$7,$9);
 		}
 		;
 
-slUnmatchedForStatement:
-		slForStartStatement
+rsloUnmatchedForStatement:
+		rsloForStartStatement
 		SL_OPEN_PARANTHESIS
-		slForInitStatement
+		rsloForInitStatement
 		SL_SEMI_COLON
-		slForCheckStatement
+		rsloForCheckStatement
 		SL_SEMI_COLON
-		slForIncrementStatement
+		rsloForIncrementStatement
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CForLoop($3,$5,$7,$9);
 		}
@@ -1689,8 +1689,8 @@ slUnmatchedForStatement:
 
 		////////////////////////////////////////////////
 		// For init statement list
-slForInitStatement:
-		slForInitStatements
+rsloForInitStatement:
+		rsloForInitStatements
 		{
 			$$	=	$1;
 		}
@@ -1702,15 +1702,15 @@ slForInitStatement:
 
 		////////////////////////////////////////////////
 		// For init statements
-slForInitStatements:
-		slAssignmentStatement
+rsloForInitStatements:
+		rsloAssignmentStatement
 		SL_COMMA
-		slForInitStatements
+		rsloForInitStatements
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
 	|
-		slAssignmentStatement
+		rsloAssignmentStatement
 		{
 			$$	=	$1;
 		}
@@ -1718,8 +1718,8 @@ slForInitStatements:
 
 		////////////////////////////////////////////////
 		// For check statement
-slForCheckStatement:
-		slAritmeticExpression
+rsloForCheckStatement:
+		rsloAritmeticExpression
 		{
 			$$	=	getConversion(SLC_FLOAT,$1);
 		}
@@ -1731,8 +1731,8 @@ slForCheckStatement:
 
 		////////////////////////////////////////////////
 		// For increment statement list
-slForIncrementStatement:
-		slForIncrementStatements
+rsloForIncrementStatement:
+		rsloForIncrementStatements
 		{
 			$$	=	$1;
 		}
@@ -1744,27 +1744,27 @@ slForIncrementStatement:
 
 		////////////////////////////////////////////////
 		// For increment statements
-slForIncrementStatements:
-		slAssignmentStatement
+rsloForIncrementStatements:
+		rsloAssignmentStatement
 		SL_COMMA
-		slForIncrementStatements
+		rsloForIncrementStatements
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
 	|
-		slAssignmentStatement
+		rsloAssignmentStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUpdateStatement
+		rsloUpdateStatement
 		SL_COMMA
-		slForIncrementStatements
+		rsloForIncrementStatements
 		{
 			$$	=	new CTwoExpressions($1,$3);
 		}
 	|
-		slUpdateStatement
+		rsloUpdateStatement
 		{
 			$$	=	$1;
 		}
@@ -1772,14 +1772,14 @@ slForIncrementStatements:
 
 		////////////////////////////////////////////////
 		// Matched if statement
-slMatchedIfStatement:
+rsloMatchedIfStatement:
 		SL_IF
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		SL_ELSE
-		slMatchedStatement
+		rsloMatchedStatement
 		{
 			$$	=	new CIfThenElse($3,$5,$7);
 		}
@@ -1787,23 +1787,23 @@ slMatchedIfStatement:
 
 		////////////////////////////////////////////////
 		// Unmatched if statement
-slUnmatchedIfStatement:
+rsloUnmatchedIfStatement:
 		SL_IF
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slStatement
+		rsloStatement
 		{
 			$$	=	new CIfThenElse($3,$5,nullptr);
 		}
 	|
 		SL_IF
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		SL_ELSE
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
 			$$	=	new CIfThenElse($3,$5,$7);
 		}
@@ -1813,29 +1813,29 @@ slUnmatchedIfStatement:
 
 		////////////////////////////////////////////////
 		// Gather parameter list
-slGatherParameterList:
-		slGatherParameterList
+rsloGatherParameterList:
+		rsloGatherParameterList
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$->push($3);
 		}
 		|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			sdr->actualParameters->push($1);
-			$$	=	sdr->actualParameters;
+			rslo->actualParameters->push($1);
+			$$	=	rslo->actualParameters;
 		}
 		;
 
-slGatherHeader:
+rsloGatherHeader:
 		SL_GATHER
 		SL_OPEN_PARANTHESIS
 		{
-			sdr->actualParameterStack->push(sdr->actualParameters);
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameterStack->push(rslo->actualParameters);
+			rslo->actualParameters	=	new CList<CExpression *>;
 		}
-		slGatherParameterList
+		rsloGatherParameterList
 		SL_CLOSE_PARANTHESIS
 		{
 			$$	=	$4;
@@ -1844,69 +1844,69 @@ slGatherHeader:
 
 		////////////////////////////////////////////////
 		// Matched if statement
-slMatchedGatherStatement:
-		slGatherHeader
-		slMatchedStatement
+rsloMatchedGatherStatement:
+		rsloGatherHeader
+		rsloMatchedStatement
 		SL_ELSE
-		slMatchedStatement
+		rsloMatchedStatement
 		{
 			$$	=	new CGatherThenElse($1,$2,$4);
-			sdr->actualParameters	=	sdr->actualParameterStack->pop();
+			rslo->actualParameters	=	rslo->actualParameterStack->pop();
 		}
 		;
 
 		////////////////////////////////////////////////
 		// Unmatched if statement
-slUnmatchedGatherStatement:
-		slGatherHeader
-		slStatement
+rsloUnmatchedGatherStatement:
+		rsloGatherHeader
+		rsloStatement
 		{
 			$$	=	new CGatherThenElse($1,$2,nullptr);
-			sdr->actualParameters	=	sdr->actualParameterStack->pop();
+			rslo->actualParameters	=	rslo->actualParameterStack->pop();
 		}
 	|
-		slGatherHeader
-		slMatchedStatement
+		rsloGatherHeader
+		rsloMatchedStatement
 		SL_ELSE
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
 			$$	=	new CGatherThenElse($1,$2,$4);
-			sdr->actualParameters	=	sdr->actualParameterStack->pop();
+			rslo->actualParameters	=	rslo->actualParameterStack->pop();
 		}
 		;
 
 		////////////////////////////////////////////////
 		// Illuminance statement
-slIlluminanceStartStatement:
+rsloIlluminanceStartStatement:
 		SL_ILLUMINANCE
 		{
-			(void)sdr->newFunction(constantLoopName);
+			(void)rslo->newFunction(constantLoopName);
 
-			sdr->requiredShaderContext	|=	SLC_SURFACE;
+			rslo->requiredShaderContext	|=	SLC_SURFACE;
 		}
 
-slIlluminanceStatement:
-		slIlluminanceStartStatement
+rsloIlluminanceStatement:
+		rsloIlluminanceStartStatement
 		SL_OPEN_PARANTHESIS
-		slArrayItems
+		rsloArrayItems
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CIlluminationLoop($3,$5);
 
 		}
 		;
 
-slUnmatchedIlluminanceStatement:
-		slIlluminanceStartStatement
+rsloUnmatchedIlluminanceStatement:
+		rsloIlluminanceStartStatement
 		SL_OPEN_PARANTHESIS
-		slArrayItems
+		rsloArrayItems
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			(void)sdr->popFunction();
+			(void)rslo->popFunction();
 
 			$$	=	new CIlluminationLoop($3,$5);
 		}
@@ -1915,57 +1915,57 @@ slUnmatchedIlluminanceStatement:
 
 		////////////////////////////////////////////////
 		// Illuminate statement
-slIlluminateStatement:
+rsloIlluminateStatement:
 		SL_ILLUMINATE
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,nullptr,nullptr,$5);
 		}
 	|
 		SL_ILLUMINATE
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,$5,$7,$9);
 		}
 		;
 
-slUnmatchedIlluminateStatement:
+rsloUnmatchedIlluminateStatement:
 		SL_ILLUMINATE
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,nullptr,nullptr,$5);
 		}
 	|
 		SL_ILLUMINATE
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeIlluminate,opcodeEndIlluminate,$3,$5,$7,$9);
 		}
@@ -1973,51 +1973,51 @@ slUnmatchedIlluminateStatement:
 
 		////////////////////////////////////////////////
 		// Solar statement
-slSolarStatement:
+rsloSolarStatement:
 		SL_SOLAR
 		SL_OPEN_PARANTHESIS
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,nullptr,nullptr,nullptr,$4);
 		}
 	|
 		SL_SOLAR
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slMatchedStatement
+		rsloMatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,nullptr,$7);
 		}
 		;
 
-slUnmatchedSolarStatement:
+rsloUnmatchedSolarStatement:
 		SL_SOLAR
 		SL_OPEN_PARANTHESIS
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,nullptr,nullptr,nullptr,$4);
 		}
 	|
 		SL_SOLAR
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
-		slUnmatchedStatement
+		rsloUnmatchedStatement
 		{
-			sdr->requiredShaderContext	|=	SLC_LIGHT;
+			rslo->requiredShaderContext	|=	SLC_LIGHT;
 
 			$$	=	new CIlluminateSolar(opcodeSolar,opcodeEndSolar,$3,$5,nullptr,$7);
 		}
@@ -2025,29 +2025,29 @@ slUnmatchedSolarStatement:
 
 		////////////////////////////////////////////////
 		// Aritmetic expression
-slAritmeticExpression:
-		slAritmeticTerminalValue
+rsloAritmeticExpression:
+		rsloAritmeticTerminalValue
 		{
 			$$	=	$1;
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_PLUS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($1,$3,opcodeAddFloatFloat,opcodeAddVectorVector,opcodeAddMatrixMatrix,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_MINUS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($1,$3,opcodeSubFloatFloat,opcodeSubVectorVector,opcodeSubMatrixMatrix,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_MULTIPLY
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	nullptr;
 
@@ -2078,227 +2078,227 @@ slAritmeticExpression:
 				$$	=	getOperation($1,$3,opcodeMulFloatFloat,opcodeMulVectorVector,opcodeMulMatrixMatrix,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_DIVIDE
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($1,$3,opcodeDivFloatFloat,opcodeDivVectorVector,opcodeDivMatrixMatrix,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_DOT
 		{
-			sdr->desire(SLC_VECTOR | SLC_VVECTOR);
+			rslo->desire(SLC_VECTOR | SLC_VVECTOR);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			sdr->undesire();
+			rslo->undesire();
 			$$	=	new CBinaryExpression(SLC_FLOAT,opcodeDotProduct,getConversion(SLC_VECTOR,$1),getConversion(SLC_VECTOR,$4));
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CROSS
 		{
-			sdr->desire(SLC_VECTOR | SLC_VVECTOR);
+			rslo->desire(SLC_VECTOR | SLC_VVECTOR);
 		}
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			sdr->undesire();
+			rslo->undesire();
 			$$	=	new CBinaryExpression(SLC_VECTOR,opcodeCrossProduct,getConversion(SLC_VECTOR,$1),getConversion(SLC_VECTOR,$4));
 		}
 	|
 		SL_PLUS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	$2;	
 		}
 	|
 		SL_MINUS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($2,opcodeNegFloat,opcodeNegVector,opcodeNegMatrix,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_QUESTION
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COLON
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			if (($3->type & SLC_TYPE_MASK) == ($5->type & SLC_TYPE_MASK)) {
 				$$	=	new CConditionalExpression($3->type,$1,$3,$5);
 			} else {
-				sdr->error("Type mismatch in conditional execution\n");
+				rslo->error("Type mismatch in conditional execution\n");
 			}
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_AND
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($1,$3,opcodeAnd,nullptr,nullptr,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_OR
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	getOperation($1,$3,opcodeOr,nullptr,nullptr,nullptr,0);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_GREATER
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatGreater,opcodeVectorGreater,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_LESS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatLess,opcodeVectorLess,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_GREATER_EQUAL
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatEGreater,opcodeVectorEGreater,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_LESS_EQUAL
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatELess,opcodeVectorELess,nullptr,nullptr,SLC_FLOAT);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_EQUAL
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatEqual,opcodeVectorEqual,nullptr,opcodeStringEqual,SLC_FLOAT);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMP_DIFFERENT
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	getOperation($1,$3,opcodeFloatNotEqual,opcodeVectorNotEqual,nullptr,opcodeStringNotEqual,SLC_FLOAT);
 		}
 	|
 		SL_NOT
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$			=	new CUnaryExpression(SLC_FLOAT,opcodeNot,getConversion(SLC_FLOAT,$2));
 		}
 		;
 
-slArrayList:
+rsloArrayList:
 		SL_OPEN_CRL_PARANTHESIS
-		slArrayItems
+		rsloArrayItems
 		SL_CLOSE_CRL_PARANTHESIS
 		{
 			$$	=	$2;
 		}
 		;
 
-slArrayItems:
-		slAritmeticExpression
+rsloArrayItems:
+		rsloAritmeticExpression
 		SL_COMMA
-		slArrayItems
+		rsloArrayItems
 		{
 			$$	=	$3;
 			$$->push($1);
 		}
 		|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	new CList<CExpression *>;
 			$$->push($1);
 		}
 		;
 
-slAritmeticTerminalValue:
+rsloAritmeticTerminalValue:
 		SL_FCN_PI
 		{
 			$$	=	new CConstantTerminalExpression(SLC_FLOAT | SLC_UNIFORM,strdup("3.141592654"));
 		}
 	|
-		slAssignmentStatement
+		rsloAssignmentStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slUpdateStatement
+		rsloUpdateStatement
 		{
 			$$	=	$1;
 		}
 	|
-		slAritmeticTypeCast
+		rsloAritmeticTypeCast
 		{
 			$$	=	$1;
 		}
 	|
-		slFunctionCall
+		rsloFunctionCall
 		{
 			$$	=	$1;
 		}
 	|
-		slTypeDecl
-		slFunctionCall
+		rsloTypeDecl
+		rsloFunctionCall
 		{
 			$$	=	getConversion($1,$2);
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
-		slTypeDecl
+		rsloTypeDecl
 		SL_TEXT_VALUE
-		slFunctionCall
+		rsloFunctionCall
 		{
 			$$	=	getConversion($1,$2,$3);
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		{
 	
-			CVariable	*cVar	=	sdr->getVariable($1);
+			CVariable	*cVar	=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
-				sdr->error("Identifier \"%s\" is not found\n",$1);
+				rslo->error("Identifier \"%s\" is not found\n",$1);
 				$$	=	new CNullExpression;
 			} else { 
 				$$	=	new CTerminalExpression(cVar);
 			}
 		}
 	|
-		slTypeDecl
+		rsloTypeDecl
 		SL_IDENTIFIER_VALUE
 		{
 	
-			CVariable	*cVar	=	sdr->getVariable($2);
+			CVariable	*cVar	=	rslo->getVariable($2);
 
 			if (cVar == nullptr) {
-				sdr->error("Identifier \"%s\" is not found\n",$2);
+				rslo->error("Identifier \"%s\" is not found\n",$2);
 				$$	=	new CNullExpression;
 			} else { 
 				$$	=	getConversion($1,new CTerminalExpression(cVar));
 			}
 			
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		{
-			CVariable *cVar	=	sdr->getVariable($1);
+			CVariable *cVar	=	rslo->getVariable($1);
 
 			if (cVar == nullptr) {
-				sdr->error("Identifier \"%s\" is not found\n",$1);
+				rslo->error("Identifier \"%s\" is not found\n",$1);
 				$$	=	new CNullExpression;
 			} else if (cVar->type & SLC_ARRAY) { 
 				$$	=	new CArrayExpression(cVar,$3);
@@ -2310,7 +2310,7 @@ slAritmeticTerminalValue:
 				dummyParams->push($3);
 
 				// Check the builtin functions
-				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
+				for (cFun = rslo->builtinFunctions->first(); cFun != nullptr; cFun = rslo->builtinFunctions->next()) {
 					if (cFun->match("comp",dummyParams,SLC_FLOAT)) break;
 				}
 				
@@ -2322,7 +2322,7 @@ slAritmeticTerminalValue:
 					}
 					delete dummyParams;
 					// Report error
-					sdr->error("Can't index non array\n");
+					rslo->error("Can't index non array\n");
 					$$	=	new CNullExpression;
 				} else {
 					$$	=	new CBuiltinExpression(cFun,dummyParams);
@@ -2341,7 +2341,7 @@ slAritmeticTerminalValue:
 		}
 	|
 		SL_OPEN_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_PARANTHESIS
 		{	
 			$$	=	$2;
@@ -2350,56 +2350,56 @@ slAritmeticTerminalValue:
 	
 
 
-slAritmeticTypeCast:
-		slTypeDecl
+rsloAritmeticTypeCast:
+		rsloTypeDecl
 		SL_TEXT_VALUE
 		{
 			// Change the expected type to float
-			sdr->undesire();
-			sdr->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
+			rslo->undesire();
+			rslo->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
 		}
-		slVectorMatrixExpression
+		rsloVectorMatrixExpression
 		{
 			$$	=	getConversion($1,$2,$4);
 
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
-		slTypeDecl
+		rsloTypeDecl
 		{
 			// Change the expected type to float
-			sdr->undesire();
-			sdr->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
+			rslo->undesire();
+			rslo->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
 		}
-		slVectorMatrixExpression
+		rsloVectorMatrixExpression
 		{
 			$$	=	getConversion($1,$3);
 
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
-		slTypeDecl
+		rsloTypeDecl
 		{
 			// Change the expected type to float
-			sdr->undesire();
-			sdr->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
+			rslo->undesire();
+			rslo->desire(SLC_FLOAT | ($1 & (~(SLC_TYPE_MASK | SLC_SUB_TYPE_MASK))));
 		}
 		SL_FLOAT_VALUE
 		{
 			$$	=	getConversion($1,new CConstantTerminalExpression(SLC_FLOAT,strdup($3)));
 
-			sdr->undesire();
+			rslo->undesire();
 		}
 	|
-		slVectorMatrixExpression
+		rsloVectorMatrixExpression
 		{
 			$$	=	$1;
 		}
 		;
 		
-slVectorMatrixExpression:
+rsloVectorMatrixExpression:
 		SL_OPEN_PARANTHESIS
-		slVMExpression
+		rsloVMExpression
 		SL_CLOSE_PARANTHESIS
 		{
 			$$	=	$2;
@@ -2407,52 +2407,52 @@ slVectorMatrixExpression:
 		;
 	
 		
-slVMExpression:
-		slAritmeticExpression
+rsloVMExpression:
+		rsloAritmeticExpression
 		{
 			$$	=	$1;
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			$$	=	new CVectorExpression($1,$3,$5);
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_COMMA
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
 			CExpression	*elements[16];
 
@@ -2481,33 +2481,33 @@ slVMExpression:
 
 
 		
-slFunctionCall:
-		slTextureCall
+rsloFunctionCall:
+		rsloTextureCall
 		{
 			CFunctionPrototype		*cFun;
-			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
+			CList<CExpression *>	*parameters	=	rslo->actualParameters;	// This is the list of parameters to the function
 
 			// Clear the desired type flags
-			sdr->undesire();
+			rslo->undesire();
 
 			// Restore the old parameters
-			sdr->actualParameters		=	sdr->actualParameterStack->pop();
+			rslo->actualParameters		=	rslo->actualParameterStack->pop();
 
 			// Check the builtin functions
-			for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-				if (cFun->perfectMatch($1,parameters,sdr->desired())) break;
+			for (cFun = rslo->builtinFunctions->first(); cFun != nullptr; cFun = rslo->builtinFunctions->next()) {
+				if (cFun->perfectMatch($1,parameters,rslo->desired())) break;
 			}
 
 			if (cFun == nullptr) {
-				for (cFun = sdr->builtinFunctions->first(); cFun != nullptr; cFun = sdr->builtinFunctions->next()) {
-					if (cFun->match($1,parameters,sdr->desired())) break;
+				for (cFun = rslo->builtinFunctions->first(); cFun != nullptr; cFun = rslo->builtinFunctions->next()) {
+					if (cFun->match($1,parameters,rslo->desired())) break;
 				}
 			}
 
 			if (cFun != nullptr) {
 				$$	=	new CBuiltinExpression(cFun,parameters);
 			} else {
-				sdr->error("Function \"%s\" is not found\n",$1);
+				rslo->error("Function \"%s\" is not found\n",$1);
 				if (parameters->numItems != 0) {
 					CExpression	*cCode;
 					while((cCode = parameters->pop()) != nullptr) {
@@ -2519,7 +2519,7 @@ slFunctionCall:
 			}
 		}
 		|
-		slFunCall
+		rsloFunCall
 		{
 			$$	=	$1;
 		}
@@ -2527,17 +2527,17 @@ slFunctionCall:
 
 	
 
-slFunCallHeader:
+rsloFunCallHeader:
 		SL_IDENTIFIER_VALUE
 		SL_OPEN_PARANTHESIS
 		{
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 
 			// Set the name
 			$$	=	$1;
@@ -2547,12 +2547,12 @@ slFunCallHeader:
 		SL_OPEN_PARANTHESIS
 		{
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 
 			// Set the name
 			$$	=	"surface";
@@ -2562,34 +2562,34 @@ slFunCallHeader:
 		SL_OPEN_PARANTHESIS
 		{
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 
 			// Set the name
 			$$	=	"displacement";
 		}
 		;
 
-slFunCall:
-		slFunCallHeader
-		slFunctionCallParameterList
+rsloFunCall:
+		rsloFunCallHeader
+		rsloFunctionCallParameterList
 		SL_CLOSE_PARANTHESIS
 		{
 			CFunction				*cFun;
-			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
+			CList<CExpression *>	*parameters	=	rslo->actualParameters;	// This is the list of parameters to the function
 
 			// Clear the desired type flags
-			sdr->undesire();
+			rslo->undesire();
 
 			// Restore the old parameters
-			sdr->actualParameters		=	sdr->actualParameterStack->pop();
+			rslo->actualParameters		=	rslo->actualParameterStack->pop();
 
 			// Search for the CFunction here....
-			cFun	=	sdr->getFunction($1,parameters);
+			cFun	=	rslo->getFunction($1,parameters);
 
 			if (cFun != nullptr) {													// Cool, the function exists
 				// A function with the same name is defined ... 
@@ -2605,27 +2605,27 @@ slFunCall:
 				CFunctionPrototype	*cProto;
 				// Check the builtin CFunctions
 
-				for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
-					if (cProto->perfectMatch($1,parameters,sdr->desired())) break;
+				for (cProto = rslo->builtinFunctions->first(); cProto != nullptr; cProto = rslo->builtinFunctions->next()) {
+					if (cProto->perfectMatch($1,parameters,rslo->desired())) break;
 				}
 
 				if (cProto == nullptr) {
-					for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
-						if (cProto->match($1,parameters,sdr->desired())) break;
+					for (cProto = rslo->builtinFunctions->first(); cProto != nullptr; cProto = rslo->builtinFunctions->next()) {
+						if (cProto->match($1,parameters,rslo->desired())) break;
 					}
 				}
 
 				// Check if there is a DSO implementing this function
 				if (cProto == nullptr) {
-					sdr->enumerateDso($1);
+					rslo->enumerateDso($1);
 
-					for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
-						if (cProto->perfectMatch($1,parameters,sdr->desired())) break;
+					for (cProto = rslo->builtinFunctions->first(); cProto != nullptr; cProto = rslo->builtinFunctions->next()) {
+						if (cProto->perfectMatch($1,parameters,rslo->desired())) break;
 					}
 
 					if (cProto == nullptr) {
-						for (cProto = sdr->builtinFunctions->first(); cProto != nullptr; cProto = sdr->builtinFunctions->next()) {
-							if (cProto->match($1,parameters,sdr->desired())) break;
+						for (cProto = rslo->builtinFunctions->first(); cProto != nullptr; cProto = rslo->builtinFunctions->next()) {
+							if (cProto->match($1,parameters,rslo->desired())) break;
 						}
 					}
 				}
@@ -2633,7 +2633,7 @@ slFunCall:
 				if (cProto != nullptr) {
 					$$	=	new CBuiltinExpression(cProto,parameters);
 				} else {
-					sdr->error("Function \"%s\" is not found\n",$1);
+					rslo->error("Function \"%s\" is not found\n",$1);
 					if (parameters->numItems != 0) {
 						CExpression	*cCode;
 						while((cCode = parameters->pop()) != nullptr) {
@@ -2650,7 +2650,7 @@ slFunCall:
 
 
 		// Either text of value
-slTextureNameSpecifier:
+rsloTextureNameSpecifier:
 		SL_TEXT_VALUE
 		{
 			$$	=	new CConstantTerminalExpression(SLC_STRING | SLC_UNIFORM,strdup($1));
@@ -2658,7 +2658,7 @@ slTextureNameSpecifier:
 		|
 		SL_IDENTIFIER_VALUE
 		{
-			CVariable	*cVar	=	sdr->getVariable($1);
+			CVariable	*cVar	=	rslo->getVariable($1);
 
 			if (cVar != nullptr)	$$	=	new CTerminalExpression(cVar);
 			else				$$	=	new CNullExpression;
@@ -2666,9 +2666,9 @@ slTextureNameSpecifier:
 		;
 
 
-slTextureChannelSpecifier:
+rsloTextureChannelSpecifier:
 		SL_OPEN_SQR_PARANTHESIS
-		slAritmeticExpression
+		rsloAritmeticExpression
 		SL_CLOSE_SQR_PARANTHESIS
 		{
 			$$	=	getConversion(SLC_FLOAT | ($2->type & SLC_UNIFORM),$2);
@@ -2684,17 +2684,17 @@ slTextureChannelSpecifier:
 		//	texture("textureName",...)
 		//	texture(textureIdentifier[channelIdentifier],...)
 		//	texture("textureName"[channelIdentifier],...)
-slTextureCall:
-		slTextureName
+rsloTextureCall:
+		rsloTextureName
 		SL_OPEN_PARANTHESIS
-		slTextureNameSpecifier
-		slTextureChannelSpecifier
+		rsloTextureNameSpecifier
+		rsloTextureChannelSpecifier
 		SL_COMMA
-		slFunctionCallParameterList
+		rsloFunctionCallParameterList
 		SL_CLOSE_PARANTHESIS
 		{
 			// Fake the parameters
-			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
+			CList<CExpression *>	*parameters	=	rslo->actualParameters;	// This is the list of parameters to the function
 			CList<CExpression *>	*pl			=	new CList<CExpression *>;
 			CExpression				*cExpression;
 
@@ -2704,19 +2704,19 @@ slTextureCall:
 				pl->push(cExpression);
 
 			delete parameters;
-			sdr->actualParameters	=	pl;
+			rslo->actualParameters	=	pl;
 
 			$$						=	$1;
 		}
 		|
-		slTextureName
+		rsloTextureName
 		SL_OPEN_PARANTHESIS
-		slTextureNameSpecifier
-		slTextureChannelSpecifier
+		rsloTextureNameSpecifier
+		rsloTextureChannelSpecifier
 		SL_CLOSE_PARANTHESIS
 		{
 			// Fake the parameters
-			CList<CExpression *>	*parameters	=	sdr->actualParameters;	// This is the list of parameters to the function
+			CList<CExpression *>	*parameters	=	rslo->actualParameters;	// This is the list of parameters to the function
 			CList<CExpression *>	*pl			=	new CList<CExpression *>;
 			CExpression				*cExpression;
 
@@ -2726,24 +2726,24 @@ slTextureCall:
 				pl->push(cExpression);
 
 			delete parameters;
-			sdr->actualParameters	=	pl;
+			rslo->actualParameters	=	pl;
 
 			$$						=	$1;
 		}
 		;
 
-slTextureName:
+rsloTextureName:
 		SL_TEXTURE
 		{
 			$$	=	"texture";
 
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 		}
 		|
 		SL_SHADOW
@@ -2751,12 +2751,12 @@ slTextureName:
 			$$	=	"shadow";
 
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 		}
 		|
 		SL_ENVIRONMENT
@@ -2764,12 +2764,12 @@ slTextureName:
 			$$	=	"environment";
 
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 		}
 		|
 		SL_BUMP
@@ -2777,19 +2777,19 @@ slTextureName:
 			$$	=	"bump";
 
 			// Save the old parameters
-			sdr->actualParameterStack->push(sdr->actualParameters);
+			rslo->actualParameterStack->push(rslo->actualParameters);
 			// Start a new parameter list
-			sdr->actualParameters	=	new CList<CExpression *>;
+			rslo->actualParameters	=	new CList<CExpression *>;
 
 			// Make sure we do not do something stupid with the parameters
-			sdr->desire(SLC_NONE);
+			rslo->desire(SLC_NONE);
 		}
 		;
 
 		////////////////////////////////////////////////
 		// CFunction Parameters
-slFunctionCallParameterList:
-		slFunctionCallParameters
+rsloFunctionCallParameterList:
+		rsloFunctionCallParameters
 		{
 		}
 	|
@@ -2797,19 +2797,19 @@ slFunctionCallParameterList:
 		}
 		;
 
-slFunctionCallParameters:
-		slAritmeticExpression
+rsloFunctionCallParameters:
+		rsloAritmeticExpression
 		SL_COMMA
 		{
-			sdr->actualParameters->push($1);
+			rslo->actualParameters->push($1);
 		}
-		slFunctionCallParameters
+		rsloFunctionCallParameters
 		{
 		}
 	|
-		slAritmeticExpression
+		rsloAritmeticExpression
 		{
-			sdr->actualParameters->push($1);
+			rslo->actualParameters->push($1);
 		}
 		;
 
@@ -2819,32 +2819,32 @@ slFunctionCallParameters:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wnull-dereference"
-#include	"lex.sl.cpp"
+#include	"lex.rslo.cpp"
 #pragma GCC diagnostic pop
 
 
 
 int	CScriptContext::compile(FILE *in,char *outName) {
 	
-	sdr		=	this;
+	rslo = this;
 
-	slin	=	in;
+	rsloin	=	in;
 
-	slparse();
+	rsloparse();
 
 	// Must have exactly one main shader function
-	if (!sdr->shaderType)
-		sdr->error("Shader file missing main shader body\n");
+	if (!rslo->shaderType)
+		rslo->error("Shader file missing main shader body\n");
 
 	if (compileError == 0) {
 		char		*tmp;
 
 		if (outName == nullptr) {
 			// If there's no compile error, dump the compiled code
-			tmp	=	new char[strlen(sdr->shaderName)+6];
+			tmp	=	new char[strlen(rslo->shaderName)+6];
 
-			strcpy(tmp,sdr->shaderName);
-			if (sdr->legacySdr)
+			strcpy(tmp,rslo->shaderName);
+			if (rslo->legacyRSLObjectExt)
 				strcat(tmp,".sdr");
 			else
 				strcat(tmp,".rslo");
@@ -2852,7 +2852,7 @@ int	CScriptContext::compile(FILE *in,char *outName) {
 			tmp	=	outName;
 		}
 
-		sdr->generateCode(tmp);
+		rslo->generateCode(tmp);
 
 		if (tmp != outName) delete [] tmp;
 
@@ -2862,10 +2862,10 @@ int	CScriptContext::compile(FILE *in,char *outName) {
 }
 
 
-void	yyerror(const char *) {
-	if (yytext && yytext[0])
-		sdr->error("Parse error before '%s'\n",yytext);
+void	rsloerror(const char *) {
+	if (rslotext && rslotext[0])
+		rslo->error("Parse error before '%s'\n",rslotext);
 	else
-		sdr->error("Parse error\n");
+		rslo->error("Parse error\n");
 }
 

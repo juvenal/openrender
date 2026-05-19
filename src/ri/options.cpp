@@ -557,10 +557,7 @@ TSearchpath *COptions::pickSearchpath(const char *name) {
     else if (strstr(name, "bm") != NULL) {
         return texturePath;
     }
-    else if (strstr(name, "sdr") != NULL) {
-        return shaderPath;
-    }
-    else if (strstr(name, "rslo") != NULL) {
+    else if (strstr(name, "rslo") != NULL || strstr(name, "sdr") != NULL) {
         return shaderPath;
     }
     else if (strstr(name, "oslo") != NULL) {

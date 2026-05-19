@@ -2,7 +2,7 @@
 /**
  * Project: openRender
  *
- * File: sdr.y
+ * File: rslo.y
  *
  * Description:
  *   Parser file for CShader.
@@ -20,19 +20,39 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sl.y
+//  File				:	rslo.y
 //  Classes				:	-
 //  Description			:	This is the parser file for CShader
 //
 ////////////////////////////////////////////////////////////////////////
-#undef alloca
+#define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) OPCODE_##name,
+#define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) OPCODE_##name,
+#define DEFLINKOPCODE(name, text, nargs) OPCODE_##name,
+#define DEFLINKFUNC(name, text, prototype, par) FUNCTION_##name,
+#define DEFFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
+#define DEFLIGHTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
+#define DEFSHORTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
+
+typedef enum {
+#include "scriptFunctions.h"
+#include "scriptOpcodes.h"
+    OPCODE_NOP
+} TRSLObjectCode;
+
+#undef DEFOPCODE
+#undef DEFSHORTOPCODE
+#undef DEFFUNC
+#undef DEFLIGHTFUNC
+#undef DEFSHORTFUNC
+#undef DEFLINKOPCODE
+#undef DEFLINKFUNC
+
 #include <math.h>
 #include <string.h>
 
 #include "common/global.h"
 #include "common/containers.h"
 #include "shader.h"
-#include "slcode.h"
 #include "error.h"
 #include "renderer.h"
 #include "dso.h"
@@ -43,13 +63,13 @@
 
 
 // Some forward definitions
-		void							slerror(const char *);		// Forward definition for stupid yacc
-		int								sllex(void );				// Forward definition for stupid yacc
+		void							rsloerror(const char *);		// Forward definition for stupid yacc
+		int								rslolex(void );				// Forward definition for stupid yacc
 
 		const	char					*initLabel	=	"#!Init";	// The label for the init
 		const	char					*codeLabel	=	"#!Code";	// The label for the code
 
-typedef struct TSlVariable {
+typedef struct TRSLObjectVariable {
 	char			name[64];
 	int				index;
 	int				multiplicity;
@@ -57,29 +77,29 @@ typedef struct TSlVariable {
 	EVariableClass	container;
 	int				uniform;
 	CVariable		*variable;
-	TSlVariable		*next;
-} TSlVariable;
+	TRSLObjectVariable		*next;
+} TRSLObjectVariable;
 
-typedef struct TSlLabel {
+typedef struct TRSLObjectLabel {
 	char			name[64];
 	int				index;
 	TArgument		*argument;
-	TSlLabel		*next;
-} TSlLabel;
+	TRSLObjectLabel		*next;
+} TRSLObjectLabel;
 
 typedef struct {
-	ESlCode			entryPoint;
+	TRSLObjectCode			entryPoint;
 	const char		*name;
 	int				nargs;
 	unsigned int	usedParameters;
-} TSlOpcode;
+} TRSLObjectOpcode;
 
 typedef struct {
-	ESlCode			entryPoint;
+	TRSLObjectCode			entryPoint;
 	const char		*name;
 	const char		*prototype;
 	unsigned int	usedParameters;
-} TSlFunction;
+} TRSLObjectFunction;
 
 #define	DEFOPCODE(name,text,nargs,expr_pre,expr,expr_update,expr_post,params)			{OPCODE_##name,text,nargs,params},
 #define	DEFSHORTOPCODE(name,text,nargs,expr_pre,expr,expr_update,expr_post,params)		{OPCODE_##name,text,nargs,params},
@@ -89,7 +109,7 @@ typedef struct {
 #define	DESHORTFFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)
 #define	DEFLINKFUNC(name,text,prototype,par)
 
-static	TSlOpcode	opcodes[]	=	{
+static	TRSLObjectOpcode	opcodes[]	=	{
 #include "scriptOpcodes.h"
 {	OPCODE_NOP	,	NULL	,	0	,	0	}
 };
@@ -109,7 +129,7 @@ static	TSlOpcode	opcodes[]	=	{
 #define	DEFLIGHTFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)		{FUNCTION_##name,text,prototype,par},
 #define	DEFSHORTFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)		{FUNCTION_##name,text,prototype,par},
 #define	DEFLINKFUNC(name,text,prototype,par)											{FUNCTION_##name,text,prototype,par},
-static	TSlFunction		functions[]	=	{
+static	TRSLObjectFunction		functions[]	=	{
 #include "scriptFunctions.h"
 {	OPCODE_NOP	,	NULL	,	NULL	,	0	}
 };
@@ -183,9 +203,9 @@ static	TSlFunction		functions[]	=	{
 				char					**strings;				// Strings defined
 				void					**constantEntries;		// Where the constant entries are stored
 
-				TSlVariable				*definedVariables;		// List of defined variables
-				TSlLabel				*labelReferences;		// List of label references
-				TSlLabel				*labelDefinitions;		// List of label definitions
+				TRSLObjectVariable				*definedVariables;		// List of defined variables
+				TRSLObjectLabel				*labelReferences;		// List of label references
+				TRSLObjectLabel				*labelDefinitions;		// List of label definitions
 		} TShaderData;
 
 		TShaderData						currentData;
@@ -228,7 +248,7 @@ static	TSlFunction		functions[]	=	{
 											return	1;
 											break;
 										default:
-											slerror("Unknown type (bug)");
+											rsloerror("Unknown type (bug)");
 											break;
 										}
 
@@ -255,7 +275,7 @@ static	TSlFunction		functions[]	=	{
 										case 2:
 											{
 												// Create a new variable
-												TSlVariable	*cVariable	=	new TSlVariable;
+												TRSLObjectVariable	*cVariable	=	new TRSLObjectVariable;
 
 												strcpy(cVariable->name,name);
 												cVariable->multiplicity	=	numItems;
@@ -428,7 +448,7 @@ static	TSlFunction		functions[]	=	{
 										// Comments				:
 		static	void					addVariableReference(char *name) {
 											CVariable		*var;
-											TSlVariable		*cVariable;
+											TRSLObjectVariable		*cVariable;
 
 											switch(currentData.passNumber) {
 											case 1:
@@ -486,7 +506,7 @@ static	TSlFunction		functions[]	=	{
 
 													currentData.currentArgumentPlace++;
 												} else {
-													slerror("Unknown variable");
+													rsloerror("Unknown variable");
 												}
 
 												break;
@@ -507,7 +527,7 @@ static	TSlFunction		functions[]	=	{
 											case 2:
 												// Is this an opcode or function
 												if (currentData.currentPrototype[0] == '~') {
-													ESlCode	opcode;
+													TRSLObjectCode	opcode;
 													int		i;
 
 													for(i=0;opcodes[i].name != NULL;i++) {
@@ -519,7 +539,7 @@ static	TSlFunction		functions[]	=	{
 													}
 
 													if (opcodes[i].name == NULL)
-														slerror("Unknown opcode");
+														rsloerror("Unknown opcode");
 													else {
 														assert((currentData.currentArgument+2) < 256);
 														assert((currentData.opcodeUniform) < 256);
@@ -533,7 +553,7 @@ static	TSlFunction		functions[]	=	{
 													}
 												} else {
 													int			i;
-													ESlCode		opcode;
+													TRSLObjectCode		opcode;
 
 													for(i=0;functions[i].name != NULL;i++) {
 														if (strcmp(functions[i].name,currentData.currentOpcode) == 0) {
@@ -623,7 +643,7 @@ static	TSlFunction		functions[]	=	{
 															currentData.currentOpcodePlace->dso				=	dso;
 															currentData.currentOpcodePlace++;
 														} else {
-															slerror("Unknown function");
+															rsloerror("Unknown function");
 														}
 													}
 												}
@@ -647,7 +667,7 @@ static	TSlFunction		functions[]	=	{
 											break;
 										case 2:
 											{
-												TSlLabel	*cLabel	=	new TSlLabel;
+												TRSLObjectLabel	*cLabel	=	new TRSLObjectLabel;
 
 												strcpy(cLabel->name,name);
 												cLabel->index	=	(int) (currentData.currentOpcodePlace - currentData.code);
@@ -658,11 +678,11 @@ static	TSlFunction		functions[]	=	{
 													cLabel->argument				=	currentData.currentArgumentPlace++;
 													currentData.currentArgument++;
 												} else {
-													TSlLabel	*tLabel;
+													TRSLObjectLabel	*tLabel;
 
 													for (tLabel=currentData.labelDefinitions;tLabel!=NULL;tLabel=tLabel->next) {
 														if (strcmp(tLabel->name,cLabel->name) == 0) {
-															slerror("Duplicate label definition\n");
+															rsloerror("Duplicate label definition\n");
 														}
 													}
 
@@ -685,10 +705,10 @@ static	TSlFunction		functions[]	=	{
 		int							getOpcode(char *,int);
 		int							getFunction(char *,char *,int *ps = NULL);
 		void						*newVariable(char *,int,int,int,int m=1);
-		TSlLabel					*newLabelDef(char *,int);
-		TSlLabel					*newLabelRef(char *,int);
+		TRSLObjectLabel					*newLabelDef(char *,int);
+		TRSLObjectLabel					*newLabelRef(char *,int);
 %}
-%union slval {
+%union rsloval {
 	float	real;
 	char	*string;
 	matrix	m;
@@ -735,26 +755,26 @@ static	TSlFunction		functions[]	=	{
 %token<string>	SCRL_IDENTIFIER_VALUE
 %token<string>	SCRL_LABEL_VALUE
 %token<real>	SCRL_FLOAT_VALUE
-%type<v>		slVectorIn
-%type<v>		slVector
-%type<v>		slVectorValue
+%type<v>		rsloVectorIn
+%type<v>		rsloVector
+%type<v>		rsloVectorValue
 %%
 start:
-				slType
-				slParameterDefinitions
-				slVariableDefinitions
-				slInit
-				slCode
-				slEmptySpace
+				rsloType
+				rsloParameterDefinitions
+				rsloVariableDefinitions
+				rsloInit
+				rsloCode
+				rsloEmptySpace
 				;
 
-slEmptySpace:
+rsloEmptySpace:
 				|
 				SCRL_NL
-				slEmptySpace
+				rsloEmptySpace
 				;
 
-slVectorIn:		SCRL_EQUAL
+rsloVectorIn:		SCRL_EQUAL
 				SCRL_TEXT_VALUE
 				SCRL_FLOAT_VALUE
 				{
@@ -803,7 +823,7 @@ slVectorIn:		SCRL_EQUAL
 				}
 				;
 
-slVector:		slVectorIn
+rsloVector:		rsloVectorIn
 				{
 					$$[0]	=	$1[0];
 					$$[1]	=	$1[1];
@@ -811,7 +831,7 @@ slVector:		slVectorIn
 				}
 				;
 
-slType:
+rsloType:
 				SCRL_SURFACE
 				SCRL_NL
 				{
@@ -850,21 +870,21 @@ slType:
 				}
 				;
 
-slParameterDefinitions:
+rsloParameterDefinitions:
 				SCRL_PARAMETERS
 				SCRL_COLON
 				SCRL_NL
-				slParameters
+				rsloParameters
 				;
 
-slParameters:
-				slParameters
-				slParameter
+rsloParameters:
+				rsloParameters
+				rsloParameter
 				SCRL_NL
 				|
 				;
 
-slContainer:
+rsloContainer:
 				SCRL_UNIFORM
 				{
 					currentData.currentParameterClass	=	CONTAINER_UNIFORM;
@@ -910,30 +930,30 @@ slContainer:
 				;
 
 
-slParameter:
-				slContainer
-				slAParameter
+rsloParameter:
+				rsloContainer
+				rsloAParameter
 				;
 
 
-slAParameter:
-				slFloatParameter
+rsloAParameter:
+				rsloFloatParameter
 				|
-				slStringParameter
+				rsloStringParameter
 				|
-				slColorParameter
+				rsloColorParameter
 				|
-				slVectorParameter
+				rsloVectorParameter
 				|
-				slNormalParameter
+				rsloNormalParameter
 				|
-				slPointParameter
+				rsloPointParameter
 				|
-				slMatrixParameter
+				rsloMatrixParameter
 				;
 
 
-slFloatParameter:
+rsloFloatParameter:
 				SCRL_FLOAT
 				SCRL_IDENTIFIER_VALUE
 				SCRL_EQUAL
@@ -976,7 +996,7 @@ slFloatParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slFloatArrayInitializer
+				rsloFloatArrayInitializer
 				|
 				SCRL_FLOAT
 				SCRL_IDENTIFIER_VALUE
@@ -996,19 +1016,19 @@ slFloatParameter:
 				;
 
 
-slFloatArrayInitializer:
+rsloFloatArrayInitializer:
 				SCRL_OPEN_SQR_PARANTHESIS
-				slFloatArrayInitializerItems
+				rsloFloatArrayInitializerItems
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
 					if(currentData.numArrayItemsRemaining){
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				;
 
-slFloatArrayInitializerItems:
-				slFloatArrayInitializerItems
+rsloFloatArrayInitializerItems:
+				rsloFloatArrayInitializerItems
 				SCRL_FLOAT_VALUE
 				{
 					if(currentData.numArrayItemsRemaining > 0){
@@ -1017,14 +1037,14 @@ slFloatArrayInitializerItems:
 						}
 						currentData.numArrayItemsRemaining--;
 					} else{
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				|
 				;
 
 
-slStringParameter:
+rsloStringParameter:
 				SCRL_STRING
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1094,7 +1114,7 @@ slStringParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slStringArrayInitializer
+				rsloStringArrayInitializer
 				|
 				SCRL_STRING
 				SCRL_IDENTIFIER_VALUE
@@ -1112,19 +1132,19 @@ slStringParameter:
 					}
 				}
 
-slStringArrayInitializer:
+rsloStringArrayInitializer:
 				SCRL_OPEN_SQR_PARANTHESIS
-				slStringArrayInitializerItems
+				rsloStringArrayInitializerItems
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
 					if(currentData.numArrayItemsRemaining){
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				;
 
-slStringArrayInitializerItems:
-				slStringArrayInitializerItems
+rsloStringArrayInitializerItems:
+				rsloStringArrayInitializerItems
 				SCRL_TEXT_VALUE
 				{
 					if(currentData.numArrayItemsRemaining > 0){
@@ -1134,20 +1154,20 @@ slStringArrayInitializerItems:
 						currentData.numArrayItemsRemaining--;
 					}
 					else{
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				|
 				;
 
 
-slColorParameter:
+rsloColorParameter:
 				SCRL_COLOR
 				SCRL_IDENTIFIER_VALUE
 				{
 					currentData.currentParameterType	=	TYPE_COLOR;
 				}
-				slVector
+				rsloVector
 				{
 					float	*def	=	(float *) newVariable($2,currentData.currentParameterType,1,TRUE);
 
@@ -1169,7 +1189,7 @@ slColorParameter:
 						currentData.currentArray = def;
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slVectorArrayInitializer
+				rsloVectorArrayInitializer
 				|
 				SCRL_COLOR
 				SCRL_IDENTIFIER_VALUE
@@ -1181,13 +1201,13 @@ slColorParameter:
 				}
 				;
 
-slVectorParameter:
+rsloVectorParameter:
 				SCRL_VECTOR
 				SCRL_IDENTIFIER_VALUE
 				{
 					currentData.currentParameterType	=	TYPE_VECTOR;
 				}
-				slVector
+				rsloVector
 				{
 					float	*def	=	(float *) newVariable($2,currentData.currentParameterType,1,TRUE);
 
@@ -1211,7 +1231,7 @@ slVectorParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slVectorArrayInitializer
+				rsloVectorArrayInitializer
 				|
 				SCRL_VECTOR
 				SCRL_IDENTIFIER_VALUE
@@ -1223,13 +1243,13 @@ slVectorParameter:
 				}
 				;
 
-slNormalParameter:
+rsloNormalParameter:
 				SCRL_NORMAL
 				SCRL_IDENTIFIER_VALUE
 				{
 					currentData.currentParameterType	=	TYPE_NORMAL;
 				}
-				slVector
+				rsloVector
 				{
 					float	*def	=	(float *) newVariable($2,currentData.currentParameterType,1,TRUE);
 
@@ -1253,7 +1273,7 @@ slNormalParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slVectorArrayInitializer
+				rsloVectorArrayInitializer
 				|
 				SCRL_NORMAL
 				SCRL_IDENTIFIER_VALUE
@@ -1265,13 +1285,13 @@ slNormalParameter:
 				}
 				;
 
-slPointParameter:
+rsloPointParameter:
 				SCRL_POINT
 				SCRL_IDENTIFIER_VALUE
 				{
 					currentData.currentParameterType	=	TYPE_POINT;
 				}
-				slVector
+				rsloVector
 				{
 					float	*def	=	(float *)newVariable($2,currentData.currentParameterType,1,TRUE);
 
@@ -1295,7 +1315,7 @@ slPointParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slVectorArrayInitializer
+				rsloVectorArrayInitializer
 				|
 				SCRL_POINT
 				SCRL_IDENTIFIER_VALUE
@@ -1307,7 +1327,7 @@ slPointParameter:
 				}
 				;
 
-slVectorValue:	SCRL_TEXT_VALUE
+rsloVectorValue:	SCRL_TEXT_VALUE
 				SCRL_FLOAT_VALUE
 				{
 					$$[0]	=	$2;
@@ -1347,20 +1367,20 @@ slVectorValue:	SCRL_TEXT_VALUE
 				;
 
 
-slVectorArrayInitializer:
+rsloVectorArrayInitializer:
 				SCRL_OPEN_SQR_PARANTHESIS
-				slVectorArrayInitializerItems
+				rsloVectorArrayInitializerItems
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
 					if(currentData.numArrayItemsRemaining){
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				;
 
-slVectorArrayInitializerItems:
-				slVectorArrayInitializerItems
-				slVectorValue
+rsloVectorArrayInitializerItems:
+				rsloVectorArrayInitializerItems
+				rsloVectorValue
 				{
 
 					if(currentData.numArrayItemsRemaining > 0){
@@ -1370,14 +1390,14 @@ slVectorArrayInitializerItems:
 						}
 						currentData.numArrayItemsRemaining--;
 					} else{
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				|
 				;
 
 
-slMatrixParameter:
+rsloMatrixParameter:
 				SCRL_MATRIX
 				SCRL_IDENTIFIER_VALUE
 				SCRL_EQUAL
@@ -1494,7 +1514,7 @@ slMatrixParameter:
 
 					currentData.numArrayItemsRemaining = (int) $4;
 				}
-				slMatrixArrayInitializer
+				rsloMatrixArrayInitializer
 				|
 				SCRL_MATRIX
 				SCRL_IDENTIFIER_VALUE
@@ -1514,19 +1534,19 @@ slMatrixParameter:
 				;
 
 
-slMatrixArrayInitializer:
+rsloMatrixArrayInitializer:
 				SCRL_OPEN_SQR_PARANTHESIS
-				slMatrixArrayInitializerItems
+				rsloMatrixArrayInitializerItems
 				SCRL_CLOSE_SQR_PARANTHESIS
 				{
 					if(currentData.numArrayItemsRemaining){
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				;
 
-slMatrixArrayInitializerItems:
-				slMatrixArrayInitializerItems
+rsloMatrixArrayInitializerItems:
+				rsloMatrixArrayInitializerItems
 				SCRL_OPEN_SQR_PARANTHESIS
 				SCRL_FLOAT_VALUE
 				SCRL_FLOAT_VALUE
@@ -1570,11 +1590,11 @@ slMatrixArrayInitializerItems:
 						currentData.numArrayItemsRemaining--;
 					}
 					else{
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				|
-				slMatrixArrayInitializerItems
+				rsloMatrixArrayInitializerItems
 				SCRL_FLOAT_VALUE
 				{
 					if(currentData.numArrayItemsRemaining > 0){
@@ -1601,52 +1621,52 @@ slMatrixArrayInitializerItems:
 						currentData.numArrayItemsRemaining--;
 					}
 					else{
-						slerror("Wrong number of items in array initializer\n");
+						rsloerror("Wrong number of items in array initializer\n");
 					}
 				}
 				|
 				;
 
 
-slVariableDefinitions:
+rsloVariableDefinitions:
 				SCRL_VARIABLES
 				SCRL_COLON
 				SCRL_NL
-				slVariables
+				rsloVariables
 				;
 
-slVariables:
-				slVariables
-				slVariable
+rsloVariables:
+				rsloVariables
+				rsloVariable
 				SCRL_NL
 				|
 				;
 
-slVariable:
-				slContainer
-				slFloatVariable
+rsloVariable:
+				rsloContainer
+				rsloFloatVariable
 				|
-				slContainer
-				slStringVariable
+				rsloContainer
+				rsloStringVariable
 				|
-				slContainer
-				slColorVariable
+				rsloContainer
+				rsloColorVariable
 				|
-				slContainer
-				slVectorVariable
+				rsloContainer
+				rsloVectorVariable
 				|
-				slContainer
-				slNormalVariable
+				rsloContainer
+				rsloNormalVariable
 				|
-				slContainer
-				slPointVariable
+				rsloContainer
+				rsloPointVariable
 				|
-				slContainer
-				slMatrixVariable
+				rsloContainer
+				rsloMatrixVariable
 				;
 
 
-slFloatVariable:
+rsloFloatVariable:
 				SCRL_FLOAT
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1663,7 +1683,7 @@ slFloatVariable:
 				}
 				;
 
-slStringVariable:
+rsloStringVariable:
 				SCRL_STRING
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1680,7 +1700,7 @@ slStringVariable:
 				}
 				;
 
-slVectorVariable:
+rsloVectorVariable:
 				SCRL_VECTOR
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1697,7 +1717,7 @@ slVectorVariable:
 				}
 				;
 
-slColorVariable:
+rsloColorVariable:
 				SCRL_COLOR
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1714,7 +1734,7 @@ slColorVariable:
 				}
 				;
 
-slNormalVariable:
+rsloNormalVariable:
 				SCRL_NORMAL
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1731,7 +1751,7 @@ slNormalVariable:
 				}
 				;
 
-slPointVariable:
+rsloPointVariable:
 				SCRL_POINT
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1748,7 +1768,7 @@ slPointVariable:
 				}
 				;
 
-slMatrixVariable:
+rsloMatrixVariable:
 				SCRL_MATRIX
 				SCRL_IDENTIFIER_VALUE
 				{
@@ -1765,41 +1785,41 @@ slMatrixVariable:
 				}
 				;
 
-slInit:			SCRL_INIT
+rsloInit:			SCRL_INIT
 				SCRL_NL
 				{
 					currentData.parsingInit	=	TRUE;
 					newLabel(initLabel,FALSE);
 				}
-				slShaderLine
+				rsloShaderLine
 				;
 
-slCode:			SCRL_CODE
+rsloCode:			SCRL_CODE
 				SCRL_NL
 				{
 					currentData.parsingInit	=	FALSE;
 					newLabel(codeLabel,FALSE);
 				}
-				slShaderLine
+				rsloShaderLine
 				;
 
-slShaderLine:
-				slShaderLine
-				slStatement
+rsloShaderLine:
+				rsloShaderLine
+				rsloStatement
 				SCRL_NL
 				|
-				slShaderLine
-				slLabelDefinition
+				rsloShaderLine
+				rsloLabelDefinition
 				SCRL_NL
 				|
-				slShaderLine
-				slDSO
+				rsloShaderLine
+				rsloDSO
 				SCRL_NL
 				|
 				;
 
 
-slDSO:			SCRL_DSO
+rsloDSO:			SCRL_DSO
 				SCRL_IDENTIFIER_VALUE
 				{
 					switch(currentData.passNumber) {
@@ -1820,7 +1840,7 @@ slDSO:			SCRL_DSO
 				SCRL_OPEN_PARANTHESIS
 				SCRL_TEXT_VALUE
 				SCRL_CLOSE_PARANTHESIS
-				slOperandList
+				rsloOperandList
 				{
 					switch(currentData.passNumber) {
 					case 1:
@@ -1841,7 +1861,7 @@ slDSO:			SCRL_DSO
 							currentData.currentOpcodePlace->dso				=	dso;
 							currentData.currentOpcodePlace++;
 						} else {
-							slerror("Failed to locate DSO function\n");
+							rsloerror("Failed to locate DSO function\n");
 						}
 						break;
 					default:
@@ -1850,7 +1870,7 @@ slDSO:			SCRL_DSO
 				}
 				;
 
-slOpcode:
+rsloOpcode:
 				SCRL_IDENTIFIER_VALUE
 				{
 					switch(currentData.passNumber) {
@@ -1906,9 +1926,9 @@ slOpcode:
 				}
 				;
 
-slOperandList:
-				slOperand
-				slOperandList
+rsloOperandList:
+				rsloOperand
+				rsloOperandList
 				{
 				}
 				|
@@ -1916,15 +1936,15 @@ slOperandList:
 				}
 				;
 
-slStatement:
-				slOpcode
-				slOperandList
+rsloStatement:
+				rsloOpcode
+				rsloOperandList
 				{
 					setOpcode();
 				}
 				;
 
-slLabelDefinition:
+rsloLabelDefinition:
 				SCRL_LABEL_VALUE
 				SCRL_COLON
 				{
@@ -1932,7 +1952,7 @@ slLabelDefinition:
 				}
 				;
 
-slOperand:
+rsloOperand:
 				SCRL_TEXT_VALUE
 				{
 					char	*str	=	$1;
@@ -2041,18 +2061,18 @@ slOperand:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wnull-dereference"
-#include "lex.sl.cpp"
+#include "lex.rslo.cpp"
 #pragma GCC diagnostic pop
 
-int	slLineno	=	0;
+int	rsloLineno	=	0;
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	slerror
+// Function				:	rsloerror
 // Description			:	Parser error function
 // Return Value			:
 // Comments				:
-void	slerror(const char *s) {
-	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d)\n",currentData.name,slLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
+void	rsloerror(const char *s) {
+	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d)\n",currentData.name,rsloLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
 	currentData.numErrors++;
 }
 
@@ -2072,11 +2092,11 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	if (fin == NULL) return NULL;
 
 	oldState				=	YY_CURRENT_BUFFER;
-	sl_switch_to_buffer(sl_create_buffer( fin, YY_BUF_SIZE ) );
+	rslo_switch_to_buffer(rslo_create_buffer( fin, YY_BUF_SIZE ) );
 
-	slLineno				=	0;
+	rsloLineno				=	0;
 
-	slin					=	fin;
+	rsloin					=	fin;
 
 	reset();
 	currentData.name		=	name;
@@ -2084,17 +2104,17 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 
 	// The first pass
 	memBegin(CRenderer::globalMemory);
-	slparse();
+	rsloparse();
 	memEnd(CRenderer::globalMemory);
 
 	if (currentData.numErrors != 0) {
-		sl_delete_buffer( YY_CURRENT_BUFFER );
+		rslo_delete_buffer( YY_CURRENT_BUFFER );
 		fclose(fin);
-		sl_switch_to_buffer( oldState );
+		rslo_switch_to_buffer( oldState );
 		return NULL;
 	}
 
-	slLineno				=	0;
+	rsloLineno				=	0;
 
 	fseek(fin,0,SEEK_SET);
 	alloc();
@@ -2102,21 +2122,21 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 
 	// The second pass
 	memBegin(CRenderer::globalMemory);
-	slparse();
+	rsloparse();
 	memEnd(CRenderer::globalMemory);
 
 	if (currentData.numErrors != 0) {
 		reset();
-		sl_delete_buffer( YY_CURRENT_BUFFER );
+		rslo_delete_buffer( YY_CURRENT_BUFFER );
 		fclose(fin);
-		sl_switch_to_buffer( oldState );
+		rslo_switch_to_buffer( oldState );
 		return NULL;
 	} else {
 		CShader	*cShader	=	shaderCreate(shaderName);
 		reset();
-		sl_delete_buffer( YY_CURRENT_BUFFER );
+		rslo_delete_buffer( YY_CURRENT_BUFFER );
 		fclose(fin);
-		sl_switch_to_buffer( oldState );
+		rslo_switch_to_buffer( oldState );
 		return cShader;
 	}
 }
@@ -2137,7 +2157,7 @@ void	reset() {
 
 
 	if (currentData.definedVariables != NULL) {
-		TSlVariable	*cVar,*nVar;
+		TRSLObjectVariable	*cVar,*nVar;
 
 		for (cVar=currentData.definedVariables;cVar != NULL;) {
 			nVar	=	cVar->next;
@@ -2150,7 +2170,7 @@ void	reset() {
 
 
 	if (currentData.labelDefinitions != NULL) {
-		TSlLabel	*cLabel,*nLabel;
+		TRSLObjectLabel	*cLabel,*nLabel;
 
 		for (cLabel=currentData.labelDefinitions;cLabel != NULL;) {
 			nLabel	=	cLabel->next;
@@ -2160,7 +2180,7 @@ void	reset() {
 	}
 
 	if (currentData.labelReferences != NULL) {
-		TSlLabel	*cLabel,*nLabel;
+		TRSLObjectLabel	*cLabel,*nLabel;
 
 		for (cLabel=currentData.labelReferences;cLabel != NULL;) {
 			nLabel	=	cLabel->next;
@@ -2250,7 +2270,7 @@ CShader	*shaderCreate(const char *shaderName) {
 
 	// Fix the labels
 	{
-		TSlLabel	*cLabel,*nLabel;
+		TRSLObjectLabel	*cLabel,*nLabel;
 
 		for (cLabel = currentData.labelReferences;cLabel != NULL;cLabel = cLabel->next) {
 			for (nLabel = currentData.labelDefinitions;nLabel != NULL;nLabel = nLabel->next) {
@@ -2261,7 +2281,7 @@ CShader	*shaderCreate(const char *shaderName) {
 			}
 
 			if (nLabel == NULL) {
-				slerror("Label not found");
+				rsloerror("Label not found");
 				return NULL;
 			}
 		}
@@ -2299,7 +2319,7 @@ CShader	*shaderCreate(const char *shaderName) {
 	cShader->type						=	currentData.shaderType;
 
 	{
-		TSlVariable	*cVar;
+		TRSLObjectVariable	*cVar;
 		int			numGlobals=0;
 
 		cShader->parameters				=	NULL;

@@ -1,15 +1,15 @@
 /**
  * Project: openRender
  *
- * File: sdrEmitter.h
+ * File: rsloEmitter.h
  *
  * Description:
- *   CSdrEmitter: converts an IRModule to .sdr/.rslo text output.
+ *   CRSLObjectEmitter: converts an IRModule to .sdr/.rslo text output.
  *
  *   The emitter takes the (possibly pass-transformed) IRModule and writes
  *   it to a FILE* in the same format that the existing expression.cpp
  *   getCode() methods produce.  This allows passes to transform the IR
- *   and still produce valid .sdr output.
+ *   and still produce valid .rslo output.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -20,22 +20,22 @@
  *
  */
 
-#ifndef OSHADER_SDREMITTER_H
-#define OSHADER_SDREMITTER_H
+#ifndef OSHADER_RSLOEMITTER_H
+#define OSHADER_RSLOEMITTER_H
 
 #include "ir.h"
 #include <cstdio>
 
 // -------------------------------------------------------------------------
-// CSdrEmitter
+// CRSLObjectEmitter
 //
 // Usage:
-//   CSdrEmitter emitter;
+//   CRSLObjectEmitter emitter;
 //   emitter.emit(mod, out);  // writes .sdr text to FILE* out
 // -------------------------------------------------------------------------
-class CSdrEmitter {
+class CRSLObjectEmitter {
 public:
-    CSdrEmitter() = default;
+    CRSLObjectEmitter() = default;
 
     // Emit the full .sdr file including headers and code sections.
     // The version line and shader type line are written first, then
@@ -58,4 +58,4 @@ private:
     static void emitTypeTokens(const IRVarInfo &v, FILE *out);
 };
 
-#endif // OSHADER_SDREMITTER_H
+#endif // OSHADER_RSLOEMITTER_H

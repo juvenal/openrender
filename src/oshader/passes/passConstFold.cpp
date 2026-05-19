@@ -167,7 +167,7 @@ bool CConstFoldPass::resolveOperand(
 }
 
 // -------------------------------------------------------------------------
-// fmtDouble: format a double for the .sdr token stream
+// fmtDouble: format a double for the .rslo token stream
 // -------------------------------------------------------------------------
 
 // static

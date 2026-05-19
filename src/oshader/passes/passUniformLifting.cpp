@@ -16,7 +16,7 @@
  */
 
 #include "passUniformLifting.h"
-#include "../sdr.h"  // for SLC_xxx constants
+#include "../rslo.h"  // for SLC_xxx constants
 
 // -------------------------------------------------------------------------
 // isUniformSafeOpcode

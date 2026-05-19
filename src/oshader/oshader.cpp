@@ -30,7 +30,7 @@
 #include "common/global.h" // The glorious global header
 #include "common/os.h"     // OS dependent stuff)
 #include "opcodes.h"       // The opcodes/arguments
-#include "sdr.h"           // The CScriptContext
+#include "rslo.h"           // The CScriptContext
 
 // Standard includes
 #include <stdarg.h>
@@ -76,7 +76,7 @@ static const char *argumentHelp = "-h";
 static const char *argumentPrintVersionInfo = "-v";
 static const char *argumentQuietInfo = "-q";
 static const char *argumentLogLevel = "-d";
-static const char *argumentLegacySdr = "--legacy-sdr";
+static const char *argumentLegacyRSLObject = "--legacy-sdr";
 // static const char *argumentLogLevelLong = "--log";
 
 /**
@@ -110,7 +110,7 @@ static void printUsage() {
     printf("      %s <symbol>         Define <symbol> for the preprocessor\n", argumentDefine);
     printf("      %s <symbol>=<value> Define <symbol> to be <value>\n", argumentDefine);
     printf("      %s <filename>       Output to <filename> \n", argumentOutput);
-    printf("      %s                Force .sdr output extension (legacy)\n", argumentLegacySdr);
+    printf("      %s                Force .sdr output extension (legacy)\n", argumentLegacyRSLObject);
     printf("      %s                 Suppress warnings\n", argumentSuppressWarnings);
     printf("      %s                 Suppress errors\n", argumentSuppressErrors);
     printf("      %s                  Quiet, suppress progress display\n", argumentQuietInfo);
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
     char *outName = nullptr;
     char *includeEnv = osEnvironment(SHADERS_INCLUDE);
     int error = ERR_NONE;
-    int legacySdr = FALSE;
+    int legacyRSLObjectExt = FALSE;
 
     // Default log level is NONE; can be overridden via -x or -d.
     LOG_INIT(stderr, LOG_LEVEL_NONE);
@@ -259,8 +259,8 @@ int main(int argc, char *argv[]) {
             printVersion();
             exit(0);
         }
-        else if (strcmp(argv[i], argumentLegacySdr) == 0) {
-            legacySdr = TRUE;
+        else if (strcmp(argv[i], argumentLegacyRSLObject) == 0) {
+            legacyRSLObjectExt = TRUE;
         }
         else if (strcmp(argv[i], argumentHelp) == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0) {
             printVersion();
@@ -377,7 +377,7 @@ int main(int argc, char *argv[]) {
         // Create the compiler
         currentCompiler = new CScriptContext(settings);
         currentCompiler->dsoPath = dsoPath;
-        currentCompiler->legacySdr = legacySdr;
+        currentCompiler->legacyRSLObjectExt = legacyRSLObjectExt;
 
         // Compile the file
         currentCompiler->sourceFile = sourceFile;
@@ -389,18 +389,18 @@ int main(int argc, char *argv[]) {
         }
         else {
             // Inform compiled file (only on success)
-            char sdrName[OS_MAX_PATH_LENGTH];
+            char rsloName[OS_MAX_PATH_LENGTH];
             const char *compiledBasename = nullptr;
             if (outName != nullptr) {
                 const char *outSep = strrchr(outName, OS_DIR_SEPERATOR);
                 compiledBasename = (outSep != nullptr) ? outSep + 1 : outName;
             }
             else if (currentCompiler->shaderName != nullptr) {
-                if (currentCompiler->legacySdr)
-                    snprintf(sdrName, sizeof(sdrName), "%s.sdr", currentCompiler->shaderName);
+                if (currentCompiler->legacyRSLObjectExt)
+                    snprintf(rsloName, sizeof(rsloName), "%s.sdr", currentCompiler->shaderName);
                 else
-                    snprintf(sdrName, sizeof(sdrName), "%s.rslo", currentCompiler->shaderName);
-                compiledBasename = sdrName;
+                    snprintf(rsloName, sizeof(rsloName), "%s.rslo", currentCompiler->shaderName);
+                compiledBasename = rsloName;
             }
             fprintf(stderr, "... compiled %s\n", compiledBasename != nullptr ? compiledBasename : "(unknown)");
         }

@@ -11,13 +11,13 @@
  *   that enables analysis and optimization passes before text emission.
  *
  *   Design principles:
- *   - One IRInstr per emitted opcode token (mirrors the .sdr text format).
+ *   - One IRInstr per emitted opcode token (mirrors the .rslo text format).
  *   - IRVarInfo carries the full SLC_ type bits so passes can query
  *     container (UNIFORM/VARYING), base type, and array-ness without
  *     accessing the compiler's CVariable list.
  *   - IRFunction owns all storage: vector<IRBlock> and vector<IRVarInfo>.
- *   - Passes operate on IRFunction in-place.  The SdrTextEmitter converts
- *     the (possibly transformed) IRFunction back to .sdr text.
+ *   - Passes operate on IRFunction in-place.  The RSLObjectTextEmitter converts
+ *     the (possibly transformed) IRFunction back to .rslo text.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -44,7 +44,7 @@
 struct IRVarInfo {
     std::string cName;        // unique code name (e.g. "temporary_0")
     std::string symbolName;   // RSL source name (e.g. "Ks")
-    int         slcType;      // SLC_xxx bit flags from sdr.h (type + qualifiers)
+    int         slcType;      // SLC_xxx bit flags from rslo.h (type + qualifiers)
     int         numItems;     // 1 for scalars; >1 for arrays
     std::string defaultValue; // parameter default, or "" if none
 
@@ -68,7 +68,7 @@ struct IRVarInfo {
 // (number, quoted string, "#!LabelN", etc.).
 // -------------------------------------------------------------------------
 struct IROperand {
-    std::string token; // raw token as it appears in the .sdr stream
+    std::string token; // raw token as it appears in the .rslo stream
 
     bool isLabel()   const { return !token.empty() && token[0] == '#'; }
     bool isQuoted()  const { return !token.empty() && token[0] == '"'; }
@@ -78,7 +78,7 @@ struct IROperand {
 // -------------------------------------------------------------------------
 // IRInstr — one instruction in the IR.
 //
-// Corresponds to one non-blank, non-label line from the .sdr code section.
+// Corresponds to one non-blank, non-label line from the .rslo code section.
 // Format: [opcode] [("prototype")] [result] [operand ...]
 //
 // Some opcodes (e.g. normalize, faceforward) carry a parenthesised type

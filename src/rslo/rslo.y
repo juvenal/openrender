@@ -2,7 +2,7 @@
 /**
  * Project: openRender
  *
- * File: sdr.y
+ * File: rslo.y
  *
  * Description:
  *   This is the parser file for CShader.
@@ -20,7 +20,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sl.y
+//  File				:	rslo.y
 //  Classes				:	-
 //  Description			:	This is the parser file for CShader
 //
@@ -31,32 +31,32 @@
 
 #include "common/algebra.h"
 #include "common/os.h"
-#include "sdr.h"
+#include "rslo.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
 //   First some temporary data structures used during the script parsing
 
 
 // Some forward definitions
-		void							sdrerror(const char *);		// Forward definition for stupid yacc
-		int								sdrlex(void );				// Forward definition for stupid yacc
+		void							rsloerror(const char *);		// Forward definition for stupid yacc
+		int								rslolex(void );				// Forward definition for stupid yacc
 
 
 
 
-		TSdrParameter	*parameters;
-		TSdrParameter	*currentParameter;
+		TRSLObjectParameter	*parameters;
+		TRSLObjectParameter	*currentParameter;
 		UDefaultVal		*currentDefaultItem;
 		int				numArrayItemsRemaining;
-		ESdrShaderType	shaderType;
+		ERSLObjectShaderType	shaderType;
 
 %}
-%union slval {
+%union rsloval {
 	float			real;
 	char			string[64];
 	matrix			m;
 	vector			v;
-	TSdrParameter *parameter;
+	TRSLObjectParameter *parameter;
 }
 
 // Some tokens
@@ -99,30 +99,30 @@
 %token<string>	SCRL_IDENTIFIER_VALUE
 %token<string>	SCRL_LABEL_VALUE
 %token<real>	SCRL_FLOAT_VALUE
-%type<string>	slGlobalParameterContainer
-%type<v>		slVectorIn
-%type<v>		slVector
+%type<string>	rsloGlobalParameterContainer
+%type<v>		rsloVectorIn
+%type<v>		rsloVector
 %%
 start:		
-			slType	
-			slParameterDefinitions
-			slVariableDefinitions
+			rsloType	
+			rsloParameterDefinitions
+			rsloVariableDefinitions
 			SCRL_INIT
 			SCRL_NL
-			slCode
+			rsloCode
 			SCRL_CODE
 			SCRL_NL
-			slCode
-			slEmptySpace
+			rsloCode
+			rsloEmptySpace
 			;
 
-slEmptySpace: 
+rsloEmptySpace: 
 			|
 			SCRL_NL
-			slEmptySpace
+			rsloEmptySpace
 			;
 			
-slVectorIn:	SCRL_TEXT_VALUE
+rsloVectorIn:	SCRL_TEXT_VALUE
 			SCRL_FLOAT_VALUE
 			{
 				currentParameter->space			=	strdup($1);
@@ -167,13 +167,13 @@ slVectorIn:	SCRL_TEXT_VALUE
 			}
 			;
 
-slVector:	slVectorIn
+rsloVector:	rsloVectorIn
 			{
 			}
 			;
 
-slVectorInit:	SCRL_EQUAL
-				slVector
+rsloVectorInit:	SCRL_EQUAL
+				rsloVector
 			|
 			{
 					currentParameter->defaultValue.vector		=	new float[3];
@@ -183,7 +183,7 @@ slVectorInit:	SCRL_EQUAL
 			}
 			;
 			
-slContainer:	SCRL_UNIFORM
+rsloContainer:	SCRL_UNIFORM
 				{
 				}
 				|
@@ -195,7 +195,7 @@ slContainer:	SCRL_UNIFORM
 				}
 				;
 
-slType:
+rsloType:
 		SCRL_SURFACE
 		SCRL_NL
 		{
@@ -227,16 +227,16 @@ slType:
 		}
 		;
 
-slParameterDefinitions:
+rsloParameterDefinitions:
 		SCRL_PARAMETERS
 		SCRL_COLON
 		SCRL_NL
-		slParameters
+		rsloParameters
 		;
 
-slParameters:
-		slParameters
-		slParameter
+rsloParameters:
+		rsloParameters
+		rsloParameter
 		SCRL_NL
 		{
 		}
@@ -245,52 +245,52 @@ slParameters:
 		}
 		;
 
-slParameter:
+rsloParameter:
 		{
-			currentParameter						=	new TSdrParameter;
+			currentParameter						=	new TRSLObjectParameter;
 			currentParameter->space					=	NULL;
 			currentParameter->numItems				=	1;
 			currentParameter->defaultValue.string	=	NULL;
 		}
-		slGlobalParameterContainer
-		slRegularParameter
+		rsloGlobalParameterContainer
+		rsloRegularParameter
 		{
 			currentParameter->next	=	parameters;
 			parameters				=	currentParameter;
 		}
 	|
 		{
-			currentParameter						=	new TSdrParameter;
+			currentParameter						=	new TRSLObjectParameter;
 			currentParameter->space					=	NULL;
 			currentParameter->numItems				=	1;
 			currentParameter->defaultValue.string	=	NULL;
 			currentParameter->container				=	CONTAINER_UNIFORM;
 		}
-		slRegularParameter
+		rsloRegularParameter
 		{
 			currentParameter->next	=	parameters;
 			parameters				=	currentParameter;
 		}
 		;
 
-slRegularParameter:
-		slFloatParameter
+rsloRegularParameter:
+		rsloFloatParameter
 	|
-		slStringParameter
+		rsloStringParameter
 	|
-		slColorParameter
+		rsloColorParameter
 	|
-		slVectorParameter
+		rsloVectorParameter
 	|
-		slNormalParameter
+		rsloNormalParameter
 	|
-		slPointParameter
+		rsloPointParameter
 	|
-		slMatrixParameter
+		rsloMatrixParameter
 		;
 
 //GSHTODO: This list is missing constant and facevarying!!
-slGlobalParameterContainer:
+rsloGlobalParameterContainer:
 		SCRL_UNIFORM
 		{
 			currentParameter->container	=	CONTAINER_UNIFORM;
@@ -324,7 +324,7 @@ slGlobalParameterContainer:
 		}
 		;
 
-slFloatParameter:
+rsloFloatParameter:
 		SCRL_FLOAT
 		SCRL_IDENTIFIER_VALUE
 		SCRL_EQUAL
@@ -360,7 +360,7 @@ slFloatParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slFloatArrayInitializer
+		rsloFloatArrayInitializer
 	|
 		SCRL_FLOAT
 		SCRL_IDENTIFIER_VALUE
@@ -379,19 +379,19 @@ slFloatParameter:
 		}
 		;
 
-slFloatArrayInitializer:
+rsloFloatArrayInitializer:
 		SCRL_OPEN_SQR_PARANTHESIS
-		slFloatArrayInitializerItems
+		rsloFloatArrayInitializerItems
 		SCRL_CLOSE_SQR_PARANTHESIS
 		{
 			if(numArrayItemsRemaining){
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}
 		;
 		
-slFloatArrayInitializerItems:
-		slFloatArrayInitializerItems
+rsloFloatArrayInitializerItems:
+		rsloFloatArrayInitializerItems
 		SCRL_FLOAT_VALUE
 		{
 			if(numArrayItemsRemaining){
@@ -400,13 +400,13 @@ slFloatArrayInitializerItems:
 				numArrayItemsRemaining--;
 			}
 			else{
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}	
 	|
 		;
 
-slStringParameter:
+rsloStringParameter:
 		SCRL_STRING
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -442,7 +442,7 @@ slStringParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slStringArrayInitializer
+		rsloStringArrayInitializer
 	|
 		SCRL_STRING
 		SCRL_IDENTIFIER_VALUE
@@ -461,19 +461,19 @@ slStringParameter:
 		}
 		;
 
-slStringArrayInitializer:
+rsloStringArrayInitializer:
 		SCRL_OPEN_SQR_PARANTHESIS
-		slStringArrayInitializerItems
+		rsloStringArrayInitializerItems
 		SCRL_CLOSE_SQR_PARANTHESIS
 		{
 			if(numArrayItemsRemaining){
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}
 		;
 		
-slStringArrayInitializerItems:
-		slStringArrayInitializerItems
+rsloStringArrayInitializerItems:
+		rsloStringArrayInitializerItems
 		SCRL_TEXT_VALUE
 		{
 			if(numArrayItemsRemaining){
@@ -482,13 +482,13 @@ slStringArrayInitializerItems:
 				numArrayItemsRemaining--;
 			}
 			else{
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}	
 	|
 		;
 
-slColorParameter:
+rsloColorParameter:
 		SCRL_COLOR
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -498,7 +498,7 @@ slColorParameter:
 			
 			currentDefaultItem = &currentParameter->defaultValue;
 		}
-		slVectorInit
+		rsloVectorInit
 		{
 		}
 		|
@@ -517,7 +517,7 @@ slColorParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slVectorArrayInitializer
+		rsloVectorArrayInitializer
 		|
 		SCRL_COLOR
 		SCRL_IDENTIFIER_VALUE
@@ -540,7 +540,7 @@ slColorParameter:
 		}
 		;
 
-slVectorParameter:
+rsloVectorParameter:
 		SCRL_VECTOR
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -550,7 +550,7 @@ slVectorParameter:
 			
 			currentDefaultItem = &currentParameter->defaultValue;
 		}
-		slVectorInit
+		rsloVectorInit
 		{
 		}
 		|
@@ -569,7 +569,7 @@ slVectorParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slVectorArrayInitializer
+		rsloVectorArrayInitializer
 		|
 		SCRL_VECTOR
 		SCRL_IDENTIFIER_VALUE
@@ -592,28 +592,28 @@ slVectorParameter:
 		}
 		;
 
-slVectorArrayInitializer:
+rsloVectorArrayInitializer:
 		SCRL_OPEN_SQR_PARANTHESIS
-		slVectorArrayInitializerItems
+		rsloVectorArrayInitializerItems
 		SCRL_CLOSE_SQR_PARANTHESIS
 		{
 			if(numArrayItemsRemaining){
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 		}
 		}
 		;
 		
-slVectorArrayInitializerItems:
-		slVectorArrayInitializerItems
+rsloVectorArrayInitializerItems:
+		rsloVectorArrayInitializerItems
 		{
 			if(numArrayItemsRemaining){
 				currentDefaultItem->vector = new float[3];
 			}
 			else{
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}
-		slVector
+		rsloVector
 		{
 			currentDefaultItem++;
 			numArrayItemsRemaining--;
@@ -621,7 +621,7 @@ slVectorArrayInitializerItems:
 	|
 		;
 
-slNormalParameter:
+rsloNormalParameter:
 		SCRL_NORMAL
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -631,7 +631,7 @@ slNormalParameter:
 			
 			currentDefaultItem = &currentParameter->defaultValue;
 		}
-		slVectorInit
+		rsloVectorInit
 		{
 		}
 		|
@@ -650,7 +650,7 @@ slNormalParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slVectorArrayInitializer
+		rsloVectorArrayInitializer
 		|
 		SCRL_NORMAL
 		SCRL_IDENTIFIER_VALUE
@@ -673,7 +673,7 @@ slNormalParameter:
 		}
 		;
 
-slPointParameter:
+rsloPointParameter:
 		SCRL_POINT
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -683,7 +683,7 @@ slPointParameter:
 			
 			currentDefaultItem = &currentParameter->defaultValue;
 		}
-		slVectorInit
+		rsloVectorInit
 		{
 		}
 		|
@@ -702,7 +702,7 @@ slPointParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slVectorArrayInitializer
+		rsloVectorArrayInitializer
 		|
 		SCRL_POINT
 		SCRL_IDENTIFIER_VALUE
@@ -725,7 +725,7 @@ slPointParameter:
 		}
 		;
 
-slMatrixParameter:
+rsloMatrixParameter:
 		SCRL_MATRIX
 		SCRL_IDENTIFIER_VALUE
 		SCRL_EQUAL
@@ -841,7 +841,7 @@ slMatrixParameter:
 			currentDefaultItem = currentParameter->defaultValue.array;
 			numArrayItemsRemaining = currentParameter->numItems;
 		}
-		slMatrixArrayInitializer
+		rsloMatrixArrayInitializer
 	|
 		SCRL_MATRIX
 		SCRL_IDENTIFIER_VALUE
@@ -878,19 +878,19 @@ slMatrixParameter:
 		}
 		;
 
-slMatrixArrayInitializer:
+rsloMatrixArrayInitializer:
 		SCRL_OPEN_SQR_PARANTHESIS
-		slMatrixArrayInitializerItems
+		rsloMatrixArrayInitializerItems
 		SCRL_CLOSE_SQR_PARANTHESIS
 		{
 			if(numArrayItemsRemaining){
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}
 		;
 		
-slMatrixArrayInitializerItems:
-		slMatrixArrayInitializerItems
+rsloMatrixArrayInitializerItems:
+		rsloMatrixArrayInitializerItems
 		SCRL_OPEN_SQR_PARANTHESIS
 		SCRL_FLOAT_VALUE
 		SCRL_FLOAT_VALUE
@@ -933,11 +933,11 @@ slMatrixArrayInitializerItems:
 				numArrayItemsRemaining--;
 			}
 			else{
-				sdrerror("Wrong number of items in array initializer\n");
+				rsloerror("Wrong number of items in array initializer\n");
 			}
 		}	
 	|
-		slMatrixArrayInitializerItems
+		rsloMatrixArrayInitializerItems
 		SCRL_FLOAT_VALUE
 		{
 			if(numArrayItemsRemaining){
@@ -966,54 +966,54 @@ slMatrixArrayInitializerItems:
 	|
 		;
 
-slVariableDefinitions:
+rsloVariableDefinitions:
 		SCRL_VARIABLES
 		SCRL_COLON
 		SCRL_NL
-		slVariables
+		rsloVariables
 		;
 
-slVariables:
-		slVariables
-		slVariable
+rsloVariables:
+		rsloVariables
+		rsloVariable
 	|
 		;
 
-slVariable:
-		slContainer
-		slBooleanVariable
+rsloVariable:
+		rsloContainer
+		rsloBooleanVariable
 		SCRL_NL
 	|
-		slContainer
-		slFloatVariable
+		rsloContainer
+		rsloFloatVariable
 		SCRL_NL
 	|
-		slContainer
-		slStringVariable
+		rsloContainer
+		rsloStringVariable
 		SCRL_NL
 	|
-		slContainer
-		slColorVariable
+		rsloContainer
+		rsloColorVariable
 		SCRL_NL
 	|
-		slContainer
-		slVectorVariable
+		rsloContainer
+		rsloVectorVariable
 		SCRL_NL
 	|
-		slContainer
-		slNormalVariable
+		rsloContainer
+		rsloNormalVariable
 		SCRL_NL
 	|
-		slContainer
-		slPointVariable
+		rsloContainer
+		rsloPointVariable
 		SCRL_NL
 	|
-		slContainer
-		slMatrixVariable
+		rsloContainer
+		rsloMatrixVariable
 		SCRL_NL
 		;
 
-slBooleanVariable:
+rsloBooleanVariable:
 		SCRL_BOOLEAN
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1029,7 +1029,7 @@ slBooleanVariable:
 		;
 
 
-slFloatVariable:
+rsloFloatVariable:
 		SCRL_FLOAT
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1044,7 +1044,7 @@ slFloatVariable:
 		}
 		;
 
-slStringVariable:
+rsloStringVariable:
 		SCRL_STRING
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1059,7 +1059,7 @@ slStringVariable:
 		}
 		;
 
-slVectorVariable:
+rsloVectorVariable:
 		SCRL_VECTOR
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1074,7 +1074,7 @@ slVectorVariable:
 		}
 		;
 
-slColorVariable:
+rsloColorVariable:
 		SCRL_COLOR
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1089,7 +1089,7 @@ slColorVariable:
 		}
 		;
 
-slNormalVariable:
+rsloNormalVariable:
 		SCRL_NORMAL
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1104,7 +1104,7 @@ slNormalVariable:
 		}
 		;
 
-slPointVariable:
+rsloPointVariable:
 		SCRL_POINT
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1119,7 +1119,7 @@ slPointVariable:
 		}
 		;
 
-slMatrixVariable:
+rsloMatrixVariable:
 		SCRL_MATRIX
 		SCRL_IDENTIFIER_VALUE
 		{
@@ -1134,35 +1134,35 @@ slMatrixVariable:
 		}
 		;
 
-slCode:
-		slCode
-		slStatement
+rsloCode:
+		rsloCode
+		rsloStatement
 		SCRL_NL
 	|
-		slCode
-		slLabelDefinition
+		rsloCode
+		rsloLabelDefinition
 		SCRL_NL
 	|
-		slCode
-		slDSO
+		rsloCode
+		rsloDSO
 		SCRL_NL
 	|
 		;
 
 
-slDSO:	SCRL_DSO
+rsloDSO:	SCRL_DSO
 		SCRL_IDENTIFIER_VALUE
 		{
 		}
 		SCRL_OPEN_PARANTHESIS
 		SCRL_TEXT_VALUE
 		SCRL_CLOSE_PARANTHESIS
-		slOperandList
+		rsloOperandList
 		{
 		}
 		;
 
-slOpcode:
+rsloOpcode:
 		SCRL_IDENTIFIER_VALUE
 		{
 		}
@@ -1176,9 +1176,9 @@ slOpcode:
 		}
 		;
 
-slOperandList:
-		slOperand
-		slOperandList
+rsloOperandList:
+		rsloOperand
+		rsloOperandList
 		{
 		}
 		|
@@ -1186,21 +1186,21 @@ slOperandList:
 		}
 		;
 
-slStatement:
-		slOpcode
-		slOperandList
+rsloStatement:
+		rsloOpcode
+		rsloOperandList
 		{
 		}
 		;
 
-slLabelDefinition:
+rsloLabelDefinition:
 		SCRL_LABEL_VALUE
 		SCRL_COLON
 		{
 		}
 		;
 
-slOperand:
+rsloOperand:
 		SCRL_TEXT_VALUE
 		{
 		}
@@ -1275,28 +1275,28 @@ slOperand:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wnull-dereference"
-#include "lex.sdr.cpp"
+#include "lex.rslo.cpp"
 #pragma GCC diagnostic pop
 
-int	slLineno	=	0;
+int	rsloLineno	=	0;
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	sdrerror
+// Function				:	rsloerror
 // Description			:	Parser error function
 // Return Value			:
 // Comments				:
-void			sdrerror(const char *s) {
+void			rsloerror(const char *s) {
 	fprintf(stdout,"%s\n",s);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	sdrGet
+// Function				:	rsloGet
 // Description			:	Parse a shader
 // Return Value			:
 // Comments				:
-TSdrShader		*sdrGet(const char *in,const char *searchpath) {
-	TSdrShader		*cShader;
+TRSLObjectShader		*rsloGet(const char *in,const char *searchpath) {
+	TRSLObjectShader		*cShader;
 	char			baseName[512];
 	char			tmp[sizeof(baseName) + 6];
 	const	char	*currentPath;
@@ -1312,23 +1312,23 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 
 	// 1. Try .rslo (always prioritized)
 	snprintf(tmp, sizeof(tmp), "%s.rslo", baseName);
-	sdrin = fopen(tmp, "r");
+	rsloin = fopen(tmp, "r");
 
 	// 2. Try .sdr if .rslo fails
-	if (sdrin == NULL) {
+	if (rsloin == NULL) {
 		snprintf(tmp, sizeof(tmp), "%s.sdr", baseName);
-		sdrin = fopen(tmp, "r");
-		if (sdrin) {
-			fprintf(stdout, "[INFO] sdr: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
+		rsloin = fopen(tmp, "r");
+		if (rsloin) {
+			fprintf(stdout, "[INFO] rslo: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
 		}
 	}
 
 	// 3. Try original name if both failed (in case it was a non-standard name)
-	if (sdrin == NULL) {
-		sdrin = fopen(in, "r");
+	if (rsloin == NULL) {
+		rsloin = fopen(in, "r");
 	}
 
-	if (sdrin == NULL) {
+	if (rsloin == NULL) {
 		if (searchpath != NULL) {
 			for (dest=tmp,currentPath=searchpath;;) {
 				if ((*currentPath == '\0') || (*currentPath == ':')) {		// End of the current path
@@ -1336,7 +1336,7 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 					if ((dest - tmp) > 0) {		// Do we have anything to record ?
 						dest--;
 
-						if ((*dest == '/') || (*dest == '\\')) {	// The last character has to be a slash
+						if ((*dest == '/') || (*dest == '\\')) {	// The last character has to be a rsloash
 							dest++;
 						} else {
 							dest++;
@@ -1349,19 +1349,19 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 						// 1. Try .rslo
 						snprintf(pathEnd, sizeof(tmp) - (pathEnd - tmp), "%s.rslo", baseName);
 						osFixSlashes(tmp);
-						sdrin = fopen(tmp, "r");
+						rsloin = fopen(tmp, "r");
 
 						// 2. Try .sdr if .rslo fails
-						if (sdrin == NULL) {
+						if (rsloin == NULL) {
 							snprintf(pathEnd, sizeof(tmp) - (pathEnd - tmp), "%s.sdr", baseName);
 							osFixSlashes(tmp);
-							sdrin = fopen(tmp, "r");
-							if (sdrin) {
-								fprintf(stdout, "[INFO] sdr: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
+							rsloin = fopen(tmp, "r");
+							if (rsloin) {
+								fprintf(stdout, "[INFO] rslo: Falling back to .sdr shader \"%s.sdr\"\n", baseName);
 							}
 						}
 
-						if (sdrin != NULL)	break;
+						if (rsloin != NULL)	break;
 					}
 
 					dest			=	tmp;
@@ -1399,15 +1399,15 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 		}
 	}
 
-	if (sdrin == NULL)	return NULL;
+	if (rsloin == NULL)	return NULL;
 
 	parameters	=	NULL;
 
-	sdrparse();
+	rsloparse();
 
-	fclose(sdrin);
+	fclose(rsloin);
 
-	cShader	=	new TSdrShader;
+	cShader	=	new TRSLObjectShader;
 
 	cShader->name		=	strdup(in);
 	cShader->type		=	shaderType;
@@ -1417,12 +1417,12 @@ TSdrShader		*sdrGet(const char *in,const char *searchpath) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	sdrDelete
+// Function				:	rsloDelete
 // Description			:	Delete a shader
 // Return Value			:
 // Comments				:
-void			sdrDelete(TSdrShader *cShader) {
-	TSdrParameter	*cParameter;
+void			rsloDelete(TRSLObjectShader *cShader) {
+	TRSLObjectParameter	*cParameter;
 
 	while((cParameter = cShader->parameters) != NULL) {
 		cShader->parameters	=	cParameter->next;
@@ -1463,4 +1463,3 @@ void			sdrDelete(TSdrShader *cShader) {
 	free(cShader->name);
 	delete cShader;
 }
-

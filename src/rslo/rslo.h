@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: sdr.h
+ * File: rslo.h
  *
  * Description:
- *   This file defines the interface for sdr.
+ *   This file defines the interface for rslo (RenderMan Shading Language Object).
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,13 +19,13 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sdr.h
+//  File				:	rslo.h
 //  Classes				:	-
 //  Description			:	The shader library interface
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef SDR_H
-#define SDR_H
+#ifndef RSLO_H
+#define RSLO_H
 
 #ifndef LIB_EXPORT
 #ifdef _WINDOWS
@@ -44,7 +44,7 @@ typedef enum {
     TYPE_COLOR,
     TYPE_MATRIX,
     TYPE_STRING
-} ESdrType;
+} ERSLObjectType;
 
 // Shader type
 typedef enum {
@@ -53,7 +53,7 @@ typedef enum {
     SHADER_VOLUME,
     SHADER_LIGHT,
     SHADER_IMAGER
-} ESdrShaderType;
+} ERSLObjectShaderType;
 
 // Container class
 typedef enum {
@@ -61,7 +61,7 @@ typedef enum {
     CONTAINER_UNIFORM,
     CONTAINER_VARYING,
     CONTAINER_VERTEX
-} ESdrContainer;
+} ERSLObjectContainer;
 
 // Default value holder
 typedef union UDefaultVal *UDefaultValPtr;
@@ -74,32 +74,32 @@ typedef union UDefaultVal {
 } UDefaultVal;
 
 // Linked list of shader parameters
-typedef struct TSdrParameter {
+typedef struct TRSLObjectParameter {
         char *name;                 // Name of the parameter
-        ESdrType type;              // Type of the parameter
-        ESdrContainer container;    // COntainer class of the parameter
+        ERSLObjectType type;        // Type of the parameter
+        ERSLObjectContainer container; // Container class of the parameter
         int writable;               // Is it an output
         int numItems;               // Number of items (the number of items if an array, 1 otherwise)
         char *space;                // The space that the default value is expressed in
         UDefaultVal defaultValue;   // The default value
-        struct TSdrParameter *next; // The next parameter
+        struct TRSLObjectParameter *next; // The next parameter
 
-} TSdrParameter;
+} TRSLObjectParameter;
 
 // Shader class
-typedef struct TSdrShader {
+typedef struct TRSLObjectShader {
         char *name;                       // Name of the shader
-        ESdrShaderType type;              // Type of the shader
-        struct TSdrParameter *parameters; // A linked list of parameters to the shader
-} TSdrShader;
+        ERSLObjectShaderType type;        // Type of the shader
+        struct TRSLObjectParameter *parameters; // A linked list of parameters to the shader
+} TRSLObjectShader;
 
 // The library interface
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LIB_EXPORT TSdrShader *sdrGet(const char *, const char *); // Query a shader
-LIB_EXPORT void sdrDelete(TSdrShader *);                   // Delete a shader
+LIB_EXPORT TRSLObjectShader *rsloGet(const char *, const char *); // Query a shader
+LIB_EXPORT void rsloDelete(TRSLObjectShader *);                   // Delete a shader
 
 #ifdef __cplusplus
 }

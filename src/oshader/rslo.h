@@ -1,7 +1,7 @@
 /**
  * Project: openRender
  *
- * File: sdr.h
+ * File: rslo.h
  *
  * Description:
  *   This file defines the interface for sdr.
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sdr.h
+//  File				:	rslo.h
 //  Classes				:	CScriptContext
 //  Description			:
 //
@@ -349,7 +349,7 @@ class CScriptContext {
         int compileError;   // The number of compiler errors
         int compileWarning; // The number of compiler warnings
         int settings;       // The compiler settings
-        int legacySdr;      // Force .sdr output extension
+        int legacyRSLObjectExt;      // Force .sdr output extension
 
         CFunction *rootFunction;                // The topmost function
         CFunction *shaderFunction;              // The shader function
@@ -405,7 +405,7 @@ class CScriptContext {
 // thread_local: each compiler thread owns its own context pointer.
 // Defined in the Bison grammar prologue (sl.y) and set at the start of
 // CScriptContext::compile().
-extern thread_local CScriptContext *sdr;
+extern thread_local CScriptContext *rslo;
 extern void addDSO(char *, char *);
 
 #endif

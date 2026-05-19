@@ -43,7 +43,7 @@
 #include "texture.h"
 #include "texture3d.h"
 
-// This one is defined in sdr.y
+// This one is defined in rslo.y
 CShader *parseShader(const char *, const char *);
 
 ///////////////////////////////////////////////////////////////////////

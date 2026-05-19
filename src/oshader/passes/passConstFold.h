@@ -24,7 +24,7 @@
  *
  *   Only float scalar opcodes are folded.  Vector/matrix/string folds are
  *   not supported — their operands are rarely all-constant in practice and
- *   the three-float representation used in the .sdr format makes inline
+ *   the three-float representation used in the .rslo format makes inline
  *   vector constants ambiguous to parse.
  *
  *   Non-finite results (NaN, ±Inf) are never emitted — the instruction is
@@ -74,7 +74,7 @@ private:
     // Returns true if this opcode can be constant-folded (scalar float only).
     static bool isFoldable(const std::string &opcode);
 
-    // Format a double as a minimal precise string suitable for the .sdr stream.
+    // Format a double as a minimal precise string suitable for the .rslo stream.
     static std::string fmtDouble(double v);
 };
 

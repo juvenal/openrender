@@ -4,8 +4,8 @@ set(oshader_sources
 #	../ri/dso.cpp
 	expression.cpp
 	opcodes.cpp
-	sdr.cpp
-#	sl.cpp
+	rslo.cpp
+#	rslo.cpp
 	# Preprocessor: pp1.c–pp8.c combined into one TU via the EXTERN/MAIN
 	# convention described in pp_all.c.  Individual pp*.c files are NOT
 	# listed here; they are included transitively from pp_all.c.
@@ -13,7 +13,7 @@ set(oshader_sources
 	# Layer 2 IR infrastructure
 	ir.cpp
 	irBuilder.cpp
-	sdrEmitter.cpp
+	rsloEmitter.cpp
 	passes/passManager.cpp
 	passes/passDCE.cpp
 	passes/passUniformLifting.cpp
@@ -29,18 +29,18 @@ if(USE_FLEX_BISON)
 	include_directories(AFTER ../ri)
 
 	# define flex targets
-	flex_file(sl.l lex.sl.cpp sl)
+	flex_file(rslo.l lex.rslo.cpp rslo)
 	flex_file(../ri/dso.l lex.dso.cpp dso)
 
 	# define bison targets (they depend on flex ones, via prefix - third arg)
-	bison_file(sl.y sl_generated.cpp sl)
+	bison_file(rslo.y rslo_generated.cpp rslo)
 	bison_file(../ri/dso.y dso_generated.cpp dso)
 
 	# add the generated bison cpp's
-	set(oshader_sources ${oshader_sources} sl_generated.cpp dso_generated.cpp)
+	set(oshader_sources ${oshader_sources} rslo_generated.cpp dso_generated.cpp)
 else()
 	# add the ones from the source tree
-	set(oshader_sources ${oshader_sources} sl.cpp ../ri/dso.cpp)
+	set(oshader_sources ${oshader_sources} rslo.cpp ../ri/dso.cpp)
 endif()
 
 add_executable(oshader ${oshader_sources})

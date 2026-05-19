@@ -16,7 +16,7 @@
  */
 
 #include "ir.h"
-#include "sdr.h" // for SLC_xxx constants
+#include "rslo.h" // for SLC_xxx constants
 
 #include <cstdlib>
 #include <cassert>

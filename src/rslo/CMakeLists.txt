@@ -1,4 +1,4 @@
-file(GLOB sdr_headers *.h)
+file(GLOB rslo_headers *.h)
 
 if(USE_FLEX_BISON)
 	# this is to make sure generated bison cpp's include the correct lex.xxx.cpp
@@ -6,26 +6,25 @@ if(USE_FLEX_BISON)
 	include_directories(AFTER .)
 
 	# define flex targets
-	flex_file(sdr.l lex.sdr.cpp sdr)
+	flex_file(rslo.l lex.rslo.cpp rslo)
 
 	# define bison targets (they depend on flex ones, via prefix - third arg)
-	bison_file(sdr.y sdr_generated.cpp sdr)
+	bison_file(rslo.y rslo_generated.cpp rslo)
 	
 	# add the generated bison cpp's
-	set(sdr_sources sdr_generated.cpp)
+	set(rslo_sources rslo_generated.cpp)
 else(USE_FLEX_BISON)
 	# add the ones from the source tree
-	set(sdr_sources sdr.cpp)
+	set(rslo_sources rslo.cpp)
 endif(USE_FLEX_BISON)
 
-add_library(sdr SHARED ${sdr_sources} ${sdr_headers})
-target_link_libraries(sdr openrendercommon)
-install(TARGETS sdr LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+add_library(rslo SHARED ${rslo_sources} ${rslo_headers})
+target_link_libraries(rslo openrendercommon)
+install(TARGETS rslo LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(FILES sdr.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(FILES rslo.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 if(APPLE)
-	set_target_properties(sdr PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+	set_target_properties(rslo PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 endif(APPLE)
-

@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: sdrinfo.cpp
+ * File: rsloinfo.cpp
  *
  * Description:
- *   This file implements the functionality for sdrinfo.
+ *   This file implements the functionality for rsloinfo.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,9 +19,9 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sdrinfo.cpp
+//  File				:	rsloinfo.cpp
 //  Classes				:	-
-//  Description			:	sdr info probram
+//  Description			:	rslo info program
 //
 ////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -30,7 +30,7 @@
 
 #include "common/global.h"
 #include "common/os.h"
-#include "sdr/sdr.h"
+#include "rslo/rslo.h"
 #include "logging.hpp"
 
 ///////////////////////////////////////////////////////////////////////
@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
     set_log_level(LogLevel::NONE);
 
     if (argc > 1) {
-        TSdrShader *cShader;
-        TSdrParameter *cParameter;
+        TRSLObjectShader *cShader;
+        TRSLObjectParameter *cParameter;
         const char *openrenderHome = osEnvironment("OPENRENDERHOME");
         const char *shaders = osEnvironment("SHADERS");
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
         }
 
         osFixSlashes(tmp);
-        cShader = sdrGet(argv[1], tmp);
+        cShader = rsloGet(argv[1], tmp);
 
         if (cShader == NULL) {
             fprintf(stderr, "Failed to find shader \"%s\"\n", argv[1]);
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
             fprintf(stdout, "\n");
         }
 
-        sdrDelete(cShader);
+        rsloDelete(cShader);
     }
 
     return 0;

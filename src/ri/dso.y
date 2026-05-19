@@ -34,7 +34,7 @@ static	char					*funName;
 static	int						numErrors;
 
 %}
-%union slval {
+%union dsoval {
 	char	*string;
 }
 %token	DSO_VOID

@@ -1,7 +1,7 @@
 /**
  * Project: openRender
  *
- * File: sdr.cpp
+ * File: rslo.cpp
  *
  * Description:
  *   This file implements the functionality for sdr.
@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	sdr.cpp
+//  File				:	rslo.cpp
 //  Classes				:	CScriptContext
 //  Description			:	The main compiler class
 //
@@ -37,8 +37,8 @@
 #include "passes/passUniformLifting.h"
 #include "ri/dso.h"
 #include "ri/shadeop.h"
-#include "sdr.h"
-#include "sdrEmitter.h"
+#include "rslo.h"
+#include "rsloEmitter.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	symbol
@@ -75,13 +75,13 @@ CVariable::CVariable(const char *name, int varType, int multiplicity) : CSymbol(
     // Sanity check
     if (multiplicity > 1) {
         if (!(varType & SLC_ARRAY)) {
-            sdr->error("Variable \"%s\" has more than one items (%d) but is not an array\n", name, multiplicity);
+            rslo->error("Variable \"%s\" has more than one items (%d) but is not an array\n", name, multiplicity);
         }
     }
 
     // Make sure the array size is reasonable
     if (multiplicity <= 0) {
-        sdr->error("Array size for \"%s\" is invalid (%d)\n", name, multiplicity);
+        rslo->error("Array size for \"%s\" is invalid (%d)\n", name, multiplicity);
         multiplicity = 1;
     }
 
@@ -201,7 +201,7 @@ CParameter *CFunction::addParameter(const char *name, int type, int multiplicity
     for (cParameter = parameters->first(); cParameter != nullptr; cParameter = parameters->next()) {
         // We already have a parameter with the same name
         if (strcmp(cParameter->symbolName, name) == 0) {
-            sdr->error("Parameter \"%s\" is already defined\n", name);
+            rslo->error("Parameter \"%s\" is already defined\n", name);
             return cParameter;
         }
     }
@@ -227,7 +227,7 @@ CVariable *CFunction::addVariable(const char *name, int type, int multiplicity) 
     for (cVariable = parameters->first(); cVariable != nullptr; cVariable = parameters->next()) {
         // We already have a parameter with the same name
         if (strcmp(cVariable->symbolName, name) == 0) {
-            sdr->error("%s was defined as parameter\n", name);
+            rslo->error("%s was defined as parameter\n", name);
             return cVariable;
         }
     }
@@ -235,7 +235,7 @@ CVariable *CFunction::addVariable(const char *name, int type, int multiplicity) 
     // Check the function variables
     for (cVariable = variables->first(); cVariable != nullptr; cVariable = variables->next()) {
         if (strcmp(cVariable->symbolName, name) == 0) {
-            sdr->error("Variable \"%s\" is already defined\n", name);
+            rslo->error("Variable \"%s\" is already defined\n", name);
             return cVariable;
         }
     }
@@ -297,7 +297,7 @@ CVariable *CFunction::getVariable(const char *name, int probe) {
     }
 
     // if (probe == FALSE)
-    //	sdr->error("Variable \"%s\" is not found\n",name);
+    //	rslo->error("Variable \"%s\" is not found\n",name);
 
     return nullptr;
 }
@@ -1499,7 +1499,7 @@ void CScriptContext::generateCode(const char *o) {
     out = fopen(o, "w");
 
     if (out == nullptr) {
-        sdr->error("Failed to open \"%s\"\n", o);
+        rslo->error("Failed to open \"%s\"\n", o);
         return;
     }
 
@@ -1619,10 +1619,10 @@ void CScriptContext::generateCode(const char *o) {
         }
     }
 
-    // Phase 2: Build IR, run optimization passes, emit via SdrEmitter.
+    // Phase 2: Build IR, run optimization passes, emit via RSLObjectEmitter.
     // CIRBuilder::build() captures getCode() output into an IRModule.
     // Passes operate on the IRModule in place.
-    // CSdrEmitter::emitFunctions() writes #!Init: and #!Code: to the file.
+    // CRSLObjectEmitter::emitFunctions() writes #!Init: and #!Code: to the file.
     {
         CIRBuilder builder(*this);
         std::unique_ptr<IRModule> mod = builder.build();
@@ -1637,7 +1637,7 @@ void CScriptContext::generateCode(const char *o) {
         pm.run(*mod, dumpIR);
 
         // Emit the (optimized) Init and Code sections.
-        CSdrEmitter emitter;
+        CRSLObjectEmitter emitter;
         emitter.emitFunctions(*mod, out);
     }
 
@@ -1673,7 +1673,7 @@ static int dsoEnumerateCallback(const char *file, void *ud) {
                     break;
 
                 if (dsoParse(shadeops[i].definition, dsoName, dsoPrototype) == TRUE) {
-                    CFunctionPrototype *cFun = sdr->addBuiltInFunction(name, dsoPrototype, 0);
+                    CFunctionPrototype *cFun = rslo->addBuiltInFunction(name, dsoPrototype, 0);
 
                     cFun->dso = TRUE;
 
