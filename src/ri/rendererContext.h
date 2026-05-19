@@ -206,7 +206,7 @@ class CRendererContext : public CRiInterface {
         void processDelayedObject(CShadingContext *context, CDelayedObject *, void (*subdivisionFunction)(void *, float), void *, const float *, const float *);
         void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
 
-        void addObject(CObject *);      // Add an object into the scene
+        virtual void addObject(CObject *); // Add an object into the scene
         void addInstance(const void *); // Add an instance into the scene
         void rendererThread(const void *);
 

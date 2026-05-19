@@ -123,7 +123,10 @@
       "Bash(SHADERS=\"$\\(pwd\\)/shaders\" ORENDERHOME=\"$\\(pwd\\)/openrender\" DISPLAYS=\"$\\(pwd\\)/openrender/displays\" ./build/src/orender/orender /tmp/test_good_imager.rib)",
       "Bash(nm -gU /Volumes/Projects/Development/CLI/openrender/openrender/lib/libri.dylib)",
       "Bash(mkdir -p /Volumes/Projects/Development/CLI/openrender/specs/006-scene-wireframe-viewer/checklists)",
-      "Bash(cp /Volumes/Projects/Development/CLI/openrender/.specify/templates/spec-template.md /Volumes/Projects/Development/CLI/openrender/specs/006-scene-wireframe-viewer/spec.md)"
+      "Bash(cp /Volumes/Projects/Development/CLI/openrender/.specify/templates/spec-template.md /Volumes/Projects/Development/CLI/openrender/specs/006-scene-wireframe-viewer/spec.md)",
+      "Bash(nm /Volumes/Projects/Development/CLI/openrender/build/src/preview/libribpreview/liblibribpreview.a)",
+      "Bash(nm /Volumes/Projects/Development/CLI/openrender/build/src/ri/libri.dylib)",
+      "Bash(/Volumes/Projects/Development/CLI/openrender/build/orender-wire.app/Contents/MacOS/orender-wire *)"
     ]
   }
 }

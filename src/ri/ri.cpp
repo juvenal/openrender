@@ -434,6 +434,12 @@ static int archiveNesting = 0;
 
 CRiInterface *savedRenderMan = NULL; // This variable contains the parent context for arhiving
 CRiInterface *renderMan = NULL;      // This variable is exported for error reporting
+
+static CRendererContext *(*s_contextFactory)() = nullptr;
+
+void RiSetContextFactory(CRendererContext *(*factory)()) {
+    s_contextFactory = factory;
+}
 int ignoreCommand = FALSE;           // This variable can be set to force ignore ri commands (used for conditional execution)
 int insideRunProgram = FALSE;        // Are we running inside a runprogram context
 
@@ -617,9 +623,9 @@ RiBegin(RtToken name) {
             riNet = extract(riNetString, "net:", name);
 
             if (riRib & riNet)
-                renderMan = new CRendererContext(riRibFile, riNetString);
+                renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext(riRibFile, riNetString);
             else
-                renderMan = new CRendererContext();
+                renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
 
         } else {
             renderMan = new CRibOut(name);
@@ -631,7 +637,7 @@ RiBegin(RtToken name) {
             renderMan = new CRibOut(stdout);
             insideRunProgram = TRUE;
         } else {
-            renderMan = new CRendererContext();
+            renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
         }
     }
 

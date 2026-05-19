@@ -1,0 +1,10 @@
+## camera-dof.rib — minimal scene for wireframe preview integration test
+Display "camera-dof.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 400 300 1
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -110 1 0 0
+WorldBegin
+    Cone 1.5 0.75 360
+WorldEnd

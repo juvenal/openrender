@@ -68,6 +68,8 @@ class CSphere : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -93,6 +95,8 @@ class CDisk : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -129,6 +133,8 @@ class CCone : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -166,6 +172,8 @@ class CParaboloid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -202,6 +210,8 @@ class CCylinder : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -240,6 +250,8 @@ class CHyperboloid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float *, float *, float);
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -277,6 +289,8 @@ class CToroid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float, float);
+
+        friend class CPreviewContext;
 };
 
 #endif
