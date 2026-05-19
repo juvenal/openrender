@@ -60,6 +60,7 @@ class CPolygonMesh : public CObject {
 
         friend class CPolygonTriangle;
         friend class CPolygonQuad;
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////

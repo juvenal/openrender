@@ -60,6 +60,8 @@ class CSubdivMesh : public CObject {
         int *intargs;
         float *floatargs;
         TMutex mutex;
+
+        friend class CPreviewContext;
 };
 
 #endif

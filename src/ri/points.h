@@ -89,6 +89,8 @@ class CPoints : public CSurface {
         const float **points; // Entry points to points
 
         CPointBase *base; // The point base
+
+        friend class CPreviewContext;
 };
 
 #endif

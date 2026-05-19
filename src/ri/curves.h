@@ -139,6 +139,8 @@ class CCurveMesh : public CObject {
 
         const CVariable *sizeVariable;
         float maxSize;
+
+        friend class CPreviewContext;
 };
 
 void curvesCreate(CAttributes *, CXform *, CPl *, int, int, int, int *, int, CRendererContext *);

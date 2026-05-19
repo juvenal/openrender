@@ -57,6 +57,8 @@ class CBilinearPatch : public CSurface {
         CParameter *parameters;         // The parameters for the patch
         float *vertex;                  // The vertex data
         float uMult, vMult, uOrg, vOrg; // The parametric range of the patch
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -83,6 +85,8 @@ class CBicubicPatch : public CSurface {
         CParameter *parameters;         // Parameters for the patch
         float *vertex;                  // The vertex data
         float uOrg, vOrg, uMult, vMult; // The parametric range of the patch
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -127,6 +131,8 @@ class CNURBSPatch : public CSurface {
         double *vertex;                 // The vertex data
         int uOrder, vOrder;             // The order of the patch
         float uOrg, vOrg, uMult, vMult; // The parametric range of the patch
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -150,6 +156,8 @@ class CPatchMesh : public CObject {
         int degree;
         int uVertices, vVertices, uWrap, vWrap;
         TMutex mutex;
+
+        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -173,6 +181,8 @@ class CNURBSPatchMesh : public CObject {
         int uVertices, vVertices, uOrder, vOrder;
         float *uKnots, *vKnots;
         TMutex mutex;
+
+        friend class CPreviewContext;
 };
 
 #endif
