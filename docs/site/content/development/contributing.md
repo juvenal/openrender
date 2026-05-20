@@ -1,11 +1,11 @@
 ---
-title: "Contributing to Pixie Documentation"
+title: "Contributing to openRender Documentation"
 date: 2025-12-08
 ---
 
-# Contributing to Pixie Documentation
+# Contributing to openRender Documentation
 
-Thank you for your interest in contributing to the Pixie documentation! This guide explains how to contribute to the project and maintain the quality of the documentation.
+Thank you for your interest in contributing to the openRender documentation! This guide explains how to contribute to the project and maintain the quality of the documentation.
 
 ## Getting Started
 

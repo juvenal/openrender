@@ -6,7 +6,7 @@ weight: 4
 
 # External References
 
-This section contains links to external resources, specifications, and tools related to Pixie.
+This section contains links to external resources, specifications, and tools related to openRender.
 
 ## RenderMan Specifications
 
@@ -30,6 +30,6 @@ This section contains links to external resources, specifications, and tools rel
 
 ## Additional Resources
 
-- [Pixie Community](community/)
+- [openRender Community](community/)
 - [Third-Party Plugins](plugins/)
 - [Tutorials and Courses](tutorials/)

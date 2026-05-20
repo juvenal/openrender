@@ -9,7 +9,7 @@ date: 2025-12-10
 
 There are times when a shader calculation is expensive, but predictable, and you'd like to be able to cache the result from one execution and reuse it. You don't just have to cache the whole shader result - you could cache patterning on a surface, and recombine it with lighting later.
 
-Pixie now supports baking arbitrary data to 3d textures. You don't need to provide a uv texture mapping for this to work - so it's a rather powerful and general data storage mechanism.
+openRender now supports baking arbitrary data to 3d textures. You don't need to provide a uv texture mapping for this to work - so it's a rather powerful and general data storage mechanism.
 
 The outline operation is:
 - call `bake3d()` from your shader to save a point cloud of your data
@@ -22,7 +22,7 @@ A point cloud is a structure which can hold arbitrary attributes / data produced
 
 ### 3d Textures
 
-Pixie supports a 3d Texture format which can be prepared from a point cloud. Once prepared, the 3d texture supports efficient lookups, which support level-of-detail. The entire texture does not have to be held in memory, but instead is paged in as needed. Whilst the preparation of the texture can be a little time consuming, it is usually done offline, and reused for multiple frames. If the data baked into the texture is expensive to compute, this can represent quite a saving.
+openRender supports a 3d Texture format which can be prepared from a point cloud. Once prepared, the 3d texture supports efficient lookups, which support level-of-detail. The entire texture does not have to be held in memory, but instead is paged in as needed. Whilst the preparation of the texture can be a little time consuming, it is usually done offline, and reused for multiple frames. If the data baked into the texture is expensive to compute, this can represent quite a saving.
 
 Both point clouds and 3d textures can be read by the `texture3d` shadeop.
 
@@ -70,7 +70,7 @@ The `P` parameter specifies the point at which the data is given. The `N` parame
 
 The optional parameters are:
 
-- `radius` - Specifies the validity radius of each sample. If you do not provide this, Pixie will calculate a value for you using the grid size.
+- `radius` - Specifies the validity radius of each sample. If you do not provide this, openRender will calculate a value for you using the grid size.
 - `radiusscale` - Allows a scale to be applied to the calculated (or provided) radius
 - `interpolate` - if 1, then bake the centres of micropolygons, rather than the corners - this will produce fewer overlapping points at the borders between grids, and should be used if the point cloud is to be processed with a program for which overlapping points might be an issue.
 
@@ -141,7 +141,7 @@ The `P` parameter specifies the point at which data should be looked up. The `N`
 
 The optional parameters are:
 
-- `radius` - Specifies the sampling radius of each sample. If you do not provide this, Pixie will calculate a value for you using the grid size.
+- `radius` - Specifies the sampling radius of each sample. If you do not provide this, openRender will calculate a value for you using the grid size.
 - `radiusscale` - Allows a scale to be applied to the calculated (or provided) radius - this allows the lookup to be blurred.
 
 The data stored in the file is read into variables supplied to `texture3d` with name-value pairs, eg

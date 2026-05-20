@@ -11,19 +11,19 @@ date: 2025-12-10
 Attribute "dice" "int numprobes[2]" [3 3]
 ```
 
-During the scan line rendering, the renderer needs to estimate the bounding box of a piece of a primitive. Pixie does this by sampling points on the surface and then extending the bounding of these points. "numprobes" controls the number of samples in u and v directions to take in order to estimate the bound. Notice that this is just an estimate and the renderer may underestimate the correct bound. The right way to do this is to actually subdivide the surface. But this consumes lost of computation and memory.
+During the scan line rendering, the renderer needs to estimate the bounding box of a piece of a primitive. openRender does this by sampling points on the surface and then extending the bounding of these points. "numprobes" controls the number of samples in u and v directions to take in order to estimate the bound. Notice that this is just an estimate and the renderer may underestimate the correct bound. The right way to do this is to actually subdivide the surface. But this consumes lost of computation and memory.
 
 ```
 Attribute "dice" "int minsplits" [2]
 ```
 
-This controls the minimum number of times a surface is split before dropping into the reyes pipeline. Since the pixie estimates the surface bounds by sampling, this number must be greater than 0 for some primitives.
+This controls the minimum number of times a surface is split before dropping into the reyes pipeline. Since the openrender estimates the surface bounds by sampling, this number must be greater than 0 for some primitives.
 
 ```
 Attribute "dice" "float boundexpand" [0.5]
 ```
 
-This is the factor by which Pixie will overestimate the bound of the surface pieces. The bounding box computed by point sampling on the surface will be expanded by this factor.
+This is the factor by which openRender will overestimate the bound of the surface pieces. The bounding box computed by point sampling on the surface will be expanded by this factor.
 
 ```
 Attribute "dice" "int binary" [0]
@@ -123,7 +123,7 @@ Control whether opacity and color for specular rays are determined by the surfac
 Attribute "shade" "string camearhitmode" ["shader"]
 ```
 
-If the camera hitmode is specified to be `"primitive"` then the `Opacity` attribute is used instead of the shader's calculated `Oi`. This allows you to force Pixie to treat the object as opaque (and therefore cull objects behind it).
+If the camera hitmode is specified to be `"primitive"` then the `Opacity` attribute is used instead of the shader's calculated `Oi`. This allows you to force openRender to treat the object as opaque (and therefore cull objects behind it).
 
 ## Trace attributes
 

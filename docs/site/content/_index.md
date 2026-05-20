@@ -1,71 +1,71 @@
 ---
-title: "Pixie Documentation"
+title: "openRender Documentation"
 date: 2025-12-08
 weight: 1
 ---
 
-# Welcome to Pixie Documentation
+# Welcome to openRender Documentation
 
-The documentation here has been prepared on the online wiki [Pixie Wiki](http://george-graphics.co.uk/pixiewiki/). You can add to it by heading over there.
+The documentation here has been prepared on the online wiki [openRender Wiki](http://george-graphics.co.uk/openrenderwiki/). You can add to it by heading over there.
 
 ## Main Sections
 
-- [Documentation](/pixie-code/manual/) - Documentation and reference on Pixie's features
-- [Tutorials](/pixie-code/manual/tutorials/) - Tutorial-style / How-To guides for Pixie
-- [FAQ](/pixie-code/development/faq/) - Frequently Asked Questions
+- [Documentation](/openrender/manual/) - Documentation and reference on openRender's features
+- [Tutorials](/openrender/manual/tutorials/) - Tutorial-style / How-To guides for openRender
+- [FAQ](/openrender/development/faq/) - Frequently Asked Questions
 
 You may also find these links useful:
 
-- [Pixie homepage](http://pixie.sourceforge.net/)
-- [Pixie on sourceforge](http://sourceforge.net/projects/pixie/)
+- [openRender homepage](http://openrender.sourceforge.net/)
+- [openRender on sourceforge](http://sourceforge.net/projects/openrender/)
 
 ## Documentation
 
-How Pixie relates to the RiSpec, and documentation on Pixie's non-standard features and extensions.
+How openRender relates to the RiSpec, and documentation on openRender's non-standard features and extensions.
 
-- [Installing / running Pixie](/pixie-code/manual/reference/installing-and-running/)
-- [Multithreading](/pixie-code/manual/reference/multithreading/)
-- [Hiders](/pixie-code/manual/reference/hiders/)
-- [Display drivers](/pixie-code/manual/reference/display-drivers/)
-- [Options](/pixie-code/manual/reference/options/)
-- [Attributes](/pixie-code/manual/reference/attributes/)
-- [Occlusion culling](/pixie-code/manual/reference/occlusion-culling/)
-- [Baking 3D Textures](/pixie-code/manual/reference/baking-3d-textures/)
-- [Network parallel rendering](/pixie-code/manual/reference/network-parallel-rendering/)
-- [DSO shading](/pixie-code/manual/reference/dso-shading/)
-- [Transparency shadow maps](/pixie-code/manual/reference/transparency-shadow-maps/)
-- [Global illumination](/pixie-code/manual/reference/global-illumination/)
-- [Point based occlusion and color bleeding](/pixie-code/manual/reference/point-based-gi/)
-- [Raytracing in SL](/pixie-code/manual/reference/raytracing-in-sl/)
-- [Raytraced shadows / reflections](/pixie-code/manual/reference/raytraced-shadows-and-reflections/)
-- [Hardcoded shaders](/pixie-code/manual/reference/hardcoded-shaders/)
-- [Shader library](/pixie-code/manual/reference/shader-library/)
-- [Version management](/pixie-code/manual/reference/version-management/)
-- [Performance / Quality Tips](/pixie-code/manual/reference/performance-and-quality-tips/)
-- [Source at a Glance](/pixie-code/manual/reference/source-at-a-glance/)
-- [Using Pixie with Maya](/pixie-code/manual/reference/using-pixie-with-maya/)
-- [Conditional RIB](/pixie-code/manual/reference/conditional-rib/)
-- [RIB Resources](/pixie-code/manual/reference/rib-resources/)
-- [Ptc API](/pixie-code/manual/reference/ptc-api/)
-- [User Attributes And Options](/pixie-code/manual/reference/user-attributes-and-options/)
-- [SL Functions](/pixie-code/manual/reference/sl-functions/)
+- [Installing / running openRender](/openrender/manual/reference/installing-and-running/)
+- [Multithreading](/openrender/manual/reference/multithreading/)
+- [Hiders](/openrender/manual/reference/hiders/)
+- [Display drivers](/openrender/manual/reference/display-drivers/)
+- [Options](/openrender/manual/reference/options/)
+- [Attributes](/openrender/manual/reference/attributes/)
+- [Occlusion culling](/openrender/manual/reference/occlusion-culling/)
+- [Baking 3D Textures](/openrender/manual/reference/baking-3d-textures/)
+- [Network parallel rendering](/openrender/manual/reference/network-parallel-rendering/)
+- [DSO shading](/openrender/manual/reference/dso-shading/)
+- [Transparency shadow maps](/openrender/manual/reference/transparency-shadow-maps/)
+- [Global illumination](/openrender/manual/reference/global-illumination/)
+- [Point based occlusion and color bleeding](/openrender/manual/reference/point-based-gi/)
+- [Raytracing in SL](/openrender/manual/reference/raytracing-in-sl/)
+- [Raytraced shadows / reflections](/openrender/manual/reference/raytraced-shadows-and-reflections/)
+- [Hardcoded shaders](/openrender/manual/reference/hardcoded-shaders/)
+- [Shader library](/openrender/manual/reference/shader-library/)
+- [Version management](/openrender/manual/reference/version-management/)
+- [Performance / Quality Tips](/openrender/manual/reference/performance-and-quality-tips/)
+- [Source at a Glance](/openrender/manual/reference/source-at-a-glance/)
+- [Using openRender with Maya](/openrender/manual/reference/using-openrender-with-maya/)
+- [Conditional RIB](/openrender/manual/reference/conditional-rib/)
+- [RIB Resources](/openrender/manual/reference/rib-resources/)
+- [Ptc API](/openrender/manual/reference/ptc-api/)
+- [User Attributes And Options](/openrender/manual/reference/user-attributes-and-options/)
+- [SL Functions](/openrender/manual/reference/sl-functions/)
 
 ## Examples / Tutorials
 
-Tutorial-style guides to various features in Pixie.
+Tutorial-style guides to various features in openRender.
 
-- [Basics, Running Pixie](/pixie-code/manual/tutorials/basics-running-pixie/)
-- [Raytraced shadows](/pixie-code/manual/tutorials/raytraced-shadows/)
-- [Soft raytraced shadows](/pixie-code/manual/tutorials/soft-raytraced-shadows/)
-- [Global Illumination](/pixie-code/manual/tutorials/global-illumination/)
-- [Dispersion](/pixie-code/manual/tutorials/dispersion/)
-- [Baking To Textures](/pixie-code/manual/tutorials/baketotexture/)
+- [Basics, Running openRender](/openrender/manual/tutorials/basics-running-openrender/)
+- [Raytraced shadows](/openrender/manual/tutorials/raytraced-shadows/)
+- [Soft raytraced shadows](/openrender/manual/tutorials/soft-raytraced-shadows/)
+- [Global Illumination](/openrender/manual/tutorials/global-illumination/)
+- [Dispersion](/openrender/manual/tutorials/dispersion/)
+- [Baking To Textures](/openrender/manual/tutorials/baketotexture/)
 
 ## News
 
-**Pixie 2.2.1 is out**! New features include:
+**openRender 2.2.1 is out**! New features include:
 
-- [Point Based occlusion and color bleeding](/pixie-code/manual/reference/point-based-gi/) - Get occlusion and color bleeding without raytracing
+- [Point Based occlusion and color bleeding](/openrender/manual/reference/point-based-gi/) - Get occlusion and color bleeding without raytracing
 - Improved AOV support (color AOVs are alpha composited like rgba)
 - Improved non-raster-orient dicing
 - Raytracing improvements - more robust, faster raytracing, with PRMan-compatible visibility and shade attributes

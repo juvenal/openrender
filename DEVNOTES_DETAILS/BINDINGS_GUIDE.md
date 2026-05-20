@@ -11,6 +11,7 @@ The Python binding provides a `Ri` class that implements the standard RenderMan 
 
 - **Capabilities**:
   - Full RIB generation support (geometry, shading, transforms, motion blocks, solid CSG).
+  - Standard RIB preamble emission: Automatically writes `##RenderMan RIB-Structure 1.1` and creator metadata when `Begin()` is called.
   - Flexible output: write to `stdout`, files, or pipe directly to the `orender` process.
   - Comprehensive block nesting and parameter handling.
 - **Location**: `src/bindings/python/`
@@ -20,6 +21,7 @@ The Lua binding provides a full RIB-emitting interface, mirroring the functional
 
 - **Capabilities**:
   - complete RIB spec coverage including graphics state, camera/display options, and all geometric primitives.
+  - Standard RIB preamble emission: Automatically writes `##RenderMan RIB-Structure 1.1` and creator metadata when `Begin()` is called.
   - Support for compound RIB features like `MotionBegin`, `SolidBegin`, and `ObjectInstance`.
   - Validated test suite for file output and process pipe modes.
 - **Location**: `src/bindings/lua/`

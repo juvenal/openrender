@@ -5,7 +5,7 @@ date: 2025-12-08
 
 # Markdown Formatting Guidelines
 
-This document provides guidelines for formatting content in the Pixie documentation using Markdown.
+This document provides guidelines for formatting content in the openRender documentation using Markdown.
 
 ## Heading Structure
 
@@ -67,7 +67,7 @@ For inline code, use single backticks: `code here`
 Use the following format for internal links:
 
 ```markdown
-[Link text](/pixie-code/path/to/page/)
+[Link text](/openrender/path/to/page/)
 ```
 
 For external links:
@@ -81,7 +81,7 @@ For external links:
 Use the following format for images:
 
 ```markdown
-![Alt text](/pixie-code/static/path/to/image.jpg)
+![Alt text](/openrender/static/path/to/image.jpg)
 ```
 
 Always include descriptive alt text for accessibility.

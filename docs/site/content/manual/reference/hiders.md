@@ -5,7 +5,7 @@ date: 2025-12-08
 
 # Hiders
 
-Pixie can generate images using raytracing or scan line rendering. As it is often the case, scan line rendering is much faster than raytracing. However, such methods may not support accurate reflections/shadows. Since Pixie supports both types of algorithms, you can combine the best of the two worlds: speed of scan-line rendering and the accuracy of raytracing. A hider is the section of the renderer that is responsible for creating the final image. Essentially, every hider implements a different rendering algorithm. You can switch between defined hiders using  Hider command. Pixie defines the following hiders:
+openRender can generate images using raytracing or scan line rendering. As it is often the case, scan line rendering is much faster than raytracing. However, such methods may not support accurate reflections/shadows. Since openRender supports both types of algorithms, you can combine the best of the two worlds: speed of scan-line rendering and the accuracy of raytracing. A hider is the section of the renderer that is responsible for creating the final image. Essentially, every hider implements a different rendering algorithm. You can switch between defined hiders using  Hider command. openRender defines the following hiders:
 
 | Hider | Description |
 |-------|-------------|

@@ -6,7 +6,7 @@ weight: 2
 
 # User Manual
 
-Welcome to the Pixie User Manual. This section contains guides and documentation for using Pixie rendering software.
+Welcome to the openRender User Manual. This section contains guides and documentation for using openRender rendering software.
 
 ## Getting Started
 
@@ -16,9 +16,9 @@ Welcome to the Pixie User Manual. This section contains guides and documentation
 
 ## Tutorials
 
-Learn how to use various features of Pixie through step-by-step tutorials:
+Learn how to use various features of openRender through step-by-step tutorials:
 
-- [Basics Running Pixie](tutorials/basics-running-pixie/)
+- [Basics Running openRender](tutorials/basics-running-openrender/)
 - [Raytraced Shadows](tutorials/raytraced-shadows/)
 - [Soft Raytraced Shadows](tutorials/soft-raytraced-shadows/)
 - [Global Illumination](tutorials/global-illumination/)
@@ -27,7 +27,7 @@ Learn how to use various features of Pixie through step-by-step tutorials:
 
 ## Reference
 
-Detailed documentation about Pixie's features:
+Detailed documentation about openRender's features:
 
 - [Installing and Running](reference/installing-and-running/)
 - [Multithreading](reference/multithreading/)

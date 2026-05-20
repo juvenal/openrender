@@ -84,7 +84,7 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/*.so.0.0.0
 %dir %{prefix}/shaders
 %{prefix}/shaders/*.sl
-%{prefix}/shaders/*.sdr
+%{prefix}/shaders/*.rslo
 
 %files devel
 %defattr(-,root,root)

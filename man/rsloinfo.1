@@ -1,0 +1,45 @@
+.TH RSLOINFO 1
+.SH NAME
+rsloinfo \- display information about compiled shaders
+.SH SYNOPSIS
+\fBrsloinfo\fR [ name.sl ... ]
+.SH DESCRIPTION
+.I  Rsloinfo
+scans the specified compiled shader files and displays information
+about them.
+The files should be compiled shader files (with suffix \fB.rslo\fP).
+If no files are specified,
+.I rsloinfo
+tries to display information about all compiled shaders in the current 
+directory.
+.PP
+The information displayed for each shader is:
+.IP \(bu 4
+the shader's name (the file name without the suffix),
+.IP \(bu 4
+the shader's type (surface, light, etc.),
+.IP \(bu 4
+the shader's parameters, their types, and their default values.
+.SH OPTIONS
+.TP
+.B \-v
+Be verbose.
+.TP
+.B \-h
+Print a short help message.
+.TP
+.B \-version
+Print the version information.
+.SH ENVIRONMENT
+.TP
+.B OPENRENDER_SHADERPATH
+A colon-separated list of directories in which to search for shaders.
+.SH BUGS
+Probably.
+.SH "SEE ALSO"
+orender(1), oshader(1), oshow(1), rsloinfo(1)
+.SH AUTHOR
+The OpenRender Team.
+.SH NOTES
+.I rsloinfo
+is part of the OpenRender project.

@@ -22,9 +22,16 @@ The move to an IR-based backend has enabled several critical optimization passes
 - **Dead Code Elimination (`CDCEPass`):** Removes instructions that do not affect the final output or state.
 - **Uniform Lifting (`CUniformLiftingPass`):** Moves calculations that only depend on uniform variables out of varying execution contexts, significantly improving performance for complex shaders.
 
-### Filename Convention (.rslo)
+### Filename Convention and Subsystem Rename (.rslo)
 
-To align with modern RenderMan standards (RISpec 3.2+) and prepare for Open Shading Language (OSL) integration, the compiled shader extension has been changed from `.sdr` to `.rslo` (RenderMan Shading Language Object). The renderer maintains backward compatibility by attempting to load `.rslo` first, followed by `.sdr`.
+To align with modern RenderMan standards (RISpec 3.2+) and prepare for Open Shading Language (OSL) integration, the compiled shader extension has been changed from `.sdr` to `.rslo` (RenderMan Shading Language Object). 
+
+Following this extension change, a major architectural refactor renamed the entire shader compiler and info subsystem from the `sdr` naming convention to `rslo`:
+- **Directory Structure**: `src/sdr/` was renamed to `src/rslo/`, and `src/sdrinfo/` became `src/rsloinfo/`.
+- **Tooling**: The compiled shader inspection tool is now `rsloinfo` (formerly `sdrinfo`).
+- **Internal Symbols**: All internal identifiers, types, and files (e.g., `sdrEmitter.cpp` → `rsloEmitter.cpp`, `sl.y` → `rslo.y`) have been updated to the `rslo` convention.
+
+The renderer maintains backward compatibility by attempting to load `.rslo` first, followed by `.sdr`. The `oshader` compiler also supports a `--legacy-sdr` flag for workflows requiring the old format.
 
 ### Supertexmap Shader
 

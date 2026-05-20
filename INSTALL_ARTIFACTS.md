@@ -16,7 +16,7 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 |--------|-------------|----------|
 | `orender` | Main renderer executable | `/usr/local/bin/orender` |
 | `oshader` | Shader compiler | `/usr/local/bin/oshader` |
-| `sdrinfo` | Shader information utility | `/usr/local/bin/sdrinfo` |
+| `rsloinfo` | Shader information utility | `/usr/local/bin/rsloinfo` |
 | `otexmake` | Texture creation utility | `/usr/local/bin/otexmake` |
 | `oshow` | GUI viewer (FLTK-based, optional) | `/usr/local/bin/oshow` |
 | `precomp` | Preprocessor (not installed by default) | Build only |
@@ -30,7 +30,7 @@ Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 | Library | Description | Location |
 |---------|-------------|----------|
 | `libri.dylib` | RenderMan Interface library (core) | `/usr/local/lib/libri.dylib` |
-| `libsdr.dylib` | Shader runtime library | `/usr/local/lib/libsdr.dylib` |
+| `librslo.dylib` | Shader runtime library | `/usr/local/lib/librslo.dylib` |
 
 ---
 
@@ -94,7 +94,7 @@ Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 |----------|---------|
 | `orender.1` | orender(1) |
 | `oshader.1` | oshader(1) |
-| `sdrinfo.1` | sdrinfo(1) |
+| `rsloinfo.1` | rsloinfo(1) |
 | `otexmake.1` | otexmake(1) |
 
 ---
@@ -123,12 +123,12 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 ├── bin/
 │   ├── orender
 │   ├── oshader
-│   ├── sdrinfo
+│   ├── rsloinfo
 │   ├── otexmake
 │   └── oshow
 ├── lib/
 │   ├── libri.dylib
-│   └── libsdr.dylib
+│   └── librslo.dylib
 ├── include/
 │   ├── dlo.h
 │   ├── dsply.h
@@ -148,7 +148,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── man/man1/        # Man pages
 │   │   ├── orender.1
 │   │   ├── oshader.1
-│   │   ├── sdrinfo.1
+│   │   ├── rsloinfo.1
 │   │   └── otexmake.1
 │   └── doc/             # Documentation
 │       ├── AUTHORS.md
@@ -173,7 +173,7 @@ test do
   system "#{bin}/orender", "--help"
   system "#{bin}/oshader", "--version"
   system "#{bin}/otexmake", "--help"
-  system "#{bin}/sdrinfo", "--version"
+  system "#{bin}/rsloinfo", "--version"
   # oshow is optional (requires fltk)
 end
 ```
@@ -182,7 +182,7 @@ end
 ```ruby
 test do
   assert_predicate lib/"libri.dylib", :exist?
-  assert_predicate lib/"libsdr.dylib", :exist?
+  assert_predicate lib/"librslo.dylib", :exist?
 end
 ```
 

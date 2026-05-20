@@ -147,8 +147,8 @@ cmake --build . --config Release
 │   ├── precomp/          # Precomputation tools
 │   ├── rgbe/             # Radiance RGBE support
 │   ├── ri/               # RenderMan interface implementation
-│   ├── sdr/              # Shader runtime
-│   ├── sdrinfo/          # Shader info utility
+│   ├── rslo/             # Shader runtime
+│   ├── rsloinfo/         # Shader info utility
 │   └── ...
 ├── tests/                # Unit tests
 ├── textures/             # Sample textures

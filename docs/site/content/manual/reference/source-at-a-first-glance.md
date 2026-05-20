@@ -5,9 +5,9 @@ date: 2025-12-10
 
 # Source at a First Glance
 
-When you unzip Pixie-src-X.Y.Z, you should get the following directory structure:
+When you unzip openRender-src-X.Y.Z, you should get the following directory structure:
 
-- Pixie
+- openRender
   - doc - *The HTML documentation*
   - man - *Manual entries for various programs*
   - shaders - *Contains default shaders*
@@ -18,17 +18,17 @@ When you unzip Pixie-src-X.Y.Z, you should get the following directory structure
     - framebuffer - *"framebuffer" display driver*
     - gui - *A dynamic library that provides user interface functionality*
     - openexr - *"openexr" display driver*
-    - precomp - *A program that generates misc. code for Pixie*
+    - precomp - *A program that generates misc. code for openRender*
     - rgbe - *"rgbe" display driver*
     - ri - *The main RenderMan Ri library*
     - orender - *The program that uses "ri" to render your RIB files*
-    - sdr - *A library for parsing compiled shaders*
+    - rslo - *A library for parsing compiled shaders*
     - oshader - *The RenderMan Shading Language compiler*
-    - sdrinfo - *A program that uses sdr to display information about compiled shaders*
+    - rsloinfo - *A program that uses rslo to display information about compiled shaders*
     - oshow - *A program that displays various data computed using "ri"*
-    - otexmake - *A program that converts textures into Pixie's format*
+    - otexmake - *A program that converts textures into openRender's format*
   - textures - *Contains the default textures*
   - win32inst - *Inno setup files for creating an installer*
   - windows - *Windows Visual Studio projects*
     - vcnet8 - *For .NET 2005*
-      - Pixie - *This directory contains the project files*
+      - openRender - *This directory contains the project files*

@@ -44,7 +44,7 @@ WorldEnd
 
 It generates the following image:
 
-![Raytraced shadow example showing a polygon casting shadow using shadowdistant light source with 'raytrace' shadow name](/pixie-code/static/images/Shadow1.jpg)
+![Raytraced shadow example showing a polygon casting shadow using shadowdistant light source with 'raytrace' shadow name](/openrender/static/images/Shadow1.jpg)
 
 Notice that shadowdistant uses the shadow call with "raytrace" as the shadow name. If you change:
 
@@ -62,4 +62,4 @@ Polygon "P" [-1 -1 0 1 -1 0 1 1 0 -1 1 0] "Os" [1 0 0 0 1 0 1 1 0 0 0 1]
 
 You should get the following picture:
 
-![Raytraced shadow example with shader-based transmission showing transparency effects](/pixie-code/static/images/Shadow2.jpg)
+![Raytraced shadow example with shader-based transmission showing transparency effects](/openrender/static/images/Shadow2.jpg)

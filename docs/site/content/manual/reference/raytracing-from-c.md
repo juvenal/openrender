@@ -5,7 +5,7 @@ date: 2025-12-10
 
 # Raytracing from C
 
-You can use the Pixie runtime library to raytrace instead of creating an image. There are three functions that can be used just before `WorldEnd` to raytrace. Since these functions are "C" specific, they do not have rib bindings. Also these functions are not standard RenderMan (they are Pixie specific). If any of these functions are used, `WorldEnd` is skipped and no image will be generated. The auxiliary raytracing commands are:
+You can use the openRender runtime library to raytrace instead of creating an image. There are three functions that can be used just before `WorldEnd` to raytrace. Since these functions are "C" specific, they do not have rib bindings. Also these functions are not standard RenderMan (they are openRender specific). If any of these functions are used, `WorldEnd` is skipped and no image will be generated. The auxiliary raytracing commands are:
 
 ```
 void RiTrace(RtInt n,RtPoint *from,RtPoint *to, RtPoint *Ci);

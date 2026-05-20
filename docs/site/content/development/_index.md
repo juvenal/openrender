@@ -6,11 +6,11 @@ weight: 3
 
 # Development Guidelines
 
-This section contains information for developers contributing to the Pixie project.
+This section contains information for developers contributing to the openRender project.
 
 ## Contributing
 
-Learn how to contribute to the Pixie project:
+Learn how to contribute to the openRender project:
 
 - [Contributing Guidelines](contributing/)
 - [Building from Source](building/)
@@ -23,7 +23,7 @@ Learn how to contribute to the Pixie project:
 
 ## Technical Documentation
 
-Detailed technical information about Pixie's implementation:
+Detailed technical information about openRender's implementation:
 
 - [Hiders Implementation](technical/hiders/)
 - [Display Drivers Implementation](technical/display-drivers/)

@@ -31,12 +31,14 @@ class OpenRender < Formula
     system "#{bin}/orender", "--help"
     system "#{bin}/oshader", "--version"
     system "#{bin}/otexmake", "--help"
+    system "#{bin}/rsloinfo", "--version"
 
     # Check that libraries are installed
     assert_predicate lib/"libri.dylib", :exist?
-    assert_predicate lib/"libsdr.dylib", :exist?
+    assert_predicate lib/"librslo.dylib", :exist?
 
     # Check that man pages are installed
     assert_predicate man1/"orender.1", :exist?
+    assert_predicate man1/"rsloinfo.1", :exist?
   end
 end

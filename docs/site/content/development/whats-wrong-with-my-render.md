@@ -11,7 +11,7 @@ If you use a texture-map to displace the surface, you may find that grid cracks 
 
 Eg.
 
-![Texture displacement causing patch cracks](/pixie-code/static/images/TexDisplacePatchCrack.jpg)
+![Texture displacement causing patch cracks](/openrender/static/images/TexDisplacePatchCrack.jpg)
 
 **What can you do?**
 
