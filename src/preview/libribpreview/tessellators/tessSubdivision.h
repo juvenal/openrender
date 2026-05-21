@@ -8,5 +8,6 @@ void tessSubdivision(
     const int *numVerticesPerFace,
     const int *vertexIndices,
     const float *xfrom,
-    std::vector<float3> &verts, AABB &bounds
+    const float3 &col,
+    std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds
 );

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_library(libribpreview STATIC
+add_library(ribpreview STATIC
+    ribGeometryContext.cpp
     previewContext.cpp
     tessellators/tessPolygon.cpp
     tessellators/tessPatch.cpp
@@ -13,7 +14,7 @@ add_library(libribpreview STATIC
     cameraExport.cpp
 )
 
-target_include_directories(libribpreview PUBLIC
+target_include_directories(ribpreview PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/..   # exposes ribpreview_api.h
     ${CMAKE_CURRENT_SOURCE_DIR}      # exposes previewTypes.h, previewContext.h, etc.
     ${CMAKE_SOURCE_DIR}/src
@@ -21,8 +22,8 @@ target_include_directories(libribpreview PUBLIC
     ${CMAKE_BINARY_DIR}
 )
 
-target_link_libraries(libribpreview PUBLIC ri openrendercommon)
-target_compile_features(libribpreview PRIVATE cxx_std_20)
+target_link_libraries(ribpreview PUBLIC ri openrendercommon)
+target_compile_features(ribpreview PRIVATE cxx_std_20)
 
 # Suppress C++20 deprecation warning noise from ri headers
-target_compile_options(libribpreview PRIVATE -Wno-deprecated-declarations)
+target_compile_options(ribpreview PRIVATE -Wno-deprecated-declarations)

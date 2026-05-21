@@ -1331,7 +1331,7 @@ void CPolygonMesh::dice(CShadingContext *r) {
 // Description			:	Instanciate the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CPolygonMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

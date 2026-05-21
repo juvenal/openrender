@@ -558,6 +558,12 @@ static void RiTini() {
     initialized = FALSE;
 }
 
+// Lightweight init: set currentBlock so Ri calls dispatch to renderMan
+// without the full RiBegin() overhead (no display plugins, no network).
+void RiBeginLite() {
+    RiInit();
+}
+
 ///////////////////////////////////////////////////////////////////////
 //
 // RenderMan Interface begins here

@@ -52,7 +52,7 @@ class CPhonySurface : public CSurface {
         CPhonySurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CPhonySurface() {}
 
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 };
 
 ///////////////////////////////////////////////////////////////////////

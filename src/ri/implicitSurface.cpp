@@ -208,7 +208,7 @@ void CImplicit::dice(CShadingContext *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CImplicit::instantiate(CAttributes *, CXform *, CRendererContext *) const {
+void CImplicit::instantiate(CAttributes *, CXform *, CRiInterface *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

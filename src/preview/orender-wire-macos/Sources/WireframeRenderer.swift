@@ -25,6 +25,7 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
     private var gridAxisPipeline: MTLRenderPipelineState!
     private var depthState: MTLDepthStencilState!
     private var sceneBuffer: MTLBuffer?
+    private var sceneColorBuffer: MTLBuffer?
     private var sceneVertexCount: Int = 0
     private var gridAxisBuffer: MTLBuffer!
     private var gridAxisVertexCount: Int = 0
@@ -64,26 +65,35 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
         #include <metal_stdlib>
         using namespace metal;
 
-        vertex float4 sceneVertex(
+        struct SceneOut { float4 position [[position]]; float3 color; };
+
+        vertex SceneOut sceneVertex(
             uint                        vid       [[vertex_id]],
             const device packed_float3 *positions [[buffer(0)]],
-            constant float4x4          &mvp       [[buffer(1)]]
-        ) { return mvp * float4(float3(positions[vid]), 1.0); }
+            constant float4x4          &mvp       [[buffer(1)]],
+            const device packed_float3 *colors    [[buffer(2)]]
+        ) {
+            SceneOut o;
+            o.position = mvp * float4(float3(positions[vid]), 1.0);
+            o.color    = float3(colors[vid]);
+            return o;
+        }
 
-        fragment float4 sceneFrag(float4 pos [[position]]) {
-            return float4(0.85, 0.85, 0.85, 1.0);
+        fragment float4 sceneFrag(SceneOut in [[stage_in]]) {
+            return float4(in.color, 1.0);
         }
 
         struct GridVert { packed_float3 pos; packed_float3 col; };
         struct GridOut  { float4 position [[position]]; float3 color; };
 
         vertex GridOut gridVertex(
-            uint                   vid   [[vertex_id]],
-            const device GridVert *verts [[buffer(0)]],
-            constant float4x4     &mvp   [[buffer(1)]]
+            uint                   vid        [[vertex_id]],
+            const device GridVert *verts      [[buffer(0)]],
+            constant float4x4     &mvp        [[buffer(1)]],
+            constant float3       &gridOrigin [[buffer(2)]]
         ) {
             GridOut o;
-            o.position = mvp * float4(float3(verts[vid].pos), 1.0);
+            o.position = mvp * float4(float3(verts[vid].pos) + gridOrigin, 1.0);
             o.color    = verts[vid].col;
             return o;
         }
@@ -135,10 +145,16 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
 
     private func buildSceneBuffer(device: MTLDevice, scene: UnsafePointer<PreviewSceneC>) {
         let n = Int(scene.pointee.vertexCount)
-        guard n > 0, let src = scene.pointee.vertices else { return }
-        sceneBuffer = device.makeBuffer(bytes: src,
-                                        length: n * 3 * MemoryLayout<Float>.size,
-                                        options: .storageModeShared)
+        guard n > 0 else { return }
+        let byteLen = n * 3 * MemoryLayout<Float>.size
+        if let src = scene.pointee.vertices {
+            sceneBuffer = device.makeBuffer(bytes: src, length: byteLen,
+                                            options: .storageModeShared)
+        }
+        if let col = scene.pointee.colors {
+            sceneColorBuffer = device.makeBuffer(bytes: col, length: byteLen,
+                                                 options: .storageModeShared)
+        }
         sceneVertexCount = n
     }
 
@@ -173,7 +189,7 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         arcball.updateAspect(width: Float(size.width), height: Float(size.height))
-        setNeedsDisplay(NSRect(origin: .zero, size: size))
+        setNeedsDisplay(bounds)   // use view-coordinate bounds, not drawable-pixel size
     }
 
     func draw(in view: MTKView) {
@@ -181,7 +197,12 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
               let rpDesc    = view.currentRenderPassDescriptor,
               let cmdBuf    = commandQueue.makeCommandBuffer(),
               let encoder   = cmdBuf.makeRenderCommandEncoder(descriptor: rpDesc)
-        else { return }
+        else {
+            // Drawable not ready yet (happens on the very first frame before the
+            // CAMetalLayer is fully set up).  Schedule a retry on the next cycle.
+            DispatchQueue.main.async { self.setNeedsDisplay(self.bounds) }
+            return
+        }
 
         encoder.setDepthStencilState(depthState)
         var mvp = arcball.viewProjectionMatrix
@@ -190,12 +211,17 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
             encoder.setRenderPipelineState(scenePipeline)
             encoder.setVertexBuffer(buf, offset: 0, index: 0)
             encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.size, index: 1)
+            if let colBuf = sceneColorBuffer {
+                encoder.setVertexBuffer(colBuf, offset: 0, index: 2)
+            }
             encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: sceneVertexCount)
         }
 
+        var gridOrigin = arcball.orbitCenter
         encoder.setRenderPipelineState(gridAxisPipeline)
         encoder.setVertexBuffer(gridAxisBuffer, offset: 0, index: 0)
-        encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.size, index: 1)
+        encoder.setVertexBytes(&mvp,        length: MemoryLayout<simd_float4x4>.size, index: 1)
+        encoder.setVertexBytes(&gridOrigin, length: MemoryLayout<SIMD3<Float>>.size,  index: 2)
         encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: gridAxisVertexCount)
 
         encoder.endEncoding()

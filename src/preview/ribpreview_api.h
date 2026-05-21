@@ -19,6 +19,7 @@ typedef struct {
 
 typedef struct {
     float        *vertices;     // flat line-list: [x0,y0,z0, x1,y1,z1, …]
+    float        *colors;       // per-vertex RGB: [r0,g0,b0, r1,g1,b1, …], count == vertexCount
     int           vertexCount;  // number of float3 vertices (pairs → line segments)
     PreviewCameraC camera;
     PreviewBoundsC bounds;

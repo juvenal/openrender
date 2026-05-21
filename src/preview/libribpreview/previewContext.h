@@ -1,17 +1,14 @@
 #pragma once
 
 #include "previewTypes.h"
-#include "rendererContext.h"
+#include "ribGeometryContext.h"
 
-class CPreviewContext : public CRendererContext {
+class CPreviewContext : public CRibGeometryContext {
 public:
     CPreviewContext();
     ~CPreviewContext() override = default;
 
-    void RiDisplayV(const char *name, const char *type, const char *mode,
-                    int n, const char *tokens[], const void *params[]) override;
     void RiWorldBegin() override;
-    void RiWorldEnd() override;
     void addObject(CObject *obj) override;
 
     PreviewScene result_;

@@ -41,7 +41,7 @@ class CBSplinePatchGrid : public CSurface {
         ~CBSplinePatchGrid();
 
         // Object interface
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // Surface interface
         int moving() const { return variables->moving; }

@@ -130,7 +130,7 @@ void CDelayedObject::dice(CShadingContext *r) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CDelayedObject::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform);
@@ -223,7 +223,7 @@ void CDelayedInstance::dice(CShadingContext *r) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CDelayedInstance::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform);

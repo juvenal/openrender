@@ -42,7 +42,7 @@ class CPatch : public CObject {
 
         void intersect(CShadingContext *, CRay *) { assert(FALSE); }
         void dice(CShadingContext *); // Split or render this object
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
     private:
         void splitToChildren(CShadingContext *, int);
@@ -76,7 +76,7 @@ class CTesselationPatch : public CObject {
 
         void intersect(CShadingContext *, CRay *);
         void dice(CShadingContext *) { assert(FALSE); }
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         void initTesselation(CShadingContext *context);
 

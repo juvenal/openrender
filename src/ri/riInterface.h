@@ -33,6 +33,8 @@
 #include "ri.h"
 #include "ri_config.h"
 
+class CObject; // forward declaration for addObject()
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRiInterface
 // Description			:	This is the virtual class that implements the RenderMan interface
@@ -41,6 +43,8 @@ class CRiInterface {
     public:
         CRiInterface();
         virtual ~CRiInterface();
+
+        virtual void addObject(CObject *) {}
 
         virtual void RiDeclare(const char *, const char *);
 

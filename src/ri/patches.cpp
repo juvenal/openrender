@@ -1527,7 +1527,7 @@ CPatchMesh::~CPatchMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CPatchMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CPatchMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1777,7 +1777,7 @@ CNURBSPatchMesh::~CNURBSPatchMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

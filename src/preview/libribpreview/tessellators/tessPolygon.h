@@ -10,5 +10,6 @@ void tessPolygon(
     const int *nvertices,     // vertex count per loop (indexed by loop, not by face)
     const int *indices,       // vertex indices
     const float *xfrom,       // column-major 4×4 object→world matrix
-    std::vector<float3> &verts, AABB &bounds
+    const float3 &col,
+    std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds
 );

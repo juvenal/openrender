@@ -1646,7 +1646,7 @@ void CSubdivMesh::dice(CShadingContext *rasterizer) {
 // Description			:	Clone the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

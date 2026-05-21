@@ -7,7 +7,7 @@ set(PREVIEW_TEST_INCLUDES
     ${CMAKE_BINARY_DIR}
 )
 
-set(PREVIEW_TEST_LIBS libribpreview ri openrendercommon)
+set(PREVIEW_TEST_LIBS ribpreview ri openrendercommon)
 set(PREVIEW_TEST_ENV
     "SHADERS=${CMAKE_SOURCE_DIR}/openrender/shaders"
     "ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender"

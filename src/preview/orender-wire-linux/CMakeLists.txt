@@ -21,7 +21,7 @@ target_include_directories(orender-wire PRIVATE
 )
 
 target_link_libraries(orender-wire PRIVATE
-    libribpreview
+    ribpreview
     ${GTK4_LIBRARIES}
     OpenGL::GL
 )

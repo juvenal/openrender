@@ -832,7 +832,7 @@ CCurveMesh::~CCurveMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

@@ -3,29 +3,33 @@ import CRibPreview
 
 // ─── ArcballCamera ───────────────────────────────────────────────────────────
 //
-// Port of CInterface from src/gui/interface.h.
-//
 // Internal model:
-//   worldToCamera = T(0,0,-distance) * R(orientation) * T(orbitCenter)
+//   worldToCamera = T(0,0,-distance) * R(orientation) * T(-orbitCenter)
 //
 // The orbit center is the world-space point that stays screen-centered during
-// orbit (equivalent to -position in CInterface, but sign-flipped for clarity).
-// distance ≡ zoom in CInterface.
+// orbit.  distance > 0 places the camera in front of the orbit center along
+// the camera +Z axis (Metal −Z-forward convention).
+//
+// The initial view is derived from scene bounds rather than from the RIB view
+// matrix.  orender's camera convention is +Z-forward (RenderMan standard),
+// which is incompatible with the arcball's −Z-forward Metal convention without
+// an explicit axis flip; many RIB cameras also contain reflections or
+// non-rotation transforms that break quaternion decomposition.  A
+// bounds-derived orbit gives a reliable starting view for any scene.
 
 @MainActor
 final class ArcballCamera {
 
-    // RIB camera matrices — stored to support exact reset.
+    // RIB projection matrix — stored to support exact reset.
     private let ribProj: simd_float4x4
-    private let ribView: simd_float4x4
 
     // Arcball live state.
     private(set) var projMatrix: simd_float4x4
-    private var orbitCenter: simd_float3
+    private(set) var orbitCenter: simd_float3
     private var orientation: simd_quatf
     private var distance: Float
 
-    // Arcball initial state (matches RIB decomposition) — used by reset().
+    // Arcball initial state (bounds-derived) — used by reset().
     private let initOrbitCenter: simd_float3
     private let initOrientation: simd_quatf
     private let initDistance: Float
@@ -44,11 +48,9 @@ final class ArcballCamera {
     // MARK: – Init
 
     init(camera: PreviewCameraC, bounds: PreviewBoundsC) {
-        ribProj = loadMatrix(camera.projMatrix)
-        ribView = loadMatrix(camera.viewMatrix)
+        ribProj    = loadMatrix(camera.projMatrix)
         projMatrix = ribProj
 
-        // Scene center as orbit center.
         let bmin = simd_float3(bounds.sceneBoundsMin.0,
                                bounds.sceneBoundsMin.1,
                                bounds.sceneBoundsMin.2)
@@ -57,18 +59,52 @@ final class ArcballCamera {
                                bounds.sceneBoundsMax.2)
         let sceneCenter = (bmin + bmax) * 0.5
 
-        // Decompose ribView into orientation + distance given the orbit center.
-        // ribView = [R | t]  where t = -R*orbitCenter + (0,0,-distance)
-        // → distance = -(R*orbitCenter + t).z
-        let (orient, dist) = ArcballCamera.decompose(worldToCamera: ribView,
-                                                     orbitCenter: sceneCenter)
+        // Derive the initial orbit orientation from the RIB camera's view direction.
+        //
+        // orender is +Z-forward: row 2 of fromWorld (= viewMatrix) gives the
+        // world-space direction that the camera looks toward.  Row 1 gives the
+        // camera's up vector in world space.
+        //
+        // The arcball is −Z-forward (Metal convention): cam +Z = opposite of fwd.
+        // We build a right-handed camera frame and construct a quaternion from it.
+        let ribView = loadMatrix(camera.viewMatrix)
+        let fwd     = simd_normalize(simd_float3(ribView.columns.0[2],
+                                                  ribView.columns.1[2],
+                                                  ribView.columns.2[2]))
+        let upApprox = simd_normalize(simd_float3(ribView.columns.0[1],
+                                                   ribView.columns.1[1],
+                                                   ribView.columns.2[1]))
+        let camZ = -fwd   // arcball +Z points away from the scene
+        var right = simd_cross(upApprox, camZ)
+        if simd_length(right) < 0.001 { right = simd_float3(1, 0, 0) }
+        right = simd_normalize(right)
+        let actualUp = simd_normalize(simd_cross(camZ, right))
 
-        orbitCenter      = sceneCenter
-        orientation      = orient
-        distance         = dist
-        initOrbitCenter  = sceneCenter
-        initOrientation  = orient
-        initDistance     = dist
+        // R_view is the world-to-camera rotation (rows = right, actualUp, camZ).
+        // In simd column-major, rows become the TRANSPOSED columns:
+        //   col j = (right[j], actualUp[j], camZ[j], 0)
+        let R_view = simd_float4x4(columns: (
+            simd_float4(right.x,    actualUp.x, camZ.x,    0),
+            simd_float4(right.y,    actualUp.y, camZ.y,    0),
+            simd_float4(right.z,    actualUp.z, camZ.z,    0),
+            simd_float4(0, 0, 0, 1)
+        ))
+        let initOrient = simd_quatf(R_view)
+
+        // Match the RIB camera's actual distance to the scene center.
+        // ribView is fromWorld (world→camera); its inverse is camera→world,
+        // and column 3 is the camera's world-space position.
+        let ribCamPos = simd_float3(ribView.inverse.columns.3.x,
+                                    ribView.inverse.columns.3.y,
+                                    ribView.inverse.columns.3.z)
+        let initDist = max(simd_length(sceneCenter - ribCamPos), 0.1)
+
+        orbitCenter     = sceneCenter
+        orientation     = initOrient
+        distance        = initDist
+        initOrbitCenter = sceneCenter
+        initOrientation = initOrient
+        initDistance    = initDist
 
         radius = simd_length(windowSize) * 0.5
     }
@@ -84,8 +120,10 @@ final class ArcballCamera {
         currentViewMatrix.inverse
     }
 
-    // Whether the stored projection matrix is orthographic
-    var isOrthographic: Bool { projMatrix.columns.3.z != -1.0 }
+    // Whether the stored projection matrix is orthographic.
+    // In the column-major simd matrix the perspective-divisor sentinel (-1) lives at
+    // column 2, row 3 (columns.2.w), which maps to proj[14] in the row-major C layout.
+    var isOrthographic: Bool { projMatrix.columns.2.w != -1.0 }
 
     // Vertical FOV in degrees extracted from the perspective projection matrix
     var fovDegrees: Float {
@@ -97,7 +135,9 @@ final class ArcballCamera {
     private var currentViewMatrix: simd_float4x4 {
         let T_dist   = translate(0, 0, -distance)
         let R        = simd_float4x4(orientation)
-        let T_center = translate(orbitCenter.x, orbitCenter.y, orbitCenter.z)
+        // T(-orbitCenter): shift the orbit center to the camera origin so that
+        // orbiting pivots around the correct world-space point.
+        let T_center = translate(-orbitCenter.x, -orbitCenter.y, -orbitCenter.z)
         return matrix_multiply(matrix_multiply(T_dist, R), T_center)
     }
 
@@ -159,14 +199,11 @@ final class ArcballCamera {
         windowSize = simd_float2(width, height)
         radius = simd_length(windowSize) * 0.5
 
-        // Update perspective projection aspect ratio (column-major: proj[0][0]).
+        // For both perspective and orthographic, X scale = Y scale / aspect.
+        // Perspective: Y scale = fv = 1/tan(vfov/2); Orthographic: Y scale = 1.
         var proj = projMatrix
-        if proj.columns.3.z == -1.0 {       // perspective check
-            let fv     = proj.columns.1.y   // fv = 1/tan(fov/2)
-            let aspect = width / height
-            proj.columns.0.x = fv / aspect
-            projMatrix = proj
-        }
+        proj.columns.0.x = proj.columns.1.y / (width / height)
+        projMatrix = proj
     }
 
     // MARK: – Private helpers
@@ -185,23 +222,6 @@ final class ArcballCamera {
         return simd_float3(dx, dy, sqrt(1.0 - l2))
     }
 
-    private static func decompose(worldToCamera m: simd_float4x4,
-                                   orbitCenter oc: simd_float3)
-        -> (simd_quatf, Float)
-    {
-        let R = simd_float3x3(columns: (
-            simd_float3(m.columns.0.x, m.columns.0.y, m.columns.0.z),
-            simd_float3(m.columns.1.x, m.columns.1.y, m.columns.1.z),
-            simd_float3(m.columns.2.x, m.columns.2.y, m.columns.2.z)
-        ))
-        let t = simd_float3(m.columns.3.x, m.columns.3.y, m.columns.3.z)
-
-        // t = -R*oc + (0,0,-distance)  →  distance = -(R*oc + t).z
-        let d = -(simd_mul(R, oc) + t).z
-        let dist = max(d, 1.0)
-        let q = simd_quatf(R)
-        return (simd_normalize(q), dist)
-    }
 }
 
 // ─── Free helpers ─────────────────────────────────────────────────────────────

@@ -6,5 +6,6 @@ void tessPoints(
     const float *positions,
     int numPoints,
     const float *xfrom,
-    std::vector<float3> &verts, AABB &bounds
+    const float3 &col,
+    std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds
 );

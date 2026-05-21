@@ -47,7 +47,7 @@ class CSphere : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -86,7 +86,7 @@ class CDisk : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
         CParameter *parameters;
@@ -113,7 +113,7 @@ class CCone : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -151,7 +151,7 @@ class CParaboloid : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -190,7 +190,7 @@ class CCylinder : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -228,7 +228,7 @@ class CHyperboloid : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -268,7 +268,7 @@ class CToroid : public CSurface {
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;

@@ -7,8 +7,8 @@ static constexpr int NU = 24;
 static constexpr int NV = 12;
 
 void tessQuadricSphere(float r, float umax, float vmin, float vmax,
-                       const float *m,
-                       std::vector<float3> &verts, AABB &bounds) {
+                       const float *m, const float3 &col,
+                       std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     auto pt = [&](int ui, int vi) -> float3 {
         float theta = umax * ui / NU;
         float z     = vmin + (vmax - vmin) * vi / NV;
@@ -17,57 +17,57 @@ void tessQuadricSphere(float r, float umax, float vmin, float vmax,
     };
     for (int v = 0; v <= NV; v++)
         for (int u = 0; u < NU; u++)
-            pushEdge(verts, bounds, pt(u, v), pt(u+1, v));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u+1, v), col);
     for (int u = 0; u <= NU; u++)
         for (int v = 0; v < NV; v++)
-            pushEdge(verts, bounds, pt(u, v), pt(u, v+1));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u, v+1), col);
 }
 
 void tessQuadricDisk(float r, float z, float umax,
-                     const float *m,
-                     std::vector<float3> &verts, AABB &bounds) {
+                     const float *m, const float3 &col,
+                     std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     for (int u = 0; u < NU; u++) {
         float t0 = umax * u / NU, t1 = umax * (u+1) / NU;
-        pushEdge(verts, bounds,
+        pushEdge(verts, cols, bounds,
                  xfPoint(m, r*cosf(t0), r*sinf(t0), z),
-                 xfPoint(m, r*cosf(t1), r*sinf(t1), z));
+                 xfPoint(m, r*cosf(t1), r*sinf(t1), z), col);
     }
     float3 ctr = xfPoint(m, 0, 0, z);
-    pushEdge(verts, bounds, ctr, xfPoint(m, r, 0, z));
-    pushEdge(verts, bounds, ctr, xfPoint(m, r*cosf(umax), r*sinf(umax), z));
+    pushEdge(verts, cols, bounds, ctr, xfPoint(m, r, 0, z), col);
+    pushEdge(verts, cols, bounds, ctr, xfPoint(m, r*cosf(umax), r*sinf(umax), z), col);
 }
 
 void tessQuadricCone(float r, float height, float umax,
-                     const float *m,
-                     std::vector<float3> &verts, AABB &bounds) {
+                     const float *m, const float3 &col,
+                     std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     float3 apex = xfPoint(m, 0, 0, height);
     for (int u = 0; u < NU; u++) {
         float t0 = umax * u / NU, t1 = umax * (u+1) / NU;
         float3 a = xfPoint(m, r*cosf(t0), r*sinf(t0), 0);
         float3 b = xfPoint(m, r*cosf(t1), r*sinf(t1), 0);
-        pushEdge(verts, bounds, a, b);
-        pushEdge(verts, bounds, a, apex);
+        pushEdge(verts, cols, bounds, a, b, col);
+        pushEdge(verts, cols, bounds, a, apex, col);
     }
 }
 
 void tessQuadricCylinder(float r, float zmin, float zmax, float umax,
-                         const float *m,
-                         std::vector<float3> &verts, AABB &bounds) {
+                         const float *m, const float3 &col,
+                         std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     for (int u = 0; u < NU; u++) {
         float t0 = umax * u / NU, t1 = umax * (u+1) / NU;
         float3 lo0 = xfPoint(m, r*cosf(t0), r*sinf(t0), zmin);
         float3 lo1 = xfPoint(m, r*cosf(t1), r*sinf(t1), zmin);
         float3 hi0 = xfPoint(m, r*cosf(t0), r*sinf(t0), zmax);
         float3 hi1 = xfPoint(m, r*cosf(t1), r*sinf(t1), zmax);
-        pushEdge(verts, bounds, lo0, lo1);
-        pushEdge(verts, bounds, hi0, hi1);
-        pushEdge(verts, bounds, lo0, hi0);
+        pushEdge(verts, cols, bounds, lo0, lo1, col);
+        pushEdge(verts, cols, bounds, hi0, hi1, col);
+        pushEdge(verts, cols, bounds, lo0, hi0, col);
     }
 }
 
 void tessQuadricParaboloid(float rmax, float zmin, float zmax, float umax,
-                           const float *m,
-                           std::vector<float3> &verts, AABB &bounds) {
+                           const float *m, const float3 &col,
+                           std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     if (zmax <= 0.0f) return;
     auto pt = [&](int ui, int vi) -> float3 {
         float theta = umax * ui / NU;
@@ -77,15 +77,15 @@ void tessQuadricParaboloid(float rmax, float zmin, float zmax, float umax,
     };
     for (int v = 0; v <= NV; v++)
         for (int u = 0; u < NU; u++)
-            pushEdge(verts, bounds, pt(u, v), pt(u+1, v));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u+1, v), col);
     for (int u = 0; u <= NU; u++)
         for (int v = 0; v < NV; v++)
-            pushEdge(verts, bounds, pt(u, v), pt(u, v+1));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u, v+1), col);
 }
 
 void tessQuadricHyperboloid(const float p1[3], const float p2[3], float umax,
-                            const float *m,
-                            std::vector<float3> &verts, AABB &bounds) {
+                            const float *m, const float3 &col,
+                            std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     auto pt = [&](int ui, int vi) -> float3 {
         float theta = umax * ui / NU;
         float t     = (float)vi / NV;
@@ -98,15 +98,15 @@ void tessQuadricHyperboloid(const float p1[3], const float p2[3], float umax,
     };
     for (int v = 0; v <= NV; v++)
         for (int u = 0; u < NU; u++)
-            pushEdge(verts, bounds, pt(u, v), pt(u+1, v));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u+1, v), col);
     for (int u = 0; u <= NU; u++)
         for (int v = 0; v < NV; v++)
-            pushEdge(verts, bounds, pt(u, v), pt(u, v+1));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u, v+1), col);
 }
 
 void tessQuadricToroid(float rmax, float rmin, float phimin, float phimax, float umax,
-                       const float *m,
-                       std::vector<float3> &verts, AABB &bounds) {
+                       const float *m, const float3 &col,
+                       std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds) {
     auto pt = [&](int ui, int vi) -> float3 {
         float theta = umax * ui / NU;
         float phi   = phimin + (phimax - phimin) * vi / NV;
@@ -117,8 +117,8 @@ void tessQuadricToroid(float rmax, float rmin, float phimin, float phimax, float
     };
     for (int v = 0; v <= NV; v++)
         for (int u = 0; u < NU; u++)
-            pushEdge(verts, bounds, pt(u, v), pt(u+1, v));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u+1, v), col);
     for (int u = 0; u <= NU; u++)
         for (int v = 0; v < NV; v++)
-            pushEdge(verts, bounds, pt(u, v), pt(u, v+1));
+            pushEdge(verts, cols, bounds, pt(u, v), pt(u, v+1), col);
 }

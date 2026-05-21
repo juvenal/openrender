@@ -8,7 +8,8 @@ void tessPatch(
     const float *positions,
     int nu, int nv,
     const float *xfrom,
-    std::vector<float3> &verts, AABB &bounds
+    const float3 &col,
+    std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds
 );
 
 // Control-cage wireframe for NURBS patch meshes (same grid layout).
@@ -16,5 +17,6 @@ void tessNurbs(
     const float *positions,
     int nu, int nv,
     const float *xfrom,
-    std::vector<float3> &verts, AABB &bounds
+    const float3 &col,
+    std::vector<float3> &verts, std::vector<float3> &cols, AABB &bounds
 );

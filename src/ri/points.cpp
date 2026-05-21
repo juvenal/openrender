@@ -390,7 +390,7 @@ void CPoints::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	Clone the points
 // Return Value			:	-
 // Comments				:
-void CPoints::instantiate(CAttributes *a, CXform *x, CRendererContext *c) const {
+void CPoints::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

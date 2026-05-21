@@ -29,5 +29,6 @@
 
 void ribParse(const char *, void (*callback)(const char *, ...));
 void parserCleanup();
+void RiBeginLite();
 
 #endif

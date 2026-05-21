@@ -42,6 +42,7 @@ class CVariable;
 class CShadingContext;
 class CVolume;
 class CRendererContext;
+class CRiInterface;
 class CTesselationPatch;
 
 // Various object flags
@@ -72,7 +73,7 @@ class CObject : public CRefCounter {
         //
         virtual void intersect(CShadingContext *, CRay *) = 0;
         virtual void dice(CShadingContext *);
-        virtual void instantiate(CAttributes *, CXform *, CRendererContext *) const = 0;
+        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const = 0;
 
         // Cluster the children
         void cluster(CShadingContext *);
@@ -105,7 +106,7 @@ class CDummyObject : public CObject {
         virtual ~CDummyObject();
 
         virtual void intersect(CShadingContext *, CRay *);
-        virtual void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 };
 
 ///////////////////////////////////////////////////////////////////////

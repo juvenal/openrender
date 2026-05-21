@@ -45,7 +45,7 @@ class CBilinearPatch : public CSurface {
 
         // CObject interface
         void intersect(CShadingContext *, CRay *);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -71,7 +71,7 @@ class CBicubicPatch : public CSurface {
         ~CBicubicPatch();
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -99,7 +99,7 @@ class CNURBSPatch : public CSurface {
         ~CNURBSPatch();
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -147,7 +147,7 @@ class CPatchMesh : public CObject {
         // CObject interface
         void intersect(CShadingContext *, CRay *);
         void dice(CShadingContext *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
         void create(CShadingContext *context);
@@ -172,7 +172,7 @@ class CNURBSPatchMesh : public CObject {
         // CObject interface
         void intersect(CShadingContext *, CRay *);
         void dice(CShadingContext *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
         void create(CShadingContext *context);

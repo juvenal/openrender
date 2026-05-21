@@ -14,7 +14,7 @@ struct PreviewCamera {
     float nearPlane;
     float farPlane;
     ProjectionType projectionType;
-    float fov;               // horizontal FOV in degrees (perspective only)
+    float fov;               // vertical FOV in degrees (perspective only; orender fov = minor-axis angle)
     float frameAspectRatio;
 };
 
@@ -25,6 +25,7 @@ struct AABB {
 
 struct PreviewScene {
     std::vector<float3>      vertices;    // flat line-list, always even count
+    std::vector<float3>      colors;      // parallel to vertices, per-vertex RGB
     PreviewCamera            camera;
     AABB                     sceneBounds;
     std::vector<std::string> warnings;

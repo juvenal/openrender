@@ -67,7 +67,7 @@ class CCurve : public CSurface {
 
         // Object interface
         void dice(CShadingContext *);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // Surface interface
         int moving() const { return base->variables->moving; }
@@ -125,7 +125,7 @@ class CCurveMesh : public CObject {
         // Object interface
         void intersect(CShadingContext *, CRay *) {}
         void dice(CShadingContext *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
         void create(CShadingContext *context);

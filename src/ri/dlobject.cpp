@@ -140,7 +140,7 @@ void CDLObject::dice(CShadingContext *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CDLObject::instantiate(CAttributes *, CXform *, CRendererContext *) const {
+void CDLObject::instantiate(CAttributes *, CXform *, CRiInterface *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

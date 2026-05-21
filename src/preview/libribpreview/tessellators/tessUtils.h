@@ -22,10 +22,11 @@ static inline void expandAABB(AABB &bb, const float3 &p) {
     if (p.z > bb.max.z) bb.max.z = p.z;
 }
 
-static inline void pushEdge(std::vector<float3> &verts, AABB &bb,
-                             const float3 &a, const float3 &b) {
-    verts.push_back(a);
-    verts.push_back(b);
+static inline void pushEdge(std::vector<float3> &verts, std::vector<float3> &cols,
+                             AABB &bb,
+                             const float3 &a, const float3 &b, const float3 &col) {
+    verts.push_back(a);  verts.push_back(b);
+    cols.push_back(col); cols.push_back(col);
     expandAABB(bb, a);
     expandAABB(bb, b);
 }

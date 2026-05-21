@@ -28,7 +28,7 @@ file(GLOB_RECURSE WIRE_MACOS_SOURCES
 )
 
 # Paths to C++ static libraries built by CMake that libribpreview depends on.
-set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/liblibribpreview.a")
+set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/libribpreview.a")
 set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libopenrendercommon.a")
 set(LIBRI_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
 
@@ -70,7 +70,7 @@ add_custom_target(orender-wire-macos ALL
     DEPENDS "${WIRE_MACOS_BINARY}"
 )
 
-add_dependencies(orender-wire-macos libribpreview)
+add_dependencies(orender-wire-macos ribpreview)
 
 add_custom_command(TARGET orender-wire-macos POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_BINARY_DIR}/orender-wire.app"

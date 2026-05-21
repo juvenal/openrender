@@ -46,7 +46,7 @@ class CPolygonMesh : public CObject {
 
         void intersect(CShadingContext *, CRay *);
         void dice(CShadingContext *);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const;
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
         void create(CShadingContext *);
@@ -76,7 +76,7 @@ class CPolygonTriangle : public CSurface {
         ~CPolygonTriangle();
 
         void intersect(CShadingContext *, CRay *);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -98,7 +98,7 @@ class CPolygonQuad : public CSurface {
         ~CPolygonQuad();
 
         void intersect(CShadingContext *, CRay *);
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;

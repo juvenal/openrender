@@ -40,7 +40,7 @@ class CSubdivision : public CSurface {
         CSubdivision(CAttributes *, CXform *, CVertexData *, CParameter *, int, float, float, float, float, float *);
         ~CSubdivision();
 
-        void instantiate(CAttributes *, CXform *, CRendererContext *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         int moving() const { return vertexData->moving; }
         void sample(int, int, float **, float ***, unsigned int &) const;
