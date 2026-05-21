@@ -8,13 +8,14 @@
 
 ---
 
-## Executables (6 binaries)
+## Executables (7 binaries)
 
 Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 | Binary | Description | Location |
 |--------|-------------|----------|
 | `orender` | Main renderer executable | `/usr/local/bin/orender` |
+| `orender-wire` | Interactive RIB wireframe previewer (macOS: `.app` bundle; Linux: GTK 4 binary) | `/usr/local/bin/orender-wire` |
 | `oshader` | Shader compiler | `/usr/local/bin/oshader` |
 | `rsloinfo` | Shader information utility | `/usr/local/bin/rsloinfo` |
 | `otexmake` | Texture creation utility | `/usr/local/bin/otexmake` |
@@ -47,13 +48,14 @@ Installed to: `${OPENRENDER_DISPLAYSDIR}` → `/usr/local/displays/`
 
 ---
 
-## Development Libraries (1 static library)
+## Development Libraries (2 static libraries)
 
 **Not installed by default** (build artifact only)
 
 | Library | Description | Location |
 |---------|-------------|----------|
 | `libopenrendercommon.a` | Common utilities static library | Build only |
+| `libribpreview.a` | Scene geometry extraction library for wireframe preview (`ribpreview_api.h` C API) | Build only |
 
 ---
 
@@ -86,13 +88,14 @@ Examples:
 
 ---
 
-## Man Pages (4 files)
+## Man Pages (5 files)
 
 Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 
 | Man Page | Command |
 |----------|---------|
 | `orender.1` | orender(1) |
+| `orender-wire.1` | orender-wire(1) |
 | `oshader.1` | oshader(1) |
 | `rsloinfo.1` | rsloinfo(1) |
 | `otexmake.1` | otexmake(1) |
@@ -122,6 +125,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 /usr/local/
 ├── bin/
 │   ├── orender
+│   ├── orender-wire
 │   ├── oshader
 │   ├── rsloinfo
 │   ├── otexmake
@@ -147,6 +151,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 ├── share/
 │   ├── man/man1/        # Man pages
 │   │   ├── orender.1
+│   │   ├── orender-wire.1
 │   │   ├── oshader.1
 │   │   ├── rsloinfo.1
 │   │   └── otexmake.1
@@ -236,11 +241,12 @@ When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 
 | Category | Count |
 |----------|-------|
-| Executables | 6 (5 installed + 1 build-only) |
+| Executables | 7 (6 installed + 1 build-only) |
 | Shared Libraries | 2 |
+| Static Libraries | 2 (build-only) |
 | Display Modules | 4 |
 | Header Files | 6 |
 | Shader Files | 54 |
-| Man Pages | 4 |
+| Man Pages | 5 |
 | Documentation Files | 8 |
-| **Total Files** | **84** |
+| **Total Files** | **88** |

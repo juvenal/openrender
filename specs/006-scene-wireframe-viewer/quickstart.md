@@ -17,7 +17,7 @@ cmake --build build --config Release
 ### Build libribpreview only (for TDD iteration)
 
 ```bash
-cmake --build build --target libribpreview
+cmake --build build --target ribpreview
 ```
 
 ### Build and run tests
@@ -31,14 +31,18 @@ ctest --test-dir build -R preview --output-on-failure
 
 ## Run
 
+orender-wire requires **no** renderer environment variables (`ORENDERHOME`, `SHADERS`, `DISPLAYS` are for the full renderer and are not used here).
+
 ```bash
-# Basic usage
-SHADERS="$(pwd)/openrender/shaders" \
-ORENDERHOME="$(pwd)/openrender" \
-build/bin/orender-wire examples/rib/camera-dof.rib
+# Basic usage — no env vars needed
+build/orender-wire.app/Contents/MacOS/orender-wire examples/rib/camera-dof.rib
+
+# Scenes with Geometry "name" statements need GEOMETRIES
+GEOMETRIES="$(pwd)/openrender/geometry" \
+build/orender-wire.app/Contents/MacOS/orender-wire examples/rib/teapot.rib
 
 # Verify it exits cleanly with an invalid path
-build/bin/orender-wire /nonexistent.rib; echo "exit: $?"
+build/orender-wire.app/Contents/MacOS/orender-wire /nonexistent.rib; echo "exit: $?"
 # Expected: exit: 2
 ```
 
@@ -61,7 +65,7 @@ build/bin/orender-wire /nonexistent.rib; echo "exit: $?"
 | Geometry object classes | `src/ri/polygons.h`, `patches.h`, `quadrics.h`, `curves.h`, `points.h`, `subdivision.h` |
 | CXform (transform matrices) | `src/ri/xform.h` — `from` = object→world, `to` = world→object |
 | CPl (parameter list, vertex data) | `src/ri/pl.h` — `data0` is the flat float array |
-| CRendererContext (base class) | `src/ri/rendererContext.h:54` — override `addObject()` at line 209 |
+| CRibGeometryContext (geometry context) | `src/preview/libribpreview/ribGeometryContext.h` — lightweight base; override `addObject()` |
 | Original arcball math | `src/gui/interface.h` — `CInterface::toSphere`, `computeMatrices` |
 | orender-fb-macos CMake pattern | `src/framebuffer/orender-fb-macos/CMakeLists.txt` |
 | Linux GTK 4 CMake pattern | `pkg_check_modules(GTK4 REQUIRED gtk4>=4.22)` in `src/preview/orender-wire-linux/CMakeLists.txt` |

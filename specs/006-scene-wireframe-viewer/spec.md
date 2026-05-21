@@ -18,6 +18,12 @@
 - Q: How should dense point clouds be handled — display all points, subsample above a threshold, or replace with bounding box? → A: Subsample above a fixed maximum (e.g., 100,000 points); excess points are uniformly subsampled and a warning is emitted.
 - Q: Should the tool print diagnostic output during normal operation? → A: Warnings to stderr only, by default; stdout is never written during normal operation.
 
+### Session 2026-05-21
+
+- Q: Does orender-wire require `ORENDERHOME`, `SHADERS`, or `DISPLAYS` to be set? → A: No. Those variables are consumed by the full renderer's display plugin and shader loading subsystems, which the wireframe previewer bypasses entirely. orender-wire works on a machine with none of those configured.
+- Q: What happens when a RIB file uses the `Geometry "name"` statement and `GEOMETRIES` is not set? → A: The named primitive is skipped; a notice is written to stderr. No crash, no non-zero exit.
+- Q: What does orender-wire do with `Surface`, `LightSource`, `Imager`, `Display`, and other non-geometry RIB statements? → A: Silently ignores them. The tool processes geometry only; shading, lighting, and display setup are irrelevant and must not produce errors or warnings.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Open and Inspect a RIB Scene (Priority: P1)
@@ -99,6 +105,8 @@ After navigating to a desired viewpoint, the artist saves the current camera pos
 - What happens when the RIB does not define a camera? The tool falls back to a default perspective viewpoint that frames all geometry.
 - What happens on Linux when neither X11 nor Wayland is available? The tool prints a clear error and exits gracefully.
 - What happens when a point cloud primitive contains more than 100,000 points? The tool uniformly subsamples the point cloud to 100,000 points, prints a warning to stderr identifying the primitive and the original count, and displays the subsampled result.
+- What happens when the RIB uses a `Geometry "name"` statement and `GEOMETRIES` is not set? The named primitive is silently skipped and a notice is written to stderr; the rest of the scene is displayed normally.
+- What happens when the RIB contains `Surface`, `LightSource`, `Imager`, `Display`, `Atmosphere`, or other non-geometry statements? They are silently ignored. The tool is geometry-only; these statements have no effect on wireframe preview.
 
 ## Requirements *(mandatory)*
 
@@ -114,6 +122,7 @@ After navigating to a desired viewpoint, the artist saves the current camera pos
 - **FR-006**: When the RIB file cannot be found or read, the tool MUST print a descriptive error message to stderr and exit with a non-zero status code.
 - **FR-007**: When the RIB file contains parse errors, the tool MUST report the error location and either display successfully parsed geometry with a warning or exit gracefully without crashing.
 - **FR-021**: The tool MUST write all warnings (parse errors, unrecognised RIB statements, point cloud subsampling notices) to stderr. The tool MUST NOT write to stdout during normal operation; stdout is reserved for explicit future machine-readable output modes.
+- **FR-022**: The tool MUST launch and display scene geometry without requiring `ORENDERHOME`, `SHADERS`, or `DISPLAYS` environment variables to be set. Those variables are consumed by the full renderer's shader and display subsystems and must not be prerequisites for wireframe preview.
 
 **Camera and View**
 
@@ -164,6 +173,6 @@ After navigating to a desired viewpoint, the artist saves the current camera pos
 - Motion blur (motion blocks) and deformation data are out of scope for the wireframe previewer; only the first time sample (t=0) is displayed.
 - Shading, lighting, and texture evaluation are entirely out of scope; the tool is geometry-only.
 - Subdivision surface refinement is out of scope for the first implementation; the control cage is sufficient for geometry inspection.
-- The reference grid is drawn on the Y=0 plane (RenderMan convention: Y-up world space).
+- The reference grid is drawn on the Y=0 plane of the viewer's own coordinate system. RIB files authored in Z-up DCCs (3ds Max, AutoCAD, Blender Z-up mode) include a Y↔Z axis-swap camera transform such as `Transform [1 0 0 0  0 0 1 0  0 1 0 0  0 0 0 1]`; the viewer handles these transparently — the grid always appears as the natural ground plane in the displayed scene regardless of the source coordinate convention.
 - The camera export feature writes a minimal RIB snippet containing only the camera transform; it does not regenerate the full scene RIB.
 - The tool is a separate binary (`orender-wire`) independent of the existing framebuffer display helper (`orender-fb`) and the main renderer (`orender`).

@@ -1,0 +1,150 @@
+.TH ORENDER\-WIRE 1 "2026-05-21" "openRender" "openRender User Commands"
+.SH NAME
+orender\-wire \- interactive RIB wireframe scene previewer
+.SH SYNOPSIS
+.B orender\-wire
+.I scene.rib
+.br
+.B orender\-wire
+.B \-\-help
+.br
+.B orender\-wire
+.B \-\-version
+.SH DESCRIPTION
+.B orender\-wire
+opens a RenderMan Interface Bytestream (RIB) scene file and displays all
+geometry as an interactive 3-D wireframe in a GPU-accelerated native window.
+.PP
+On macOS the viewer is a Metal/AppKit application bundle. On Linux it uses
+OpenGL 3.3 Core via GTK\~4. Both platforms share the same scene-processing
+layer (\fBlibribpreview\fR) for RIB parsing and tessellation.
+.PP
+The initial viewpoint is taken from the camera defined in the RIB file. If no
+camera is present a default perspective view framing the full scene bounding
+box is synthesized.
+.SH OPTIONS
+.TP
+.I scene.rib
+Path to the RIB file to load (required).
+.TP
+.B \-\-help
+Print a usage summary to stdout and exit 0.
+.TP
+.B \-\-version
+Print the version string to stdout and exit 0.
+.SH CONTROLS
+.SS Keyboard
+.TP
+.BR R ", " Home
+Reset the view to the original RIB-defined camera.
+.TP
+.B S
+Open a native save dialog to export the current camera viewpoint to a RIB file.
+.TP
+.B \[u2318]Q " (macOS)"
+Quit.
+.TP
+.BR Q ", " Escape " (Linux)"
+Quit.
+.SS Mouse
+.TP
+Left button drag
+Orbit — rotate around the scene center (arcball).
+.TP
+Scroll wheel
+Zoom in / out.
+.TP
+Middle button drag
+Pan — translate the look-at point.
+.SS macOS Trackpad
+.TP
+Two-finger scroll
+Zoom in / out.
+.TP
+Two-finger pan
+Pan the camera.
+.SH ENVIRONMENT
+.TP
+.B GEOMETRIES
+Optional colon-separated search path for named geometry RIB files used by the
+.B Geometry
+RIB statement (e.g.
+.IR Geometry\ \(dqteapot\(dq ).
+When unset,
+.B Geometry
+primitives are silently skipped and a notice is written to stderr.
+.TP
+.B WAYLAND_DISPLAY
+(Linux) Wayland compositor socket. Consulted by GTK\~4 when selecting the
+display backend. Not read directly by
+.BR orender\-wire .
+.TP
+.B DISPLAY
+(Linux) X11 display server. Consulted by GTK\~4 when
+.B WAYLAND_DISPLAY
+is unset.
+.PP
+.B orender\-wire
+does \fBnot\fR use
+.BR ORENDERHOME ,
+.BR SHADERS ,
+or
+.BR DISPLAYS .
+Those variables are consumed by the full renderer
+.RB ( orender )
+and are not needed for wireframe preview.
+.SH EXIT STATUS
+.TP
+.B 0
+Success — window opened and the user closed it normally.
+.TP
+.B 1
+Usage error — missing or unrecognised argument.
+.TP
+.B 2
+File not found or unreadable.
+.TP
+.B 3
+RIB parse failed — fatal error written to stderr.
+.TP
+.B 4
+No display available — Linux only, no X11 or Wayland server found.
+.SH DIAGNOSTICS
+All warnings and notices are written to stderr. Stdout is silent during normal
+operation.
+.PP
+Notable messages:
+.IP \(bu 4
+.BI "orender\-wire: GEOMETRIES not set, geometry '" name "' skipped"
+\(em a
+.B Geometry
+statement was encountered but
+.B GEOMETRIES
+is not set.
+.IP \(bu 4
+.BI "orender\-wire: warning: point cloud at " id " has " N " points; displaying 100000 (subsampled)"
+\(em a point cloud exceeding 100,000 points was uniformly subsampled.
+.IP \(bu 4
+.B "orender\-wire: warning: procedural primitive represented as bounding box"
+\(em a
+.B Procedural
+or DSO-backed primitive is displayed as an axis-aligned bounding box.
+.SH NOTES
+Motion blur and deformation data are ignored; only the first time sample (t=0)
+of any motion block is displayed.
+.PP
+Subdivision surfaces are shown as their control cage without any refinement.
+.PP
+The reference grid is drawn on the Y=0 plane of the viewer coordinate system.
+RIB files authored in Z-up DCCs typically include a Y\(haZ axis-swap
+.B Transform
+before
+.BR WorldBegin ;
+this is handled transparently.
+.SH SEE ALSO
+.BR orender (1),
+.BR oshader (1),
+.BR otexmake (1),
+.BR rsloinfo (1)
+.SH AUTHORS
+Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>

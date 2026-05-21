@@ -57,18 +57,20 @@ orender-wire --version
 | Fatal parse error | `orender-wire: error: <file>:<line>: <description>` |
 | Point cloud subsampled | `orender-wire: warning: point cloud at <primitive-id> has <N> points; displaying 100000 (subsampled)` |
 | Procedural placeholder | `orender-wire: warning: procedural primitive represented as bounding box` |
+| Named geometry skipped | `orender-wire: GEOMETRIES not set, geometry '<name>' skipped` |
 | No display (Linux) | `orender-wire: error: no display server available (GTK 4 could not open a display — check WAYLAND_DISPLAY or DISPLAY)` |
 
 ---
 
 ## Environment Variables
 
-| Variable | Used by | Description |
+| Variable | Status | Description |
 |---|---|---|
-| `ORENDERHOME` | libribpreview (via ri library) | openRender home directory for shader and geometry lookup paths. Required for scenes that reference external resources. |
-| `SHADERS` | libribpreview (via ri library) | Override shader search path. |
-| `WAYLAND_DISPLAY` | GTK 4 (Linux) | Consulted by GTK 4 internally to select the Wayland display backend. Not read directly by orender-wire. |
-| `DISPLAY` | GTK 4 (Linux) | Consulted by GTK 4 internally to select the X11 display backend when `WAYLAND_DISPLAY` is unset. Not read directly by orender-wire. |
+| `GEOMETRIES` | Optional | Colon-separated search path for named geometry RIB files (`Geometry "name"` statements). When unset, `Geometry` primitives are skipped with a stderr notice; all other geometry is unaffected. |
+| `WAYLAND_DISPLAY` | Optional (Linux) | Consulted by GTK 4 internally to select the Wayland display backend. Not read directly by orender-wire. |
+| `DISPLAY` | Optional (Linux) | Consulted by GTK 4 internally to select the X11 display backend when `WAYLAND_DISPLAY` is unset. Not read directly by orender-wire. |
+
+`ORENDERHOME`, `SHADERS`, and `DISPLAYS` are **not used** by orender-wire. They are consumed by the full renderer (`orender`) for shader and display plugin loading. orender-wire bypasses those subsystems entirely and works without them.
 
 ---
 

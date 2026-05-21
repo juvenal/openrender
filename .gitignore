@@ -1,3 +1,6 @@
+# Ignore AI tools
+.antigravitycli
+
 # CMake build and install directories
 build
 build-test

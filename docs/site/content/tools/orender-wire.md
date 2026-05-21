@@ -48,10 +48,11 @@ The RIB path may be absolute or relative to the current working directory.
 
 ## Environment Variables
 
+`orender-wire` does **not** require `ORENDERHOME`, `SHADERS`, or `DISPLAYS` — those are consumed by the full renderer and are irrelevant to wireframe preview.
+
 | Variable | Description |
 |----------|-------------|
-| `ORENDERHOME` | openRender home directory (required for scenes with external shaders or geometry) |
-| `SHADERS` | Override shader search path |
+| `GEOMETRIES` | Optional colon-separated search path for named geometry files (`Geometry "name"` RIB statements). When unset, `Geometry` primitives are skipped with a stderr notice. |
 | `WAYLAND_DISPLAY` | (Linux) Wayland display socket — used by GTK 4 |
 | `DISPLAY` | (Linux) X11 display server — used by GTK 4 when Wayland is unavailable |
 

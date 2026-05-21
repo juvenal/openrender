@@ -6,11 +6,16 @@
 
 ## 1. Geometry Extraction Entry Point
 
-**Decision**: Subclass `CRendererContext` and override `addObject(CObject*)`.
+**Decision**: Introduce a new lightweight `CRibGeometryContext` (direct subclass of `CRiInterface`) and override `addObject()`. `CPreviewContext` subclasses `CRibGeometryContext`, not `CRendererContext`.
 
-**Rationale**: `CRendererContext` (in `src/ri/rendererContext.h:54`) already implements the full RIB parsing pipeline via `CRiInterface`. Overriding `addObject()` at line 209 intercepts every geometric primitive after the transform hierarchy has been resolved and before any shading or dicing occurs. This is the correct and minimally invasive interception point.
+**Rationale**: The natural first instinct is to subclass `CRendererContext`, which already implements the full RIB parsing pipeline. However, `CRendererContext` initialises display plugins (`DISPLAYS`), shader search paths (`SHADERS`, `ORENDERHOME`), and network subsystems at startup. On any machine that has not configured the full renderer environment — the common case for a wireframe-only user — subclassing `CRendererContext` causes crashes when display plugin DSOs are not found and floods stderr with shader-lookup warnings for every `Surface` and `LightSource` statement in the RIB. This directly violates FR-022 (env-var independence).
+
+`CRibGeometryContext` re-implements only the RIB commands that matter for geometry preview: transform and attribute stacks, camera options, geometry creation, object instancing, and `ReadArchive`. All display, shader, texture, atmosphere, light, and network methods are inherited as no-ops from `CRiInterface`. The geometry classes (`CPolygonMesh`, `CPatchMesh`, etc.) and the RIB parser are shared with the full renderer unchanged.
+
+The `addObject()` interception point is identical in both approaches — every geometric primitive arrives here after the transform hierarchy has been resolved, before any shading or dicing occurs.
 
 **Alternatives considered**:
+- Subclassing `CRendererContext` directly — rejected: requires `ORENDERHOME`/`SHADERS`/`DISPLAYS`; crashes without them; floods stderr with shader warnings on any RIB with `Surface` or `LightSource` statements.
 - Hooking `dice()` on each primitive — rejected: dice() invokes the shading pipeline, which requires shader execution, display drivers, and framebuffer allocation.
 - Writing an independent RIB parser — rejected: duplicates complex existing code; violates Constitution V.
 
@@ -48,19 +53,21 @@
 
 ## 4. Camera Parameter Extraction from RIB
 
-**Decision**: Read camera state from `CRendererContext` after `RiWorldBegin()` is processed.
+**Decision**: Read camera state from `CRibGeometryContext::cameraState` after `RiWorldBegin()` is processed.
 
-**Key fields in `CRendererContext` / `COptions`**:
-- `RiProjectionV()` call → sets projection type and `fov` (perspective default: 90°, orthographic: identity projection)
+`CRibGeometryContext` accumulates camera options as RIB is parsed and snapshots them into a `cameraState` struct at `RiWorldBegin()`. `CPreviewContext::RiWorldBegin()` calls the base implementation first, then reads from `cameraState`.
+
+**Key fields accumulated by `CRibGeometryContext`**:
+- `RiProjectionV()` → projection type and `fov` (perspective default: 90°, orthographic: identity projection)
 - `RiFormat()` / `RiFrameAspectRatio()` → pixel aspect ratio and image resolution
-- `RiClipping()` → `clipMin` / `clipMax` (near/far planes)
-- Camera `CXform` at the time of `RiWorldBegin()` → camera-to-world matrix (use `CXform::to` for world→camera, i.e., view matrix)
+- `RiClipping()` → near/far planes
+- Current `CXform` at the time of `RiWorldBegin()` → camera-to-world matrix; the xform is reset to identity after WorldBegin so subsequent geometry xforms are object-to-world, not object-to-camera
 
 **PreviewCamera construction**:
 ```
-view_matrix   = CXform::to   (world → camera, at WorldBegin)
-proj_matrix   = perspective(fov, frameAR, clipMin, clipMax)
-               or orthographic(screenWindow, clipMin, clipMax)
+view_matrix   = cameraState.viewMatrix  (world → camera, column-major after transpose)
+proj_matrix   = perspective(fov, frameAR, nearPlane, farPlane)
+               or orthographic(screenWindow, nearPlane, farPlane)
 ```
 
 ---
