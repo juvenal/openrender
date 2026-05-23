@@ -9,7 +9,7 @@ void tessPolygon(
 {
     int loopBase = 0;
     for (int f = 0; f < npoly; f++) {
-        int nloops = (nholes && nholes[f] > 0) ? nholes[f] + 1 : 1;
+        int nloops = nholes ? nholes[f] : 1;
         for (int l = 0; l < nloops; l++) {
             int nv = nvertices[loopBase];
             int vbase = 0;
