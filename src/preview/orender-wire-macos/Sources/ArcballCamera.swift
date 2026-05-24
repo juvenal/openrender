@@ -3,45 +3,42 @@ import CRibPreview
 
 // ─── ArcballCamera ───────────────────────────────────────────────────────────
 //
-// Internal model:
-//   worldToCamera = T(0,0,-distance) * R(orientation) * T(-orbitCenter)
+// Internal model: stores viewMatrix (= orender's camera-to-world `from`) and
+// orbCtrBaked (orbit pivot in baked space = from * worldPoint).
 //
-// The orbit center is the world-space point that stays screen-centered during
-// orbit.  distance > 0 places the camera in front of the orbit center along
-// the camera +Z axis (Metal −Z-forward convention).
+// "Baked space": P_baked = viewMatrix * P_world.  +Z is forward; objects in
+// front have positive baked.z.  This convention matches the perspective
+// projection (w_clip = baked.z) and is consistent for ANY camera matrix,
+// including improper rotations (det = −1) that break quaternion decomposition.
 //
-// The initial view is derived from scene bounds rather than from the RIB view
-// matrix.  orender's camera convention is +Z-forward (RenderMan standard),
-// which is incompatible with the arcball's −Z-forward Metal convention without
-// an explicit axis flip; many RIB cameras also contain reflections or
-// non-rotation transforms that break quaternion decomposition.  A
-// bounds-derived orbit gives a reliable starting view for any scene.
+// All orbit/pan/zoom operations pre-multiply viewMatrix with a small baked-
+// space transform, keeping the orbit pivot fixed in both baked and world space.
 
 @MainActor
 final class ArcballCamera {
 
-    // RIB projection matrix — stored to support exact reset.
+    // ── Projection ────────────────────────────────────────────────────────────
     private let ribProj: simd_float4x4
-
-    // Arcball live state.
     private(set) var projMatrix: simd_float4x4
-    private(set) var orbitCenter: simd_float3
-    private var orientation: simd_quatf
-    private var distance: Float
 
-    // Arcball initial state (bounds-derived) — used by reset().
-    private let initOrbitCenter: simd_float3
-    private let initOrientation: simd_quatf
-    private let initDistance: Float
+    // ── View matrix (= orender's `from`, camera-to-world applied to world pts)
+    private var viewMatrix: simd_float4x4
+    private let initViewMatrix: simd_float4x4
 
-    // Per-drag saved state.
-    private var savedOrientation: simd_quatf = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
-    private var savedOrbitCenter: simd_float3 = .zero
-    private var savedDistance: Float = 1.0
-    private var dragFromSphere: simd_float3 = simd_float3(0, 0, 1)
-    private var panFrom: simd_float2 = .zero
+    // ── Orbit center in baked space ───────────────────────────────────────────
+    private var orbCtrBaked: simd_float3
+    private let initOrbCtrBaked: simd_float3
 
-    // Window metrics (updated on resize).
+    // Fixed world-space grid origin (= scene center; used by WireframeRenderer)
+    let gridOriginWorld: simd_float3
+
+    // ── Saved state for drag/pan operations ──────────────────────────────────
+    private var savedViewMatrix:  simd_float4x4 = matrix_identity_float4x4
+    private var savedOrbCtrBaked: simd_float3   = .zero
+    private var dragFromSphere:   simd_float3   = simd_float3(0, 0, 1)
+    private var panFrom:          simd_float2   = .zero
+
+    // ── Window metrics (updated on resize) ───────────────────────────────────
     var windowSize: simd_float2 = simd_float2(800, 600)
     var radius: Float = 500.0
 
@@ -51,6 +48,11 @@ final class ArcballCamera {
         ribProj    = loadMatrix(camera.projMatrix)
         projMatrix = ribProj
 
+        // viewMatrix = from = to^{-1} (world → +Z-forward baked space)
+        let from   = loadMatrix(camera.viewMatrix).inverse
+        initViewMatrix = from
+        viewMatrix     = from
+
         let bmin = simd_float3(bounds.sceneBoundsMin.0,
                                bounds.sceneBoundsMin.1,
                                bounds.sceneBoundsMin.2)
@@ -58,139 +60,96 @@ final class ArcballCamera {
                                bounds.sceneBoundsMax.1,
                                bounds.sceneBoundsMax.2)
         let sceneCenter = (bmin + bmax) * 0.5
+        gridOriginWorld = sceneCenter
 
-        // Derive the initial orbit orientation from the RIB camera's view direction.
-        //
-        // orender is +Z-forward: row 2 of fromWorld (= viewMatrix) gives the
-        // world-space direction that the camera looks toward.  Row 1 gives the
-        // camera's up vector in world space.
-        //
-        // The arcball is −Z-forward (Metal convention): cam +Z = opposite of fwd.
-        // We build a right-handed camera frame and construct a quaternion from it.
-        let ribView = loadMatrix(camera.viewMatrix)
-        let fwd     = simd_normalize(simd_float3(ribView.columns.0[2],
-                                                  ribView.columns.1[2],
-                                                  ribView.columns.2[2]))
-        let upApprox = simd_normalize(simd_float3(ribView.columns.0[1],
-                                                   ribView.columns.1[1],
-                                                   ribView.columns.2[1]))
-        let camZ = -fwd   // arcball +Z points away from the scene
-        var right = simd_cross(upApprox, camZ)
-        if simd_length(right) < 0.001 { right = simd_float3(1, 0, 0) }
-        right = simd_normalize(right)
-        let actualUp = simd_normalize(simd_cross(camZ, right))
-
-        // R_view is the world-to-camera rotation (rows = right, actualUp, camZ).
-        // In simd column-major, rows become the TRANSPOSED columns:
-        //   col j = (right[j], actualUp[j], camZ[j], 0)
-        let R_view = simd_float4x4(columns: (
-            simd_float4(right.x,    actualUp.x, camZ.x,    0),
-            simd_float4(right.y,    actualUp.y, camZ.y,    0),
-            simd_float4(right.z,    actualUp.z, camZ.z,    0),
-            simd_float4(0, 0, 0, 1)
-        ))
-        let initOrient = simd_quatf(R_view)
-
-        // Match the RIB camera's actual distance to the scene center.
-        // ribView is fromWorld (world→camera); its inverse is camera→world,
-        // and column 3 is the camera's world-space position.
-        let ribCamPos = simd_float3(ribView.inverse.columns.3.x,
-                                    ribView.inverse.columns.3.y,
-                                    ribView.inverse.columns.3.z)
-        let initDist = max(simd_length(sceneCenter - ribCamPos), 0.1)
-
-        orbitCenter     = sceneCenter
-        orientation     = initOrient
-        distance        = initDist
-        initOrbitCenter = sceneCenter
-        initOrientation = initOrient
-        initDistance    = initDist
-
+        // Orbit center = scene center projected into baked space.
+        // Falls back to (0,0,diag) when the camera doesn't face the scene.
+        let c4 = from * simd_float4(sceneCenter, 1)
+        if c4.z > 0.01 {
+            initOrbCtrBaked = simd_float3(c4.x, c4.y, c4.z)
+        } else {
+            let diag = simd_length(bmax - bmin)
+            initOrbCtrBaked = simd_float3(0, 0, max(diag, 1.0))
+        }
+        orbCtrBaked = initOrbCtrBaked
         radius = simd_length(windowSize) * 0.5
     }
 
     // MARK: – Camera matrices
 
-    var viewProjectionMatrix: simd_float4x4 {
-        projMatrix * currentViewMatrix
-    }
+    var viewProjectionMatrix: simd_float4x4 { projMatrix * viewMatrix }
 
-    // Camera-to-world matrix (for camera export)
-    var cameraToWorldMatrix: simd_float4x4 {
-        currentViewMatrix.inverse
-    }
+    // Camera-to-world matrix (for camera export; viewMatrix = 'from').
+    var cameraToWorldMatrix: simd_float4x4 { viewMatrix }
 
-    // Whether the stored projection matrix is orthographic.
-    // In the column-major simd matrix the perspective-divisor sentinel (-1) lives at
-    // column 2, row 3 (columns.2.w), which maps to proj[14] in the row-major C layout.
-    var isOrthographic: Bool { projMatrix.columns.2.w != -1.0 }
+    // World-space orbit center for grid placement (fixed = scene center).
+    var orbitCenter: simd_float3 { gridOriginWorld }
 
-    // Vertical FOV in degrees extracted from the perspective projection matrix
+    // Perspective uses w_clip = baked.z → proj.columns.2.w = 1.0.
+    var isOrthographic: Bool { projMatrix.columns.2.w != 1.0 }
+
+    // Vertical FOV in degrees from perspective projection Y scale.
     var fovDegrees: Float {
-        let fv = projMatrix.columns.1.y   // = 1/tan(fov/2)
+        let fv = projMatrix.columns.1.y   // 1/tan(vfov/2)
         guard fv > 0 else { return 45.0 }
         return 2.0 * atan(1.0 / fv) * (180.0 / .pi)
-    }
-
-    private var currentViewMatrix: simd_float4x4 {
-        let T_dist   = translate(0, 0, -distance)
-        let R        = simd_float4x4(orientation)
-        // T(-orbitCenter): shift the orbit center to the camera origin so that
-        // orbiting pivots around the correct world-space point.
-        let T_center = translate(-orbitCenter.x, -orbitCenter.y, -orbitCenter.z)
-        return matrix_multiply(matrix_multiply(T_dist, R), T_center)
     }
 
     // MARK: – Orbit
 
     func beginOrbit(at screen: simd_float2) {
-        savedOrientation = orientation
-        dragFromSphere = toSphere(screen)
+        savedViewMatrix = viewMatrix
+        dragFromSphere  = toSphere(screen)
     }
 
     func orbit(to screen: simd_float2) {
-        let to   = toSphere(screen)
-        let from = dragFromSphere
-        let axis = simd_cross(from, to)
-        let cosA = simd_dot(from, to)
-        let drag = simd_quatf(ix: axis.x, iy: axis.y, iz: axis.z, r: cosA)
-        orientation = simd_normalize(simd_mul(drag, savedOrientation))
+        let toSph = toSphere(screen)
+        let from  = dragFromSphere
+        let axis  = simd_cross(from, toSph)
+        let cosA  = simd_dot(from, toSph)
+        // Unit quaternion for this arc (rotation in baked space)
+        let drag  = simd_normalize(simd_quatf(ix: axis.x, iy: axis.y, iz: axis.z, r: cosA))
+        let Q     = simd_float4x4(drag)
+        // Pre-multiply: rotate around orbCtrBaked while keeping it fixed
+        let Tc    = translate(orbCtrBaked.x,  orbCtrBaked.y,  orbCtrBaked.z)
+        let Tn    = translate(-orbCtrBaked.x, -orbCtrBaked.y, -orbCtrBaked.z)
+        viewMatrix = matrix_multiply(matrix_multiply(Tc, matrix_multiply(Q, Tn)), savedViewMatrix)
     }
 
     // MARK: – Pan
 
     func beginPan(at screen: simd_float2) {
-        savedOrbitCenter = orbitCenter
-        panFrom = screen
+        savedViewMatrix  = viewMatrix
+        savedOrbCtrBaked = orbCtrBaked
+        panFrom          = screen
     }
 
     func pan(to screen: simd_float2) {
         let d = screen - panFrom
-        // Camera-space X and Y axes in world space (columns of cameraToWorld).
-        let c2w   = currentViewMatrix.inverse
-        let right = simd_float3(c2w.columns.0.x, c2w.columns.0.y, c2w.columns.0.z)
-        let up    = simd_float3(c2w.columns.1.x, c2w.columns.1.y, c2w.columns.1.z)
-        let speed = 0.001 * distance
-        orbitCenter = savedOrbitCenter
-                    - right * (d.x * Float(speed))
-                    + up    * (d.y * Float(speed))
+        // Speed proportional to distance; minimum ensures usable ortho pan
+        let speed = max(0.001 * savedOrbCtrBaked.z, 0.005)
+        let dtx   = -d.x * speed   // drag right → scene moves right (baked +X)
+        let dty   =  d.y * speed   // drag up   → scene moves up   (baked +Y)
+        orbCtrBaked = savedOrbCtrBaked + simd_float3(dtx, dty, 0)
+        viewMatrix  = matrix_multiply(translate(dtx, dty, 0), savedViewMatrix)
     }
 
-    // MARK: – Zoom
+    // MARK: – Zoom (delta > 0 → zoom out, delta < 0 → zoom in)
 
-    // delta > 0 → zoom out (increase distance), delta < 0 → zoom in.
     func zoom(delta: Float) {
-        savedDistance = distance
-        distance = max(distance * (1.0 + delta * 0.1), 0.01)
+        let oldZ = orbCtrBaked.z
+        let newZ = max(oldZ + oldZ * 0.1 * delta, 0.01)
+        let dz   = newZ - oldZ
+        orbCtrBaked.z = newZ
+        viewMatrix = matrix_multiply(translate(0, 0, dz), viewMatrix)
     }
 
     // MARK: – Reset
 
     func reset() {
-        orbitCenter  = initOrbitCenter
-        orientation  = initOrientation
-        distance     = initDistance
-        projMatrix   = ribProj
+        viewMatrix  = initViewMatrix
+        orbCtrBaked = initOrbCtrBaked
+        projMatrix  = ribProj
     }
 
     // MARK: – Resize
@@ -198,9 +157,7 @@ final class ArcballCamera {
     func updateAspect(width: Float, height: Float) {
         windowSize = simd_float2(width, height)
         radius = simd_length(windowSize) * 0.5
-
-        // For both perspective and orthographic, X scale = Y scale / aspect.
-        // Perspective: Y scale = fv = 1/tan(vfov/2); Orthographic: Y scale = 1.
+        // Keep vertical FOV fixed; adjust horizontal scale for new aspect ratio
         var proj = projMatrix
         proj.columns.0.x = proj.columns.1.y / (width / height)
         projMatrix = proj
@@ -208,12 +165,12 @@ final class ArcballCamera {
 
     // MARK: – Private helpers
 
-    // Map screen pixel to unit sphere using arcball projection.
+    // Map screen pixel to unit sphere for arcball orbit.
     private func toSphere(_ pt: simd_float2) -> simd_float3 {
         let cx = windowSize.x * 0.5
         let cy = windowSize.y * 0.5
         let dx = (pt.x - cx) / radius
-        let dy = -(pt.y - cy) / radius   // screen Y is down, sphere Y is up
+        let dy = -(pt.y - cy) / radius   // viewPoint Y increases downward; flip to sphere Y-up
         let l2 = dx * dx + dy * dy
         if l2 > 1.0 {
             let l = sqrt(l2)

@@ -329,15 +329,15 @@ void CRibGeometryContext::RiWorldBegin() {
         proj[2]  = -sw_cx / sw_half_x;
         proj[5]  = imagePlane / sw_half_y;
         proj[6]  = -sw_cy / sw_half_y;
-        proj[10] = f / (n - f);
+        proj[10] = f / (f - n);
         proj[11] = (f * n) / (n - f);
-        proj[14] = -1.0f;
+        proj[14] = 1.0f;
     } else {
         proj[0]  =  1.0f / sw_half_x;
         proj[3]  = -sw_cx / sw_half_x;
         proj[5]  =  1.0f / sw_half_y;
         proj[7]  = -sw_cy / sw_half_y;
-        proj[10] = -1.0f / (f - n);
+        proj[10] =  1.0f / (f - n);
         proj[11] = -n / (f - n);
         proj[15] =  1.0f;
     }

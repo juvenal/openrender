@@ -148,7 +148,7 @@ private:
 
     // Options (camera / render settings before WorldBegin)
     struct Options {
-        int   projection      = OPTIONS_PROJECTION_PERSPECTIVE;
+        int   projection      = OPTIONS_PROJECTION_ORTHOGRAPHIC;
         float fov             = 90.0f;
         float nearPlane       = 0.001f;
         float farPlane        = 1e5f;
