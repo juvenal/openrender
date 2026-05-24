@@ -4,10 +4,10 @@
 
 // ─── ArcballCamera ────────────────────────────────────────────────────────────
 //
-// C++20 port of CInterface from src/gui/interface.h.
-// All matrices are column-major float[16] to match Metal/GL conventions.
-//
-// worldToCamera = T(0,0,-distance) * R(orientation) * T(orbitCenter)
+// Baked-space arcball: stores viewMatrix (= camera-to-world, `from`) directly.
+// orbCtrBaked = from * sceneCenter — orbit pivot in baked space (+Z forward).
+// All orbit/pan/zoom operations pre-multiply viewMatrix in baked space.
+// Works for any camera including improper rotations (det = −1).
 
 struct vec3 { float x, y, z; };
 struct vec2 { float x, y; };
@@ -37,7 +37,7 @@ mat4  quat_to_mat4(quatf q);
 class ArcballCamera {
 public:
     ArcballCamera(const float *projMatrix16,   // column-major
-                  const float *viewMatrix16,   // column-major worldToCamera
+                  const float *viewMatrix16,   // column-major worldToCamera (= `to`)
                   const float *sceneBoundsMin, // float[3]
                   const float *sceneBoundsMax, // float[3]
                   float windowW, float windowH);
@@ -62,34 +62,27 @@ public:
     bool isOrthographic() const;
     float fovDegrees() const;
 
-    // State exposed for tests.
-    float distance()  const { return distance_; }
-    vec3  orbitCenter() const { return orbitCenter_; }
-    quatf orientation() const { return orientation_; }
+    vec3 gridOriginWorld() const { return gridOriginWorld_; }
 
     float windowW() const { return windowW_; }
     float windowH() const { return windowH_; }
 
 private:
-    mat4  ribProj_, ribView_;
+    mat4  ribProj_;
     mat4  projMatrix_;
-    vec3  orbitCenter_;
-    quatf orientation_;
-    float distance_;
 
-    vec3  initOrbitCenter_;
-    quatf initOrientation_;
-    float initDistance_;
+    mat4  viewMatrix_;          // = from = to^{-1} (camera-to-world, baked space)
+    mat4  initViewMatrix_;
+    vec3  orbCtrBaked_;         // orbit pivot in baked space
+    vec3  initOrbCtrBaked_;
+    vec3  gridOriginWorld_;     // fixed = scene center
 
-    quatf savedOrientation_{0,0,0,1};
-    vec3  savedOrbitCenter_{};
+    mat4  savedViewMatrix_;
+    vec3  savedOrbCtrBaked_{};
     vec2  panFrom_{};
     vec3  dragFromSphere_{0,0,1};
 
     float windowW_, windowH_, radius_;
 
     vec3 toSphere(float sx, float sy) const;
-
-    static std::pair<quatf,float> decompose(const mat4 &worldToCamera,
-                                            vec3 orbitCenter);
 };

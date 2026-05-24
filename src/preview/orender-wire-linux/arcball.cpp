@@ -1,6 +1,5 @@
 #include "arcball.h"
 #include <cstring>
-#include <cassert>
 
 // ─── Math helpers ─────────────────────────────────────────────────────────────
 
@@ -8,8 +7,6 @@ static float dot3(vec3 a, vec3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
 static vec3  cross3(vec3 a, vec3 b) {
     return { a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x };
 }
-static float len3(vec3 v) { return std::sqrt(dot3(v,v)); }
-static vec3  norm3(vec3 v) { float l = len3(v); return {v.x/l, v.y/l, v.z/l}; }
 
 // Column-major multiply: result[col] = sum of a.col[k] * b.row[k]
 mat4 mat4_mul(const mat4 &a, const mat4 &b) {
@@ -23,7 +20,7 @@ mat4 mat4_mul(const mat4 &a, const mat4 &b) {
     return r;
 }
 
-// 4×4 matrix inverse via cofactor expansion (no SIMD dependency needed).
+// 4×4 matrix inverse via cofactor expansion.
 mat4 mat4_inverse(const mat4 &src) {
     const float *m = src.m;
     float inv[16];
@@ -113,22 +110,37 @@ ArcballCamera::ArcballCamera(const float *projMatrix16,
                              const float *sceneBoundsMax,
                              float windowW, float windowH)
 {
-    ribProj_   = load_mat4(projMatrix16);
-    ribView_   = load_mat4(viewMatrix16);
+    ribProj_    = load_mat4(projMatrix16);
     projMatrix_ = ribProj_;
+
+    // from = to^{-1} = camera-to-world (baked space: +Z forward)
+    mat4 from   = mat4_inverse(load_mat4(viewMatrix16));
+    viewMatrix_     = from;
+    initViewMatrix_ = from;
 
     vec3 bmin{sceneBoundsMin[0], sceneBoundsMin[1], sceneBoundsMin[2]};
     vec3 bmax{sceneBoundsMax[0], sceneBoundsMax[1], sceneBoundsMax[2]};
-    vec3 center{ (bmin.x+bmax.x)*0.5f, (bmin.y+bmax.y)*0.5f, (bmin.z+bmax.z)*0.5f };
+    vec3 sceneCenter{ (bmin.x+bmax.x)*0.5f,
+                      (bmin.y+bmax.y)*0.5f,
+                      (bmin.z+bmax.z)*0.5f };
+    gridOriginWorld_ = sceneCenter;
 
-    auto [orient, dist] = decompose(ribView_, center);
+    // Project sceneCenter into baked space: c = from * (sceneCenter, 1)
+    float cx = from.at(0,0)*sceneCenter.x + from.at(1,0)*sceneCenter.y
+             + from.at(2,0)*sceneCenter.z + from.at(3,0);
+    float cy = from.at(0,1)*sceneCenter.x + from.at(1,1)*sceneCenter.y
+             + from.at(2,1)*sceneCenter.z + from.at(3,1);
+    float cz = from.at(0,2)*sceneCenter.x + from.at(1,2)*sceneCenter.y
+             + from.at(2,2)*sceneCenter.z + from.at(3,2);
 
-    orbitCenter_     = center;
-    orientation_     = orient;
-    distance_        = dist;
-    initOrbitCenter_ = center;
-    initOrientation_ = orient;
-    initDistance_    = dist;
+    if (cz > 0.01f) {
+        initOrbCtrBaked_ = {cx, cy, cz};
+    } else {
+        float dx=bmax.x-bmin.x, dy=bmax.y-bmin.y, dz=bmax.z-bmin.z;
+        float diag = std::sqrt(dx*dx + dy*dy + dz*dz);
+        initOrbCtrBaked_ = {0.f, 0.f, std::max(diag, 1.0f)};
+    }
+    orbCtrBaked_ = initOrbCtrBaked_;
 
     windowW_ = windowW;
     windowH_ = windowH;
@@ -148,76 +160,18 @@ vec3 ArcballCamera::toSphere(float sx, float sy) const {
     return {dx, dy, std::sqrt(1.f - l2)};
 }
 
-// Extract orientation quaternion and orbit distance from worldToCamera.
-// worldToCamera = T(0,0,-d) * R * T(oc)
-// t = -R*oc + (0,0,-d)  →  d = -(R*oc + t).z
-std::pair<quatf,float> ArcballCamera::decompose(const mat4 &wc, vec3 oc) {
-    // Upper-left 3×3 columns (column-major: col 0 = first 3 elements, etc.)
-    float r00=wc.at(0,0), r10=wc.at(0,1), r20=wc.at(0,2);
-    float r01=wc.at(1,0), r11=wc.at(1,1), r21=wc.at(1,2);
-    float r02=wc.at(2,0), r12=wc.at(2,1), r22=wc.at(2,2);
-    float tx=wc.at(3,0), ty=wc.at(3,1), tz=wc.at(3,2);
-
-    // R*oc
-    float rox = r00*oc.x + r01*oc.y + r02*oc.z;
-    float roy = r10*oc.x + r11*oc.y + r12*oc.z;
-    float roz = r20*oc.x + r21*oc.y + r22*oc.z;
-
-    float d = -(roz + tz);
-    float dist = std::max(d, 1.f);
-
-    // Build quaternion from upper-left 3×3 rotation sub-matrix.
-    // Shepperd's method.
-    float trace = r00 + r11 + r22;
-    quatf q;
-    if (trace > 0.f) {
-        float s = 0.5f / std::sqrt(trace + 1.f);
-        q.w = 0.25f / s;
-        q.x = (r12 - r21) * s;
-        q.y = (r20 - r02) * s;
-        q.z = (r01 - r10) * s;
-    } else if (r00 > r11 && r00 > r22) {
-        float s = 2.f * std::sqrt(1.f + r00 - r11 - r22);
-        q.w = (r12 - r21) / s;
-        q.x = 0.25f * s;
-        q.y = (r01 + r10) / s;
-        q.z = (r20 + r02) / s;
-    } else if (r11 > r22) {
-        float s = 2.f * std::sqrt(1.f + r11 - r00 - r22);
-        q.w = (r20 - r02) / s;
-        q.x = (r01 + r10) / s;
-        q.y = 0.25f * s;
-        q.z = (r12 + r21) / s;
-    } else {
-        float s = 2.f * std::sqrt(1.f + r22 - r00 - r11);
-        q.w = (r01 - r10) / s;
-        q.x = (r20 + r02) / s;
-        q.y = (r12 + r21) / s;
-        q.z = 0.25f * s;
-    }
-    return {quat_normalize(q), dist};
-}
-
-static mat4 currentViewMatrix(vec3 oc, quatf orient, float dist) {
-    mat4 T_dist  = translate_mat4(0, 0, -dist);
-    mat4 R       = quat_to_mat4(orient);
-    mat4 T_center = translate_mat4(oc.x, oc.y, oc.z);
-    return mat4_mul(mat4_mul(T_dist, R), T_center);
-}
-
 void ArcballCamera::viewProjectionMatrix(float *out16) const {
-    mat4 vp = mat4_mul(projMatrix_, currentViewMatrix(orbitCenter_, orientation_, distance_));
+    mat4 vp = mat4_mul(projMatrix_, viewMatrix_);
     std::memcpy(out16, vp.m, 64);
 }
 
 void ArcballCamera::cameraToWorldMatrix(float *out16) const {
-    mat4 view = currentViewMatrix(orbitCenter_, orientation_, distance_);
-    mat4 c2w  = mat4_inverse(view);
-    std::memcpy(out16, c2w.m, 64);
+    std::memcpy(out16, viewMatrix_.m, 64);
 }
 
+// Perspective has w-from-z coefficient = 1.0 at flat index 11 = at(col=2,row=3).
 bool ArcballCamera::isOrthographic() const {
-    return projMatrix_.at(3,2) != -1.f;
+    return projMatrix_.at(2,3) != 1.0f;
 }
 
 float ArcballCamera::fovDegrees() const {
@@ -227,46 +181,49 @@ float ArcballCamera::fovDegrees() const {
 }
 
 void ArcballCamera::beginOrbit(float sx, float sy) {
-    savedOrientation_ = orientation_;
-    dragFromSphere_   = toSphere(sx, sy);
+    savedViewMatrix_ = viewMatrix_;
+    dragFromSphere_  = toSphere(sx, sy);
 }
 
 void ArcballCamera::orbit(float sx, float sy) {
-    vec3 to   = toSphere(sx, sy);
-    vec3 from = dragFromSphere_;
-    vec3 axis = cross3(from, to);
+    vec3  to   = toSphere(sx, sy);
+    vec3  from = dragFromSphere_;
+    vec3  axis = cross3(from, to);
     float cosA = dot3(from, to);
-    quatf drag{axis.x, axis.y, axis.z, cosA};
-    orientation_ = quat_normalize(quat_mul(drag, savedOrientation_));
+    quatf drag = quat_normalize({axis.x, axis.y, axis.z, cosA});
+    mat4  Q    = quat_to_mat4(drag);
+    mat4  Tc   = translate_mat4( orbCtrBaked_.x,  orbCtrBaked_.y,  orbCtrBaked_.z);
+    mat4  Tn   = translate_mat4(-orbCtrBaked_.x, -orbCtrBaked_.y, -orbCtrBaked_.z);
+    viewMatrix_ = mat4_mul(mat4_mul(Tc, mat4_mul(Q, Tn)), savedViewMatrix_);
 }
 
 void ArcballCamera::beginPan(float sx, float sy) {
-    savedOrbitCenter_ = orbitCenter_;
+    savedViewMatrix_  = viewMatrix_;
+    savedOrbCtrBaked_ = orbCtrBaked_;
     panFrom_ = {sx, sy};
 }
 
 void ArcballCamera::pan(float sx, float sy) {
-    float dx = sx - panFrom_.x;
-    float dy = sy - panFrom_.y;
-    mat4 view = currentViewMatrix(orbitCenter_, orientation_, distance_);
-    mat4 c2w  = mat4_inverse(view);
-    // Camera X and Y in world space (columns 0 and 1 of c2w).
-    vec3 right{c2w.at(0,0), c2w.at(0,1), c2w.at(0,2)};
-    vec3 up   {c2w.at(1,0), c2w.at(1,1), c2w.at(1,2)};
-    float speed = 0.001f * distance_;
-    orbitCenter_.x = savedOrbitCenter_.x - right.x*(dx*speed) + up.x*(dy*speed);
-    orbitCenter_.y = savedOrbitCenter_.y - right.y*(dx*speed) + up.y*(dy*speed);
-    orbitCenter_.z = savedOrbitCenter_.z - right.z*(dx*speed) + up.z*(dy*speed);
+    float dx    = sx - panFrom_.x;
+    float dy    = sy - panFrom_.y;
+    float speed = std::max(0.001f * savedOrbCtrBaked_.z, 0.005f);
+    float dtx   = -dx * speed;
+    float dty   =  dy * speed;
+    orbCtrBaked_.x = savedOrbCtrBaked_.x + dtx;
+    orbCtrBaked_.y = savedOrbCtrBaked_.y + dty;
+    viewMatrix_ = mat4_mul(translate_mat4(dtx, dty, 0.f), savedViewMatrix_);
 }
 
 void ArcballCamera::zoom(float delta) {
-    distance_ = std::max(distance_ * (1.f + delta * 0.1f), 0.01f);
+    float oldZ = orbCtrBaked_.z;
+    float newZ = std::max(oldZ + oldZ * 0.1f * delta, 0.01f);
+    orbCtrBaked_.z = newZ;
+    viewMatrix_ = mat4_mul(translate_mat4(0.f, 0.f, newZ - oldZ), viewMatrix_);
 }
 
 void ArcballCamera::reset() {
-    orbitCenter_ = initOrbitCenter_;
-    orientation_ = initOrientation_;
-    distance_    = initDistance_;
+    viewMatrix_  = initViewMatrix_;
+    orbCtrBaked_ = initOrbCtrBaked_;
     projMatrix_  = ribProj_;
 }
 
@@ -274,10 +231,8 @@ void ArcballCamera::updateAspect(float w, float h) {
     windowW_ = w;
     windowH_ = h;
     radius_  = std::sqrt(w*w + h*h) * 0.5f;
-
-    if (projMatrix_.at(3,2) == -1.f) {   // perspective
-        float fv     = projMatrix_.at(1,1);
-        float aspect = w / h;
-        projMatrix_.at(0,0) = fv / aspect;
+    if (projMatrix_.at(2,3) == 1.0f) {   // perspective
+        float fv = projMatrix_.at(1,1);
+        projMatrix_.at(0,0) = fv / (w / h);
     }
 }

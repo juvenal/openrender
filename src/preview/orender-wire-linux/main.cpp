@@ -20,14 +20,17 @@
 static const char *SCENE_VERT = R"(
 #version 330 core
 layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 inColor;
 uniform mat4 mvp;
-void main() { gl_Position = mvp * vec4(position, 1.0); }
+out vec3 vColor;
+void main() { gl_Position = mvp * vec4(position, 1.0); vColor = inColor; }
 )";
 
 static const char *SCENE_FRAG = R"(
 #version 330 core
+in vec3 vColor;
 out vec4 fragColor;
-void main() { fragColor = vec4(0.85, 0.85, 0.85, 1.0); }
+void main() { fragColor = vec4(vColor, 1.0); }
 )";
 
 static const char *GRID_VERT = R"(
@@ -35,8 +38,9 @@ static const char *GRID_VERT = R"(
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 color;
 uniform mat4 mvp;
+uniform vec3 gridOrigin;
 out vec3 vColor;
-void main() { gl_Position = mvp * vec4(position, 1.0); vColor = color; }
+void main() { gl_Position = mvp * vec4(position + gridOrigin, 1.0); vColor = color; }
 )";
 
 static const char *GRID_FRAG = R"(
@@ -106,10 +110,10 @@ struct AppState {
     GtkWidget     *spinner;
 
     // GL resources (created on realize, after GL context exists)
-    GLuint sceneProg  = 0, gridProg  = 0;
-    GLuint sceneVAO   = 0, sceneVBO  = 0;
-    GLuint gridVAO    = 0, gridVBO   = 0;
-    int    sceneCount = 0, gridCount = 0;
+    GLuint sceneProg  = 0, gridProg      = 0;
+    GLuint sceneVAO   = 0, sceneVBO      = 0, sceneColorVBO = 0;
+    GLuint gridVAO    = 0, gridVBO       = 0;
+    int    sceneCount = 0, gridCount     = 0;
 
     ArcballCamera *arcball = nullptr;
 
@@ -147,11 +151,15 @@ static void on_realize(GtkGLArea *area, AppState *state) {
     // Scene VAO/VBO (filled later when scene loads)
     glGenVertexArrays(1, &state->sceneVAO);
     glGenBuffers(1, &state->sceneVBO);
+    glGenBuffers(1, &state->sceneColorVBO);
 
     glBindVertexArray(state->sceneVAO);
     glBindBuffer(GL_ARRAY_BUFFER, state->sceneVBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
     glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, state->sceneColorVBO);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
     // Grid+axis VAO/VBO (static)
@@ -183,6 +191,7 @@ static void on_unrealize(GtkGLArea *area, AppState *state) {
 
     glDeleteVertexArrays(1, &state->sceneVAO);
     glDeleteBuffers(1, &state->sceneVBO);
+    glDeleteBuffers(1, &state->sceneColorVBO);
     glDeleteVertexArrays(1, &state->gridVAO);
     glDeleteBuffers(1, &state->gridVBO);
     glDeleteProgram(state->sceneProg);
@@ -211,9 +220,13 @@ static gboolean on_render(GtkGLArea *area, GdkGLContext *, AppState *state) {
     }
 
     // Grid + axis pass
+    vec3 go = state->arcball->gridOriginWorld();
+    float gridOrigin[3] = {go.x, go.y, go.z};
     glUseProgram(state->gridProg);
     glUniformMatrix4fv(glGetUniformLocation(state->gridProg, "mvp"),
                        1, GL_FALSE, mvp);
+    glUniform3fv(glGetUniformLocation(state->gridProg, "gridOrigin"),
+                 1, gridOrigin);
     glBindVertexArray(state->gridVAO);
     glDrawArrays(GL_LINES, 0, state->gridCount);
     glBindVertexArray(0);
@@ -237,12 +250,22 @@ static void upload_scene(AppState *state) {
 
     gtk_gl_area_make_current(GTK_GL_AREA(state->glArea));
 
-    glBindVertexArray(state->sceneVAO);
     glBindBuffer(GL_ARRAY_BUFFER, state->sceneVBO);
     glBufferData(GL_ARRAY_BUFFER,
                  (GLsizeiptr)(n * 3 * sizeof(float)),
                  state->scene->vertices, GL_STATIC_DRAW);
-    glBindVertexArray(0);
+
+    const float *colPtr = state->scene->colors;
+    std::vector<float> fallback;
+    if (!colPtr) {
+        fallback.assign((size_t)n * 3, 0.85f);
+        colPtr = fallback.data();
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, state->sceneColorVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+                 (GLsizeiptr)(n * 3 * sizeof(float)),
+                 colPtr, GL_STATIC_DRAW);
+
     state->sceneCount = n;
 }
 
