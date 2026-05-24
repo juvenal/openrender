@@ -1,6 +1,8 @@
 #!/bin/bash
 # Comprehensive debugging script for orender skeleton TIFF issue
 
+RENDER_OPTS="${OPTS}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}" || exit 1
 
@@ -73,11 +75,11 @@ fi
 echo ""
 
 echo "=== Running orender with debug output ==="
-echo "Command: ${ORENDER_BIN} -d ${RIB_FILE}"
+echo "Command: ${ORENDER_BIN} ${RENDER_OPTS} ${RIB_FILE}"
 echo ""
 
 # Run with debug output and framebuffer display
-"${ORENDER_BIN}" -d "${RIB_FILE}" 2>&1 | tee /tmp/orender_debug.log
+"${ORENDER_BIN}" ${RENDER_OPTS} "${RIB_FILE}" 2>&1 | tee /tmp/orender_debug.log
 
 echo ""
 echo "=== Debug output saved to /tmp/orender_debug.log ==="
