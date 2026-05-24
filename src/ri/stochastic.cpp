@@ -123,7 +123,7 @@ CStochastic::~CStochastic() {
 // Description			:	Begin drawing an image
 // Return Value			:	-
 // Comments				:
-void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
+void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     int i, j, pxi, pxj;
     float zoldStart;
     CFragment *cFragment;
@@ -141,11 +141,6 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int nullBucket) {
     sampleHeight = height * CRenderer::pixelYsamples + 2 * CRenderer::ySampleOffset;
     right = left + sampleWidth;
     bottom = top + sampleHeight;
-
-    // Early-out if we have no data
-    if (!(CRenderer::flags & OPTIONS_FLAGS_DEEP_SHADOW_RENDERING) && nullBucket) {
-        return;
-    }
 
     assert(sampleWidth <= totalWidth);
     assert(sampleHeight <= totalHeight);
