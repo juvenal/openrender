@@ -68,7 +68,7 @@ build/orender-wire.app/Contents/MacOS/orender-wire /nonexistent.rib; echo "exit:
 | CRibGeometryContext (geometry context) | `src/preview/libribpreview/ribGeometryContext.h` — lightweight base; override `addObject()` |
 | Original arcball math | `src/gui/interface.h` — `CInterface::toSphere`, `computeMatrices` |
 | orender-fb-macos CMake pattern | `src/framebuffer/orender-fb-macos/CMakeLists.txt` |
-| Linux GTK 4 CMake pattern | `pkg_check_modules(GTK4 REQUIRED gtk4>=4.22)` in `src/preview/orender-wire-linux/CMakeLists.txt` |
+| Linux GTK 4 CMake pattern | `pkg_check_modules(GTK4 REQUIRED gtk4>=4.20)` in `src/preview/orender-wire-linux/CMakeLists.txt` |
 
 ---
 

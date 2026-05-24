@@ -10,7 +10,7 @@
 
 1. **libribpreview** — a C++20 static library (shared across platforms) that subclasses `CRendererContext`, intercepts `addObject()`, and tessellates every supported primitive type into a flat world-space line-list vertex buffer. Camera parameters are extracted from `COptions` and `CXform`.
 2. **orender-wire (macOS)** — Swift 6 / Metal / AppKit binary. Source lives in `src/preview/orender-wire-macos/`; the installed binary is named `orender-wire`. Mirrors the `orender-fb-macos` SPM + CMake pattern.
-3. **orender-wire (Linux)** — C++20 / OpenGL 3.3 Core / GTK 4 binary. Source lives in `src/preview/orender-wire-linux/`; the installed binary is named `orender-wire`. GTK 4 (≥4.22) provides windowing, OpenGL context (`GtkGLArea`), input event controllers, and file dialogs (`GtkFileDialog`).
+3. **orender-wire (Linux)** — C++20 / OpenGL 3.3 Core / GTK 4 binary. Source lives in `src/preview/orender-wire-linux/`; the installed binary is named `orender-wire`. GTK 4 (≥4.20) provides windowing, OpenGL context (`GtkGLArea`), input event controllers, and file dialogs (`GtkFileDialog`).
 
 The arcball camera is ported from `src/gui/interface.h` (`CInterface::toSphere`, quaternion orbit, `computeMatrices`), not from `opengl.cpp` (which only contains legacy drawing helpers). After the port is validated, `src/gui/` is removed from the repository.
 
@@ -20,7 +20,7 @@ The arcball camera is ported from `src/gui/interface.h` (`CInterface::toSphere`,
 
 **Primary Dependencies**:
 - macOS: Metal, MetalKit, AppKit, simd — all system frameworks; no external deps
-- Linux: OpenGL 3.3 Core, GTK 4 (≥4.22) — `GtkGLArea` (OpenGL context), `GtkFileDialog` (file save), GTK 4 event controllers (input); `pkg_check_modules(GTK4 REQUIRED gtk4>=4.22)`
+- Linux: OpenGL 3.3 Core, GTK 4 (≥4.20) — `GtkGLArea` (OpenGL context), `GtkFileDialog` (file save), GTK 4 event controllers (input); `pkg_check_modules(GTK4 REQUIRED gtk4>=4.20)`
 - libribpreview: links against the `ri` static library (CRendererContext, CObject, CXform, CPl, COptions, CAttributes) but NOT against the renderer runtime, shader execution engine, or display driver
 
 **Storage**: N/A
@@ -36,7 +36,7 @@ The arcball camera is ported from `src/gui/interface.h` (`CInterface::toSphere`,
 **Constraints**:
 - No per-frame re-tessellation; geometry uploaded to GPU once at startup
 - Point clouds capped at 100,000 display points with uniform subsampling above that threshold
-- No Qt, FLTK, SDL, GLFW, or other third-party GUI toolkits; GTK 4 (≥4.22) is the approved Linux GUI toolkit
+- No Qt, FLTK, SDL, GLFW, or other third-party GUI toolkits; GTK 4 (≥4.20) is the approved Linux GUI toolkit
 - `stdout` unused during normal operation; all warnings go to `stderr`
 
 **Scale/Scope**: Single binary per platform; ~50K primitive reference scene
@@ -51,7 +51,7 @@ The arcball camera is ported from `src/gui/interface.h` (`CInterface::toSphere`,
 | II. Language Standards | PASS | C++20 for C++ code; Swift 6 for macOS binary |
 | III. TDD (NON-NEGOTIABLE) | GATE | Unit tests for all tessellator functions must be written and failing before implementation begins |
 | IV. CLI Interface | PASS | argc/argv; errors → stderr; exit code 0 on success, non-zero on failure; --help supported |
-| V. Minimal Dependencies | PASS | System-only: Metal/AppKit (macOS); GTK 4 (≥4.22) + OpenGL (Linux) — GTK 4 is a widely distributed system library requiring no GNOME or KDE desktop environment |
+| V. Minimal Dependencies | PASS | System-only: Metal/AppKit (macOS); GTK 4 (≥4.20) + OpenGL (Linux) — GTK 4 is a widely distributed system library requiring no GNOME or KDE desktop environment |
 | VI. Platform Targeting | PASS | Platform-specific GPU/window code isolated in `orender-wire-macos/` and `orender-wire-linux/`; libribpreview is platform-neutral |
 | VII. Documentation | GATE | `site/` must be updated with orender-wire documentation before merge |
 

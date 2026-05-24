@@ -131,9 +131,9 @@ proj_matrix   = perspective(fov, frameAR, nearPlane, farPlane)
 
 ## 7. Linux Build Pattern
 
-**Decision**: GTK 4 (≥4.22) for windowing, OpenGL context, input, and file dialogs.
+**Decision**: GTK 4 (≥4.20) for windowing, OpenGL context, input, and file dialogs.
 
-**Rationale**: GTK 4 provides `GtkGLArea` which creates a managed OpenGL 3.3 Core context and issues `realize` and `render` signals at the appropriate times — eliminating all manual EGL, xdg-shell, GLX, and X11 window creation code. GTK 4 also handles Wayland/X11 backend selection transparently by reading `WAYLAND_DISPLAY` and `DISPLAY` internally; the application does not inspect these variables directly. `GtkFileDialog` (available since GTK 4.10, present in all GTK 4.22 installations) provides a native modal file dialog with no external process dependency. GTK 4 is LGPL-licensed and available on all major Linux distributions; it carries no GNOME or KDE desktop environment requirement.
+**Rationale**: GTK 4 provides `GtkGLArea` which creates a managed OpenGL 3.3 Core context and issues `realize` and `render` signals at the appropriate times — eliminating all manual EGL, xdg-shell, GLX, and X11 window creation code. GTK 4 also handles Wayland/X11 backend selection transparently by reading `WAYLAND_DISPLAY` and `DISPLAY` internally; the application does not inspect these variables directly. `GtkFileDialog` (available since GTK 4.10, present in all GTK 4.20 installations) provides a native modal file dialog with no external process dependency. GTK 4 is LGPL-licensed and available on all major Linux distributions; it carries no GNOME or KDE desktop environment requirement.
 
 **Wayland/X11 detection**: Fully transparent — GTK 4 selects the backend at startup based on `WAYLAND_DISPLAY` / `DISPLAY` without any code in orender-wire. Exit code 4 is raised if `g_application_run` fails to acquire a display.
 
@@ -143,9 +143,9 @@ proj_matrix   = perspective(fov, frameAR, nearPlane, farPlane)
 
 **Input**: GTK 4 event controllers — `GtkGestureClick` (orbit / pan), `GtkEventControllerMotion` (drag), `GtkEventControllerScroll` (zoom), `GtkEventControllerKey` (reset, quit, save). No GLFW, SDL, or raw X11/Wayland event handling.
 
-**File dialog**: `GtkFileDialog::save()` async API — always available when GTK 4.22 is installed; no external tool (zenity, kdialog) dependency.
+**File dialog**: `GtkFileDialog::save()` async API — always available when GTK 4.20 is installed; no external tool (zenity, kdialog) dependency.
 
-**CMake detection**: `pkg_check_modules(GTK4 REQUIRED gtk4>=4.22)` in `src/preview/orender-wire-linux/CMakeLists.txt`; link `GTK4_LIBRARIES` alongside `OpenGL::GL`.
+**CMake detection**: `pkg_check_modules(GTK4 REQUIRED gtk4>=4.20)` in `src/preview/orender-wire-linux/CMakeLists.txt`; link `GTK4_LIBRARIES` alongside `OpenGL::GL`.
 
 ---
 

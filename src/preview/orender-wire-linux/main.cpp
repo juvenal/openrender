@@ -200,7 +200,7 @@ static void on_unrealize(GtkGLArea *area, AppState *state) {
 
 // ─── GL render ───────────────────────────────────────────────────────────────
 
-static gboolean on_render(GtkGLArea *area, GdkGLContext *, AppState *state) {
+static gboolean on_render(GtkGLArea * /*area*/, GdkGLContext *, AppState *state) {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -540,6 +540,14 @@ static const char *HELP_TEXT =
 "  4  No display available\n";
 
 int main(int argc, char **argv) {
+    // Suppress Mesa/EGL warnings and driver loader errors by forcing the OpenGL 
+    // renderer and silencing Mesa's internal diagnostic/error logging.
+    setenv("GSK_RENDERER", "gl", 0);
+    setenv("EGL_LOG_LEVEL", "fatal", 0);
+    setenv("MESA_DEBUG", "silent", 0);
+    setenv("LIBGL_DEBUG", "quiet", 0);
+    setenv("MESA_LOG_FILE", "/dev/null", 0);
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             fputs(HELP_TEXT, stdout);
@@ -563,11 +571,18 @@ int main(int argc, char **argv) {
         return 2;
     }
 
+    // Release the terminal. nochdir=1 to keep CWD for RIB resources, 
+    // noclose=1 to keep stderr open for warnings.
+    if (daemon(1, 1) != 0) {
+        perror("orender-wire: daemon failed");
+        return 5;
+    }
+
     AppState state{};
     state.ribPath = ribPath;
 
     GtkApplication *app = gtk_application_new("press.v2labs.orender.wire",
-                                               G_APPLICATION_DEFAULT_FLAGS);
+                                               G_APPLICATION_NON_UNIQUE);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), &state);
 
     int status = g_application_run(G_APPLICATION(app), 0, nullptr);

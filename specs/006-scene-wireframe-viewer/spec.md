@@ -12,7 +12,7 @@
 
 ### Session 2026-05-18
 
-- Q: Should the GPU rendering and windowing use a cross-platform library (GLFW/SDL + OpenGL) or platform-native APIs on each OS? → A: Platform-native — Metal + Cocoa on macOS; OpenGL 3.3 Core via GTK 4 (≥4.22) on Linux (GtkGLArea for context + windowing, GtkFileDialog for save dialogs). Scene-processing layer (parsing and tessellation) is shared.
+- Q: Should the GPU rendering and windowing use a cross-platform library (GLFW/SDL + OpenGL) or platform-native APIs on each OS? → A: Platform-native — Metal + Cocoa on macOS; OpenGL 3.3 Core via GTK 4 (≥4.20) on Linux (GtkGLArea for context + windowing, GtkFileDialog for save dialogs). Scene-processing layer (parsing and tessellation) is shared.
 - Q: How should the "Save camera" destination path be specified — native file dialog, terminal prompt, or command-line argument? → A: Native OS file save dialog (standard modal dialog on macOS and Linux).
 - Q: What does the user see while scene parsing and tessellation run at startup? → A: Window opens immediately showing a loading indicator (spinner or progress text); geometry appears once tessellation completes.
 - Q: How should dense point clouds be handled — display all points, subsample above a threshold, or replace with bounding box? → A: Subsample above a fixed maximum (e.g., 100,000 points); excess points are uniformly subsampled and a warning is emitted.
@@ -168,7 +168,7 @@ After navigating to a desired viewpoint, the artist saves the current camera pos
 ## Assumptions
 
 - macOS is the primary development and release target; Linux support is built in parallel sharing the scene-processing layer but is secondary in validation priority.
-- The macOS build uses a platform-native rendering pipeline (Metal) and native windowing (Cocoa/AppKit). The Linux build uses OpenGL 3.3 Core via GTK 4 (≥4.22): `GtkGLArea` provides the OpenGL context and manages Wayland/X11 backend selection transparently; `GtkFileDialog` provides the native file save dialog. The scene-processing layer — RIB parsing and geometry tessellation — is shared across both platforms.
+- The macOS build uses a platform-native rendering pipeline (Metal) and native windowing (Cocoa/AppKit). The Linux build uses OpenGL 3.3 Core via GTK 4 (≥4.20): `GtkGLArea` provides the OpenGL context and manages Wayland/X11 backend selection transparently; `GtkFileDialog` provides the native file save dialog. The scene-processing layer — RIB parsing and geometry tessellation — is shared across both platforms.
 - The tool reuses the existing openRender RIB parser and geometry tessellation infrastructure; it does not implement an independent parser.
 - Motion blur (motion blocks) and deformation data are out of scope for the wireframe previewer; only the first time sample (t=0) is displayed.
 - Shading, lighting, and texture evaluation are entirely out of scope; the tool is geometry-only.

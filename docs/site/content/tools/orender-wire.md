@@ -90,5 +90,5 @@ it directly to `orender`.
 **macOS**: Requires macOS 12 (Monterey) or later. Metal GPU required.
 The application appears in the Dock and supports the standard application menu.
 
-**Linux**: Requires GTK 4.22 or later and an OpenGL 3.3 Core-capable GPU.
+**Linux**: Requires GTK 4.20 or later and an OpenGL 3.3 Core-capable GPU.
 Both Wayland and X11 display backends are supported automatically.
