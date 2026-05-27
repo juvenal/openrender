@@ -3,16 +3,11 @@ file(GLOB openrendercommon_headers *.h)
 add_library(openrendercommon STATIC os.cpp algebra.cpp ${openrendercommon_headers})
 set_target_properties(openrendercommon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(openrendercommon PUBLIC openrender_common_flags)
-install(TARGETS openrendercommon LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+# openrendercommon is an internal build helper; its object code is embedded in
+# libri and librslo, so there is nothing useful to install for external consumers.
 
 if(UNIX)
 	target_link_libraries(openrendercommon PUBLIC Threads::Threads dl)
 endif(UNIX)
 
-if(APPLE)
-	# install name for dylibs on Mac
-	set_target_properties(openrendercommon PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-endif(APPLE)
 

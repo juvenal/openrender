@@ -18,13 +18,35 @@ else(USE_FLEX_BISON)
 	set(rslo_sources rslo.cpp)
 endif(USE_FLEX_BISON)
 
-add_library(rslo SHARED ${rslo_sources} ${rslo_headers})
-target_link_libraries(rslo openrendercommon)
-install(TARGETS rslo LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(FILES rslo.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+# Compile once with PIC so the same objects serve both the shared and static lib.
+add_library(rslo_obj OBJECT ${rslo_sources} ${rslo_headers})
+set_target_properties(rslo_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(rslo_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(rslo_obj PRIVATE openrendercommon)
 
+# Shared library
+add_library(rslo SHARED $<TARGET_OBJECTS:rslo_obj>)
+target_link_libraries(rslo PUBLIC openrendercommon)
+set_target_properties(rslo PROPERTIES
+    VERSION   ${PROJECT_VERSION}
+    SOVERSION ${OPENRENDER_COMPAT_SOVERSION}
+)
 if(APPLE)
-	set_target_properties(rslo PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-endif(APPLE)
+    if(INSTALL_SELFCONTAINED)
+        set_target_properties(rslo PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+        set_target_properties(rslo PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
+endif()
+
+# Static library
+add_library(rslo_static STATIC $<TARGET_OBJECTS:rslo_obj>)
+set_target_properties(rslo_static PROPERTIES OUTPUT_NAME rslo)
+target_link_libraries(rslo_static INTERFACE openrendercommon)
+
+install(TARGETS rslo
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS rslo_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+install(FILES rslo.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

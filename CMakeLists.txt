@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
 
 project(openRender
     VERSION 1.0.0
@@ -52,6 +52,12 @@ option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(BUILD_SHOW "Build the show program" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
 # Remove obsolete staging options - we now use system package managers
+
+# SOVERSION defaults to the current major version.
+# All 1.x.y releases share SOVERSION=1 (ABI-compatible series).
+# Set to an older major to keep compatibility with a previously deployed ABI.
+set(OPENRENDER_COMPAT_SOVERSION "${PROJECT_VERSION_MAJOR}" CACHE STRING
+    "SOVERSION for libri/librslo — defaults to current major; override to stay compatible with an older ABI")
 
 if(USE_FLEX_BISON)
 	include(CMake/openRenderUseFlex.cmake)
@@ -300,6 +306,17 @@ else()
 endif()
 
 
+# RPATH: for self-contained installs, executables in bin/ must find shared libs in lib/.
+# CMAKE_INSTALL_RPATH propagates automatically to every installed executable target.
+if(INSTALL_SELFCONTAINED)
+    if(APPLE)
+        set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+    else()
+        set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+    endif()
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+endif()
+
 # Install .orenderrc into ORENDERHOME so runtime finds default renderer configuration
 set(ORENDERRC_SRC "${CMAKE_SOURCE_DIR}/.orenderrc")
 if(NOT EXISTS "${ORENDERRC_SRC}")
@@ -344,3 +361,143 @@ add_subdirectory(tests)
 # ########## Find rules/targets in subdirs
 # ###########################################################################
 add_subdirectory(src)
+
+# ###########################################################################
+# ########## Self-contained dependency bundling
+# ###########################################################################
+# For INSTALL_SELFCONTAINED builds, copy any non-OS shared libraries (e.g.
+# libtiff, libpng, OpenEXR from Homebrew) into PREFIX/lib/ at install time,
+# then rewrite their embedded IDs and cross-references on macOS so the entire
+# install directory is fully relocatable.
+#
+# Runs after all library and executable install steps (add_subdirectory(src) above).
+# Scans installed files at their final PREFIX locations.
+if(INSTALL_SELFCONTAINED)
+    # CMAKE_SHARED_LIBRARY_SUFFIX is not available inside install(CODE), so bake it in.
+    set(_sc_shared_suffix "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+    install(CODE "
+        cmake_policy(SET CMP0087 NEW)
+        set(_prefix  \"${CMAKE_INSTALL_PREFIX}\")
+        set(_bindir  \"${CMAKE_INSTALL_BINDIR}\")
+        set(_libdir  \"${CMAKE_INSTALL_LIBDIR}\")
+        set(_binpath \"\${_prefix}/\${_bindir}\")
+        set(_libpath \"\${_prefix}/\${_libdir}\")
+
+        # Collect installed executables that exist (some may be optional).
+        set(_scan_exes)
+        foreach(_exe orender oshader otexmake rsloinfo oshow)
+            if(EXISTS \"\${_binpath}/\${_exe}\")
+                list(APPEND _scan_exes \"\${_binpath}/\${_exe}\")
+            endif()
+        endforeach()
+
+        # Collect installed shared libraries.
+        set(_scan_libs)
+        foreach(_lib libri librslo)
+            set(_full \"\${_libpath}/\${_lib}${_sc_shared_suffix}\")
+            if(EXISTS \"\${_full}\")
+                list(APPEND _scan_libs \"\${_full}\")
+            endif()
+        endforeach()
+
+        if(NOT _scan_exes AND NOT _scan_libs)
+            message(WARNING \"Bundling: no installed executables or libraries found in \${_prefix}\")
+            return()
+        endif()
+
+        # Resolve non-OS dynamic dependencies.
+        file(GET_RUNTIME_DEPENDENCIES
+            EXECUTABLES \${_scan_exes}
+            LIBRARIES   \${_scan_libs}
+            RESOLVED_DEPENDENCIES_VAR   _resolved
+            UNRESOLVED_DEPENDENCIES_VAR _unresolved
+            PRE_EXCLUDE_REGEXES
+                \"^/usr/lib\" \"^/lib\" \"^/System\" \"^/usr/libexec\"
+                \"libSystem\" \"libobjc\" \"libc\\\\+\" \"libstdc\" \"libgcc_s\"
+                \"libc\\\\.\" \"libm\\\\.\" \"libpthread\" \"libdl\\\\.\"
+                \"ld-linux\" \"librt\\\\.\" \"libz\\\\.\"
+            POST_EXCLUDE_REGEXES
+                \"^/usr/lib\" \"^/lib\" \"^/System\"
+        )
+
+        foreach(_dep \${_resolved})
+            string(FIND \"\${_dep}\" \"\${_prefix}\" _in_prefix)
+            if(_in_prefix EQUAL -1)
+                message(STATUS \"Bundling: \${_dep}\")
+                file(INSTALL DESTINATION \"\${_libpath}\"
+                     TYPE SHARED_LIBRARY FOLLOW_SYMLINK_CHAIN FILES \"\${_dep}\")
+            endif()
+        endforeach()
+
+        if(_unresolved)
+            message(WARNING \"Unresolved runtime deps (manual bundling may be needed): \${_unresolved}\")
+        endif()
+
+        if(APPLE)
+            # Fix up all installed dylibs on macOS:
+            #   * Bundled external libs: rewrite their embedded ID to @rpath/<name>.
+            #     Only real files get -id; symlinks point to the same inode so we
+            #     skip them to avoid overwriting the SONAME with the unversioned name.
+            #   * All dylibs: replace every absolute Homebrew reference with @rpath/<name>.
+            #   * Executables: skip install_name_tool to preserve code signatures.
+            #     Executables only reference libri/librslo (our own libs, already @rpath)
+            #     thanks to PRIVATE linkage of external deps in libri's CMakeLists.
+            #   * After modifying any binary, re-sign ad-hoc (required on Apple Silicon
+            #     when load commands change).
+
+            set(_modified_bins)
+
+            # 1. Rewrite IDs of bundled external libs (real files only, not symlinks)
+            foreach(_dep \${_resolved})
+                get_filename_component(_dep_name \"\${_dep}\" NAME)
+                set(_dest \"\${_libpath}/\${_dep_name}\")
+                if(EXISTS \"\${_dest}\")
+                    execute_process(
+                        COMMAND bash -c \"test -L '\${_dest}'\"
+                        RESULT_VARIABLE _is_symlink)
+                    if(NOT _is_symlink EQUAL 0)
+                        execute_process(
+                            COMMAND install_name_tool -id \"@rpath/\${_dep_name}\" \"\${_dest}\"
+                            ERROR_QUIET)
+                        list(APPEND _modified_bins \"\${_dest}\")
+                    endif()
+                endif()
+            endforeach()
+
+            # 2. Replace Homebrew paths in all installed dylibs
+            file(GLOB _installed_libs \"\${_libpath}/*.dylib\")
+            foreach(_lib \${_installed_libs})
+                execute_process(
+                    COMMAND bash -c \"test -L '\${_lib}'\"
+                    RESULT_VARIABLE _is_symlink)
+                if(NOT _is_symlink EQUAL 0)
+                    set(_changed FALSE)
+                    foreach(_dep \${_resolved})
+                        get_filename_component(_dep_name \"\${_dep}\" NAME)
+                        execute_process(
+                            COMMAND install_name_tool
+                                -change \"\${_dep}\" \"@rpath/\${_dep_name}\" \"\${_lib}\"
+                            RESULT_VARIABLE _chg_result
+                            ERROR_QUIET)
+                        if(_chg_result EQUAL 0)
+                            set(_changed TRUE)
+                        endif()
+                    endforeach()
+                    if(_changed)
+                        list(APPEND _modified_bins \"\${_lib}\")
+                    endif()
+                endif()
+            endforeach()
+
+            # 3. Re-sign all modified binaries (required on Apple Silicon after
+            #    any load-command modification — ad-hoc signing suffices for CLI tools)
+            list(REMOVE_DUPLICATES _modified_bins)
+            foreach(_bin \${_modified_bins})
+                execute_process(
+                    COMMAND codesign --force --sign - \"\${_bin}\"
+                    ERROR_QUIET)
+            endforeach()
+        endif()
+    ")
+endif()
