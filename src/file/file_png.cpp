@@ -4,7 +4,9 @@
  * File: file_png.cpp
  *
  * Description:
- *   This file implements the functionality for file_png.
+ *   PNG file-format display plugin — CFileFramebufferPNG.
+ *   PNG supports 8-bit and 16-bit pixel depths only.
+ *   Gamma is stored in the gAMA metadata chunk.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -14,280 +16,117 @@
  *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
- *
  */
 
-///////////////////////////////////////////////////////////////////////
-//
-//  File				:	file_png.cpp
-//  Classes				:
-//  Description			:	This file implements the PNG writer output device
-//							PNG only does 8 and 16 bit pixel depths, so 32bits or floats give error
-//							Gamma is stored in the metadata and does not change pixel values
-//
-////////////////////////////////////////////////////////////////////////
 #include "common/global.h"
 
 #ifdef HAVE_LIBPNG
 
 #include "file_png.h"
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "common/algebra.h"
+
 #include <string.h>
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CFileFramebufferPNG
-// Description			:	Holds the framebuffer
-// Comments				:
-CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) : CFileFramebuffer() {
-    int i;
-    float *tmp;
-    char *software;
+CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h,
+                                         int ns, const char *samples,
+                                         TDisplayParameterFunction fp)
+    : CFileOutputBase(w, h, ns,
+                      /*pixelSize placeholder — fixed below*/ ns,
+                      fp,
+                      /*isDepth=*/ strcmp(samples, "z") == 0) {
 
-    fhandle = NULL;
+    // PNG can't store float; default to 8-bit when no RIB quantize is specified.
+    if (qmax == 0) { qzero = 0; qone = 255; qmin = 0; qmax = 255; }
 
-    // Copy the quantization data
-    if ((tmp = (float *)findParameter("quantize", FLOAT_PARAMETER, 4))) {
-        qzero = tmp[0];
-        qone = tmp[1];
-        qmin = tmp[2];
-        qmax = tmp[3];
-    } else {
-        qzero = 0;
-        qone = 0;
-        qmin = 0;
-        qmax = 0;
-    }
+    if (w < 1 || h < 1 || ns < 1 || ns > 4 || qmax > 65535 || !name || !samples)
+        return;
 
-    if (width < 1 || height < 1 || numSamples < 1 || numSamples > 4 || qmax == 0 || qmax > 65535 || !name || !samples)
-        return; // Parameter error
-
-    // Open PNG library
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (png_ptr == NULL)
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (!png_ptr)
         return;
 
     info_ptr = png_create_info_struct(png_ptr);
-    if (info_ptr == NULL) {
-        png_destroy_write_struct(&png_ptr, NULL);
+    if (!info_ptr) {
+        png_destroy_write_struct(&png_ptr, nullptr);
+        png_ptr = nullptr;
         return;
     }
 
-    software = (char *)findParameter("Software", STRING_PARAMETER, 1);
+    char *software = (char *)fp("Software", STRING_PARAMETER, 1);
     if (software) {
         png_text comment;
         comment.compression = -1;
-        comment.key = (png_charp) "Software";
-        comment.text = software;
+        comment.key         = (png_charp)"Software";
+        comment.text        = software;
         comment.text_length = strlen(software);
         png_set_text(png_ptr, info_ptr, &comment, 1);
     }
 
-    // Create the image file
     fhandle = fopen(name, "w+");
-    if (fhandle == NULL) {
+    if (!fhandle) {
         png_destroy_write_struct(&png_ptr, &info_ptr);
+        png_ptr  = nullptr;
+        info_ptr = nullptr;
         return;
     }
     png_init_io(png_ptr, fhandle);
 
-    // Get the gamma correction stuff (only if we're not depth)
-    if (strcmp(samples, "z") != 0) {
-
-        if ((tmp = (float *)findParameter("dither", FLOAT_PARAMETER, 1))) {
-            qamp = tmp[0];
-        }
-
-        if ((tmp = (float *)findParameter("gamma", FLOAT_PARAMETER, 1))) {
-            gamma = tmp[0];
-        }
-
-        if ((tmp = (float *)findParameter("gain", FLOAT_PARAMETER, 1))) {
-            gain = tmp[0];
-        }
-    } else {
-        // If we're saving the z channel, we must be HDR
-        qamp = 0;
-        gamma = 1;
-        gain = 1;
-    }
-
-    if (gamma != 1.0)
+    if (gamma != 1.0f)
         png_set_gAMA(png_ptr, info_ptr, gamma);
 
-    if (qmax > 255) {
-        bitspersample = 16;
-    } else {
-        bitspersample = 8;
-    }
+    bitspersample = (qmax > 255) ? 16 : 8;
 
     int color_type;
-    switch (numSamples) {
-    case 1:
-        color_type = PNG_COLOR_TYPE_GRAY;
-        break;
-    case 2:
-        color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
-        break;
-    case 3:
-        color_type = PNG_COLOR_TYPE_RGB;
-        break;
-    case 4:
-        color_type = PNG_COLOR_TYPE_RGB_ALPHA;
-        break;
-    default:
-        break;
+    switch (ns) {
+    case 1: color_type = PNG_COLOR_TYPE_GRAY;       break;
+    case 2: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
+    case 3: color_type = PNG_COLOR_TYPE_RGB;        break;
+    case 4: color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
+    default: color_type = PNG_COLOR_TYPE_RGB;       break;
     }
 
-    // Set the PNG fields
-    png_set_IHDR(png_ptr,
-                 info_ptr,
-                 width,
-                 height,
-                 bitspersample,
-                 color_type,
+    png_set_IHDR(png_ptr, info_ptr, w, h, bitspersample, color_type,
                  PNG_INTERLACE_NONE,
                  PNG_COMPRESSION_TYPE_DEFAULT,
                  PNG_FILTER_TYPE_DEFAULT);
 
-    // Compute the size of a pixel
-    pixelSize = numSamples * bitspersample / 8;
-
-    lastSavedLine = 0;
-    scanlines = new unsigned char *[height];
-    scanlineUsage = new int[height];
-
-    for (i = 0; i < height; i++) {
-        scanlines[i] = NULL;
-        scanlineUsage[i] = width;
-    }
-
-    this->width = width;
-    this->height = height;
-    this->numSamples = numSamples;
-
-    osCreateMutex(fileMutex);
+    // Fix up pixelSize now that we know bitspersample
+    pixelSize = ns * bitspersample / 8;
 
     png_write_info(png_ptr, info_ptr);
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CFileFramebufferPNG
-// Method				:	~CFileFramebufferPNG
-// Description			:	Dtor
-// Return Value			:	-
-// Comments				:
 CFileFramebufferPNG::~CFileFramebufferPNG() {
-    int i;
-
-    if (fhandle == NULL)
+    if (!fhandle)
         return;
 
     png_write_end(png_ptr, info_ptr);
     fclose(fhandle);
-    osDeleteMutex(fileMutex);
-
     png_destroy_write_struct(&png_ptr, &info_ptr);
-
-    for (i = 0; i < height; i++) {
-        if (scanlines[i] != NULL)
-            delete[] (unsigned char *)scanlines[i];
-    }
-
-    delete[] scanlines;
-    delete[] scanlineUsage;
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CFileFramebufferPNG
-// Method				:	write
-// Description			:	Write image data to the file
-// Return Value			:	-
-// Comments				:
-void CFileFramebufferPNG::write(int x, int y, int w, int h, float *data) {
-    int i, j;
-    int check = FALSE;
-    int numChannels = w * h * numSamples;
-
-    if (fhandle == NULL)
-        return;
-
-    // Apply the pixel correction if applicable
-    if (gain != 1) {
-        for (i = 0; i < numChannels; i++) {
-            data[i] *= gain;
-        }
+void CFileFramebufferPNG::fillPixels(int row, int xOff, int nPx, const float *src) {
+    switch (bitspersample) {
+    case 8: {
+        auto *dst = reinterpret_cast<uint8_t *>(scanlines[row]) + xOff * numSamples;
+        for (int j = nPx * numSamples; j > 0; j--)
+            *dst++ = (uint8_t)*src++;
+        break;
     }
-
-    // Apply the quantization if applicable
-    if (qmax > 0) {
-        for (i = 0; i < numChannels; i++) {
-            float dither = qamp * (2 * (rand() / (float)RAND_MAX) - 1);
-            data[i] = qzero + (qone - qzero) * data[i] + dither;
-            if (data[i] < qmin)
-                data[i] = qmin;
-            else if (data[i] > qmax)
-                data[i] = qmax;
-        }
+    case 16: {
+        auto *dst = reinterpret_cast<uint16_t *>(scanlines[row]) + xOff * numSamples;
+        for (int j = nPx * numSamples; j > 0; j--)
+            *dst++ = (uint16_t)*src++;
+        break;
     }
-
-    // Lock the file
-    osLock(fileMutex);
-
-    // Record the data
-    for (i = 0; i < h; i++) {
-        unsigned char *scan;
-
-        if (scanlines[i + y] == NULL) {
-            scanlines[i + y] = scan = new unsigned char[width * pixelSize];
-        } else {
-            scan = (unsigned char *)scanlines[i + y];
-        }
-
-        switch (bitspersample) {
-        case 8: {
-            const float *src = &data[i * w * numSamples];
-            unsigned char *dest = &((unsigned char *)scan)[x * numSamples];
-
-            for (j = 0; j < w * numSamples; j++) {
-                *dest++ = (unsigned char)*src++;
-            }
-        } break;
-        case 16: {
-            const float *src = &data[i * w * numSamples];
-            unsigned short *dest = &((unsigned short *)scan)[x * numSamples];
-
-            for (j = 0; j < w * numSamples; j++) {
-                *dest++ = (unsigned short)*src++;
-            }
-        } break;
-        default:
-            break;
-        }
-
-        scanlineUsage[i + y] -= w;
-        if (scanlineUsage[i + y] <= 0)
-            check = TRUE;
+    default:
+        break;
     }
+}
 
-    if (check) {
-        for (; lastSavedLine < height; lastSavedLine++) {
-            if (scanlineUsage[lastSavedLine] == 0) {
-                if (scanlines[lastSavedLine] != NULL) {
-                    png_write_row(png_ptr, scanlines[lastSavedLine]);
-                    delete[] scanlines[lastSavedLine];
-                    scanlines[lastSavedLine] = NULL;
-                }
-            } else {
-                break;
-            }
-        }
-    }
-
-    // Release the file
-    osUnlock(fileMutex);
+void CFileFramebufferPNG::flushRow(int row) {
+    png_write_row(png_ptr, scanlines[row]);
 }
 
 #endif // HAVE_LIBPNG

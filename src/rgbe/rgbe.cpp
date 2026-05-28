@@ -150,11 +150,9 @@ int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info) {
 /* minimal header reading.  modify if you want to parse more information */
 int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info) {
     char buf[128];
-    int found_format;
     float tempf;
     int i;
 
-    found_format = 0;
     if (info) {
         info->valid = 0;
         info->programtype[0] = 0;
@@ -167,7 +165,7 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info) {
         /*return rgbe_error(rgbe_format_error,"bad initial token"); */
     } else if (info) {
         info->valid |= RGBE_VALID_PROGRAMTYPE;
-        for (i = 0; i < sizeof(info->programtype) - 1; i++) {
+        for (i = 0; i < (int)sizeof(info->programtype) - 1; i++) {
             if ((buf[i + 2] == 0) || isspace(buf[i + 2]))
                 break;
             info->programtype[i] = buf[i + 2];

@@ -2,11 +2,10 @@ if(HAVE_OPENEXR)
     file(GLOB openexr_headers *.h)
 
     add_library(openexr MODULE openexr.cpp ${openexr_headers})
-    set_target_properties(openexr PROPERTIES PREFIX "")
+    set_target_properties(openexr PROPERTIES PREFIX "" SUFFIX ".dsply")
 
-    # Use modern CMake imported targets
     target_link_libraries(openexr PRIVATE
-        openrendercommon
+        openrenderfilebase
         OpenEXR::OpenEXR
         Imath::Imath
     )

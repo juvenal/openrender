@@ -4,7 +4,8 @@
  * File: file.h
  *
  * Description:
- *   This file defines the interface for file.
+ *   Compatibility header — the unified file-format plugin dispatcher.
+ *   All format classes now derive from CFileOutputBase (file_base.h).
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -14,77 +15,14 @@
  *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
- *
  */
-
-// Copyright © 1999 - 2003, Okan Arikan
-//
-// Contact: okan@cs.utexas.edu
-//
-//	This library is free software; you can redistribute it and/or
-//	modify it under the terms of the GNU Lesser General Public
-//	License as published by the Free Software Foundation; either
-//	version 2.1 of the License, or (at your option) any later version.
-//
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Lesser General Public License for more details.
-//
-//	You should have received a copy of the GNU Lesser General Public
-//	License along with this library; if not, write to the Free Software
-//	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-//
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-//
-//  File				:	file.cpp
-//  Classes				:
-//  Description			:	This file implements the default output device
-//							that sends the image into a file
-//
-////////////////////////////////////////////////////////////////////////
 
 #ifndef FILE_H
 #define FILE_H
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CFileFramebuffer
-// Description			:	Holds the framebuffer
-// Comments				:
-class CFileFramebuffer {
-    public:
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CFileFramebuffer
-        // Method				:	CFileFramebuffer
-        // Description			:	Ctor
-        // Return Value			:	-
-        // Comments				:
-        CFileFramebuffer() {};
+#include "file_base.h"
 
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CFileFramebuffer
-        // Method				:	CFileFramebuffer
-        // Description			:	Dtor
-        // Return Value			:	-
-        // Comments				:
-        virtual ~CFileFramebuffer() {};
-
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CFileFramebuffer
-        // Method				:	write
-        // Description			:	Write image data to the file
-        // Return Value			:	-
-        // Comments				:
-        virtual void write(int /*x*/, int /*y*/, int /*w*/, int /*h*/, float * /*data*/) {};
-
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CFileFramebuffer
-        // Method				:	success
-        // Description			:	Returns True if constructor succeeded with file creation
-        // Return Value			:	-
-        // Comments				:
-        virtual bool success() { return false; };
-};
+// Legacy alias kept for any code that still refers to CFileFramebuffer.
+using CFileFramebuffer = CFileOutputBase;
 
 #endif // FILE_H

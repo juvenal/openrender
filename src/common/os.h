@@ -324,17 +324,8 @@ inline void osWriteUnlock(TRWLock &l) {
 // Misc. file extensions
 #ifdef _WINDOWS
 const char osModuleExtension[] = "dll";
-#else // Windoze
-#ifdef __APPLE_CC__
-// const	char	osModuleExtension[]		=	"dylib";
-
-// loadable libs on darwin are supposed to be .bundle
-// but automake/libtool chooses .so and it can't be
-// changed.  Xcode can be
-const char osModuleExtension[] = "so";
-#else  // OSX
-const char osModuleExtension[] = "so";
-#endif // OSX
-#endif // Windoze
+#else
+const char osModuleExtension[] = "dsply";
+#endif
 
 #endif

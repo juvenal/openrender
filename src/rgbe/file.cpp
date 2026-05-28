@@ -4,7 +4,9 @@
  * File: file.cpp
  *
  * Description:
- *   This file implements the functionality for file.
+ *   RGBE/Radiance .pic file-format display plugin.
+ *   Streams one scanline at a time using the shared CFileOutputBase
+ *   infrastructure (gain, gamma, quantize, thread-safe scanline accumulation).
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -14,18 +16,8 @@
  *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
- *
  */
 
-///////////////////////////////////////////////////////////////////////
-//
-//  File				:	file.cpp
-//  Classes				:
-//  Description			:	This file implements the default output device
-//							that sends the image into a radiance RGBA image
-//
-//
-////////////////////////////////////////////////////////////////////////
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,121 +25,79 @@
 
 #include "common/global.h"
 #include "common/os.h"
+#include "file/file_base.h"
 #include "rgbe.h"
-#include "ri/dsply.h" // The display functions
+#include "ri/dsply.h"
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRendererbuffer
-// Description			:	Holds the framebuffer
-// Comments				:
-class CRgbeFramebuffer {
-    public:
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CRendererbuffer
-        // Method				:	CRendererbuffer
-        // Description			:	Ctor
-        // Return Value			:	-
-        // Comments				:
-        CRgbeFramebuffer(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
-            char fileName[256];
-
-            if (strchr(name, '.') == NULL) {
-                snprintf(fileName, sizeof(fileName), "%s.pic", name);
-            } else {
-                strncpy(fileName, name, sizeof(fileName) - 1);
-                fileName[sizeof(fileName) - 1] = '\0';
-            }
-
-            image = fopen(fileName, "wb");
-
-            RGBE_WriteHeader(image, width, height, NULL);
-
-            this->width = width;
-            this->height = height;
-            this->numSamples = numSamples;
-            this->data = new float[width * height * numSamples];
+class CRgbeFramebuffer : public CFileOutputBase {
+public:
+    CRgbeFramebuffer(const char *name, int w, int h, int ns,
+                     const char * /*samples*/, TDisplayParameterFunction fp)
+        : CFileOutputBase(w, h, ns,
+                          /*pixelSize=*/ ns * (int)sizeof(float),
+                          fp) {
+        char fileName[256];
+        if (!strchr(name, '.'))
+            snprintf(fileName, sizeof(fileName), "%s.pic", name);
+        else {
+            strncpy(fileName, name, sizeof(fileName) - 1);
+            fileName[sizeof(fileName) - 1] = '\0';
         }
 
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CRendererbuffer
-        // Method				:	~CRendererbuffer
-        // Description			:	Dtor
-        // Return Value			:	-
-        // Comments				:
-        ~CRgbeFramebuffer() {
-            RGBE_WritePixels(image, data, width * height);
+        image = fopen(fileName, "wb");
+        if (image)
+            RGBE_WriteHeader(image, w, h, nullptr);
+    }
 
-            if (image != NULL)
-                fclose(image);
+    ~CRgbeFramebuffer() override {
+        if (image)
+            fclose(image);
+    }
 
-            delete[] data;
-        }
+    bool success() const override { return !!image; }
 
-        ///////////////////////////////////////////////////////////////////////
-        // Class				:	CRendererbuffer
-        // Method				:	write
-        // Description			:	Swrite some data to the out file
-        // Return Value			:	-
-        // Comments				:
-        void write(int x, int y, int w, int h, float *data) {
-            int i, j;
+protected:
+    // Store as float; RGBE encoding happens in flushRow.
+    void fillPixels(int row, int xOff, int nPx, const float *src) override {
+        auto *dst = reinterpret_cast<float *>(scanlines[row]) + xOff * numSamples;
+        for (int j = nPx * numSamples; j > 0; j--)
+            *dst++ = *src++;
+    }
 
-            if (image == NULL)
-                return;
+    void flushRow(int row) override {
+        RGBE_WritePixels(image, reinterpret_cast<float *>(scanlines[row]), width);
+    }
 
-            for (i = 0; i < w * h * numSamples; i++) {
-                if (data[i] < 0)
-                    data[i] = 0;
-            }
-
-            for (i = 0; i < h; i++) {
-                float *src = data + (i * w * numSamples);
-                float *dest = this->data + ((i + y) * width + x) * numSamples;
-
-                for (j = 0; j < w * numSamples; j++) {
-                    *dest++ = *src++;
-                }
-            }
-        }
-
-        int width, height, numSamples;
-        float *data;
-        FILE *image;
+private:
+    FILE *image = nullptr;
 };
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	displayStart
-// Description			:	Begin receiving an image
-// Return Value			:	The handle to the image on success, NULL othervise
-// Comments				:
-void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
-    return new CRgbeFramebuffer(name, width, height, numSamples, samples, findParameter);
+extern "C" {
+
+void *displayStart(const char *name, int width, int height, int numSamples,
+                   const char *samples, TDisplayParameterFunction fp) {
+    auto *f = new CRgbeFramebuffer(name, width, height, numSamples, samples, fp);
+    if (!f->success()) {
+        delete f;
+        return nullptr;
+    }
+    return f;
 }
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	displayData
-// Description			:	Receive image data
-// Return Value			:	TRUE on success, FALSE otherwise
-// Comments				:
 int displayData(void *im, int x, int y, int w, int h, float *data) {
-    CRgbeFramebuffer *fb = (CRgbeFramebuffer *)im;
-
-    assert(fb != NULL);
-
-    fb->write(x, y, w, h, data);
-
+    assert(im != nullptr);
+    static_cast<CRgbeFramebuffer *>(im)->write(x, y, w, h, data);
     return TRUE;
 }
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	displayFinish
-// Description			:	Finish receiving an image
-// Return Value			:	TRUE on success, FALSE othervise
-// Comments				:
-void displayFinish(void *im) {
-    CRgbeFramebuffer *fb = (CRgbeFramebuffer *)im;
-
-    assert(fb != NULL);
-
-    delete fb;
+int displayRawData(void * /*im*/, int /*x*/, int /*y*/,
+                   int /*w*/, int /*h*/, void * /*data*/) {
+    return TRUE;
 }
+
+void displayFinish(void *im) {
+    assert(im != nullptr);
+    delete static_cast<CRgbeFramebuffer *>(im);
+}
+
+} // extern "C"

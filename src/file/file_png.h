@@ -4,7 +4,7 @@
  * File: file_png.h
  *
  * Description:
- *   This file defines the interface for file_png.
+ *   PNG file-format display plugin — CFileFramebufferPNG.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -14,49 +14,34 @@
  *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
- *
  */
 
-///////////////////////////////////////////////////////////////////////
-//
-//  File				:	file_png.h
-//  Classes				:
-//  Description			:	This file implements the PNG writer output device
-//
-////////////////////////////////////////////////////////////////////////
+#ifndef FILE_PNG_H
+#define FILE_PNG_H
 
-#include "common/algebra.h"
-#include "common/global.h"
-#include "common/os.h"
-#include "ri/dsply.h" // The display driver interface
-
-#include "file.h"
+#include "file_base.h"
 #include "png.h"
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CFileFramebufferPNG
-// Description			:	Holds the framebuffer
-// Comments				:
-class CFileFramebufferPNG : public CFileFramebuffer {
-    public:
-        CFileFramebufferPNG(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter);
-        virtual ~CFileFramebufferPNG();
-        virtual void write(int x, int y, int w, int h, float *data);
-        virtual bool success() { return !!fhandle; };
+#include <stdio.h>
 
-        unsigned char **scanlines;
-        int *scanlineUsage;
-        int width, height;
-        int pixelSize;
-        int numSamples;
-        int lastSavedLine;
-        TMutex fileMutex;
+class CFileFramebufferPNG : public CFileOutputBase {
+public:
+    CFileFramebufferPNG(const char *name, int width, int height,
+                        int numSamples, const char *samples,
+                        TDisplayParameterFunction findParameter);
+    ~CFileFramebufferPNG() override;
 
-        float qmin, qmax, qone, qzero, qamp;
-        float gamma, gain;
-        int bitspersample, sampleformat;
+    bool success() const override { return !!fhandle; }
 
-        png_structp png_ptr;
-        png_infop info_ptr;
-        FILE *fhandle;
+protected:
+    void fillPixels(int row, int xOff, int nPx, const float *src) override;
+    void flushRow(int row) override;
+
+private:
+    png_structp png_ptr  = nullptr;
+    png_infop   info_ptr = nullptr;
+    FILE       *fhandle  = nullptr;
+    int         bitspersample = 8;
 };
+
+#endif // FILE_PNG_H

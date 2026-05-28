@@ -41,12 +41,16 @@ Both libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libri.dylib → l
 
 Installed to: `${OPENRENDER_DISPLAYSDIR}` → `/usr/local/displays/`
 
+Display plugins use the `.dsply` extension on all platforms except Windows (`.dll`).
+This makes it unambiguous that these are orender-specific loadable modules, not
+general shared libraries.
+
 | Module | Description | Location |
 |--------|-------------|----------|
-| `framebuffer.so` | X11 framebuffer display driver | `/usr/local/displays/framebuffer.so` |
-| `file.so` | File output driver (TIFF, PNG) | `/usr/local/displays/file.so` |
-| `rgbe.so` | RGBE (Radiance) format driver | `/usr/local/displays/rgbe.so` |
-| `openexr.so` | OpenEXR display driver (optional) | `/usr/local/displays/openexr.so` |
+| `framebuffer.dsply` | Interactive framebuffer display driver (IPC-based) | `/usr/local/displays/framebuffer.dsply` |
+| `file.dsply` | File output driver (TIFF, PNG) | `/usr/local/displays/file.dsply` |
+| `rgbe.dsply` | RGBE (Radiance .pic) format driver | `/usr/local/displays/rgbe.dsply` |
+| `openexr.dsply` | OpenEXR display driver (optional) | `/usr/local/displays/openexr.dsply` |
 
 ---
 
@@ -105,6 +109,9 @@ From `src/ri/CMakeLists.txt`:
 - `ptcapi.h` - Point cloud API
 - `ri.h` - RenderMan Interface main header
 - `shadeop.h` - Shader operations
+
+From `src/file/CMakeLists.txt`:
+- `file_base.h` - Base class for file-format display plugins (`CFileOutputBase`)
 
 ---
 
@@ -177,11 +184,11 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── ptcapi.h
 │   ├── ri.h
 │   └── shadeop.h
-├── displays/            # Display driver modules
-│   ├── framebuffer.so
-│   ├── file.so
-│   ├── rgbe.so
-│   └── openexr.so
+├── displays/            # Display driver modules (.dsply; .dll on Windows)
+│   ├── framebuffer.dsply
+│   ├── file.dsply
+│   ├── rgbe.dsply
+│   └── openexr.dsply
 ├── shaders/             # Shader files (54 files)
 │   ├── *.sl
 │   └── *.sdr / *.rslo
@@ -235,10 +242,10 @@ end
 ### Display Drivers
 ```ruby
 test do
-  assert_predicate lib/"displays/file.so", :exist?
-  assert_predicate lib/"displays/framebuffer.so", :exist?
-  assert_predicate lib/"displays/rgbe.so", :exist?
-  # openexr.so is optional
+  assert_predicate lib/"displays/file.dsply", :exist?
+  assert_predicate lib/"displays/framebuffer.dsply", :exist?
+  assert_predicate lib/"displays/rgbe.dsply", :exist?
+  # openexr.dsply is optional
 end
 ```
 

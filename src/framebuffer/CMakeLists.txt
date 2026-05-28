@@ -26,6 +26,6 @@ else()
 endif()
 
 if(TARGET framebuffer)
-	set_target_properties(framebuffer PROPERTIES PREFIX "")
+	set_target_properties(framebuffer PROPERTIES PREFIX "" SUFFIX ".dsply")
 	install(TARGETS framebuffer LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
 endif()
