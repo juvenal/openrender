@@ -1,0 +1,1 @@
+install(FILES prman.py DESTINATION "${OPENRENDER_PYTHONDIR}")

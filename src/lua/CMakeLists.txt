@@ -1,0 +1,1 @@
+install(FILES prman.lua DESTINATION "${OPENRENDER_LUADIR}")

@@ -292,6 +292,10 @@ if(INSTALL_SELFCONTAINED)
 	set(OPENRENDER_PROCEDURALDIR "procedurals")
 	set(OPENRENDER_DISPLAYSDIR "displays")
 	set(OPENRENDER_MODULESDIR "modules")
+	set(OPENRENDER_PYTHONDIR "python"
+	    CACHE PATH "Install destination for prman.py Python binding")
+	set(OPENRENDER_LUADIR "lua"
+	    CACHE PATH "Install destination for prman.lua Lua binding")
 else()
 	# System installation (follows FHS)
 	set(OPENRENDER_HOMEDIR "${CMAKE_INSTALL_DATAROOTDIR}/openRender")
@@ -303,6 +307,10 @@ else()
 	set(OPENRENDER_PROCEDURALDIR ${CMAKE_INSTALL_LIBDIR}/openRender/procedurals)
 	set(OPENRENDER_DISPLAYSDIR ${CMAKE_INSTALL_LIBDIR}/openRender/displays)
 	set(OPENRENDER_MODULESDIR ${CMAKE_INSTALL_LIBDIR}/openRender/modules)
+	set(OPENRENDER_PYTHONDIR "${CMAKE_INSTALL_DATAROOTDIR}/openRender/python"
+	    CACHE PATH "Install destination for prman.py Python binding")
+	set(OPENRENDER_LUADIR "${CMAKE_INSTALL_DATAROOTDIR}/openRender/lua"
+	    CACHE PATH "Install destination for prman.lua Lua binding")
 endif()
 
 
