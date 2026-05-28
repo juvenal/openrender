@@ -28,6 +28,8 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
+Both libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libri.dylib → libri.1.dylib`). The SOVERSION defaults to the current major version and can be overridden with `-DOPENRENDER_COMPAT_SOVERSION=<n>`.
+
 | Library | Description | Location |
 |---------|-------------|----------|
 | `libri.dylib` | RenderMan Interface library (core) | `/usr/local/lib/libri.dylib` |
@@ -48,14 +50,47 @@ Installed to: `${OPENRENDER_DISPLAYSDIR}` → `/usr/local/displays/`
 
 ---
 
-## Development Libraries (2 static libraries)
+## Static Libraries (2 archives)
 
-**Not installed by default** (build artifact only)
+Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
+
+Built from the same OBJECT library as the shared variants (one compilation pass, PIC enabled).
 
 | Library | Description | Location |
 |---------|-------------|----------|
-| `libopenrendercommon.a` | Common utilities static library | Build only |
-| `libribpreview.a` | Scene geometry extraction library for wireframe preview (`ribpreview_api.h` C API) | Build only |
+| `libri.a` | RenderMan Interface static archive | `/usr/local/lib/libri.a` |
+| `librslo.a` | Shader runtime static archive | `/usr/local/lib/librslo.a` |
+
+---
+
+## Development Libraries (2 build-only)
+
+**Not installed** (build artifact only)
+
+| Library | Description |
+|---------|-------------|
+| `libopenrendercommon.a` | Common utilities (object code embedded in libri/librslo; not installed separately) |
+| `libribpreview.a` | Scene geometry extraction for wireframe preview (`ribpreview_api.h` C API) |
+
+---
+
+## Language Bindings (2 files)
+
+Self-contained install destinations (default):
+
+| File | Language | Install Path |
+|------|----------|--------------|
+| `prman.py` | Python | `${PREFIX}/python/prman.py` |
+| `prman.lua` | Lua | `${PREFIX}/lua/prman.lua` |
+
+FHS install destinations:
+
+| File | Language | Install Path |
+|------|----------|--------------|
+| `prman.py` | Python | `${PREFIX}/share/openRender/python/prman.py` |
+| `prman.lua` | Lua | `${PREFIX}/share/openRender/lua/prman.lua` |
+
+Both destinations can be overridden at configure time with `-DOPENRENDER_PYTHONDIR=<path>` and `-DOPENRENDER_LUADIR=<path>`.
 
 ---
 
@@ -131,8 +166,10 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── otexmake
 │   └── oshow
 ├── lib/
-│   ├── libri.dylib
-│   └── librslo.dylib
+│   ├── libri.dylib          # shared (versioned: libri.1.dylib)
+│   ├── libri.a              # static
+│   ├── librslo.dylib        # shared (versioned: librslo.1.dylib)
+│   └── librslo.a            # static
 ├── include/
 │   ├── dlo.h
 │   ├── dsply.h
@@ -148,6 +185,10 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 ├── shaders/             # Shader files (54 files)
 │   ├── *.sl
 │   └── *.sdr / *.rslo
+├── python/
+│   └── prman.py         # Python RenderMan binding
+├── lua/
+│   └── prman.lua        # Lua RenderMan binding
 ├── share/
 │   ├── man/man1/        # Man pages
 │   │   ├── orender.1
@@ -228,12 +269,16 @@ When `INSTALL_SELFCONTAINED=OFF` (system installation):
 - `CMAKE_INSTALL_DATAROOTDIR` = `/usr/local/share`
 - `OPENRENDER_DISPLAYSDIR` = `/usr/local/lib/openRender/displays`
 - `OPENRENDER_SHADERDIR` = `/usr/local/share/openRender/shaders`
+- `OPENRENDER_PYTHONDIR` = `/usr/local/share/openRender/python`
+- `OPENRENDER_LUADIR` = `/usr/local/share/openRender/lua`
 
 When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 
 - All files under `CMAKE_INSTALL_PREFIX`
 - `OPENRENDER_DISPLAYSDIR` = `${PREFIX}/displays`
 - `OPENRENDER_SHADERDIR` = `${PREFIX}/shaders`
+- `OPENRENDER_PYTHONDIR` = `${PREFIX}/python`
+- `OPENRENDER_LUADIR` = `${PREFIX}/lua`
 
 ---
 
@@ -242,11 +287,12 @@ When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 | Category | Count |
 |----------|-------|
 | Executables | 7 (6 installed + 1 build-only) |
-| Shared Libraries | 2 |
-| Static Libraries | 2 (build-only) |
+| Shared Libraries | 2 (installed) |
+| Static Libraries | 2 (installed) + 2 (build-only) |
 | Display Modules | 4 |
 | Header Files | 6 |
+| Language Binding Files | 2 |
 | Shader Files | 54 |
 | Man Pages | 5 |
 | Documentation Files | 8 |
-| **Total Files** | **88** |
+| **Total Installed Files** | **89** |

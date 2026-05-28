@@ -14,7 +14,8 @@ The Python binding provides a `Ri` class that implements the standard RenderMan 
   - Standard RIB preamble emission: Automatically writes `##RenderMan RIB-Structure 1.1` and creator metadata when `Begin()` is called.
   - Flexible output: write to `stdout`, files, or pipe directly to the `orender` process.
   - Comprehensive block nesting and parameter handling.
-- **Location**: `src/bindings/python/`
+- **Source**: `src/python/prman.py`
+- **Installed to**: `${PREFIX}/python/prman.py` (self-contained) or `${PREFIX}/share/openRender/python/prman.py` (FHS)
 
 ### Lua Binding
 The Lua binding provides a full RIB-emitting interface, mirroring the functionality of the Python and C bindings.
@@ -24,7 +25,8 @@ The Lua binding provides a full RIB-emitting interface, mirroring the functional
   - Standard RIB preamble emission: Automatically writes `##RenderMan RIB-Structure 1.1` and creator metadata when `Begin()` is called.
   - Support for compound RIB features like `MotionBegin`, `SolidBegin`, and `ObjectInstance`.
   - Validated test suite for file output and process pipe modes.
-- **Location**: `src/bindings/lua/`
+- **Source**: `src/lua/prman.lua`
+- **Installed to**: `${PREFIX}/lua/prman.lua` (self-contained) or `${PREFIX}/share/openRender/lua/prman.lua` (FHS)
 
 ## Examples: Animated Colorcircles
 
@@ -38,7 +40,14 @@ Each example includes documentation on prerequisites and usage, providing a prac
 
 ## Integration & Tests
 
-The bindings are integrated into the build system and include regression tests that validate:
+The bindings are integrated into the CMake build system as proper install targets (added in commit `f01c59c`). The install destination can be customized at configure time:
+
+```bash
+cmake .. -DOPENRENDER_PYTHONDIR=/usr/lib/python3/dist-packages \
+         -DOPENRENDER_LUADIR=/usr/share/lua/5.4
+```
+
+Regression tests validate:
 - Correct RIB syntax generation.
 - Pipe-based communication with the renderer.
 - Handling of complex nested blocks (e.g., Solid modeling, Motion blur).

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- (2026-05-27) Added Python (`prman.py`) and Lua (`prman.lua`) binding install targets to the CMake build. Both bindings are installed under `python/` and `lua/` (self-contained) or `share/openRender/python/` and `share/openRender/lua/` (FHS). Install destinations can be overridden with `-DOPENRENDER_PYTHONDIR` and `-DOPENRENDER_LUADIR` (f01c59c).
 - (2026-05-21) Added `CRibGeometryContext` — lightweight `CRiInterface` subclass for geometry-only RIB parsing without renderer initialization. Lifted `addObject()` to `CRiInterface`; changed all geometry `instantiate()` signatures from `CRendererContext*` to `CRiInterface*`. Added `RiBeginLite()` to `ri.cpp`/`rib.h`. Extended all tessellators with per-vertex surface color output. Updated Metal wireframe shaders for per-vertex color buffers (8f94f66).
 - (2026-05-19) Added `orender-wire`: interactive RIB wireframe previewer — Metal/AppKit on macOS, GTK 4/OpenGL on Linux. Includes `libribpreview` static library with tessellators for all RenderMan primitive types (polygon, patch, NURBS, quadric, curve, points, subdivision, procedural), arcball camera, camera export/replace, and full test suite (117d77c).
 - (2026-05-19) Added automatic standard RenderMan RIB preamble headers to all RIB generated via C++, Python, and Lua (e7a63b1, 97c3265).
@@ -21,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- (2026-05-27) Overhauled the CMake build system: bumped `cmake_minimum_required` to 3.16; added `libri.a` and `librslo.a` static archives (built via OBJECT library pattern — one compilation pass for both shared and static); added `VERSION`/`SOVERSION` metadata to shared libraries (`OPENRENDER_COMPAT_SOVERSION` cache var); set `CMAKE_INSTALL_RPATH` globally for self-contained installs (`@loader_path/../lib` on macOS, `$ORIGIN/../lib` on Linux); bundled external Homebrew dependencies into `lib/` on self-contained installs with `file(GET_RUNTIME_DEPENDENCIES)` + `install_name_tool` rewrites + `codesign`; removed `openrendercommon` from the install step (object code is embedded in libri/librslo) (e9dd8a9).
+- (2026-05-24) Hardened Linux `orender-wire` startup: lowered GTK requirement to 4.20, linked `epoxy` explicitly, installed binary under `libexec`, configured relative library lookup via RPATH, suppressed Mesa/EGL diagnostics, detached launches from terminal, and allowed independent application instances (6c1c010).
 - (2026-05-19) Refactored the shader compiler subsystem rename (`sdr` → `rslo`), including internal symbols, directory structure, and tooling (f80a6ad).
 - (2026-05-19) Removed legacy `src/gui/` Qt/FLTK directory; arcball camera math ported to Swift (`ArcballCamera.swift`) and C++20 (`arcball.cpp`) (117d77c).
 - (2026-03-10) Updated `oshader` to output `.rslo` by default and added `--legacy-sdr` flag.
@@ -33,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- (2026-05-24) Fixed `debug_openrender.sh` to honor the `OPTS` environment variable — caller-supplied renderer options are now forwarded instead of being silently dropped (6d00b99).
 - (2026-02-08) Replaced `sprintf` with `snprintf` to prevent buffer overflows and resolve related warnings (fca5271).
 - (2025-12-13) Fixed Hugo build workflow issues and parameter placement in the documentation pipeline (8b2f277, 99bf323, 740f97a).
 

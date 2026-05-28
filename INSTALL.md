@@ -5,7 +5,7 @@ This document describes how to build and install openRender using CMake.
 ## Prerequisites
 
 - **C++20** compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
-- **CMake** 3.15 or higher
+- **CMake** 3.16 or higher
 - **Git** (for cloning the repository)
 
 ## Dependencies
@@ -104,6 +104,9 @@ This document describes how to build and install openRender using CMake.
 | `USE_FLEX_BISON` | Use flex and bison to regenerate parsers | ON |
 | `BUILD_SHOW` | Build the interactive viewer (oshow) | ON |
 | `INSTALL_SELFCONTAINED` | Self-contained install under prefix (vs FHS) | ON |
+| `OPENRENDER_COMPAT_SOVERSION` | SOVERSION for libri/librslo shared libraries | Major version |
+| `OPENRENDER_PYTHONDIR` | Install destination for `prman.py` | `python/` (self-contained) or `share/openRender/python/` (FHS) |
+| `OPENRENDER_LUADIR` | Install destination for `prman.lua` | `lua/` (self-contained) or `share/openRender/lua/` (FHS) |
 
 Example:
 
