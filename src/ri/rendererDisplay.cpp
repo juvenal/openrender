@@ -268,7 +268,21 @@ void CRenderer::dispatch(int left, int top, int width, int height, float *pixels
     int i, j, k, l;
     int srcStep, dstStep, disp;
 
-    // Execute imager shader (pre-display, pre-quantization, on linear float values)
+    // Per RenderMan spec: apply exposure (gain/gamma) to color (Ci) and coverage (Oi)
+    // before the imager shader.  Depth and AOV channels (index >= 4) are not affected.
+    if ((CRenderer::gain != 1.0f) || (CRenderer::gamma != 1.0f)) {
+        const float inv  = 1.0f / CRenderer::gamma;
+        const int   npix = width * height;
+        for (int p = 0; p < npix; p++) {
+            float *px = pixels + p * numSamples;
+            px[0] = powf(CRenderer::gain * px[0], inv);  // Ci.r
+            px[1] = powf(CRenderer::gain * px[1], inv);  // Ci.g
+            px[2] = powf(CRenderer::gain * px[2], inv);  // Ci.b
+            px[3] = powf(CRenderer::gain * px[3], inv);  // Oi/coverage
+        }
+    }
+
+    // Execute imager shader (post-exposure, pre-quantization)
     if (imagerShader != nullptr) {
         log_debug("dispatch: running imager for tile ({},{}) {}x{}", left, top, width, height);
         CImagerExecutor executor;

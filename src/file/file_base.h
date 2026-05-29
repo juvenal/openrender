@@ -32,13 +32,13 @@
  * Usage:
  *   1. Call the constructor from the subclass with the desired pixelSize
  *      (bytes per pixel in the native output format) and the findParameter
- *      callback.  The constructor reads gain/gamma/quantize/dither from the
- *      RIB Display statement automatically.
+ *      callback.  The constructor reads quantize/dither from the RIB Display
+ *      statement.  Gain/gamma are applied upstream in CRenderer::dispatch().
  *   2. Implement fillPixels(): convert nPx float pixels (numSamples components
  *      each) into scanlines[row] starting at byte offset xOff * pixelSize.
  *   3. Implement flushRow(): write the completed scanline at scanlines[row]
  *      to the output file.  The base class frees the buffer after the call.
- *   4. Call write() from displayData() -- it applies the color pipeline, then
+ *   4. Call write() from displayData() -- it applies quantization, then
  *      drives fillPixels() and flushRow().
  */
 class CFileOutputBase {
@@ -62,8 +62,9 @@ protected:
     int      *scanlineUsage;
     TMutex    fileMutex;
 
-    // Color pipeline parameters
-    float gamma, gain, qamp;
+    // Quantization parameters (exposure is applied upstream in dispatch())
+    float gamma;           // retained for PNG gAMA metadata embedding only
+    float qamp;
     float qzero, qone, qmin, qmax;
 
     /**
