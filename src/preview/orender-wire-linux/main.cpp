@@ -1,5 +1,6 @@
 // orender-wire — Linux GTK 4 / OpenGL 3.3 Core wireframe scene previewer.
 
+#include <adwaita.h>
 #include <gtk/gtk.h>
 #include <epoxy/gl.h>
 #include <cstdio>
@@ -443,11 +444,11 @@ static gboolean on_close_request(GtkWindow *, AppState *state) {
 
 // ─── GTK application activate ─────────────────────────────────────────────────
 
-static void on_activate(GtkApplication *app, gpointer user_data) {
+static void on_activate(AdwApplication *app, gpointer user_data) {
     AppState *state = static_cast<AppState *>(user_data);
 
     // Window
-    GtkWidget *window = gtk_application_window_new(app);
+    GtkWidget *window = adw_application_window_new(GTK_APPLICATION(app));
     std::string title = std::string("orender-wire — ")
                       + std::filesystem::path(state->ribPath).filename().string();
     gtk_window_set_title(GTK_WINDOW(window), title.c_str());
@@ -455,8 +456,16 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     g_signal_connect(window, "close-request",
                      G_CALLBACK(on_close_request), state);
 
+    // Layout
+    GtkWidget *toolbar_view = adw_toolbar_view_new();
+    adw_application_window_set_content(ADW_APPLICATION_WINDOW(window), toolbar_view);
+
+    GtkWidget *header_bar = adw_header_bar_new();
+    adw_toolbar_view_add_top_bar(ADW_TOOLBAR_VIEW(toolbar_view), header_bar);
+
     // Overlay: glArea + spinner
     GtkWidget *overlay = gtk_overlay_new();
+    adw_toolbar_view_set_content(ADW_TOOLBAR_VIEW(toolbar_view), overlay);
 
     GtkWidget *glArea = gtk_gl_area_new();
     state->glArea = glArea;
@@ -473,8 +482,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_set_valign(spinner, GTK_ALIGN_CENTER);
     gtk_widget_set_size_request(spinner, 48, 48);
     gtk_overlay_add_overlay(GTK_OVERLAY(overlay), spinner);
-
-    gtk_window_set_child(GTK_WINDOW(window), overlay);
 
     // GL signals
     g_signal_connect(glArea, "realize",   G_CALLBACK(on_realize),   state);
@@ -581,7 +588,7 @@ int main(int argc, char **argv) {
     AppState state{};
     state.ribPath = ribPath;
 
-    GtkApplication *app = gtk_application_new("press.v2labs.orender.wire",
+    AdwApplication *app = adw_application_new("press.v2labs.orender.wire",
                                                G_APPLICATION_NON_UNIQUE);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), &state);
 
