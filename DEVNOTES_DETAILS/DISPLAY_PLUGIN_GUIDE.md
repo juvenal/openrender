@@ -72,8 +72,10 @@ write step:
 - Scanline accumulation: collects out-of-order bucket tiles and delivers complete
   scanlines in order to the subclass
 - Thread safety: mutex protecting all per-instance state
-- Color pipeline: gain, gamma correction, quantization, and dither — read from the
-  RIB `Display` parameters automatically in the constructor
+- Color pipeline: quantization and dither — read from the RIB `Display` parameters
+  automatically in the constructor. Exposure (gain/gamma) is applied upstream in
+  `CRenderer::dispatch()` per the RenderMan spec before the imager shader runs;
+  `CFileOutputBase` does not re-apply it.
 
 ### Template method pattern
 
@@ -128,12 +130,13 @@ private:
 | `scanlines` | `uint8_t**` | Per-row buffers (nullptr until tiles arrive) |
 | `scanlineUsage` | `int*` | Remaining pixels until row is complete |
 | `fileMutex` | `TMutex` | Held during `fillPixels` and `flushRow` |
-| `gamma`, `gain` | `float` | Color pipeline parameters |
+| `gamma` | `float` | Display gamma (read from `Display` params; used for PNG gAMA metadata only — not applied to pixel values) |
 | `qzero`, `qone`, `qmin`, `qmax`, `qamp` | `float` | Quantize/dither parameters |
 
-The color pipeline (gain, gamma, quantize, dither) is applied by `write()` before
-calling `fillPixels()`, so `src` in `fillPixels()` already has the correct output
-values. Do **not** re-apply gamma or quantization in `fillPixels()`.
+Quantization and dither are applied by `write()` before calling `fillPixels()`, so
+`src` in `fillPixels()` already holds quantized output values. Exposure (gain/gamma)
+has already been applied by the renderer upstream. Do **not** re-apply quantization
+or gamma in `fillPixels()`.
 
 ---
 

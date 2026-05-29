@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- (2026-05-28) Overhauled file-format display plugin architecture: extracted shared scanline accumulation, mutex management, quantization, and dither into `CFileOutputBase` (`src/file/file_base.h`/`file_base.cpp`). TIFF, PNG, OpenEXR, and RGBE writers now implement only `fillPixels()` and `flushRow()`. Display modules use the `.dsply` extension on all non-Windows platforms. `file_base.h` is installed to `<prefix>/include/` for third-party authors. Expanded default `ORENDERHOME`-relative search paths (64e15c8).
+- (2026-05-28) macOS `orender-wire` app bundle now copies `libri.<SOVERSION>.dylib` into `Contents/Frameworks/` and creates an unversioned symlink, matching install-tree ABI naming and ensuring correct `@rpath` resolution (4a6b762).
 - (2026-05-27) Overhauled the CMake build system: bumped `cmake_minimum_required` to 3.16; added `libri.a` and `librslo.a` static archives (built via OBJECT library pattern — one compilation pass for both shared and static); added `VERSION`/`SOVERSION` metadata to shared libraries (`OPENRENDER_COMPAT_SOVERSION` cache var); set `CMAKE_INSTALL_RPATH` globally for self-contained installs (`@loader_path/../lib` on macOS, `$ORIGIN/../lib` on Linux); bundled external Homebrew dependencies into `lib/` on self-contained installs with `file(GET_RUNTIME_DEPENDENCIES)` + `install_name_tool` rewrites + `codesign`; removed `openrendercommon` from the install step (object code is embedded in libri/librslo) (e9dd8a9).
 - (2026-05-24) Hardened Linux `orender-wire` startup: lowered GTK requirement to 4.20, linked `epoxy` explicitly, installed binary under `libexec`, configured relative library lookup via RPATH, suppressed Mesa/EGL diagnostics, detached launches from terminal, and allowed independent application instances (6c1c010).
 - (2026-05-19) Refactored the shader compiler subsystem rename (`sdr` → `rslo`), including internal symbols, directory structure, and tooling (f80a6ad).
@@ -36,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- (2026-05-28) Fixed imager shader pipeline order: `CRenderer::dispatch()` now applies exposure (gain/gamma) to color (Ci) and coverage (Oi/alpha) before executing the imager shader, per the RenderMan spec (Render → Exposure → Imager → Quantize). Previously the imager received raw linear-light values, violating the spec. Exposure is removed from `CFileOutputBase::applyColorPipeline()`, which is now quantize-only. The `gain` member is removed from `CFileOutputBase`; `gamma` is retained for PNG gAMA metadata.
 - (2026-05-24) Fixed `debug_openrender.sh` to honor the `OPTS` environment variable — caller-supplied renderer options are now forwarded instead of being silently dropped (6d00b99).
 - (2026-02-08) Replaced `sprintf` with `snprintf` to prevent buffer overflows and resolve related warnings (fca5271).
 - (2025-12-13) Fixed Hugo build workflow issues and parameter placement in the documentation pipeline (8b2f277, 99bf323, 740f97a).
