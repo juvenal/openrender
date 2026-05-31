@@ -80,7 +80,7 @@ varying	vector	temporary_19
 	normalize	("v=v")  temporary_2 Nf
 	reflect	("v=vv")  path I temporary_2
 	vuvector  temporary_2 corner
-	subvv  PtoC temporary_2 Ps
+	subvv  PtoC temporary_2 P
 	dot  temporary_8 path PtoC
 	vufloat  temporary_9 0
 	felt  temporary_7 temporary_8 temporary_9
@@ -102,7 +102,7 @@ varying	vector	temporary_19
 	dot  offset temporary_2 temporary_10
 	vufloat  temporary_8 paneheight
 	mod	("f=ff")  modulus offset temporary_8
-	moveff  temporary_12 temporary_9
+	vufloat  temporary_12 0
 	fgt  temporary_9 offset temporary_12
 	moveff  temporary_14 temporary_8
 	divff  temporary_13 offset temporary_14
@@ -137,7 +137,7 @@ varying	vector	temporary_19
 	dot  offset temporary_2 temporary_10
 	vufloat  temporary_8 panewidth
 	mod	("f=ff")  modulus offset temporary_8
-	moveff  temporary_12 yfract
+	vufloat  temporary_12 0
 	fgt  temporary_9 offset temporary_12
 	moveff  temporary_14 temporary_8
 	divff  temporary_13 offset temporary_14
@@ -164,7 +164,7 @@ varying	vector	temporary_19
 	smoothstep	("f=fff")  xfract temporary_9 temporary_12 modulus
 #!Label18:
 	else #!Label17
-	moveff  xfract yfract
+	vufloat  xfract 0
 #!Label17:
 	endif
 #!Label11:

@@ -1119,7 +1119,7 @@ CScriptContext::CScriptContext(int s) {
 
     // The global variables
     addGlobalVariable("P", SLC_VECTOR | SLC_VPOINT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME | SLC_IMAGER);
-    addGlobalVariable("Ps", SLC_VECTOR | SLC_VPOINT, SLC_SURFACE | SLC_LIGHT);
+    addGlobalVariable("Ps", SLC_VECTOR | SLC_VPOINT, SLC_LIGHT);
     addGlobalVariable("N", SLC_VECTOR | SLC_VNORMAL, SLC_SURFACE | SLC_DISPLACEMENT | SLC_VOLUME | SLC_LIGHT);
     addGlobalVariable("Ng", SLC_VECTOR | SLC_VNORMAL, SLC_SURFACE | SLC_DISPLACEMENT | SLC_VOLUME | SLC_LIGHT);
     addGlobalVariable("I", SLC_VECTOR | SLC_VVECTOR, SLC_SURFACE | SLC_DISPLACEMENT | SLC_VOLUME | SLC_LIGHT);
@@ -1128,9 +1128,9 @@ CScriptContext::CScriptContext(int s) {
     addGlobalVariable("dPdu", SLC_VECTOR | SLC_VVECTOR, SLC_SURFACE | SLC_DISPLACEMENT | SLC_VOLUME | SLC_LIGHT);
     addGlobalVariable("dPdv", SLC_VECTOR | SLC_VVECTOR, SLC_SURFACE | SLC_DISPLACEMENT | SLC_VOLUME | SLC_LIGHT);
     addGlobalVariable("Os", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_DISPLACEMENT);
-    addGlobalVariable("Oi", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_VOLUME);
+    addGlobalVariable("Oi", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_VOLUME | SLC_IMAGER);
     addGlobalVariable("Cs", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_DISPLACEMENT);
-    addGlobalVariable("Ci", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_VOLUME);
+    addGlobalVariable("Ci", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_VOLUME | SLC_IMAGER);
     addGlobalVariable("Cl", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_LIGHT);
     addGlobalVariable("Ol", SLC_VECTOR | SLC_VCOLOR, SLC_SURFACE | SLC_LIGHT);
     addGlobalVariable("u", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
@@ -1139,11 +1139,11 @@ CScriptContext::CScriptContext(int s) {
     addGlobalVariable("dv", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
     addGlobalVariable("s", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
     addGlobalVariable("t", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
-    addGlobalVariable("ncomps", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
-    addGlobalVariable("time", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME); // FIXME should be uniform
-    addGlobalVariable("dtime", SLC_FLOAT | SLC_UNIFORM, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
+    addGlobalVariable("ncomps", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME | SLC_IMAGER);
+    addGlobalVariable("time", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME | SLC_IMAGER); // FIXME should be uniform
+    addGlobalVariable("dtime", SLC_FLOAT | SLC_UNIFORM, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME | SLC_IMAGER);
     addGlobalVariable("dPdtime", SLC_VECTOR | SLC_VVECTOR, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
-    addGlobalVariable("alpha", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME);
+    addGlobalVariable("alpha", SLC_FLOAT, SLC_SURFACE | SLC_DISPLACEMENT | SLC_LIGHT | SLC_VOLUME | SLC_IMAGER);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1204,7 +1204,8 @@ CFunctionPrototype *CScriptContext::addBuiltInFunction(const char *name, const c
 // Return Value			:
 // Comments				:
 void CScriptContext::addGlobalVariable(const char *name, int type, int scope) {
-    (void)scope;
+    if (scope != 0)
+        globalVarScope[name] = scope;
     CVariable *cVar = lastFunction->addVariable(name, type | SLC_GLOBAL, 1);
 
     cVar->cName = strdup(name);
@@ -1251,10 +1252,19 @@ CVariable *CScriptContext::getVariable(const char *vn) {
         }
     }
 
-    if (v != nullptr)
-        printDefine(v);
-    else {
+    if (v == nullptr)
         v = rootFunction->getVariable(vn);
+
+    if (v != nullptr) {
+        printDefine(v);
+        // Enforce shader-type scope: if this built-in has a scope restriction
+        // and the current shader type is known but not in the allowed set, reject it.
+        auto scopeIt = globalVarScope.find(vn);
+        if (scopeIt != globalVarScope.end() && shaderType != 0
+                && !(scopeIt->second & shaderType)) {
+            error("Variable \"%s\" is not valid in this shader type\n", vn);
+            return nullptr;
+        }
     }
 
     return v;

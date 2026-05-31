@@ -198,7 +198,7 @@ varying	vector	Pplane
 	smoothstep	("f=fff")  temporary_27 temporary_11 temporary_28 Pz
 	subff  temporary_25 temporary_26 temporary_27
 	mulff  atten_1 atten_1 temporary_25
-	moveff  temporary_26 atten
+	vufloat  temporary_26 0
 	fneql  temporary_25 temporary_14 temporary_26
 	if temporary_25 #!Label55
 	fgt  temporary_26 PLlen temporary_15
@@ -225,7 +225,7 @@ varying	vector	Pplane
 	endif
 	sneql  temporary_4 lighttype "omni"
 	vufloat  temporary_26 temporary_4
-	moveff  temporary_28 atten
+	vufloat  temporary_28 0
 	fgt  temporary_27 temporary_24 temporary_28
 	and  temporary_25 temporary_26 temporary_27
 	if temporary_25 #!Label59
@@ -241,19 +241,19 @@ varying	vector	Pplane
 	vufloat  temporary_27 1
 	vfromf  temporary_34 Pz
 	divvv  temporary_33 PL temporary_34
-	moveff  temporary_29 atten
+	vufloat  temporary_29 0
 	vfromf  temporary_34 temporary_17 temporary_18 temporary_29
 	subvv  temporary_32 temporary_33 temporary_34
 	addff  temporary_29 temporary_19 temporary_22
 	addff  temporary_30 temporary_20 temporary_21
-	moveff  result atten
+	vufloat  result 0
 	xcomp	("f=p")  temporary_31 temporary_32
 	abs	("f=f")  x temporary_31
 	ycomp	("f=p")  temporary_31 temporary_32
 	abs	("f=f")  y temporary_31
-	moveff  temporary_36 atten
+	moveff  temporary_36 result
 	fneql  temporary_35 x temporary_36
-	moveff  temporary_37 atten
+	moveff  temporary_37 result
 	fneql  temporary_36 y temporary_37
 	or  temporary_31 temporary_35 temporary_36
 	if temporary_31 #!Label63
@@ -290,7 +290,7 @@ varying	vector	Pplane
 	addff  temporary_39 temporary_40 temporary_41
 	sqrt	("f=f")  temporary_38 temporary_39
 	divff  r temporary_37 temporary_38
-	moveff  temporary_37 temporary_27
+	vufloat  temporary_37 1
 	smoothstep	("f=fff")  result q r temporary_37
 #!Label68:
 	else #!Label67
@@ -302,7 +302,7 @@ varying	vector	Pplane
 	mulff  temporary_42 temporary_19 y
 	pow	("f=ff")  temporary_41 temporary_42 re
 	addff  temporary_39 temporary_40 temporary_41
-	moveff  temporary_42 temporary_27
+	vufloat  temporary_42 1
 	divff  temporary_41 temporary_42 re
 	negf  temporary_40 temporary_41
 	pow	("f=ff")  temporary_38 temporary_39 temporary_40
@@ -313,12 +313,12 @@ varying	vector	Pplane
 	mulff  temporary_42 temporary_29 y
 	pow	("f=ff")  temporary_41 temporary_42 re
 	addff  temporary_39 temporary_40 temporary_41
-	moveff  temporary_42 temporary_27
+	vufloat  temporary_42 1
 	divff  temporary_41 temporary_42 re
 	negf  temporary_40 temporary_41
 	pow	("f=ff")  temporary_38 temporary_39 temporary_40
 	mulff  r_1 temporary_37 temporary_38
-	moveff  temporary_37 temporary_27
+	moveff  temporary_37 temporary_42
 	smoothstep	("f=fff")  result q_1 r_1 temporary_37
 #!Label67:
 	endif
@@ -337,7 +337,7 @@ varying	vector	Pplane
 	sneql  temporary_4 slidename ""
 	vufloat  temporary_9 temporary_4
 	if temporary_9 #!Label69
-	moveff  temporary_4 temporary_7
+	addff  temporary_4 width wedge
 	addff  temporary_5 height hedge
 	vfromf  temporary_0 temporary_4 temporary_5 1
 	vuvector  temporary_32 temporary_0
@@ -375,7 +375,7 @@ varying	vector	Pplane
 	mulvv  temporary_32 temporary_33 temporary_34
 	noise	("f=p")  n temporary_32
 	vufloat  temporary_11 0
-	moveff  temporary_12 temporary_27
+	vufloat  temporary_12 1
 	vufloat  temporary_14 0.5
 	vufloat  temporary_16 noiseamp
 	moveff  temporary_18 temporary_14
@@ -386,11 +386,11 @@ varying	vector	Pplane
 	mulff  atten atten n
 #!Label73:
 	endif
-	moveff  unoccluded temporary_27
+	vufloat  unoccluded 1
 	sneql  temporary_4 shadowname ""
 	vufloat  temporary_10 temporary_4
 	if temporary_10 #!Label75
-	moveff  temporary_12 temporary_27
+	moveff  temporary_12 unoccluded
 	shadow	("f=SFpSfsfsf")  temporary_13 shadowname 0 Ps "blur" shadowblur "samples" shadowsamples "bias" shadowbias
 	subff  temporary_11 temporary_12 temporary_13
 	mulff  unoccluded unoccluded temporary_11
@@ -417,7 +417,7 @@ varying	vector	Pplane
 	vufloat  temporary_14 blockerwedge
 	vufloat  temporary_15 blockerhedge
 	vufloat  temporary_16 blockerround
-	moveff  unoccluded_1 temporary_27
+	vufloat  unoccluded_1 1
 	transform	("p=Sp")  Pb1 blockercoords Ps
 	transform	("p=Sp")  Pb2 blockercoords shadoworigin
 	zcomp	("f=p")  temporary_19 Pb2
@@ -449,11 +449,11 @@ varying	vector	Pplane
 	vufloat  temporary_23 1.0e-6
 	flt  temporary_22 temporary_16 temporary_23
 	if temporary_22 #!Label86
-	moveff  temporary_23 temporary_27
-	moveff  temporary_26 temporary_27
+	moveff  temporary_23 unoccluded_1
+	moveff  temporary_26 unoccluded_1
 	smoothstep	("f=fff")  temporary_27 temporary_12 temporary_19 x
 	subff  temporary_25 temporary_26 temporary_27
-	vufloat  temporary_27 1
+	moveff  temporary_27 unoccluded_1
 	smoothstep	("f=fff")  temporary_28 temporary_13 temporary_20 y
 	subff  temporary_26 temporary_27 temporary_28
 	mulff  temporary_24 temporary_25 temporary_26
@@ -525,8 +525,8 @@ varying	vector	Pplane
 	endif
 	vuvector  temporary_32 shadowcolor
 	mix	("v=vvf")  lcol temporary_32 lcol unoccluded
-	moveff  temporary_10 temporary_29
-	moveff  temporary_13 temporary_29
+	vufloat  temporary_10 1
+	moveff  temporary_13 temporary_10
 	subff  temporary_12 temporary_13 __nonspecular
 	mulff  temporary_11 unoccluded temporary_12
 	subff  __nonspecular temporary_10 temporary_11

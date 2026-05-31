@@ -170,6 +170,11 @@ bool CCSEPass::cseFn(IRFunction &fn, const IRModule &mod) {
     std::unordered_set<std::string> defsSeen;
 
     for (IRBlock &blk : fn.blocks) {
+        // Local (intra-block) CSE only: cross-block substitution requires
+        // dominator analysis that the IR does not currently encode.  Without
+        // it, an entry added inside a conditional branch would be applied to
+        // code on paths that never executed that branch, corrupting results.
+        exprMap.clear();
         for (IRInstr &instr : blk.instrs) {
             // Invalidate stale entries before inspecting this instruction.
             // Always call invalidateVar — not just on re-definitions — because

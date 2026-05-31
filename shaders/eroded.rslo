@@ -43,7 +43,7 @@ varying	vector	temporary_13
 	vufloat  temporary_3 6.0
 	flt  temporary_2 i temporary_3
 	for temporary_2
-	moveff  temporary_4 size
+	vufloat  temporary_4 4.0
 	vufloat  temporary_7 .5
 	vfromf  temporary_9 size
 	mulvv  temporary_1 W temporary_9

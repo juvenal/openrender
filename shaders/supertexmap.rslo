@@ -234,9 +234,9 @@ varying	vector	temporary_30
 	zcomp	("f=p")  temporary_7 Pproj
 	vufloat  temporary_8 1.0e-6
 	max	("f=ff")  z temporary_7 temporary_8
-	moveff  temporary_7 ss
+	xcomp	("f=p")  temporary_7 Pproj
 	divff  ss temporary_7 z
-	moveff  temporary_7 tt
+	ycomp	("f=p")  temporary_7 Pproj
 	divff  tt temporary_7 z
 	Du	("f=f")  temporary_10 ss
 	mulff  temporary_9 temporary_10 du
@@ -318,7 +318,7 @@ varying	vector	temporary_30
 	seql  temporary_1 Csproj "cylindrical"
 	vufloat  temporary_8 temporary_1
 	if temporary_8 #!Label87
-	movevv  V_1 V
+	normalize	("v=v")  V_1 Pproj
 	ycomp	("f=p")  temporary_12 V_1
 	xcomp	("f=p")  temporary_13 V_1
 	atan	("f=ff")  temporary_11 temporary_12 temporary_13
@@ -398,7 +398,7 @@ varying	vector	temporary_30
 	vufloat  temporary_0 temporary_1
 	if temporary_0 #!Label91
 	vufloat  temporary_3 Osmx
-	moveff  temporary_5 disp
+	vufloat  temporary_5 0
 	ffroma  temporary_4 temporary_3 temporary_5
 	vufloat  temporary_6 1
 	ffroma  temporary_5 temporary_3 temporary_6
@@ -431,12 +431,12 @@ varying	vector	temporary_30
 	vufloat  temporary_20 15
 	ffroma  temporary_19 temporary_3 temporary_20
 	mfromf  temporary_2 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19
-	moveff  temporary_3 disp
+	vufloat  temporary_3 0
 	vufloat  temporary_4 3
 	seql  temporary_1 Osproj " st"
 	vufloat  temporary_5 temporary_1
 	if temporary_5 #!Label94
-	moveff  temporary_6 disp
+	moveff  temporary_6 temporary_3
 	vfromf  Pproj s t temporary_6
 #!Label94:
 	else #!Label93
@@ -477,9 +477,9 @@ varying	vector	temporary_30
 	zcomp	("f=p")  temporary_7 Pproj
 	vufloat  temporary_8 1.0e-6
 	max	("f=ff")  z temporary_7 temporary_8
-	moveff  temporary_7 ss
+	xcomp	("f=p")  temporary_7 Pproj
 	divff  ss temporary_7 z
-	moveff  temporary_7 tt
+	ycomp	("f=p")  temporary_7 Pproj
 	divff  tt temporary_7 z
 	Du	("f=f")  temporary_10 ss
 	mulff  temporary_9 temporary_10 du
@@ -561,7 +561,7 @@ varying	vector	temporary_30
 	seql  temporary_1 Osproj "cylindrical"
 	vufloat  temporary_8 temporary_1
 	if temporary_8 #!Label105
-	movevv  V_1 V
+	normalize	("v=v")  V_1 Pproj
 	ycomp	("f=p")  temporary_12 V_1
 	xcomp	("f=p")  temporary_13 V_1
 	atan	("f=ff")  temporary_11 temporary_12 temporary_13
@@ -640,9 +640,9 @@ varying	vector	temporary_30
 	sneql  temporary_1 Ksmapname ""
 	vufloat  temporary_0 temporary_1
 	if temporary_0 #!Label109
-	moveff  temporary_3 ks
+	vufloat  temporary_3 Ks
 	vufloat  temporary_4 Ksmx
-	moveff  temporary_6 disp
+	vufloat  temporary_6 0
 	ffroma  temporary_5 temporary_4 temporary_6
 	vufloat  temporary_7 1
 	ffroma  temporary_6 temporary_4 temporary_7
@@ -675,11 +675,11 @@ varying	vector	temporary_30
 	vufloat  temporary_25 15
 	ffroma  temporary_20 temporary_4 temporary_25
 	mfromf  temporary_2 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19 temporary_20
-	moveff  temporary_4 disp
+	vufloat  temporary_4 0
 	seql  temporary_1 Ksproj " st"
 	vufloat  temporary_5 temporary_1
 	if temporary_5 #!Label112
-	moveff  temporary_6 disp
+	moveff  temporary_6 temporary_4
 	vfromf  Pproj s t temporary_6
 #!Label112:
 	else #!Label111
@@ -720,9 +720,9 @@ varying	vector	temporary_30
 	zcomp	("f=p")  temporary_7 Pproj
 	vufloat  temporary_8 1.0e-6
 	max	("f=ff")  z temporary_7 temporary_8
-	moveff  temporary_7 ss_1
+	xcomp	("f=p")  temporary_7 Pproj
 	divff  ss_1 temporary_7 z
-	moveff  temporary_7 tt_1
+	ycomp	("f=p")  temporary_7 Pproj
 	divff  tt_1 temporary_7 z
 	Du	("f=f")  temporary_10 ss_1
 	mulff  temporary_9 temporary_10 du
@@ -804,7 +804,7 @@ varying	vector	temporary_30
 	seql  temporary_1 Ksproj "cylindrical"
 	vufloat  temporary_8 temporary_1
 	if temporary_8 #!Label123
-	movevv  V_1 V
+	normalize	("v=v")  V_1 Pproj
 	ycomp	("f=p")  temporary_12 V_1
 	xcomp	("f=p")  temporary_13 V_1
 	atan	("f=ff")  temporary_11 temporary_12 temporary_13
@@ -883,9 +883,9 @@ varying	vector	temporary_30
 	vufloat  temporary_0 temporary_1
 	if temporary_0 #!Label127
 	vufloat  temporary_3 dispmx
-	moveff  temporary_5 disp
+	vufloat  temporary_5 0
 	ffroma  temporary_4 temporary_3 temporary_5
-	moveff  temporary_6 temporary_7
+	vufloat  temporary_6 1
 	ffroma  temporary_5 temporary_3 temporary_6
 	vufloat  temporary_7 2
 	ffroma  temporary_6 temporary_3 temporary_7
@@ -913,14 +913,14 @@ varying	vector	temporary_30
 	ffroma  temporary_17 temporary_3 temporary_18
 	vufloat  temporary_19 14
 	ffroma  temporary_18 temporary_3 temporary_19
-	moveff  temporary_20 temporary_25
+	vufloat  temporary_20 15
 	ffroma  temporary_19 temporary_3 temporary_20
 	mfromf  temporary_2 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19
-	moveff  temporary_3 disp
+	vufloat  temporary_3 0
 	seql  temporary_1 dispproj " st"
 	vufloat  temporary_4 temporary_1
 	if temporary_4 #!Label130
-	moveff  temporary_5 disp
+	moveff  temporary_5 temporary_3
 	vfromf  Pproj s t temporary_5
 #!Label130:
 	else #!Label129
@@ -961,9 +961,9 @@ varying	vector	temporary_30
 	zcomp	("f=p")  temporary_6 Pproj
 	vufloat  temporary_7 1.0e-6
 	max	("f=ff")  z temporary_6 temporary_7
-	moveff  temporary_6 ss_1
+	xcomp	("f=p")  temporary_6 Pproj
 	divff  ss_1 temporary_6 z
-	moveff  temporary_6 tt_1
+	ycomp	("f=p")  temporary_6 Pproj
 	divff  tt_1 temporary_6 z
 	Du	("f=f")  temporary_9 ss_1
 	mulff  temporary_8 temporary_9 du
@@ -1045,7 +1045,7 @@ varying	vector	temporary_30
 	seql  temporary_1 dispproj "cylindrical"
 	vufloat  temporary_7 temporary_1
 	if temporary_7 #!Label141
-	movevv  V_1 V
+	normalize	("v=v")  V_1 Pproj
 	ycomp	("f=p")  temporary_11 V_1
 	xcomp	("f=p")  temporary_12 V_1
 	atan	("f=ff")  temporary_10 temporary_11 temporary_12

@@ -105,12 +105,12 @@ varying	float	border
 	vufloat  temporary_14 temporary_13
 	illuminance P Nf temporary_14 #!Label13 #!Label14
 #!Label13:
-	moveff  nonspec nondiff
+	vufloat  nonspec 0
 	lightsource	("f=SF")  temporary_15 "__nonspecular" nonspec
 	vufloat  temporary_18 1
 	moveff  temporary_15 temporary_18
 	if temporary_15 #!Label15
-	movevv  temporary_10 temporary_23
+	normalize	("v=v")  temporary_10 L
 	addvv  temporary_9 temporary_10 V
 	normalize	("v=v")  H temporary_9
 	moveff  temporary_20 temporary_18
@@ -119,7 +119,7 @@ varying	float	border
 	vufloat  temporary_21 0.58499999999999996
 	moveff  temporary_24 temporary_22
 	vufloat  temporary_22 0.85499999999999998
-	moveff  temporary_26 nondiff
+	moveff  temporary_26 nonspec
 	dot  temporary_27 Nf H
 	max	("f=ff")  temporary_25 temporary_26 temporary_27
 	moveff  temporary_27 temporary_18
@@ -141,7 +141,7 @@ varying	float	border
 	mulvv  Ci Ci Oi
 	vufloat  temporary_1 outlinethickness
 	normalize	("v=v")  temporary_0 N
-	movevv  temporary_6 IN
+	normalize	("v=v")  temporary_6 I
 	dot  temporary_2 temporary_0 temporary_6
 	abs	("f=f")  angle temporary_2
 	Du	("f=f")  temporary_5 angle

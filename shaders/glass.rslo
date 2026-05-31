@@ -43,7 +43,7 @@ varying	vector	temporary_8
 	endif
 	fresnel	("o=vvfFFVV")  In Nf temporary_2 Kr Kt R T
 	dot  temporary_3 I N
-	moveff  temporary_4 temporary_5
+	vufloat  temporary_4 0
 	flt  temporary_2 temporary_3 temporary_4
 	if temporary_2 #!Label11
 	vfromf  temporary_1 Ks

@@ -40,7 +40,7 @@ windowhighlight (point center = point "world" (0, 0, -4),  /* center of the wind
 
     /* trace source of highlight */
     path = reflect(I, normalize(Nf));
-    PtoC = corner - Ps;
+    PtoC = corner - P;
 
     /* outside the room */
     if (path.PtoC <= 0) {

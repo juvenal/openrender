@@ -150,7 +150,7 @@ varying	float	temporary_24
 	endif
 #!Label28:
 	else #!Label27
-	moveff  temporary_23 solutions
+	vufloat  temporary_23 0
 	feql  temporary_22 discrim temporary_23
 	if temporary_22 #!Label34
 	vufloat  temporary_24 2
@@ -172,7 +172,7 @@ varying	float	temporary_24
 #!Label27:
 	endif
 	moveff  temporary_18 solutions
-	moveff  temporary_19 solutions
+	vufloat  temporary_19 0
 	fgt  temporary_17 temporary_18 temporary_19
 	if temporary_17 #!Label25
 	vfromf  temporary_10 t0

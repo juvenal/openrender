@@ -101,7 +101,7 @@ uniform	float	temporary_19
 	moveff  xfract yfract
 #!Label14:
 	else #!Label13
-	movevv  temporary_12 temporary_8
+	vuvector  temporary_12 path
 	vuvector  temporary_14 in2
 	dot  temporary_10 PtoC temporary_14
 	vfromf  temporary_13 temporary_10
@@ -115,7 +115,7 @@ uniform	float	temporary_19
 	dot  offset temporary_8 temporary_12
 	vufloat  temporary_10 paneheight
 	mod	("f=ff")  modulus offset temporary_10
-	moveff  temporary_15 temporary_11
+	vufloat  temporary_15 0
 	fgt  temporary_11 offset temporary_15
 	moveff  temporary_17 temporary_10
 	divff  temporary_16 offset temporary_17
@@ -150,7 +150,7 @@ uniform	float	temporary_19
 	dot  offset temporary_8 temporary_12
 	vufloat  temporary_10 panewidth
 	mod	("f=ff")  modulus offset temporary_10
-	moveff  temporary_15 yfract
+	vufloat  temporary_15 0
 	fgt  temporary_11 offset temporary_15
 	moveff  temporary_17 temporary_10
 	divff  temporary_16 offset temporary_17
@@ -177,7 +177,7 @@ uniform	float	temporary_19
 	smoothstep	("f=fff")  xfract temporary_11 temporary_15 modulus
 #!Label20:
 	else #!Label19
-	moveff  xfract yfract
+	vufloat  xfract 0
 #!Label19:
 	endif
 #!Label13:

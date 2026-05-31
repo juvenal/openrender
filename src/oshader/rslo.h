@@ -69,6 +69,8 @@
 #include "common/global.h"     // The global header file
 #include "common/os.h"
 #include "expression.h" // Expressions
+#include <string>
+#include <unordered_map>
 
 // Forward definitions
 class CSymbol;            // CSymbol class
@@ -400,6 +402,11 @@ class CScriptContext {
                                    // For example, is the code has an illuminate statement, the
                                    // SLC_LIGHT_SOURCE field will be on
                                    // Compilation flags
+
+        // Maps each global built-in variable name to the bitmask of shader types
+        // in which it is valid (SLC_SURFACE, SLC_LIGHT, etc.).  Zero means valid
+        // in all contexts.  Populated by addGlobalVariable(); checked in getVariable().
+        std::unordered_map<std::string, int> globalVarScope;
 };
 
 // thread_local: each compiler thread owns its own context pointer.
