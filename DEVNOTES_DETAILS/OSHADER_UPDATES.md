@@ -18,9 +18,53 @@ The compiler now builds an internal Intermediate Representation (IR) before fina
 The move to an IR-based backend has enabled several critical optimization passes:
 
 - **Constant Folding (`CConstFoldPass`):** Evaluates constant expressions at compile time.
-- **Common Subexpression Elimination (`CCSEPass`):** Detects and removes redundant calculations by reusing previous results.
+- **Common Subexpression Elimination (`CCSEPass`):** Detects and removes redundant calculations by reusing previous results. CSE is applied per-basic-block (intra-block only); cross-block substitution would require dominator analysis that the current IR does not encode.
 - **Dead Code Elimination (`CDCEPass`):** Removes instructions that do not affect the final output or state.
 - **Uniform Lifting (`CUniformLiftingPass`):** Moves calculations that only depend on uniform variables out of varying execution contexts, significantly improving performance for complex shaders.
+
+#### CSE Pass — Block-Local Scope (Bug Fix)
+
+An early implementation of `CCSEPass` maintained a single shared `exprMap` across **all** IR basic blocks. When a constant load (e.g., `vufloat tmp 0`) appeared inside an `if`-branch block, the CSE would cache it and then replace identical loads in subsequent blocks — even blocks on paths that never executed the branch. This silently corrupted the output `.rslo` for any shader containing if/else branches with constant-zero initializations.
+
+The concrete victim was `windowhighlight.sl`: the y-range ELSE branch cached `"vufloat||0" → yfract`, and the x-range code (a different block) had `vufloat tmp 0` replaced with `moveff tmp yfract`, making the x-range test compare against `yfract` (0 or non-zero depending on the y-branch taken) instead of against the literal `0`.
+
+**Fix** (`src/oshader/passes/passCSE.cpp`, `cseFn()`): `exprMap.clear()` is called at the start of every `IRBlock` iteration, restricting CSE to intra-block scope. The `defsSeen` set remains shared across blocks (it is used only for invalidation bookkeeping, not value propagation).
+
+```cpp
+for (IRBlock &blk : fn.blocks) {
+    // Local (intra-block) CSE only: cross-block substitution requires
+    // dominator analysis that the IR does not currently encode.
+    exprMap.clear();
+    for (IRInstr &instr : blk.instrs) { …
+```
+
+### Shader Built-In Scope Enforcement
+
+The compiler now enforces which shader types each RenderMan built-in variable is valid in. This catches category errors at compile time (e.g., using a light-shader variable inside a surface shader) rather than silently producing an incorrect shader.
+
+**`globalVarScope` map** (`src/oshader/rslo.h`): A new `std::unordered_map<std::string, int> globalVarScope` member on `CScriptContext` stores per-variable scope bitmasks (`SLC_SURFACE`, `SLC_LIGHT`, `SLC_VOLUME`, `SLC_IMAGER`, etc.). Populated by `addGlobalVariable()` — a non-zero `scope` argument records the mask; zero means valid everywhere.
+
+**`getVariable()` restructure** (`src/oshader/rslo.cpp`): Previously the scope check only ran when the variable was found in the `lastFunction` or `globalVariables` lists; variables resolved via the `rootFunction` fallback bypassed it entirely. The function is now structured so the scope check runs unconditionally after *any* successful lookup:
+
+```
+lastFunction->getVariable()  ─┐
+globalVariables search        ├─ if still nullptr → rootFunction->getVariable()
+                               └─ then scope check on whatever was found
+```
+
+**Scope table corrections** (`src/oshader/rslo.cpp`):
+
+| Variable | Before | After |
+|----------|--------|-------|
+| `Ps` | `SLC_SURFACE \| SLC_LIGHT` | `SLC_LIGHT` |
+| `Ci` | `SLC_SURFACE \| SLC_VOLUME` | `SLC_SURFACE \| SLC_VOLUME \| SLC_IMAGER` |
+| `Oi` | `SLC_SURFACE \| SLC_VOLUME` | `SLC_SURFACE \| SLC_VOLUME \| SLC_IMAGER` |
+| `alpha` | `SLC_SURFACE \| SLC_DISPLACEMENT \| SLC_LIGHT \| SLC_VOLUME` | + `SLC_IMAGER` |
+| `ncomps` | `SLC_SURFACE \| … \| SLC_VOLUME` | + `SLC_IMAGER` |
+| `time` | `SLC_SURFACE \| … \| SLC_VOLUME` | + `SLC_IMAGER` |
+| `dtime` | `SLC_SURFACE \| … \| SLC_VOLUME` | + `SLC_IMAGER` |
+
+The corrections for imager variables prevent false rejections — `Ci`, `Oi`, `alpha` are primary outputs of imager shaders and must remain accessible in that context.
 
 ### Filename Convention and Subsystem Rename (.rslo)
 
