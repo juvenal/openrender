@@ -147,7 +147,7 @@ void printUsage() {
     printf("    -x <level>      Set log level: 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG (default: NONE)\n");
     printf("    -h              Display this help\n\n");
     printf("Environment variables:\n");
-    printf("  OPENRENDERHOME   " OPENRENDER_PROJECT_NAME " installation path\n");
+    printf("  ORENDERHOME      " OPENRENDER_PROJECT_NAME " installation root path\n");
     printf("  SHADERS          Shader search path\n");
 }
 

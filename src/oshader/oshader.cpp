@@ -110,7 +110,7 @@ static void printUsage() {
     printf("      %s <symbol>         Define <symbol> for the preprocessor\n", argumentDefine);
     printf("      %s <symbol>=<value> Define <symbol> to be <value>\n", argumentDefine);
     printf("      %s <filename>       Output to <filename> \n", argumentOutput);
-    printf("      %s                Force .sdr output extension (legacy)\n", argumentLegacyRSLObject);
+    printf("      %s      Force .sdr output extension (legacy)\n", argumentLegacyRSLObject);
     printf("      %s                 Suppress warnings\n", argumentSuppressWarnings);
     printf("      %s                 Suppress errors\n", argumentSuppressErrors);
     printf("      %s                  Quiet, suppress progress display\n", argumentQuietInfo);
