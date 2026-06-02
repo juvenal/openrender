@@ -212,6 +212,12 @@ set(openrendertiff_libs TIFF::TIFF PNG::PNG)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+# On Linux, all code must be position-independent so static libs can be linked
+# into shared modules (.dsply/.dso/.so). On x86-64 this has no measurable runtime cost.
+if(UNIX AND NOT APPLE)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 # Math library (Unix systems)
 if(UNIX AND NOT APPLE)
     find_library(MATH_LIBRARY m REQUIRED)

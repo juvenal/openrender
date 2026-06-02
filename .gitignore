@@ -4,6 +4,7 @@
 # CMake build and install directories
 build
 build-test
+tmp-root
 openrender
 install_staging
 
