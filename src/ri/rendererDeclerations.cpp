@@ -143,6 +143,7 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_RASTERORIENT, "int");
 
     declareVariable(RI_SPHERE, "float");
+    declareVariable(RI_DISPLACEMENT, "float");
     declareVariable(RI_COORDINATESYSYTEM, "string");
 
     declareVariable(RI_DISPLACEMENTS, "int");

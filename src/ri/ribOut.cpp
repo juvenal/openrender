@@ -310,132 +310,165 @@ void CRibOut::RiRelativeDetail(float relativedetail) {
     out("RelativeDetail %g\n", relativedetail);
 }
 
-#define optionCheckInt(__name, __num)                             \
-    }                                                             \
-    else if (strcmp(tokens[i], __name) == 0) {                    \
-        const int *val = (const int *)params[i];                  \
-        int k;                                                    \
-        out("Option \"%s\" \"%s\" [%i", name, tokens[i], val[0]); \
-        for (k = 1; k < __num; k++) {                             \
-            out(" %i", val[k]);                                   \
-        }                                                         \
-        out("]\n");
-
-#define optionCheckFloat(__name, __num)                           \
-    }                                                             \
-    else if (strcmp(tokens[i], __name) == 0) {                    \
-        const float *val = (const float *)params[i];              \
-        int k;                                                    \
-        out("Option \"%s\" \"%s\" [%g", name, tokens[i], val[0]); \
-        for (k = 1; k < __num; k++) {                             \
-            out(" %g", val[k]);                                   \
-        }                                                         \
-        out("]\n");
-
-#define optionCheckString(__name)                        \
-    }                                                    \
-    else if (strcmp(tokens[i], __name) == 0) {           \
-        const char *val = ((const char **)params[i])[0]; \
-        out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
-
-#define optionEndCheck                                                            \
-    }                                                                             \
-    else {                                                                        \
-        CVariable var;                                                            \
-        if (parseVariable(&var, NULL, tokens[i]) == TRUE) {                       \
-            RiOption(name, var.name, params[i], RI_NULL);                         \
-        } else {                                                                  \
-            error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]); \
-        }                                                                         \
-    }
-
 void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const void *params[]) {
     int i;
 
     // Check the searchpath options
     if (strcmp(name, RI_SEARCHPATH) == 0) {
         for (i = 0; i < n; i++) {
-            if (FALSE) {
-                optionCheckString(RI_ARCHIVE)
-                    optionCheckString(RI_PROCEDURAL)
-                        optionCheckString(RI_TEXTURE)
-                            optionCheckString(RI_SHADER)
-                                optionCheckString(RI_DISPLAY)
-                                    optionCheckString(RI_RESOURCE)
-                                        optionEndCheck
+            if (strcmp(tokens[i], RI_ARCHIVE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_PROCEDURAL) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_TEXTURE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_SHADER) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_DISPLAY) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_RESOURCE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
             }
-
-            // Check the limit options
         }
-        else if (strcmp(name, RI_LIMITS) == 0) {
-            for (i = 0; i < n; i++) {
-                if (FALSE) {
-                    optionCheckInt(RI_BUCKETSIZE, 2)
-                        optionCheckInt(RI_METABUCKETS, 2)
-                            optionCheckInt(RI_INHERITATTRIBUTES, 1)
-                                optionCheckInt(RI_GRIDSIZE, 1)
-                                    optionCheckInt(RI_EYESPLITS, 1)
-                                        optionCheckInt(RI_TEXTUREMEMORY, 1)
-                                            optionCheckInt(RI_BRICKMEMORY, 1)
-                                                optionEndCheck
+        // Check the limit options
+    } else if (strcmp(name, RI_LIMITS) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_BUCKETSIZE) == 0) {
+                const int *val = (const int *)params[i];
+                int k;
+                out("Option \"%s\" \"%s\" [%i", name, tokens[i], val[0]);
+                for (k = 1; k < 2; k++) { out(" %i", val[k]); }
+                out("]\n");
+            } else if (strcmp(tokens[i], RI_METABUCKETS) == 0) {
+                const int *val = (const int *)params[i];
+                int k;
+                out("Option \"%s\" \"%s\" [%i", name, tokens[i], val[0]);
+                for (k = 1; k < 2; k++) { out(" %i", val[k]); }
+                out("]\n");
+            } else if (strcmp(tokens[i], RI_INHERITATTRIBUTES) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_GRIDSIZE) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_EYESPLITS) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_TEXTUREMEMORY) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_BRICKMEMORY) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
-                // Check the hider options
             }
-            else if (strcmp(name, RI_HIDER) == 0) {
-                for (i = 0; i < n; i++) {
-                    if (FALSE) {
-                        optionCheckFloat(RI_JITTER, 1) // GSHTODO: should be INT
-                            optionCheckInt(RI_FALSECOLOR, 1)
-                                optionCheckInt(RI_EMIT, 1)
-                                    optionCheckString(RI_DEPTHFILTER)
-                                        optionEndCheck
-                    }
-
-                    // Check the trace options
+        }
+        // Check the hider options
+    } else if (strcmp(name, RI_HIDER) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_JITTER) == 0) { // GSHTODO: should be INT
+                const float *val = (const float *)params[i];
+                out("Option \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_FALSECOLOR) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_EMIT) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_DEPTHFILTER) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
-                else if (strcmp(name, RI_TRACE) == 0) {
-                    for (i = 0; i < n; i++) {
-                        if (FALSE) {
-                            optionCheckInt(RI_MAXDEPTH, 1)
-                                optionEndCheck
-                        }
+            }
+        }
+        // Check the trace options
+    } else if (strcmp(name, RI_TRACE) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_MAXDEPTH) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+        // Check the io options
+    } else if (strcmp(name, RI_STATISTICS) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_ENDOFFRAME) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_FILELOG) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_PROGRESS) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+        // Check for rib compression / output options
+    } else if (strcmp(name, RI_RIB) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_COMPRESSION) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                if (strcmp(val, "gzip") == 0) {
+                    preferCompressedRibOut = TRUE;
+                } else if (strcmp(val, "none") == 0) {
+                    preferCompressedRibOut = FALSE;
+                } else {
+                    error(CODE_BADTOKEN, "Unknown compression type \"%s\"\n", val);
+                }
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else {
+        error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
+    }
+}
 
-                        // Check the io options
-                    }
-                    else if (strcmp(name, RI_STATISTICS) == 0) {
-                        for (i = 0; i < n; i++) {
-                            if (FALSE) {
-                                optionCheckInt(RI_ENDOFFRAME, 1)
-                                    optionCheckString(RI_FILELOG)
-                                        optionCheckInt(RI_PROGRESS, 1)
-                                            optionEndCheck
-                            }
-                            // Check for rib compression / output options
-                        }
-                        else if (strcmp(name, RI_RIB) == 0) {
-                            for (i = 0; i < n; i++) {
-                                if (FALSE) {
-                                } else if (strcmp(tokens[i], RI_COMPRESSION) == 0) {
-                                    const char *val = ((const char **)params[i])[0];
-                                    if (strcmp(val, "gzip") == 0) {
-                                        preferCompressedRibOut = TRUE;
-                                    } else if (strcmp(val, "none") == 0) {
-                                        preferCompressedRibOut = FALSE;
-                                    } else {
-                                        error(CODE_BADTOKEN, "Unknown compression type \"%s\"\n", val);
-                                    }
-                                    optionEndCheck
-                                }
-                            }
-                            else {
-                                error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
-                            }
-                        }
 
-#undef optionCheckInt
-#undef optionCheckFloat
-#undef optionCheckString
-#undef optionEnd
 
                         void CRibOut::RiAttributeBegin(void) {
                             out("AttributeBegin\n");
@@ -609,143 +642,232 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
                             out("TransformEnd\n");
                         }
 
-#define attributeCheckInt(__name, __num)                             \
-    }                                                                \
-    else if (strcmp(tokens[i], __name) == 0) {                       \
-        const int *val = (const int *)params[i];                     \
-        int k;                                                       \
-        out("Attribute \"%s\" \"%s\" [%i", name, tokens[i], val[0]); \
-        for (k = 1; k < __num; k++) {                                \
-            out(" %i", val[k]);                                      \
-        }                                                            \
-        out("]\n");
+void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const void *params[]) {
+    int i;
 
-#define attributeCheckFloat(__name, __num)                           \
-    }                                                                \
-    else if (strcmp(tokens[i], __name) == 0) {                       \
-        const float *val = (const float *)params[i];                 \
-        int k;                                                       \
-        out("Attribute \"%s\" \"%s\" [%g", name, tokens[i], val[0]); \
-        for (k = 1; k < __num; k++) {                                \
-            out(" %g", val[k]);                                      \
-        }                                                            \
-        out("]\n");
-
-#define attributeCheckString(__name)                     \
-    }                                                    \
-    else if (strcmp(tokens[i], __name) == 0) {           \
-        const char *val = ((const char **)params[i])[0]; \
-        out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
-
-#define attributeEndCheck                                                         \
-    }                                                                             \
-    else {                                                                        \
-        CVariable var;                                                            \
-        if (parseVariable(&var, NULL, tokens[i]) == TRUE) {                       \
-            RiAttribute(name, var.name, params[i], RI_NULL);                      \
-        } else {                                                                  \
-            error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]); \
-        }                                                                         \
+    if (strcmp(name, RI_DICE) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_NUMPROBES) == 0) {
+                const int *val = (const int *)params[i];
+                int k;
+                out("Attribute \"%s\" \"%s\" [%i", name, tokens[i], val[0]);
+                for (k = 1; k < 2; k++) { out(" %i", val[k]); }
+                out("]\n");
+            } else if (strcmp(tokens[i], RI_MINSUBDIVISION) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_MAXSUBDIVISION) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_MINSPLITS) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_BOUNDEXPAND) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_BINARY) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_RASTERORIENT) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_BOUND) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_DISPLACEMENT) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_DISPLACEMENTBOUND) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SPHERE) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_COORDINATESYSYTEM) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_TRACE) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_DISPLACEMENTS) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_BIAS) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_MAXDIFFUSEDEPTH) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_MAXSPECULARDEPTH) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+        // Check the irradiance cache options
+    } else if (strcmp(name, RI_IRRADIANCE) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_HANDLE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_FILEMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_MAXERROR) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_PHOTON) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_GLOBALMAP) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_CAUSTICMAP) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_SHADINGMODEL) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_IOR) == 0) {
+                const float *val = (const float *)params[i];
+                out("Attribute \"%s\" \"%s\" [%g]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_ESTIMATOR) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_ILLUMINATEFRONT) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_VISIBILITY) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_TRANSMISSION) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_DIFFUSE) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_SPECULAR) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_CAMERA) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_TRACE) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_PHOTON) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_SHADE) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_TRANSMISSIONHITMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_DIFFUSEHITMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else if (strcmp(tokens[i], RI_SPECULARHITMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_IDENTIFIER) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_NAME) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    } else if (strcmp(name, RI_CULL) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_HIDDEN) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else if (strcmp(tokens[i], RI_BACKFACING) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            } else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                } else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
     }
+}
 
-                        void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const void *params[]) {
-                            int i;
 
-                            if (strcmp(name, RI_DICE) == 0) {
-                                for (i = 0; i < n; i++) {
-                                    if (FALSE) {
-                                        attributeCheckInt(RI_NUMPROBES, 2)
-                                            attributeCheckInt(RI_MINSUBDIVISION, 1)
-                                                attributeCheckInt(RI_MAXSUBDIVISION, 1)
-                                                    attributeCheckInt(RI_MINSPLITS, 1)
-                                                        attributeCheckFloat(RI_BOUNDEXPAND, 1)
-                                                            attributeCheckInt(RI_BINARY, 1)
-                                                                attributeCheckInt(RI_RASTERORIENT, 1)
-                                                                    attributeEndCheck
-                                    }
-                                }
-                                else if (strcmp(name, RI_DISPLACEMENTBOUND) == 0) {
-                                    for (i = 0; i < n; i++) {
-                                        if (FALSE) {
-                                            attributeCheckFloat(RI_SPHERE, 1)
-                                                attributeCheckString(RI_COORDINATESYSYTEM)
-                                                    attributeEndCheck
-                                        }
-                                    }
-                                    else if (strcmp(name, RI_TRACE) == 0) {
-                                        for (i = 0; i < n; i++) {
-                                            if (FALSE) {
-                                                attributeCheckInt(RI_DISPLACEMENTS, 1)
-                                                    attributeCheckFloat(RI_BIAS, 1)
-                                                        attributeCheckInt(RI_MAXDIFFUSEDEPTH, 1)
-                                                            attributeCheckInt(RI_MAXSPECULARDEPTH, 1)
-                                                                attributeEndCheck
-                                            }
-                                            // Check the irradiance cache options
-                                        }
-                                        else if (strcmp(name, RI_IRRADIANCE) == 0) {
-                                            for (i = 0; i < n; i++) {
-                                                if (FALSE) {
-                                                    attributeCheckString(RI_HANDLE)
-                                                        attributeCheckString(RI_FILEMODE)
-                                                            attributeCheckFloat(RI_MAXERROR, 1)
-                                                                attributeEndCheck
-                                                }
-                                            }
-                                            else if (strcmp(name, RI_PHOTON) == 0) {
-                                                for (i = 0; i < n; i++) {
-                                                    if (FALSE) {
-                                                        attributeCheckString(RI_GLOBALMAP)
-                                                            attributeCheckString(RI_CAUSTICMAP)
-                                                                attributeCheckString(RI_SHADINGMODEL)
-                                                                    attributeCheckFloat(RI_IOR, 1)
-                                                                        attributeCheckInt(RI_ESTIMATOR, 1)
-                                                                            attributeCheckInt(RI_ILLUMINATEFRONT, 1)
-                                                                                attributeEndCheck
-                                                    }
-                                                }
-                                                else if (strcmp(name, RI_VISIBILITY) == 0) {
-                                                    for (i = 0; i < n; i++) {
-                                                        if (FALSE) {
-                                                            attributeCheckInt(RI_TRANSMISSION, 1)
-                                                                attributeCheckInt(RI_DIFFUSE, 1)
-                                                                    attributeCheckInt(RI_SPECULAR, 1)
-                                                                        attributeCheckInt(RI_CAMERA, 1)
-                                                                            attributeCheckInt(RI_TRACE, 1)
-                                                                                attributeCheckInt(RI_PHOTON, 1)
-                                                                                    attributeEndCheck
-                                                        }
-                                                    }
-                                                    else if (strcmp(name, RI_SHADE) == 0) {
-                                                        for (i = 0; i < n; i++) {
-                                                            if (FALSE) {
-                                                                attributeCheckString(RI_TRANSMISSIONHITMODE)
-                                                                    attributeCheckString(RI_DIFFUSEHITMODE)
-                                                                        attributeCheckString(RI_SPECULARHITMODE)
-                                                                            attributeEndCheck
-                                                            }
-                                                        }
-                                                        else if (strcmp(name, RI_IDENTIFIER) == 0) {
-                                                            for (i = 0; i < n; i++) {
-                                                                if (FALSE) {
-                                                                    attributeCheckString(RI_NAME)
-                                                                        attributeEndCheck
-                                                                }
-                                                            }
-                                                            else if (strcmp(name, RI_CULL) == 0) {
-                                                                for (i = 0; i < n; i++) {
-                                                                    if (FALSE) {
-                                                                        attributeCheckInt(RI_HIDDEN, 1)
-                                                                            attributeCheckInt(RI_BACKFACING, 1)
-                                                                                attributeEndCheck
-                                                                    }
-                                                                }
-                                                            }
-
-#undef attributeCheckInt
-#undef attributeCheckFloat
-#undef attributeCheckString
-#undef attributeEndCheck
 
                                                             void CRibOut::RiPolygonV(int nvertices, int n, const char *tokens[], const void *params[]) {
                                                                 out("Polygon ");
