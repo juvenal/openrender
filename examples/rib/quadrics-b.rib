@@ -1,40 +1,37 @@
-##RenderMan RIB
+##RenderMan RIB-Structure 1.1
 version 3.03
 Projection "perspective" "fov" [29.990185]
 FrameAspectRatio 1.333333
 Identity
-Rotate 0 0 0 1
-Rotate 0 1 0 0
-Rotate 0 0 1 0
 Translate 0 0 6
 WorldBegin
-LightSource "ambientlight" 1 "intensity" [0.2]
-LightSource "pointlight" 2 "intensity" [64] "from" [0 2 -6]
-Color [0.7 0.8 0.9]
-Rotate -90 1 0 0
-Translate -1.2 0 0.6
-Surface "show_xyz"
-Sphere 0.5 -0.5 0.5 360
-Translate 1.2 0 0
-Translate 0 0 -0.5
-Surface "screen"
-Cone 1 0.5 360
-Translate 0 0 0.5
-Translate 1.2 0 0
-Surface "wood"
-Cylinder 0.5 -0.5 0.5 360
-Color [0.7 0.8 0.9]
-Translate -2.4 0 -1.2
-AttributeBegin
-Declare "roughness" "uniform float"
-Surface "metal" "roughness" [.25]
-Displacement "dented"
-Hyperboloid 0.4 -0.4 -0.4 0.4 0.4 0.4 360
-AttributeEnd
-Translate 1.2 0 -0.5
-Surface "eroded" "Ks" [0.8]"Ka" [0.5]
-Paraboloid 0.5 0 0.9 360
-Translate 1.2 0 0.5
-Surface "granite" "Kd" [1]"Ka" [1]
-Torus 0.4 0.15 0 360 360
+  LightSource "ambientlight" 1 "intensity" [0.2]
+  LightSource "pointlight" 2 "intensity" [64] "from" [0 2 -6]
+  Color [0.7 0.8 0.9]
+  Rotate -90 1 0 0
+  Translate -1.2 0 0.6
+  Surface "show_xyz"
+  Sphere 0.5 -0.5 0.5 360
+  Translate 1.2 0 0
+  Translate 0 0 -0.5
+  Surface "screen"
+  Cone 1 0.5 360
+  Translate 0 0 0.5
+  Translate 1.2 0 0
+  Surface "wood"
+  Cylinder 0.5 -0.5 0.5 360
+  Color [0.7 0.8 0.9]
+  Translate -2.4 0 -1.2
+  AttributeBegin
+    Declare "roughness" "uniform float"
+    Surface "metal" "roughness" [.25]
+    Displacement "dented"
+    Hyperboloid 0.4 -0.4 -0.4 0.4 0.4 0.4 360
+  AttributeEnd
+  Translate 1.2 0 -0.5
+  Surface "eroded" "Ks" [0.8]"Ka" [0.5]
+  Paraboloid 0.5 0 0.9 360
+  Translate 1.2 0 0.5
+  Surface "granite" "Kd" [1]"Ka" [1]
+  Torus 0.4 0.15 0 360 360
 WorldEnd
