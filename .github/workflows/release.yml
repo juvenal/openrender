@@ -1,0 +1,451 @@
+name: Automate Deploy of Project Artifacts
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse_tag.outputs.VERSION }}
+      prerelease: ${{ steps.parse_tag.outputs.PRERELEASE }}
+      metadata: ${{ steps.parse_tag.outputs.METADATA }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Tag is on Master Branch
+        run: |
+          git fetch origin master
+          if git branch -r --contains HEAD | grep -E '(^|\s)origin/master$'; then
+            echo "Tag commit is on the master branch."
+          else
+            echo "Error: Tag commit is not on the master branch."
+            exit 1
+          fi
+
+      - name: Parse Tag Version
+        id: parse_tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "Parsing tag: $TAG"
+          
+          # Match pattern: v9.9.9[aaa+bbb]
+          if [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(\[(.*)\])?$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+            SUFFIX="${BASH_REMATCH[5]}"
+            PRERELEASE=""
+            METADATA=""
+            
+            if [[ -n "$SUFFIX" ]]; then
+              if [[ "$SUFFIX" == *"+"* ]]; then
+                PRERELEASE="${SUFFIX%%+*}"
+                METADATA="${SUFFIX#*+}"
+              else
+                PRERELEASE="$SUFFIX"
+              fi
+            fi
+            
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "PRERELEASE=$PRERELEASE" >> $GITHUB_OUTPUT
+            echo "METADATA=$METADATA" >> $GITHUB_OUTPUT
+            echo "Parsed version: $VERSION, prerelease suffix: $PRERELEASE, metadata suffix: $METADATA"
+          else
+            echo "Error: Tag name '$TAG' does not match the expected pattern vX.Y.Z[prerelease+metadata]"
+            exit 1
+          fi
+
+      - name: Create Draft Release
+        id: create_draft
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: ${{ steps.parse_tag.outputs.PRERELEASE != '' }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Release build for openRender version `${{ steps.parse_tag.outputs.VERSION }}`.
+            
+            * Prerelease suffix: `${{ steps.parse_tag.outputs.PRERELEASE || 'None' }}`
+            * Build metadata: `${{ steps.parse_tag.outputs.METADATA || 'None' }}`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos-x86_64:
+    needs: create-release
+    runs-on: macos-13 # Intel runner
+    env:
+      OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
+      OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake Version in CMakeLists.txt
+        run: |
+          sed -i.bak -E "s/VERSION [0-9]+\.[0-9]+\.[0-9]+/VERSION ${{ needs.create-release.outputs.version }}/" CMakeLists.txt
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew install libtiff libpng flex bison openexr fltk pkg-config
+
+      - name: Build self-contained version (x86_64)
+        run: |
+          export PATH="/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
+          mkdir build-sc && cd build-sc
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=ON \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_INSTALL_PREFIX=/opt/openrender
+          cmake --build . -j$(sysctl -n hw.ncpu)
+          ctest
+          DESTDIR=staging_dir cmake --install .
+          tar -czf ../openrender-macos-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
+
+      - name: Build FHS version (x86_64)
+        run: |
+          export PATH="/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
+          mkdir build-fhs && cd build-fhs
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=OFF \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_INSTALL_PREFIX=/usr/local
+          cmake --build . -j$(sysctl -n hw.ncpu)
+          DESTDIR=fhs_staging cmake --install .
+          tar -czf ../openrender-macos-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/usr/local .
+
+      - name: Upload artifacts to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            openrender-macos-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
+            openrender-macos-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload self-contained folder for universal merge
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-sc-x86_64
+          path: build-sc/staging_dir/opt/openrender/
+
+  build-macos-arm64:
+    needs: create-release
+    runs-on: macos-14 # Apple Silicon runner
+    env:
+      OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
+      OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake Version in CMakeLists.txt
+        run: |
+          sed -i.bak -E "s/VERSION [0-9]+\.[0-9]+\.[0-9]+/VERSION ${{ needs.create-release.outputs.version }}/" CMakeLists.txt
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew install libtiff libpng flex bison openexr fltk pkg-config
+
+      - name: Build self-contained version (arm64)
+        run: |
+          export PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
+          mkdir build-sc && cd build-sc
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=ON \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_INSTALL_PREFIX=/opt/openrender
+          cmake --build . -j$(sysctl -n hw.ncpu)
+          ctest
+          DESTDIR=staging_dir cmake --install .
+          tar -czf ../openrender-macos-selfcontained-arm64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
+
+      - name: Build FHS version (arm64)
+        run: |
+          export PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
+          mkdir build-fhs && cd build-fhs
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=OFF \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_INSTALL_PREFIX=/opt/homebrew
+          cmake --build . -j$(sysctl -n hw.ncpu)
+          DESTDIR=fhs_staging cmake --install .
+          tar -czf ../openrender-macos-fhs-arm64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/opt/homebrew .
+
+      - name: Upload artifacts to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            openrender-macos-selfcontained-arm64-${{ needs.create-release.outputs.version }}.tar.gz
+            openrender-macos-fhs-arm64-${{ needs.create-release.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload self-contained folder for universal merge
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-sc-arm64
+          path: build-sc/staging_dir/opt/openrender/
+
+  package-macos-universal:
+    needs: [create-release, build-macos-x86_64, build-macos-arm64]
+    runs-on: macos-14
+    steps:
+      - name: Download x86_64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-sc-x86_64
+          path: x86_64
+
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-sc-arm64
+          path: arm64
+
+      - name: Merge Architectures via Lipo
+        run: |
+          mkdir universal
+          cp -R arm64/* universal/
+          
+          find x86_64 -type f | while read -r x_file; do
+            rel_path="${x_file#x86_64/}"
+            u_file="universal/$rel_path"
+            a_file="arm64/$rel_path"
+            
+            if [ -f "$a_file" ]; then
+              file_type=$(file -b "$x_file")
+              if [[ "$file_type" == *"Mach-O"* ]]; then
+                echo "Merging binary: $rel_path"
+                lipo -create "$x_file" "$a_file" -output "$u_file"
+                codesign --force --sign - "$u_file"
+              fi
+            fi
+          done
+
+      - name: Build macOS Installer Package
+        run: |
+          pkgbuild --root universal \
+                   --identifier com.openrender.renderer \
+                   --version "${{ needs.create-release.outputs.version }}" \
+                   --install-location /opt/openrender \
+                   openrender-macos-universal-${{ needs.create-release.outputs.version }}.pkg
+
+      - name: Create relocatable Universal Tarball
+        run: |
+          tar -czf openrender-macos-selfcontained-universal-${{ needs.create-release.outputs.version }}.tar.gz -C universal .
+
+      - name: Upload universal artifacts to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            openrender-macos-selfcontained-universal-${{ needs.create-release.outputs.version }}.tar.gz
+            openrender-macos-universal-${{ needs.create-release.outputs.version }}.pkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux-selfcontained:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    env:
+      OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
+      OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake Version in CMakeLists.txt
+        run: |
+          sed -i.bak -E "s/VERSION [0-9]+\.[0-9]+\.[0-9]+/VERSION ${{ needs.create-release.outputs.version }}/" CMakeLists.txt
+
+      - name: Install dependencies via apt-get
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libtiff-dev libpng-dev zlib1g-dev flex bison \
+            libopenexr-dev libfltk1.3-dev libx11-dev \
+            libwayland-dev wayland-protocols libdecor-0-dev pkg-config
+
+      - name: Build self-contained version (Linux x86_64)
+        run: |
+          mkdir build-sc && cd build-sc
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=ON \
+            -DCMAKE_INSTALL_PREFIX=/opt/openrender
+          cmake --build . -j$(nproc)
+          ctest
+          DESTDIR=staging_dir cmake --install .
+          tar -czf ../openrender-linux-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
+
+      - name: Build FHS version (Linux x86_64)
+        run: |
+          mkdir build-fhs && cd build-fhs
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=OFF \
+            -DCMAKE_INSTALL_PREFIX=/home/linuxbrew/.linuxbrew
+          cmake --build . -j$(nproc)
+          DESTDIR=fhs_staging cmake --install .
+          tar -czf ../openrender-linux-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/home/linuxbrew/.linuxbrew .
+
+      - name: Upload artifacts to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            openrender-linux-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
+            openrender-linux-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-debian-package:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    env:
+      OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
+      OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake Version in CMakeLists.txt
+        run: |
+          sed -i.bak -E "s/VERSION [0-9]+\.[0-9]+\.[0-9]+/VERSION ${{ needs.create-release.outputs.version }}/" CMakeLists.txt
+
+      - name: Install dependencies via apt-get
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libtiff-dev libpng-dev zlib1g-dev flex bison \
+            libopenexr-dev libfltk1.3-dev libx11-dev \
+            libwayland-dev wayland-protocols libdecor-0-dev pkg-config
+
+      - name: Build and Pack DEB via CPack
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build . -j$(nproc)
+          cpack -G DEB
+
+      - name: Upload Debian Package to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/openrender-*-x86_64-ubuntu.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-rpm-package:
+    needs: create-release
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:42
+    env:
+      OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
+      OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies via dnf
+        run: |
+          dnf install -y cmake gcc-c++ make flex bison libtiff-devel libpng-devel zlib-devel openexr-devel fltk-devel libX11-devel wayland-devel wayland-protocols-devel libdecor-devel rpm-build pkgconfig git
+
+      - name: Set up CMake Version in CMakeLists.txt
+        run: |
+          sed -i.bak -E "s/VERSION [0-9]+\.[0-9]+\.[0-9]+/VERSION ${{ needs.create-release.outputs.version }}/" CMakeLists.txt
+
+      - name: Build and Pack RPM via CPack
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINSTALL_SELFCONTAINED=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build . -j$(nproc)
+          cpack -G RPM
+
+      - name: Upload RPM Package to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/openrender-*-x86_64-fedora.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-homebrew:
+    needs: [create-release, build-macos-x86_64, build-macos-arm64, build-linux-selfcontained]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download compiled FHS tarballs
+        run: |
+          gh release download ${{ github.ref_name }} \
+            --pattern "openrender-macos-fhs-x86_64-*.tar.gz" \
+            --pattern "openrender-macos-fhs-arm64-*.tar.gz" \
+            --pattern "openrender-linux-fhs-x86_64-*.tar.gz"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate SHA256 hashes
+        id: hashes
+        run: |
+          SHA_MACOS_X86_64=$(shasum -a 256 openrender-macos-fhs-x86_64-*.tar.gz | awk '{print $1}')
+          SHA_MACOS_ARM64=$(shasum -a 256 openrender-macos-fhs-arm64-*.tar.gz | awk '{print $1}')
+          SHA_LINUX_X86_64=$(shasum -a 256 openrender-linux-fhs-x86_64-*.tar.gz | awk '{print $1}')
+          
+          echo "SHA_MACOS_X86_64=$SHA_MACOS_X86_64" >> $GITHUB_ENV
+          echo "SHA_MACOS_ARM64=$SHA_MACOS_ARM64" >> $GITHUB_ENV
+          echo "SHA_LINUX_X86_64=$SHA_LINUX_X86_64" >> $GITHUB_ENV
+
+      - name: Populate Homebrew Formula Template
+        run: |
+          sed -e "s/TEMPLATE_REPO_OWNER/${{ github.repository_owner }}/g" \
+              -e "s/TEMPLATE_VERSION/${{ needs.create-release.outputs.version }}/g" \
+              -e "s/TEMPLATE_SHA256_MACOS_X86_64/${SHA_MACOS_X86_64}/g" \
+              -e "s/TEMPLATE_SHA256_MACOS_ARM64/${SHA_MACOS_ARM64}/g" \
+              -e "s/TEMPLATE_SHA256_LINUX_X86_64/${SHA_LINUX_X86_64}/g" \
+              openrender.rb.template > openrender.rb
+
+      - name: Upload Homebrew Formula to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: openrender.rb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to Homebrew Tap Repository
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          TAP_REPO: ${{ secrets.TAP_REPO_NAME || 'homebrew-openrender' }}
+          TAP_OWNER: ${{ secrets.TAP_REPO_OWNER || github.repository_owner }}
+        run: |
+          if [ -n "$TAP_TOKEN" ]; then
+            git clone "https://${TAP_TOKEN}@github.com/${TAP_OWNER}/${TAP_REPO}.git" tap-repo
+            cd tap-repo
+            mkdir -p Formula
+            cp ../openrender.rb Formula/openrender.rb
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Formula/openrender.rb
+            git commit -m "openrender: update to ${{ github.ref_name }}"
+            git push
+          else
+            echo "TAP_GITHUB_TOKEN secret not set. Skipping Homebrew tap update."
+          fi
