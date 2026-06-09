@@ -3,8 +3,9 @@
 
 # CMake build and install directories
 build
-build-test
+build-*
 tmp-root
+orender-*
 openrender
 install_staging
 
