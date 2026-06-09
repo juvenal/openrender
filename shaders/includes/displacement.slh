@@ -1,8 +1,8 @@
 /**
+ * displacement.slh - shader library header for displacement shaders
 
 
-
-
+ * openRender: RenderMan compliant renderer
  */
 
 normal Displace (vector dir;

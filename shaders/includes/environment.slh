@@ -1,4 +1,12 @@
 /**
+ * environment.slh - shader library header for environment map lookups
+
+
+ * openRender: RenderMan compliant renderer
+ *
+ */
+
+/**
  * raysphere - calculate the intersection of ray (E, I) with a sphere
  * centered at the origin and with radius r. We return the number of
  * intersections found (0, 1, or 2). and place the distances to the
