@@ -1,9 +1,10 @@
 ##RenderMan RIB-Structure 1.1
 version 3.03
-Hider "stochastic"
-Display "camera-motion-small-reyes.tif" "file" "rgba"
+Hider "raytrace"
+Display "camera-motion-small+dof-raytrace.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 800 600 1
+DepthOfField 2 1 5
 Shutter 0 1
 
 MotionBegin [0 1]

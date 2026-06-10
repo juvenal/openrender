@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.1
+version 3.03
+Declare "intensity" "uniform float"
+Declare "bucketsize" "uniform integer[2]"
+Option "limits" "bucketsize" [32 32]
+Hider "raytrace"
+Display "bunny-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 -0.4 2
+ScreenWindow -0.414336 0.414336 -0.31075 0.31075
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.5]
+  TransformBegin
+    Translate -11 0 0
+    LightSource "finite" 2 "intensity" [0.9]
+  TransformEnd
+  TransformBegin
+    Translate 0 10 10
+    LightSource "finite" 3 "intensity" [0.8]
+  TransformEnd
+  AttributeBegin
+    Scale 3.6 3.6 3.6
+    Color [0.2 0.8 0.1]
+    Surface "matte"
+    Geometry "bunny"
+  AttributeEnd
+WorldEnd

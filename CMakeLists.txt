@@ -280,6 +280,36 @@ else()
 endif()
 
 # ###########################################################################
+# ########## LLVM (optional — required only for JIT shader compilation)
+# ###########################################################################
+# Hint for Homebrew LLVM on macOS (llvm-config may not be in PATH)
+if(APPLE AND NOT DEFINED LLVM_DIR)
+    find_program(_LLVM_CONFIG NAMES llvm-config
+        HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin)
+    if(_LLVM_CONFIG)
+        execute_process(COMMAND ${_LLVM_CONFIG} --cmakedir
+            OUTPUT_VARIABLE _LLVM_CMAKE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(_LLVM_CMAKE_DIR AND NOT LLVM_DIR)
+            set(LLVM_DIR "${_LLVM_CMAKE_DIR}" CACHE PATH "LLVM cmake dir (auto-detected)" FORCE)
+        endif()
+    elseif(EXISTS "/opt/homebrew/opt/llvm/lib/cmake/llvm/LLVMConfig.cmake" AND NOT LLVM_DIR)
+        set(LLVM_DIR "/opt/homebrew/opt/llvm/lib/cmake/llvm" CACHE PATH "LLVM cmake dir (Homebrew fallback)" FORCE)
+    endif()
+endif()
+find_package(LLVM CONFIG QUIET)
+if(LLVM_FOUND)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    set(OPENRENDER_HAVE_LLVM ON)
+    set(OPENRENDER_LLVM_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
+    set(OPENRENDER_LLVM_VERSION_MINOR ${LLVM_VERSION_MINOR})
+else()
+    message(STATUS "LLVM not found -- JIT shader path disabled")
+    set(OPENRENDER_HAVE_LLVM OFF)
+    set(OPENRENDER_LLVM_VERSION_MAJOR 0)
+    set(OPENRENDER_LLVM_VERSION_MINOR 0)
+endif()
+
+# ###########################################################################
 # ########## Installation Configuration
 # ###########################################################################
 

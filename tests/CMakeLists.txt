@@ -29,6 +29,7 @@ set_tests_properties(Portability64Bit PROPERTIES
 add_subdirectory(framebuffer)
 add_subdirectory(imager)
 add_subdirectory(preview)
+add_subdirectory(visual)
 
 # Print test information
 message(STATUS "Configured tests:")

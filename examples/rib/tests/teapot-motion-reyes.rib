@@ -2,6 +2,7 @@
 version 3.03
 Declare "location" "uniform point"
 Hider "stochastic"
+Display "teapot-motion-reyes.tif" "file" "rgba"
 Projection "perspective"
 Clipping 1 100000
 Transform [1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1]

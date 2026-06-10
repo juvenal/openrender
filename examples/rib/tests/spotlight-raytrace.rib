@@ -1,9 +1,10 @@
 ##RenderMan RIB
 version 3.04
-Display "spotlight_scene.tif" "file" "rgba"
+Hider "raytrace"
+Display "spotlight-raytrace.tif" "file" "rgba"
 Format 640 480 1
 Projection "perspective" "fov" 35
-ShadingRate 2
+ShadingRate 1
 
 Translate  0 -0.05 3
 Rotate -30  1 0 0
@@ -11,7 +12,8 @@ Rotate  20  0 1 0
 Scale 1 1 -1
 WorldBegin
   TransformBegin
-    LightSource "spotlight" 1 "intensity" 100
+    LightSource "spotlight" 1
+                "intensity" 100
                 "coneangle" 0.3
                 "from" [0 1 0] "to" [0 0 0]
   TransformEnd

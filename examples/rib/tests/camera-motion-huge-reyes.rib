@@ -1,14 +1,14 @@
 ##RenderMan RIB-Structure 1.1
 version 3.03
 Hider "stochastic"
-Display "camera-motion-small-reyes.tif" "file" "rgba"
+Display "camera-motion-huge-reyes.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 800 600 1
 Shutter 0 1
 
 MotionBegin [0 1]
   Translate 0 0 5
-  Translate -0.05 0 5
+  Translate -1.0 0 5
 MotionEnd
 Rotate -110 1 0 0
 Rotate 70 0 0 1
