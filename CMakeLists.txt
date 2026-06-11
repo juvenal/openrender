@@ -387,36 +387,6 @@ file(GLOB shader_sl_files shaders/*.sl)
 install(FILES ${shader_sl_files} DESTINATION ${OPENRENDER_SHADERDIR})
 install(DIRECTORY shaders/includes/ DESTINATION ${OPENRENDER_SHADERDIR}/includes)
 
-# Compile shaders at install time using the just-installed oshader.
-# ${OPENRENDER_SHADERDIR} and ${CMAKE_INSTALL_BINDIR} are baked in at configure time.
-# \${CMAKE_INSTALL_PREFIX} and \$ENV{DESTDIR} expand at install time.
-# Shaders that fail to compile emit a WARNING but do not abort the install.
-install(CODE "
-    message(STATUS \"Compiling installed RSL shaders...\")
-    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
-    set(_oshader   \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
-    set(_incdir    \"-I\${_shaderdir}/includes\")
-    file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
-    set(_ok 0)
-    set(_failed 0)
-    foreach(_sl \${_sl_files})
-        get_filename_component(_base \${_sl} NAME_WE)
-        execute_process(
-            COMMAND \${_oshader} \${_incdir} \${_sl}
-            WORKING_DIRECTORY \${_shaderdir}
-            RESULT_VARIABLE _rc
-            OUTPUT_QUIET ERROR_QUIET
-        )
-        if(_rc)
-            message(WARNING \"  oshader: \${_base}.sl failed to compile (rc=\${_rc})\")
-            math(EXPR _failed \"\${_failed} + 1\")
-        else()
-            math(EXPR _ok \"\${_ok} + 1\")
-        endif()
-    endforeach()
-    message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
-")
-
 # Install geometry files
 file(GLOB geometry_rib_files geometry/*.rib)
 install(FILES ${geometry_rib_files} DESTINATION ${OPENRENDER_GEOMETRYDIR})
@@ -576,3 +546,45 @@ if(INSTALL_SELFCONTAINED)
         endif()
     ")
 endif()
+
+########################################################################
+# Compile shaders at install time (runs AFTER all install(TARGETS))
+########################################################################
+# At this point in the install sequence, all binaries (including oshader)
+# have been installed to their final destinations. This install(CODE) block
+# compiles the installed .sl sources into .rslo objects in-place.
+install(CODE "
+    message(STATUS \"Compiling installed RSL shaders...\")
+    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
+    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
+    set(_incdir \"-I\${_shaderdir}/includes\")
+
+    # Check if the installed oshader exists (it should, since install(TARGETS) runs first)
+    if(NOT EXISTS \"\${_oshader_install}\")
+        message(WARNING \"  oshader binary not found at \${_oshader_install} — skipping shader compilation\")
+    else()
+        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
+        set(_ok 0)
+        set(_failed 0)
+        foreach(_sl \${_sl_files})
+            get_filename_component(_base \${_sl} NAME_WE)
+            execute_process(
+                COMMAND \"\${_oshader_install}\" \${_incdir} \${_sl}
+                WORKING_DIRECTORY \${_shaderdir}
+                RESULT_VARIABLE _rc
+                OUTPUT_VARIABLE _out
+                ERROR_VARIABLE _err
+            )
+            if(_rc)
+                message(WARNING \"  oshader: \${_base}.sl failed (rc=\${_rc})\")
+                if(_err)
+                    message(WARNING \"    stderr: \${_err}\")
+                endif()
+                math(EXPR _failed \"\${_failed} + 1\")
+            else()
+                math(EXPR _ok \"\${_ok} + 1\")
+            endif()
+        endforeach()
+        message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
+    endif()
+")
