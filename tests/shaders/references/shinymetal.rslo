@@ -1,0 +1,195 @@
+#!version 1.0.0
+surface
+#!parameters:
+uniform	float	Ka	=	1
+uniform	float	Kd	=	0.1
+uniform	float	Ks	=	1
+uniform	float	roughness	=	0.2
+uniform	float	Kr	=	0.8
+uniform	float	blur	=	0
+uniform	string	envname	=	""
+uniform	string	envspace	=	"world"
+uniform	float	envrad	=	100
+#!variables:
+varying	vector	Nf
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	vector	IN
+varying	vector	V
+varying	vector	R
+varying	vector	temporary_7
+varying	vector	temporary_8
+varying	vector	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+varying	vector	temporary_12
+varying	vector	C
+varying	float	alpha_1
+uniform	vector	temporary_13
+varying	float	temporary_14
+uniform	float	temporary_15
+varying	float	temporary_16
+varying	vector	Pndc
+varying	float	x
+varying	float	y
+varying	vector	Psp
+varying	vector	Rsp
+uniform	float	r2
+varying	float	t0
+varying	float	t1
+varying	float	temporary_17
+varying	float	temporary_18
+varying	float	temporary_19
+varying	float	temporary_20
+varying	float	b
+varying	float	c
+varying	float	discrim
+varying	float	solutions
+varying	float	temporary_21
+varying	float	temporary_22
+varying	float	temporary_23
+varying	float	temporary_24
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	vufloat  temporary_1 Ka
+	vufloat  temporary_2 Kd
+	vufloat  temporary_3 Ks
+	vufloat  temporary_4 roughness
+	vufloat  temporary_5 Kr
+	vufloat  temporary_6 blur
+	normalize	("v=v")  IN I
+	negv  V IN
+	reflect	("v=vv")  R IN Nf
+	vfromf  temporary_10 temporary_1
+	ambient	("c=")  temporary_11
+	mulvv  temporary_9 temporary_10 temporary_11
+	vfromf  temporary_11 temporary_2
+	diffuse	("c=n")  temporary_12 Nf
+	mulvv  temporary_10 temporary_11 temporary_12
+	addvv  temporary_8 temporary_9 temporary_10
+	vfromf  temporary_10 temporary_3
+	specular	("c=nvf")  temporary_11 Nf V temporary_4
+	mulvv  temporary_9 temporary_10 temporary_11
+	addvv  temporary_7 temporary_8 temporary_9
+	vfromf  temporary_13 0
+	vuvector  C temporary_13
+	sneql  temporary_15 envname ""
+	vufloat  temporary_14 temporary_15
+	if temporary_14 #!Label19
+	seql  temporary_15 envspace "NDC"
+	vufloat  temporary_16 temporary_15
+	if temporary_16 #!Label22
+	transform	("p=Sp")  Pndc "NDC" P
+	xcomp	("f=p")  x Pndc
+	ycomp	("f=p")  y Pndc
+	texture	("f=SFffSfsf")  alpha_1 envname 3 x y "blur" temporary_6 "fill" 1
+	texture	("c=SFffSf")  C envname 0 x y "blur" temporary_6
+#!Label22:
+	else #!Label21
+	transform	("p=Sp")  Psp envspace P
+	vtransform	("v=Sv")  temporary_9 envspace R
+	normalize	("v=v")  Rsp temporary_9
+	mulff  r2 envrad envrad
+	dot  temporary_18 Psp Psp
+	vufloat  temporary_19 r2
+	fgt  temporary_17 temporary_18 temporary_19
+	if temporary_17 #!Label23
+	vfromf  temporary_13 envrad
+	vuvector  temporary_9 temporary_13
+	normalize	("v=v")  temporary_10 Psp
+	mulvv  Psp temporary_9 temporary_10
+#!Label23:
+	endif
+	vufloat  temporary_19 envrad
+	vufloat  temporary_20 1.0e-4
+	vufloat  temporary_21 2
+	dot  temporary_22 Psp Rsp
+	mulff  b temporary_21 temporary_22
+	dot  temporary_21 Psp Psp
+	mulff  temporary_22 temporary_19 temporary_19
+	subff  c temporary_21 temporary_22
+	mulff  temporary_21 b b
+	vufloat  temporary_23 4
+	mulff  temporary_22 temporary_23 c
+	subff  discrim temporary_21 temporary_22
+	vufloat  temporary_22 0
+	fgt  temporary_21 discrim temporary_22
+	if temporary_21 #!Label28
+	sqrt	("f=f")  discrim discrim
+	negf  temporary_23 discrim
+	subff  temporary_22 temporary_23 b
+	vufloat  temporary_23 2
+	divff  t0 temporary_22 temporary_23
+	fgt  temporary_22 t0 temporary_20
+	if temporary_22 #!Label30
+	subff  temporary_23 discrim b
+	vufloat  temporary_24 2
+	moveff  solutions temporary_24
+#!Label30:
+	else #!Label29
+	subff  temporary_23 discrim b
+	vufloat  temporary_24 2
+	divff  t0 temporary_23 temporary_24
+	fgt  temporary_23 t0 temporary_20
+	if temporary_23 #!Label31
+	vufloat  solutions 1
+#!Label31:
+	else #!Label32
+	vufloat  solutions 0
+#!Label32:
+	endif
+#!Label29:
+	endif
+#!Label28:
+	else #!Label27
+	vufloat  temporary_23 0
+	feql  temporary_22 discrim temporary_23
+	if temporary_22 #!Label34
+	vufloat  temporary_24 2
+	divff  temporary_23 b temporary_24
+	negf  t0 temporary_23
+	fgt  temporary_23 t0 temporary_20
+	if temporary_23 #!Label35
+	vufloat  solutions 1
+#!Label35:
+	else #!Label36
+	vufloat  solutions 0
+#!Label36:
+	endif
+#!Label34:
+	else #!Label33
+	vufloat  solutions 0
+#!Label33:
+	endif
+#!Label27:
+	endif
+	moveff  temporary_18 solutions
+	vufloat  temporary_19 0
+	fgt  temporary_17 temporary_18 temporary_19
+	if temporary_17 #!Label25
+	vfromf  temporary_10 t0
+	mulvv  temporary_9 temporary_10 Rsp
+	addvv  Rsp Psp temporary_9
+#!Label25:
+	endif
+	environment	("f=SFvSfsf")  alpha_1 envname 3 Rsp "blur" temporary_6 "fill" 1
+	environment	("c=SFvSf")  C envname 0 Rsp "blur" temporary_6
+#!Label21:
+	endif
+#!Label19:
+	endif
+	vfromf  temporary_9 temporary_5
+	mulvv  temporary_8 temporary_9 C
+	addvv  temporary_0 temporary_7 temporary_8
+	mulvv  Ci Cs temporary_0
+	movevv  Oi Os
+	mulvv  Ci Ci Oi
+	return

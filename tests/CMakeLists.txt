@@ -30,6 +30,7 @@ add_subdirectory(framebuffer)
 add_subdirectory(imager)
 add_subdirectory(preview)
 add_subdirectory(visual)
+add_subdirectory(shaders)
 
 # Print test information
 message(STATUS "Configured tests:")

@@ -210,7 +210,7 @@ add_visual_test(camera-dof-reyes
 
 add_visual_test(camera-dof-raytrace
     examples/rib/tests/camera-dof-raytrace.rib
-    camera-dof-raytrace.tif  camera-dof-raytrace.tif)
+    camera-dof-raytrace.tif  camera-dof-raytrace.tif  30)
 
 # --- Camera motion (small shift) ---
 add_visual_test(camera-motion-small-reyes

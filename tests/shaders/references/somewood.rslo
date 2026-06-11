@@ -1,0 +1,155 @@
+#!version 1.0.0
+surface
+#!parameters:
+uniform	float	Ka	=	1
+uniform	float	Kd	=	0.6
+uniform	float	Ks	=	0.4
+uniform	float	roughness	=	0.6
+uniform	float	grain	=	12
+uniform	float	swirl	=	0.1
+uniform	float	swirlfreq	=	0.1
+uniform	point	c0	=	"shader"  [ 0 0 0 ]
+uniform	point	c1	=	"shader"  [ 0 0 1 ]
+uniform	color	specularcolor	=	 [ 1 1 1 ]
+uniform	color	darkcolor	=	 [ 0.67 0.49 0.27 ]
+uniform	float	darkfactor	=	1
+#!variables:
+uniform	vector	temporary_0
+varying	vector	cP
+varying	vector	C1
+varying	vector	C0
+varying	vector	PP
+varying	vector	Nf
+varying	vector	V
+varying	vector	newP
+varying	float	dd
+varying	float	pd
+varying	float	alpha_1
+varying	float	nn
+varying	vector	Cwood
+varying	vector	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	vector	temporary_5
+uniform	float	temporary_6
+varying	vector	temporary_7
+varying	vector	temporary_8
+varying	vector	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+varying	float	temporary_12
+varying	float	temporary_13
+#!Init:
+	vfromf  temporary_0 0 0 0
+	pfrom  c0 "shader" temporary_0
+	vfromf  temporary_0 0 0 1
+	pfrom  c1 "shader" temporary_0
+	return            
+#!Code:
+	normalize	("v=v")  temporary_1 N
+	faceforward	("v=vv")  Nf temporary_1 I
+	normalize	("v=v")  temporary_1 I
+	negv  V temporary_1
+	transform	("p=Sp")  temporary_0 "shader" c1
+	vuvector  C1 temporary_0
+	transform	("p=Sp")  temporary_0 "shader" c0
+	vuvector  C0 temporary_0
+	subvv  temporary_1 C1 C0
+	normalize	("v=v")  cP temporary_1
+	transform	("p=Sp")  newP "shader" P
+	subvv  PP newP C0
+	dot  pd PP cP
+	dot  temporary_3 PP PP
+	mulff  temporary_4 pd pd
+	subff  temporary_2 temporary_3 temporary_4
+	sqrt	("f=f")  dd temporary_2
+	vufloat  temporary_2 swirl
+	vfromf  temporary_0 swirlfreq
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_3 temporary_1
+	mulff  nn temporary_2 temporary_3
+	mulff  temporary_6 0.5 swirl
+	vufloat  temporary_3 temporary_6
+	mulff  temporary_6 2.0 swirlfreq
+	vfromf  temporary_0 temporary_6
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_4 temporary_1
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  nn nn temporary_2
+	mulff  temporary_6 0.25 swirl
+	vufloat  temporary_3 temporary_6
+	mulff  temporary_6 4.0 swirlfreq
+	vfromf  temporary_0 temporary_6
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_4 temporary_1
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  nn nn temporary_2
+	mulff  temporary_6 0.125 swirl
+	vufloat  temporary_3 temporary_6
+	mulff  temporary_6 8.0 swirlfreq
+	vfromf  temporary_0 temporary_6
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_4 temporary_1
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  nn nn temporary_2
+	mulff  temporary_6 0.0625 swirl
+	vufloat  temporary_3 temporary_6
+	mulff  temporary_6 16.0 swirlfreq
+	vfromf  temporary_0 temporary_6
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_4 temporary_1
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  nn nn temporary_2
+	mulff  temporary_6 0.03125 swirl
+	vufloat  temporary_3 temporary_6
+	mulff  temporary_6 32.0 swirlfreq
+	vfromf  temporary_0 temporary_6
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	noise	("f=p")  temporary_4 temporary_1
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  nn nn temporary_2
+	addff  dd dd nn
+	vufloat  temporary_3 grain
+	mulff  temporary_2 temporary_3 dd
+	vufloat  temporary_3 1
+	mod	("f=ff")  alpha_1 temporary_2 temporary_3
+	mulff  alpha_1 alpha_1 alpha_1
+	movevv  Oi Os
+	vuvector  temporary_1 darkcolor
+	mix	("v=vvf")  Cwood temporary_1 Cs alpha_1
+	vfromf  temporary_0 Ka
+	vuvector  temporary_9 temporary_0
+	ambient	("c=")  temporary_10
+	mulvv  temporary_8 temporary_9 temporary_10
+	vfromf  temporary_0 Kd
+	vuvector  temporary_10 temporary_0
+	diffuse	("c=n")  temporary_11 Nf
+	mulvv  temporary_9 temporary_10 temporary_11
+	addvv  temporary_7 temporary_8 temporary_9
+	mulvv  temporary_5 Cwood temporary_7
+	moveff  temporary_13 temporary_3
+	subff  temporary_12 temporary_13 alpha_1
+	subff  temporary_6 1 darkfactor
+	vufloat  temporary_13 temporary_6
+	addff  temporary_4 temporary_12 temporary_13
+	vufloat  temporary_12 0.75
+	moveff  temporary_13 temporary_3
+	clamp	("f=fff")  temporary_3 temporary_4 temporary_12 temporary_13
+	vufloat  temporary_4 Ks
+	mulff  temporary_2 temporary_3 temporary_4
+	vfromf  temporary_9 temporary_2
+	vuvector  temporary_10 specularcolor
+	mulvv  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_2 roughness
+	specular	("c=nvf")  temporary_9 Nf V temporary_2
+	mulvv  temporary_7 temporary_8 temporary_9
+	addvv  temporary_1 temporary_5 temporary_7
+	mulvv  Ci Os temporary_1
+	return

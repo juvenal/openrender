@@ -381,11 +381,41 @@ install(FILES ${doc_files} DESTINATION ${OPENRENDER_DOCDIR})
 file(GLOB man_files man/*.1)
 install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-# Install shaders
+# Install shader sources and includes (pre-built .rslo/.sdr objects are NOT installed;
+# they are compiled from source at install time by the oshader binary below).
 file(GLOB shader_sl_files shaders/*.sl)
-file(GLOB shader_sdr_files shaders/*.sdr)
-file(GLOB shader_rslo_files shaders/*.rslo)
-install(FILES ${shader_sl_files} ${shader_sdr_files} ${shader_rslo_files} DESTINATION ${OPENRENDER_SHADERDIR})
+install(FILES ${shader_sl_files} DESTINATION ${OPENRENDER_SHADERDIR})
+install(DIRECTORY shaders/includes/ DESTINATION ${OPENRENDER_SHADERDIR}/includes)
+
+# Compile shaders at install time using the just-installed oshader.
+# ${OPENRENDER_SHADERDIR} and ${CMAKE_INSTALL_BINDIR} are baked in at configure time.
+# \${CMAKE_INSTALL_PREFIX} and \$ENV{DESTDIR} expand at install time.
+# Shaders that fail to compile emit a WARNING but do not abort the install.
+install(CODE "
+    message(STATUS \"Compiling installed RSL shaders...\")
+    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
+    set(_oshader   \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
+    set(_incdir    \"-I\${_shaderdir}/includes\")
+    file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
+    set(_ok 0)
+    set(_failed 0)
+    foreach(_sl \${_sl_files})
+        get_filename_component(_base \${_sl} NAME_WE)
+        execute_process(
+            COMMAND \${_oshader} \${_incdir} \${_sl}
+            WORKING_DIRECTORY \${_shaderdir}
+            RESULT_VARIABLE _rc
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(_rc)
+            message(WARNING \"  oshader: \${_base}.sl failed to compile (rc=\${_rc})\")
+            math(EXPR _failed \"\${_failed} + 1\")
+        else()
+            math(EXPR _ok \"\${_ok} + 1\")
+        endif()
+    endforeach()
+    message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
+")
 
 # Install geometry files
 file(GLOB geometry_rib_files geometry/*.rib)

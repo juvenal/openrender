@@ -1,0 +1,86 @@
+#!version 1.0.0
+surface
+#!parameters:
+uniform	float	ringscale	=	10
+uniform	color	lightwood	=	 [ 0.3 0.12 0.03 ]
+uniform	color	darkwood	=	 [ 0.05 0.01 0.005 ]
+uniform	float	Ka	=	0.2
+uniform	float	Kd	=	0.4
+uniform	float	Ks	=	0.6
+uniform	float	roughness	=	0.1
+#!variables:
+varying	vector	NN
+varying	vector	V
+varying	vector	PP
+varying	float	y
+varying	float	z
+varying	float	r
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	vector	temporary_5
+varying	vector	temporary_6
+varying	vector	temporary_7
+varying	vector	temporary_8
+uniform	vector	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  NN temporary_0 I
+	normalize	("v=v")  temporary_0 I
+	negv  V temporary_0
+	transform	("p=Sp")  PP "shader" P
+	noise	("c=p")  temporary_0 PP
+	addvv  PP PP temporary_0
+	ycomp	("f=p")  y PP
+	zcomp	("f=p")  z PP
+	mulff  temporary_2 y y
+	mulff  temporary_3 z z
+	addff  temporary_1 temporary_2 temporary_3
+	sqrt	("f=f")  r temporary_1
+	vufloat  temporary_1 ringscale
+	mulff  r r temporary_1
+	noise	("f=f")  temporary_2 r
+	abs	("f=f")  temporary_1 temporary_2
+	addff  r r temporary_1
+	floor	("f=f")  temporary_1 r
+	subff  r r temporary_1
+	vufloat  temporary_2 0
+	vufloat  temporary_3 0.8
+	smoothstep	("f=fff")  temporary_1 temporary_2 temporary_3 r
+	vufloat  temporary_3 0.83
+	vufloat  temporary_4 1.0
+	smoothstep	("f=fff")  temporary_2 temporary_3 temporary_4 r
+	subff  r temporary_1 temporary_2
+	vuvector  temporary_0 lightwood
+	vuvector  temporary_5 darkwood
+	mix	("v=vvf")  Ci temporary_0 temporary_5 r
+	movevv  Oi Os
+	mulvv  temporary_5 Oi Ci
+	vfromf  temporary_9 Ka
+	vuvector  temporary_8 temporary_9
+	ambient	("c=")  temporary_10
+	mulvv  temporary_7 temporary_8 temporary_10
+	vfromf  temporary_9 Kd
+	vuvector  temporary_10 temporary_9
+	diffuse	("c=n")  temporary_11 NN
+	mulvv  temporary_8 temporary_10 temporary_11
+	addvv  temporary_6 temporary_7 temporary_8
+	mulvv  temporary_0 temporary_5 temporary_6
+	vufloat  temporary_4 0.3
+	mulff  temporary_3 temporary_4 r
+	vufloat  temporary_4 0.7
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_3 Ks
+	mulff  temporary_1 temporary_2 temporary_3
+	vfromf  temporary_6 temporary_1
+	vufloat  temporary_1 roughness
+	specular	("c=nvf")  temporary_7 NN V temporary_1
+	mulvv  temporary_5 temporary_6 temporary_7
+	addvv  Ci temporary_0 temporary_5
+	return

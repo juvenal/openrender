@@ -1,0 +1,133 @@
+#!version 1.0.0
+surface
+#!parameters:
+uniform	float	Ka	=	0.2
+uniform	float	Kd	=	0.4
+uniform	float	Ks	=	0.6
+uniform	float	xroughness	=	0.4
+uniform	float	yroughness	=	0.4
+#!variables:
+varying	vector	Nf
+varying	vector	V
+varying	vector	xdir
+varying	vector	temporary_0
+varying	vector	temporary_1
+varying	vector	temporary_2
+varying	vector	temporary_3
+varying	vector	temporary_4
+uniform	vector	temporary_5
+varying	vector	temporary_6
+varying	vector	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	cos_theta_r
+varying	vector	X
+varying	vector	Y
+varying	vector	C
+varying	float	temporary_10
+varying	float	temporary_11
+varying	float	temporary_12
+varying	vector	temporary_13
+uniform	float	temporary_14
+varying	float	nonspec
+varying	vector	LN
+varying	float	cos_theta_i
+varying	float	temporary_15
+varying	vector	H
+varying	float	rho
+varying	float	temporary_16
+varying	float	temporary_17
+varying	float	temporary_18
+varying	float	temporary_19
+varying	float	temporary_20
+varying	float	temporary_21
+varying	float	temporary_22
+varying	float	temporary_23
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	negv  temporary_0 I
+	normalize	("v=v")  V temporary_0
+	normalize	("v=v")  xdir dPdu
+	mulvv  temporary_0 Os Cs
+	vfromf  temporary_5 Ka
+	vuvector  temporary_4 temporary_5
+	ambient	("c=")  temporary_6
+	mulvv  temporary_3 temporary_4 temporary_6
+	vfromf  temporary_5 Kd
+	vuvector  temporary_6 temporary_5
+	diffuse	("c=n")  temporary_7 Nf
+	mulvv  temporary_4 temporary_6 temporary_7
+	addvv  temporary_2 temporary_3 temporary_4
+	vfromf  temporary_5 Ks
+	vuvector  temporary_4 temporary_5
+	vufloat  temporary_8 xroughness
+	vufloat  temporary_9 yroughness
+	dot  temporary_10 Nf V
+	vufloat  temporary_11 0.0001
+	vufloat  temporary_12 1
+	clamp	("f=fff")  cos_theta_r temporary_10 temporary_11 temporary_12
+	vfromf  temporary_7 temporary_8
+	divvv  X xdir temporary_7
+	cross  temporary_7 Nf xdir
+	vfromf  temporary_13 temporary_9
+	divvv  Y temporary_7 temporary_13
+	vfromf  temporary_5 0
+	vuvector  C temporary_5
+	vufloat  temporary_14 1.570796327
+	vufloat  temporary_10 temporary_14
+	illuminance P Nf temporary_10 #!Label7 #!Label8
+#!Label7:
+	vufloat  nonspec 0
+	lightsource	("f=SF")  temporary_11 "__nonspecular" nonspec
+	vufloat  temporary_12 1
+	moveff  temporary_11 temporary_12
+	if temporary_11 #!Label9
+	normalize	("v=v")  LN L
+	dot  cos_theta_i LN Nf
+	vufloat  temporary_15 0.0
+	fgt  temporary_12 cos_theta_i temporary_15
+	if temporary_12 #!Label11
+	addvv  temporary_7 V LN
+	normalize	("v=v")  H temporary_7
+	vufloat  temporary_19 2
+	dot  temporary_22 X H
+	mulff  temporary_21 temporary_22 temporary_22
+	dot  temporary_23 Y H
+	mulff  temporary_22 temporary_23 temporary_23
+	addff  temporary_20 temporary_21 temporary_22
+	mulff  temporary_18 temporary_19 temporary_20
+	vufloat  temporary_20 1
+	dot  temporary_21 H Nf
+	addff  temporary_19 temporary_20 temporary_21
+	divff  temporary_17 temporary_18 temporary_19
+	negf  temporary_16 temporary_17
+	exp	("f=f")  temporary_15 temporary_16
+	mulff  temporary_17 cos_theta_i cos_theta_r
+	sqrt	("f=f")  temporary_16 temporary_17
+	divff  rho temporary_15 temporary_16
+	moveff  temporary_18 temporary_20
+	moveff  temporary_17 temporary_20
+	mulff  temporary_16 temporary_17 cos_theta_i
+	mulff  temporary_15 temporary_16 rho
+	vfromf  temporary_13 temporary_15
+	mulvv  temporary_7 Cl temporary_13
+	addvv  C C temporary_7
+#!Label11:
+	endif
+#!Label9:
+	endif
+#!Label8:
+	endilluminance
+	vufloat  temporary_12 4
+	mulff  temporary_11 temporary_12 temporary_8
+	mulff  temporary_10 temporary_11 temporary_9
+	vfromf  temporary_7 temporary_10
+	divvv  temporary_6 C temporary_7
+	mulvv  temporary_3 temporary_4 temporary_6
+	addvv  temporary_1 temporary_2 temporary_3
+	mulvv  Ci temporary_0 temporary_1
+	movevv  Oi Os
+	return
