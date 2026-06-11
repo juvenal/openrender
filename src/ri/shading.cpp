@@ -1047,6 +1047,7 @@ CShadingState *CShadingContext::newState() {
         newState->freeLights = NULL;
         newState->postShader = NULL;
         newState->currentObject = NULL;
+        newState->stats = &stats; // Point to global stats (renderer context)
 
         for (j = 0; j < numGlobalVariables; j++) {
             const CVariable *var = globalVariables[j];

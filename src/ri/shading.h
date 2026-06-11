@@ -172,6 +172,9 @@ struct CShadingScratch {
 // Class				:	CShadingState
 // Description			:	Holds a shading state at a depth
 // Comments				:
+// Forward declaration for stats (defined in stats.h)
+class CStats;
+
 class CShadingState {
     public:
         // ---> Input fields
@@ -204,6 +207,9 @@ class CShadingState {
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type
 
         CShadingScratch scratch; // The scratch pad that holds PL data
+
+        // ---> Stats accounting (libshader Phase B: decoupling from global stats)
+        CStats *stats; // Pointer to renderer stats (nullptr for standalone shading engine use)
 
         CShadingState *next; // The next in free state list
 };
