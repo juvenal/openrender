@@ -65,6 +65,8 @@ set(ri_sources
 	shading.cpp
 	rendererShadingServices.cpp
 	RSLShading.cpp
+	rslOps.cpp
+	rslBuiltins.cpp
 	show.cpp
 #	sl.cpp
 	stats.cpp
@@ -107,6 +109,15 @@ else()
 endif(USE_FLEX_BISON)
 
 
+# LLVM JIT: add llvmJit.cpp only when LLVM is available
+if(OPENRENDER_HAVE_LLVM)
+    list(APPEND ri_sources llvmJit.cpp)
+    # Map the LLVM components we actually use to their library names
+    llvm_map_components_to_libnames(LLVM_LIBRARIES
+        core orcjit native bitreader support
+    )
+endif()
+
 # Compile once with PIC so the same objects serve both the shared and static lib.
 add_library(ri_obj OBJECT ${ri_sources} ${ri_headers})
 set_target_properties(ri_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -114,6 +125,11 @@ target_include_directories(ri_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR})
 # Propagate compile-time interface requirements: HAVE_CONFIG_H, warning flags,
 # include dirs, and external lib headers (TIFF, PNG).
 target_link_libraries(ri_obj PRIVATE openrendercommon ${openrendertiff_libs})
+if(OPENRENDER_HAVE_LLVM)
+    target_link_libraries(ri_obj PRIVATE ${LLVM_LIBRARIES})
+    target_include_directories(ri_obj PRIVATE ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(ri_obj PRIVATE ${LLVM_DEFINITIONS})
+endif()
 
 # Shared library — external deps (TIFF, PNG, z) are PRIVATE (implementation detail
 # of libri; not part of its public API, so not propagated to linking executables).
@@ -121,6 +137,9 @@ add_library(ri SHARED $<TARGET_OBJECTS:ri_obj>)
 # Phase A: ri IS the shading engine (libshader aliases ri).
 # Phase B: libshader will be a separate library; ri will link against it.
 target_link_libraries(ri PRIVATE ${openrendertiff_libs} openrendercommon)
+if(OPENRENDER_HAVE_LLVM)
+    target_link_libraries(ri PRIVATE ${LLVM_LIBRARIES})
+endif()
 if(WIN32)
     target_link_libraries(ri PRIVATE zlib ws2_32)
 endif()

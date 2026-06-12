@@ -28,6 +28,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 #include "attributes.h"
 #include "bundles.h"
@@ -276,6 +277,9 @@ CProgrammableShaderInstance::CProgrammableShaderInstance(CShader *p, CAttributes
     parent = p;
     flags = parent->flags;
     data = parent->data;
+#ifdef OPENRENDER_HAVE_LLVM
+    jitEntry = nullptr;
+#endif
 
     // Clone the parent's parameter list
     // BEWARE that this reverses the order (which matters when counting the globalIndex)
@@ -621,6 +625,26 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     float **locals;
     int totalVaryingSize;
     int i;
+
+#ifdef OPENRENDER_HAVE_LLVM
+    // Probe for a .slo (LLVM bitcode) companion on first prepare. The .rslo holds
+    // variable metadata; the .slo holds the compiled shader body. Both must exist.
+    if (jitEntry == nullptr && parent->name != nullptr) {
+        const char *filename = parent->name;
+        const char *ext = strrchr(filename, '.');
+        std::string sloPath;
+        if (ext != nullptr && strcmp(ext, ".slo") == 0) {
+            sloPath = filename;
+        } else if (ext != nullptr) {
+            sloPath = std::string(filename, ext) + ".slo";
+        }
+        if (!sloPath.empty()) {
+            // Stat without <sys/stat.h> — use osExists from common/os.h
+            if (osFileExists(sloPath.c_str()))
+                jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, parent->name);
+        }
+    }
+#endif
 
     // Get const pointers for fast access
     const int numVariables = parent->numVariables;

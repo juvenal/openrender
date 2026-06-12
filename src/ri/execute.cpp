@@ -551,6 +551,26 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     stuff[SL_GLOBAL_OPERAND] = (void **)varying;                  // Global variables
     stuff[SL_VARYING_OPERAND] = (void **)locals;                  // Local variables
 
+#ifdef OPENRENDER_HAVE_LLVM
+    // JIT dispatch: if a compiled entry point exists for this shader, call it
+    // instead of the interpreter and return immediately.
+    if (cInstance->jitEntry != nullptr) {
+        cInstance->jitEntry(numVertices, stuff, tagStart);
+        // Mirror interpreter execEnd: accumulate ambient Cl for lightsource shaders.
+        if (currentShader->type == SL_LIGHTSOURCE &&
+            !(currentShader->usedParameters & PARAMETER_NONAMBIENT) &&
+            *alights != nullptr) {
+            const float *Cl    = varying[VARIABLE_CL];
+            float *Clsave      = (*alights)->savedState[1];
+            int *tags          = tagStart;
+            for (int i = numVertices; i > 0; --i, Cl += 3, Clsave += 3, ++tags) {
+                if (*tags == 0) addvv(Clsave, Cl);
+            }
+        }
+        return;
+    }
+#endif
+
     int numActive = currentShadingState->numActive;
     int numPassive = currentShadingState->numPassive;
     CConditional *lastConditional = NULL; // The last conditional block

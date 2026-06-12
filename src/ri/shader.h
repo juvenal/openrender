@@ -33,6 +33,10 @@
 #include "common/os.h"
 #include "fileResource.h"
 #include "refCounter.h"
+#include "config.h" // OPENRENDER_HAVE_LLVM
+#ifdef OPENRENDER_HAVE_LLVM
+#include "llvmJit.h"
+#endif
 #include "rendererc.h"
 #include "ri.h"
 #include "ri_config.h"
@@ -210,6 +214,9 @@ class CProgrammableShaderInstance : public CShaderInstance {
 
         CAllocatedString *strings; // The strings we allocated for parameters
         CShader *parent;           // The parent shader
+#ifdef OPENRENDER_HAVE_LLVM
+        TShaderJitEntry jitEntry;  // JIT-compiled entry point (nullptr until first execute)
+#endif
     private:
         int setParameter(const char *, const void *);
 };

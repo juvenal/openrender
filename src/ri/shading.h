@@ -215,6 +215,9 @@ class CShadingState {
         // ---> Stats accounting (libshader Phase B: decoupling from global stats)
         CStats *stats; // Pointer to renderer stats (nullptr for standalone shading engine use)
 
+        // ---> JIT lighting cache flags (avoids re-running lights per batch call)
+        int diffuseReady; // TRUE after prepareDiffuse() has run lights for this grid
+
         // ---> Renderer services (libshader Phase B: decoupling from CRenderer globals)
         CRendererServices *services; // nullptr in standalone mode
 
@@ -354,6 +357,35 @@ class CShadingContext {
         // Inject renderer services used by newState(). Call once at renderer startup
         // (before any shading context is constructed). nullptr disables all service calls.
         static void setDefaultServices(CRendererServices *svc) { s_defaultServices = svc; }
+
+        // ---> Query wrappers (used by rslBuiltins / JIT runtime)
+        int queryAttribute(void *dest, const char *name)   { return attributes(dest, name, nullptr, nullptr); }
+        int queryOption(void *dest, const char *name)       { return options(dest, name, nullptr, nullptr); }
+        int queryRendererInfo(void *dest, const char *name) { return rendererInfo(dest, name, nullptr, nullptr); }
+
+        // ---> Illuminate/solar hook dispatchers (called from JIT rslBuiltins)
+        void callIlluminateBegin(const float *P, const float *N, const float *theta) { illuminateBegin(P, N, theta); }
+        void callIlluminateEnd()                                                      { illuminateEnd(); }
+        void callSolarBegin(const float *N, const float *theta)                       { solarBegin(N, theta); }
+        void callSolarEnd()                                                           { solarEnd(); }
+
+        // ---> Lighting batch operations for JIT path (same semantics as interpreter)
+        void callAmbient(float *result);
+        void callDiffuse(float *result, const float *Nf);
+        void callSpecular(float *result, const float *Nf, const float *V, float roughness);
+
+        // ---> Internal lighting helpers (used by call* above and interpreter illuminate loop)
+        void runLights(const float *lP, const float *lN, const float *lT,
+                       int numVertices, int *tags, int &numActive, int &numPassive,
+                       int inShadow, float **varying, CShaderInstance *cInstance);
+        void runCategoryLights(const float *lP, const float *lN, const float *lT,
+                               int numVertices, int *tags, int &numActive, int &numPassive,
+                               int saveCat, int inShadow, float **varying, CShaderInstance *cInstance);
+
+        // ---> JIT per-vertex prepare helpers (called from rslBuiltins C wrappers)
+        void prepareAmbient();
+        void prepareDiffuse();
+        void setupIlluminance(float *P, float *N, float angle, int numVertices, int *tags);
 
     protected:
 

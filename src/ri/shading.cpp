@@ -1092,6 +1092,7 @@ CShadingState *CShadingContext::newState() {
         newState->currentObject = NULL;
         newState->stats = &stats;
         newState->services = svc;
+        newState->diffuseReady = FALSE;
 
         for (j = 0; j < numGlobalVariables; j++) {
             const CVariable *var = svc->globalVariable(j);
@@ -1493,6 +1494,264 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
     }
 
     return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// CShadingContext lighting helpers — used by illuminate loop (interpreter)
+// and by the JIT batch call* methods below.
+///////////////////////////////////////////////////////////////////////
+
+void CShadingContext::runLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance) {
+    runCategoryLights(lP, lN, lT, numVertices, tags, numActive, numPassive, 0, inShadow, varying, cInstance);
+}
+
+void CShadingContext::runCategoryLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int saveCat, int inShadow, float **varying, CShaderInstance *cInstance) {
+    CShadingState *ss = currentShadingState;
+    int curLightingValid = ss->lightsExecuted;
+    int runCat = abs(saveCat);
+    int invertCatMatch = (saveCat < 0);
+
+    if (curLightingValid) {
+        curLightingValid = (ss->lightCategory == saveCat);
+        curLightingValid = curLightingValid && !memcmp(lN, ss->Ns, sizeof(float) * 3 * numVertices);
+        curLightingValid = curLightingValid && !memcmp(lP, varying[VARIABLE_PS], sizeof(float) * 3 * numVertices);
+        curLightingValid = curLightingValid && !memcmp(lT, ss->costheta, sizeof(float) * numVertices);
+        for (int i = 0; curLightingValid && i < numVertices; ++i)
+            curLightingValid = curLightingValid && (tags[i] != 0 || ss->lightingTags[i] == 0);
+    }
+
+    if (!curLightingValid) {
+        const CAttributes *currentAttributes = ss->currentObject->attributes;
+        ss->numActive = numActive;
+        ss->numPassive = numPassive;
+        ss->lightsExecuted = TRUE;
+        ss->costheta = lT;
+        ss->lightCategory = saveCat;
+        memcpy(varying[VARIABLE_PS], lP, numVertices * 3 * sizeof(float));
+        memcpy(ss->Ns, lN, numVertices * 3 * sizeof(float));
+        memcpy(ss->lightingTags, tags, numVertices * sizeof(int));
+
+        ss->freeLights = ss->lights;
+        ss->lights = NULL;
+
+        if (inShadow == FALSE) {
+            for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {
+                CProgrammableShaderInstance *light = cLight->light;
+
+                int validLight = (saveCat == 0);
+                if (!validLight && light->categories != NULL) {
+                    for (const int *cCat = light->categories; (*cCat != 0); cCat++) {
+                        if (*cCat == runCat) { validLight = TRUE; break; }
+                    }
+                    if (invertCatMatch) validLight = !validLight;
+                }
+
+                if (validLight && (light->flags & SHADERFLAGS_NONAMBIENT)) {
+                    memBegin(shaderStateMemory);
+                    ss->currentLightInstance = light;
+                    ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, numVertices);
+                    light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
+                    memEnd(shaderStateMemory);
+                }
+            }
+        }
+        ss->currentShaderInstance = cInstance;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// CShadingContext::callAmbient / callDiffuse / callSpecular
+// Called from the JIT batch rslOps wrappers (op_ambient_batch etc.)
+// Semantics match the interpreter's AMBIENTEXPR / DIFFUSEEXPR / SPECULAREXPR.
+///////////////////////////////////////////////////////////////////////
+
+void CShadingContext::callAmbient(float *result) {
+    CShadingState *ss = currentShadingState;
+    const int n      = ss->numVertices;
+    const int *tags  = ss->tags;
+    float **varying  = ss->varying;
+    CShaderInstance *cInst = ss->currentShaderInstance;
+    const CAttributes *attr = ss->currentObject->attributes;
+
+    if (!ss->ambientLightsExecuted) {
+        ss->ambientLightsExecuted = TRUE;
+        if (ss->alights == NULL) {
+            ss->alights = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
+            ss->alights->savedState = (float **)ralloc(2 * sizeof(float *), threadMemory);
+            ss->alights->savedState[1] = (float *)ralloc(3 * sizeof(float) * n, threadMemory);
+            ss->alights->savedState[0] = NULL;
+            ss->alights->lightTags     = NULL;
+            ss->alights->instance      = NULL;
+            ss->alights->next          = NULL;
+            float *Cl = ss->alights->savedState[1];
+            for (int i = 0; i < n; ++i, Cl += 3) { Cl[0] = Cl[1] = Cl[2] = 0.0f; }
+        }
+        if (!inShadow) {
+            float *saveCl = ss->alights->savedState[1];
+            for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
+                CProgrammableShaderInstance *light = cLight->light;
+                if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
+                    memBegin(shaderStateMemory);
+                    ss->currentLightInstance = light;
+                    ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, n);
+                    light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
+                    memEnd(shaderStateMemory);
+                    const float *lightCl = varying[VARIABLE_CL];
+                    for (int i = 0; i < n; ++i) {
+                        saveCl[3*i]   += lightCl[3*i];
+                        saveCl[3*i+1] += lightCl[3*i+1];
+                        saveCl[3*i+2] += lightCl[3*i+2];
+                    }
+                }
+            }
+        }
+        ss->currentShaderInstance = cInst;
+    }
+    const float *Clsave = ss->alights ? ss->alights->savedState[1] : nullptr;
+    for (int i = 0; i < n; ++i) {
+        if (tags[i] == 0 && Clsave) {
+            result[3*i]   = Clsave[3*i];
+            result[3*i+1] = Clsave[3*i+1];
+            result[3*i+2] = Clsave[3*i+2];
+        } else {
+            result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f;
+        }
+    }
+}
+
+void CShadingContext::callDiffuse(float *result, const float *Nf) {
+    CShadingState *ss  = currentShadingState;
+    const int n        = ss->numVertices;
+    const int *tags    = ss->tags;
+    float **varying    = ss->varying;
+    CShaderInstance *cInst = ss->currentShaderInstance;
+
+    float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
+    for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
+    runLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
+              ss->numActive, ss->numPassive, inShadow, varying, cInst);
+
+    for (int i = 0; i < n; ++i) { result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f; }
+    for (CShadedLight *light = ss->lights; light; light = light->next) {
+        const float *L  = light->savedState[0];
+        const float *Cl = light->savedState[1];
+        for (int i = 0; i < n; ++i) {
+            if (tags[i] != 0) continue;
+            float lx = L[3*i], ly = L[3*i+1], lz = L[3*i+2];
+            float lm = sqrtf(lx*lx + ly*ly + lz*lz);
+            if (lm > 1e-8f) { lx /= lm; ly /= lm; lz /= lm; }
+            float coeff = Nf[3*i]*lx + Nf[3*i+1]*ly + Nf[3*i+2]*lz;
+            if (coeff > 0.0f) {
+                result[3*i]   += coeff * Cl[3*i];
+                result[3*i+1] += coeff * Cl[3*i+1];
+                result[3*i+2] += coeff * Cl[3*i+2];
+            }
+        }
+    }
+}
+
+void CShadingContext::callSpecular(float *result, const float *Nf, const float *V, float roughness) {
+    CShadingState *ss  = currentShadingState;
+    const int n        = ss->numVertices;
+    const int *tags    = ss->tags;
+    float **varying    = ss->varying;
+    CShaderInstance *cInst = ss->currentShaderInstance;
+
+    float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
+    for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
+    runLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
+              ss->numActive, ss->numPassive, inShadow, varying, cInst);
+
+    for (int i = 0; i < n; ++i) { result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f; }
+    const float power = (roughness > 1e-6f) ? 10.0f / roughness : 1e6f;
+    for (CShadedLight *light = ss->lights; light; light = light->next) {
+        const float *L  = light->savedState[0];
+        const float *Cl = light->savedState[1];
+        for (int i = 0; i < n; ++i) {
+            if (tags[i] != 0) continue;
+            float lx = L[3*i], ly = L[3*i+1], lz = L[3*i+2];
+            float lm = sqrtf(lx*lx + ly*ly + lz*lz);
+            if (lm < 1e-8f) continue;
+            lx /= lm; ly /= lm; lz /= lm;
+            float hx = V[3*i] + lx, hy = V[3*i+1] + ly, hz = V[3*i+2] + lz;
+            float hlen = sqrtf(hx*hx + hy*hy + hz*hz);
+            if (hlen < 1e-8f) continue;
+            hx /= hlen; hy /= hlen; hz /= hlen;
+            float ndoth = Nf[3*i]*hx + Nf[3*i+1]*hy + Nf[3*i+2]*hz;
+            if (ndoth <= 0.0f) continue;
+            float coeff = powf(ndoth, power);
+            result[3*i]   += coeff * Cl[3*i];
+            result[3*i+1] += coeff * Cl[3*i+1];
+            result[3*i+2] += coeff * Cl[3*i+2];
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// JIT per-vertex prepare helpers — called from rslBuiltins C wrappers
+///////////////////////////////////////////////////////////////////////
+
+void CShadingContext::prepareAmbient() {
+    CShadingState *ss = currentShadingState;
+    if (!ss->ambientLightsExecuted) {
+        ss->ambientLightsExecuted = TRUE;
+        const CAttributes *attr = ss->currentObject->attributes;
+        if (ss->alights == NULL) {
+            ss->alights = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
+            ss->alights->savedState = (float **)ralloc(2 * sizeof(float *), threadMemory);
+            ss->alights->savedState[1] = (float *)ralloc(3 * sizeof(float) * ss->numVertices, threadMemory);
+            ss->alights->savedState[0] = NULL;
+            ss->alights->lightTags = NULL;
+            ss->alights->instance  = NULL;
+            ss->alights->next      = NULL;
+            float *Cl = ss->alights->savedState[1];
+            for (int i = 0; i < ss->numVertices; ++i, Cl += 3) { Cl[0] = Cl[1] = Cl[2] = 0.0f; }
+        }
+        if (!inShadow) {
+            CShaderInstance *cInst = ss->currentShaderInstance;
+            float *saveCl = ss->alights->savedState[1];
+            for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
+                CProgrammableShaderInstance *light = cLight->light;
+                if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
+                    memBegin(shaderStateMemory);
+                    ss->currentLightInstance = light;
+                    ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, ss->varying, ss->numVertices);
+                    light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
+                    memEnd(shaderStateMemory);
+                    const float *lightCl = ss->varying[VARIABLE_CL];
+                    for (int i = 0; i < ss->numVertices; ++i) {
+                        saveCl[3*i]   += lightCl[3*i];
+                        saveCl[3*i+1] += lightCl[3*i+1];
+                        saveCl[3*i+2] += lightCl[3*i+2];
+                    }
+                }
+            }
+            ss->currentShaderInstance = cInst;
+        }
+    }
+}
+
+void CShadingContext::prepareDiffuse() {
+    CShadingState *ss = currentShadingState;
+    if (!ss->diffuseReady) {
+        ss->diffuseReady = TRUE;
+        float *costheta = (float *)ralloc(ss->numVertices * sizeof(float), threadMemory);
+        memset(costheta, 0, ss->numVertices * sizeof(float));
+        runLights(ss->varying[VARIABLE_P], ss->varying[VARIABLE_N],
+                  costheta, ss->numVertices, ss->tags,
+                  ss->numActive, ss->numPassive, inShadow,
+                  ss->varying, ss->currentShaderInstance);
+    }
+}
+
+void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numVertices, int *tags) {
+    CShadingState *ss = currentShadingState;
+    float *costheta = (float *)ralloc(numVertices * sizeof(float), threadMemory);
+    const float cosAngle = cosf(angle);
+    for (int i = 0; i < numVertices; ++i) costheta[i] = cosAngle;
+    runLights(P, N, costheta, numVertices, tags,
+              ss->numActive, ss->numPassive, inShadow,
+              ss->varying, ss->currentShaderInstance);
 }
 
 ///////////////////////////////////////////////////////////////////////
