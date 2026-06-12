@@ -277,6 +277,8 @@ class CShadingContext {
 
         // Shade points on a surface
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
+        // Execute a compiled shader (public for RSLShading::shade() in libshader)
+        void execute(CProgrammableShaderInstance *, float **);
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }
         inline void displaceEstimate(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, 3); }
 
@@ -408,8 +410,6 @@ class CShadingContext {
         int inShadow;                // TRUE if we're in a shadow
 
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
-
-        void execute(CProgrammableShaderInstance *, float **); // Execute a shader
 
         // The following functions are used in the shaders
         void duFloat(float *, const float *);
