@@ -47,7 +47,10 @@ class CTracable;
 class CQuadVertex;
 class CQuadTriangle;
 class CQuad;
+class CTexture;
 class CTexture3d;
+class CTextureInfoBase;
+class CPhotonMap;
 class CVertex;
 class CMovingVertex;
 class CTriangle;
@@ -343,6 +346,25 @@ class CShadingContext {
         int numIndirectDiffusePhotonmapLookups;
 
     protected:
+        // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
+        // These wrap CRenderer:: statics so macro headers in execute.cpp reference
+        // only CShadingContext, enabling the shading engine to move to libshader (B4).
+        unsigned int        rendererHiderFlags() const;
+        const float *       rendererWorldBmin() const;
+        const float *       rendererWorldBmax() const;
+        float               rendererClipMin() const;
+        float               rendererClipMax() const;
+        CTexture *          rendererGetTexture(const char *name);
+        CEnvironment *      rendererGetEnvironment(const char *name);
+        CPhotonMap *        rendererGetPhotonMap(const char *name);
+        CTexture3d *        rendererGetCache(const char *handle, const char *mode,
+                                             const float *from, const float *to);
+        CTextureInfoBase *  rendererGetTextureInfo(const char *name);
+        CTexture3d *        rendererGetTexture3d(const char *name, int write,
+                                                 const char *channels,
+                                                 const float *from, const float *to,
+                                                 int hierarchy = FALSE);
+
         // Hiders can hook into the following functions
         virtual void solarBegin(const float *, const float *) {}
         virtual void solarEnd() {}

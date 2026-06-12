@@ -190,19 +190,17 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
     if ((cache = lookup->map) == NULL) {                                                                                                   \
         const float *from, *to;                                                                                                            \
         findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                                                 \
-        osLock(CRenderer::shaderMutex);                                                                                                    \
         const char *mode = scratch->occlusionParams.cacheMode;                                                                             \
         if (scratch->occlusionParams.pointHierarchyName != NULL)                                                                           \
             mode = ""; /* prevent writes */                                                                                                \
-        lookup->map = cache = CRenderer::getCache(scratch->occlusionParams.cacheHandle, mode, from, to);                                   \
+        lookup->map = cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle, mode, from, to);                                \
         if (scratch->occlusionParams.environmentMapName != NULL &&                                                                         \
             scratch->occlusionParams.environmentMapName[0] != 0)                                                                           \
-            lookup->environment = CRenderer::getEnvironment(scratch->occlusionParams.environmentMapName);                                  \
+            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);                               \
         if (scratch->occlusionParams.pointHierarchyName != NULL &&                                                                         \
             scratch->occlusionParams.pointHierarchyName[0] != 0)                                                                           \
-            lookup->pointHierarchy = CRenderer::getTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE); \
+            lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE); \
         cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                               \
-        osUnlock(CRenderer::shaderMutex);                                                                                                  \
     }                                                                                                                                      \
     float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                          \
     float *dPdv = dPdu + numVertices * 3;                                                                                                  \
@@ -279,9 +277,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \
-        osLock(CRenderer::shaderMutex);                                                                                                                                          \
-        lookup->map = map = CRenderer::getPhotonMap(*op1);                                                                                                                       \
-        osUnlock(CRenderer::shaderMutex);                                                                                                                                        \
+        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                  \
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2, *op3;                                                                                                                                                      \
@@ -328,9 +324,7 @@ DEFSHORTFUNC(Photonmap, "photonmap", "c=Spn!", PHOTONMAPEXPR_PRE, PHOTONMAPEXPR,
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \
-        osLock(CRenderer::shaderMutex);                                                                                                                                          \
-        lookup->map = map = CRenderer::getPhotonMap(*op1);                                                                                                                       \
-        osUnlock(CRenderer::shaderMutex);                                                                                                                                        \
+        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                  \
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2;                                                                                                                                                            \

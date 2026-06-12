@@ -202,7 +202,7 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
                                                                 \
     operand(0, Pl, const float *);                              \
                                                                 \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {       \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {       \
         illuminateBegin(Pl, NULL, NULL);                        \
     } else {                                                    \
         float *Ps = varying[VARIABLE_PS];                                   \
@@ -253,7 +253,7 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
     operand(1, Nf, const float *);                                                              \
     operand(2, thetaf, const float *);                                                          \
                                                                                                 \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {                                       \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                       \
         illuminateBegin(Pf, Nf, thetaf);                                                        \
     } else {                                                                                    \
         float *Ps = varying[VARIABLE_PS];                                                                   \
@@ -302,7 +302,7 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
 #define ILLUMINATEEND_PRE
 #else
 #define ILLUMINATEEND_PRE                                 \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) { \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
         illuminateEnd();                                  \
     } else {                                              \
         const float *L = varying[VARIABLE_L];             \
@@ -356,7 +356,7 @@ DEFOPCODE(EndIlluminate, "endilluminate", 0, ILLUMINATEEND_PRE, NULL_EXPR, NULL_
 #define SOLAR1EXPR_PRE
 #else
 #define SOLAR1EXPR_PRE                                    \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) { \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
         solarBegin(NULL, NULL);                           \
     } else {                                              \
         const float *Ps = varying[VARIABLE_PS];           \
@@ -391,7 +391,7 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
     operand(0, Nf, const float *);                              \
     operand(1, thetaf, const float *);                          \
                                                                 \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {       \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {       \
         solarBegin(Nf, thetaf);                                 \
     } else {                                                    \
         vector R;                                               \
@@ -400,7 +400,7 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
         const float *Ns = currentShadingState->Ns;              \
         const float *costheta = currentShadingState->costheta;  \
                                                                 \
-        subvv(R, CRenderer::worldBmax, CRenderer::worldBmin);   \
+        subvv(R, this->rendererWorldBmax(), this->rendererWorldBmin()); \
         worldRadius = dotvv(R, R);                              \
                                                                 \
         for (int i = numVertices; i > 0; --i, ++tags) {         \
@@ -440,7 +440,7 @@ DEFOPCODE(Solar2, "solar", 3, SOLAR2EXPR_PRE, NULL_EXPR, NULL_EXPR, SOLAR2EXPR_P
 #define SOLAREND_PRE
 #else
 #define SOLAREND_PRE                                      \
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) { \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
         solarEnd();                                       \
     } else {                                              \
         const float *L = varying[VARIABLE_L];             \

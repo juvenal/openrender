@@ -514,6 +514,84 @@ CShadingContext::~CShadingContext() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// CShadingContext renderer-service accessors (Phase B Step B3)
+//
+// These thin wrappers forward to CRenderer:: statics so the macro headers
+// (shaderOpcodes.h / shaderFunctions.h / giFunctions.h) can use `this->`
+// instead of `CRenderer::`, removing the direct libshader→src/ri dependency
+// that would otherwise block the shading-engine extraction in Step B4.
+//
+// The texture/environment/cache getters also own the shaderMutex lock so
+// callers do not need to replicate the lock-get-unlock pattern.
+///////////////////////////////////////////////////////////////////////
+
+unsigned int CShadingContext::rendererHiderFlags() const {
+    return CRenderer::hiderFlags;
+}
+
+const float *CShadingContext::rendererWorldBmin() const {
+    return CRenderer::worldBmin;
+}
+
+const float *CShadingContext::rendererWorldBmax() const {
+    return CRenderer::worldBmax;
+}
+
+float CShadingContext::rendererClipMin() const {
+    return CRenderer::clipMin;
+}
+
+float CShadingContext::rendererClipMax() const {
+    return CRenderer::clipMax;
+}
+
+CTexture *CShadingContext::rendererGetTexture(const char *name) {
+    osLock(CRenderer::shaderMutex);
+    CTexture *t = CRenderer::getTexture(name);
+    osUnlock(CRenderer::shaderMutex);
+    return t;
+}
+
+CEnvironment *CShadingContext::rendererGetEnvironment(const char *name) {
+    osLock(CRenderer::shaderMutex);
+    CEnvironment *e = CRenderer::getEnvironment(name);
+    osUnlock(CRenderer::shaderMutex);
+    return e;
+}
+
+CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *name) {
+    osLock(CRenderer::shaderMutex);
+    CPhotonMap *p = CRenderer::getPhotonMap(name);
+    osUnlock(CRenderer::shaderMutex);
+    return p;
+}
+
+CTexture3d *CShadingContext::rendererGetCache(const char *handle, const char *mode,
+                                               const float *from, const float *to) {
+    osLock(CRenderer::shaderMutex);
+    CTexture3d *c = CRenderer::getCache(handle, mode, from, to);
+    osUnlock(CRenderer::shaderMutex);
+    return c;
+}
+
+CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *name) {
+    osLock(CRenderer::shaderMutex);
+    CTextureInfoBase *t = CRenderer::getTextureInfo(name);
+    osUnlock(CRenderer::shaderMutex);
+    return t;
+}
+
+CTexture3d *CShadingContext::rendererGetTexture3d(const char *name, int write,
+                                                   const char *channels,
+                                                   const float *from, const float *to,
+                                                   int hierarchy) {
+    osLock(CRenderer::shaderMutex);
+    CTexture3d *t = CRenderer::getTexture3d(name, write, channels, from, to, hierarchy);
+    osUnlock(CRenderer::shaderMutex);
+    return t;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
 // Method				:	renderPrimitive
 // Description			:	Add an object into the scene

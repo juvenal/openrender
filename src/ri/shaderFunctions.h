@@ -742,9 +742,18 @@ DEFFUNC(NTransform4, "ntransform", "n=Smn", NTRANSFORM4EXPR_PRE, NTRANSFORM4EXPR
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // depth "f=p"
-#define DEPTHEXPR *res = (op[2] - CRenderer::clipMin) / (CRenderer::clipMax - CRenderer::clipMin);
+#ifndef INIT_SHADING
+#define DEPTH_PRE  FUN2EXPR_PRE
+#define DEPTH_EXPR *res = (op[2] - this->rendererClipMin()) / (this->rendererClipMax() - this->rendererClipMin());
+#else
+#define DEPTH_PRE
+#define DEPTH_EXPR
+#endif
 
-DEFFUNC(Depth, "depth", "f=p", FUN2EXPR_PRE, DEPTHEXPR, FUN2EXPR_UPDATE(1, 3), NULL_EXPR, 0)
+DEFFUNC(Depth, "depth", "f=p", DEPTH_PRE, DEPTH_EXPR, FUN2EXPR_UPDATE(1, 3), NULL_EXPR, 0)
+
+#undef DEPTH_PRE
+#undef DEPTH_EXPR
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // clearlighting	"o="
@@ -1384,9 +1393,7 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
                                                                      \
     CTextureInfoBase *textureInfo;                                   \
     if ((textureInfo = lookup->map) == NULL) {                       \
-        osLock(CRenderer::shaderMutex);                              \
-        lookup->map = textureInfo = CRenderer::getTextureInfo(*op1); \
-        osUnlock(CRenderer::shaderMutex);                            \
+        lookup->map = textureInfo = this->rendererGetTextureInfo(*op1); \
     }                                                                \
                                                                      \
     if (textureInfo == NULL) {                                       \
@@ -1544,9 +1551,7 @@ DEFFUNC(ShaderNames, "shadername", "s=s", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     if ((tex = lookup->map) == NULL) {                                                                                       \
         const char **op1;                                                                                                    \
         operand(1, op1, const char **);                                                                                      \
-        osLock(CRenderer::shaderMutex);                                                                                      \
-        lookup->map = tex = CRenderer::getTexture(*op1);                                                                     \
-        osUnlock(CRenderer::shaderMutex);                                                                                    \
+        lookup->map = tex = this->rendererGetTexture(*op1);                                                                 \
     }                                                                                                                        \
     int i;                                                                                                                   \
     float *dsdu = (float *)ralloc(numVertices * 4 * sizeof(float), threadMemory);                                            \
@@ -1662,9 +1667,7 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
     if ((tex = lookup->map) == NULL) {                                 \
         const char **op1;                                              \
         operand(1, op1, const char **);                                \
-        osLock(CRenderer::shaderMutex);                                \
-        lookup->map = tex = CRenderer::getTexture(*op1);               \
-        osUnlock(CRenderer::shaderMutex);                              \
+        lookup->map = tex = this->rendererGetTexture(*op1);           \
     }                                                                  \
     scratch->textureParams.filter = lookup->filter;                   \
     (void)op2;
@@ -1775,9 +1778,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     CEnvironment *tex = NULL;                                                                                                \
     if ((strcmp(*op1, "raytrace") != 0) && (strcmp(*op1, __name) != 0)) {                                                    \
         if ((tex = lookup->map) == NULL) {                                                                                   \
-            osLock(CRenderer::shaderMutex);                                                                                  \
-            lookup->map = tex = CRenderer::getEnvironment(*op1);                                                             \
-            osUnlock(CRenderer::shaderMutex);                                                                                \
+            lookup->map = tex = this->rendererGetEnvironment(*op1);                                                         \
         }                                                                                                                    \
     }                                                                                                                        \
     CTraceLocation *rays = nullptr;                                                                                          \
@@ -2115,9 +2116,7 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
         const char **op1, **op2;                                                                                                                       \
         operand(1, op1, const char **);                                                                                                                \
         operand(2, op2, const char **);                                                                                                                \
-        osLock(CRenderer::shaderMutex);                                                                                                                \
-        lookup->map = tex = CRenderer::getTexture3d(*op1, TRUE, *op2, from, to);                                                                       \
-        osUnlock(CRenderer::shaderMutex);                                                                                                              \
+        lookup->map = tex = this->rendererGetTexture3d(*op1, TRUE, *op2, from, to);                                                                   \
         tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                                             \
     }                                                                                                                                                  \
     float *res;                                                                                                                                        \
@@ -2215,9 +2214,7 @@ DEFSHORTFUNC(Bake3d, "bake3d", "f=SSpn!", BAKE3DEXPR_PRE, BAKE3DEXPR, BAKE3DEXPR
         findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                 \
         const char **op1;                                                                                  \
         operand(1, op1, const char **);                                                                    \
-        osLock(CRenderer::shaderMutex);                                                                    \
-        lookup->map = tex = CRenderer::getTexture3d(*op1, FALSE, NULL, from, to);                          \
-        osUnlock(CRenderer::shaderMutex);                                                                  \
+        lookup->map = tex = this->rendererGetTexture3d(*op1, FALSE, NULL, from, to);                      \
         tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize); \
     }                                                                                                      \
     float *res;                                                                                            \
