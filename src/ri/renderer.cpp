@@ -438,8 +438,14 @@ static void copyOptions(const COptions *o) {
 // Description			:	Begin a frame / compute misc data
 // Return Value			:	-
 // Comments				:
+// Forward declaration: defined in rendererShadingServices.cpp
+void rendererShadingServicesInit();
+
 void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     int i;
+
+    // Register renderer services with the shading engine (idempotent).
+    rendererShadingServicesInit();
 
     // Record the frame start time
     stats.frameStartTime = osCPUTime();

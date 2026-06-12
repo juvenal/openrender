@@ -46,6 +46,10 @@
 #include "stats.h"
 #include "texture3d.h"
 
+// Default services pointer injected by src/ri/ at renderer startup.
+// nullptr until setDefaultServices() is called (standalone libshader mode).
+CRendererServices *CShadingContext::s_defaultServices = nullptr;
+
 // George's extrapolated derivative extensions
 #define USE_EXTRAPOLATED_DERIV
 
@@ -98,7 +102,7 @@ const char *rayLabelGather = "gather";
 // Description			:	This function fills in the missing data (not filled by the object) from attributes
 // Return Value			:
 // Comments				:	Thread safe
-inline void complete(int num, float **varying, unsigned int usedParameters, const CAttributes *attributes1, const CAttributes *attributes2) {
+inline void complete(int num, float **varying, unsigned int usedParameters, const CAttributes *attributes1, const CAttributes *attributes2, CRendererServices *svc) {
     int i;
 
     if (usedParameters & PARAMETER_ALPHA) {
@@ -246,11 +250,11 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
     // range for time.  After this we must never use time assuing 0-1 range
     if (usedParameters & (PARAMETER_TIME | PARAMETER_DTIME)) {
 
-        varying[VARIABLE_DTIME][0] = CRenderer::shutterClose - CRenderer::shutterOpen;
+        varying[VARIABLE_DTIME][0] = svc ? (svc->shutterClose() - svc->shutterOpen()) : 0.f;
 
         float *time = varying[VARIABLE_TIME];
-        const float idtime = CRenderer::invShutterTime;
-        const float t0 = CRenderer::shutterOpen;
+        const float idtime = svc ? svc->invShutterTime() : 1.0f;
+        const float t0     = svc ? svc->shutterOpen()    : 0.0f;
 
         for (i = num; i > 0; i--) {
             time[0] = (time[0] * idtime + t0);
@@ -264,7 +268,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 // Description			:	This function fills in the missing data (not filled by the object) from attributes
 // Return Value			:
 // Comments				:	Thread safe
-inline void complete(int num, float **varying, unsigned int usedParameters, const CAttributes *attributes) {
+inline void complete(int num, float **varying, unsigned int usedParameters, const CAttributes *attributes, CRendererServices *svc) {
     int i;
 
     if (usedParameters & PARAMETER_ALPHA) {
@@ -380,11 +384,11 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
     // range for time.  After this we must never use time assuing 0-1 range
     if (usedParameters & (PARAMETER_TIME | PARAMETER_DTIME)) {
 
-        varying[VARIABLE_DTIME][0] = CRenderer::shutterClose - CRenderer::shutterOpen;
+        varying[VARIABLE_DTIME][0] = svc ? (svc->shutterClose() - svc->shutterOpen()) : 0.f;
 
         float *time = varying[VARIABLE_TIME];
-        const float idtime = CRenderer::invShutterTime;
-        const float t0 = CRenderer::shutterOpen;
+        const float idtime = svc ? svc->invShutterTime() : 1.0f;
+        const float t0     = svc ? svc->shutterOpen()    : 0.0f;
 
         for (i = num; i > 0; i--) {
             time[0] = (time[0] * idtime + t0);
@@ -421,7 +425,10 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     inShadow = FALSE;
 
     // (globalMemory is checkpointed)
-    traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, CRenderer::globalMemory);
+    if (s_defaultServices) {
+        CMemPage *gMem = s_defaultServices->globalMemory();
+        if (gMem) traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, gMem);
+    }
 
     // Fill the object pointers with impossible data
     for (int i = 0; i < SHADING_OBJECT_CACHE_SIZE; i++)
@@ -514,82 +521,38 @@ CShadingContext::~CShadingContext() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CShadingContext renderer-service accessors (Phase B Step B3)
+// CShadingContext renderer-service accessors (Phase B Steps B3/B4)
 //
-// These thin wrappers forward to CRenderer:: statics so the macro headers
-// (shaderOpcodes.h / shaderFunctions.h / giFunctions.h) can use `this->`
-// instead of `CRenderer::`, removing the direct libshader→src/ri dependency
-// that would otherwise block the shading-engine extraction in Step B4.
-//
-// The texture/environment/cache getters also own the shaderMutex lock so
-// callers do not need to replicate the lock-get-unlock pattern.
+// All delegate to currentShadingState->services, which points to the
+// CRendererServicesImpl singleton in renderer contexts and is nullptr
+// in standalone libshader use.
 ///////////////////////////////////////////////////////////////////////
 
-unsigned int CShadingContext::rendererHiderFlags() const {
-    return CRenderer::hiderFlags;
-}
+#define SVC (currentShadingState->services)
 
-const float *CShadingContext::rendererWorldBmin() const {
-    return CRenderer::worldBmin;
-}
+unsigned int      CShadingContext::rendererHiderFlags() const                    { return SVC ? SVC->hiderFlags()  : 0; }
+const float *     CShadingContext::rendererWorldBmin()  const                    { return SVC ? SVC->worldBmin()   : nullptr; }
+const float *     CShadingContext::rendererWorldBmax()  const                    { return SVC ? SVC->worldBmax()   : nullptr; }
+float             CShadingContext::rendererClipMin()    const                    { return SVC ? SVC->clipMin()     : 0.f; }
+float             CShadingContext::rendererClipMax()    const                    { return SVC ? SVC->clipMax()     : 1.f; }
+CTexture *        CShadingContext::rendererGetTexture(const char *n)             { return SVC ? SVC->getTexture(n)     : nullptr; }
+CEnvironment *    CShadingContext::rendererGetEnvironment(const char *n)         { return SVC ? SVC->getEnvironment(n) : nullptr; }
+CPhotonMap *      CShadingContext::rendererGetPhotonMap(const char *n)           { return SVC ? SVC->getPhotonMap(n)   : nullptr; }
+CTexture3d *      CShadingContext::rendererGetCache(const char *h, const char *m,
+                                                    const float *f, const float *t){ return SVC ? SVC->getCache(h,m,f,t) : nullptr; }
+CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *n)         { return SVC ? SVC->getTextureInfo(n) : nullptr; }
+CTexture3d *      CShadingContext::rendererGetTexture3d(const char *n, int w,
+                                                        const char *ch,
+                                                        const float *f, const float *t,
+                                                        int hier)                { return SVC ? SVC->getTexture3d(n,w,ch,f,t,hier) : nullptr; }
+void              CShadingContext::rendererSetOffendingObject(CObject *obj)      { if (SVC) SVC->setOffendingObject(obj); }
+int               CShadingContext::rendererGetGlobalID(const char *n)            { return SVC ? SVC->getGlobalID(n) : 0; }
+int               CShadingContext::rendererShootStep()    const                  { return SVC ? SVC->shootStep()    : 1; }
+RtFilterFunc      CShadingContext::rendererGetFilter(const char *n)    const     { return SVC ? SVC->getFilter(n)     : nullptr; }
+RtStepFilterFunc  CShadingContext::rendererGetStepFilter(const char *n) const   { return SVC ? SVC->getStepFilter(n) : nullptr; }
+CVariable *       CShadingContext::rendererRetrieveVariable(const char *n) const { return SVC ? SVC->retrieveVariable(n) : nullptr; }
 
-const float *CShadingContext::rendererWorldBmax() const {
-    return CRenderer::worldBmax;
-}
-
-float CShadingContext::rendererClipMin() const {
-    return CRenderer::clipMin;
-}
-
-float CShadingContext::rendererClipMax() const {
-    return CRenderer::clipMax;
-}
-
-CTexture *CShadingContext::rendererGetTexture(const char *name) {
-    osLock(CRenderer::shaderMutex);
-    CTexture *t = CRenderer::getTexture(name);
-    osUnlock(CRenderer::shaderMutex);
-    return t;
-}
-
-CEnvironment *CShadingContext::rendererGetEnvironment(const char *name) {
-    osLock(CRenderer::shaderMutex);
-    CEnvironment *e = CRenderer::getEnvironment(name);
-    osUnlock(CRenderer::shaderMutex);
-    return e;
-}
-
-CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *name) {
-    osLock(CRenderer::shaderMutex);
-    CPhotonMap *p = CRenderer::getPhotonMap(name);
-    osUnlock(CRenderer::shaderMutex);
-    return p;
-}
-
-CTexture3d *CShadingContext::rendererGetCache(const char *handle, const char *mode,
-                                               const float *from, const float *to) {
-    osLock(CRenderer::shaderMutex);
-    CTexture3d *c = CRenderer::getCache(handle, mode, from, to);
-    osUnlock(CRenderer::shaderMutex);
-    return c;
-}
-
-CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *name) {
-    osLock(CRenderer::shaderMutex);
-    CTextureInfoBase *t = CRenderer::getTextureInfo(name);
-    osUnlock(CRenderer::shaderMutex);
-    return t;
-}
-
-CTexture3d *CShadingContext::rendererGetTexture3d(const char *name, int write,
-                                                   const char *channels,
-                                                   const float *from, const float *to,
-                                                   int hierarchy) {
-    osLock(CRenderer::shaderMutex);
-    CTexture3d *t = CRenderer::getTexture3d(name, write, channels, from, to, hierarchy);
-    osUnlock(CRenderer::shaderMutex);
-    return t;
-}
+#undef SVC
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
@@ -627,7 +590,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
     // This is the number of vertices we will be sampling/shading
     int numVertices = uVertices * vVertices;
-    assert(numVertices <= CRenderer::maxGridSize);
+    assert(!currentShadingState->services || numVertices <= currentShadingState->services->maxGridSize());
     assert(numVertices > 0);
 
     // Update the stats
@@ -697,7 +660,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         }
 
         // Prepare the used parameters by the shaders
-        usedParameters |= currentAttributes->usedParameters | CRenderer::additionalParameters;
+        usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
 
         // Prepare the locals
         for (int a = 0; a < NUM_ACCESSORS; a++)
@@ -912,7 +875,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             object->interpolate(numVertices, varying, locals);
 
             // Compute I (incident ray direction, camera space)
-            if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+            if (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE) {
                 // For perspective: I = P (camera-space position is the ray direction * t)
                 memcpy(varying[VARIABLE_I], varying[VARIABLE_P], numVertices * 3 * sizeof(float));
             } else {
@@ -933,7 +896,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 const float *dPdu_p = varying[VARIABLE_DPDU];
                 const float *dPdv_p = varying[VARIABLE_DPDV];
                 const float *I_p    = varying[VARIABLE_I];
-                const bool isPersp  = (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE);
+                const bool isPersp  = (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE);
 
                 for (i = 0; i < numVertices; i++, I_p += 3, dPdu_p += 3, dPdv_p += 3) {
                     const float lengthu = dotvv(dPdu_p, dPdu_p);
@@ -942,8 +905,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
                     // Ray footprint in camera space at depth t, scaled by shadingRate
                     const float dest = isPersp
-                        ? shadingRate * CRenderer::dxdPixel / CRenderer::imagePlane * sqrtf(lengthi)
-                        : shadingRate * CRenderer::dxdPixel;
+                        ? shadingRate * currentShadingState->services->dxdPixel() / currentShadingState->services->imagePlane() * sqrtf(lengthi)
+                        : shadingRate * (currentShadingState->services ? currentShadingState->services->dxdPixel() : 1.0f);
 
                     // ku = sin(angle between I and dPdu): perpendicular component
                     float ku = dotvv(I_p, dPdu_p);
@@ -976,7 +939,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         // Compute the I
         if (currentRayDepth == 0) {
-            if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+            if (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE) {
                 memcpy(varying[VARIABLE_I], varying[VARIABLE_P], numVertices * 3 * sizeof(float));
             } else {
                 float *I = varying[VARIABLE_I];
@@ -991,10 +954,11 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));
 
     // Fill in the uninitialized variables from the attributes
+    CRendererServices *svc = currentShadingState->services;
     if (currentAttributes->next != NULL) {
-        complete(numVertices, varying, usedParameters, currentAttributes, currentAttributes->next);
+        complete(numVertices, varying, usedParameters, currentAttributes, currentAttributes->next, svc);
     } else {
-        complete(numVertices, varying, usedParameters, currentAttributes);
+        complete(numVertices, varying, usedParameters, currentAttributes, svc);
     }
 
     // Save the memory here
@@ -1110,25 +1074,27 @@ CShadingState *CShadingContext::newState() {
         CShadingState *newState = new CShadingState;
         int j;
         float *E;
-        const int numGlobalVariables = CRenderer::globalVariables->numItems;
-        CVariable **globalVariables = CRenderer::globalVariables->array;
+        CRendererServices *svc = s_defaultServices;
+        const int numGlobalVariables = svc->numGlobalVariables();
+        const int mgs = svc->maxGridSize();
 
         newState->varying = new float *[numGlobalVariables];
         vertexMemory += numGlobalVariables * sizeof(float *);
-        newState->tags = new int[CRenderer::maxGridSize * 3];
-        vertexMemory += CRenderer::maxGridSize * 3 * sizeof(int);
-        newState->lightingTags = new int[CRenderer::maxGridSize * 3];
-        vertexMemory += CRenderer::maxGridSize * 3 * sizeof(int);
-        newState->Ns = new float[CRenderer::maxGridSize * 9];
-        vertexMemory += CRenderer::maxGridSize * 9 * sizeof(float);
+        newState->tags = new int[mgs * 3];
+        vertexMemory += mgs * 3 * sizeof(int);
+        newState->lightingTags = new int[mgs * 3];
+        vertexMemory += mgs * 3 * sizeof(int);
+        newState->Ns = new float[mgs * 9];
+        vertexMemory += mgs * 9 * sizeof(float);
         newState->alights = NULL;
         newState->freeLights = NULL;
         newState->postShader = NULL;
         newState->currentObject = NULL;
-        newState->stats = &stats; // Point to global stats (renderer context)
+        newState->stats = &stats;
+        newState->services = svc;
 
         for (j = 0; j < numGlobalVariables; j++) {
-            const CVariable *var = globalVariables[j];
+            const CVariable *var = svc->globalVariable(j);
 
             assert(var != NULL);
 
@@ -1142,18 +1108,18 @@ CShadingState *CShadingContext::newState() {
                 }
             } else {
                 if (var->type == TYPE_STRING) {
-                    newState->varying[j] = (float *)new char *[var->numFloats * CRenderer::maxGridSize * 3];
-                    vertexMemory += var->numFloats * CRenderer::maxGridSize * 3 * sizeof(char *);
+                    newState->varying[j] = (float *)new char *[var->numFloats * mgs * 3];
+                    vertexMemory += var->numFloats * mgs * 3 * sizeof(char *);
                 } else {
-                    newState->varying[j] = new float[var->numFloats * CRenderer::maxGridSize * 3];
-                    vertexMemory += var->numFloats * CRenderer::maxGridSize * 3 * sizeof(float);
+                    newState->varying[j] = new float[var->numFloats * mgs * 3];
+                    vertexMemory += var->numFloats * mgs * 3 * sizeof(float);
                 }
             }
         }
 
         // E is always (0,0,0)
         E = newState->varying[VARIABLE_E];
-        for (j = CRenderer::maxGridSize * 3; j > 0; j--, E += 3)
+        for (j = mgs * 3; j > 0; j--, E += 3)
             initv(E, 0, 0, 0);
 
         if (vertexMemory > peakVertexMemory)
@@ -1188,29 +1154,30 @@ void CShadingContext::deleteState(CShadingState *cState) {
 // Comments				:
 void CShadingContext::freeState(CShadingState *cState) {
     int j;
-    const int numGlobalVariables = CRenderer::globalVariables->numItems;
-    CVariable **globalVariables = CRenderer::globalVariables->array;
+    CRendererServices *svc = s_defaultServices;
+    const int numGlobalVariables = svc->numGlobalVariables();
+    const int mgs = svc->maxGridSize();
 
     for (j = 0; j < numGlobalVariables; j++) {
-        const CVariable *var = globalVariables[j];
+        const CVariable *var = svc->globalVariable(j);
 
         if ((var->container == CONTAINER_UNIFORM) || (var->container == CONTAINER_CONSTANT)) {
             delete[] cState->varying[j];
             vertexMemory -= var->numFloats * sizeof(float);
         } else {
             delete[] cState->varying[j];
-            vertexMemory -= var->numFloats * CRenderer::maxGridSize * 3 * sizeof(float);
+            vertexMemory -= var->numFloats * mgs * 3 * sizeof(float);
         }
     }
 
     delete[] cState->varying;
     vertexMemory -= numGlobalVariables * sizeof(float *);
     delete[] cState->tags;
-    vertexMemory -= CRenderer::maxGridSize * 3 * sizeof(int);
+    vertexMemory -= mgs * 3 * sizeof(int);
     delete[] cState->lightingTags;
-    vertexMemory -= CRenderer::maxGridSize * 3 * sizeof(int);
+    vertexMemory -= mgs * 3 * sizeof(int);
     delete[] cState->Ns;
-    vertexMemory -= CRenderer::maxGridSize * 9 * sizeof(float);
+    vertexMemory -= mgs * 9 * sizeof(float);
 
     delete cState;
 }
@@ -1349,106 +1316,79 @@ int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable *
 // Return Value			:	-
 // Comments				:
 int CShadingContext::options(void *dest, const char *name, CVariable **, int *) {
+    CRendererServices *svc = currentShadingState->services;
+    if (!svc) return FALSE;
+
     if (strcmp(name, optionsFormat) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::xres;
-        d[1] = (float)CRenderer::yres;
-        d[2] = (float)1;
+        d[0] = (float)svc->xres(); d[1] = (float)svc->yres(); d[2] = 1.f;
         return TRUE;
     } else if (strcmp(name, optionsDeviceFrame) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::frame;
+        ((float *)dest)[0] = (float)svc->frame();
         return TRUE;
     } else if (strcmp(name, optionsDeviceResolution) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::xres;
-        d[1] = (float)CRenderer::yres;
-        d[2] = (float)1;
+        d[0] = (float)svc->xres(); d[1] = (float)svc->yres(); d[2] = 1.f;
         return TRUE;
     } else if (strcmp(name, optionsFrameAspectRatio) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::frameAR;
+        ((float *)dest)[0] = svc->frameAR();
         return TRUE;
     } else if (strcmp(name, optionsCropWindow) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::cropLeft;
-        d[1] = (float)CRenderer::cropTop;
-        d[2] = (float)CRenderer::cropRight;
-        d[3] = (float)CRenderer::cropBottom;
+        d[0] = svc->cropLeft(); d[1] = svc->cropTop();
+        d[2] = svc->cropRight(); d[3] = svc->cropBottom();
         return TRUE;
     } else if (strcmp(name, optionsDepthOfField) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::fstop;
-        d[1] = (float)CRenderer::focallength;
-        d[2] = (float)CRenderer::focaldistance;
+        d[0] = svc->fstop(); d[1] = svc->focallength(); d[2] = svc->focaldistance();
         return TRUE;
     } else if (strcmp(name, optionsShutter) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::shutterOpen;
-        d[1] = (float)CRenderer::shutterClose;
+        d[0] = svc->shutterOpen(); d[1] = svc->shutterClose();
         return TRUE;
     } else if (strcmp(name, optionsClipping) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::clipMin;
-        d[1] = (float)CRenderer::clipMax;
+        d[0] = svc->clipMin(); d[1] = svc->clipMax();
         return TRUE;
     } else if (strcmp(name, optionsBucketSize) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::bucketWidth;
-        d[1] = (float)CRenderer::bucketHeight;
+        d[0] = svc->bucketWidth(); d[1] = svc->bucketHeight();
         return TRUE;
     } else if (strcmp(name, optionsColorQuantizer) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::colorQuantizer[0];
-        d[1] = (float)CRenderer::colorQuantizer[1];
-        d[2] = (float)CRenderer::colorQuantizer[2];
-        d[3] = (float)CRenderer::colorQuantizer[3];
+        const float *q = svc->colorQuantizer(); float *d = (float *)dest;
+        d[0] = q[0]; d[1] = q[1]; d[2] = q[2]; d[3] = q[3];
         return TRUE;
     } else if (strcmp(name, optionsDepthQuantizer) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::depthQuantizer[0];
-        d[1] = (float)CRenderer::depthQuantizer[1];
-        d[2] = (float)CRenderer::depthQuantizer[2];
-        d[3] = (float)CRenderer::depthQuantizer[3];
+        const float *q = svc->depthQuantizer(); float *d = (float *)dest;
+        d[0] = q[0]; d[1] = q[1]; d[2] = q[2]; d[3] = q[3];
         return TRUE;
     } else if (strcmp(name, optionsPixelFilter) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::pixelFilterWidth;
-        d[1] = (float)CRenderer::pixelFilterHeight;
+        d[0] = svc->pixelFilterWidth(); d[1] = svc->pixelFilterHeight();
         return TRUE;
     } else if (strcmp(name, optionsGamma) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::gamma;
-        d[1] = (float)CRenderer::gain;
+        d[0] = svc->gamma(); d[1] = svc->gain();
         return TRUE;
     } else if (strcmp(name, optionsMaxRayDepth) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::maxRayDepth;
+        ((float *)dest)[0] = (float)svc->maxRayDepth();
         return TRUE;
     } else if (strcmp(name, optionsRelativeDetail) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)CRenderer::relativeDetail;
+        ((float *)dest)[0] = svc->relativeDetail();
         return TRUE;
     } else if (strcmp(name, optionsPixelSamples) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)CRenderer::pixelXsamples;
-        d[1] = (float)CRenderer::pixelYsamples;
+        d[0] = (float)svc->pixelXsamples(); d[1] = (float)svc->pixelYsamples();
         return TRUE;
-    }
-    // User options
-    else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
+    } else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
         CVariable *var;
-
-        if (CRenderer::userOptions->lookup(name + strlen(attributesUser), var) == TRUE) {
+        if (svc->lookupUserOption(name + strlen(attributesUser), var)) {
             if (var->type == TYPE_STRING) {
                 char **d = (char **)dest;
                 char **s = (char **)var->defaultValue;
-                for (int i = 0; i < var->numFloats; i++) {
-                    d[i] = s[i];
-                }
+                for (int i = 0; i < var->numFloats; i++) d[i] = s[i];
             } else {
-                float *d = (float *)dest;
-                memcpy(d, var->defaultValue, sizeof(float) * var->numFloats);
+                memcpy(dest, var->defaultValue, sizeof(float) * var->numFloats);
             }
             return TRUE;
         }
@@ -1617,14 +1557,10 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
 // Return Value			:	-
 // Comments				:
 void CShadingContext::findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &cSystem) {
-    CNamedCoordinateSystem *currentSystem;
+    CRendererServices *svc = currentShadingState->services;
+    if (svc && svc->findCoordinateSystemWithType(name, from, to, cSystem)) {
 
-    if (CRenderer::definedCoordinateSystems->find(name, currentSystem)) {
-        from = currentSystem->from;
-        to = currentSystem->to;
-        cSystem = currentSystem->systemType;
-
-        switch (currentSystem->systemType) {
+        switch (cSystem) {
         case COORDINATE_OBJECT:
             if (currentShadingState->currentObject == NULL) {
                 error(CODE_SYSTEM, "Object system reference without an object\n");
@@ -1640,32 +1576,22 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
             to = identityMatrix;
             break;
         case COORDINATE_WORLD:
-            from = CRenderer::fromWorld;
-            to = CRenderer::toWorld;
+            // from/to already set by findCoordinateSystemWithType
             break;
         case COORDINATE_SHADER:
             assert(currentShadingState->currentShaderInstance != NULL);
-
             from = currentShadingState->currentShaderInstance->xform->from;
             to = currentShadingState->currentShaderInstance->xform->to;
             break;
         case COORDINATE_LIGHT:
             assert(currentShadingState->currentLightInstance != NULL);
-
             from = currentShadingState->currentLightInstance->xform->from;
             to = currentShadingState->currentLightInstance->xform->to;
             break;
         case COORDINATE_NDC:
-            from = CRenderer::fromNDC;
-            to = CRenderer::toNDC;
-            break;
         case COORDINATE_RASTER:
-            from = CRenderer::fromRaster;
-            to = CRenderer::toRaster;
-            break;
         case COORDINATE_SCREEN:
-            from = CRenderer::fromScreen;
-            to = CRenderer::toScreen;
+            // from/to already set by findCoordinateSystemWithType
             break;
         case COORDINATE_CURRENT:
             from = identityMatrix;
@@ -1681,9 +1607,7 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
             // Don't handle color, the custom must have been handled
             break;
         case COORDINATE_CUSTOM:
-            // Don't handle color, the custom must have been handled
-            from = currentSystem->from;
-            to = currentSystem->to;
+            // from/to already set by findCoordinateSystemWithType
             break;
         default:
             warning(CODE_BUG, "Unknown coordinate system: %s\n", name);

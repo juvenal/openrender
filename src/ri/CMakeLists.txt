@@ -63,6 +63,7 @@ set(ri_sources
 	shader.cpp
 	shaderPl.cpp
 	shading.cpp
+	rendererShadingServices.cpp
 	show.cpp
 #	sl.cpp
 	stats.cpp

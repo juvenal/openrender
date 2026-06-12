@@ -32,6 +32,7 @@
 #include "common/global.h"
 #include "random.h"
 #include "shader.h"
+#include "libshader/shading/rendererServices.h"
 
 // Some forward definitions
 class CShaderInstance;
@@ -214,6 +215,9 @@ class CShadingState {
         // ---> Stats accounting (libshader Phase B: decoupling from global stats)
         CStats *stats; // Pointer to renderer stats (nullptr for standalone shading engine use)
 
+        // ---> Renderer services (libshader Phase B: decoupling from CRenderer globals)
+        CRendererServices *services; // nullptr in standalone mode
+
         CShadingState *next; // The next in free state list
 };
 
@@ -345,10 +349,16 @@ class CShadingContext {
         int numOcclusionSamples;
         int numIndirectDiffusePhotonmapLookups;
 
+        // Inject renderer services used by newState(). Call once at renderer startup
+        // (before any shading context is constructed). nullptr disables all service calls.
+        static void setDefaultServices(CRendererServices *svc) { s_defaultServices = svc; }
+
     protected:
+
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
-        // These wrap CRenderer:: statics so macro headers in execute.cpp reference
-        // only CShadingContext, enabling the shading engine to move to libshader (B4).
+        // All delegate to currentShadingState->services (set from CRendererServicesImpl
+        // in the renderer context, nullptr in standalone libshader use).
+        // These methods are called from macro headers (B3) and from shading.cpp.
         unsigned int        rendererHiderFlags() const;
         const float *       rendererWorldBmin() const;
         const float *       rendererWorldBmax() const;
@@ -364,6 +374,13 @@ class CShadingContext {
                                                  const char *channels,
                                                  const float *from, const float *to,
                                                  int hierarchy = FALSE);
+        // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
+        void                rendererSetOffendingObject(CObject *obj);
+        int                 rendererGetGlobalID(const char *name);
+        int                 rendererShootStep() const;
+        RtFilterFunc        rendererGetFilter(const char *name) const;
+        RtStepFilterFunc    rendererGetStepFilter(const char *name) const;
+        CVariable *         rendererRetrieveVariable(const char *name) const;
 
         // Hiders can hook into the following functions
         virtual void solarBegin(const float *, const float *) {}
@@ -475,6 +492,9 @@ class CShadingContext {
         friend class CProgrammableShaderInstance;
         friend class CSphereLight;
         friend class CQuadLight;
+
+        // Default renderer services injected by src/ri/ at startup via setDefaultServices()
+        static CRendererServices *s_defaultServices;
 };
 
 #endif

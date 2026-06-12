@@ -175,7 +175,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 
 #define scripterror(mes)                                                                         \
     {                                                                                            \
-        CRenderer::offendingObject = currentShadingState->currentObject;                         \
+        rendererSetOffendingObject(currentShadingState->currentObject);                          \
         error(CODE_SCRIPT, "\"%s\", in shader \"%s\" (nullified)\n", mes, cInstance->getName()); \
         cInstance->parent->codeEntryPoint = -1;                                                  \
         cInstance->parent->initEntryPoint = -1;                                                  \
@@ -485,10 +485,10 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     int invertCatMatch = FALSE;                                    \
     if (*(*lC) != '\0') {                                          \
         if (*(*lC) == '-') {                                       \
-            saveCat = -(runCat = CRenderer::getGlobalID(*lC + 1)); \
+            saveCat = -(runCat = rendererGetGlobalID(*lC + 1)); \
             invertCatMatch = TRUE;                                 \
         } else {                                                   \
-            saveCat = runCat = CRenderer::getGlobalID(*lC);        \
+            saveCat = runCat = rendererGetGlobalID(*lC);        \
         }                                                          \
     }
 
