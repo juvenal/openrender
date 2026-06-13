@@ -19,6 +19,7 @@
 #define RI_LLVMJIT_H
 
 #include "common/global.h"
+#include "sloMetadata.h"
 #include <string>
 #include <memory>
 #include <mutex>
@@ -26,6 +27,7 @@
 
 // Forward declarations for LLVM types to keep headers clean
 namespace llvm {
+    class LLVMContext;
     class Module;
     namespace orc {
         class LLJIT;
@@ -34,7 +36,7 @@ namespace llvm {
 
 /**
  * @brief Signature for the JIT-compiled shader entry point.
- * 
+ *
  * @param numVertices Number of vertices in the chunk to process.
  * @param stuff Pointer to the access arrays (constants, globals, locals).
  * @param tags Pointer to the activity tags array.
@@ -50,13 +52,33 @@ public:
     ~CLLVMJitEngine();
 
     /**
-     * @brief Loads an .slo bitcode file and adds it to the JIT.
-     * 
-     * @param filename Path to the .slo file.
+     * @brief Loads an .slo bitcode file, extracts its named metadata, and JIT-compiles it.
+     *
+     * On success, the SLOShaderInfo extracted from the module is stored in the metadata
+     * cache and can be retrieved with getCachedMetadata().
+     *
+     * @param filename   Path to the .slo file.
      * @param shaderName Name of the shader entry point.
      * @return TShaderJitEntry Function pointer to the compiled shader, or nullptr on failure.
      */
     TShaderJitEntry compileShader(const std::string &filename, const std::string &shaderName);
+
+    /**
+     * @brief Returns the metadata cached by the most recent compileShader() call for
+     *        the given shader name.  Returns false if no metadata was found in the module.
+     */
+    bool getCachedMetadata(const std::string &shaderName, SLOShaderInfo &info) const;
+
+    /**
+     * @brief Read-only metadata probe: parses the .slo bitcode and extracts named metadata
+     *        without initializing the JIT or adding anything to the ORC engine.
+     *        Suitable for tools (e.g., sloinfo) that only inspect .slo files.
+     *
+     * @param filename Path to the .slo file.
+     * @param info     Output: populated on success.
+     * @return true if the metadata was found and parsed, false otherwise.
+     */
+    static bool extractMetadataFromFile(const std::string &filename, SLOShaderInfo &info);
 
     /**
      * @brief Singleton access for the global JIT engine.
@@ -67,6 +89,10 @@ private:
     std::unique_ptr<llvm::orc::LLJIT> jit;
     std::mutex compileMutex_;
     std::unordered_map<std::string, TShaderJitEntry> cache_;
+    std::unordered_map<std::string, SLOShaderInfo>   metaCache_;
+
+    // Extract named metadata from an already-loaded module.
+    static bool extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info);
 };
 
 #endif // RI_LLVMJIT_H

@@ -627,8 +627,10 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     int i;
 
 #ifdef OPENRENDER_HAVE_LLVM
-    // Probe for a .slo (LLVM bitcode) companion on first prepare. The .rslo holds
-    // variable metadata; the .slo holds the compiled shader body. Both must exist.
+    // Probe for a standalone .slo (LLVM bitcode + named metadata) on first prepare.
+    // .slo and .rslo are independent artifacts: .slo carries its own metadata and
+    // does not require a companion .rslo.  When found, the JIT path takes priority.
+    // If no .slo is present the interpreter (.rslo) path is used as fallback.
     if (jitEntry == nullptr && parent->name != nullptr) {
         const char *filename = parent->name;
         const char *ext = strrchr(filename, '.');
@@ -636,13 +638,11 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
         if (ext != nullptr && strcmp(ext, ".slo") == 0) {
             sloPath = filename;
         } else if (ext != nullptr) {
+            // Derive .slo path from the shader file path (replace or append .slo).
             sloPath = std::string(filename, ext) + ".slo";
         }
-        if (!sloPath.empty()) {
-            // Stat without <sys/stat.h> — use osExists from common/os.h
-            if (osFileExists(sloPath.c_str()))
-                jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, parent->name);
-        }
+        if (!sloPath.empty() && osFileExists(sloPath.c_str()))
+            jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, parent->name);
     }
 #endif
 
