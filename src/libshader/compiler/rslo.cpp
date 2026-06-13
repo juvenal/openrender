@@ -1506,11 +1506,21 @@ void CScriptContext::generateCode(const char *o) {
     if (compileError != 0)
         return;
 
-    out = fopen(o, "w");
-
-    if (out == nullptr) {
-        rslo->error("Failed to open \"%s\"\n", o);
-        return;
+    if (emitJIT) {
+        // JIT mode: we only need the IR for emitLLVMBitcode; do NOT create or
+        // touch the .rslo file.  Route Phase 1 header output to an anonymous
+        // temp file that is discarded when fclose(out) is called.
+        out = tmpfile();
+        if (out == nullptr) {
+            rslo->error("tmpfile() failed — cannot discard .rslo output in JIT mode\n");
+            return;
+        }
+    } else {
+        out = fopen(o, "w");
+        if (out == nullptr) {
+            rslo->error("Failed to open \"%s\"\n", o);
+            return;
+        }
     }
 
     fprintf(out, "#!version %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
