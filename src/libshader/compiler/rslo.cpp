@@ -1646,9 +1646,14 @@ void CScriptContext::generateCode(const char *o) {
         pm.addPass(std::make_unique<CDCEPass>());
         pm.run(*mod, dumpIR);
 
-        // Emit the (optimized) Init and Code sections.
-        CRSLObjectEmitter emitter;
-        emitter.emitFunctions(*mod, out);
+        if (emitJIT) {
+            // Retain the optimized IR for the caller to emit .slo.
+            lastCompiledModule = std::move(mod);
+        } else {
+            // Emit the (optimized) Init and Code sections to the .rslo file.
+            CRSLObjectEmitter emitter;
+            emitter.emitFunctions(*mod, out);
+        }
     }
 
     fclose(out);

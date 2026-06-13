@@ -69,6 +69,8 @@
 #include "common/global.h"     // The global header file
 #include "common/os.h"
 #include "expression.h" // Expressions
+#include "ir.h"         // IRModule (for lastCompiledModule)
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -407,6 +409,11 @@ class CScriptContext {
         // in which it is valid (SLC_SURFACE, SLC_LIGHT, etc.).  Zero means valid
         // in all contexts.  Populated by addGlobalVariable(); checked in getVariable().
         std::unordered_map<std::string, int> globalVarScope;
+
+        // Set by oshader when --jit is requested.  If true, compile() retains
+        // the optimized IRModule in lastCompiledModule so the caller can emit .slo.
+        bool                        emitJIT = false;
+        std::unique_ptr<IRModule>   lastCompiledModule;  // populated when emitJIT == true
 };
 
 // thread_local: each compiler thread owns its own context pointer.

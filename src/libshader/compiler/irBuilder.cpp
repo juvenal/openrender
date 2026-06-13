@@ -145,30 +145,45 @@ std::unique_ptr<IRModule> CIRBuilder::build() {
 }
 
 // -------------------------------------------------------------------------
-// buildVarTable: populate mod.vars from ctx_.variables
+// buildVarTable: populate mod.vars from:
+//   1. RSL global scope (ctx_.variables) — P, N, Ci, etc.  (SLC_GLOBAL bit)
+//   2. Shader parameters (ctx_.shaderFunction->parameters) — Ka, Kd, …
+//   3. Shader local vars (ctx_.shaderFunction->variables)  — temporaries
+//
+// Parameters come before locals so that the sequential slot-2 index assigned
+// by the LLVM emitter matches what CProgrammableShaderInstance::prepare()
+// builds from the #!parameters / #!variables sections in the .rslo file.
 // -------------------------------------------------------------------------
 
+static void addVar(IRModule &mod, CVariable *cvar) {
+    if (!cvar) return;
+    IRVarInfo v;
+    v.symbolName = cvar->symbolName ? cvar->symbolName : "";
+    // Parameters use symbolName as their code name (no separate cName).
+    v.cName      = cvar->cName ? cvar->cName : v.symbolName;
+    v.slcType    = cvar->type;
+    v.numItems   = cvar->numItems;
+    v.defaultValue = "";
+    if (cvar->type & SLC_PARAMETER) {
+        CParameter *cp = static_cast<CParameter *>(cvar);
+        if (cp->defaultValue) v.defaultValue = cp->defaultValue;
+    }
+    // Include if either name is non-empty.
+    if (!v.cName.empty() || !v.symbolName.empty())
+        mod.addVar(v);
+}
+
 void CIRBuilder::buildVarTable(IRModule &mod) {
+    // ctx_.variables is the full scope list: RSL globals AND shader parameters
+    // (parameters have cName=null; addVar() falls back to symbolName for them).
     CVariable *cvar = ctx_.variables->first();
-    while (cvar != nullptr) {
-        IRVarInfo v;
-        v.cName      = cvar->cName      ? cvar->cName      : "";
-        v.symbolName = cvar->symbolName ? cvar->symbolName : "";
-        v.slcType    = cvar->type;
-        v.numItems   = cvar->numItems;
-        v.defaultValue = "";
+    while (cvar != nullptr) { addVar(mod, cvar); cvar = ctx_.variables->next(); }
 
-        // For parameters, copy the default value string.
-        if (cvar->type & SLC_PARAMETER) {
-            CParameter *cp = static_cast<CParameter *>(cvar);
-            if (cp->defaultValue)
-                v.defaultValue = cp->defaultValue;
-        }
-
-        if (!v.cName.empty())
-            mod.addVar(v);
-
-        cvar = ctx_.variables->next();
+    // Shader local variables (temporaries) are in shaderFunction->variables
+    // and are NOT in ctx_.variables, so we add them separately.
+    if (ctx_.shaderFunction) {
+        CVariable *cv = ctx_.shaderFunction->variables->first();
+        while (cv != nullptr) { addVar(mod, cv); cv = ctx_.shaderFunction->variables->next(); }
     }
 }
 

@@ -36,6 +36,11 @@ set(compiler_sources
     passes/passCSE.cpp
 )
 
+if(OPENRENDER_HAVE_LLVM)
+    list(APPEND compiler_sources llvmEmitter.cpp)
+    llvm_map_components_to_libnames(_compiler_llvm_libs core bitwriter support)
+endif()
+
 add_library(libshader_compiler_obj OBJECT
     ${compiler_sources}
     ${parser_sources}
@@ -65,11 +70,19 @@ target_include_directories(libshader_compiler_obj
 )
 
 target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon)
+if(OPENRENDER_HAVE_LLVM)
+    target_include_directories(libshader_compiler_obj PRIVATE ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(libshader_compiler_obj PRIVATE ${LLVM_DEFINITIONS})
+    target_link_libraries(libshader_compiler_obj PRIVATE ${_compiler_llvm_libs})
+endif()
 
 # Shared + static libraries
 add_library(libshader_compiler SHARED
     $<TARGET_OBJECTS:libshader_compiler_obj>)
 target_link_libraries(libshader_compiler PUBLIC openrendercommon)
+if(OPENRENDER_HAVE_LLVM)
+    target_link_libraries(libshader_compiler PRIVATE ${_compiler_llvm_libs})
+endif()
 target_include_directories(libshader_compiler PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/libshader/include>)
 set_target_properties(libshader_compiler PROPERTIES

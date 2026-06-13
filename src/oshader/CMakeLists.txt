@@ -24,4 +24,12 @@ target_include_directories(oshader PRIVATE
 
 target_link_libraries(oshader PRIVATE libshader_compiler openrendercommon)
 
+# When LLVM is available, oshader can emit .slo (JIT bitcode) via --jit.
+# The llvmEmitter.cpp is compiled into libshader_compiler, which already links LLVM.
+# oshader only needs the config.h define and LLVM include path for the #ifdef guard.
+if(OPENRENDER_HAVE_LLVM)
+    target_include_directories(oshader PRIVATE ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(oshader PRIVATE ${LLVM_DEFINITIONS})
+endif()
+
 install(TARGETS oshader RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
