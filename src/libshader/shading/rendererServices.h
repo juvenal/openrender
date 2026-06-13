@@ -82,6 +82,7 @@ class CRendererServices {
         virtual float        clipMin() const = 0;
         virtual float        clipMax() const = 0;
         virtual unsigned int hiderFlags() const = 0;
+        virtual bool         hasIlluminationHook() const = 0;
 
         ///////////////////////////////////////////////////////////////
         // World bounds

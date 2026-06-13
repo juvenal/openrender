@@ -54,6 +54,7 @@ class CRendererServicesImpl final : public CRendererServices {
         float        clipMin() const override    { return CRenderer::clipMin; }
         float        clipMax() const override    { return CRenderer::clipMax; }
         unsigned int hiderFlags() const override { return CRenderer::hiderFlags; }
+        bool hasIlluminationHook() const override { return (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) != 0; }
 
         // World bounds
         const float *worldBmin() const override { return CRenderer::worldBmin; }

@@ -16,9 +16,9 @@
  */
 
 #include "rslBuiltins.h"
+#include "activeContext.h"
 #include "noise.h"
 #include "shading.h"
-#include "renderer.h"
 #include "texture.h"
 #include "shader.h"
 #include "memory.h"
@@ -176,38 +176,40 @@ void rsl_noise_v_p_scalar(float* out, const float* in) {
 }
 
 void rsl_texture_c_scalar(float* out, const char* name, float s, float t) {
-    CTexture *tex = CRenderer::getTexture(name);
+    CShadingContext *ctx = libshader::activeContext();
+    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
+    CTexture *tex = svc ? svc->getTexture(name) : nullptr;
     if (tex) {
         // CTexture::lookup takes a context for parameter list access (blur, etc.)
         // For simple lookup we might need a context anyway.
         // For now, let's use the active one.
-        tex->lookup(out, s, t, CRenderer::activeContext);
+        tex->lookup(out, s, t, libshader::activeContext());
     } else {
         out[0] = out[1] = out[2] = 0.0f;
     }
 }
 
 float rsl_attribute_scalar(const char* name, float* out) {
-    if (CRenderer::activeContext)
-        return CRenderer::activeContext->queryAttribute(out, name);
+    if (libshader::activeContext())
+        return libshader::activeContext()->queryAttribute(out, name);
     return 0.0f;
 }
 
 float rsl_option_scalar(const char* name, float* out) {
-    if (CRenderer::activeContext)
-        return CRenderer::activeContext->queryOption(out, name);
+    if (libshader::activeContext())
+        return libshader::activeContext()->queryOption(out, name);
     return 0.0f;
 }
 
 float rsl_rendererinfo_scalar(const char* name, float* out) {
-    if (CRenderer::activeContext)
-        return CRenderer::activeContext->queryRendererInfo(out, name);
+    if (libshader::activeContext())
+        return libshader::activeContext()->queryRendererInfo(out, name);
     return 0.0f;
 }
 
 float rsl_trace_scalar(const float* P, const float* R) {
     (void)P; (void)R;
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0.0f;
     // P is origin, R is direction
     // In openRender, we usually use CRayBundle or similar.
@@ -221,17 +223,17 @@ float rsl_trace_scalar(const float* P, const float* R) {
 // --- Lighting Built-ins (ambient / diffuse) ---
 
 void rsl_ambient(float *result) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callAmbient(result);
 }
 
 void rsl_diffuse(float *result, const float *Nf) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callDiffuse(result, Nf);
 }
 
 void rsl_ambient_1v(float *result_1v, int vtx) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) { result_1v[0] = result_1v[1] = result_1v[2] = 0.0f; return; }
     ctx->prepareAmbient();
     CShadingState *ss = ctx->currentShadingState;
@@ -245,7 +247,7 @@ void rsl_ambient_1v(float *result_1v, int vtx) {
 }
 
 void rsl_diffuse_1v(float *result_1v, const float *Nf_1v, int vtx) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) { result_1v[0] = result_1v[1] = result_1v[2] = 0.0f; return; }
     ctx->prepareDiffuse();
     CShadingState *ss = ctx->currentShadingState;
@@ -267,20 +269,20 @@ void rsl_diffuse_1v(float *result_1v, const float *Nf_1v, int vtx) {
 }
 
 void rsl_illuminance_setup(float* P, float* N, float angle, int numVertices, int* tags) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
     ctx->setupIlluminance(P, N, angle, numVertices, tags);
 }
 
 int rsl_illuminance_next_jit(float** L_ptr, float** Cl_ptr, int numVertices, int* tags) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
     CShadingState *ss = ctx->currentShadingState;
     return rsl_illuminance_next(L_ptr, Cl_ptr, numVertices, tags, &ss->numActive, &ss->numPassive);
 }
 
 void rsl_illuminance_post_jit(int numVertices, int* tags) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
     CShadingState *ss = ctx->currentShadingState;
     rsl_illuminance_post(numVertices, tags, &ss->numActive, &ss->numPassive);
@@ -290,7 +292,7 @@ int rsl_illuminance_next_batch(int numVertices, int* tags) {
     // Instruction-outer variant: advance to next light and copy its L/Cl directly
     // into varying[VARIABLE_L] and varying[VARIABLE_CL] for all active vertices,
     // mirroring the interpreter's ILLUMINATION2EXPR_PRE copyback loop.
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
     CShadingState *ss = ctx->currentShadingState;
 
@@ -346,24 +348,28 @@ int rsl_illuminance_next_batch(int numVertices, int* tags) {
 
 void rsl_run_lights(const float* P, const float* N, const float* T, int numVertices, int* tags, int* numActive, int* numPassive, int inShadow, float** varying, void* cInstance) {
     (void)P; (void)N; (void)T; (void)numVertices; (void)tags; (void)numActive; (void)numPassive; (void)inShadow; (void)varying; (void)cInstance;
-    if (CRenderer::activeContext) {
-        CRenderer::activeContext->runLights(P, N, T, numVertices, tags, *numActive, *numPassive, inShadow, varying, (CShaderInstance*)cInstance);
+    if (libshader::activeContext()) {
+        libshader::activeContext()->runLights(P, N, T, numVertices, tags, *numActive, *numPassive, inShadow, varying, (CShaderInstance*)cInstance);
     }
 }
 
 void rsl_run_category_lights(const float* P, const float* N, const float* T, const char* category, int numVertices, int* tags, int* numActive, int* numPassive, int inShadow, float** varying, void* cInstance) {
     (void)category;
-    if (CRenderer::activeContext) {
+    CShadingContext *ctx2 = libshader::activeContext();
+    if (ctx2) {
         int runCat = 0;
         if (category && category[0] != '\0') {
-            runCat = (category[0] == '-') ? -CRenderer::getGlobalID(category + 1) : CRenderer::getGlobalID(category);
+            CRendererServices *svc = ctx2->getServices();
+            if (svc) {
+                runCat = (category[0] == '-') ? -svc->getGlobalID(category + 1) : svc->getGlobalID(category);
+            }
         }
-        CRenderer::activeContext->runCategoryLights(P, N, T, numVertices, tags, *numActive, *numPassive, runCat, inShadow, varying, (CShaderInstance*)cInstance);
+        ctx2->runCategoryLights(P, N, T, numVertices, tags, *numActive, *numPassive, runCat, inShadow, varying, (CShaderInstance*)cInstance);
     }
 }
 
 int rsl_illuminance_next(float** L_ptr, float** Cl_ptr, int numVertices, int* tags, int* numActive, int* numPassive) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
     CShadingState *ss = ctx->currentShadingState;
 
@@ -404,7 +410,7 @@ int rsl_illuminance_next(float** L_ptr, float** Cl_ptr, int numVertices, int* ta
 }
 
 void rsl_illuminance_post(int numVertices, int* tags, int* numActive, int* numPassive) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
     CShadingState *ss = ctx->currentShadingState;
     if (ss->currentLight == nullptr) return;
@@ -426,9 +432,9 @@ void rsl_illuminance_post(int numVertices, int* tags, int* numActive, int* numPa
 }
 
 int rsl_illuminate_begin_1(const float* Pl) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callIlluminateBegin(Pl, nullptr, nullptr);
         return 1;
     }
@@ -459,9 +465,9 @@ int rsl_illuminate_begin_1(const float* Pl) {
 }
 
 int rsl_illuminate_begin_3(const float* Pl, const float* Nf, const float* theta) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callIlluminateBegin(Pl, Nf, theta);
         return 1;
     }
@@ -496,9 +502,9 @@ int rsl_illuminate_begin_3(const float* Pl, const float* Nf, const float* theta)
 }
 
 void rsl_illuminate_end(void) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callIlluminateEnd();
         return;
     }
@@ -565,9 +571,9 @@ void rsl_illuminate_end(void) {
 }
 
 int rsl_solar_begin_1(void) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callSolarBegin(nullptr, nullptr);
         return 1;
     }
@@ -586,9 +592,9 @@ int rsl_solar_begin_1(void) {
 }
 
 int rsl_solar_begin_2(const float* Nf, const float* theta) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return 0;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callSolarBegin(Nf, theta);
         return 1;
     }
@@ -598,9 +604,12 @@ int rsl_solar_begin_2(const float* Nf, const float* theta) {
     float *L = ss->varying[VARIABLE_L];
     const float *Ns = ss->Ns;
     const float *ct = ss->costheta;
-    float rx = CRenderer::worldBmax[0] - CRenderer::worldBmin[0];
-    float ry = CRenderer::worldBmax[1] - CRenderer::worldBmin[1];
-    float rz = CRenderer::worldBmax[2] - CRenderer::worldBmin[2];
+    CRendererServices *svc2 = ctx->getServices();
+    const float *wbmax = svc2 ? svc2->worldBmax() : nullptr;
+    const float *wbmin = svc2 ? svc2->worldBmin() : nullptr;
+    float rx = (wbmax && wbmin) ? (wbmax[0] - wbmin[0]) : 0.0f;
+    float ry = (wbmax && wbmin) ? (wbmax[1] - wbmin[1]) : 0.0f;
+    float rz = (wbmax && wbmin) ? (wbmax[2] - wbmin[2]) : 0.0f;
     float wr = rx*rx + ry*ry + rz*rz;
     // Nf is a UNIFORM direction (same for all vertices in a directional/solar light).
     // Read it once as a constant rather than indexing per-vertex (Nf[3*i] would read
@@ -622,9 +631,9 @@ int rsl_solar_begin_2(const float* Nf, const float* theta) {
 }
 
 void rsl_solar_end(void) {
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
-    if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
+    if (ctx->getServices() && ctx->getServices()->hasIlluminationHook()) {
         ctx->callSolarEnd();
         return;
     }

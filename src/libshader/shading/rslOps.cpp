@@ -17,8 +17,8 @@
  */
 
 #include "rslOps.h"
+#include "activeContext.h"
 #include "shading.h"
-#include "renderer.h"
 
 #include <cmath>
 #include <cstring>
@@ -397,20 +397,20 @@ void op_endif_update(int* tags, int n, int* numActive, int* numPassive) {
 
 void op_ambient_batch(float* result, int n, const int* tags) {
     (void)tags; // callAmbient handles tags internally through ss->tags
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callAmbient(result);
 }
 
 void op_diffuse_batch(float* result, int sr, const float* Nf, int sn, int n, const int* tags) {
     (void)sr; (void)n; (void)tags;
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callDiffuse(result, Nf);
 }
 
 void op_specular_batch(float* result, const float* Nf, const float* V,
                        const float* roughness, int n, const int* tags) {
     (void)n; (void)tags;
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callSpecular(result, Nf, V, roughness ? roughness[0] : 0.1f);
 }
 
@@ -421,7 +421,7 @@ void op_specular_batch(float* result, const float* Nf, const float* V,
 void op_lightsource_f(float* result, int sr, const char* attrName, float* outParam, int so, int n, const int* tags) {
     (void)n; (void)tags;
     float value = 0.0f;
-    CShadingContext *ctx = CRenderer::activeContext;
+    CShadingContext *ctx = libshader::activeContext();
     if (ctx) {
         CShadingState *ss = ctx->currentShadingState;
         if (ss && ss->currentLightInstance) {
@@ -438,17 +438,23 @@ void op_lightsource_f(float* result, int sr, const char* attrName, float* outPar
 // =========================================================================
 
 static bool getFromMatrix(const char* space, const float*& fromMat) {
+    CShadingContext *ctx = libshader::activeContext();
+    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
+    if (!svc) { fromMat = nullptr; return false; }
     const float *to = nullptr;
     ECoordinateSystem dummy;
-    if (CRenderer::findCoordinateSystem(space, fromMat, to, dummy) != 0 && fromMat != nullptr)
+    if (svc->findCoordinateSystemWithType(space, fromMat, to, dummy) && fromMat != nullptr)
         return true;
     fromMat = nullptr;
     return false;
 }
 static bool getToMatrix(const char* space, const float*& toMat) {
+    CShadingContext *ctx = libshader::activeContext();
+    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
+    if (!svc) { toMat = nullptr; return false; }
     const float *from = nullptr;
     ECoordinateSystem dummy;
-    if (CRenderer::findCoordinateSystem(space, from, toMat, dummy) != 0 && toMat != nullptr)
+    if (svc->findCoordinateSystemWithType(space, from, toMat, dummy) && toMat != nullptr)
         return true;
     toMat = nullptr;
     return false;

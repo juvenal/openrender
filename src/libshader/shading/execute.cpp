@@ -39,6 +39,7 @@
 #include "shader.h"
 #include "shaderPl.h"
 #include "shading.h"
+#include "activeContext.h"
 #include "rslo_code.h"
 #include "surface.h"
 #include "texture.h"
@@ -554,7 +555,9 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     // JIT dispatch: if a compiled entry point exists for this shader, call it
     // instead of the interpreter and return immediately.
     if (cInstance->jitEntry != nullptr) {
+        libshader::setActiveContext(this);
         cInstance->jitEntry(numVertices, stuff, tagStart);
+        libshader::setActiveContext(nullptr);
         // Mirror interpreter execEnd: accumulate ambient Cl for lightsource shaders.
         if (currentShader->type == SL_LIGHTSOURCE &&
             !(currentShader->usedParameters & PARAMETER_NONAMBIENT) &&

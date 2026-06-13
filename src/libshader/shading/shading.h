@@ -358,6 +358,14 @@ class CShadingContext {
         // (before any shading context is constructed). nullptr disables all service calls.
         static void setDefaultServices(CRendererServices *svc) { s_defaultServices = svc; }
 
+        // Returns services for the current state, falling back to the default singleton.
+        // Called by rslBuiltins/rslOps so they do not depend on CRenderer directly.
+        CRendererServices *getServices() const {
+            if (currentShadingState && currentShadingState->services)
+                return currentShadingState->services;
+            return s_defaultServices;
+        }
+
         // ---> Query wrappers (used by rslBuiltins / JIT runtime)
         int queryAttribute(void *dest, const char *name)   { return attributes(dest, name, nullptr, nullptr); }
         int queryOption(void *dest, const char *name)       { return options(dest, name, nullptr, nullptr); }
