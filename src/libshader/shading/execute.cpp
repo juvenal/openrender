@@ -35,7 +35,6 @@
 #include "memory.h"
 #include "noise.h"
 #include "photonMap.h"
-#include "renderer.h"
 #include "ri_config.h"
 #include "shader.h"
 #include "shaderPl.h"

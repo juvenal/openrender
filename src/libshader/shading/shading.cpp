@@ -39,7 +39,6 @@
 #include "random.h"
 #include "raytracer.h"
 #include "remoteChannel.h"
-#include "renderer.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
@@ -487,6 +486,8 @@ CShadingContext::~CShadingContext() {
 
     // Ditch the shading states that have been allocated
     assert(currentShadingState != NULL);
+    // Save stats pointer before freeing states (pointer lives in state, not context)
+    CStats *savedStats = currentShadingState->stats;
     freeState(currentShadingState);
     CShadingState *cState;
     while ((cState = freeStates) != NULL) {
@@ -505,19 +506,21 @@ CShadingContext::~CShadingContext() {
     // The frame assertions
     assert(vertexMemory == 0);
 
-    // Update the global statistics
-    stats.numIndirectDiffuseRays += numIndirectDiffuseRays;
-    stats.numIndirectDiffuseSamples += numIndirectDiffuseSamples;
-    stats.numOcclusionRays += numOcclusionRays;
-    stats.numOcclusionSamples += numOcclusionSamples;
-    stats.numIndirectDiffusePhotonmapLookups += numIndirectDiffusePhotonmapLookups;
-    stats.numShade += numShade;
-    stats.numSampled += numSampled;
-    stats.numShaded += numShaded;
-    stats.numTracedRays += numTracedRays;
-    stats.numReflectionRays += numReflectionRays;
-    stats.numTransmissionRays += numTransmissionRays;
-    stats.numGatherRays += numGatherRays;
+    // Flush local counters to renderer stats (null in standalone libshader use)
+    if (savedStats) {
+        savedStats->numIndirectDiffuseRays += numIndirectDiffuseRays;
+        savedStats->numIndirectDiffuseSamples += numIndirectDiffuseSamples;
+        savedStats->numOcclusionRays += numOcclusionRays;
+        savedStats->numOcclusionSamples += numOcclusionSamples;
+        savedStats->numIndirectDiffusePhotonmapLookups += numIndirectDiffusePhotonmapLookups;
+        savedStats->numShade += numShade;
+        savedStats->numSampled += numSampled;
+        savedStats->numShaded += numShaded;
+        savedStats->numTracedRays += numTracedRays;
+        savedStats->numReflectionRays += numReflectionRays;
+        savedStats->numTransmissionRays += numTransmissionRays;
+        savedStats->numGatherRays += numGatherRays;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
