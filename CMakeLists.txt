@@ -588,3 +588,40 @@ install(CODE "
         message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
     endif()
 ")
+
+# Second independent pass: compile .slo (LLVM JIT bitcode) when LLVM is available.
+# Runs only when OPENRENDER_HAVE_LLVM was set at configure time.
+# Failures here are warnings only — .rslo is always the authoritative fallback.
+if(OPENRENDER_HAVE_LLVM)
+install(CODE "
+    message(STATUS \"Compiling installed RSL shaders to .slo (LLVM JIT)...\")
+    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
+    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
+    set(_incdir \"-I\${_shaderdir}/includes\")
+
+    if(NOT EXISTS \"\${_oshader_install}\")
+        message(WARNING \"  oshader binary not found — skipping .slo compilation\")
+    else()
+        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
+        set(_ok 0)
+        set(_failed 0)
+        foreach(_sl \${_sl_files})
+            get_filename_component(_base \${_sl} NAME_WE)
+            execute_process(
+                COMMAND \"\${_oshader_install}\" --jit \${_incdir} \${_sl}
+                WORKING_DIRECTORY \${_shaderdir}
+                RESULT_VARIABLE _rc
+                OUTPUT_VARIABLE _out
+                ERROR_VARIABLE _err
+            )
+            if(_rc)
+                message(WARNING \"  oshader --jit: \${_base}.sl failed (rc=\${_rc})\")
+                math(EXPR _failed \"\${_failed} + 1\")
+            else()
+                math(EXPR _ok \"\${_ok} + 1\")
+            endif()
+        endforeach()
+        message(STATUS \"  Shaders compiled to .slo: \${_ok} ok, \${_failed} failed\")
+    endif()
+")
+endif()

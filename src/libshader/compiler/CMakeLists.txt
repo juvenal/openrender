@@ -84,6 +84,11 @@ add_library(libshader_compiler SHARED
 target_link_libraries(libshader_compiler PUBLIC openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
     target_link_libraries(libshader_compiler PUBLIC ${_compiler_llvm_libs})
+    # LLVM's component map produces overlapping transitive deps (Core, Support appear
+    # in both explicit and transitive lists).  Suppress the harmless ld64 warning.
+    if(APPLE)
+        target_link_options(libshader_compiler PRIVATE -Wl,-no_warn_duplicate_libraries)
+    endif()
 endif()
 target_include_directories(libshader_compiler PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/libshader/include>)
