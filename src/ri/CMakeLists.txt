@@ -108,17 +108,10 @@ target_include_directories(ri_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
 # include dirs, and external lib headers (TIFF, PNG).
 target_link_libraries(ri_obj PRIVATE openrendercommon ${openrendertiff_libs})
 
-# LLVM libs: ri must link these explicitly because libshader_shading (STATIC)
-# references LLVM symbols that must be resolved in the final ri shared library.
-if(OPENRENDER_HAVE_LLVM)
-    llvm_map_components_to_libnames(RI_LLVM_LIBRARIES
-        core orcjit native bitreader support
-    )
-endif()
-
 # Shared library — external deps (TIFF, PNG, z) are PRIVATE (implementation detail
 # of libri; not part of its public API, so not propagated to linking executables).
 # Phase C: ri links against libshader_shading (shading engine in its own library).
+# LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
 add_library(ri SHARED $<TARGET_OBJECTS:ri_obj>)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
@@ -128,9 +121,6 @@ target_include_directories(ri PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ri PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
-if(OPENRENDER_HAVE_LLVM)
-    target_link_libraries(ri PRIVATE ${RI_LLVM_LIBRARIES})
-endif()
 if(WIN32)
     target_link_libraries(ri PRIVATE zlib ws2_32)
 endif()

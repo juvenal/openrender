@@ -395,13 +395,13 @@ void op_endif_update(int* tags, int n, int* numActive, int* numPassive) {
 // Lighting — batch wrappers (same functions the interpreter uses)
 // =========================================================================
 
-void op_ambient_batch(float* result, int n, const int* tags) {
+void op_ambient_batch(float* result, int n [[maybe_unused]], const int* tags) {
     (void)tags; // callAmbient handles tags internally through ss->tags
     CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callAmbient(result);
 }
 
-void op_diffuse_batch(float* result, int sr, const float* Nf, int sn, int n, const int* tags) {
+void op_diffuse_batch(float* result, int sr, const float* Nf, int sn [[maybe_unused]], int n, const int* tags) {
     (void)sr; (void)n; (void)tags;
     CShadingContext *ctx = libshader::activeContext();
     if (ctx) ctx->callDiffuse(result, Nf);

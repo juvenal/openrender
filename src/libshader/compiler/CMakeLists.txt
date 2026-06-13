@@ -39,6 +39,7 @@ set(compiler_sources
 if(OPENRENDER_HAVE_LLVM)
     list(APPEND compiler_sources llvmEmitter.cpp)
     llvm_map_components_to_libnames(_compiler_llvm_libs core bitwriter support)
+    list(REMOVE_DUPLICATES _compiler_llvm_libs)
 endif()
 
 add_library(libshader_compiler_obj OBJECT
@@ -71,9 +72,10 @@ target_include_directories(libshader_compiler_obj
 
 target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
+    # Include dirs and defines only — no link dep on the OBJECT library.
+    # The SHARED library below carries the actual LLVM link to avoid duplicates.
     target_include_directories(libshader_compiler_obj PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_compiler_obj PRIVATE ${LLVM_DEFINITIONS})
-    target_link_libraries(libshader_compiler_obj PRIVATE ${_compiler_llvm_libs})
 endif()
 
 # Shared + static libraries
@@ -81,7 +83,7 @@ add_library(libshader_compiler SHARED
     $<TARGET_OBJECTS:libshader_compiler_obj>)
 target_link_libraries(libshader_compiler PUBLIC openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
-    target_link_libraries(libshader_compiler PRIVATE ${_compiler_llvm_libs})
+    target_link_libraries(libshader_compiler PUBLIC ${_compiler_llvm_libs})
 endif()
 target_include_directories(libshader_compiler PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/libshader/include>)

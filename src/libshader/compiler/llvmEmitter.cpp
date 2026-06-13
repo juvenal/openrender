@@ -175,7 +175,6 @@ static llvm::Function *declareOp(llvm::Module &mod, const std::string &name,
 // Generate LLVM IR for one IRFunction (init or code section).
 // =========================================================================
 static void emitFunction(const IRFunction &irFn,
-                         llvm::Function *llvmFn,
                          llvm::BasicBlock *entryBB,
                          llvm::Value *numVerts,
                          llvm::Value *slot1,  // RSL globals
@@ -380,12 +379,9 @@ static void emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {dst, a});
             }
             else if (op == "vufloat") {
-                // op_vufloat(dst, val) — store uniform float; val might be a literal
-                // For now, resolve as variable if possible, else skip
+                // op_vufloat(dst, val) — treat as uniform moveff
                 auto [a, sa] = getVar(0);
                 if (!dst || !a) continue;
-                auto *ty = llvm::FunctionType::get(voidTy, {ptrTy, ptrTy}, false);
-                // Treat it as moveff with uniform stride
                 auto *fn = declareOp(mod, "op_moveff", unOpTy);
                 B.CreateCall(fn, {dst, B.getInt32(0), a, B.getInt32(0), numVerts, tags});
             }
@@ -473,7 +469,7 @@ bool emitLLVMBitcode(const IRModule &mod,
     auto varTbl = buildVarTable(mod);
 
     // Emit code section (the main shader body).
-    emitFunction(mod.codeFn, func, entry,
+    emitFunction(mod.codeFn, entry,
                  numVerts, slot1, slot2, tags,
                  varTbl, ctx, *llvmMod);
 

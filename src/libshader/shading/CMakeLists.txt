@@ -64,7 +64,9 @@ target_include_directories(libshader_shading PUBLIC
 target_link_libraries(libshader_shading PRIVATE openrendercommon)
 
 if(OPENRENDER_HAVE_LLVM)
-    target_link_libraries(libshader_shading PRIVATE ${SHADING_LLVM_LIBS})
+    # PUBLIC so that ri (which links this STATIC lib) automatically gets LLVM
+    # on its link line without ri/CMakeLists.txt having to add it again.
+    target_link_libraries(libshader_shading PUBLIC ${SHADING_LLVM_LIBS})
     target_include_directories(libshader_shading PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_shading PRIVATE ${LLVM_DEFINITIONS})
 endif()
