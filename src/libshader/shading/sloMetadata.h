@@ -5,11 +5,12 @@
 //
 // Named metadata layout (all string-valued for portability):
 //
-//   !openrender.shader.name    = !{!"plastic"}
-//   !openrender.shader.type    = !{!"surface"}   ; surface|light|displacement|volume|imager
-//   !openrender.shader.version = !{!"1"}
-//   !openrender.shader.params  = !{!p0, !p1, ...}
-//   !openrender.shader.vars    = !{!v0, ...}     ; local temporaries
+//   !openrender.shader.name           = !{!"plastic"}
+//   !openrender.shader.type           = !{!"surface"}   ; surface|light|displacement|volume|imager
+//   !openrender.shader.version        = !{!"1"}
+//   !openrender.shader.usedparameters = !{!"131072"}    ; decimal PARAMETER_* bitmask
+//   !openrender.shader.params         = !{!p0, !p1, ...}
+//   !openrender.shader.vars           = !{!v0, ...}     ; local temporaries
 //
 //   !p0 = !{!"Ka", !"float", !"uniform", !"false", !"1", !"1.0"}
 //         ;  name   type      storage     writable   size  default
@@ -40,12 +41,19 @@ struct SLOParamInfo {
     std::string defaultStr; // default value as a parseable string, may be empty
 };
 
+// Metadata key for shaders that have a non-trivial #!Init section.
+// When present in the bitcode, an additional function "shadername_init" exists
+// with the same signature as the main entry: void(i32 n, ptr stuff, ptr tags).
+static constexpr const char *kMetaHasInit = "openrender.shader.hasinit";
+
 struct SLOShaderInfo {
     std::string              name;
-    std::string              typeName; // "surface", "light", "displacement", "volume", "imager"
+    std::string              typeName;     // "surface", "light", "displacement", "volume", "imager"
     int                      version;
-    std::vector<SLOParamInfo> params;  // shader parameters
-    std::vector<SLOParamInfo> vars;    // local variables (temporaries)
+    unsigned int             usedParameters; // PARAMETER_* bitmask (see rendererc.h)
+    std::vector<SLOParamInfo> params;      // shader parameters
+    std::vector<SLOParamInfo> vars;        // local variables (temporaries)
 
+    SLOShaderInfo() : version(1), usedParameters(0) {}
     bool valid() const { return !name.empty() && !typeName.empty(); }
 };

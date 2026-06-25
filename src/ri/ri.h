@@ -92,55 +92,159 @@ typedef void (*RtDisplayFinishFunction)(void *);
 //
 ////////////////////////////////////////////////////////////////////////
 EXTERN(RtToken)
-RI_FRAMEBUFFER, RI_FILE;
+    RI_FRAMEBUFFER,
+    RI_FILE;
+
 EXTERN(RtToken)
-RI_RGB, RI_RGBA, RI_RGBZ, RI_RGBAZ, RI_A, RI_Z, RI_AZ;
+    RI_RGB,
+    RI_RGBA,
+    RI_RGBZ,
+    RI_RGBAZ,
+    RI_A,
+    RI_Z,
+    RI_AZ;
+
 EXTERN(RtToken)
-RI_PERSPECTIVE, RI_ORTHOGRAPHIC;
+    RI_PERSPECTIVE,
+    RI_ORTHOGRAPHIC;
+
 EXTERN(RtToken)
-RI_HIDDEN, RI_PAINT;
+    RI_HIDDEN,
+    RI_PAINT;
+
 EXTERN(RtToken)
-RI_CONSTANT, RI_SMOOTH;
+    RI_CONSTANT,
+    RI_SMOOTH;
+
 EXTERN(RtToken)
-RI_FLATNESS, RI_FOV;
+    RI_FLATNESS,
+    RI_FOV;
+
 EXTERN(RtToken)
-RI_AMBIENTLIGHT, RI_POINTLIGHT, RI_DISTANTLIGHT, RI_SPOTLIGHT;
+    RI_AMBIENTLIGHT,
+    RI_POINTLIGHT,
+    RI_DISTANTLIGHT,
+    RI_SPOTLIGHT;
+
 EXTERN(RtToken)
-RI_INTENSITY, RI_LIGHTCOLOR, RI_FROM, RI_TO, RI_CONEANGLE, RI_CONEDELTAANGLE, RI_BEAMDISTRIBUTION;
+    RI_INTENSITY,
+    RI_LIGHTCOLOR,
+    RI_FROM,
+    RI_TO,
+    RI_CONEANGLE,
+    RI_CONEDELTAANGLE,
+    RI_BEAMDISTRIBUTION;
+
 EXTERN(RtToken)
-RI_MATTE, RI_METAL, RI_SHINYMETAL, RI_PLASTIC, RI_PAINTEDPLASTIC;
+    RI_MATTE,
+    RI_METAL,
+    RI_SHINYMETAL,
+    RI_PLASTIC,
+    RI_PAINTEDPLASTIC;
+
 EXTERN(RtToken)
-RI_KA, RI_KD, RI_KS, RI_ROUGHNESS, RI_KR, RI_TEXTURENAME, RI_SPECULARCOLOR;
+    RI_KA,
+    RI_KD,
+    RI_KS,
+    RI_ROUGHNESS,
+    RI_KR,
+    RI_TEXTURENAME,
+    RI_SPECULARCOLOR;
+
 EXTERN(RtToken)
-RI_DEPTHCUE, RI_FOG, RI_BUMPY;
+    RI_DEPTHCUE,
+    RI_FOG,
+    RI_BUMPY;
+
 EXTERN(RtToken)
-RI_MINDISTANCE, RI_BACKGROUND, RI_DISTANCE, RI_AMPLITUDE;
+    RI_MINDISTANCE,
+    RI_BACKGROUND,
+    RI_DISTANCE,
+    RI_AMPLITUDE;
+
 EXTERN(RtToken)
-RI_RASTER, RI_SCREEN, RI_CAMERA, RI_WORLD, RI_OBJECT;
+    RI_RASTER,
+    RI_SCREEN,
+    RI_CAMERA,
+    RI_WORLD,
+    RI_OBJECT;
+
 EXTERN(RtToken)
-RI_INSIDE, RI_OUTSIDE, RI_LH, RI_RH;
+    RI_INSIDE,
+    RI_OUTSIDE,
+    RI_LH,
+    RI_RH;
+
 EXTERN(RtToken)
-RI_P, RI_PZ, RI_PW, RI_N, RI_NP, RI_CS, RI_OS, RI_S, RI_T, RI_ST;
+    RI_P,
+    RI_PZ,
+    RI_PW,
+    RI_N,
+    RI_NP,
+    RI_CS,
+    RI_OS,
+    RI_S,
+    RI_T,
+    RI_ST;
+
 EXTERN(RtToken)
-RI_BILINEAR, RI_BICUBIC;
+    RI_BILINEAR,
+    RI_BICUBIC;
+
 EXTERN(RtToken)
-RI_PRIMITIVE, RI_INTERSECTION, RI_UNION, RI_DIFFERENCE;
+    RI_PRIMITIVE,
+    RI_INTERSECTION,
+    RI_UNION,
+    RI_DIFFERENCE;
+
 EXTERN(RtToken)
-RI_PERIODIC, RI_NOWRAP, RI_NONPERIODIC, RI_CLAMP, RI_BLACK;
+    RI_PERIODIC,
+    RI_NOWRAP,
+    RI_NONPERIODIC,
+    RI_CLAMP,
+    RI_BLACK;
+
 EXTERN(RtToken)
-RI_IGNORE, RI_PRINT, RI_ABORT, RI_HANDLER;
+    RI_IGNORE,
+    RI_PRINT,
+    RI_ABORT,
+    RI_HANDLER;
+
 EXTERN(RtToken)
-RI_ORIGIN, RI_IDENTIFIER, RI_NAME;
+    RI_ORIGIN,
+    RI_IDENTIFIER,
+    RI_NAME;
+
 EXTERN(RtToken)
-RI_COMMENT, RI_STRUCTURE, RI_VERBATIM;
+    RI_COMMENT,
+    RI_STRUCTURE,
+    RI_VERBATIM;
+
 EXTERN(RtToken)
-RI_LINEAR, RI_CUBIC, RI_WIDTH, RI_CONSTANTWIDTH;
+    RI_LINEAR,
+    RI_CUBIC,
+    RI_WIDTH,
+    RI_CONSTANTWIDTH;
+
 EXTERN(RtToken)
-RI_CATMULLCLARK, RI_HOLE, RI_CREASE, RI_CORNER, RI_INTERPOLATEBOUNDARY;
+    RI_CATMULLCLARK,
+    RI_HOLE,
+    RI_CREASE,
+    RI_CORNER,
+    RI_INTERPOLATEBOUNDARY;
+
 EXTERN(RtToken)
-RI_CURRENT, RI_WORLD, RI_OBJECT, RI_SHADER;
+    RI_CURRENT,
+    RI_WORLD,
+    RI_OBJECT,
+    RI_SHADER;
+
 EXTERN(RtToken)
-RI_RASTER, RI_NDC, RI_SCREEN, RI_CAMERA, RI_EYE;
+    RI_RASTER,
+    RI_NDC,
+    RI_SCREEN,
+    RI_CAMERA,
+    RI_EYE;
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -148,36 +252,23 @@ RI_RASTER, RI_NDC, RI_SCREEN, RI_CAMERA, RI_EYE;
 //
 ////////////////////////////////////////////////////////////////////////
 EXTERN(RtToken)
-RI_BOXFILTER;
-EXTERN(RtToken)
-RI_TRIANGLEFILTER;
-EXTERN(RtToken)
-RI_GAUSSIANFILTER;
-EXTERN(RtToken)
-RI_SINCFILTER;
-EXTERN(RtToken)
-RI_CATMULLROMFILTER;
-EXTERN(RtToken)
-RI_BLACKMANHARRISFILTER;
-EXTERN(RtToken)
-RI_MITCHELLFILTER;
-EXTERN(RtToken)
-RI_BESSELFILTER;
-EXTERN(RtToken)
-RI_DISKFILTER;
-EXTERN(RtToken)
-RI_CUSTOM;
+    RI_BOXFILTER,
+    RI_TRIANGLEFILTER,
+    RI_GAUSSIANFILTER,
+    RI_SINCFILTER,
+    RI_CATMULLROMFILTER,
+    RI_BLACKMANHARRISFILTER,
+    RI_MITCHELLFILTER,
+    RI_BESSELFILTER,
+    RI_DISKFILTER,
+    RI_CUSTOM;
 
 EXTERN(RtToken)
-RI_MIN;
-EXTERN(RtToken)
-RI_MAX;
-EXTERN(RtToken)
-RI_AVERAGE;
-EXTERN(RtToken)
-RI_ZMIN;
-EXTERN(RtToken)
-RI_ZMAX;
+    RI_MIN,
+    RI_MAX,
+    RI_AVERAGE,
+    RI_ZMIN,
+    RI_ZMAX;
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -185,45 +276,27 @@ RI_ZMAX;
 //
 ////////////////////////////////////////////////////////////////////////
 EXTERN(RtToken)
-RI_LIMITS;
+    RI_SEARCHPATH,
+    RI_LIMITS,
+    RI_SHADOW,
+    RI_RENDER,
+    RI_HIDER,
+    RI_STATISTICS,
+    RI_COMPRESSION,
+    RI_RIB,
+    RI_SHUTTER,
+    RI_USER;
+
 EXTERN(RtToken)
-RI_SEARCHPATH;
-EXTERN(RtToken)
-RI_SHADOW;
-EXTERN(RtToken)
-RI_RENDER;
-EXTERN(RtToken)
-RI_DICE;
-EXTERN(RtToken)
-RI_HINT;
-EXTERN(RtToken)
-RI_TEXTURE;
-EXTERN(RtToken)
-RI_HIDER;
-EXTERN(RtToken)
-RI_STATISTICS;
-EXTERN(RtToken)
-RI_VISIBILITY;
-EXTERN(RtToken)
-RI_SHADE;
-EXTERN(RtToken)
-RI_BOUND;
-EXTERN(RtToken)
-RI_DISPLACEMENT;
-EXTERN(RtToken)
-RI_DISPLACEMENTBOUND;
-EXTERN(RtToken)
-RI_IRRADIANCE;
-EXTERN(RtToken)
-RI_CULL;
-EXTERN(RtToken)
-RI_COMPRESSION;
-EXTERN(RtToken)
-RI_RIB;
-EXTERN(RtToken)
-RI_SHUTTER;
-EXTERN(RtToken)
-RI_USER;
+    RI_DICE,
+    RI_HINT,
+    RI_TEXTURE,
+    RI_VISIBILITY,
+    RI_SHADE,
+    RI_DISPLACEMENT,
+    RI_DISPLACEMENTBOUND,
+    RI_IRRADIANCE,
+    RI_CULL;
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -233,98 +306,70 @@ RI_USER;
 
 // The geometric approximation types
 EXTERN(RtToken)
-RI_NORMALDEVIATION;
-EXTERN(RtToken)
-RI_POINTDEVIATION;
+    RI_NORMALDEVIATION,
+    RI_POINTDEVIATION;
 
 // Dice attributes
 EXTERN(RtToken)
-RI_MINSUBDIVISION;
-EXTERN(RtToken)
-RI_MAXSUBDIVISION;
-EXTERN(RtToken)
-RI_NUMPROBES;
-EXTERN(RtToken)
-RI_MINSPLITS;
-EXTERN(RtToken)
-RI_BOUNDEXPAND;
-EXTERN(RtToken)
-RI_BINARY;
-EXTERN(RtToken)
-RI_RASTERORIENT;
+    RI_MINSUBDIVISION,
+    RI_MAXSUBDIVISION,
+    RI_NUMPROBES,
+    RI_MINSPLITS,
+    RI_BOUNDEXPAND,
+    RI_BINARY,
+    RI_RASTERORIENT;
 
 // Displacementbound attributes
 EXTERN(RtToken)
-RI_SPHERE;
-EXTERN(RtToken)
-RI_COORDINATESYSYTEM;
+    RI_BOUND,
+    RI_SPHERE,
+    RI_COORDINATESYSYTEM;
 
 // Visibility attributes
 EXTERN(RtToken)
-RI_PHOTON;
-EXTERN(RtToken)
-RI_SHADOW;
-EXTERN(RtToken)
-RI_ENVIRONMENT;
-EXTERN(RtToken)
-RI_DIFFUSE;
-EXTERN(RtToken)
-RI_SPECULAR;
-EXTERN(RtToken)
-RI_TRACE;
-EXTERN(RtToken)
-RI_TRANSMISSION;
-EXTERN(RtToken)
-RI_CAUSTICS;
+    RI_PHOTON,
+    RI_SHADOW,
+    RI_ENVIRONMENT,
+    RI_DIFFUSE,
+    RI_SPECULAR,
+    RI_TRACE,
+    RI_TRANSMISSION,
+    RI_CAUSTICS;
 
 // Shade attributes
 EXTERN(RtToken)
-RI_DIFFUSEHITMODE;
-EXTERN(RtToken)
-RI_SPECULARHITMODE;
-EXTERN(RtToken)
-RI_TRANSMISSIONHITMODE;
-EXTERN(RtToken)
-RI_CAMERAHITMODE;
+    RI_SHADERFORMAT,
+    RI_DIFFUSEHITMODE,
+    RI_SPECULARHITMODE,
+    RI_TRANSMISSIONHITMODE,
+    RI_CAMERAHITMODE;
 
 // Photon map attributes
 EXTERN(RtToken)
-RI_GLOBALMAP;
-EXTERN(RtToken)
-RI_CAUSTICMAP;
-EXTERN(RtToken)
-RI_ESTIMATOR;
-EXTERN(RtToken)
-RI_MAXDISTANCE;
-EXTERN(RtToken)
-RI_SHADINGMODEL;
-EXTERN(RtToken)
-RI_ILLUMINATEFRONT;
-EXTERN(RtToken)
-RI_IOR;
-EXTERN(RtToken)
-RI_IORRANGE;
+    RI_GLOBALMAP,
+    RI_CAUSTICMAP,
+    RI_ESTIMATOR,
+    RI_MAXDISTANCE,
+    RI_SHADINGMODEL,
+    RI_ILLUMINATEFRONT,
+    RI_IOR,
+    RI_IORRANGE;
 
 // Trace attributes
 EXTERN(RtToken)
-RI_BIAS;
-EXTERN(RtToken)
-RI_DISPLACEMENTS;
-EXTERN(RtToken)
-RI_MAXDIFFUSEDEPTH;
-EXTERN(RtToken)
-RI_MAXSPECULARDEPTH;
-EXTERN(RtToken)
-RI_SAMPLEMOTION;
+    RI_BIAS,
+    RI_DISPLACEMENTS,
+    RI_MAXDIFFUSEDEPTH,
+    RI_MAXSPECULARDEPTH,
+    RI_SAMPLEMOTION;
 
 // Motionfactor attribute
 EXTERN(RtToken)
-RI_MOTIONFACTOR;
+    RI_MOTIONFACTOR;
 
 // Cull attributes
-// EXTERN(RtToken)	RI_HIDDEN;
 EXTERN(RtToken)
-RI_BACKFACING;
+    RI_BACKFACING;
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -334,107 +379,82 @@ RI_BACKFACING;
 
 // Searchpath options
 EXTERN(RtToken)
-RI_ARCHIVE;
-EXTERN(RtToken)
-RI_PROCEDURAL;
-EXTERN(RtToken)
-RI_RESOURCE;
-EXTERN(RtToken)
-RI_DISPLAY;
+    RI_ARCHIVE,
+    RI_PROCEDURAL,
+    RI_RESOURCE,
+    RI_DISPLAY,
+    RI_GEOMETRY;
 
 // Limits options
 EXTERN(RtToken)
-RI_BUCKETSIZE;
-EXTERN(RtToken)
-RI_METABUCKETS;
-EXTERN(RtToken)
-RI_GRIDSIZE;
-EXTERN(RtToken)
-RI_MAXRECURSION;
-EXTERN(RtToken)
-RI_TEXTUREMEMORY;
-EXTERN(RtToken)
-RI_BRICKMEMORY;
-EXTERN(RtToken)
-RI_EYESPLITS;
-EXTERN(RtToken)
-RI_NUMTHREADS;
-EXTERN(RtToken)
-RI_THREADSTRIDE;
-EXTERN(RtToken)
-RI_GEOCACHEMEMORY;
-EXTERN(RtToken)
-RI_OTHRESHOLD;
-EXTERN(RtToken)
-RI_ZTHRESHOLD;
+    RI_BUCKETSIZE,
+    RI_METABUCKETS,
+    RI_GRIDSIZE,
+    RI_MAXRECURSION,
+    RI_TEXTUREMEMORY,
+    RI_BRICKMEMORY,
+    RI_EYESPLITS,
+    RI_NUMTHREADS,
+    RI_THREADSTRIDE,
+    RI_GEOCACHEMEMORY,
+    RI_OTHRESHOLD,
+    RI_ZTHRESHOLD;
 
 // Trace options
 EXTERN(RtToken)
-RI_MAXDEPTH;
+    RI_MAXDEPTH;
 
 // Statistics options
 EXTERN(RtToken)
-RI_ENDOFFRAME;
-EXTERN(RtToken)
-RI_FILELOG;
-EXTERN(RtToken)
-RI_PROGRESS;
+    RI_ENDOFFRAME,
+    RI_FILELOG,
+    RI_PROGRESS;
 
 // Irradiance options
 EXTERN(RtToken)
-RI_HANDLE;
-EXTERN(RtToken)
-RI_FILEMODE;
-EXTERN(RtToken)
-RI_MAXERROR;
-EXTERN(RtToken)
-RI_MAXPIXELDIST;
-EXTERN(RtToken)
-RI_MINSAMPLEDISTANCE;
-EXTERN(RtToken)
-RI_MAXSAMPLEDISTANCE;
+    RI_HANDLE,
+    RI_FILEMODE,
+    RI_MAXERROR,
+    RI_MAXPIXELDIST,
+    RI_MINSAMPLEDISTANCE,
+    RI_MAXSAMPLEDISTANCE;
 
 // Hider options
 EXTERN(RtToken)
-RI_JITTER;
-EXTERN(RtToken)
-RI_FALSECOLOR;
-EXTERN(RtToken)
-RI_EMIT;
-EXTERN(RtToken)
-RI_SAMPLESPECTRUM;
-EXTERN(RtToken)
-RI_DEPTHFILTER;
-EXTERN(RtToken)
-RI_RADIANCECACHE;
+    RI_JITTER,
+    RI_FALSECOLOR,
+    RI_EMIT,
+    RI_SAMPLESPECTRUM,
+    RI_DEPTHFILTER,
+    RI_RADIANCECACHE;
 
 // IO options
 EXTERN(RtToken)
-RI_MASKRESOLUTION;
-EXTERN(RtToken)
-RI_MASKPRINTF;
-EXTERN(RtToken)
-RI_MASKLOG;
-EXTERN(RtToken)
-RI_MASKPROGRESS;
-EXTERN(RtToken)
-RI_MASKSTATS;
-EXTERN(RtToken)
-RI_INHERITATTRIBUTES;
+    RI_MASKRESOLUTION,
+    RI_MASKPRINTF,
+    RI_MASKLOG,
+    RI_MASKPROGRESS,
+    RI_MASKSTATS,
+    RI_INHERITATTRIBUTES;
 
 // Shutter options
 EXTERN(RtToken)
-RI_OFFSET;
+    RI_OFFSET;
 
 // Misc junk
 EXTERN(RtToken)
-RI_DEFAULTSURFACE;
+    RI_DEFAULTSURFACE;
 
 EXTERN(RtInt)
-RiLastError;
+    RiLastError;
 
 EXTERN(RtBasis)
-RiBezierBasis, RiBSplineBasis, RiCatmullRomBasis, RiHermiteBasis, RiPowerBasis, RiLinearBasis;
+    RiBezierBasis,
+    RiBSplineBasis,
+    RiCatmullRomBasis,
+    RiHermiteBasis,
+    RiPowerBasis,
+    RiLinearBasis;
 
 #define RI_BEZIERSTEP ((RtInt)3)
 #define RI_BSPLINESTEP ((RtInt)1)
@@ -449,21 +469,21 @@ RiBezierBasis, RiBSplineBasis, RiCatmullRomBasis, RiHermiteBasis, RiPowerBasis, 
 ////////////////////////////////////////////////////////////////////////
 
 EXTERN(RtToken)
-RiDeclare(const char *name, const char *declaration);
+    RiDeclare(const char *name, const char *declaration);
 
 EXTERN(RtContextHandle)
-RiGetContext(void);
+    RiGetContext(void);
 
 EXTERN(RtVoid)
-RiContext(RtContextHandle);
+    RiContext(RtContextHandle);
 
 EXTERN(RtVoid)
-RiBegin(RtToken name), RiEnd(void),
+    RiBegin(RtToken name), RiEnd(void),
     RiFrameBegin(RtInt number), RiFrameEnd(void),
     RiWorldBegin(void), RiWorldEnd(void);
 
 EXTERN(RtVoid)
-RiFormat(RtInt xres, RtInt yres, RtFloat aspect),
+    RiFormat(RtInt xres, RtInt yres, RtFloat aspect),
     RiFrameAspectRatio(RtFloat aspect),
     RiScreenWindow(RtFloat left, RtFloat right, RtFloat bot, RtFloat top),
     RiCropWindow(RtFloat xmin, RtFloat xmax, RtFloat ymin, RtFloat ymax),
@@ -475,7 +495,7 @@ RiFormat(RtInt xres, RtInt yres, RtFloat aspect),
     RiShutter(RtFloat smin, RtFloat smax);
 
 EXTERN(RtVoid)
-RiPixelVariance(RtFloat variation),
+    RiPixelVariance(RtFloat variation),
     RiPixelSamples(RtFloat xsamples, RtFloat ysamples),
     RiPixelFilter(RtFilterFunc function, RtFloat xwidth, RtFloat ywidth),
     RiExposure(RtFloat gain, RtFloat gamma),
@@ -490,7 +510,7 @@ RiPixelVariance(RtFloat variation),
     RiDisplayChannelV(RtToken channel, RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtFloat)
-RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
+    RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
     RiBoxFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
     RiTriangleFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
     RiMitchellFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
@@ -501,14 +521,14 @@ RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth),
     RiDiskFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth);
 
 EXTERN(RtFloat)
-RiGaussianStepFilter(RtFloat t, RtFloat edge, RtFloat width),
+    RiGaussianStepFilter(RtFloat t, RtFloat edge, RtFloat width),
     RiBoxStepFilter(RtFloat t, RtFloat edge, RtFloat width),
     RiTriangleStepFilter(RtFloat t, RtFloat edge, RtFloat width),
     RiMitchellStepFilter(RtFloat t, RtFloat edge, RtFloat width),
     RiCatmullRomStepFilter(RtFloat t, RtFloat edge, RtFloat width);
 
 EXTERN(RtVoid)
-RiHider(RtToken type, ...),
+    RiHider(RtToken type, ...),
     RiHiderV(RtToken type, RtInt n, RtToken tokens[], RtPointer params[]),
     RiColorSamples(RtInt N, RtFloat *nRGB, RtFloat *RGBn),
     RiRelativeDetail(RtFloat relativedetail),
@@ -516,18 +536,18 @@ RiHider(RtToken type, ...),
     RiOptionV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiAttributeBegin(void), RiAttributeEnd(void),
+    RiAttributeBegin(void), RiAttributeEnd(void),
     RiColor(RtColor Cs), RiOpacity(RtColor Cs),
     RiTextureCoordinates(RtFloat s1, RtFloat t1, RtFloat s2, RtFloat t2, RtFloat s3, RtFloat t3, RtFloat s4, RtFloat t4);
 
 EXTERN(RtLightHandle)
-RiLightSource(const char *name, ...),
+    RiLightSource(const char *name, ...),
     RiLightSourceV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]),
     RiAreaLightSource(const char *name, ...),
     RiAreaLightSourceV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiIlluminate(RtLightHandle light, RtBoolean onoff),
+    RiIlluminate(RtLightHandle light, RtBoolean onoff),
     RiSurface(const char *name, ...),
     RiSurfaceV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]),
     RiAtmosphere(const char *name, ...),
@@ -541,7 +561,7 @@ RiIlluminate(RtLightHandle light, RtBoolean onoff),
     RiMatte(RtBoolean onoff);
 
 EXTERN(RtVoid)
-RiBound(RtBound bound), RiDetail(RtBound bound),
+    RiBound(RtBound bound), RiDetail(RtBound bound),
     RiDetailRange(RtFloat minvis, RtFloat lowtran, RtFloat uptran, RtFloat maxvis),
     RiGeometricApproximation(RtToken type, RtFloat value),
     RiGeometricRepresentation(RtToken type),
@@ -549,7 +569,7 @@ RiBound(RtBound bound), RiDetail(RtBound bound),
     RiSides(RtInt nsides);
 
 EXTERN(RtVoid)
-RiIdentity(void),
+    RiIdentity(void),
     RiTransform(RtMatrix transform), RiConcatTransform(RtMatrix transform),
     RiPerspective(RtFloat fov),
     RiTranslate(RtFloat dx, RtFloat dy, RtFloat dz),
@@ -564,18 +584,18 @@ RiIdentity(void),
     RiCoordSysTransform(RtToken space);
 
 EXTERN(RtPoint *)
-RiTransformPoints(RtToken fromspace, RtToken tospace, RtInt npoints, RtPoint *points);
+    RiTransformPoints(RtToken fromspace, RtToken tospace, RtInt npoints, RtPoint *points);
 
 EXTERN(RtVoid)
-RiTransformBegin(void),
+    RiTransformBegin(void),
     RiTransformEnd(void);
 
 EXTERN(RtVoid)
-RiAttribute(const char *name, ...),
+    RiAttribute(const char *name, ...),
     RiAttributeV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiPolygon(RtInt nvertices, ...),
+    RiPolygon(RtInt nvertices, ...),
     RiPolygonV(RtInt nvertices, RtInt n, RtToken tokens[], RtPointer params[]),
     RiGeneralPolygon(RtInt nloops, RtInt *nverts, ...),
     RiGeneralPolygonV(RtInt nloops, RtInt *nverts, RtInt n, RtToken tokens[], RtPointer params[]),
@@ -593,7 +613,7 @@ RiPolygon(RtInt nvertices, ...),
     RiTrimCurve(RtInt nloops, RtInt *ncurves, RtInt *order, RtFloat *knot, RtFloat *amin, RtFloat *amax, RtInt *n, RtFloat *u, RtFloat *v, RtFloat *w);
 
 EXTERN(RtVoid)
-RiSphere(RtFloat radius, RtFloat zmin, RtFloat zmax, RtFloat thetamax, ...),
+    RiSphere(RtFloat radius, RtFloat zmin, RtFloat zmax, RtFloat thetamax, ...),
     RiSphereV(RtFloat radius, RtFloat zmin, RtFloat zmax, RtFloat thetamax, RtInt n, RtToken tokens[], RtPointer params[]),
     RiCone(RtFloat height, RtFloat radius, RtFloat thetamax, ...),
     RiConeV(RtFloat height, RtFloat radius, RtFloat thetamax, RtInt n, RtToken tokens[], RtPointer params[]),
@@ -614,7 +634,7 @@ RiSphere(RtFloat radius, RtFloat zmin, RtFloat zmax, RtFloat thetamax, ...),
     RiGeometryV(RtToken type, RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiCurves(RtToken degree, RtInt ncurves, RtInt nverts[], RtToken wrap, ...),
+    RiCurves(RtToken degree, RtInt ncurves, RtInt nverts[], RtToken wrap, ...),
     RiCurvesV(RtToken degree, RtInt ncurves, RtInt nverts[], RtToken wrap, RtInt n, RtToken tokens[], RtPointer params[]),
     RiPoints(RtInt npts, ...),
     RiPointsV(RtInt npts, RtInt n, RtToken tokens[], RtPointer params[]),
@@ -624,27 +644,27 @@ RiCurves(RtToken degree, RtInt ncurves, RtInt nverts[], RtToken wrap, ...),
     RiBlobbyV(RtInt nleaf, RtInt ncode, RtInt code[], RtInt nflt, RtFloat flt[], RtInt nstr, RtString str[], RtInt n, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiProcDelayedReadArchive(void *data, RtFloat detail),
+    RiProcDelayedReadArchive(void *data, RtFloat detail),
     RiProcRunProgram(void *data, RtFloat detail),
     RiProcDynamicLoad(void *data, RtFloat detail),
     RiProcFree(void *);
 
 EXTERN(RtVoid)
-RiSolidBegin(RtToken type),
+    RiSolidBegin(RtToken type),
     RiSolidEnd(void);
 
 EXTERN(RtObjectHandle)
-RiObjectBegin(void);
+    RiObjectBegin(void);
 
 EXTERN(RtVoid)
-RiObjectEnd(void),
+    RiObjectEnd(void),
     RiObjectInstance(RtObjectHandle handle),
     RiMotionBegin(RtInt N, ...),
     RiMotionBeginV(RtInt N, RtFloat times[]),
     RiMotionEnd(void);
 
 EXTERN(RtVoid)
-RiMakeTexture(const char *pic, const char *tex, RtToken swrap, RtToken twrap, RtFilterFunc filterfunc, RtFloat swidth, RtFloat twidth, ...),
+    RiMakeTexture(const char *pic, const char *tex, RtToken swrap, RtToken twrap, RtFilterFunc filterfunc, RtFloat swidth, RtFloat twidth, ...),
     RiMakeTextureV(const char *pic, const char *tex, RtToken swrap, RtToken twrap, RtFilterFunc filterfunc, RtFloat swidth, RtFloat twidth, RtInt n, RtToken tokens[], RtPointer params[]),
     RiMakeBump(const char *pic, const char *tex, RtToken swrap, RtToken twrap, RtFilterFunc filterfunc, RtFloat swidth, RtFloat twidth, ...),
     RiMakeBumpV(const char *pic, const char *tex, RtToken swrap, RtToken twrap, RtFilterFunc filterfunc, RtFloat swidth, RtFloat twidth, RtInt n, RtToken tokens[], RtPointer params[]),
@@ -658,26 +678,26 @@ RiMakeTexture(const char *pic, const char *tex, RtToken swrap, RtToken twrap, Rt
     RiMakeBrickMapV(int n, const char **src, const char *dest, RtInt numTokens, RtToken tokens[], RtPointer params[]);
 
 EXTERN(RtVoid)
-RiErrorHandler(RtErrorHandler handler),
+    RiErrorHandler(RtErrorHandler handler),
     RiErrorIgnore(RtInt code, RtInt severity, const char *message),
     RiErrorPrint(RtInt code, RtInt severity, const char *message),
     RiErrorAbort(RtInt code, RtInt severity, const char *message);
 
 EXTERN(RtVoid)
-RiResource(RtToken handle, RtToken type, ...),
+    RiResource(RtToken handle, RtToken type, ...),
     RiResourceV(RtToken handle, RtToken type, RtInt n, RtToken tokens[], RtPointer parms[]),
     RiResourceBegin(void),
     RiResourceEnd(void);
 
 EXTERN(RtArchiveHandle)
-RiArchiveBegin(RtToken name, ...),
+    RiArchiveBegin(RtToken name, ...),
     RiArchiveBeginV(RtToken name, RtInt n, RtToken tokens[], RtPointer parms[]);
 
 EXTERN(RtVoid)
-RiArchiveEnd(void);
+    RiArchiveEnd(void);
 
 EXTERN(RtVoid)
-RiIfBegin(const char *expr, ...),
+    RiIfBegin(const char *expr, ...),
     RiIfBeginV(const char *expr, RtInt n, RtToken tokens[], RtPointer parms[]),
     RiElseIf(const char *expr, ...),
     RiElseIfV(const char *expr, RtInt n, RtToken tokens[], RtPointer parms[]),
@@ -685,7 +705,7 @@ RiIfBegin(const char *expr, ...),
     RiIfEnd(void);
 
 EXTERN(RtVoid)
-RiArchiveRecord(RtToken type, const char *format, ...),
+    RiArchiveRecord(RtToken type, const char *format, ...),
     RiReadArchive(RtString filename, RtArchiveCallback callback, ...),
     RiReadArchiveV(RtString filename, RtArchiveCallback callback, int n, RtToken tokens[], RtPointer params[]);
 

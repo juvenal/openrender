@@ -81,14 +81,33 @@ public:
     static bool extractMetadataFromFile(const std::string &filename, SLOShaderInfo &info);
 
     /**
+     * @brief Look up an already-compiled init entry for the given shader name.
+     *
+     * Returns the init entry function pointer if the shader has a non-trivial
+     * #!Init section (shadername_init symbol), or nullptr if it does not.
+     * Must be called after compileShader() for the same shader.
+     */
+    TShaderJitEntry lookupInitEntry(const std::string &shaderName);
+
+    /**
      * @brief Singleton access for the global JIT engine.
      */
     static CLLVMJitEngine& getInstance();
+
+    /**
+     * @brief Register a process-level symbol with LLVM's dynamic library table.
+     *
+     * Called by jitSymbolRetain.cpp to register op_* and rsl_* function addresses
+     * so the JIT can resolve them via DynamicLibrarySearchGenerator.  The name
+     * should be the C function name WITHOUT the platform ABI underscore prefix.
+     */
+    static void addProcessSymbol(const char *name, void *addr);
 
 private:
     std::unique_ptr<llvm::orc::LLJIT> jit;
     std::mutex compileMutex_;
     std::unordered_map<std::string, TShaderJitEntry> cache_;
+    std::unordered_map<std::string, TShaderJitEntry> initCache_;
     std::unordered_map<std::string, SLOShaderInfo>   metaCache_;
 
     // Extract named metadata from an already-loaded module.

@@ -19,6 +19,7 @@
 #include "rslOps.h"
 #include "activeContext.h"
 #include "shading.h"
+#include "noise.h"
 
 #include <cmath>
 #include <cstring>
@@ -439,25 +440,19 @@ void op_lightsource_f(float* result, int sr, const char* attrName, float* outPar
 
 static bool getFromMatrix(const char* space, const float*& fromMat) {
     CShadingContext *ctx = libshader::activeContext();
-    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
-    if (!svc) { fromMat = nullptr; return false; }
+    if (!ctx) { fromMat = nullptr; return false; }
     const float *to = nullptr;
     ECoordinateSystem dummy;
-    if (svc->findCoordinateSystemWithType(space, fromMat, to, dummy) && fromMat != nullptr)
-        return true;
-    fromMat = nullptr;
-    return false;
+    ctx->jitFindCoordinateSystem(space, fromMat, to, dummy);
+    return fromMat != nullptr;
 }
 static bool getToMatrix(const char* space, const float*& toMat) {
     CShadingContext *ctx = libshader::activeContext();
-    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
-    if (!svc) { toMat = nullptr; return false; }
+    if (!ctx) { toMat = nullptr; return false; }
     const float *from = nullptr;
     ECoordinateSystem dummy;
-    if (svc->findCoordinateSystemWithType(space, from, toMat, dummy) && toMat != nullptr)
-        return true;
-    toMat = nullptr;
-    return false;
+    ctx->jitFindCoordinateSystem(space, from, toMat, dummy);
+    return toMat != nullptr;
 }
 
 void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
@@ -468,6 +463,9 @@ void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, i
             IDX(dst,sd,i)[1]=IDX(src,ss,i)[1];
             IDX(dst,sd,i)[2]=IDX(src,ss,i)[2];
         }
+        fprintf(stderr, "[JIT-PFROM] space='%s' no-from-matrix, identity used. in[0]=(%.4f,%.4f,%.4f) out[0]=(%.4f,%.4f,%.4f)\n",
+                space ? space : "(null)", IDX(src,ss,0)[0], IDX(src,ss,0)[1], IDX(src,ss,0)[2],
+                IDX(dst,sd,0)[0], IDX(dst,sd,0)[1], IDX(dst,sd,0)[2]);
         return;
     }
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
@@ -479,6 +477,15 @@ void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, i
         r[0] = (from[0]*p[0] + from[4]*p[1] + from[8]*p[2]  + from[12]) * inv;
         r[1] = (from[1]*p[0] + from[5]*p[1] + from[9]*p[2]  + from[13]) * inv;
         r[2] = (from[2]*p[0] + from[6]*p[1] + from[10]*p[2] + from[14]) * inv;
+    }
+    static int _pf_jit_cnt = 0;
+    if (_pf_jit_cnt++ < 3) {
+        fprintf(stderr, "[JIT-PFROM] space='%s' in[0]=(%.4f,%.4f,%.4f) out[0]=(%.4f,%.4f,%.4f)\n",
+                space ? space : "(null)", IDX(src,ss,0)[0], IDX(src,ss,0)[1], IDX(src,ss,0)[2],
+                IDX(dst,sd,0)[0], IDX(dst,sd,0)[1], IDX(dst,sd,0)[2]);
+        fprintf(stderr, "[JIT-PFROM] from col0=(%.4f,%.4f,%.4f,%.4f) col1=(%.4f,%.4f,%.4f,%.4f) col2=(%.4f,%.4f,%.4f,%.4f) col3=(%.4f,%.4f,%.4f,%.4f)\n",
+                from[0],from[1],from[2],from[3], from[4],from[5],from[6],from[7],
+                from[8],from[9],from[10],from[11], from[12],from[13],from[14],from[15]);
     }
 }
 
@@ -518,5 +525,385 @@ void op_ntransform(float* dst, int sd, const char* space, const float* src, int 
         r[0] = toMat[0]*p[0] + toMat[1]*p[1] + toMat[2]*p[2];
         r[1] = toMat[4]*p[0] + toMat[5]*p[1] + toMat[6]*p[2];
         r[2] = toMat[8]*p[0] + toMat[9]*p[1] + toMat[10]*p[2];
+    }
+}
+
+// =========================================================================
+// for / while loop (JIT .slo path) — mirrors FOR3EXPR_PRE / FOREND3EXPR_PRE
+// =========================================================================
+
+void op_for_check(const float* cond, int sc,
+                  int* execCount, int* tags, int n,
+                  int* numActive, int* numPassive) {
+    ++(*execCount);
+    const int ec = *execCount;
+    for (int i = 0; i < n; ++i) {
+        if (tags[i] > 0) {
+            tags[i]++;
+        } else if (!(int)(IDX(cond, sc, i)[0])) {
+            tags[i] = ec;
+            --(*numActive);
+            ++(*numPassive);
+        }
+    }
+}
+
+void op_forend(const int* execCount, int* tags, int n,
+               int* numActive, int* numPassive) {
+    const int ec = *execCount;
+    *numActive  = 0;
+    *numPassive = n;
+    for (int i = 0; i < n; ++i) {
+        if (tags[i] > 0) {
+            tags[i] -= ec;
+            if (tags[i] <= 0) { tags[i] = 0; ++(*numActive); --(*numPassive); }
+        } else {
+            ++(*numActive); --(*numPassive);
+        }
+    }
+}
+
+void op_for_break(const int* execCount, int* tags, int n,
+                  int* numActive, int* numPassive) {
+    const int ec = *execCount;
+    for (int i = 0; i < n; ++i) {
+        if (tags[i] == 0) {
+            tags[i] = ec;
+            ++(*numPassive);
+            --(*numActive);
+        }
+    }
+}
+
+// =========================================================================
+// illuminance loop (surface shader construct, JIT .slo path)
+// =========================================================================
+
+int op_illuminance_begin(const float* P, int sp, const float* N, int sn,
+                         const float* angle, int sa,
+                         int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return 0;
+    return ctx->jitIlluminanceBegin(P, sp, N, sn, angle, sa,
+                                    tags, n, numActive, numPassive);
+}
+
+int op_illuminance_next(int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return 0;
+    return ctx->jitIlluminanceNext(tags, n, numActive, numPassive);
+}
+
+// =========================================================================
+// illuminate / endilluminate (light shader construct, JIT .slo path)
+// =========================================================================
+
+void op_illuminate_begin(const float* from, int sf,
+                         int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitIlluminateBegin(from, sf, tags, n, numActive, numPassive);
+}
+
+void op_illuminate_end(int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitIlluminateEnd(tags, n, numActive, numPassive);
+}
+
+void op_illuminate3_begin(const float* from, int sf,
+                          const float* axis, int sa,
+                          const float* angle, int st,
+                          int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitIlluminate3Begin(from, sf, axis, sa, angle, st, tags, n, numActive, numPassive);
+}
+
+// =========================================================================
+// solar / endsolar (directional light shader construct, JIT .slo path)
+// =========================================================================
+
+void op_solar_begin(const float* Nf, int sf, const float* thetaf, int st,
+                    int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitSolarBegin(Nf, sf, thetaf, st, tags, n, numActive, numPassive);
+}
+
+void op_solar_end(int* tags, int n, int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitSolarEnd(tags, n, numActive, numPassive);
+}
+
+// =========================================================================
+// Layer G — additional math / comparison / built-in ops
+// =========================================================================
+
+void op_maxf(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (IDX(a,sa,i)[0] > IDX(b,sb,i)[0]) ? IDX(a,sa,i)[0] : IDX(b,sb,i)[0];
+}
+
+void op_andf(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (float)((int)IDX(a,sa,i)[0] & (int)IDX(b,sb,i)[0]);
+}
+
+void op_orf(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (float)((int)IDX(a,sa,i)[0] | (int)IDX(b,sb,i)[0]);
+}
+
+void op_radians(float* dst, int sd, const float* a, int sa, int n, const int* tags) {
+    constexpr float kDegToRad = 3.14159265358979323846f / 180.f;
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = IDX(a,sa,i)[0] * kDegToRad;
+}
+
+void op_seql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (a[0] && b[0] && strcmp(a[0], b[0]) == 0) ? 1.f : 0.f;
+}
+
+void op_sneql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (a[0] && b[0] && strcmp(a[0], b[0]) != 0) ? 1.f : 0.f;
+}
+
+void op_filterstep(float* dst, int sd, const float* edge, int se, const float* x, int sx, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (IDX(x,sx,i)[0] >= IDX(edge,se,i)[0]) ? 1.f : 0.f;
+}
+
+void op_reflect(float* dst, int sd, const float* I, int si, const float* N, int sn, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        reflect(IDX(dst,sd,i), IDX(I,si,i), IDX(N,sn,i));
+}
+
+void op_fresnel(const float* I, int si, const float* N, int sn, const float* eta, int se,
+                float* Kr, int skr, float* Kt, int skt,
+                float* R,  int sr,  float* T,  int st,
+                int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+        float kr=0.f, kt=0.f;
+        float tmpR[3]={0,0,0}, tmpT[3]={0,0,0};
+        fresnel(IDX(I,si,i), IDX(N,sn,i), IDX(eta,se,i)[0], kr, kt, tmpR, tmpT);
+        IDX(Kr,skr,i)[0] = kr;
+        IDX(Kt,skt,i)[0] = kt;
+        if (R) { IDX(R,sr,i)[0]=tmpR[0]; IDX(R,sr,i)[1]=tmpR[1]; IDX(R,sr,i)[2]=tmpR[2]; }
+        if (T) { IDX(T,st,i)[0]=tmpT[0]; IDX(T,st,i)[1]=tmpT[1]; IDX(T,st,i)[2]=tmpT[2]; }
+    }
+}
+
+void op_noise_ff(float* dst, int sd, const float* x, int sx, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = noiseFloat(IDX(x,sx,i)[0]);
+}
+
+void op_noise_fp(float* dst, int sd, const float* p, int sp, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = noiseFloat(IDX(p,sp,i));
+}
+
+void op_noise_vf(float* dst, int sd, const float* x, int sx, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        noiseVector(IDX(dst,sd,i), IDX(x,sx,i)[0]);
+}
+
+void op_noise_vp(float* dst, int sd, const float* p, int sp, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        noiseVector(IDX(dst,sd,i), IDX(p,sp,i));
+}
+
+// =========================================================================
+// Layer G — context-dependent geometric built-ins
+// =========================================================================
+
+void op_Du_ff(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    if (ss == 0) {
+        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) IDX(dst,sd,i)[0] = 0.f;
+        return;
+    }
+    ctx->jitDuFloat(dst, src, n);
+}
+
+void op_Dv_ff(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    if (ss == 0) {
+        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) IDX(dst,sd,i)[0] = 0.f;
+        return;
+    }
+    ctx->jitDvFloat(dst, src, n);
+}
+
+void op_Du_vv(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    if (ss == 0) {
+        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+            IDX(dst,sd,i)[0]=0.f; IDX(dst,sd,i)[1]=0.f; IDX(dst,sd,i)[2]=0.f;
+        }
+        return;
+    }
+    ctx->jitDuVector(dst, src, n);
+}
+
+void op_Dv_vv(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    if (ss == 0) {
+        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+            IDX(dst,sd,i)[0]=0.f; IDX(dst,sd,i)[1]=0.f; IDX(dst,sd,i)[2]=0.f;
+        }
+        return;
+    }
+    ctx->jitDvVector(dst, src, n);
+}
+
+void op_area(float* dst, int sd, const float* P, int /*sp*/, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitArea(dst, sd, P, n, tags);
+}
+
+void op_calculatenormal(float* dst, int sd, const float* P, int /*sp*/, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    fprintf(stderr, "[JIT-CALCNORM] n=%d P[0]=(%.4f,%.4f,%.4f) P[1]=(%.4f,%.4f,%.4f)\n",
+            n, P[0],P[1],P[2], P[3],P[4],P[5]);
+    ctx->jitCalculateNormal(dst, sd, P, n, tags);
+    fprintf(stderr, "[JIT-CALCNORM] N[0]=(%.4f,%.4f,%.4f) N[1]=(%.4f,%.4f,%.4f)\n",
+            dst[0],dst[1],dst[2], dst[3],dst[4],dst[5]);
+}
+
+void op_depth(float* dst, int sd, const float* P, int sp, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitDepth(dst, sd, P, sp, n, tags);
+}
+
+// =========================================================================
+// Layer G — texture / environment / shadow
+// namepp is a char** (locals[idx] → char* string); namepp[0] = the string.
+// =========================================================================
+
+void op_texture_f(float* dst, int sd, const char* const* namepp, const float* chan,
+                  const float* s, int ss, const float* t, int st, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !namepp || !namepp[0]) return;
+    int channel = chan ? (int)chan[0] : 0;
+    ctx->jitTextureF(dst, sd, namepp[0], channel, s, ss, t, st, n, tags);
+}
+
+void op_texture_c(float* dst, int sd, const char* const* namepp,
+                  const float* s, int ss, const float* t, int st, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !namepp || !namepp[0]) return;
+    ctx->jitTextureC(dst, sd, namepp[0], s, ss, t, st, n, tags);
+}
+
+void op_environment_f(float* dst, int sd, const char* const* namepp, const float* chan,
+                      const float* D, int sD, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !namepp || !namepp[0]) return;
+    int channel = chan ? (int)chan[0] : 0;
+    ctx->jitEnvironmentF(dst, sd, namepp[0], channel, D, sD, n, tags);
+}
+
+void op_environment_c(float* dst, int sd, const char* const* namepp,
+                      const float* D, int sD, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !namepp || !namepp[0]) return;
+    ctx->jitEnvironmentC(dst, sd, namepp[0], D, sD, n, tags);
+}
+
+void op_shadow_f(float* dst, int sd, const char* const* namepp,
+                 const float* Ps, int sPs, int n, const int* tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !namepp || !namepp[0]) return;
+    ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags);
+}
+
+// =========================================================================
+// Spline interpolation — Catmull-Rom basis (default, no basis-string form)
+// =========================================================================
+// Catmull-Rom basis matrix rows — same layout as RiCatmullRomBasis:
+//   row j: coefficients for u^3, u^2, u^1, u^0 of the j-th blend weight
+static const float s_catmullRom[4][4] = {
+    {-0.5f,  1.5f, -1.5f,  0.5f},  // weight for knot[k+0]
+    { 1.0f, -2.5f,  2.0f, -0.5f},  // weight for knot[k+1]
+    {-0.5f,  0.0f,  0.5f,  0.0f},  // weight for knot[k+2]
+    { 0.0f,  1.0f,  0.0f,  0.0f}   // weight for knot[k+3]
+};
+
+// Compute the 4 Catmull-Rom blend weights for parameter u in [0,1).
+// Matches the interpreter: weights[j] = dot(basis_row_j, [u³,u²,u,1]).
+static inline void catmullRomWeights(float u, float weights[4]) {
+    float u2 = u * u, u3 = u2 * u;
+    for (int j = 0; j < 4; ++j)
+        weights[j] = s_catmullRom[j][0]*u3 + s_catmullRom[j][1]*u2
+                   + s_catmullRom[j][2]*u   + s_catmullRom[j][3];
+}
+
+// Spline control points are constant-per-shader-call even when stored as varying;
+// access only index [0] (and [1],[2] for RGB) from each knot pointer.
+void op_spline_c(float* dst, int sd, const float* t, int st,
+                 int numKnots, float** knots,
+                 int n, const int* tags) {
+    if (numKnots < 4) return;
+    const int numPieces = numKnots - 3;
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i]) continue;
+        float *r  = IDX(dst, sd, i);
+        float  tv = IDX(t, st, i)[0];
+        if (tv <= 0.0f) {
+            r[0] = knots[1][0]; r[1] = knots[1][1]; r[2] = knots[1][2];
+        } else if (tv >= 1.0f) {
+            int last = numKnots - 2;
+            r[0] = knots[last][0]; r[1] = knots[last][1]; r[2] = knots[last][2];
+        } else {
+            int piece = (int)(tv * numPieces);
+            if (piece >= numPieces) piece = numPieces - 1;
+            float u = tv * numPieces - piece;
+            float w[4];
+            catmullRomWeights(u, w);
+            r[0] = r[1] = r[2] = 0.0f;
+            for (int k = 0; k < 4; ++k) {
+                r[0] += w[k] * knots[piece+k][0];
+                r[1] += w[k] * knots[piece+k][1];
+                r[2] += w[k] * knots[piece+k][2];
+            }
+        }
+    }
+}
+
+void op_spline_f(float* dst, int sd, const float* t, int st,
+                 int numKnots, float** knots,
+                 int n, const int* tags) {
+    if (numKnots < 4) return;
+    const int numPieces = numKnots - 3;
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i]) continue;
+        float *r  = IDX(dst, sd, i);
+        float  tv = IDX(t, st, i)[0];
+        if (tv <= 0.0f) {
+            r[0] = knots[1][0];
+        } else if (tv >= 1.0f) {
+            r[0] = knots[numKnots-2][0];
+        } else {
+            int piece = (int)(tv * numPieces);
+            if (piece >= numPieces) piece = numPieces - 1;
+            float u = tv * numPieces - piece;
+            float w[4];
+            catmullRomWeights(u, w);
+            r[0] = 0.0f;
+            for (int k = 0; k < 4; ++k)
+                r[0] += w[k] * knots[piece+k][0];
+        }
     }
 }

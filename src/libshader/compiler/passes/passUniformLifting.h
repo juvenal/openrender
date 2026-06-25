@@ -34,6 +34,7 @@
 #define OSHADER_PASSES_PASSUNIFORMLIFTING_H
 
 #include "passManager.h"
+#include <unordered_map>
 #include <unordered_set>
 #include <string>
 
@@ -48,9 +49,12 @@ private:
     static bool isUniformSafeOpcode(const std::string &opcode);
 
     // One forward sweep over fn using the current uniform set.
+    // writeCounts: number of write sites per variable in the whole function.
+    // Variables with >1 write site are never promoted.
     // Returns true if any variable was promoted.
     static bool liftFn(IRFunction &fn, IRModule &mod,
-                       std::unordered_set<std::string> &uniformSet);
+                       std::unordered_set<std::string> &uniformSet,
+                       const std::unordered_map<std::string, int> &writeCounts);
 };
 
 #endif // OSHADER_PASSES_PASSUNIFORMLIFTING_H

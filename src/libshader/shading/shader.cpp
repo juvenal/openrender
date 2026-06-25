@@ -58,6 +58,10 @@ CShader::CShader(const char *name) : CFileResource(name) {
     parameters = NULL;
     flags = 0;
     data = NULL;
+#ifdef OPENRENDER_HAVE_LLVM
+    jitEntry     = nullptr;
+    jitInitEntry = nullptr;
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -278,7 +282,11 @@ CProgrammableShaderInstance::CProgrammableShaderInstance(CShader *p, CAttributes
     flags = parent->flags;
     data = parent->data;
 #ifdef OPENRENDER_HAVE_LLVM
-    jitEntry = nullptr;
+    // Inherit pre-compiled JIT entry points from the parent CShader.
+    // These are set eagerly in parseSloShader so that jitInitEntry is
+    // available when init() is called (before the first prepare()).
+    jitEntry     = parent->jitEntry;
+    jitInitEntry = parent->jitInitEntry;
 #endif
 
     // Clone the parent's parameter list
@@ -626,26 +634,6 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     int totalVaryingSize;
     int i;
 
-#ifdef OPENRENDER_HAVE_LLVM
-    // Probe for a standalone .slo (LLVM bitcode + named metadata) on first prepare.
-    // .slo and .rslo are independent artifacts: .slo carries its own metadata and
-    // does not require a companion .rslo.  When found, the JIT path takes priority.
-    // If no .slo is present the interpreter (.rslo) path is used as fallback.
-    if (jitEntry == nullptr && parent->name != nullptr) {
-        const char *filename = parent->name;
-        const char *ext = strrchr(filename, '.');
-        std::string sloPath;
-        if (ext != nullptr && strcmp(ext, ".slo") == 0) {
-            sloPath = filename;
-        } else if (ext != nullptr) {
-            // Derive .slo path from the shader file path (replace or append .slo).
-            sloPath = std::string(filename, ext) + ".slo";
-        }
-        if (!sloPath.empty() && osFileExists(sloPath.c_str()))
-            jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, parent->name);
-    }
-#endif
-
     // Get const pointers for fast access
     const int numVariables = parent->numVariables;
     const int *varyingSizes = parent->varyingSizes;
@@ -741,6 +729,12 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
             }
         }
     }
+
+    // jitInitEntry is called once at shader-bind time from CRendererContext::init()
+    // in init.cpp, where context->getXform() correctly reflects the shader's
+    // bind-time transform (e.g. light position in "shader" space).  The results
+    // are written directly into each parameter's defaultValue and copied into
+    // locals by the loop above, so nothing extra is needed here.
 
     return (float **)locals;
 }

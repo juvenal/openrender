@@ -358,6 +358,9 @@ class CShadingContext {
         // (before any shading context is constructed). nullptr disables all service calls.
         static void setDefaultServices(CRendererServices *svc) { s_defaultServices = svc; }
 
+        // Returns the process-wide default services (for callers without an active context).
+        static CRendererServices *defaultServices() { return s_defaultServices; }
+
         // Returns services for the current state, falling back to the default singleton.
         // Called by rslBuiltins/rslOps so they do not depend on CRenderer directly.
         CRendererServices *getServices() const {
@@ -394,6 +397,67 @@ class CShadingContext {
         void prepareAmbient();
         void prepareDiffuse();
         void setupIlluminance(float *P, float *N, float angle, int numVertices, int *tags);
+
+        // ---> JIT illuminate/endilluminate (light shaders with LLVM .slo path)
+        // jitIlluminateBegin: compute L = Ps - from for each active vertex, gate
+        //   vertices outside the cone by incrementing their tag (mark passive).
+        //   from[sf*i] is the light position (sf=0 for uniform, 3 for varying).
+        void jitIlluminateBegin(const float* from, int sf,
+                                int* tags, int n, int* numActive, int* numPassive);
+        // jitIlluminate3Begin: ILLUMINATE3 form — spotlight cone + back-face gate.
+        //   L = Ps - from; gates if dot(axis,L) < cos(angle)*|L| (cone) or back-facing.
+        void jitIlluminate3Begin(const float* from, int sf,
+                                 const float* axis, int sa,
+                                 const float* angle, int st,
+                                 int* tags, int n, int* numActive, int* numPassive);
+        // jitIlluminateEnd: save (L, Cl) into a CShadedLight, restore tags.
+        void jitIlluminateEnd(int* tags, int n, int* numActive, int* numPassive);
+
+        // ---> JIT solar/endsolar (directional light shaders with LLVM .slo path)
+        // jitSolarBegin: set L = Nf * worldRadius for each active vertex, gate
+        //   back-facing vertices (Ns·L > -costheta*|L|) as passive.
+        //   Nf[sf*i] is the normalized direction; thetaf[st*i] is the cone angle.
+        void jitSolarBegin(const float* Nf, int sf, const float* thetaf, int st,
+                           int* tags, int n, int* numActive, int* numPassive);
+        // jitSolarEnd: save (-normalize(L), Cl) into a CShadedLight, restore tags.
+        void jitSolarEnd(int* tags, int n, int* numActive, int* numPassive);
+
+        // ---> JIT illuminance loop (surface shaders with LLVM .slo path)
+        // jitIlluminanceBegin: runs all lights for (P,N,angle), enters the first
+        //   light's conditional and loads L/Cl.  Returns 1 if any light is active.
+        //   P[sp*i], N[sn*i] (sp/sn = 0 for uniform, 3 for varying).
+        //   angle[sa*i] in radians (sa = 0 for uniform, 1 for varying float).
+        int jitIlluminanceBegin(const float* P, int sp, const float* N, int sn,
+                                const float* angle, int sa,
+                                int* tags, int n, int* numActive, int* numPassive);
+        // jitIlluminanceNext: exit current light's cond, advance to next, enter it.
+        //   Returns 1 if the next light exists and has active vertices, else 0.
+        int jitIlluminanceNext(int* tags, int n, int* numActive, int* numPassive);
+
+        // ---> JIT wrappers for derivative and geometric built-ins (Layer G)
+        // These call CShadingContext::duFloat/dvFloat/duVector/dvVector which
+        // already hold the full-array derivative infrastructure.
+        void jitDuFloat(float* dst, const float* src, int n);
+        void jitDvFloat(float* dst, const float* src, int n);
+        void jitDuVector(float* dst, const float* src, int n);
+        void jitDvVector(float* dst, const float* src, int n);
+        void jitArea(float* dst, int sd, const float* P, int n, const int* tags);
+        void jitCalculateNormal(float* dst, int sd, const float* P, int n, const int* tags);
+        void jitDepth(float* dst, int sd, const float* P, int sp, int n, const int* tags);
+        void jitTextureF(float* dst, int sd, const char* name, int channel,
+                         const float* s, int ss, const float* t, int st,
+                         int n, const int* tags);
+        void jitTextureC(float* dst, int sd, const char* name,
+                         const float* s, int ss, const float* t, int st,
+                         int n, const int* tags);
+        void jitEnvironmentF(float* dst, int sd, const char* name, int channel,
+                             const float* D, int sD, int n, const int* tags);
+        void jitEnvironmentC(float* dst, int sd, const char* name,
+                             const float* D, int sD, int n, const int* tags);
+        void jitShadowF(float* dst, int sd, const char* name,
+                        const float* Ps, int sPs, int n, const int* tags);
+        void jitFindCoordinateSystem(const char* name, const float*& from, const float*& to,
+                                     ECoordinateSystem& type);
 
     protected:
 

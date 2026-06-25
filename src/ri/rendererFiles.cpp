@@ -46,6 +46,179 @@
 // This one is defined in rslo.y
 CShader *parseShader(const char *, const char *);
 
+// =========================================================================
+// parseSloShader — load a CShader from a standalone .slo LLVM bitcode file.
+// Extracts named metadata (C3 format) to populate shader type, parameters,
+// and varyingSizes without requiring a companion .rslo file.
+// Returns nullptr if the .slo has no embedded openrender metadata (pre-C3 .slo).
+// =========================================================================
+#ifdef OPENRENDER_HAVE_LLVM
+#include "config.h"
+#include "libshader/shading/llvmJit.h"
+#include "libshader/shading/sloMetadata.h"
+#include "rslo_code.h" // SL_VARYING_OPERAND
+#include "shader.h"    // CShader, SL_SURFACE, SL_LIGHTSOURCE, …
+#include "variable.h"  // CVariable, EVariableType, EVariableStorage
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+// Map SLOShaderInfo typeName to SL_* constant.
+static unsigned int sloShaderType(const std::string &n) {
+    if (n == "light")
+        return SL_LIGHTSOURCE;
+    if (n == "displacement")
+        return SL_DISPLACEMENT;
+    if (n == "atmosphere")
+        return SL_ATMOSPHERE;
+    if (n == "imager")
+        return SL_IMAGER;
+    return SL_SURFACE;
+}
+
+// Float count per type element (for varyingSizes computation).
+static int sloFloatCount(const std::string &t) {
+    if (t == "vector" || t == "normal" || t == "point" || t == "color")
+        return 3;
+    if (t == "matrix")
+        return 16;
+    return 1; // float, string (string uses char* but we keep 1 for sizing)
+}
+
+// Map SLOParamInfo typeName → EVariableType.
+static EVariableType sloVarType(const std::string &t) {
+    if (t == "color")
+        return TYPE_COLOR;
+    if (t == "vector")
+        return TYPE_VECTOR;
+    if (t == "normal")
+        return TYPE_NORMAL;
+    if (t == "point")
+        return TYPE_POINT;
+    if (t == "matrix")
+        return TYPE_MATRIX;
+    if (t == "string")
+        return TYPE_STRING;
+    return TYPE_FLOAT;
+}
+
+static CShader *parseSloShader(const char * /*shaderName*/, const char *sloPath) {
+    SLOShaderInfo info;
+    if (!CLLVMJitEngine::extractMetadataFromFile(sloPath, info) || !info.valid())
+        return nullptr; // no embedded metadata → fall back to .rslo
+
+    // The CShader's CFileResource::name stores the FULL .slo path so that
+    // CProgrammableShaderInstance::prepare() can locate and JIT-compile it.
+    // getShader() caches this CShader under the logical shader name, not this path.
+    CShader *sh = new CShader(sloPath);
+    sh->type = sloShaderType(info.typeName);
+
+    int numParams = (int)info.params.size();
+    int numVars = (int)info.vars.size();
+    int numTotal = numParams + numVars;
+
+    // --- varyingSizes[] covers ALL slots (params [0..numParams-1] then vars).
+    // Mirrors rslo.y: -(numItems*numComp*sizeof(float)) for uniform, positive for varying.
+    sh->numVariables = numTotal;
+    if (numTotal > 0) {
+        sh->varyingSizes = (int *)malloc(numTotal * sizeof(int));
+        int idx = 0;
+        auto fillSize = [&](const SLOParamInfo &p) {
+            int sz = p.arraySize * sloFloatCount(p.typeName) * (int)sizeof(float);
+            sh->varyingSizes[idx++] = (p.storage == "uniform") ? -sz : sz;
+        };
+        for (const auto &p : info.params)
+            fillSize(p);
+        for (const auto &v : info.vars)
+            fillSize(v);
+    }
+
+    // --- parameters linked list: ONLY actual shader parameters (Ka, Kd, …), NOT locals.
+    // Local temporaries are accessed exclusively by slot index through locals[] at execute time.
+    // The list is built in reverse source order (matching rslo.y's prepend convention),
+    // so the final order mirrors what the interpreter expects.
+    // defaultValue MUST be allocated with new float[] to match CShader::~CShader()'s delete[].
+    CVariable *paramHead = nullptr;
+    for (int i = numParams - 1; i >= 0; --i) {
+        const SLOParamInfo &p = info.params[i];
+        int totalFloats = p.arraySize * sloFloatCount(p.typeName);
+
+        CVariable *v = new CVariable;
+        strncpy(v->name, p.name.c_str(), VARIABLE_NAME_LENGTH - 1);
+        v->name[VARIABLE_NAME_LENGTH - 1] = '\0';
+        v->type = sloVarType(p.typeName);
+        v->container = (p.storage == "varying") ? CONTAINER_VARYING : CONTAINER_UNIFORM;
+        v->storage = STORAGE_PARAMETER;
+        v->numItems = p.arraySize;
+        v->numFloats = totalFloats;
+        v->entry = i; // slot i in varyingSizes[] and locals[]
+        v->accessor = SL_VARYING_OPERAND;
+        v->usageMarker = 0;
+
+        // Allocate and populate default value using new[] (matched by delete[] in CShader dtor).
+        v->defaultValue = new float[totalFloats > 0 ? totalFloats : 1];
+        float *buf = (float *)v->defaultValue;
+        for (int j = 0; j < totalFloats; j++)
+            buf[j] = 0.0f;
+        if (!p.defaultStr.empty()) {
+            // Reuse parseDefaultStr's logic inline to avoid malloc/new mismatch.
+            const char *cp = p.defaultStr.c_str();
+            while (*cp == ' ' || *cp == '[')
+                ++cp;
+            int numParsed = 0;
+            for (int j = 0; j < totalFloats; j++) {
+                char *end = nullptr;
+                buf[j] = strtof(cp, &end);
+                if (!end || end == cp)
+                    break;
+                ++numParsed;
+                cp = end;
+                while (*cp == ' ' || *cp == ']')
+                    ++cp;
+            }
+            // RSL scalar-to-tuple broadcast: "color = 1" means {1,1,1}, "vector = 0" means {0,0,0}.
+            if (numParsed == 1 && totalFloats > 1) {
+                for (int j = 1; j < totalFloats; j++)
+                    buf[j] = buf[0];
+            }
+        }
+
+        v->next = paramHead;
+        paramHead = v;
+    }
+    sh->parameters = paramHead;
+    sh->numGlobals = 0;
+
+    // Interpreter fields null — JIT is the only execution path for .slo-based shaders.
+    sh->memory = nullptr;
+    sh->codeArea = nullptr;
+    sh->constantEntries = nullptr;
+    sh->strings = nullptr;
+    sh->numStrings = 0;
+    sh->codeEntryPoint = 0;
+    sh->initEntryPoint = 0;
+    sh->usedParameters = info.usedParameters;
+    sh->flags = 0;
+    sh->data = nullptr;
+
+    sh->analyse(); // populates flags / CLightShaderData for light shaders
+
+    // Eagerly compile the JIT so that jitInitEntry is available when init() is
+    // called at shader-bind time (before the first prepare() is ever called).
+    {
+        const char *filename = sloPath;
+        const char *sep = strrchr(filename, OS_DIR_SEPERATOR);
+        const char *base = sep ? sep + 1 : filename;
+        const char *ext = strrchr(base, '.');
+        std::string logicalName = ext ? std::string(base, ext) : std::string(base);
+        sh->jitEntry     = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
+        sh->jitInitEntry = CLLVMJitEngine::getInstance().lookupInitEntry(logicalName);
+    }
+
+    return sh;
+}
+#endif // OPENRENDER_HAVE_LLVM
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
 // Method				:	initFiles
@@ -126,7 +299,8 @@ int CRenderer::locateFileEx(char *result, const char *name, const char *extensio
         snprintf(tmp, sizeof(tmp), "%s.%s", name, extension);
 
         return locateFile(result, tmp, searchpath);
-    } else {
+    }
+    else {
         return locateFile(result, name, searchpath);
     }
 }
@@ -176,7 +350,8 @@ int CRenderer::locateFile(char *result, const char *name, TSearchpath *searchpat
             info(CODE_RESOLUTION, "\"%s\" -> \"%s\"\n", name, name);
             return TRUE;
         }
-    } else {
+    }
+    else {
         // Only filename
         // Look at the search path
         for (; searchpath != NULL; searchpath = searchpath->next) {
@@ -312,7 +487,8 @@ CPhotonMap *CRenderer::getPhotonMap(const char *name) {
         if (locateFile(fileName, name, texturePath)) {
             // Try to open the file
             in = ropen(fileName, "rb", filePhotonMap, TRUE);
-        } else {
+        }
+        else {
             in = NULL;
         }
 
@@ -346,13 +522,17 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
         // Process the file mode
         if (strcmp(mode, "r") == 0) {
             flags = CACHE_READ | CACHE_SAMPLE;
-        } else if (strcmp(mode, "w") == 0) {
+        }
+        else if (strcmp(mode, "w") == 0) {
             flags = CACHE_WRITE | CACHE_SAMPLE;
-        } else if (strcmp(mode, "R") == 0) {
+        }
+        else if (strcmp(mode, "R") == 0) {
             flags = CACHE_READ | CACHE_RDONLY;
-        } else if (strcmp(mode, "rw") == 0) {
+        }
+        else if (strcmp(mode, "rw") == 0) {
             flags = CACHE_READ | CACHE_WRITE | CACHE_SAMPLE;
-        } else {
+        }
+        else {
             flags = CACHE_SAMPLE;
         }
 
@@ -380,7 +560,8 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
                     // Create the cache
                     if (strcmp(type, fileIrradianceCache) == 0) {
                         cache = new CIrradianceCache(name, flags, in, from, to, NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BUG, "Unable to recognize the file format of \"%s\"\n", name);
                         fclose(in);
                     }
@@ -477,27 +658,31 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
                 // as we mark the file to never be written in the server
                 registerFrameTemporary(name, FALSE);
                 requestRemoteChannel(new CRemotePtCloudChannel(cloud));
-            } else {
+            }
+            else {
                 // alloate a point cloud which will be written to disk
                 texture3d = new CPointCloud(name, from, to, CRenderer::toNDC, channels, TRUE);
             }
-
-        } else {
+        }
+        else {
             // Locate the file
             if (locateFile(fileName, name, texturePath)) {
                 // Try to open the file
                 if ((in = ropen(fileName, "rb", filePointCloud, TRUE)) != NULL) {
                     if (hierarchy == TRUE) {
                         texture3d = new CPointHierarchy(name, from, to, in);
-                    } else {
+                    }
+                    else {
                         texture3d = new CPointCloud(name, from, to, in);
                     }
-                } else {
+                }
+                else {
                     if ((in = ropen(fileName, "rb", fileBrickMap, TRUE)) != NULL) {
                         texture3d = new CBrickMap(in, name, from, to);
                     }
                 }
-            } else {
+            }
+            else {
                 in = NULL;
             }
 
@@ -523,27 +708,55 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
 // Return Value			:
 // Comments				:
 CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
+    return getShader(name, path, "slo"); // Default preference
+}
+
+CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *preferredType) {
     CShader *cShader;
     CFileResource *file;
 
     assert(name != NULL);
-
     assert(globalFiles != NULL);
 
     // Check if we already loaded this shader before ...
     cShader = NULL;
     if (globalFiles->find(name, file)) {
         cShader = (CShader *)file;
-    } else {
+    }
+    else {
         char shaderLocation[OS_MAX_PATH_LENGTH];
 
-        if (CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE ||
-            CRenderer::locateFileEx(shaderLocation, name, "sdr", path) == TRUE) {
-            cShader = parseShader(name, shaderLocation);
+        // Validate preference
+        const bool preferSlo = (preferredType != NULL && strcmp(preferredType, "slo") == 0);
 
-            if (cShader != NULL) {
-                globalFiles->insert(cShader->name, cShader);
+        if (preferSlo) {
+            // Try .slo first, fall back to .rslo
+#ifdef OPENRENDER_HAVE_LLVM
+            if (CRenderer::locateFileEx(shaderLocation, name, "slo", path) == TRUE) {
+                cShader = parseSloShader(name, shaderLocation);
             }
+#endif
+            if (cShader == NULL &&
+                CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {
+                cShader = parseShader(name, shaderLocation);
+            }
+        }
+        else {
+            // Try .rslo first, fall back to .slo
+            if (CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {
+                cShader = parseShader(name, shaderLocation);
+            }
+#ifdef OPENRENDER_HAVE_LLVM
+            if (cShader == NULL &&
+                CRenderer::locateFileEx(shaderLocation, name, "slo", path) == TRUE) {
+                cShader = parseSloShader(name, shaderLocation);
+            }
+#endif
+        }
+
+        if (cShader != NULL) {
+            // Cache under the logical shader name so subsequent calls hit the cache.
+            globalFiles->insert(name, cShader);
         }
     }
 
@@ -559,21 +772,29 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
 RtFilterFunc CRenderer::getFilter(const char *name) {
     if (strcmp(name, RI_GAUSSIANFILTER) == 0) {
         return RiGaussianFilter;
-    } else if (strcmp(name, RI_BOXFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BOXFILTER) == 0) {
         return RiBoxFilter;
-    } else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
         return RiTriangleFilter;
-    } else if (strcmp(name, RI_SINCFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_SINCFILTER) == 0) {
         return RiSincFilter;
-    } else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
         return RiCatmullRomFilter;
-    } else if (strcmp(name, RI_BLACKMANHARRISFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BLACKMANHARRISFILTER) == 0) {
         return RiBlackmanHarrisFilter;
-    } else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
         return RiMitchellFilter;
-    } else if (strcmp(name, RI_BESSELFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BESSELFILTER) == 0) {
         return RiBesselFilter;
-    } else if (strcmp(name, RI_DISKFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_DISKFILTER) == 0) {
         return RiDiskFilter;
     }
 
@@ -589,21 +810,29 @@ RtFilterFunc CRenderer::getFilter(const char *name) {
 const char *CRenderer::getFilter(RtFilterFunc func) {
     if (func == RiGaussianFilter) {
         return RI_GAUSSIANFILTER;
-    } else if (func == RiBoxFilter) {
+    }
+    else if (func == RiBoxFilter) {
         return RI_BOXFILTER;
-    } else if (func == RiTriangleFilter) {
+    }
+    else if (func == RiTriangleFilter) {
         return RI_TRIANGLEFILTER;
-    } else if (func == RiSincFilter) {
+    }
+    else if (func == RiSincFilter) {
         return RI_SINCFILTER;
-    } else if (func == RiCatmullRomFilter) {
+    }
+    else if (func == RiCatmullRomFilter) {
         return RI_CATMULLROMFILTER;
-    } else if (func == RiBlackmanHarrisFilter) {
+    }
+    else if (func == RiBlackmanHarrisFilter) {
         return RI_BLACKMANHARRISFILTER;
-    } else if (func == RiMitchellFilter) {
+    }
+    else if (func == RiMitchellFilter) {
         return RI_MITCHELLFILTER;
-    } else if (func == RiBesselFilter) {
+    }
+    else if (func == RiBesselFilter) {
         return RI_BESSELFILTER;
-    } else if (func == RiDiskFilter) {
+    }
+    else if (func == RiDiskFilter) {
         return RI_DISKFILTER;
     }
 
@@ -619,17 +848,21 @@ const char *CRenderer::getFilter(RtFilterFunc func) {
 RtStepFilterFunc CRenderer::getStepFilter(const char *name) {
     if (strcmp(name, RI_GAUSSIANFILTER) == 0) {
         return RiGaussianStepFilter;
-    } else if (strcmp(name, RI_BOXFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BOXFILTER) == 0) {
         return RiBoxStepFilter;
-    } else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
         return RiTriangleStepFilter;
         /*	} else if (strcmp(name,RI_SINCFILTER) == 0) {
                 return	RiSincFilter;*/
-    } else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
         return RiCatmullRomStepFilter;
         /*	} else if (strcmp(name,RI_BLACKMANHARRISFILTER) == 0) {
                 return	RiBlackmanHarrisFilter;*/
-    } else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
         return RiMitchellStepFilter;
     }
 
@@ -693,7 +926,8 @@ static int dsoLoadCallback(const char *file, void *ud) {
         }
 
         osUnloadModule(module);
-    } else {
+    }
+    else {
         error(CODE_SYSTEM, "Failed to load DSO \"%s\": %s\n", file, osModuleError());
     }
 

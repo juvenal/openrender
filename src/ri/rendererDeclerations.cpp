@@ -162,6 +162,8 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_SHADINGMODEL, "string");
     declareVariable(RI_ESTIMATOR, "int");
     declareVariable(RI_ILLUMINATEFRONT, "int");
+    declareVariable(RI_IOR, "float");
+    declareVariable(RI_IORRANGE, "float[2]");
 
     declareVariable(RI_TRANSMISSION, "int");
     declareVariable(RI_CAMERA, "int");
@@ -173,6 +175,7 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_SPECULARHITMODE, "string");
     declareVariable(RI_TRANSMISSIONHITMODE, "string");
     declareVariable(RI_CAMERAHITMODE, "string");
+    declareVariable(RI_SHADERFORMAT, "string");
 
     declareVariable(RI_NAME, "string");
 

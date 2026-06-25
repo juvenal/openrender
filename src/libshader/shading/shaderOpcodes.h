@@ -283,6 +283,8 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
             ++costheta;                                                                                     \
         }                                                                                                   \
                                                                                                 \
+        fprintf(stderr, "[RSLO-DBG] illuminate3: numActive=%d numPassive=%d numVertices=%d\n", \
+                numActive, numPassive, numVertices); \
         if (numActive == 0) {                                                                   \
             jmp(argument(3));                                                                   \
         }                                                                                       \
@@ -305,6 +307,8 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
     if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
         illuminateEnd();                                  \
     } else {                                              \
+        fprintf(stderr, "[RSLO-DBG] endilluminate: numActive=%d numPassive=%d numVertices=%d lights=%p\n", \
+                numActive, numPassive, numVertices, (void*)*lights); \
         const float *L = varying[VARIABLE_L];             \
         float *Lsave = nullptr;                           \
                                                           \
@@ -478,7 +482,12 @@ DEFOPCODE(EndSolar, "endsolar", 0, SOLAREND_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR
     operand(0, res, float *);       \
     operand(1, sys, const char **); \
     operand(2, op, const float *);  \
-    findCoordinateSystem(*sys, from, to, cSystem);
+    float *_pfrom_res0 = res;       \
+    const float *_pfrom_op0 = op;   \
+    findCoordinateSystem(*sys, from, to, cSystem); \
+    do { static int _pf_cnt=0; if (_pf_cnt++<5) \
+        fprintf(stderr,"[RSLO-PFROM] space='%s' in[0]=(%.4f,%.4f,%.4f)\n", \
+                *sys, op[0],op[1],op[2]); } while(0);
 
 #define PFROMEXPR mulmp(res, from, op);
 
@@ -486,7 +495,11 @@ DEFOPCODE(EndSolar, "endsolar", 0, SOLAREND_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR
     res += 3;            \
     op += 3;
 
-#define PFROMEXPR_POST
+#define PFROMEXPR_POST \
+    do { static int _pf_cnt2=0; if (_pf_cnt2++<5) \
+        fprintf(stderr,"[RSLO-PFROM-OUT] in[0]=(%.4f,%.4f,%.4f) out[0]=(%.4f,%.4f,%.4f)\n", \
+                _pfrom_op0[0],_pfrom_op0[1],_pfrom_op0[2], \
+                _pfrom_res0[0],_pfrom_res0[1],_pfrom_res0[2]); } while(0);
 
 #define CFROMEXPR convertColorFrom(res, op, cSystem);
 

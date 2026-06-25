@@ -102,52 +102,54 @@ class CAttributes : public CRefCounter {
         void restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/);
         int find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float & /*floatValue*/) const;
 
-        CAttributes *next; // points to the next attribute if there's motion blur
+        CAttributes *next;           // points to the next attribute if there's motion blur
 
-        CShaderInstance *surface; // Shaders attached to the primitive
+        CShaderInstance *surface;    // Shaders attached to the primitive
         CShaderInstance *displacement;
         CShaderInstance *atmosphere;
         CShaderInstance *interior;
         CShaderInstance *exterior;
         unsigned int usedParameters; // The set of used parameters that the shaders need
 
-        vector surfaceColor; // Default surface color and opacity
+        vector surfaceColor;         // Default surface color and opacity
         vector surfaceOpacity;
 
-        float s[4], t[4]; // The texture coordinates
+        float s[4], t[4];            // The texture coordinates
 
-        vector bmin, bmax; // The custom bounding box if given
-        float bexpand;     // Bounding box expansion percentage
+        vector bmin, bmax;           // The custom bounding box if given
+        float bexpand;               // Bounding box expansion percentage
 
-        matrix uBasis, vBasis; // The basis for bicubic patches
-        int uStep, vStep;      // The step sizes for bicubic patches
+        matrix uBasis, vBasis;       // The basis for bicubic patches
+        int uStep, vStep;            // The step sizes for bicubic patches
 
-        unsigned int flags; // Attribute flags
+        unsigned int flags;          // Attribute flags
 
-        float maxDisplacement;      // Maximum amount of displacement in camera system
-        char *maxDisplacementSpace; // The current space in which the maximum displacement is given
+        float maxDisplacement;       // Maximum amount of displacement in camera system
+        char *maxDisplacementSpace;  // The current space in which the maximum displacement is given
 
-        CActiveLight *lightSources; // The list of active light sources
+        CActiveLight *lightSources;  // The list of active light sources
 
-        float shadingRate;  // Shading rate for this primitive
-        float motionFactor; // Amount to increase shading rate when motion blurring
+        float shadingRate;           // Shading rate for this primitive
+        float motionFactor;          // Amount to increase shading rate when motion blurring
 
-        char *name; // The name of the object if any
+        char *name;                  // The name of the object if any
 
-        int numUProbes, numVProbes; // The samples to gather when estimating the extend of a patch
-        int minSplits;              // The minimum number of splits
-        float rasterExpand;         // The expansion coefficient during the sampling
-        float bias;                 // The bias amount expressed in the camera coordinates
+        int numUProbes, numVProbes;  // The samples to gather when estimating the extend of a patch
+        int minSplits;               // The minimum number of splits
+        float rasterExpand;          // The expansion coefficient during the sampling
+        float bias;                  // The bias amount expressed in the camera coordinates
 
-        char transmissionHitMode; // Either: 'p' = Look at the primitive   or   's' = Execute the shader
-        char specularHitMode;     // Either: 'p' = Look at the primitive   or   's' = Execute the shader
-        char diffuseHitMode;      // Either: 'p' = Look at the primitive   or   's' = Execute the shader
-        char cameraHitMode;       // Either: 'p' = Look at the primitive   or   's' = Execute the shader
+        char transmissionHitMode;    // Either: 'p' = Look at the primitive   or   's' = Execute the shader
+        char specularHitMode;        // Either: 'p' = Look at the primitive   or   's' = Execute the shader
+        char diffuseHitMode;         // Either: 'p' = Look at the primitive   or   's' = Execute the shader
+        char cameraHitMode;          // Either: 'p' = Look at the primitive   or   's' = Execute the shader
 
-        int emit;           // The number of photons to emit from this light source
-        float relativeEmit; // The relative emittance
+        int emit;                    // The number of photons to emit from this light source
+        float relativeEmit;          // The relative emittance
 
-        EShadingModel shadingModel; // The surface shading model
+        EShadingModel shadingModel;  // The surface shading model
+
+        char *shaderFormat;            // "slo" or "rslo" shader format preference
 
         char *globalMapName;              // The name of the global photon map
         char *causticMapName;             // The name of the caustic photon map
@@ -173,6 +175,7 @@ class CAttributes : public CRefCounter {
         static const char *findHitMode(char mode);
         static EShadingModel findShadingModel(const char *name);
         static const char *findShadingModel(EShadingModel model);
+        static char *setShaderFormat(const char *format);
 };
 
 #endif

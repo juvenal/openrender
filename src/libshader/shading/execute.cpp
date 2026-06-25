@@ -534,7 +534,14 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     assert((currentShadingState->numActive + currentShadingState->numPassive) == currentShadingState->numVertices);
 
     currentShadingState->currentShaderInstance = cInstance;
+    // For .slo-only shaders codeArea is nullptr; compute `code` safely for the JIT path.
+#ifdef OPENRENDER_HAVE_LLVM
+    const TCode *code = currentShader->codeArea
+        ? currentShader->codeArea + currentShader->codeEntryPoint
+        : nullptr;
+#else
     const TCode *code = currentShader->codeArea + currentShader->codeEntryPoint;
+#endif
     int *tagStart = currentShadingState->tags;
 
     // Save this stuff for fast access
@@ -554,10 +561,22 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 #ifdef OPENRENDER_HAVE_LLVM
     // JIT dispatch: if a compiled entry point exists for this shader, call it
     // instead of the interpreter and return immediately.
+    fprintf(stderr, "[JIT-PROBE] execute: shader=%s jitEntry=%p\n", cInstance->getName(), (void*)cInstance->jitEntry);
     if (cInstance->jitEntry != nullptr) {
+        // Save outer context: a surface shader's JIT may nest into a light shader's
+        // JIT via callDiffuse/callAmbient → light->illuminate() → execute().
+        // Without save/restore the outer context is cleared on return, breaking
+        // all subsequent op_* calls in the outer JIT function.
+        CShadingContext *savedCtx = libshader::activeContext();
         libshader::setActiveContext(this);
         cInstance->jitEntry(numVertices, stuff, tagStart);
-        libshader::setActiveContext(nullptr);
+        libshader::setActiveContext(savedCtx);
+        // Debug: check CI after surface shader JIT
+        if (currentShader->type == SL_SURFACE) {
+            const float *CI = varying[VARIABLE_CI];
+            if (CI) fprintf(stderr, "[JIT-DBG] post-JIT surface CI[0]=[%.3f,%.3f,%.3f]\n",
+                            CI[0], CI[1], CI[2]);
+        }
         // Mirror interpreter execEnd: accumulate ambient Cl for lightsource shaders.
         if (currentShader->type == SL_LIGHTSOURCE &&
             !(currentShader->usedParameters & PARAMETER_NONAMBIENT) &&
@@ -569,6 +588,13 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
                 if (*tags == 0) addvv(Clsave, Cl);
             }
         }
+        return;
+    }
+
+    // .slo-only shader: codeArea is null and JIT entry is also null (JIT failed).
+    if (code == nullptr) {
+        warning(CODE_SYSTEM, "Shader \"%s\" has no bytecode and no JIT entry — skipping",
+                currentShader->name);
         return;
     }
 #endif

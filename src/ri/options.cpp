@@ -557,10 +557,11 @@ TSearchpath *COptions::pickSearchpath(const char *name) {
     else if (strstr(name, "bm") != NULL) {
         return texturePath;
     }
-    else if (strstr(name, "rslo") != NULL || strstr(name, "sdr") != NULL) {
+    else if (strstr(name, "slo") != NULL ||
+             strstr(name, "rslo") != NULL) {
         return shaderPath;
     }
-    else if (strstr(name, "oslo") != NULL) {
+    else if (strstr(name, "oso") != NULL) {
         return shaderPath;
     }
     else if (strstr(name, osModuleExtension) != NULL) {
@@ -689,8 +690,9 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                                 }
                             }
 
-                            if (*valueEnd == '\0')
+                            if (*valueEnd == '\0') {
                                 break;
+                            }
                             valueStart = valueEnd + 1;
                         }
                     }
@@ -707,8 +709,9 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                     dest = tmp;
                     *dest = '\0';                                // Truncate dest path
                     currentPath = strchr(endOfCurrentPath, ':'); // Skip to next path
-                    if (!currentPath)
+                    if (!currentPath) {
                         currentPath = strchr(endOfCurrentPath, '\0'); // ...or end if last path
+                    }
                 }
             }
             else {

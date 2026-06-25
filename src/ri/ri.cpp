@@ -39,13 +39,13 @@
 #include "common/os.h"
 #include "delayed.h"
 #include "error.h"
+#include "logging.hpp"
 #include "rendererContext.h"
 #include "ri.h"
 #include "riInterface.h"
 #include "ri_config.h"
 #include "rib.h"
 #include "ribOut.h"
-#include "logging.hpp"
 
 //////////////////////////////////////////////////////////////////
 // Token definitions
@@ -210,6 +210,7 @@ RtToken RI_HIDER = "hider";
 RtToken RI_STATISTICS = "statistics";
 RtToken RI_VISIBILITY = "visibility";
 RtToken RI_SHADE = "shade";
+RtToken RI_SHADERFORMAT = "shaderformat";
 RtToken RI_BOUND = "bound";
 RtToken RI_DISPLACEMENT = "displacement";
 RtToken RI_DISPLACEMENTBOUND = "displacementbound";
@@ -291,6 +292,7 @@ RtToken RI_ARCHIVE = "archive";
 RtToken RI_PROCEDURAL = "procedural";
 RtToken RI_RESOURCE = "resource";
 RtToken RI_DISPLAY = "display";
+RtToken RI_GEOMETRY = "geometry";
 
 // Limits options
 RtToken RI_BUCKETSIZE = "bucketsize";
@@ -408,8 +410,8 @@ static CRendererContext *(*s_contextFactory)() = nullptr;
 void RiSetContextFactory(CRendererContext *(*factory)()) {
     s_contextFactory = factory;
 }
-int ignoreCommand = FALSE;           // This variable can be set to force ignore ri commands (used for conditional execution)
-int insideRunProgram = FALSE;        // Are we running inside a runprogram context
+int ignoreCommand = FALSE;    // This variable can be set to force ignore ri commands (used for conditional execution)
+int insideRunProgram = FALSE; // Are we running inside a runprogram context
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	check
@@ -450,7 +452,8 @@ static inline int extract(char *dest, const char *tag, const char *src) {
         strncpy(dest, tmp + strlen(tag), length);
         dest[length] = '\0';
         return TRUE;
-    } else {
+    }
+    else {
         return FALSE;
     }
 }
@@ -583,10 +586,12 @@ RiBegin(RtToken name) {
             if (extract(riRibFile, "frames:", name)) {
                 if (sscanf(riRibFile, "%d:%d:%d", &frameBegin, &frameStep, &frameEnd) == 3) {
                     frameRangeActive = TRUE;
-                } else if (sscanf(riRibFile, "%d:%d", &frameBegin, &frameEnd) == 2) {
+                }
+                else if (sscanf(riRibFile, "%d:%d", &frameBegin, &frameEnd) == 2) {
                     frameStep = 0;
                     frameRangeActive = TRUE;
-                } else if (sscanf(riRibFile, "%d", &frameBegin) == 1) {
+                }
+                else if (sscanf(riRibFile, "%d", &frameBegin) == 1) {
                     frameEnd = frameBegin;
                     frameStep = 0;
                     frameRangeActive = TRUE;
@@ -600,17 +605,19 @@ RiBegin(RtToken name) {
                 renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext(riRibFile, riNetString);
             else
                 renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
-
-        } else {
+        }
+        else {
             renderMan = new CRibOut(name);
         }
-    } else {
+    }
+    else {
         char *runProgEnv = osEnvironment("OPENRENDER_RUNPROGRAM");
         if (runProgEnv != NULL) {
             // If we're a runprogram, we should be writing out to stdout
             renderMan = new CRibOut(stdout);
             insideRunProgram = TRUE;
-        } else {
+        }
+        else {
             renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
         }
     }
@@ -629,10 +636,12 @@ RiBegin(RtToken name) {
             log_debug("Loading .orenderrc from '{}'", rcPath);
             ribParse(rcPath, NULL);
             log_info("Loaded .orenderrc defaults from '{}'", rcPath);
-        } else {
+        }
+        else {
             log_debug("No .orenderrc found at '{}'", rcPath);
         }
-    } else {
+    }
+    else {
         log_debug("ORENDERHOME not set; skipping .orenderrc defaults");
     }
 
@@ -641,7 +650,6 @@ RiBegin(RtToken name) {
         // We're also inside the world block already
         currentBlock = RENDERMAN_WORLD_BLOCK;
     }
-
 }
 
 EXTERN(RtVoid)
@@ -1008,23 +1016,31 @@ RiCatmullRomStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
 
     if (edge == t && edge >= (t + w) && edge < (t + 2.0 * w)) {
         res = -1.0 / 24.0;
-    } else if (edge < t && (edge + w) <= t && (edge + 2.0 * w) <= t) {
+    }
+    else if (edge < t && (edge + w) <= t && (edge + 2.0 * w) <= t) {
         res = 1.0;
-    } else if ((edge + w) == t && (edge + 2.0 * w) > t && edge < t) {
+    }
+    else if ((edge + w) == t && (edge + 2.0 * w) > t && edge < t) {
         res = 25.0 / 24.0;
-    } else if (edge > t && edge > (t + w) && edge < (t + 2.0 * w)) {
+    }
+    else if (edge > t && edge > (t + w) && edge < (t + 2.0 * w)) {
         res = ((3.0 * edge - 3.0 * t - 2.0 * w) * pow(edge - t - 2.0 * w, 3.0)) / (24.0 * pow(w, 4.0));
-    } else if ((edge + 2.0 * w) > t && edge < t && (edge + w) < t) {
+    }
+    else if ((edge + 2.0 * w) > t && edge < t && (edge + w) < t) {
         res = (-3.0 * pow(edge - t, 4.0) - 20.0 * pow(edge - t, 3.0) * w - 48.0 * pow(edge - t, 2.0) * w * w +
                48.0 * (-edge + t) * pow(w, 3.0) + 8.0 * pow(w, 4.0)) /
               (24.0 * pow(w, 4.0));
-    } else if ((edge + w) > t && edge < t && (edge + 2.0 * w) <= t) {
+    }
+    else if ((edge + w) > t && edge < t && (edge + 2.0 * w) <= t) {
         res = (-edge + t) / w + (3.0 * pow(edge - t, 4)) / (8.0 * pow(w, 4.0)) + (5.0 * pow(edge - t, 3)) / (6.0 * pow(w, 3.0)) + (11.0) / 24.0;
-    } else if (edge < (t + w) && (edge > t || (edge >= t && edge < (t + 2.0 * w)))) {
+    }
+    else if (edge < (t + w) && (edge > t || (edge >= t && edge < (t + 2.0 * w)))) {
         res = (-edge + t) / w - (3.0 * pow(edge - t, 4)) / (8.0 * pow(w, 4.0)) + (5.0 * pow(edge - t, 3)) / (6.0 * pow(w, 3.0)) + 1.0 / 2.0;
-    } else if ((edge + w) > t && (edge + 2.0 * w) > t && edge < t) {
+    }
+    else if ((edge + w) > t && (edge + 2.0 * w) > t && edge < t) {
         res = (-edge + t) / w + (3.0 * pow(edge - t, 4)) / (8.0 * pow(w, 4.0)) + (5.0 * pow(edge - t, 3)) / (6.0 * pow(w, 3.0)) + 1.0 / 2.0;
-    } else if (edge == t && edge >= (t + 2.0 * w) && edge < (t + w)) {
+    }
+    else if (edge == t && edge >= (t + 2.0 * w) && edge < (t + w)) {
         res = 13.0 / 24.0;
     }
 
@@ -1038,23 +1054,31 @@ RiMitchellStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
 
     if (edge == t && edge >= (t + w) && edge < (t + 2.0 * w)) {
         res = -1.0 / 72.0;
-    } else if (edge < t && (edge + w) <= t && (edge + 2.0 * w) <= t) {
+    }
+    else if (edge < t && (edge + w) <= t && (edge + 2.0 * w) <= t) {
         res = 1.0;
-    } else if ((edge + w) == t && (edge + 2.0 * w) > t && edge < t) {
+    }
+    else if ((edge + w) == t && (edge + 2.0 * w) > t && edge < t) {
         res = 73.0 / 72.0;
-    } else if (edge > t && edge > (t + w) && edge < (t + 2.0 * w)) {
+    }
+    else if (edge > t && edge > (t + w) && edge < (t + 2.0 * w)) {
         res = ((7.0 * edge - 7.0 * t - 6.0 * w) * pow(edge - t - 2.0 * w, 3.0)) / (72.0 * pow(w, 4.0));
-    } else if ((edge + 2.0 * w) > t && edge < t && (edge + w) < t) {
+    }
+    else if ((edge + 2.0 * w) > t && edge < t && (edge + w) < t) {
         res = (-7.0 * pow(edge - t, 4.0) - 48.0 * pow(edge - t, 3.0) * w - 120.0 * pow(edge - t, 2.0) * w * w +
                128.0 * (-edge + t) * pow(w, 3.0) + 24.0 * pow(w, 4.0)) /
               (72.0 * pow(w, 4.0));
-    } else if ((edge + w) > t && edge < t && (edge + 2.0 * w) <= t) {
+    }
+    else if ((edge + w) > t && edge < t && (edge + 2.0 * w) <= t) {
         res = (64.0 * (-edge + t) / (w * 72.0)) + (35.0 / 72.0) + ((21.0 * pow(edge - t, 4)) + (48.0 * w * pow(edge - t, 3))) / (72.0 * pow(w, 4.0));
-    } else if (edge < (t + w) && (edge > t || (edge >= t && edge < (t + 2.0 * w)))) {
+    }
+    else if (edge < (t + w) && (edge > t || (edge >= t && edge < (t + 2.0 * w)))) {
         res = (64.0 * (-edge + t) / (w * 72.0)) + (36.0 / 72.0) + ((-21.0 * pow(edge - t, 4)) + (48.0 * w * pow(edge - t, 3))) / (72.0 * pow(w, 4.0));
-    } else if ((edge + w) > t && (edge + 2.0 * w) > t && edge < t) {
+    }
+    else if ((edge + w) > t && (edge + 2.0 * w) > t && edge < t) {
         res = (64.0 * (-edge + t) / (w * 72.0)) + (36.0 / 72.0) + ((21.0 * pow(edge - t, 4)) + (48.0 * w * pow(edge - t, 3))) / (72.0 * pow(w, 4.0));
-    } else if (edge == t && edge >= (t + 2.0 * w) && edge < (t + w)) {
+    }
+    else if (edge == t && edge >= (t + 2.0 * w) && edge < (t + w)) {
         res = 37.0 / 72.0;
     }
 
@@ -1068,9 +1092,11 @@ RiTriangleStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
 
     if ((edge - t + w) <= 0 && (edge - t) < 0) {
         res = 1.0;
-    } else if ((edge - t) < 0 && (edge - t + w) > 0) {
+    }
+    else if ((edge - t) < 0 && (edge - t + w) > 0) {
         res = (-edge * edge + 2.0 * edge * t - t * t - 2.0 * edge * w + 2.0 * t * w + w * w) / (2.0 * w * w);
-    } else if ((edge - t) >= 0 && (edge - t - w) < 0) {
+    }
+    else if ((edge - t) >= 0 && (edge - t - w) < 0) {
         res = (edge * edge - 2.0 * edge * t + t * t - 2.0 * edge * w + 2.0 * t * w + w * w) / (2.0 * w * w);
     }
 
@@ -1084,7 +1110,8 @@ RiBoxStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
 
     if ((edge - t) < 0 && (2.0 * edge - 2 * t + w) <= 0) {
         res = 1.0;
-    } else if (((2.0 * edge - 2.0 * t + w) > 0 && (edge - t) < 0) || ((edge - t) >= 0 && (2.0 * edge - 2.0 * t - w) < 0)) {
+    }
+    else if (((2.0 * edge - 2.0 * t + w) > 0 && (edge - t) < 0) || ((edge - t) >= 0 && (2.0 * edge - 2.0 * t - w) < 0)) {
         res = (-2.0 * edge + 2.0 * t + w) / (2.0 * w);
     }
 
@@ -1153,9 +1180,11 @@ RiOptionV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]) {
                     char *val = ((char **)params[i])[0];
                     if (strcmp(val, "gzip") == 0) {
                         preferCompressedRibOut = TRUE;
-                    } else if (strcmp(val, "none") == 0) {
+                    }
+                    else if (strcmp(val, "none") == 0) {
                         preferCompressedRibOut = FALSE;
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown compression type \"%s\"\n", val);
                     }
                 }
@@ -2028,13 +2057,15 @@ RiProcRunProgram(void *data, RtFloat detail) {
                     signal(SIGPIPE, oldHandler);
 
                     renderMan->RiReadArchiveV(tmp, NULL, 0, NULL, NULL);
-                } else {
+                }
+                else {
                     error(CODE_SYSTEM, "Failed to redirect input or output for \"%s\"\n", delayed->generator);
                 }
                 // close the output handle (it may already be shut)
                 if (out != NULL)
                     fclose(out);
-            } else {
+            }
+            else {
                 // We are the child process
 
                 close(fdout[1]); // we'll read from fdout[0], fdout[1] belongs to parent
@@ -2054,14 +2085,16 @@ RiProcRunProgram(void *data, RtFloat detail) {
 
                 _exit(0); // call _exit() NOT exit() to avoid flushing stdio twice
             }
-        } else {
+        }
+        else {
             error(CODE_SYSTEM, "Failed to execute \"%s\"\n", delayed->generator);
             close(fdin[0]);
             close(fdin[1]);
             close(fdout[0]);
             close(fdout[1]);
         }
-    } else {
+    }
+    else {
         error(CODE_SYSTEM, "Failed to open communication for \"%s\"\n", delayed->generator);
         close(fdin[0]);
         close(fdin[1]);
@@ -2103,7 +2136,8 @@ RiProcDynamicLoad(void *data, RtFloat detail) {
             Free(blindData);
 
         // osUnloadModule(module);
-    } else {
+    }
+    else {
         error(CODE_NOFILE, "The delayed module \"%s\" is not found: %s\n", delayed->generator, osModuleError());
     }
 }
@@ -2344,16 +2378,19 @@ RiErrorPrint(RtInt code, RtInt severity, const char *message) {
         RiLastError = code;
 
         exit(-1);
-    } else if (severity == RIE_ERROR) {
+    }
+    else if (severity == RIE_ERROR) {
         fprintf(stderr, "%s", message);
         fflush(stderr);
 
         RiLastError = code;
-    } else if (severity == RIE_WARNING) {
+    }
+    else if (severity == RIE_WARNING) {
         // RIB-level issues: always print regardless of log level
         fprintf(stdout, "%s", message);
         fflush(stdout);
-    } else {
+    }
+    else {
         // RIE_INFO — algorithm/geometry events: respect the -x log level
         // Printed only when -x 3 (INFO) or -x 4 (DEBUG) is passed
         if (current_log_level <= LogLevel::INFO) {

@@ -17,6 +17,7 @@
 
 #include "passUniformLifting.h"
 #include "../rslo.h"  // for SLC_xxx constants
+#include <unordered_map>
 
 // -------------------------------------------------------------------------
 // isUniformSafeOpcode
@@ -64,7 +65,8 @@ bool CUniformLiftingPass::isUniformSafeOpcode(const std::string &opcode) {
 
 // static
 bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
-                                 std::unordered_set<std::string> &uniformSet) {
+                                 std::unordered_set<std::string> &uniformSet,
+                                 const std::unordered_map<std::string, int> &writeCounts) {
     bool changed = false;
     for (IRBlock &blk : fn.blocks) {
         for (const IRInstr &instr : blk.instrs) {
@@ -74,9 +76,21 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
             // Already uniform?
             IRVarInfo *vi = mod.findVar(instr.result);
             if (!vi) continue;
+            // Skip globals: their stride is fixed by the renderer (s_rslGlobalStrides).
+            // Promoting them would incorrectly add them to uniformSet, causing local
+            // variables that read from varying globals (e.g. alpha) to be wrongly promoted.
+            if (vi->isGlobal()) continue;
             if (vi->isUniform()) {
                 uniformSet.insert(instr.result);
                 continue;
+            }
+
+            // Variables written more than once in the function cannot be safely
+            // promoted: a later write might assign a varying value, making the
+            // "uniform" tag from an earlier write incorrect.
+            {
+                auto wc = writeCounts.find(instr.result);
+                if (wc != writeCounts.end() && wc->second > 1) continue;
             }
 
             // Check if all named operands are in the uniform set.
@@ -108,6 +122,22 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
 bool CUniformLiftingPass::run(IRModule &mod) {
     bool anyChanged = false;
 
+    // Count write sites per variable in each function section.
+    // A variable written more than once cannot be safely promoted to UNIFORM:
+    // different writes may produce values of different "uniformity" (one pass
+    // assigns a uniform Ka-vector, the next assigns a varying ambient() result).
+    // Single-write temporaries are safe to promote.
+    auto countWrites = [](const IRFunction &fn,
+                          std::unordered_map<std::string, int> &counts) {
+        for (const IRBlock &blk : fn.blocks)
+            for (const IRInstr &instr : blk.instrs)
+                if (instr.hasResult())
+                    counts[instr.result]++;
+    };
+    std::unordered_map<std::string, int> writeCounts;
+    countWrites(mod.initFn, writeCounts);
+    countWrites(mod.codeFn, writeCounts);
+
     // Seed the uniform set with all known-UNIFORM variables.
     std::unordered_set<std::string> uniformSet;
     for (const IRVarInfo &v : mod.vars) {
@@ -115,12 +145,12 @@ bool CUniformLiftingPass::run(IRModule &mod) {
             uniformSet.insert(v.cName);
     }
 
-    // Fixpoint iteration.
+    // Fixpoint iteration; skip multi-write variables.
     bool changed;
     do {
         changed = false;
-        changed |= liftFn(mod.initFn, mod, uniformSet);
-        changed |= liftFn(mod.codeFn, mod, uniformSet);
+        changed |= liftFn(mod.initFn, mod, uniformSet, writeCounts);
+        changed |= liftFn(mod.codeFn, mod, uniformSet, writeCounts);
         anyChanged |= changed;
     } while (changed);
 

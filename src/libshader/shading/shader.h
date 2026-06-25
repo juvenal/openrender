@@ -153,6 +153,11 @@ class CShader : public CFileResource {
         unsigned int flags; // shadows of parent data (to support hcShaders)
         CShaderData *data;  // Additional data (owned by CShader)
 
+#ifdef OPENRENDER_HAVE_LLVM
+        TShaderJitEntry jitEntry;     // JIT-compiled main entry (set at load time for .slo)
+        TShaderJitEntry jitInitEntry; // JIT-compiled init entry (nullptr if no #!Init)
+#endif
+
         friend CShader *parseShader(const char *, const char *);
         void analyse();
 };
@@ -215,7 +220,8 @@ class CProgrammableShaderInstance : public CShaderInstance {
         CAllocatedString *strings; // The strings we allocated for parameters
         CShader *parent;           // The parent shader
 #ifdef OPENRENDER_HAVE_LLVM
-        TShaderJitEntry jitEntry;  // JIT-compiled entry point (nullptr until first execute)
+        TShaderJitEntry jitEntry;     // JIT-compiled main entry (nullptr until first prepare)
+        TShaderJitEntry jitInitEntry; // JIT-compiled init entry (nullptr if no init section)
 #endif
     private:
         int setParameter(const char *, const void *);

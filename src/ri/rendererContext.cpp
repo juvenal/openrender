@@ -261,7 +261,8 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
     if (strcmp(name, "null") == 0)
         return NULL;
 
-    CShader *cShader = CRenderer::getShader(name, currentOptions->shaderPath);
+    const char *preference = currentAttributes->shaderFormat ? currentAttributes->shaderFormat : "slo";
+    CShader *cShader = CRenderer::getShader(name, currentOptions->shaderPath, preference);
 
     if (cShader != NULL) {
         CProgrammableShaderInstance *instance;
@@ -298,7 +299,8 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
 
             // Add the new light into the active lights list for the frame
             CRenderer::allLights->push(cInstance);
-        } else if (strcmp(name, "quadlight") == 0) {
+        }
+        else if (strcmp(name, "quadlight") == 0) {
             cInstance = new CQuadLight(currentAttributes, currentXform);
 
             // Add the new light into the active lights list for the frame
@@ -356,7 +358,8 @@ static float screenArea(CXform *x, const float *bmin, const float *bmax) {
         if ((t = area(P[__i1 * 3 + 0], P[__i1 * 3 + 1], P[__i2 * 3 + 0], P[__i2 * 3 + 1], P[__i3 * 3 + 0], P[__i3 * 3 + 1])) > 0) { \
             a += t;                                                                                                                 \
         }                                                                                                                           \
-    } else                                                                                                                          \
+    }                                                                                                                               \
+    else                                                                                                                            \
         return C_INFINITY;
 
     sumArea(0, 3, 2);
@@ -493,21 +496,29 @@ void CRendererContext::addObject(CObject *o) {
             // next_to = xform->to * fromWorld * toWorld1  (inverse of next_from)
             mulmm(privXform->next->to, privXform->to, CRenderer::fromWorld, CRenderer::toWorld1);
             privXform->next->flip = privXform->flip;
-            privXform->cameraMotion = true;  // mark so transform() uses SLERP for rotation
+            privXform->cameraMotion = true; // mark so transform() uses SLERP for rotation
 
             // Expand the bounding box to cover the t=1 camera-space position.
             // relMotion maps t=0 camera-space points into t=1 camera-space.
             matrix relMotion;
             mulmm(relMotion, CRenderer::fromWorld1, CRenderer::toWorld);
             vector corners[8], vtmp;
-            initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]); mulmp(corners[0], relMotion, vtmp);
-            initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]); mulmp(corners[1], relMotion, vtmp);
-            initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]); mulmp(corners[2], relMotion, vtmp);
-            initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]); mulmp(corners[3], relMotion, vtmp);
-            initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]); mulmp(corners[4], relMotion, vtmp);
-            initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]); mulmp(corners[5], relMotion, vtmp);
-            initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]); mulmp(corners[6], relMotion, vtmp);
-            initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]); mulmp(corners[7], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]);
+            mulmp(corners[0], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]);
+            mulmp(corners[1], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]);
+            mulmp(corners[2], relMotion, vtmp);
+            initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]);
+            mulmp(corners[3], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]);
+            mulmp(corners[4], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]);
+            mulmp(corners[5], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]);
+            mulmp(corners[6], relMotion, vtmp);
+            initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]);
+            mulmp(corners[7], relMotion, vtmp);
             for (int ci = 0; ci < 8; ci++)
                 addBox(o->bmin, o->bmax, corners[ci]);
 
@@ -526,14 +537,22 @@ void CRendererContext::addObject(CObject *o) {
                     Mjt[element(0, 3)] = jt * CRenderer::relTrans[0];
                     Mjt[element(1, 3)] = jt * CRenderer::relTrans[1];
                     Mjt[element(2, 3)] = jt * CRenderer::relTrans[2];
-                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]); mulmp(corners[0], Mjt, vtmp);
-                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]); mulmp(corners[1], Mjt, vtmp);
-                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]); mulmp(corners[2], Mjt, vtmp);
-                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]); mulmp(corners[3], Mjt, vtmp);
-                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]); mulmp(corners[4], Mjt, vtmp);
-                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]); mulmp(corners[5], Mjt, vtmp);
-                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]); mulmp(corners[6], Mjt, vtmp);
-                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]); mulmp(corners[7], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmin[2]);
+                    mulmp(corners[0], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmin[1], o->bmax[2]);
+                    mulmp(corners[1], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmax[2]);
+                    mulmp(corners[2], Mjt, vtmp);
+                    initv(vtmp, o->bmin[0], o->bmax[1], o->bmin[2]);
+                    mulmp(corners[3], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmin[2]);
+                    mulmp(corners[4], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmin[1], o->bmax[2]);
+                    mulmp(corners[5], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmax[2]);
+                    mulmp(corners[6], Mjt, vtmp);
+                    initv(vtmp, o->bmax[0], o->bmax[1], o->bmin[2]);
+                    mulmp(corners[7], Mjt, vtmp);
                     for (int ci = 0; ci < 8; ci++)
                         addBox(o->bmin, o->bmax, corners[ci]);
                 }
@@ -591,7 +610,8 @@ int CRendererContext::addMotion(float *parameters, int parameterSize, const char
     // Sanity check
     if (numMotions == 0) {
         lastCommand = name;
-    } else {
+    }
+    else {
         if (numMotions >= numExpectedMotions) {
             error(CODE_NESTING, "%s: Too many motions in motion block\n", name);
             return 0;
@@ -860,13 +880,15 @@ void CRendererContext::RiProjectionV(const char *name, int n, const char *tokens
             else
                 error(CODE_BADTOKEN, "Invalid perspective projection parameter: %s\n", tokens[i]);
         }
-    } else if (strcmp(name, RI_ORTHOGRAPHIC) == 0) {
+    }
+    else if (strcmp(name, RI_ORTHOGRAPHIC) == 0) {
         int i;
         options->projection = OPTIONS_PROJECTION_ORTHOGRAPHIC;
         for (i = 0; i < n; i++) {
             error(CODE_BADTOKEN, "Invalid orthographic projection parameter: %s\n", tokens[i]);
         }
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Invalid projection type: %s\n", name);
     }
 }
@@ -882,7 +904,8 @@ void CRendererContext::RiClipping(float hither, float yon) {
     options = getOptions(TRUE);
     if (C_EPSILON > hither) {
         options->clipMin = C_EPSILON;
-    } else {
+    }
+    else {
         options->clipMin = hither;
     }
     options->clipMax = yon;
@@ -1014,7 +1037,7 @@ void CRendererContext::RiImagerV(const char *name, int n, const char *tokens[], 
 
     log_info("RiImager: loading shader '{}'", name);
 
-    COptions *options  = getOptions(TRUE);
+    COptions *options = getOptions(TRUE);
     CShaderInstance *s = getShader(name, SL_IMAGER, n, tokens, params);
 
     if (s == nullptr) {
@@ -1040,13 +1063,15 @@ void CRendererContext::RiQuantize(const char *type, int one, int qmin, int qmax,
         options->colorQuantizer[2] = (float)qmin;
         options->colorQuantizer[3] = (float)qmax;
         options->colorQuantizer[4] = (float)ampl;
-    } else if (strcmp(type, RI_Z) == 0) {
+    }
+    else if (strcmp(type, RI_Z) == 0) {
         options->depthQuantizer[0] = 0;
         options->depthQuantizer[1] = (float)one;
         options->depthQuantizer[2] = (float)qmin;
         options->depthQuantizer[3] = (float)qmax;
         options->depthQuantizer[4] = (float)ampl;
-    } else if (strcmp(type, RI_CUSTOM) == 0) {
+    }
+    else if (strcmp(type, RI_CUSTOM) == 0) {
         COptions::CDisplay *cDisplay = options->displays;
         if (cDisplay != NULL) {
             cDisplay->quantizer[0] = 0;
@@ -1055,7 +1080,8 @@ void CRendererContext::RiQuantize(const char *type, int one, int qmin, int qmax,
             cDisplay->quantizer[3] = (float)qmax;
             cDisplay->quantizer[4] = (float)ampl;
         }
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown quantizer type: %s\n", type);
     }
 }
@@ -1071,14 +1097,16 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
         if ((extensionPos = strchr(tmp, '.')) != NULL) {
             snprintf(extensionPos, 3, "_z");
             strcat(tmp, strchr(name, '.'));
-        } else {
+        }
+        else {
             strcat(tmp, "_z");
         }
 
         RiDisplayV(name, type, RI_RGB, n, tokens, params);
         RiDisplayV(tmp, type, RI_Z, n, tokens, params);
         return;
-    } else if (strcmp(mode, RI_RGBAZ) == 0) {
+    }
+    else if (strcmp(mode, RI_RGBAZ) == 0) {
         char tmp[OS_MAX_PATH_LENGTH];
         char *extensionPos;
 
@@ -1086,7 +1114,8 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
         if ((extensionPos = strchr(tmp, '.')) != NULL) {
             snprintf(extensionPos, 3, "_z");
             strcat(tmp, strchr(name, '.'));
-        } else {
+        }
+        else {
             strcat(tmp, "_z");
         }
 
@@ -1098,7 +1127,8 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
     options = getOptions(TRUE);
     if (name[0] == '+') {
         name++;
-    } else {
+    }
+    else {
         // Ditch the previously assigned junk
         if (options->displays != NULL) {
             COptions::CDisplay *cDisplay, *nDisplay;
@@ -1139,45 +1169,47 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                 cDisplay->parameters[j].name = strdup(cVar->name);
                 cDisplay->parameters[j].numItems = cVar->numItems;
                 switch (cVar->type) {
-                case TYPE_FLOAT:
-                    cDisplay->parameters[j].type = FLOAT_PARAMETER;
-                    cDisplay->parameters[j].data = new float[cVar->numItems];
-                    memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float));
-                    break;
-                case TYPE_COLOR:
-                case TYPE_VECTOR:
-                case TYPE_NORMAL:
-                case TYPE_POINT:
-                    cDisplay->parameters[j].type = VECTOR_PARAMETER;
-                    cDisplay->parameters[j].data = new float[cVar->numItems * 3];
-                    memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 3);
-                    break;
-                case TYPE_MATRIX:
-                    cDisplay->parameters[j].type = MATRIX_PARAMETER;
-                    cDisplay->parameters[j].data = new float[cVar->numItems * 16];
-                    memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 16);
-                    break;
-                case TYPE_QUAD:
-                case TYPE_DOUBLE:
-                    break;
-                case TYPE_STRING:
-                    cDisplay->parameters[j].type = STRING_PARAMETER;
-                    cDisplay->parameters[j].data = strdup(((char **)params[i])[0]);
-                    break;
-                case TYPE_INTEGER: {
-                    int k;
-                    float *src;
-                    int *dst;
-                    cDisplay->parameters[j].type = INTEGER_PARAMETER;
-                    cDisplay->parameters[j].data = new int[cVar->numItems];
-                    dst = (int *)cDisplay->parameters[j].data;
-                    src = (float *)params[i];
-                    for (k = 0; k < cVar->numItems; k++)
-                        *dst++ = (int)*src++;
-                } break;
+                    case TYPE_FLOAT:
+                        cDisplay->parameters[j].type = FLOAT_PARAMETER;
+                        cDisplay->parameters[j].data = new float[cVar->numItems];
+                        memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float));
+                        break;
+                    case TYPE_COLOR:
+                    case TYPE_VECTOR:
+                    case TYPE_NORMAL:
+                    case TYPE_POINT:
+                        cDisplay->parameters[j].type = VECTOR_PARAMETER;
+                        cDisplay->parameters[j].data = new float[cVar->numItems * 3];
+                        memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 3);
+                        break;
+                    case TYPE_MATRIX:
+                        cDisplay->parameters[j].type = MATRIX_PARAMETER;
+                        cDisplay->parameters[j].data = new float[cVar->numItems * 16];
+                        memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 16);
+                        break;
+                    case TYPE_QUAD:
+                    case TYPE_DOUBLE:
+                        break;
+                    case TYPE_STRING:
+                        cDisplay->parameters[j].type = STRING_PARAMETER;
+                        cDisplay->parameters[j].data = strdup(((char **)params[i])[0]);
+                        break;
+                    case TYPE_INTEGER:
+                    {
+                        int k;
+                        float *src;
+                        int *dst;
+                        cDisplay->parameters[j].type = INTEGER_PARAMETER;
+                        cDisplay->parameters[j].data = new int[cVar->numItems];
+                        dst = (int *)cDisplay->parameters[j].data;
+                        src = (float *)params[i];
+                        for (k = 0; k < cVar->numItems; k++)
+                            *dst++ = (int)*src++;
+                    } break;
                 }
                 j++;
-            } else {
+            }
+            else {
                 error(CODE_BADTOKEN, "Display parameter \"%s\" not defined\n", tokens[i]);
             }
         }
@@ -1221,32 +1253,41 @@ void CRendererContext::RiDisplayChannelV(const char *channel, int n, const char 
                         (cVar->type == nChannel->variable->type)) {
                         nChannel->fill = new float[nChannel->numSamples];
                         memcpy(nChannel->fill, params[i], nChannel->numSamples * sizeof(float));
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Invalid number of items for fill\n");
                     }
-                } else if (strcmp(cVar->name, "matte") == 0) {
+                }
+                else if (strcmp(cVar->name, "matte") == 0) {
                     if (cVar->type == TYPE_INTEGER) {
                         nChannel->matteMode = (int)((float *)params[i])[0];
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Invalid type for AOV matte mode\n");
                     }
-                } else if (strcmp(cVar->name, "filter") == 0) {
+                }
+                else if (strcmp(cVar->name, "filter") == 0) {
                     if (cVar->type == TYPE_STRING) {
                         const char *filt = ((char **)params[i])[0];
                         nChannel->filterType = CRenderer::getAOVFilter(filt);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Invalid type for AOV filter mode\n");
                     }
-                } else if (strcmp(cVar->name, "quantize") == 0) {
+                }
+                else if (strcmp(cVar->name, "quantize") == 0) {
                     // intentionally empty for compatibility
                     warning(CODE_UNIMPLEMENT, "Display channel parameter \"%s\" is not currently supported\n", cVar->name);
-                } else if (strcmp(cVar->name, "dither") == 0) {
+                }
+                else if (strcmp(cVar->name, "dither") == 0) {
                     // intentionally empty for compatibility
                     warning(CODE_UNIMPLEMENT, "Display channel parameter \"%s\" is not currently supported\n", cVar->name);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Invalid display channel parameter: %s\n", tokens[i]);
                 }
-            } else {
+            }
+            else {
                 error(CODE_BADTOKEN, "Display channel parameter \"%s\" not defined\n", tokens[i]);
             }
         }
@@ -1319,170 +1360,215 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
 
             if (strcmp(tokens[i], RI_ARCHIVE) == 0) {
                 options->archivePath = optionsGetSearchPath(paths, options->archivePath);
-            } else if (strcmp(tokens[i], RI_PROCEDURAL) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_PROCEDURAL) == 0) {
                 options->proceduralPath = optionsGetSearchPath(paths, options->proceduralPath);
-            } else if (strcmp(tokens[i], RI_TEXTURE) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_TEXTURE) == 0) {
                 options->texturePath = optionsGetSearchPath(paths, options->texturePath);
-            } else if (strcmp(tokens[i], RI_SHADER) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_SHADER) == 0) {
                 options->shaderPath = optionsGetSearchPath(paths, options->shaderPath);
-            } else if (strcmp(tokens[i], RI_DISPLAY) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_DISPLAY) == 0) {
                 options->displayPath = optionsGetSearchPath(paths, options->displayPath);
-            } else if (strcmp(tokens[i], RI_RESOURCE) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_GEOMETRY) == 0) {
+                options->geometryPath = optionsGetSearchPath(paths, options->geometryPath);
+            }
+            else if (strcmp(tokens[i], RI_RESOURCE) == 0) {
                 options->shaderPath = optionsGetSearchPath(paths, options->shaderPath);
                 options->texturePath = optionsGetSearchPath(paths, options->texturePath);
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    // Check the limit options
-    } else if (strcmp(name, RI_LIMITS) == 0) {
+        // Check the limit options
+    }
+    else if (strcmp(name, RI_LIMITS) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_BUCKETSIZE) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[1] < 0)) {
                     error(CODE_RANGE, "Invalid bucket size: %dx%d\n", val[0], val[1]);
-                } else {
+                }
+                else {
                     options->bucketWidth = val[0];
                     options->bucketHeight = val[1];
                 }
-            } else if (strcmp(tokens[i], RI_METABUCKETS) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_METABUCKETS) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[1] < 0)) {
                     error(CODE_RANGE, "Invalid meta bucket size: %dx%d\n", val[0], val[1]);
-                } else {
+                }
+                else {
                     options->netXBuckets = val[0];
                     options->netYBuckets = val[1];
                 }
-            } else if (strcmp(tokens[i], RI_INHERITATTRIBUTES) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_INHERITATTRIBUTES) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_INHERIT_ATTRIBUTES;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_INHERIT_ATTRIBUTES);
-            } else if (strcmp(tokens[i], RI_GRIDSIZE) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_GRIDSIZE) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 128) || (val[0] > 100000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_GRIDSIZE);
-                } else {
+                }
+                else {
                     options->maxGridSize = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_EYESPLITS) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_EYESPLITS) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 1) || (val[0] > 100000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_EYESPLITS);
-                } else {
+                }
+                else {
                     options->maxEyeSplits = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_TEXTUREMEMORY) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_TEXTUREMEMORY) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > (2 * 1024 * 1024))) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_TEXTUREMEMORY);
-                } else {
+                }
+                else {
                     options->maxTextureSize = val[0];
                 }
                 options->maxTextureSize *= 1000; // Convert into bytes
-            } else if (strcmp(tokens[i], RI_BRICKMEMORY) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_BRICKMEMORY) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > 100000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_BRICKMEMORY);
-                } else {
+                }
+                else {
                     options->maxBrickSize = val[0];
                 }
                 options->maxBrickSize *= 1000; // Convert into bytes
-            } else if (strcmp(tokens[i], RI_NUMTHREADS) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_NUMTHREADS) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 1) || (val[0] > 32)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_NUMTHREADS);
-                } else {
+                }
+                else {
                     options->numThreads = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_THREADSTRIDE) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_THREADSTRIDE) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 1) || (val[0] > 32)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_THREADSTRIDE);
-                } else {
+                }
+                else {
                     options->threadStride = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_GEOCACHEMEMORY) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_GEOCACHEMEMORY) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > 500000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_GEOCACHEMEMORY);
-                } else {
+                }
+                else {
                     options->geoCacheMemory = val[0];
                 }
                 options->geoCacheMemory *= 1000; // Convert into bytes
-            } else if (strcmp(tokens[i], RI_OTHRESHOLD) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_OTHRESHOLD) == 0) {
                 float *val = (float *)params[i];
                 if ((val[0] < 0) || (val[1] > 1) || (val[1] < 0) || (val[1] > 1) || (val[1] < 0) || (val[0] > 1)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_OTHRESHOLD);
-                } else {
+                }
+                else {
                     movvv(options->opacityThreshold, val);
                 }
-            } else if (strcmp(tokens[i], RI_ZTHRESHOLD) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_ZTHRESHOLD) == 0) {
                 float *val = (float *)params[i];
                 if ((val[0] < 0) || (val[1] > 1) || (val[1] < 0) || (val[1] > 1) || (val[1] < 0) || (val[0] > 1)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_ZTHRESHOLD);
-                } else {
+                }
+                else {
                     movvv(options->zvisibilityThreshold, val);
                 }
                 options->geoCacheMemory *= 1000; // Convert into bytes
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    // Check the hider options
-    } else if (strcmp(name, RI_HIDER) == 0) {
+        // Check the hider options
+    }
+    else if (strcmp(name, RI_HIDER) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_JITTER) == 0) {
                 float *val = (float *)params[i];
                 if ((val[0] < 0) || (val[0] > 1)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_JITTER);
-                } else {
+                }
+                else {
                     options->jitter = val[0];
                 }
-                if (options->jitter > (float)0.99) options->jitter = (float)0.99;
-            } else if (strcmp(tokens[i], RI_FALSECOLOR) == 0) {
+                if (options->jitter > (float)0.99)
+                    options->jitter = (float)0.99;
+            }
+            else if (strcmp(tokens[i], RI_FALSECOLOR) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_FALSECOLOR_RAYTRACES;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_FALSECOLOR_RAYTRACES);
-            } else if (strcmp(tokens[i], RI_RADIANCECACHE) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_RADIANCECACHE) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_USE_RADIANCE_CACHE;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_USE_RADIANCE_CACHE);
-            } else if (strcmp(tokens[i], RI_EMIT) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_EMIT) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > 100000000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_EMIT);
-                } else {
+                }
+                else {
                     options->numEmitPhotons = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_SAMPLESPECTRUM) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_SAMPLESPECTRUM) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_SAMPLESPECTRUM;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_SAMPLESPECTRUM);
-            } else if (strcmp(tokens[i], RI_SAMPLEMOTION) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_SAMPLEMOTION) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_SAMPLEMOTION;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_SAMPLEMOTION);
-            } else if (strcmp(tokens[i], RI_DEPTHFILTER) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_DEPTHFILTER) == 0) {
                 char *val = ((char **)params[i])[0];
                 if (strcmp(val, "min") == 0)
                     options->depthFilter = DEPTH_MIN;
@@ -1494,7 +1580,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                     options->depthFilter = DEPTH_MID;
                 else
                     error(CODE_BADTOKEN, "Unknown depth filter: \"%s\"\n", val);
-            } else if (strcmp(tokens[i], "filter") == 0) {
+            }
+            else if (strcmp(tokens[i], "filter") == 0) {
                 const char *val = ((const char **)params[i])[0];
                 if (strcmp(val, "continuous") == 0)
                     options->pixelFilterMode = COptions::FILTER_MODE_CONTINUOUS;
@@ -1503,45 +1590,54 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                         warning(CODE_BADTOKEN, "Unknown filter mode: \"%s\", defaulting to \"precomputed\"\n", val);
                     options->pixelFilterMode = COptions::FILTER_MODE_PRECOMPUTED;
                 }
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    // Check the trace options
-    } else if (strcmp(name, RI_TRACE) == 0) {
+        // Check the trace options
+    }
+    else if (strcmp(name, RI_TRACE) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_MAXDEPTH) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > 100000)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXDEPTH);
-                } else {
+                }
+                else {
                     options->maxRayDepth = val[0];
                 }
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    // Check the io options
-    } else if (strcmp(name, RI_STATISTICS) == 0) {
+        // Check the io options
+    }
+    else if (strcmp(name, RI_STATISTICS) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_ENDOFFRAME) == 0) {
                 int *val = (int *)params[i];
                 if ((val[0] < 0) || (val[0] > 3)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_ENDOFFRAME);
-                } else {
+                }
+                else {
                     options->endofframe = val[0];
                 }
-            } else if (strcmp(tokens[i], RI_FILELOG) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_FILELOG) == 0) {
                 char *val = ((char **)params[i])[0];
                 if (options->filelog != NULL)
                     free(options->filelog);
@@ -1549,57 +1645,68 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                     options->filelog = NULL;
                 else
                     options->filelog = strdup(val);
-            } else if (strcmp(tokens[i], RI_PROGRESS) == 0) {
+            }
+            else if (strcmp(tokens[i], RI_PROGRESS) == 0) {
                 int *val = (int *)params[i];
                 if (val[0] != 0)
                     options->flags |= OPTIONS_FLAGS_PROGRESS;
                 else
                     options->flags &= ~(OPTIONS_FLAGS_PROGRESS);
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    } else if (strcmp(name, RI_SHUTTER) == 0) {
+    }
+    else if (strcmp(name, RI_SHUTTER) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_OFFSET) == 0) {
                 float *val = (float *)params[i];
                 if ((val[0] < 0) || (val[0] > C_INFINITY)) {
                     error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_OFFSET);
-                } else {
+                }
+                else {
                     options->shutterOffset = val[0];
                 }
-            } else {
+            }
+            else {
                 CVariable var;
                 if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                     RiOption(name, var.name, params[i], RI_NULL);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
-    } else if (strcmp(name, RI_USER) == 0) {
+    }
+    else if (strcmp(name, RI_USER) == 0) {
         CVariable var;
 
         for (i = 0; i < n; i++) {
             if (parseVariable(&var, NULL, tokens[i])) {
                 // got an inline declaration
                 options->userOptions.insert(&var, params[i]);
-            } else {
+            }
+            else {
                 CVariable *cVar = CRenderer::retrieveVariable(tokens[i]);
 
                 if (cVar != NULL) {
                     options->userOptions.insert(cVar, params[i]);
-                } else {
+                }
+                else {
                     error(CODE_BADTOKEN, "User option: \"%s\" is predeclared declared or declared inline\n", name);
                 }
             }
         }
-    } else if (strcmp(name, "pixelfilter") == 0) {
+    }
+    else if (strcmp(name, "pixelfilter") == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], "mode") == 0) {
                 const char *val = ((const char **)params[i])[0];
@@ -1610,11 +1717,13 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                         warning(CODE_BADTOKEN, "Unknown filter mode: \"%s\", defaulting to \"precomputed\"\n", val);
                     options->pixelFilterMode = COptions::FILTER_MODE_PRECOMPUTED;
                 }
-            } else {
+            }
+            else {
                 error(CODE_BADTOKEN, "Unknown pixelfilter option: \"%s\"\n", tokens[i]);
             }
         }
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }
 }
@@ -1644,21 +1753,21 @@ void CRendererContext::RiColor(float *Cs) {
     options->convertColor(color, Cs);
 
     switch (addMotion(color, 3, "CRendererContext::RiColor", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        movvv(attributes->surfaceColor, p0);
-        if (attributes->next != NULL)
-            movvv(attributes->next->surfaceColor, p0);
-        break;
-    case 2:
-        movvv(attributes->surfaceColor, p0);
-        if (attributes->next == NULL)
-            attributes->next = new CAttributes(attributes);
-        movvv(attributes->next->surfaceColor, p1);
-        break;
-    default:
-        break;
+        case 0:
+            break;
+        case 1:
+            movvv(attributes->surfaceColor, p0);
+            if (attributes->next != NULL)
+                movvv(attributes->next->surfaceColor, p0);
+            break;
+        case 2:
+            movvv(attributes->surfaceColor, p0);
+            if (attributes->next == NULL)
+                attributes->next = new CAttributes(attributes);
+            movvv(attributes->next->surfaceColor, p1);
+            break;
+        default:
+            break;
     }
 }
 
@@ -1677,21 +1786,21 @@ void CRendererContext::RiOpacity(float *Cs) {
     options->convertColor(color, Cs);
 
     switch (addMotion(color, 3, "CRendererContext::RiOpacity", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        movvv(attributes->surfaceOpacity, p0);
-        if (attributes->next != NULL)
-            movvv(attributes->next->surfaceOpacity, p0);
-        break;
-    case 2:
-        movvv(attributes->surfaceOpacity, p0);
-        if (attributes->next == NULL)
-            attributes->next = new CAttributes(attributes);
-        movvv(attributes->next->surfaceOpacity, p1);
-        break;
-    default:
-        break;
+        case 0:
+            break;
+        case 1:
+            movvv(attributes->surfaceOpacity, p0);
+            if (attributes->next != NULL)
+                movvv(attributes->next->surfaceOpacity, p0);
+            break;
+        case 2:
+            movvv(attributes->surfaceOpacity, p0);
+            if (attributes->next == NULL)
+                attributes->next = new CAttributes(attributes);
+            movvv(attributes->next->surfaceOpacity, p1);
+            break;
+        default:
+            break;
     }
 }
 
@@ -1715,599 +1824,616 @@ void CRendererContext::RiTextureCoordinates(float s1, float t1, float s2, float 
     data[7] = t4;
 
     switch (addMotion(data, 8, "CRendererContext::RiTextureCoordinates", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        attributes->s[0] = p0[0];
-        attributes->s[1] = p0[1];
-        attributes->s[2] = p0[2];
-        attributes->s[3] = p0[3];
-        attributes->t[0] = p0[4];
-        attributes->t[1] = p0[5];
-        attributes->t[2] = p0[6];
-        attributes->t[3] = p0[7];
-        attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_ST;
+        case 0:
+            break;
+        case 1:
+            attributes->s[0] = p0[0];
+            attributes->s[1] = p0[1];
+            attributes->s[2] = p0[2];
+            attributes->s[3] = p0[3];
+            attributes->t[0] = p0[4];
+            attributes->t[1] = p0[5];
+            attributes->t[2] = p0[6];
+            attributes->t[3] = p0[7];
+            attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_ST;
 
-        if (attributes->next != NULL) {
-            attributes->next->s[0] = p0[0];
-            attributes->next->s[1] = p0[1];
-            attributes->next->s[2] = p0[2];
-            attributes->next->s[3] = p0[3];
-            attributes->next->t[0] = p0[4];
-            attributes->next->t[1] = p0[5];
-            attributes->next->t[2] = p0[6];
-            attributes->next->t[3] = p0[7];
-        }
+            if (attributes->next != NULL) {
+                attributes->next->s[0] = p0[0];
+                attributes->next->s[1] = p0[1];
+                attributes->next->s[2] = p0[2];
+                attributes->next->s[3] = p0[3];
+                attributes->next->t[0] = p0[4];
+                attributes->next->t[1] = p0[5];
+                attributes->next->t[2] = p0[6];
+                attributes->next->t[3] = p0[7];
+            }
 
-        break;
-    case 2:
-        attributes->s[0] = p0[0];
-        attributes->s[1] = p0[1];
-        attributes->s[2] = p0[2];
-        attributes->s[3] = p0[3];
-        attributes->t[0] = p0[4];
-        attributes->t[1] = p0[5];
-        attributes->t[2] = p0[6];
-        attributes->t[3] = p0[7];
-        attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_ST;
+            break;
+        case 2:
+            attributes->s[0] = p0[0];
+            attributes->s[1] = p0[1];
+            attributes->s[2] = p0[2];
+            attributes->s[3] = p0[3];
+            attributes->t[0] = p0[4];
+            attributes->t[1] = p0[5];
+            attributes->t[2] = p0[6];
+            attributes->t[3] = p0[7];
+            attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_ST;
 
-        if (attributes->next == NULL)
-            attributes->next = new CAttributes(attributes);
+            if (attributes->next == NULL)
+                attributes->next = new CAttributes(attributes);
 
-        attributes->next->s[0] = p1[0];
-        attributes->next->s[1] = p1[1];
-        attributes->next->s[2] = p1[2];
-        attributes->next->s[3] = p1[3];
-        attributes->next->t[0] = p1[4];
-        attributes->next->t[1] = p1[5];
-        attributes->next->t[2] = p1[6];
-        attributes->next->t[3] = p1[7];
-        break;
-    default:
-        break;
+            attributes->next->s[0] = p1[0];
+            attributes->next->s[1] = p1[1];
+            attributes->next->s[2] = p1[2];
+            attributes->next->s[3] = p1[3];
+            attributes->next->t[0] = p1[4];
+            attributes->next->t[1] = p1[5];
+            attributes->next->t[2] = p1[6];
+            attributes->next->t[3] = p1[7];
+            break;
+        default:
+            break;
     }
 }
 
 void *CRendererContext::RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return NULL;
+    if (CRenderer::netNumServers > 0)
+        return NULL;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
 
-if (cShader != NULL) {
-attributes->addLight(cShader);
+    if (cShader != NULL) {
+        attributes->addLight(cShader);
 
-return cShader;
-}
+        return cShader;
+    }
 
-return NULL;
+    return NULL;
 }
 
 void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return NULL;
+    if (CRenderer::netNumServers > 0)
+        return NULL;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
 
-if (cShader != NULL) {
-attributes->addLight(cShader);
+    if (cShader != NULL) {
+        attributes->addLight(cShader);
 
-return cShader;
-}
+        return cShader;
+    }
 
-return NULL;
+    return NULL;
 }
 
 void CRendererContext::RiIlluminate(const void *light, int onoff) {
-CShaderInstance *cInstance = (CShaderInstance *)light;
-CAttributes *attributes;
+    CShaderInstance *cInstance = (CShaderInstance *)light;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
-if (cInstance == NULL)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
+    if (cInstance == NULL)
+        return;
 
-attributes = getAttributes(TRUE);
-if (onoff)
-attributes->addLight(cInstance);
-else
-attributes->removeLight(cInstance);
+    attributes = getAttributes(TRUE);
+    if (onoff)
+        attributes->addLight(cInstance);
+    else
+        attributes->removeLight(cInstance);
 }
 
 void CRendererContext::RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_SURFACE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_SURFACE, n, tokens, params);
 
-if (attributes->surface != NULL)
-attributes->surface->detach();
+    if (attributes->surface != NULL)
+        attributes->surface->detach();
 
-attributes->surface = cShader;
-attributes->checkParameters();
+    attributes->surface = cShader;
+    attributes->checkParameters();
 }
 
 void CRendererContext::RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-if (attributes->atmosphere != NULL)
-attributes->atmosphere->detach();
+    if (attributes->atmosphere != NULL)
+        attributes->atmosphere->detach();
 
-attributes->atmosphere = cShader;
-attributes->checkParameters();
+    attributes->atmosphere = cShader;
+    attributes->checkParameters();
 }
 
 void CRendererContext::RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-if (attributes->interior != NULL)
-attributes->interior->detach();
+    if (attributes->interior != NULL)
+        attributes->interior->detach();
 
-attributes->interior = cShader;
-attributes->checkParameters();
+    attributes->interior = cShader;
+    attributes->checkParameters();
 }
 
 void CRendererContext::RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
-CAttributes *attributes;
-CShaderInstance *cShader;
+    CAttributes *attributes;
+    CShaderInstance *cShader;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
+    attributes = getAttributes(TRUE);
+    cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-if (attributes->exterior != NULL)
-attributes->exterior->detach();
+    if (attributes->exterior != NULL)
+        attributes->exterior->detach();
 
-attributes->exterior = cShader;
-attributes->checkParameters();
+    attributes->exterior = cShader;
+    attributes->checkParameters();
 }
 
 void CRendererContext::RiShadingRate(float size) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-if (size < C_EPSILON) {
-error(CODE_RANGE, "Invalid shading rate: %f\n", size);
-return;
-}
+    if (size < C_EPSILON) {
+        error(CODE_RANGE, "Invalid shading rate: %f\n", size);
+        return;
+    }
 
-// Note: we're converting area to distance here!
-// _all_ other sr calculations are by edge length
-attributes = getAttributes(TRUE);
-attributes->shadingRate = sqrtf(size);
+    // Note: we're converting area to distance here!
+    // _all_ other sr calculations are by edge length
+    attributes = getAttributes(TRUE);
+    attributes->shadingRate = sqrtf(size);
 }
 
 void CRendererContext::RiShadingInterpolation(const char *) {
-// Unimplemented: renderer always uses smooth shading interpolation.
+    // Unimplemented: renderer always uses smooth shading interpolation.
 }
 
 void CRendererContext::RiMatte(int onoff) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-if (onoff)
-attributes->flags |= ATTRIBUTES_FLAGS_MATTE;
-else {
-attributes->flags &= ~ATTRIBUTES_FLAGS_MATTE;
-}
+    attributes = getAttributes(TRUE);
+    if (onoff)
+        attributes->flags |= ATTRIBUTES_FLAGS_MATTE;
+    else {
+        attributes->flags &= ~ATTRIBUTES_FLAGS_MATTE;
+    }
 }
 
 void CRendererContext::RiBound(float *bound) {
-CAttributes *attributes;
-CXform *xform;
+    CAttributes *attributes;
+    CXform *xform;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-xform = getXform(FALSE);
-attributes = getAttributes(TRUE);
-attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_BOUND;
-attributes->bmin[COMP_X] = bound[0];
-attributes->bmax[COMP_X] = bound[1];
-attributes->bmin[COMP_Y] = bound[2];
-attributes->bmax[COMP_Y] = bound[3];
-attributes->bmin[COMP_Z] = bound[4];
-attributes->bmax[COMP_Z] = bound[5];
-xform->transformBound(attributes->bmin, attributes->bmax);
+    xform = getXform(FALSE);
+    attributes = getAttributes(TRUE);
+    attributes->flags |= ATTRIBUTES_FLAGS_CUSTOM_BOUND;
+    attributes->bmin[COMP_X] = bound[0];
+    attributes->bmax[COMP_X] = bound[1];
+    attributes->bmin[COMP_Y] = bound[2];
+    attributes->bmax[COMP_Y] = bound[3];
+    attributes->bmin[COMP_Z] = bound[4];
+    attributes->bmax[COMP_Z] = bound[5];
+    xform->transformBound(attributes->bmin, attributes->bmax);
 }
 
 void CRendererContext::RiDetail(float *bound) {
-CAttributes *attributes;
-CXform *xform;
-vector bmin, bmax;
+    CAttributes *attributes;
+    CXform *xform;
+    vector bmin, bmax;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-xform = getXform(FALSE);
-attributes = getAttributes(TRUE);
+    xform = getXform(FALSE);
+    attributes = getAttributes(TRUE);
 
-bmin[COMP_X] = bound[0];
-bmax[COMP_X] = bound[1];
-bmin[COMP_Y] = bound[2];
-bmax[COMP_Y] = bound[3];
-bmin[COMP_Z] = bound[4];
-bmax[COMP_Z] = bound[5];
+    bmin[COMP_X] = bound[0];
+    bmax[COMP_X] = bound[1];
+    bmin[COMP_Y] = bound[2];
+    bmax[COMP_Y] = bound[3];
+    bmin[COMP_Z] = bound[4];
+    bmax[COMP_Z] = bound[5];
 
-// project the bound to screen space and calculate size
+    // project the bound to screen space and calculate size
 
-attributes->lodSize = screenArea(xform, bmin, bmax);
+    attributes->lodSize = screenArea(xform, bmin, bmax);
 }
 
 void CRendererContext::RiDetailRange(float minvis, float lowtran, float uptran, float maxvis) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
+    attributes = getAttributes(TRUE);
 
-attributes->lodRange[0] = minvis;
-attributes->lodRange[1] = lowtran;
-attributes->lodRange[2] = uptran;
-attributes->lodRange[3] = maxvis;
+    attributes->lodRange[0] = minvis;
+    attributes->lodRange[1] = lowtran;
+    attributes->lodRange[2] = uptran;
+    attributes->lodRange[3] = maxvis;
 
-if ((attributes->lodSize < minvis) || (attributes->lodSize > maxvis)) {
-// out of rance, discard all geometry
-attributes->flags |= ATTRIBUTES_FLAGS_DISCARD_GEOMETRY;
-} else {
-// Ensure we're no longer discarding geometry
+    if ((attributes->lodSize < minvis) || (attributes->lodSize > maxvis)) {
+        // out of rance, discard all geometry
+        attributes->flags |= ATTRIBUTES_FLAGS_DISCARD_GEOMETRY;
+    }
+    else {
+        // Ensure we're no longer discarding geometry
 
-attributes->flags &= ~(ATTRIBUTES_FLAGS_DISCARD_GEOMETRY | ATTRIBUTES_FLAGS_LOD);
+        attributes->flags &= ~(ATTRIBUTES_FLAGS_DISCARD_GEOMETRY | ATTRIBUTES_FLAGS_LOD);
 
-if (attributes->lodSize <= lowtran) {
-// fade in
-attributes->lodImportance = (attributes->lodSize - minvis) / (lowtran - minvis);
+        if (attributes->lodSize <= lowtran) {
+            // fade in
+            attributes->lodImportance = (attributes->lodSize - minvis) / (lowtran - minvis);
 
-attributes->flags |= ATTRIBUTES_FLAGS_LOD;
-}
+            attributes->flags |= ATTRIBUTES_FLAGS_LOD;
+        }
 
-if (attributes->lodSize > uptran) {
-// fade out
-attributes->lodImportance = -(1.0f - (attributes->lodSize - uptran) / (maxvis - uptran));
-attributes->flags |= ATTRIBUTES_FLAGS_LOD;
-}
-}
+        if (attributes->lodSize > uptran) {
+            // fade out
+            attributes->lodImportance = -(1.0f - (attributes->lodSize - uptran) / (maxvis - uptran));
+            attributes->flags |= ATTRIBUTES_FLAGS_LOD;
+        }
+    }
 }
 
 void CRendererContext::RiGeometricApproximation(const char *type, float value) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
+    attributes = getAttributes(TRUE);
 
-if (strcmp(type, RI_NORMALDEVIATION) == 0) {
-warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
-} else if (strcmp(type, RI_POINTDEVIATION) == 0) {
-warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
-} else if (strcmp(type, RI_FLATNESS) == 0) {
-warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
-} else if (strcmp(type, RI_MOTIONFACTOR) == 0) {
-attributes->motionFactor = value;
-} else {
-error(CODE_BADTOKEN, "Unknown geometric approximation: %s\n", type);
-}
+    if (strcmp(type, RI_NORMALDEVIATION) == 0) {
+        warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
+    }
+    else if (strcmp(type, RI_POINTDEVIATION) == 0) {
+        warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
+    }
+    else if (strcmp(type, RI_FLATNESS) == 0) {
+        warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
+    }
+    else if (strcmp(type, RI_MOTIONFACTOR) == 0) {
+        attributes->motionFactor = value;
+    }
+    else {
+        error(CODE_BADTOKEN, "Unknown geometric approximation: %s\n", type);
+    }
 }
 
 void CRendererContext::RiGeometricRepresentation(const char *) {
-// Unimplemented: arbitrary geometric representation is not supported.
-if (CRenderer::netNumServers > 0)
-return;
+    // Unimplemented: arbitrary geometric representation is not supported.
+    if (CRenderer::netNumServers > 0)
+        return;
 
-error(CODE_INCAPABLE, "Arbitrary geometric representation is not currently supported\n");
+    error(CODE_INCAPABLE, "Arbitrary geometric representation is not currently supported\n");
 
-return;
+    return;
 }
 
 void CRendererContext::RiOrientation(const char *orientation) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
+    attributes = getAttributes(TRUE);
 
-if ((strcmp(orientation, RI_OUTSIDE) == 0) || (strcmp(orientation, RI_LH) == 0)) {
-attributes->flags &= ~ATTRIBUTES_FLAGS_INSIDE;
-} else if ((strcmp(orientation, RI_INSIDE) == 0) || (strcmp(orientation, RI_RH) == 0)) {
-attributes->flags |= ATTRIBUTES_FLAGS_INSIDE;
-} else
-error(CODE_BADTOKEN, "Invalid orientation: %s\n", orientation);
+    if ((strcmp(orientation, RI_OUTSIDE) == 0) || (strcmp(orientation, RI_LH) == 0)) {
+        attributes->flags &= ~ATTRIBUTES_FLAGS_INSIDE;
+    }
+    else if ((strcmp(orientation, RI_INSIDE) == 0) || (strcmp(orientation, RI_RH) == 0)) {
+        attributes->flags |= ATTRIBUTES_FLAGS_INSIDE;
+    }
+    else
+        error(CODE_BADTOKEN, "Invalid orientation: %s\n", orientation);
 }
 
 void CRendererContext::RiReverseOrientation(void) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-attributes = getAttributes(TRUE);
-attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+    attributes = getAttributes(TRUE);
+    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 }
 
 void CRendererContext::RiSides(int nsides) {
-CAttributes *attributes;
+    CAttributes *attributes;
 
-if (CRenderer::netNumServers > 0)
-return;
+    if (CRenderer::netNumServers > 0)
+        return;
 
-if (!((nsides == 1) || (nsides == 2)))
-error(CODE_RANGE, "Invalid number of sides: %d\n", nsides);
-else {
+    if (!((nsides == 1) || (nsides == 2)))
+        error(CODE_RANGE, "Invalid number of sides: %d\n", nsides);
+    else {
 
-attributes = getAttributes(TRUE);
+        attributes = getAttributes(TRUE);
 
-if (nsides == 1)
-attributes->flags &= ~ATTRIBUTES_FLAGS_DOUBLE_SIDED;
-else
-attributes->flags |= ATTRIBUTES_FLAGS_DOUBLE_SIDED;
-}
+        if (nsides == 1)
+            attributes->flags &= ~ATTRIBUTES_FLAGS_DOUBLE_SIDED;
+        else
+            attributes->flags |= ATTRIBUTES_FLAGS_DOUBLE_SIDED;
+    }
 }
 
 void CRendererContext::RiIdentity(void) {
-CXform *xform;
-float *p0, *p1;
-int nflip;
+    CXform *xform;
+    float *p0, *p1;
+    int nflip;
 
-switch (addMotion(NULL, 0, "CRendererContext::RiIdentity", p0, p1)) {
-case 0:
-break;
-case 1:
-xform = getXform(TRUE);
+    switch (addMotion(NULL, 0, "CRendererContext::RiIdentity", p0, p1)) {
+        case 0:
+            break;
+        case 1:
+            xform = getXform(TRUE);
 
-if (CRenderer::world == NULL) {
+            if (CRenderer::world == NULL) {
 
-xform->identity();
+                xform->identity();
 
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
+                if (xform->next != NULL) {
+                    delete xform->next;
+                    xform->next = NULL;
+                }
+            }
+            else {
 
-movmm(xform->from, CRenderer::world->from);
-movmm(xform->to, CRenderer::world->to);
+                movmm(xform->from, CRenderer::world->from);
+                movmm(xform->to, CRenderer::world->to);
 
-if (CRenderer::world->next == NULL) {
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
-if (xform->next == NULL)
-xform->next = new CXform(xform);
+                if (CRenderer::world->next == NULL) {
+                    if (xform->next != NULL) {
+                        delete xform->next;
+                        xform->next = NULL;
+                    }
+                }
+                else {
+                    if (xform->next == NULL)
+                        xform->next = new CXform(xform);
 
-movmm(xform->next->from, CRenderer::world->next->from);
-movmm(xform->next->to, CRenderer::world->next->to);
-}
-}
+                    movmm(xform->next->from, CRenderer::world->next->from);
+                    movmm(xform->next->to, CRenderer::world->next->to);
+                }
+            }
 
-// Orientation check
-if (determinantm(xform->from) < 0)
-nflip = 1;
-else
-nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-if (nflip != xform->flip) {
-CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-xform->flip = nflip;
-}
+                xform->flip = nflip;
+            }
 
-break;
-case 2:
-xform = getXform(TRUE);
+            break;
+        case 2:
+            xform = getXform(TRUE);
 
-if (CRenderer::world == NULL) {
-xform->identity();
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
+            if (CRenderer::world == NULL) {
+                xform->identity();
+                if (xform->next != NULL) {
+                    delete xform->next;
+                    xform->next = NULL;
+                }
+            }
+            else {
 
-movmm(xform->from, CRenderer::world->from);
-movmm(xform->to, CRenderer::world->to);
+                movmm(xform->from, CRenderer::world->from);
+                movmm(xform->to, CRenderer::world->to);
 
-if (CRenderer::world->next == NULL) {
-movmm(xform->next->from, CRenderer::world->from);
-movmm(xform->next->to, CRenderer::world->to);
+                if (CRenderer::world->next == NULL) {
+                    movmm(xform->next->from, CRenderer::world->from);
+                    movmm(xform->next->to, CRenderer::world->to);
 
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
-if (xform->next == NULL)
-xform->next = new CXform(xform);
-movmm(xform->next->from, CRenderer::world->next->from);
-movmm(xform->next->to, CRenderer::world->next->to);
-}
-}
+                    if (xform->next != NULL) {
+                        delete xform->next;
+                        xform->next = NULL;
+                    }
+                }
+                else {
+                    if (xform->next == NULL)
+                        xform->next = new CXform(xform);
+                    movmm(xform->next->from, CRenderer::world->next->from);
+                    movmm(xform->next->to, CRenderer::world->next->to);
+                }
+            }
 
-// Orientation check
-if (determinantm(xform->from) < 0)
-nflip = 1;
-else
-nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-if (nflip != xform->flip) {
-CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-xform->flip = nflip;
-}
-break;
-default:
-break;
-}
+                xform->flip = nflip;
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 void CRendererContext::RiTransform(float transform[][4]) {
-CXform *xform;
-matrix to0, to1, from;
-float *p0, *p1;
-int nflip;
+    CXform *xform;
+    matrix to0, to1, from;
+    float *p0, *p1;
+    int nflip;
 
-// Save the elements
-from[element(0, 0)] = transform[0][0];
-from[element(1, 0)] = transform[0][1];
-from[element(2, 0)] = transform[0][2];
-from[element(3, 0)] = transform[0][3];
-from[element(0, 1)] = transform[1][0];
-from[element(1, 1)] = transform[1][1];
-from[element(2, 1)] = transform[1][2];
-from[element(3, 1)] = transform[1][3];
-from[element(0, 2)] = transform[2][0];
-from[element(1, 2)] = transform[2][1];
-from[element(2, 2)] = transform[2][2];
-from[element(3, 2)] = transform[2][3];
-from[element(0, 3)] = transform[3][0];
-from[element(1, 3)] = transform[3][1];
-from[element(2, 3)] = transform[3][2];
-from[element(3, 3)] = transform[3][3];
+    // Save the elements
+    from[element(0, 0)] = transform[0][0];
+    from[element(1, 0)] = transform[0][1];
+    from[element(2, 0)] = transform[0][2];
+    from[element(3, 0)] = transform[0][3];
+    from[element(0, 1)] = transform[1][0];
+    from[element(1, 1)] = transform[1][1];
+    from[element(2, 1)] = transform[1][2];
+    from[element(3, 1)] = transform[1][3];
+    from[element(0, 2)] = transform[2][0];
+    from[element(1, 2)] = transform[2][1];
+    from[element(2, 2)] = transform[2][2];
+    from[element(3, 2)] = transform[2][3];
+    from[element(0, 3)] = transform[3][0];
+    from[element(1, 3)] = transform[3][1];
+    from[element(2, 3)] = transform[3][2];
+    from[element(3, 3)] = transform[3][3];
 
-switch (addMotion(from, 16, "CRendererContext::RiTransform", p0, p1)) {
-case 0:
-break;
-case 1:
-if (invertm(to0, p0) == TRUE) {
-error(CODE_MATH, "Singular transformation matrix detected\n");
-} else {
-xform = getXform(TRUE);
+    switch (addMotion(from, 16, "CRendererContext::RiTransform", p0, p1)) {
+        case 0:
+            break;
+        case 1:
+            if (invertm(to0, p0) == TRUE) {
+                error(CODE_MATH, "Singular transformation matrix detected\n");
+            }
+            else {
+                xform = getXform(TRUE);
 
-if (CRenderer::world == NULL) {
-movmm(xform->from, p0);
-movmm(xform->to, to0);
+                if (CRenderer::world == NULL) {
+                    movmm(xform->from, p0);
+                    movmm(xform->to, to0);
 
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
-CXform *world = CRenderer::world;
+                    if (xform->next != NULL) {
+                        delete xform->next;
+                        xform->next = NULL;
+                    }
+                }
+                else {
+                    CXform *world = CRenderer::world;
 
-mulmm(xform->from, world->from, p0);
-mulmm(xform->to, to0, world->to);
+                    mulmm(xform->from, world->from, p0);
+                    mulmm(xform->to, to0, world->to);
 
-if (world->next == NULL) {
-if (xform->next != NULL) {
-delete xform->next;
-xform->next = NULL;
-}
-} else {
-if (xform->next == NULL) {
-xform->next = new CXform(xform);
-}
+                    if (world->next == NULL) {
+                        if (xform->next != NULL) {
+                            delete xform->next;
+                            xform->next = NULL;
+                        }
+                    }
+                    else {
+                        if (xform->next == NULL) {
+                            xform->next = new CXform(xform);
+                        }
 
-mulmm(xform->next->from, world->next->from, p0);
-mulmm(xform->next->to, to0, world->next->to);
-}
-}
+                        mulmm(xform->next->from, world->next->from, p0);
+                        mulmm(xform->next->to, to0, world->next->to);
+                    }
+                }
 
-// Orientation check
-if (determinantm(xform->from) < 0)
-nflip = 1;
-else
-nflip = 0;
+                // Orientation check
+                if (determinantm(xform->from) < 0)
+                    nflip = 1;
+                else
+                    nflip = 0;
 
-if (nflip != xform->flip) {
-CAttributes *attributes = getAttributes(TRUE);
+                if (nflip != xform->flip) {
+                    CAttributes *attributes = getAttributes(TRUE);
 
-attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-xform->flip = nflip;
-}
-}
-break;
-case 2:
-if ((invertm(to0, p0) == TRUE) || (invertm(to1, p1) == TRUE)) {
-error(CODE_MATH, "Singular transformation matrix detected\n");
-} else {
-xform = getXform(TRUE);
+                    xform->flip = nflip;
+                }
+            }
+            break;
+        case 2:
+            if ((invertm(to0, p0) == TRUE) || (invertm(to1, p1) == TRUE)) {
+                error(CODE_MATH, "Singular transformation matrix detected\n");
+            }
+            else {
+                xform = getXform(TRUE);
 
-if (CRenderer::world == NULL) {
-movmm(xform->from, p0);
-movmm(xform->to, to0);
-if (xform->next == NULL) {
-xform->next = new CXform(xform);
-}
-movmm(xform->next->from, p1);
-movmm(xform->next->to, to1);
-} else {
-CXform *world = CRenderer::world;
+                if (CRenderer::world == NULL) {
+                    movmm(xform->from, p0);
+                    movmm(xform->to, to0);
+                    if (xform->next == NULL) {
+                        xform->next = new CXform(xform);
+                    }
+                    movmm(xform->next->from, p1);
+                    movmm(xform->next->to, to1);
+                }
+                else {
+                    CXform *world = CRenderer::world;
 
-mulmm(xform->from, CRenderer::world->from, p0);
-mulmm(xform->to, to0, CRenderer::world->to);
-if (xform->next == NULL) {
-xform->next = new CXform(xform);
-}
+                    mulmm(xform->from, CRenderer::world->from, p0);
+                    mulmm(xform->to, to0, CRenderer::world->to);
+                    if (xform->next == NULL) {
+                        xform->next = new CXform(xform);
+                    }
 
-if (world->next == NULL) {
-mulmm(xform->next->from, world->from, p1);
-mulmm(xform->next->to, to1, world->to);
-} else {
-mulmm(xform->next->from, world->next->from, p1);
-mulmm(xform->next->to, to1, world->next->to);
-}
-}
+                    if (world->next == NULL) {
+                        mulmm(xform->next->from, world->from, p1);
+                        mulmm(xform->next->to, to1, world->to);
+                    }
+                    else {
+                        mulmm(xform->next->from, world->next->from, p1);
+                        mulmm(xform->next->to, to1, world->next->to);
+                    }
+                }
 
-// Orientation check
-if (determinantm(xform->from) < 0)
-nflip = 1;
-else
-nflip = 0;
+                // Orientation check
+                if (determinantm(xform->from) < 0)
+                    nflip = 1;
+                else
+                    nflip = 0;
 
-if (nflip != xform->flip) {
-CAttributes *attributes = getAttributes(TRUE);
+                if (nflip != xform->flip) {
+                    CAttributes *attributes = getAttributes(TRUE);
 
-attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-xform->flip = nflip;
-}
-}
-break;
-default:
-break;
-}
+                    xform->flip = nflip;
+                }
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 void CRendererContext::RiConcatTransform(float transform[][4]) {
@@ -2336,81 +2462,83 @@ void CRendererContext::RiConcatTransform(float transform[][4]) {
     from[element(3, 3)] = transform[3][3];
 
     switch (addMotion(from, 16, "CRendererContext::RiConcatTransform", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        if (invertm(to0, p0) == TRUE) {
-            error(CODE_MATH, "Singular transformation matrix detected\n");
-        } else {
-            xform = getXform(TRUE);
-            mulmm(tmp, xform->from, p0);
-            movmm(xform->from, tmp);
+        case 0:
+            break;
+        case 1:
+            if (invertm(to0, p0) == TRUE) {
+                error(CODE_MATH, "Singular transformation matrix detected\n");
+            }
+            else {
+                xform = getXform(TRUE);
+                mulmm(tmp, xform->from, p0);
+                movmm(xform->from, tmp);
 
-            mulmm(tmp, to0, xform->to);
-            movmm(xform->to, tmp);
+                mulmm(tmp, to0, xform->to);
+                movmm(xform->to, tmp);
 
-            if (xform->next != NULL) {
-                mulmm(tmp, xform->next->from, p0);
+                if (xform->next != NULL) {
+                    mulmm(tmp, xform->next->from, p0);
+                    movmm(xform->next->from, tmp);
+
+                    mulmm(tmp, to0, xform->next->to);
+                    movmm(xform->next->to, tmp);
+                }
+
+                // Orientation check
+                if (determinantm(xform->from) < 0)
+                    nflip = 1;
+                else
+                    nflip = 0;
+
+                if (nflip != xform->flip) {
+                    CAttributes *attributes = getAttributes(TRUE);
+
+                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+
+                    xform->flip = nflip;
+                }
+            }
+            break;
+        case 2:
+            if ((invertm(to0, p0) == TRUE) || (invertm(to1, p1) == TRUE)) {
+                error(CODE_MATH, "Singular transformation matrix detected\n");
+            }
+            else {
+                xform = getXform(TRUE);
+
+                if (xform->next == NULL) {
+                    xform->next = new CXform(xform);
+                }
+
+                mulmm(tmp, xform->from, p0);
+                movmm(xform->from, tmp);
+
+                mulmm(tmp, to0, xform->to);
+                movmm(xform->to, tmp);
+
+                mulmm(tmp, xform->next->from, p1);
                 movmm(xform->next->from, tmp);
 
-                mulmm(tmp, to0, xform->next->to);
+                mulmm(tmp, to1, xform->next->to);
                 movmm(xform->next->to, tmp);
+
+                // Orientation check
+                if (determinantm(xform->from) < 0)
+                    nflip = 1;
+                else
+                    nflip = 0;
+
+                if (nflip != xform->flip) {
+                    CAttributes *attributes = getAttributes(TRUE);
+
+                    attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+
+                    xform->flip = nflip;
+                }
             }
-
-            // Orientation check
-            if (determinantm(xform->from) < 0)
-                nflip = 1;
-            else
-                nflip = 0;
-
-            if (nflip != xform->flip) {
-                CAttributes *attributes = getAttributes(TRUE);
-
-                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
-
-                xform->flip = nflip;
-            }
-        }
-        break;
-    case 2:
-        if ((invertm(to0, p0) == TRUE) || (invertm(to1, p1) == TRUE)) {
-            error(CODE_MATH, "Singular transformation matrix detected\n");
-        } else {
-            xform = getXform(TRUE);
-
-            if (xform->next == NULL) {
-                xform->next = new CXform(xform);
-            }
-
-            mulmm(tmp, xform->from, p0);
-            movmm(xform->from, tmp);
-
-            mulmm(tmp, to0, xform->to);
-            movmm(xform->to, tmp);
-
-            mulmm(tmp, xform->next->from, p1);
-            movmm(xform->next->from, tmp);
-
-            mulmm(tmp, to1, xform->next->to);
-            movmm(xform->next->to, tmp);
-
-            // Orientation check
-            if (determinantm(xform->from) < 0)
-                nflip = 1;
-            else
-                nflip = 0;
-
-            if (nflip != xform->flip) {
-                CAttributes *attributes = getAttributes(TRUE);
-
-                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
-
-                xform->flip = nflip;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 }
 
@@ -2424,111 +2552,111 @@ void CRendererContext::RiPerspective(float fov) {
     p = fov;
 
     switch (addMotion(&p, 1, "CRendererContext::RiPerspective", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        xform = getXform(TRUE);
+        case 0:
+            break;
+        case 1:
+            xform = getXform(TRUE);
 
-        d = 1 / tan(p0[0] * C_PI / (double)360);
+            d = 1 / tan(p0[0] * C_PI / (double)360);
 
-        from[element(0, 0)] = (float)d;
-        from[element(0, 1)] = (float)0;
-        from[element(0, 2)] = (float)0;
-        from[element(0, 3)] = (float)0;
+            from[element(0, 0)] = (float)d;
+            from[element(0, 1)] = (float)0;
+            from[element(0, 2)] = (float)0;
+            from[element(0, 3)] = (float)0;
 
-        from[element(1, 0)] = (float)0;
-        from[element(1, 1)] = (float)d;
-        from[element(1, 2)] = (float)0;
-        from[element(1, 3)] = (float)0;
+            from[element(1, 0)] = (float)0;
+            from[element(1, 1)] = (float)d;
+            from[element(1, 2)] = (float)0;
+            from[element(1, 3)] = (float)0;
 
-        from[element(2, 0)] = (float)0;
-        from[element(2, 1)] = (float)0;
-        from[element(2, 2)] = (float)1;
-        from[element(2, 3)] = (float)0;
+            from[element(2, 0)] = (float)0;
+            from[element(2, 1)] = (float)0;
+            from[element(2, 2)] = (float)1;
+            from[element(2, 3)] = (float)0;
 
-        from[element(3, 0)] = (float)0;
-        from[element(3, 1)] = (float)0;
-        from[element(3, 2)] = (float)1;
-        from[element(3, 3)] = (float)0;
+            from[element(3, 0)] = (float)0;
+            from[element(3, 1)] = (float)0;
+            from[element(3, 2)] = (float)1;
+            from[element(3, 3)] = (float)0;
 
-        identitym(to);
+            identitym(to);
 
-        mulmm(tmp, xform->from, from);
-        movmm(xform->from, from);
+            mulmm(tmp, xform->from, from);
+            movmm(xform->from, from);
 
-        mulmm(tmp, to, xform->to);
-        movmm(xform->to, tmp);
+            mulmm(tmp, to, xform->to);
+            movmm(xform->to, tmp);
 
-        if (xform->next != NULL) {
+            if (xform->next != NULL) {
+                mulmm(tmp, xform->next->from, from);
+                movmm(xform->next->from, from);
+
+                mulmm(tmp, to, xform->next->to);
+                movmm(xform->next->to, tmp);
+            }
+
+            break;
+        case 2:
+            xform = getXform(TRUE);
+            if (xform->next == NULL)
+                xform->next = new CXform(xform);
+
+            d = 1 / tan(p0[0] * C_PI / (double)360);
+
+            from[element(0, 0)] = (float)d;
+            from[element(0, 1)] = (float)0;
+            from[element(0, 2)] = (float)0;
+            from[element(0, 3)] = (float)0;
+            from[element(1, 0)] = (float)0;
+            from[element(1, 1)] = (float)d;
+            from[element(1, 2)] = (float)0;
+            from[element(1, 3)] = (float)0;
+            from[element(2, 0)] = (float)0;
+            from[element(2, 1)] = (float)0;
+            from[element(2, 2)] = (float)1;
+            from[element(2, 3)] = (float)0;
+            from[element(3, 0)] = (float)0;
+            from[element(3, 1)] = (float)0;
+            from[element(3, 2)] = (float)1;
+            from[element(3, 3)] = (float)0;
+
+            invertm(to, from);
+
+            mulmm(tmp, xform->from, from);
+            movmm(xform->from, from);
+
+            mulmm(tmp, to, xform->to);
+            movmm(xform->to, tmp);
+
+            d = 1 / tan(p1[0] * C_PI / (double)360);
+
+            from[element(0, 0)] = (float)d;
+            from[element(0, 1)] = (float)0;
+            from[element(0, 2)] = (float)0;
+            from[element(0, 3)] = (float)0;
+            from[element(1, 0)] = (float)0;
+            from[element(1, 1)] = (float)d;
+            from[element(1, 2)] = (float)0;
+            from[element(1, 3)] = (float)0;
+            from[element(2, 0)] = (float)0;
+            from[element(2, 1)] = (float)0;
+            from[element(2, 2)] = (float)1;
+            from[element(2, 3)] = (float)0;
+            from[element(3, 0)] = (float)0;
+            from[element(3, 1)] = (float)0;
+            from[element(3, 2)] = (float)1;
+            from[element(3, 3)] = (float)0;
+
+            invertm(to, from);
+
             mulmm(tmp, xform->next->from, from);
             movmm(xform->next->from, from);
 
             mulmm(tmp, to, xform->next->to);
             movmm(xform->next->to, tmp);
-        }
-
-        break;
-    case 2:
-        xform = getXform(TRUE);
-        if (xform->next == NULL)
-            xform->next = new CXform(xform);
-
-        d = 1 / tan(p0[0] * C_PI / (double)360);
-
-        from[element(0, 0)] = (float)d;
-        from[element(0, 1)] = (float)0;
-        from[element(0, 2)] = (float)0;
-        from[element(0, 3)] = (float)0;
-        from[element(1, 0)] = (float)0;
-        from[element(1, 1)] = (float)d;
-        from[element(1, 2)] = (float)0;
-        from[element(1, 3)] = (float)0;
-        from[element(2, 0)] = (float)0;
-        from[element(2, 1)] = (float)0;
-        from[element(2, 2)] = (float)1;
-        from[element(2, 3)] = (float)0;
-        from[element(3, 0)] = (float)0;
-        from[element(3, 1)] = (float)0;
-        from[element(3, 2)] = (float)1;
-        from[element(3, 3)] = (float)0;
-
-        invertm(to, from);
-
-        mulmm(tmp, xform->from, from);
-        movmm(xform->from, from);
-
-        mulmm(tmp, to, xform->to);
-        movmm(xform->to, tmp);
-
-        d = 1 / tan(p1[0] * C_PI / (double)360);
-
-        from[element(0, 0)] = (float)d;
-        from[element(0, 1)] = (float)0;
-        from[element(0, 2)] = (float)0;
-        from[element(0, 3)] = (float)0;
-        from[element(1, 0)] = (float)0;
-        from[element(1, 1)] = (float)d;
-        from[element(1, 2)] = (float)0;
-        from[element(1, 3)] = (float)0;
-        from[element(2, 0)] = (float)0;
-        from[element(2, 1)] = (float)0;
-        from[element(2, 2)] = (float)1;
-        from[element(2, 3)] = (float)0;
-        from[element(3, 0)] = (float)0;
-        from[element(3, 1)] = (float)0;
-        from[element(3, 2)] = (float)1;
-        from[element(3, 3)] = (float)0;
-
-        invertm(to, from);
-
-        mulmm(tmp, xform->next->from, from);
-        movmm(xform->next->from, from);
-
-        mulmm(tmp, to, xform->next->to);
-        movmm(xform->next->to, tmp);
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 }
 
@@ -2542,24 +2670,24 @@ void CRendererContext::RiTranslate(float dx, float dy, float dz) {
     par[COMP_Z] = dz;
 
     switch (addMotion(par, 3, "CRendererContext::RiTranslate", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        xform = getXform(TRUE);
-        xform->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
-        if (xform->next != NULL)
-            xform->next->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
-        break;
-    case 2:
-        xform = getXform(TRUE);
-        if (xform->next == NULL)
-            xform->next = new CXform(xform);
+        case 0:
+            break;
+        case 1:
+            xform = getXform(TRUE);
+            xform->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
+            if (xform->next != NULL)
+                xform->next->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
+            break;
+        case 2:
+            xform = getXform(TRUE);
+            if (xform->next == NULL)
+                xform->next = new CXform(xform);
 
-        xform->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
-        xform->next->translate(p1[COMP_X], p1[COMP_Y], p1[COMP_Z]);
-        break;
-    default:
-        break;
+            xform->translate(p0[COMP_X], p0[COMP_Y], p0[COMP_Z]);
+            xform->next->translate(p1[COMP_X], p1[COMP_Y], p1[COMP_Z]);
+            break;
+        default:
+            break;
     }
 
     // Note that there's no orientation check as translation can not change the determinant
@@ -2576,23 +2704,23 @@ void CRendererContext::RiRotate(float angle, float dx, float dy, float dz) {
     tmp[3] = angle;
 
     switch (addMotion(tmp, 4, "CRendererContext::RiRotate", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        xform = getXform(TRUE);
-        xform->rotate(p0[3], p0[0], p0[1], p0[2]);
-        if (xform->next != NULL)
-            xform->next->rotate(p0[3], p0[0], p0[1], p0[2]);
-        break;
-    case 2:
-        xform = getXform(TRUE);
-        if (xform->next == NULL)
-            xform->next = new CXform(xform);
-        xform->rotate(p0[3], p0[0], p0[1], p0[2]);
-        xform->next->rotate(p1[3], p1[0], p1[1], p1[2]);
-        break;
-    default:
-        break;
+        case 0:
+            break;
+        case 1:
+            xform = getXform(TRUE);
+            xform->rotate(p0[3], p0[0], p0[1], p0[2]);
+            if (xform->next != NULL)
+                xform->next->rotate(p0[3], p0[0], p0[1], p0[2]);
+            break;
+        case 2:
+            xform = getXform(TRUE);
+            if (xform->next == NULL)
+                xform->next = new CXform(xform);
+            xform->rotate(p0[3], p0[0], p0[1], p0[2]);
+            xform->next->rotate(p1[3], p1[0], p1[1], p1[2]);
+            break;
+        default:
+            break;
     }
 
     // Rotation does not change determinant's sign
@@ -2614,66 +2742,66 @@ void CRendererContext::RiScale(float dx, float dy, float dz) {
     tmp[COMP_Z] = dz;
 
     switch (addMotion(tmp, 3, "CRendererContext::RiScale", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
-            error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p0[0], p0[1], p0[2]);
-            return;
-        }
+        case 0:
+            break;
+        case 1:
+            if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
+                error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p0[0], p0[1], p0[2]);
+                return;
+            }
 
-        xform = getXform(TRUE);
-        xform->scale(p0[0], p0[1], p0[2]);
-        if (xform->next != NULL)
-            xform->next->scale(p0[0], p0[1], p0[2]);
+            xform = getXform(TRUE);
+            xform->scale(p0[0], p0[1], p0[2]);
+            if (xform->next != NULL)
+                xform->next->scale(p0[0], p0[1], p0[2]);
 
-        // Orientation check
-        if (determinantm(xform->from) < 0)
-            nflip = 1;
-        else
-            nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-        if (nflip != xform->flip) {
-            CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-            attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-            xform->flip = nflip;
-        }
-        break;
-    case 2:
-        if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
-            error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p0[0], p0[1], p0[2]);
-            return;
-        }
+                xform->flip = nflip;
+            }
+            break;
+        case 2:
+            if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
+                error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p0[0], p0[1], p0[2]);
+                return;
+            }
 
-        if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
-            error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p1[0], p1[1], p1[2]);
-            return;
-        }
+            if ((p0[0] == 0) || (p0[1] == 0) || (p0[2] == 0)) {
+                error(CODE_MATH, "The matrix is uninvertible (scale(%f,%f,%f))\n", p1[0], p1[1], p1[2]);
+                return;
+            }
 
-        xform = getXform(TRUE);
-        if (xform->next == NULL)
-            xform->next = new CXform(xform);
-        xform->scale(p0[0], p0[1], p0[2]);
-        xform->next->scale(p1[0], p1[1], p1[2]);
+            xform = getXform(TRUE);
+            if (xform->next == NULL)
+                xform->next = new CXform(xform);
+            xform->scale(p0[0], p0[1], p0[2]);
+            xform->next->scale(p1[0], p1[1], p1[2]);
 
-        // Orientation check
-        if (determinantm(xform->from) < 0)
-            nflip = 1;
-        else
-            nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-        if (nflip != xform->flip) {
-            CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-            attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-            xform->flip = nflip;
-        }
-        break;
-    default:
-        break;
+                xform->flip = nflip;
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -2692,52 +2820,52 @@ void CRendererContext::RiSkew(float angle, float dx1, float dy1, float dz1, floa
     tmp[6] = dz2;
 
     switch (addMotion(tmp, 7, "CRendererContext::RiSkew", p0, p1)) {
-    case 0:
-        break;
-    case 1:
-        xform = getXform(TRUE);
-        xform->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
-        if (xform->next != NULL)
-            xform->next->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
+        case 0:
+            break;
+        case 1:
+            xform = getXform(TRUE);
+            xform->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
+            if (xform->next != NULL)
+                xform->next->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
 
-        // Orientation check
-        if (determinantm(xform->from) < 0)
-            nflip = 1;
-        else
-            nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-        if (nflip != xform->flip) {
-            CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-            attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-            xform->flip = nflip;
-        }
-        break;
-    case 2:
-        xform = getXform(TRUE);
-        if (xform->next == NULL)
-            xform->next = new CXform(xform);
+                xform->flip = nflip;
+            }
+            break;
+        case 2:
+            xform = getXform(TRUE);
+            if (xform->next == NULL)
+                xform->next = new CXform(xform);
 
-        xform->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
-        xform->next->skew(p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6]);
+            xform->skew(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6]);
+            xform->next->skew(p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6]);
 
-        // Orientation check
-        if (determinantm(xform->from) < 0)
-            nflip = 1;
-        else
-            nflip = 0;
+            // Orientation check
+            if (determinantm(xform->from) < 0)
+                nflip = 1;
+            else
+                nflip = 0;
 
-        if (nflip != xform->flip) {
-            CAttributes *attributes = getAttributes(TRUE);
+            if (nflip != xform->flip) {
+                CAttributes *attributes = getAttributes(TRUE);
 
-            attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                attributes->flags ^= ATTRIBUTES_FLAGS_INSIDE;
 
-            xform->flip = nflip;
-        }
-        break;
-    default:
-        break;
+                xform->flip = nflip;
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -2842,81 +2970,98 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->numUProbes = val[0];
                         attributes->numVProbes = val[1];
                     }
-                } else if (strcmp(tokens[i], RI_MINSUBDIVISION) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MINSUBDIVISION) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 1) || (val[0] > 100000)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MINSUBDIVISION);
-                    } else {
+                    }
+                    else {
                         dummy = val[0];
                     }
                     warning(CODE_BADTOKEN, "Deprecated attribute \"%s\" will be ignored\n", tokens[i]);
-                } else if (strcmp(tokens[i], RI_MAXSUBDIVISION) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MAXSUBDIVISION) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 1) || (val[0] > 100000)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXSUBDIVISION);
-                    } else {
+                    }
+                    else {
                         dummy = val[0];
                     }
                     warning(CODE_BADTOKEN, "Deprecated attribute \"%s\" will be ignored\n", tokens[i]);
                     (void)dummy;
-                } else if (strcmp(tokens[i], RI_MINSPLITS) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MINSPLITS) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 0) || (val[0] > 100000)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MINSPLITS);
-                    } else {
+                    }
+                    else {
                         attributes->minSplits = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_BOUNDEXPAND) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_BOUNDEXPAND) == 0) {
                     const float *val = (const float *)params[i];
                     if ((val[0] < -C_INFINITY) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_BOUNDEXPAND);
-                    } else {
+                    }
+                    else {
                         attributes->rasterExpand = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_BINARY) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_BINARY) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_BINARY_DICE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_BINARY_DICE);
-                } else if (strcmp(tokens[i], RI_RASTERORIENT) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_RASTERORIENT) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE);
                     else
                         attributes->flags |= ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE;
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_DISPLACEMENTBOUND) == 0) {
+        }
+        else if (strcmp(name, RI_DISPLACEMENTBOUND) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_SPHERE) == 0) {
                     float *val = (float *)params[i];
 
                     attributes->maxDisplacement = val[0];
-                } else if (strcmp(tokens[i], RI_COORDINATESYSYTEM) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_COORDINATESYSYTEM) == 0) {
                     char *val = ((char **)params[i])[0];
 
                     if (attributes->maxDisplacementSpace != NULL)
                         free(attributes->maxDisplacementSpace);
 
                     attributes->maxDisplacementSpace = strdup(val);
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_TRACE) == 0) {
+        }
+        else if (strcmp(name, RI_TRACE) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_DISPLACEMENTS) == 0) {
                     const int *val = (const int *)params[i];
@@ -2924,44 +3069,54 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->flags |= ATTRIBUTES_FLAGS_DISPLACEMENTS;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_DISPLACEMENTS);
-                } else if (strcmp(tokens[i], RI_BIAS) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_BIAS) == 0) {
                     const float *val = (const float *)params[i];
                     if ((val[0] < -C_INFINITY) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_BIAS);
-                    } else {
+                    }
+                    else {
                         attributes->bias = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_MAXDIFFUSEDEPTH) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MAXDIFFUSEDEPTH) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 0) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXDIFFUSEDEPTH);
-                    } else {
+                    }
+                    else {
                         attributes->maxDiffuseDepth = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_MAXSPECULARDEPTH) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MAXSPECULARDEPTH) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 0) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXSPECULARDEPTH);
-                    } else {
+                    }
+                    else {
                         attributes->maxSpecularDepth = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_SAMPLEMOTION) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_SAMPLEMOTION) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_SAMPLEMOTION;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_SAMPLEMOTION);
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
             // Check the irradiance cache options
-        } else if (strcmp(name, RI_IRRADIANCE) == 0) {
+        }
+        else if (strcmp(name, RI_IRRADIANCE) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_HANDLE) == 0) {
                     const char *val = ((const char **)params[i])[0];
@@ -2971,7 +3126,8 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->irradianceHandle = NULL;
                     else
                         attributes->irradianceHandle = strdup(val);
-                } else if (strcmp(tokens[i], RI_FILEMODE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_FILEMODE) == 0) {
                     const char *val = ((const char **)params[i])[0];
                     if (attributes->irradianceHandleMode != NULL)
                         free(attributes->irradianceHandleMode);
@@ -2979,79 +3135,98 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->irradianceHandleMode = NULL;
                     else
                         attributes->irradianceHandleMode = strdup(val);
-                } else if (strcmp(tokens[i], RI_MAXERROR) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MAXERROR) == 0) {
                     const float *val = (const float *)params[i];
                     if ((val[0] < 0) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXERROR);
-                    } else {
+                    }
+                    else {
                         attributes->irradianceMaxError = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_MAXPIXELDIST) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_MAXPIXELDIST) == 0) {
                     const float *val = (const float *)params[i];
                     if ((val[0] < 0) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_MAXPIXELDIST);
-                    } else {
+                    }
+                    else {
                         attributes->irradianceMaxPixelDistance = val[0];
                     }
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_PHOTON) == 0) {
+        }
+        else if (strcmp(name, RI_PHOTON) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_GLOBALMAP) == 0) {
                     if (attributes->globalMapName != NULL)
                         free(attributes->globalMapName);
                     attributes->globalMapName = strdup(((char **)params[i])[0]);
-                } else if (strcmp(tokens[i], RI_CAUSTICMAP) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_CAUSTICMAP) == 0) {
                     if (attributes->causticMapName != NULL)
                         free(attributes->causticMapName);
                     attributes->causticMapName = strdup(((char **)params[i])[0]);
-                } else if (strcmp(tokens[i], RI_SHADINGMODEL) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_SHADINGMODEL) == 0) {
                     attributes->shadingModel = CAttributes::findShadingModel(((const char **)params[i])[0]);
-                } else if (strcmp(tokens[i], RI_IOR) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_IOR) == 0) {
                     float *val = (float *)params[i];
                     if (val[0] < 0) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_IOR);
-                    } else {
+                    }
+                    else {
                         attributes->photonIor[0] = attributes->photonIor[1] = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_IORRANGE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_IORRANGE) == 0) {
                     float *val = (float *)params[i];
                     if ((val[0] < 0) || (val[1] < 0)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_IORRANGE);
-                    } else {
+                    }
+                    else {
                         attributes->photonIor[0] = val[0];
                         attributes->photonIor[1] = val[1];
                     }
-                } else if (strcmp(tokens[i], RI_ESTIMATOR) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_ESTIMATOR) == 0) {
                     const int *val = (const int *)params[i];
                     if ((val[0] < 1) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_ESTIMATOR);
-                    } else {
+                    }
+                    else {
                         attributes->photonEstimator = val[0];
                     }
-                } else if (strcmp(tokens[i], RI_ILLUMINATEFRONT) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_ILLUMINATEFRONT) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_ILLUMINATE_FRONT_ONLY;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_ILLUMINATE_FRONT_ONLY);
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_VISIBILITY) == 0) {
+        }
+        else if (strcmp(name, RI_VISIBILITY) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_TRANSMISSION) == 0) {
                     const int *val = (const int *)params[i];
@@ -3059,79 +3234,99 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->flags |= ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE);
-                } else if (strcmp(tokens[i], RI_CAMERA) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_CAMERA) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_PRIMARY_VISIBLE);
-                } else if (strcmp(tokens[i], RI_DIFFUSE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_DIFFUSE) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE);
-                } else if (strcmp(tokens[i], RI_SPECULAR) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_SPECULAR) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_SPECULAR_VISIBLE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_SPECULAR_VISIBLE);
-                } else if (strcmp(tokens[i], RI_PHOTON) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_PHOTON) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags |= ATTRIBUTES_FLAGS_PHOTON_VISIBLE;
                     else
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_PHOTON_VISIBLE);
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_SHADE) == 0) {
+        }
+        else if (strcmp(name, RI_SHADE) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_TRANSMISSIONHITMODE) == 0) {
                     attributes->transmissionHitMode = CAttributes::findHitMode(((const char **)params[i])[0]);
-                } else if (strcmp(tokens[i], RI_DIFFUSEHITMODE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_DIFFUSEHITMODE) == 0) {
                     attributes->diffuseHitMode = CAttributes::findHitMode(((const char **)params[i])[0]);
                     if (attributes->diffuseHitMode != 'p')
                         warning(CODE_UNIMPLEMENT, "shading of diffuse rays not currently supported\n");
-                } else if (strcmp(tokens[i], RI_SPECULARHITMODE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_SPECULARHITMODE) == 0) {
                     attributes->specularHitMode = CAttributes::findHitMode(((const char **)params[i])[0]);
-                } else if (strcmp(tokens[i], RI_CAMERAHITMODE) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_CAMERAHITMODE) == 0) {
                     attributes->cameraHitMode = CAttributes::findHitMode(((const char **)params[i])[0]);
-                } else {
+                }
+                else if (strcmp(tokens[i], RI_SHADERFORMAT) == 0) {
+                    attributes->shaderFormat = CAttributes::setShaderFormat(((const char **)params[i])[0]);
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_BOUND) == 0) {
+        }
+        else if (strcmp(name, RI_BOUND) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_DISPLACEMENT) == 0) {
                     const float *val = (const float *)params[i];
                     if ((val[0] < -C_INFINITY) || (val[0] > C_INFINITY)) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_DISPLACEMENT);
-                    } else {
+                    }
+                    else {
                         attributes->maxDisplacement = val[0];
                     }
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_IDENTIFIER) == 0) {
+        }
+        else if (strcmp(name, RI_IDENTIFIER) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_NAME) == 0) {
                     const char *val = ((const char **)params[i])[0];
@@ -3141,16 +3336,19 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->name = NULL;
                     else
                         attributes->name = strdup(val);
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_CULL) == 0) {
+        }
+        else if (strcmp(name, RI_CULL) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_HIDDEN) == 0) {
                     const int *val = (const int *)params[i];
@@ -3158,39 +3356,75 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_SHADE_HIDDEN);
                     else
                         attributes->flags |= ATTRIBUTES_FLAGS_SHADE_HIDDEN;
-                } else if (strcmp(tokens[i], RI_BACKFACING) == 0) {
+                }
+                else if (strcmp(tokens[i], RI_BACKFACING) == 0) {
                     const int *val = (const int *)params[i];
                     if (val[0] != 0)
                         attributes->flags &= ~(ATTRIBUTES_FLAGS_SHADE_BACKFACE);
                     else
                         attributes->flags |= ATTRIBUTES_FLAGS_SHADE_BACKFACE;
-                } else {
+                }
+                else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
                 }
             }
-        } else if (strcmp(name, RI_USER) == 0) {
+        }
+        else if (strcmp(name, RI_USER) == 0) {
             CVariable var;
 
             for (i = 0; i < n; i++) {
                 if (parseVariable(&var, NULL, tokens[i])) {
                     // got an inline declaration
                     attributes->userAttributes.insert(&var, params[i]);
-                } else {
+                }
+                else {
                     CVariable *cVar = CRenderer::retrieveVariable(tokens[i]);
 
                     if (cVar != NULL) {
                         attributes->userAttributes.insert(cVar, params[i]);
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "User attribute: \"%s\" is predeclared declared or declared inline\n", name);
                     }
                 }
             }
-        } else {
+        }
+        /*
+        else if (strcmp(name, RI_SHADE) == 0) {
+            for (i = 0; i < n; i++) {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    if (strcmp(var.name, RI_SHADERTYPE) == 0) {
+                        const char *val = ((const char **)params[i])[0];
+                        if (attributes->shaderType != NULL)
+                            free(attributes->shaderType);
+
+                        // Validate: only "slo" or "rslo" allowed
+                        if (strcmp(val, "slo") == 0 || strcmp(val, "rslo") == 0) {
+                            attributes->shaderType = strdup(val);
+                        }
+                        else {
+                            warning(CODE_BADTOKEN, "Invalid shadertype '%s'; must be 'slo' or 'rslo'. Using default 'slo'.", val);
+                            attributes->shaderType = strdup("slo");
+                        }
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, var.name);
+                    }
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+        */
+        else {
             error(CODE_BADTOKEN, "Unknown attribute: \"%s\"\n", name);
         }
     }
@@ -3539,8 +3773,8 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
                         *newData++ = 1;                                                                 \
                     }                                                                                   \
                 }                                                                                       \
-                                                                                                        \
-            } else if (strcmp(tokens[i], RI_P) == 0) {                                                  \
+            }                                                                                           \
+            else if (strcmp(tokens[i], RI_P) == 0) {                                                    \
                 float *newData = (float *)ralloc(xv * yv * 4 * sizeof(float), CRenderer::globalMemory); \
                 float *oldData = (float *)params[i];                                                    \
                 int x, y;                                                                               \
@@ -4851,7 +5085,7 @@ namespace {
             p++;
         return strncmp(p, prefix, strlen(prefix)) == 0;
     }
-}
+} // namespace
 
 void CRendererContext::loadAndExecuteNamedGeometry(const char *filename, const char *objectName) {
     int i;

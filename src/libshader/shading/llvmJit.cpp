@@ -31,6 +31,7 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/DynamicLibrary.h>
 #pragma GCC diagnostic pop
 
 // -------------------------------------------------------------------------
@@ -107,6 +108,16 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
         }
     }
 
+    // usedParameters bitmask (decimal string; 0 for pre-C3 .slo files)
+    const llvm::MDNode *upNode = getFirst("openrender.shader.usedparameters");
+    if (upNode) {
+        const std::string us = mdStr(upNode, 0);
+        if (!us.empty()) {
+            try { info.usedParameters = static_cast<unsigned>(std::stoul(us)); }
+            catch (...) { info.usedParameters = 0; }
+        }
+    }
+
     return true;
 }
 
@@ -131,13 +142,34 @@ bool CLLVMJitEngine::extractMetadataFromFile(const std::string &filename, SLOSha
 // =========================================================================
 // CLLVMJitEngine constructor / destructor / getInstance
 // =========================================================================
+void CLLVMJitEngine::addProcessSymbol(const char *name, void *addr) {
+    llvm::sys::DynamicLibrary::AddSymbol(name, addr);
+}
+
 CLLVMJitEngine::CLLVMJitEngine() {
+    // LLVM requires native target initialization before any JIT compilation.
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
+
     auto jitOrErr = llvm::orc::LLJITBuilder().create();
     if (!jitOrErr) {
         log_error("Failed to create LLJIT instance: {}", llvm::toString(jitOrErr.takeError()));
         return;
     }
     jit = std::move(*jitOrErr);
+
+    // Expose process-level symbols (op_*, etc.) to JIT-compiled shaders.
+    // This allows the JIT to resolve calls to runtime functions that are
+    // already loaded in the orender process (from libshader_shading / ri.dylib).
+    char globalPrefix = jit->getDataLayout().getGlobalPrefix();
+    auto dlsgOrErr = llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(globalPrefix);
+    if (!dlsgOrErr) {
+        log_error("Failed to create DynamicLibrarySearchGenerator: {}",
+                  llvm::toString(dlsgOrErr.takeError()));
+    } else {
+        jit->getMainJITDylib().addGenerator(std::move(*dlsgOrErr));
+    }
 }
 
 CLLVMJitEngine::~CLLVMJitEngine() {}
@@ -191,8 +223,13 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
 
     // Extract named metadata before transferring ownership to the JIT.
     SLOShaderInfo meta;
-    if (extractMetadataFromModule(*module, meta))
+    bool hasInit = false;
+    if (extractMetadataFromModule(*module, meta)) {
         metaCache_[shaderName] = std::move(meta);
+        // Check for non-trivial init section.
+        const llvm::NamedMDNode *initMD = module->getNamedMetadata("openrender.shader.hasinit");
+        hasInit = (initMD && initMD->getNumOperands() > 0);
+    }
 
     // Add the module to the JIT (transfers ownership).
     if (auto err = jit->addIRModule(
@@ -201,7 +238,7 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
         return nullptr;
     }
 
-    // Look up the entry point.
+    // Look up the main entry point.
     auto symOrErr = jit->lookup(shaderName);
     if (!symOrErr) {
         log_error("Failed to find shader entry '{}' in JIT: {}", shaderName,
@@ -211,5 +248,26 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
 
     TShaderJitEntry entry = reinterpret_cast<TShaderJitEntry>(symOrErr->getValue());
     cache_[shaderName] = entry;
+
+    // Cache init entry if present.
+    if (hasInit) {
+        const std::string initName = shaderName + "_init";
+        auto initOrErr = jit->lookup(initName);
+        if (initOrErr) {
+            initCache_[shaderName] =
+                reinterpret_cast<TShaderJitEntry>(initOrErr->getValue());
+        } else {
+            llvm::consumeError(initOrErr.takeError());
+        }
+    }
+
     return entry;
+}
+
+// =========================================================================
+// CLLVMJitEngine::lookupInitEntry
+// =========================================================================
+TShaderJitEntry CLLVMJitEngine::lookupInitEntry(const std::string &shaderName) {
+    auto it = initCache_.find(shaderName);
+    return (it != initCache_.end()) ? it->second : nullptr;
 }

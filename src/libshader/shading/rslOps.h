@@ -167,11 +167,127 @@ void op_specular_batch(float* result, const float* Nf, const float* V,
 void op_lightsource_f(float* result, int sr, const char* attrName, float* outParam, int so, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
+ * for / while loop (JIT path) — mirrors FOR3EXPR_PRE / FOREND3EXPR_PRE
+ * ----------------------------------------------------------------------- */
+/* op_for_check: test condition for each active vertex; marks those with cond==0
+ * as loop-passive (tags[i] = execCount).  Increments *execCount. */
+void op_for_check(const float* cond, int sc,
+                  int* execCount, int* tags, int n,
+                  int* numActive, int* numPassive);
+/* op_forend: restore tags to pre-loop state; mirrors FOREND3EXPR_PRE. */
+void op_forend(const int* execCount, int* tags, int n,
+               int* numActive, int* numPassive);
+/* op_for_break: mark all currently-active vertices as loop-exited. */
+void op_for_break(const int* execCount, int* tags, int n,
+                  int* numActive, int* numPassive);
+
+/* -----------------------------------------------------------------------
+ * illuminance loop (surface shader construct, JIT path)
+ * ----------------------------------------------------------------------- */
+/* op_illuminance_begin: run all lights for (P,N,angle), enter first light's
+ * conditional (load L/Cl, apply lightTags).  Returns 1 if iterating, 0 if done. */
+int op_illuminance_begin(const float* P, int sp, const float* N, int sn,
+                         const float* angle, int sa,
+                         int* tags, int n, int* numActive, int* numPassive);
+/* op_illuminance_next: exit current light, advance to next, enter it.
+ * Returns 1 if more iterations needed, 0 if done. */
+int op_illuminance_next(int* tags, int n, int* numActive, int* numPassive);
+
+/* -----------------------------------------------------------------------
+ * illuminate / endilluminate (light shader construct, JIT path)
+ * ----------------------------------------------------------------------- */
+/* op_illuminate_begin: mirror of ILLUMINATE1EXPR_PRE for LLVM .slo light shaders.
+ * Computes L = Ps - from (with stride sf), gates vertices outside the cone. */
+void op_illuminate_begin(const float* from, int sf,
+                         int* tags, int n, int* numActive, int* numPassive);
+/* op_illuminate3_begin: mirror of ILLUMINATE3EXPR_PRE — spotlight/cone gate.
+ * Computes L = Ps - from; gates vertex if outside cone (dot(axis,L) < cos(angle)*|L|)
+ * or if back-facing (dot(Ns,L) > -costheta*|L|). */
+void op_illuminate3_begin(const float* from, int sf,
+                          const float* axis, int sa,
+                          const float* angle, int st,
+                          int* tags, int n, int* numActive, int* numPassive);
+/* op_illuminate_end: mirror of ILLUMINATEEND_PRE for LLVM .slo light shaders.
+ * Saves (L,Cl) into CShadedLight, restores tags. */
+void op_illuminate_end(int* tags, int n, int* numActive, int* numPassive);
+
+/* op_solar_begin: mirror of SOLAR2EXPR_PRE for LLVM .slo directional light shaders.
+ * Sets L = Nf * worldRadius, gates back-facing vertices. */
+void op_solar_begin(const float* Nf, int sf, const float* thetaf, int st,
+                    int* tags, int n, int* numActive, int* numPassive);
+/* op_solar_end: mirror of SOLAREND_PRE — saves (-normalize(L), Cl), restores tags. */
+void op_solar_end(int* tags, int n, int* numActive, int* numPassive);
+
+/* -----------------------------------------------------------------------
  * Coordinate-space transforms
  * ----------------------------------------------------------------------- */
 void op_pfrom    (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 void op_ntransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 void op_vtransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Layer G — additional math / comparison ops
+ * ----------------------------------------------------------------------- */
+/* max / logical */
+void op_maxf(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_andf(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_orf (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+/* degrees → radians */
+void op_radians(float* dst, int sd, const float* a, int sa, int n, const int* tags);
+/* string equality */
+void op_seql (float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags);
+void op_sneql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags);
+/* filterstep (simplified: no antialiasing) */
+void op_filterstep(float* dst, int sd, const float* edge, int se, const float* x, int sx, int n, const int* tags);
+/* reflect / fresnel */
+void op_reflect(float* dst, int sd, const float* I, int si, const float* N, int sn, int n, const int* tags);
+void op_fresnel(const float* I, int si, const float* N, int sn, const float* eta, int se,
+                float* Kr, int skr, float* Kt, int skt,
+                float* R, int sr, float* T, int st,
+                int n, const int* tags);
+/* noise */
+void op_noise_ff(float* dst, int sd, const float* x, int sx, int n, const int* tags);
+void op_noise_fp(float* dst, int sd, const float* p, int sp, int n, const int* tags);
+void op_noise_vf(float* dst, int sd, const float* x, int sx, int n, const int* tags);
+void op_noise_vp(float* dst, int sd, const float* p, int sp, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Layer G — context-dependent geometric built-ins (call via activeContext())
+ * ----------------------------------------------------------------------- */
+void op_Du_ff(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+void op_Dv_ff(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+void op_Du_vv(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+void op_Dv_vv(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+void op_area          (float* dst, int sd, const float* P,  int sp, int n, const int* tags);
+void op_calculatenormal(float* dst, int sd, const float* P, int sp, int n, const int* tags);
+void op_depth         (float* dst, int sd, const float* P,  int sp, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Layer G — texture / environment / shadow (call via activeContext())
+ * The "name" is a C string; channel is 0=R 1=G 2=B 3=A.
+ * ----------------------------------------------------------------------- */
+void op_texture_f(float* dst, int sd, const char* const* namepp, const float* chan,
+                  const float* s, int ss, const float* t, int st, int n, const int* tags);
+void op_texture_c(float* dst, int sd, const char* const* namepp,
+                  const float* s, int ss, const float* t, int st, int n, const int* tags);
+void op_environment_f(float* dst, int sd, const char* const* namepp, const float* chan,
+                      const float* D, int sD, int n, const int* tags);
+void op_environment_c(float* dst, int sd, const char* const* namepp,
+                      const float* D, int sD, int n, const int* tags);
+void op_shadow_f(float* dst, int sd, const char* const* namepp,
+                 const float* Ps, int sPs, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Spline interpolation (Catmull-Rom, default basis, no basis-string variant)
+ * knots[] is an array of numKnots float* pointers; all stride 3 for color,
+ * stride 1 for float.
+ * ----------------------------------------------------------------------- */
+void op_spline_c(float* dst, int sd, const float* t, int st,
+                 int numKnots, float** knots,
+                 int n, const int* tags);
+void op_spline_f(float* dst, int sd, const float* t, int st,
+                 int numKnots, float** knots,
+                 int n, const int* tags);
 
 #ifdef __cplusplus
 }

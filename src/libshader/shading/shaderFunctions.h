@@ -364,7 +364,9 @@ DEFFUNC(AreaS, "area", "f=pS", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXP
     float *dPdv = dPdu + numVertices * 3;                                                                                          \
     const float mult = ((currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1); \
     duVector(dPdu, op);                                                                                                            \
-    dvVector(dPdv, op);
+    dvVector(dPdv, op);                                                                                                            \
+    fprintf(stderr, "[RSLO-CALCNORM] n=%d P[0]=(%.4f,%.4f,%.4f) P[1]=(%.4f,%.4f,%.4f)\n",                                       \
+            numVertices, op[0],op[1],op[2], op[3],op[4],op[5]);
 
 #define CALCULATENORMALEXPR   \
     crossvv(res, dPdu, dPdv); \

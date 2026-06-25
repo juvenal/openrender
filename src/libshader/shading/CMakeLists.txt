@@ -46,8 +46,25 @@ if(OPENRENDER_HAVE_LLVM)
     )
 endif()
 
-add_library(libshader_shading STATIC ${shading_sources})
-set_target_properties(libshader_shading PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(libshader_shading SHARED ${shading_sources})
+set_target_properties(libshader_shading PROPERTIES
+    OUTPUT_NAME shader_shading
+    VERSION ${PROJECT_VERSION}
+    SOVERSION 1
+)
+
+if(APPLE)
+    if(INSTALL_SELFCONTAINED)
+        set_target_properties(libshader_shading PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+        set_target_properties(libshader_shading PROPERTIES
+            INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
+    # Allow undefined symbols (resolved at runtime when ri.dylib loads this library)
+    # This breaks the circular dependency: libshader_shading references CRenderer::*,
+    # stats, etc. from ri, while ri links against libshader_shading.
+    target_link_options(libshader_shading PRIVATE "-undefined" "dynamic_lookup")
+endif()
 
 # Shading engine needs src/ri/ headers for renderer types (CObject, CPhotonMap, etc.)
 # and its own directory for shading.h, shader.h, rslo_code.h, macro headers.
@@ -64,9 +81,16 @@ target_include_directories(libshader_shading PUBLIC
 target_link_libraries(libshader_shading PRIVATE openrendercommon)
 
 if(OPENRENDER_HAVE_LLVM)
-    # PUBLIC so that ri (which links this STATIC lib) automatically gets LLVM
+    # PUBLIC so that ri (which links this shared lib) automatically gets LLVM
     # on its link line without ri/CMakeLists.txt having to add it again.
     target_link_libraries(libshader_shading PUBLIC ${SHADING_LLVM_LIBS})
     target_include_directories(libshader_shading PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_shading PRIVATE ${LLVM_DEFINITIONS})
 endif()
+
+# Install the shared library
+install(TARGETS libshader_shading
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
