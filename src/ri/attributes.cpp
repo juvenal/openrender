@@ -114,7 +114,7 @@ CAttributes::CAttributes() {
 
     shadingModel = SM_MATTE;
 
-    shaderFormat = strdup("slo"); // Default to .slo
+    shaderFormat = nullptr; // No per-object override; falls through to option/compile-time default
 
     globalMapName = NULL;
     causticMapName = NULL;
@@ -200,7 +200,7 @@ CAttributes::CAttributes(const CAttributes *a) {
 
     name = (a->name != NULL ? strdup(a->name) : NULL);
 
-    shaderFormat = (a->shaderFormat != NULL ? strdup(a->shaderFormat) : strdup("slo"));
+    shaderFormat = (a->shaderFormat != NULL ? strdup(a->shaderFormat) : nullptr);
 
     if (a->next != NULL)
         next = new CAttributes(a->next);
@@ -454,7 +454,7 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
         // Restore shader type preference
         if (shaderFormat != NULL)
             free(shaderFormat);
-        shaderFormat = (other->shaderFormat != NULL ? strdup(other->shaderFormat) : strdup("slo"));
+        shaderFormat = (other->shaderFormat != NULL ? strdup(other->shaderFormat) : nullptr);
 
         // Copy the user attributes
         userAttributes = other->userAttributes;

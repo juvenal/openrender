@@ -160,7 +160,8 @@ class COptions {
 
         float jitter; // Amount of jitter in samples
 
-        char *hider; // Hider name
+        char *hider;               // Hider name
+        const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
 
         TSearchpath *archivePath;    // RIB search path
         TSearchpath *proceduralPath; // Procedural primitive search path

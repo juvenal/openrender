@@ -343,7 +343,16 @@ RtToken RI_INHERITATTRIBUTES = "inheritattributes";
 // Shutter options
 RtToken RI_OFFSET = "offset";
 
+// PixelFilter options
+RtToken RI_FILTER = "filter";
+RtToken RI_PIXELFILTER = "pixelfilter";
+RtToken RI_MODE = "mode";
+RtToken RI_CONTINUOUS = "continuous";
+RtToken RI_PRECOMPUTED = "precomputed";
+
 // Misc junk
+RtToken RI_DEFAULT = "default";
+RtToken RI_DEFAULTLIGHT = "defaultlight";
 RtToken RI_DEFAULTSURFACE = "defaultsurface";
 
 // Error handling
@@ -568,6 +577,7 @@ RiContext(RtContextHandle handle) {
 
 EXTERN(RtVoid)
 RiBegin(RtToken name) {
+    orender_log_init();
     if (renderMan != NULL) {
         error(CODE_NESTING, "Already started\n");
         return;

@@ -91,6 +91,7 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_SHADER, "string");
     declareVariable(RI_DISPLAY, "string");
     declareVariable(RI_RESOURCE, "string");
+    declareVariable(RI_GEOMETRY, "string");
 
     declareVariable(RI_BUCKETSIZE, "int[2]");
     declareVariable(RI_METABUCKETS, "int[2]");
@@ -111,8 +112,8 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_EMIT, "int");
     declareVariable(RI_SAMPLESPECTRUM, "int");
     declareVariable(RI_DEPTHFILTER, "string");
-    declareVariable("filter", "string");
-    declareVariable("mode", "string");
+    declareVariable(RI_FILTER, "string");
+    declareVariable(RI_MODE, "string");
 
     declareVariable(RI_MAXDEPTH, "int");
 
@@ -176,6 +177,7 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_TRANSMISSIONHITMODE, "string");
     declareVariable(RI_CAMERAHITMODE, "string");
     declareVariable(RI_SHADERFORMAT, "string");
+    declareVariable(RI_DEFAULT, "string"); // Option "shaderformat" "default" token
 
     declareVariable(RI_NAME, "string");
 
@@ -355,7 +357,8 @@ void CRenderer::defineCoordinateSystem(const char *name, const float *from, cons
         movmm(newEntry->from, from);
         movmm(newEntry->to, to);
         newEntry->systemType = type;
-    } else {
+    }
+    else {
         newEntry = new CNamedCoordinateSystem;
         strcpy(newEntry->name, name);
         movmm(newEntry->from, from);
@@ -382,42 +385,44 @@ int CRenderer::findCoordinateSystem(const char *name, const float *&from, const 
         cSystem = currentSystem->systemType;
 
         switch (cSystem) {
-        case COORDINATE_OBJECT:
-            break;
-        case COORDINATE_CAMERA:
-            from = identityMatrix;
-            to = identityMatrix;
-            break;
-        case COORDINATE_WORLD:
-            from = CRenderer::fromWorld;
-            to = CRenderer::toWorld;
-            break;
-        case COORDINATE_SHADER: {
-            CXform *currentXform = context->getXform(FALSE);
-            from = currentXform->from;
-            to = currentXform->to;
-            break;
-        }
-        case COORDINATE_LIGHT:
-        case COORDINATE_NDC:
-        case COORDINATE_RASTER:
-        case COORDINATE_SCREEN:
-            break;
-        case COORDINATE_CURRENT: {
-            CXform *currentXform = context->getXform(FALSE);
-            from = currentXform->from;
-            to = currentXform->to;
-            break;
-        }
-        case COLOR_RGB:
-        case COLOR_HSL:
-        case COLOR_HSV:
-        case COLOR_XYZ:
-        case COLOR_CIE:
-        case COLOR_YIQ:
-        case COLOR_XYY:
-        case COORDINATE_CUSTOM:
-            break;
+            case COORDINATE_OBJECT:
+                break;
+            case COORDINATE_CAMERA:
+                from = identityMatrix;
+                to = identityMatrix;
+                break;
+            case COORDINATE_WORLD:
+                from = CRenderer::fromWorld;
+                to = CRenderer::toWorld;
+                break;
+            case COORDINATE_SHADER:
+            {
+                CXform *currentXform = context->getXform(FALSE);
+                from = currentXform->from;
+                to = currentXform->to;
+                break;
+            }
+            case COORDINATE_LIGHT:
+            case COORDINATE_NDC:
+            case COORDINATE_RASTER:
+            case COORDINATE_SCREEN:
+                break;
+            case COORDINATE_CURRENT:
+            {
+                CXform *currentXform = context->getXform(FALSE);
+                from = currentXform->from;
+                to = currentXform->to;
+                break;
+            }
+            case COLOR_RGB:
+            case COLOR_HSL:
+            case COLOR_HSV:
+            case COLOR_XYZ:
+            case COLOR_CIE:
+            case COLOR_YIQ:
+            case COLOR_XYY:
+            case COORDINATE_CUSTOM:
+                break;
         }
 
         return TRUE;
@@ -445,7 +450,8 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
             if ((cVariable.numFloats != oVariable->numFloats) ||
                 (cVariable.numItems != oVariable->numItems)) {
                 error(CODE_SYSTEM, "Variable \"%s\" was previously defined differently\n", cVariable.name);
-            } else {
+            }
+            else {
                 if (cVariable.type != oVariable->type) {
                     if ((cVariable.type == TYPE_STRING) || (oVariable->type == TYPE_STRING)) {
                         error(CODE_SYSTEM, "Variable \"%s\" was previously defined differently\n", cVariable.name);
@@ -460,13 +466,15 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
             if (oVariable->usageMarker == (PARAMETER_S | PARAMETER_T)) {
                 if (declaredVariables->find("s", nVariable)) {
                     nVariable->container = cVariable.container;
-                } else {
+                }
+                else {
                     assert(FALSE);
                 }
 
                 if (declaredVariables->find("t", nVariable)) {
                     nVariable->container = cVariable.container;
-                } else {
+                }
+                else {
                     assert(FALSE);
                 }
             }
@@ -492,7 +500,8 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
         }
 
         return nVariable;
-    } else {
+    }
+    else {
         return NULL;
     }
 }
@@ -579,16 +588,19 @@ CDisplayChannel *CRenderer::declareDisplayChannel(const char *type) {
         if ((oChannel->numSamples == cVariable.numFloats) &&
             ((cVariable.storage != STORAGE_GLOBAL) || oChannel->outType == cVariable.entry)) {
             return oChannel;
-        } else {
+        }
+        else {
             error(CODE_SYSTEM, "Channel \"%s\" was previously defined differently\n", cVariable.name);
             return NULL;
         }
-    } else {
+    }
+    else {
         oVariable = declareVariable(NULL, type);
 
         if (oVariable == NULL) {
             error(CODE_SYSTEM, "Channel definition \"%s\" is ill formed\n", type);
-        } else {
+        }
+        else {
             const int samples = oVariable->numFloats;
             const int outType = (oVariable->storage == STORAGE_GLOBAL) ? oVariable->entry : -1;
             oChannel = new CDisplayChannel(oVariable->name, oVariable, samples, -1, outType);
@@ -615,10 +627,12 @@ CDisplayChannel *CRenderer::declareDisplayChannel(CVariable *var) {
     if (declaredChannels->find(var->name, oChannel) == TRUE) {
         if (oChannel->variable == var) {
             return oChannel;
-        } else {
+        }
+        else {
             return NULL;
         }
-    } else {
+    }
+    else {
         oChannel = new CDisplayChannel(var->name, var, var->numFloats, -1, var->entry);
         declaredChannels->insert(oChannel->name, oChannel);
         displayChannels->push(oChannel);
@@ -639,7 +653,8 @@ CDisplayChannel *CRenderer::retrieveDisplayChannel(const char *name) {
     CDisplayChannel *oChannel;
     if (declaredChannels->find(name, oChannel) == TRUE) {
         return oChannel;
-    } else {
+    }
+    else {
         return NULL;
     }
 }

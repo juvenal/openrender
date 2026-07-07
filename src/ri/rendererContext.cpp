@@ -261,7 +261,9 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
     if (strcmp(name, "null") == 0)
         return NULL;
 
-    const char *preference = currentAttributes->shaderFormat ? currentAttributes->shaderFormat : "slo";
+    const char *preference = currentAttributes->shaderFormat
+                                 ? currentAttributes->shaderFormat
+                                 : (currentOptions->defaultShaderFormat ? currentOptions->defaultShaderFormat : OPENRENDER_DEFAULT_FORMAT);
     CShader *cShader = CRenderer::getShader(name, currentOptions->shaderPath, preference);
 
     if (cShader != NULL) {
@@ -271,6 +273,8 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
             error(CODE_NOSHADER, "Shader \"%s\" is not of the expected type\n", name);
             return NULL;
         }
+
+        log_info("getShader: loading shader '{}', type '{}', in format '{}'", name, cShader->type, preference);
 
         instance = new CProgrammableShaderInstance(cShader, currentAttributes, currentXform);
 
@@ -756,7 +760,7 @@ void CRendererContext::RiWorldBegin(void) {
 
     // Auto-bind defaultlight when no LightSource statement was given
     if (currentAttributes->lightSources == NULL) {
-        CShaderInstance *cShader = getShader("defaultlight", SL_LIGHTSOURCE, 0, NULL, NULL);
+        CShaderInstance *cShader = getShader(RI_DEFAULTLIGHT, SL_LIGHTSOURCE, 0, NULL, NULL);
         if (cShader != NULL) {
             CAttributes *attrs = getAttributes(TRUE);
             attrs->addLight(cShader);
@@ -765,7 +769,9 @@ void CRendererContext::RiWorldBegin(void) {
 
     // Start the renderer. beginFrame() captures camera motion from currentXform->next
     // (fromWorld1/toWorld1) before we discard the motion chain below.
+    log_debug("RiWorldBegin: calling beginFrame");
     CRenderer::beginFrame(currentOptions, currentAttributes, currentXform);
+    log_debug("RiWorldBegin: beginFrame returned, hiderFlags={}", CRenderer::hiderFlags);
 
     // Clear any camera-motion chain deep-copied by xformBegin().
     // Pre-world MotionBegin defines CAMERA motion, now captured in fromWorld1/toWorld1.
@@ -1706,14 +1712,33 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
-    else if (strcmp(name, "pixelfilter") == 0) {
+    else if (strcmp(name, RI_SHADERFORMAT) == 0) {
         for (i = 0; i < n; i++) {
-            if (strcmp(tokens[i], "mode") == 0) {
+            if (strcmp(tokens[i], RI_DEFAULT) == 0) {
                 const char *val = ((const char **)params[i])[0];
-                if (strcmp(val, "continuous") == 0)
+                if (strcmp(val, "slo") == 0 || strcmp(val, "rslo") == 0) {
+                    log_info("RiOption: setting 'shaderformat' to '{}'", val);
+                    if (options->defaultShaderFormat != nullptr)
+                        free((void *)options->defaultShaderFormat);
+                    options->defaultShaderFormat = strdup(val);
+                }
+                else {
+                    error(CODE_RANGE, "Unknown shaderformat default: \"%s\" (expected \"slo\" or \"rslo\")\n", val);
+                }
+            }
+            else {
+                error(CODE_BADTOKEN, "Unknown shaderformat option: \"%s\"\n", tokens[i]);
+            }
+        }
+    }
+    else if (strcmp(name, RI_PIXELFILTER) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_MODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                if (strcmp(val, RI_CONTINUOUS) == 0)
                     options->pixelFilterMode = COptions::FILTER_MODE_CONTINUOUS;
                 else {
-                    if (strcmp(val, "precomputed") != 0)
+                    if (strcmp(val, RI_PRECOMPUTED) != 0)
                         warning(CODE_BADTOKEN, "Unknown filter mode: \"%s\", defaulting to \"precomputed\"\n", val);
                     options->pixelFilterMode = COptions::FILTER_MODE_PRECOMPUTED;
                 }
@@ -1881,6 +1906,7 @@ void *CRendererContext::RiLightSourceV(const char *name, int n, const char *toke
     CAttributes *attributes;
     CShaderInstance *cShader;
 
+    log_debug("RiLightSourceV: '{}'", name);
     if (CRenderer::netNumServers > 0)
         return NULL;
 

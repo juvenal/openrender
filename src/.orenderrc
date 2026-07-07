@@ -2,6 +2,8 @@
 ## Any customizations can be put in this file. It's just straight RIB.
 ########################################################################
 
+Option "shaderformat" "default"  ["rslo"]
+
 Option "searchpath" "shader"     ["&:.:%ORENDERHOME%/shaders:%SHADERS%:/usr/local/shaders"]
 Option "searchpath" "texture"    ["&:.:%ORENDERHOME%/textures:%TEXTURES%:/usr/local/textures"]
 Option "searchpath" "archive"    ["&:.:%ORENDERHOME%/ribs:%RIBS%:/usr/local/models"]

@@ -441,8 +441,18 @@ EXTERN(RtToken)
 EXTERN(RtToken)
     RI_OFFSET;
 
+// PixelFilter options
+EXTERN(RtToken)
+    RI_FILTER,
+    RI_PIXELFILTER,
+    RI_MODE,
+    RI_CONTINUOUS,
+    RI_PRECOMPUTED;
+
 // Misc junk
 EXTERN(RtToken)
+    RI_DEFAULT,
+    RI_DEFAULTLIGHT,
     RI_DEFAULTSURFACE;
 
 EXTERN(RtInt)

@@ -261,6 +261,7 @@ COptions::COptions() {
     jitter = 0.99f;
 
     hider = strdup("stochastic");
+    defaultShaderFormat = nullptr;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -440,6 +441,7 @@ COptions::COptions(const COptions *o) {
     globalIn = (o->globalIn != NULL ? strdup(o->globalIn) : NULL);
     globalOut = (o->globalOut != NULL ? strdup(o->globalOut) : NULL);
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
+    defaultShaderFormat = (o->defaultShaderFormat != nullptr ? strdup(o->defaultShaderFormat) : nullptr);
 
     if (imager != nullptr)
         imager->attach();
@@ -501,6 +503,8 @@ COptions::~COptions() {
         free(globalOut);
     if (filelog != NULL)
         free(filelog);
+    if (defaultShaderFormat != nullptr)
+        free((void *)defaultShaderFormat);
 
     if (imager != nullptr)
         imager->detach();

@@ -30,6 +30,7 @@
 #include "brickmap.h"
 #include "dso.h"
 #include "error.h"
+#include "includes/logging.hpp"
 #include "irradiance.h"
 #include "netFileMapping.h"
 #include "options.h"
@@ -211,7 +212,7 @@ static CShader *parseSloShader(const char * /*shaderName*/, const char *sloPath)
         const char *base = sep ? sep + 1 : filename;
         const char *ext = strrchr(base, '.');
         std::string logicalName = ext ? std::string(base, ext) : std::string(base);
-        sh->jitEntry     = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
+        sh->jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
         sh->jitInitEntry = CLLVMJitEngine::getInstance().lookupInitEntry(logicalName);
     }
 
@@ -708,7 +709,7 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
 // Return Value			:
 // Comments				:
 CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
-    return getShader(name, path, "slo"); // Default preference
+    return getShader(name, path, OPENRENDER_DEFAULT_FORMAT); // Default preference
 }
 
 CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *preferredType) {
@@ -755,6 +756,7 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *p
         }
 
         if (cShader != NULL) {
+            log_debug("getShader: loaded shader '{}' from '{}'", name, shaderLocation);
             // Cache under the logical shader name so subsequent calls hit the cache.
             globalFiles->insert(name, cShader);
         }
