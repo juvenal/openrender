@@ -20,6 +20,7 @@
 #include "activeContext.h"
 #include "shading.h"
 #include "noise.h"
+#include "includes/logging.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -458,15 +459,20 @@ static bool getToMatrix(const char* space, const float*& toMat) {
 void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
     const float *from = nullptr;
     if (!space || !getFromMatrix(space, from)) {
+        if (n > 0 && ACTIVE(tags, 0)) {
+            const float *p0 = IDX(src,ss,0);
+            log_debug("[JIT-pfrom] space='{}' identity in[0]=({:.4f},{:.4f},{:.4f})", space ? space : "null", p0[0], p0[1], p0[2]);
+        }
         for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
             IDX(dst,sd,i)[0]=IDX(src,ss,i)[0];
             IDX(dst,sd,i)[1]=IDX(src,ss,i)[1];
             IDX(dst,sd,i)[2]=IDX(src,ss,i)[2];
         }
-        fprintf(stderr, "[JIT-PFROM] space='%s' no-from-matrix, identity used. in[0]=(%.4f,%.4f,%.4f) out[0]=(%.4f,%.4f,%.4f)\n",
-                space ? space : "(null)", IDX(src,ss,0)[0], IDX(src,ss,0)[1], IDX(src,ss,0)[2],
-                IDX(dst,sd,0)[0], IDX(dst,sd,0)[1], IDX(dst,sd,0)[2]);
         return;
+    }
+    if (n > 0 && ACTIVE(tags, 0)) {
+        const float *p0 = IDX(src,ss,0);
+        log_debug("[JIT-pfrom] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", space, p0[0], p0[1], p0[2]);
     }
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
         const float *p = IDX(src,ss,i);
@@ -477,15 +483,6 @@ void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, i
         r[0] = (from[0]*p[0] + from[4]*p[1] + from[8]*p[2]  + from[12]) * inv;
         r[1] = (from[1]*p[0] + from[5]*p[1] + from[9]*p[2]  + from[13]) * inv;
         r[2] = (from[2]*p[0] + from[6]*p[1] + from[10]*p[2] + from[14]) * inv;
-    }
-    static int _pf_jit_cnt = 0;
-    if (_pf_jit_cnt++ < 3) {
-        fprintf(stderr, "[JIT-PFROM] space='%s' in[0]=(%.4f,%.4f,%.4f) out[0]=(%.4f,%.4f,%.4f)\n",
-                space ? space : "(null)", IDX(src,ss,0)[0], IDX(src,ss,0)[1], IDX(src,ss,0)[2],
-                IDX(dst,sd,0)[0], IDX(dst,sd,0)[1], IDX(dst,sd,0)[2]);
-        fprintf(stderr, "[JIT-PFROM] from col0=(%.4f,%.4f,%.4f,%.4f) col1=(%.4f,%.4f,%.4f,%.4f) col2=(%.4f,%.4f,%.4f,%.4f) col3=(%.4f,%.4f,%.4f,%.4f)\n",
-                from[0],from[1],from[2],from[3], from[4],from[5],from[6],from[7],
-                from[8],from[9],from[10],from[11], from[12],from[13],from[14],from[15]);
     }
 }
 
@@ -773,12 +770,13 @@ void op_area(float* dst, int sd, const float* P, int /*sp*/, int n, const int* t
 
 void op_calculatenormal(float* dst, int sd, const float* P, int /*sp*/, int n, const int* tags) {
     CShadingContext *ctx = libshader::activeContext();
+    log_debug("[JIT-calculatenormal] ctx={} n={}", (void*)ctx, n);
     if (!ctx) return;
-    fprintf(stderr, "[JIT-CALCNORM] n=%d P[0]=(%.4f,%.4f,%.4f) P[1]=(%.4f,%.4f,%.4f)\n",
-            n, P[0],P[1],P[2], P[3],P[4],P[5]);
     ctx->jitCalculateNormal(dst, sd, P, n, tags);
-    fprintf(stderr, "[JIT-CALCNORM] N[0]=(%.4f,%.4f,%.4f) N[1]=(%.4f,%.4f,%.4f)\n",
-            dst[0],dst[1],dst[2], dst[3],dst[4],dst[5]);
+    if (n > 0 && ACTIVE(tags, 0)) {
+        const float *r0 = IDX(dst,sd,0);
+        log_debug("[JIT-calculatenormal] out[0]=({:.4f},{:.4f},{:.4f})", r0[0], r0[1], r0[2]);
+    }
 }
 
 void op_depth(float* dst, int sd, const float* P, int sp, int n, const int* tags) {

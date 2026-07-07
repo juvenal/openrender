@@ -27,22 +27,6 @@
 #include "ri/dsply.h"
 #include "logging.hpp"
 
-// framebuffer.so is loaded with RTLD_NOW (no RTLD_GLOBAL), so its
-// current_log_level is separate from the main binary's copy.
-// Sync to ORENDER_LOG_LEVEL set by orender before dlopen.
-namespace {
-    struct FbLogInit {
-        FbLogInit() {
-            const char* env = std::getenv("ORENDER_LOG_LEVEL");
-            int v = env ? std::atoi(env) : 0;
-            if      (v >= 4) set_log_level(LogLevel::DEBUG);
-            else if (v == 3) set_log_level(LogLevel::INFO);
-            else if (v == 2) set_log_level(LogLevel::WARN);
-            else if (v == 1) set_log_level(LogLevel::ERROR);
-            else             set_log_level(LogLevel::NONE);
-        }
-    } fb_log_init;
-}
 
 #define TRUE 1
 #define FALSE 0

@@ -42,6 +42,7 @@
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
+#include "includes/logging.hpp"
 #include "stats.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -1629,8 +1630,7 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
     for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
     runLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
               ss->numActive, ss->numPassive, inShadow, varying, cInst);
-    fprintf(stderr, "[JIT-DBG] callDiffuse after runLights: ss->lights=%p n=%d\n",
-            (void*)ss->lights, n);
+    log_debug("[JIT-DBG] callDiffuse: lights={} n={}", (void *)ss->lights, n);
 
     // Zero ALL vertices unconditionally (original behavior)
     for (int i = 0; i < n; ++i) {
@@ -1640,16 +1640,6 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
         const int   *ltags = light->lightTags;
         const float *L  = light->savedState[0];
         const float *Cl = light->savedState[1];
-        // Debug: show first active vertex's L and Cl
-        for (int di = 0; di < n; ++di) {
-            if (tags[di] == 0 && (ltags == nullptr || ltags[di] == 0)) {
-                fprintf(stderr, "[JIT-DBG] callDiffuse light vertex[%d]: L=[%.3f,%.3f,%.3f] Cl=[%.3f,%.3f,%.3f] ltag=%d\n",
-                        di, L[3*di], L[3*di+1], L[3*di+2], Cl[3*di], Cl[3*di+1], Cl[3*di+2],
-                        ltags ? ltags[di] : -1);
-                break;
-            }
-        }
-        bool dbgPrinted = false;
         for (int i = 0; i < n; ++i) {
             if (tags[i] != 0) continue;
             // Mirror interpreter's enterFastLightingConditional: skip vertices
@@ -1660,11 +1650,6 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
             if (lm < 1e-8f) continue;
             lx /= lm; ly /= lm; lz /= lm;
             float coeff = Nf[3*i]*lx + Nf[3*i+1]*ly + Nf[3*i+2]*lz;
-            if (!dbgPrinted) {
-                fprintf(stderr, "[JIT-DBG] callDiffuse coeff[%d]: Nf=[%.3f,%.3f,%.3f] L_norm=[%.3f,%.3f,%.3f] coeff=%.4f\n",
-                        i, Nf[3*i], Nf[3*i+1], Nf[3*i+2], lx, ly, lz, coeff);
-                dbgPrinted = true;
-            }
             if (coeff > 0.0f) {
                 result[3*i]   += coeff * Cl[3*i];
                 result[3*i+1] += coeff * Cl[3*i+1];
@@ -1832,10 +1817,7 @@ void CShadingContext::jitIlluminate3Begin(
         int* tags, int n, int* numActive, int* numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss) return;
-    fprintf(stderr, "[JIT-DBG] jitIlluminate3Begin: n=%d numActive=%d sf=%d sa=%d st=%d\n"
-                    "  from=[%.3f,%.3f,%.3f] axis=[%.3f,%.3f,%.3f] angle=%.4f\n",
-            n, *numActive, sf, sa, st,
-            from[0], from[1], from[2], axis[0], axis[1], axis[2], angle[0]);
+    log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
     float       *L  = ss->varying[VARIABLE_L];
     const float *Ps = ss->varying[VARIABLE_PS];
@@ -1857,14 +1839,6 @@ void CShadingContext::jitIlluminate3Begin(
             const float dotNfL   = axsi[0]*L[0] + axsi[1]*L[1] + axsi[2]*L[2];
             const float cosAngle = cosf(angi);
             const float dotNsL   = Ns[0]*L[0] + Ns[1]*L[1] + Ns[2]*L[2];
-            if (i < 2) {
-                fprintf(stderr, "  [vtx%d] Ps=[%.3f,%.3f,%.3f] Ns=[%.3f,%.3f,%.3f] L=[%.3f,%.3f,%.3f]\n"
-                                "         axis=[%.3f,%.3f,%.3f] dotNfL=%.4f cosA*len=%.4f dotNsL=%.4f ct=%.4f\n"
-                                "         coneFail=%d backFail=%d\n",
-                        i, Ps[0],Ps[1],Ps[2], Ns[0],Ns[1],Ns[2], L[0],L[1],L[2],
-                        axsi[0],axsi[1],axsi[2], dotNfL, cosAngle*lLen, dotNsL, *ct,
-                        (dotNfL < cosAngle*lLen), (dotNsL > -(*ct)*lLen));
-            }
             // Gate: outside spotlight cone OR surface facing away from light
             if (dotNfL < cosAngle * lLen || dotNsL > -(*ct) * lLen) {
                 (*tags)++;
@@ -1884,8 +1858,7 @@ void CShadingContext::jitIlluminateEnd(int* tags, int n,
                                        int* numActive, int* numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss) return;
-    fprintf(stderr, "[JIT-DBG] jitIlluminateEnd: n=%d numActive=%d numPassive=%d ss->lights=%p\n",
-            n, *numActive, *numPassive, (void*)ss->lights);
+    log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
     CProgrammableShaderInstance *cInst =
         static_cast<CProgrammableShaderInstance *>(ss->currentShaderInstance);

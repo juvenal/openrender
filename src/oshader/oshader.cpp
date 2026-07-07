@@ -182,8 +182,7 @@ int main(int argc, char *argv[]) {
     int legacyRSLObjectExt = FALSE;
     int emitJIT = FALSE;
 
-    // Default log level is NONE; can be overridden via -x or -d.
-    LOG_INIT(stderr, LOG_LEVEL_NONE);
+    orender_log_init();
 
     sourceFiles = new CList<char *>;
 

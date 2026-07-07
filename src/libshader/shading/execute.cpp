@@ -40,6 +40,7 @@
 #include "shaderPl.h"
 #include "shading.h"
 #include "activeContext.h"
+#include "includes/logging.hpp"
 #include "rslo_code.h"
 #include "surface.h"
 #include "texture.h"
@@ -561,8 +562,8 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 #ifdef OPENRENDER_HAVE_LLVM
     // JIT dispatch: if a compiled entry point exists for this shader, call it
     // instead of the interpreter and return immediately.
-    fprintf(stderr, "[JIT-PROBE] execute: shader=%s jitEntry=%p\n", cInstance->getName(), (void*)cInstance->jitEntry);
     if (cInstance->jitEntry != nullptr) {
+        log_debug("[JIT-PROBE] execute: shader={} jitEntry={}", cInstance->getName(), (void*)cInstance->jitEntry);
         // Save outer context: a surface shader's JIT may nest into a light shader's
         // JIT via callDiffuse/callAmbient → light->illuminate() → execute().
         // Without save/restore the outer context is cleared on return, breaking
@@ -571,11 +572,9 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         libshader::setActiveContext(this);
         cInstance->jitEntry(numVertices, stuff, tagStart);
         libshader::setActiveContext(savedCtx);
-        // Debug: check CI after surface shader JIT
         if (currentShader->type == SL_SURFACE) {
             const float *CI = varying[VARIABLE_CI];
-            if (CI) fprintf(stderr, "[JIT-DBG] post-JIT surface CI[0]=[%.3f,%.3f,%.3f]\n",
-                            CI[0], CI[1], CI[2]);
+            log_debug("[JIT-DBG] post-JIT CI[0]=[{:.3f},{:.3f},{:.3f}]", CI[0], CI[1], CI[2]);
         }
         // Mirror interpreter execEnd: accumulate ambient Cl for lightsource shaders.
         if (currentShader->type == SL_LIGHTSOURCE &&
