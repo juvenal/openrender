@@ -25,9 +25,6 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
-
-#include "common/algebra.h"
-#include "common/os.h"
 #include "noise.h"
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))

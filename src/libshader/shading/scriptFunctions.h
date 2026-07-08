@@ -33,6 +33,11 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef log_debug
+#  define log_debug(...) ((void)0)
+#  define _SCRIPTFUNCTIONS_LOG_FALLBACK
+#endif
+
 #define FUN1EXPR_PRE \
     float *res;      \
     operand(0, res, float *); \
@@ -826,6 +831,7 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
 
 #define SPLINEVEXPR_PRE                                                        \
     float *res;                                                                \
+    float *res_log_base;                                                       \
     const float **op;                                                          \
     int numArguments;                                                          \
     const float *val;                                                          \
@@ -857,6 +863,7 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
     }                                                                          \
                                                                                \
     operand(0, res, float *);                                                  \
+    res_log_base = res;                                                        \
     operand(2, val, const float *);                                            \
     argumentcount(numArguments);                                               \
     numArguments -= 3;                                                         \
@@ -869,6 +876,7 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
 
 #define SPLINEEXPR_PRE                                                         \
     float *res;                                                                \
+    float *res_log_base;                                                       \
     const float **op;                                                          \
     int numArguments;                                                          \
     const float *val;                                                          \
@@ -878,6 +886,7 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
     int numPieces;                                                             \
                                                                                \
     operand(0, res, float *);                                                  \
+    res_log_base = res;                                                        \
     operand(1, val, const float *);                                            \
     argumentcount(numArguments);                                               \
     numArguments--;                                                            \
@@ -887,7 +896,8 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
                                                                                \
     for (int i = 0; i < numArguments; ++i) {                                   \
         operand(i + 2, op[i], const float *);                                  \
-    }
+    }                                                                          \
+    log_debug("[rslo-spline-c] csp[0]={:.6f}", val[0]);
 
 #define SPLINEFEXPR                                                                                                                             \
     if (*val <= 0)                                                                                                                              \
@@ -920,7 +930,7 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
     for (int i = 0; i < numArguments; ++i) \
         ++op[i];
 
-#define SPLINEFEXPR_POST
+#define SPLINEFEXPR_POST (void)res_log_base;
 
 #else
 
@@ -988,7 +998,9 @@ DEFFUNC(Splinesf, "spline", "f=Sfffff*", SPLINEVEXPR_PRE, SPLINEFEXPR, SPLINEFEX
     for (int i = 0; i < numArguments; ++i) \
         op[i] += 3;
 
-#define SPLINEPEXPR_POST
+#define SPLINEPEXPR_POST \
+    log_debug("[rslo-spline-c-out] Ct[0]=({:.4f},{:.4f},{:.4f})", \
+              res_log_base[0], res_log_base[1], res_log_base[2]);
 
 #else
 

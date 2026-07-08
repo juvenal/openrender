@@ -118,6 +118,31 @@ add_visual_test(teapot-wood-raytrace
     examples/rib/tests/teapot-wood-raytrace.rib
     teapot-wood-raytrace.tif  teapot-wood-raytrace.tif)
 
+# --- .slo (LLVM JIT) variants — compare against same references as .rslo counterparts ---
+add_visual_test(teapot-wood-reyes-slo
+    examples/rib/tests/teapot-wood-reyes-slo.rib
+    teapot-wood-reyes-slo.tif  teapot-wood-reyes.tif)
+
+add_visual_test(teapot-wood-raytrace-slo
+    examples/rib/tests/teapot-wood-raytrace-slo.rib
+    teapot-wood-raytrace-slo.tif  teapot-wood-raytrace.tif)
+
+add_visual_test(teapot-blue_marble-reyes-slo
+    examples/rib/tests/teapot-blue_marble-reyes-slo.rib
+    teapot-blue_marble-reyes-slo.tif  teapot-blue_marble-reyes.tif)
+
+add_visual_test(teapot-blue_marble-raytrace-slo
+    examples/rib/tests/teapot-blue_marble-raytrace-slo.rib
+    teapot-blue_marble-raytrace-slo.tif  teapot-blue_marble-raytrace.tif)
+
+add_visual_test(teapot-brushedmetal-reyes-slo
+    examples/rib/tests/teapot-brushedmetal-reyes-slo.rib
+    teapot-brushedmetal-reyes-slo.tif  teapot-brushedmetal-reyes.tif)
+
+add_visual_test(teapot-brushedmetal-raytrace-slo
+    examples/rib/tests/teapot-brushedmetal-raytrace-slo.rib
+    teapot-brushedmetal-raytrace-slo.tif  teapot-brushedmetal-raytrace.tif)
+
 # teapot-full-metal uses the "teapot-full-*" reference images
 add_visual_test(teapot-full-metal-reyes
     examples/rib/tests/teapot-full-metal-reyes.rib
@@ -237,4 +262,4 @@ add_visual_test(camera-motion-huge-reyes
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      33 scenes registered under label 'visual'")
+message(STATUS "      39 scenes registered under label 'visual'")

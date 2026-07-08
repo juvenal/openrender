@@ -25,6 +25,12 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
+// Fallback for log_debug when logging.hpp has not been included by the TU.
+#ifndef log_debug
+#  define log_debug(...) ((void)0)
+#  define _SHADERFUNCTIONS_LOG_FALLBACK
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // debug	"o=v"
 #define DEBUGVEXPR debugFunction((float *)res);
@@ -364,9 +370,7 @@ DEFFUNC(AreaS, "area", "f=pS", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXP
     float *dPdv = dPdu + numVertices * 3;                                                                                          \
     const float mult = ((currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1); \
     duVector(dPdu, op);                                                                                                            \
-    dvVector(dPdv, op);                                                                                                            \
-    fprintf(stderr, "[RSLO-CALCNORM] n=%d P[0]=(%.4f,%.4f,%.4f) P[1]=(%.4f,%.4f,%.4f)\n",                                       \
-            numVertices, op[0],op[1],op[2], op[3],op[4],op[5]);
+    dvVector(dPdv, op);
 
 #define CALCULATENORMALEXPR   \
     crossvv(res, dPdu, dPdv); \
@@ -397,7 +401,9 @@ DEFFUNC(CalculateNormal, "calculatenormal", "p=p", CALCULATENORMALEXPR_PRE, CALC
 
 #define NOISE3D1EXPR FUNCTION(res, *op);
 #define NOISE3D2EXPR FUNCTION(res, *op1, *op2);
-#define NOISE3D3EXPR FUNCTION(res, op);
+#define NOISE3D3EXPR \
+    FUNCTION(res, op); \
+    if (!_n3d3LogDone) { log_debug("[rslo-noise-vp] in[0]=({:.4f},{:.4f},{:.4f}) out[0]=({:.4f},{:.4f},{:.4f})", op[0], op[1], op[2], res[0], res[1], res[2]); _n3d3LogDone = true; }
 #define NOISE3D4EXPR FUNCTION(res, op1, *op2);
 
 #define FUNCTION noiseFloat
@@ -419,7 +425,11 @@ DEFFUNC(Noise3D2, "noise", "v=ff", FUN3EXPR_PRE, NOISE3D2EXPR, FUN3EXPR_UPDATE(3
 DEFLINKFUNC(Noise3Dv1, "noise", "c=p", 0)
 DEFLINKFUNC(Noise3Dv2, "noise", "p=p", 0)
 DEFLINKFUNC(Noise3Dv3, "noise", "n=p", 0)
-DEFFUNC(Noise3D3, "noise", "v=p", FUN2EXPR_PRE, NOISE3D3EXPR, FUN2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
+#define NOISE3D3EXPR_PRE \
+    float *res; const float *op; bool _n3d3LogDone = false; \
+    operand(0, res, float *); operand(1, op, const float *);
+DEFFUNC(Noise3D3, "noise", "v=p", NOISE3D3EXPR_PRE, NOISE3D3EXPR, FUN2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
+#undef NOISE3D3EXPR_PRE
 DEFLINKFUNC(Noise4Dv1, "noise", "c=pf", 0)
 DEFLINKFUNC(Noise4Dv2, "noise", "p=pf", 0)
 DEFLINKFUNC(Noise4Dv3, "noise", "n=pf", 0)
@@ -445,7 +455,7 @@ DEFFUNC(CellNoise3D2, "cellnoise", "v=ff", FUN3EXPR_PRE, NOISE3D2EXPR, FUN3EXPR_
 DEFLINKFUNC(CellNoise3Dv1, "cellnoise", "c=p", 0)
 DEFLINKFUNC(CellNoise3Dv2, "cellnoise", "p=p", 0)
 DEFLINKFUNC(CellNoise3Dv3, "cellnoise", "n=p", 0)
-DEFFUNC(CellNoise3D3, "cellnoise", "v=p", FUN2EXPR_PRE, NOISE3D3EXPR, FUN2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
+DEFFUNC(CellNoise3D3, "cellnoise", "v=p", FUN2EXPR_PRE, FUNCTION(res, op), FUN2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
 DEFLINKFUNC(CellNoise4Dv1, "cellnoise", "c=pf", 0)
 DEFLINKFUNC(CellNoise4Dv2, "cellnoise", "p=pf", 0)
 DEFLINKFUNC(CellNoise4Dv3, "cellnoise", "n=pf", 0)

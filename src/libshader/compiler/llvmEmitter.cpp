@@ -811,6 +811,11 @@ static void emitFunction(const IRFunction &irFn,
             // ================================================================
             else if (op == "clampf")         emitTern(ins, "op_clampf", dst, dstStride);
             else if (op == "clampv")         emitTern(ins, "op_clampv", dst, dstStride);
+            // Generic clamp: dispatch by proto (f=fff → clampf, else → clampv)
+            else if (op == "clamp") {
+                bool isFloat = !ins.proto.empty() && ins.proto[0] == 'f';
+                emitTern(ins, isFloat ? "op_clampf" : "op_clampv", dst, dstStride);
+            }
             else if (op == "mixf")           emitTern(ins, "op_mixf",   dst, dstStride);
             else if (op == "mixv")           emitTern(ins, "op_mixv",   dst, dstStride);
             // Generic mix: dispatch by proto (f=fff → mixf, else → mixv)
@@ -961,10 +966,11 @@ static void emitFunction(const IRFunction &irFn,
                 } else if (op == "vtransform") {
                     fnName = "op_vtransform";
                 } else if (op == "transform") {
-                    // Determine by proto: "p=..." → pfrom, "n=..." → ntransform, else vtransform
+                    // Determine by proto: "n=..." → ntransform, "v=..." → vtransform, else ptransform.
+                    // RSL transform() goes current→named (uses "to" matrix), unlike pfrom which is named→current.
                     fnName = (!ins.proto.empty() && ins.proto[0] == 'n') ? "op_ntransform"
                            : (!ins.proto.empty() && ins.proto[0] == 'v') ? "op_vtransform"
-                           :                                                "op_pfrom";
+                           :                                                "op_ptransform";
                 } else {
                     fnName = "op_pfrom"; // pfrom, ctransform
                 }

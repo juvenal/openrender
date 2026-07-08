@@ -19,6 +19,8 @@
 #include "error.h"
 #include "logging.hpp"
 
+#include <cstdio>
+
 // LLVM headers generate warnings under our strict flags; suppress them for this block only.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -32,6 +34,7 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/DynamicLibrary.h>
+#include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
 #pragma GCC diagnostic pop
 
 // -------------------------------------------------------------------------
@@ -152,12 +155,29 @@ CLLVMJitEngine::CLLVMJitEngine() {
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 
-    auto jitOrErr = llvm::orc::LLJITBuilder().create();
+    auto jitOrErr = llvm::orc::LLJITBuilder()
+        .create();
     if (!jitOrErr) {
         log_error("Failed to create LLJIT instance: {}", llvm::toString(jitOrErr.takeError()));
         return;
     }
     jit = std::move(*jitOrErr);
+
+    // IR dump transform — intercept the IR right before code generation.
+    // Active only when OPENRENDER_DUMP_JIT_IR is set. Used to verify no
+    // optimization pass silently eliminates op_clampf calls.
+    if (getenv("OPENRENDER_DUMP_JIT_IR")) {
+        jit->getIRTransformLayer().setTransform(
+            [](llvm::orc::ThreadSafeModule TSM,
+               const llvm::orc::MaterializationResponsibility &) {
+                TSM.withModuleDo([](llvm::Module &M) {
+                    fprintf(stderr, "[JIT-IR-DUMP] module: %s\n",
+                            M.getName().str().c_str());
+                    M.print(llvm::errs(), nullptr);
+                });
+                return TSM;
+            });
+    }
 
     // Expose process-level symbols (op_*, etc.) to JIT-compiled shaders.
     // This allows the JIT to resolve calls to runtime functions that are

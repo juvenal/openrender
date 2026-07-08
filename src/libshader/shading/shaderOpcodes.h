@@ -484,13 +484,16 @@ DEFOPCODE(EndSolar, "endsolar", 0, SOLAREND_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR
     const char **sys;               \
     const float *from, *to;         \
     ECoordinateSystem cSystem;      \
+    [[maybe_unused]] bool pfromLoggedFirst = false;  \
     operand(0, res, float *);       \
     operand(1, sys, const char **); \
     operand(2, op, const float *);  \
     findCoordinateSystem(*sys, from, to, cSystem); \
     log_debug("[rslo-pfrom] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", *sys, op[0], op[1], op[2]);
 
-#define PFROMEXPR mulmp(res, from, op);
+#define PFROMEXPR                                                                                                                  \
+    mulmp(res, from, op);                                                                                                         \
+    if (!pfromLoggedFirst) { log_debug("[rslo-pfrom] out[0]=({:.4f},{:.4f},{:.4f})", res[0], res[1], res[2]); pfromLoggedFirst = true; }
 
 #define PFROMEXPR_UPDATE \
     res += 3;            \

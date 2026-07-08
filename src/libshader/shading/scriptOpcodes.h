@@ -173,6 +173,7 @@ DEFOPCODE(For3, "for", 1, FOR3EXPR_PRE, NULL_EXPR, NULL_EXPR, FOR3EXPR_POST, 0)
 #define FOREND3EXPR_PRE                             \
     if (numActive > 0)                              \
         jmp(lastConditional->forStart);             \
+    log_debug("[RSLO-forend] ec={} n={}", lastConditional->forExecCount, numVertices); \
     numActive = 0;                                  \
     numPassive = numVertices;                       \
     for (int i = numVertices; i > 0; --i, ++tags) { \

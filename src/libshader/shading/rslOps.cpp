@@ -24,6 +24,12 @@
 
 #include <cmath>
 #include <cstring>
+#include <unistd.h>
+
+// Per-JIT-invocation grid counter — incremented at op_forend (once per grid).
+// Reset never (monotonically increases across grids in a frame).
+// Used to correlate op_spline_c log entries to the same grid.
+static thread_local int g_jit_grid  = -1;
 
 // =========================================================================
 // Internal helpers
@@ -391,6 +397,9 @@ void op_endif_update(int* tags, int n, int* numActive, int* numPassive) {
             }
         }
     }
+    if (n > 0)
+        log_debug("[JIT-endif] grid={} tags[0]={} numActive={}", g_jit_grid,
+                  tags ? tags[0] : -999, numActive ? *numActive : -999);
 }
 
 // =========================================================================
@@ -470,23 +479,70 @@ void op_pfrom(float* dst, int sd, const char* space, const float* src, int ss, i
         }
         return;
     }
-    if (n > 0 && ACTIVE(tags, 0)) {
-        const float *p0 = IDX(src,ss,0);
-        log_debug("[JIT-pfrom] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", space, p0[0], p0[1], p0[2]);
-    }
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
         const float *p = IDX(src,ss,i);
         float *r = IDX(dst,sd,i);
+        if (i == 0) log_debug("[JIT-pfrom] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", space, p[0], p[1], p[2]);
         // Homogeneous point transform by column-major 4×4 matrix
         float pw = from[3]*p[0] + from[7]*p[1] + from[11]*p[2] + from[15];
         float inv = (fabsf(pw) > 1e-20f) ? 1.0f/pw : 1.0f;
         r[0] = (from[0]*p[0] + from[4]*p[1] + from[8]*p[2]  + from[12]) * inv;
         r[1] = (from[1]*p[0] + from[5]*p[1] + from[9]*p[2]  + from[13]) * inv;
         r[2] = (from[2]*p[0] + from[6]*p[1] + from[10]*p[2] + from[14]) * inv;
+        if (i == 0) log_debug("[JIT-pfrom] space='{}' out[0]=({:.4f},{:.4f},{:.4f})", space, r[0], r[1], r[2]);
     }
 }
 
+// op_ptransform: RSL transform("space", P) — current→named (uses "to" matrix).
+void op_ptransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
+    const float *to = nullptr;
+    if (!space || !getToMatrix(space, to)) {
+        if (n > 0 && ACTIVE(tags, 0)) {
+            const float *p0 = IDX(src,ss,0);
+            log_debug("[JIT-ptransform] space='{}' identity in[0]=({:.4f},{:.4f},{:.4f})", space ? space : "null", p0[0], p0[1], p0[2]);
+        }
+        for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+            IDX(dst,sd,i)[0]=IDX(src,ss,i)[0];
+            IDX(dst,sd,i)[1]=IDX(src,ss,i)[1];
+            IDX(dst,sd,i)[2]=IDX(src,ss,i)[2];
+        }
+        return;
+    }
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *p = IDX(src,ss,i);
+        float *r = IDX(dst,sd,i);
+        if (i == 0) log_debug("[JIT-ptransform] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", space, p[0], p[1], p[2]);
+        float pw = to[3]*p[0] + to[7]*p[1] + to[11]*p[2] + to[15];
+        float inv = (fabsf(pw) > 1e-20f) ? 1.0f/pw : 1.0f;
+        r[0] = (to[0]*p[0] + to[4]*p[1] + to[8]*p[2]  + to[12]) * inv;
+        r[1] = (to[1]*p[0] + to[5]*p[1] + to[9]*p[2]  + to[13]) * inv;
+        r[2] = (to[2]*p[0] + to[6]*p[1] + to[10]*p[2] + to[14]) * inv;
+        if (i == 0) log_debug("[JIT-ptransform] space='{}' out[0]=({:.4f},{:.4f},{:.4f})", space, r[0], r[1], r[2]);
+    }
+}
+
+// op_vtransform: RSL vtransform("space", V) — current→named (uses "to" matrix, no translation).
 void op_vtransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
+    const float *to = nullptr;
+    if (!space || !getToMatrix(space, to)) {
+        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+            IDX(dst,sd,i)[0]=IDX(src,ss,i)[0];
+            IDX(dst,sd,i)[1]=IDX(src,ss,i)[1];
+            IDX(dst,sd,i)[2]=IDX(src,ss,i)[2];
+        }
+        return;
+    }
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *p = IDX(src,ss,i);
+        float *r = IDX(dst,sd,i);
+        r[0] = to[0]*p[0] + to[4]*p[1] + to[8]*p[2];
+        r[1] = to[1]*p[0] + to[5]*p[1] + to[9]*p[2];
+        r[2] = to[2]*p[0] + to[6]*p[1] + to[10]*p[2];
+    }
+}
+
+// op_ntransform: RSL ntransform("space", N) — normal transform = from^T * N (mulmn semantics).
+void op_ntransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
     const float *from = nullptr;
     if (!space || !getFromMatrix(space, from)) {
         for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
@@ -496,32 +552,13 @@ void op_vtransform(float* dst, int sd, const char* space, const float* src, int 
         }
         return;
     }
+    // Normals transform as from^T (= mulmn(res, from, p) in mathSpec.h)
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
         const float *p = IDX(src,ss,i);
         float *r = IDX(dst,sd,i);
-        r[0] = from[0]*p[0] + from[4]*p[1] + from[8]*p[2];
-        r[1] = from[1]*p[0] + from[5]*p[1] + from[9]*p[2];
-        r[2] = from[2]*p[0] + from[6]*p[1] + from[10]*p[2];
-    }
-}
-
-void op_ntransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
-    const float *toMat = nullptr;
-    if (!space || !getToMatrix(space, toMat)) {
-        for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
-            IDX(dst,sd,i)[0]=IDX(src,ss,i)[0];
-            IDX(dst,sd,i)[1]=IDX(src,ss,i)[1];
-            IDX(dst,sd,i)[2]=IDX(src,ss,i)[2];
-        }
-        return;
-    }
-    // Normals transform by transposed inverse; use to-matrix (transpose columns 0-2)
-    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
-        const float *p = IDX(src,ss,i);
-        float *r = IDX(dst,sd,i);
-        r[0] = toMat[0]*p[0] + toMat[1]*p[1] + toMat[2]*p[2];
-        r[1] = toMat[4]*p[0] + toMat[5]*p[1] + toMat[6]*p[2];
-        r[2] = toMat[8]*p[0] + toMat[9]*p[1] + toMat[10]*p[2];
+        r[0] = from[0]*p[0] + from[1]*p[1] + from[2]*p[2];
+        r[1] = from[4]*p[0] + from[5]*p[1] + from[6]*p[2];
+        r[2] = from[8]*p[0] + from[9]*p[1] + from[10]*p[2];
     }
 }
 
@@ -548,6 +585,8 @@ void op_for_check(const float* cond, int sc,
 void op_forend(const int* execCount, int* tags, int n,
                int* numActive, int* numPassive) {
     const int ec = *execCount;
+    ++g_jit_grid;
+    log_debug("[JIT-forend] grid={} ec={} n={}", g_jit_grid, ec, n);
     *numActive  = 0;
     *numPassive = n;
     for (int i = 0; i < n; ++i) {
@@ -710,8 +749,14 @@ void op_noise_vf(float* dst, int sd, const float* x, int sx, int n, const int* t
 }
 
 void op_noise_vp(float* dst, int sd, const float* p, int sp, int n, const int* tags) {
-    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
         noiseVector(IDX(dst,sd,i), IDX(p,sp,i));
+        if (i == 0) {
+            const float *pi = IDX(p,sp,0);
+            const float *di = IDX(dst,sd,0);
+            log_debug("[JIT-noise-vp] in[0]=({:.4f},{:.4f},{:.4f}) out[0]=({:.4f},{:.4f},{:.4f})", pi[0],pi[1],pi[2],di[0],di[1],di[2]);
+        }
+    }
 }
 
 // =========================================================================
@@ -766,6 +811,8 @@ void op_area(float* dst, int sd, const float* P, int /*sp*/, int n, const int* t
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx) return;
     ctx->jitArea(dst, sd, P, n, tags);
+    if (n > 0 && ACTIVE(tags, 0))
+        log_debug("[JIT-area] P[0]=({:.4f},{:.4f},{:.4f}) area={:.6f}", P[0],P[1],P[2], IDX(dst,sd,0)[0]);
 }
 
 void op_calculatenormal(float* dst, int sd, const float* P, int /*sp*/, int n, const int* tags) {
@@ -830,22 +877,15 @@ void op_shadow_f(float* dst, int sd, const char* const* namepp,
 // =========================================================================
 // Spline interpolation — Catmull-Rom basis (default, no basis-string form)
 // =========================================================================
-// Catmull-Rom basis matrix rows — same layout as RiCatmullRomBasis:
-//   row j: coefficients for u^3, u^2, u^1, u^0 of the j-th blend weight
-static const float s_catmullRom[4][4] = {
-    {-0.5f,  1.5f, -1.5f,  0.5f},  // weight for knot[k+0]
-    { 1.0f, -2.5f,  2.0f, -0.5f},  // weight for knot[k+1]
-    {-0.5f,  0.0f,  0.5f,  0.0f},  // weight for knot[k+2]
-    { 0.0f,  1.0f,  0.0f,  0.0f}   // weight for knot[k+3]
-};
-
-// Compute the 4 Catmull-Rom blend weights for parameter u in [0,1).
-// Matches the interpreter: weights[j] = dot(basis_row_j, [u³,u²,u,1]).
+// Weights derived from rslo SPLINEPEXPR: ub=[u²,u²,u,1] (ub[0]=u*ub[2]=u²),
+// tmp[j] = col_j(RiCatmullRomBasis) · ub.  Expanding each column:
+//   w0 = 0.5u²-0.5u,  w1 = -u²+1,  w2 = 0.5u²+0.5u,  w3 = 0  (sum=1).
 static inline void catmullRomWeights(float u, float weights[4]) {
-    float u2 = u * u, u3 = u2 * u;
-    for (int j = 0; j < 4; ++j)
-        weights[j] = s_catmullRom[j][0]*u3 + s_catmullRom[j][1]*u2
-                   + s_catmullRom[j][2]*u   + s_catmullRom[j][3];
+    float u2 = u * u;
+    weights[0] =  0.5f*u2 - 0.5f*u;
+    weights[1] = -u2 + 1.0f;
+    weights[2] =  0.5f*u2 + 0.5f*u;
+    weights[3] =  0.0f;
 }
 
 // Spline control points are constant-per-shader-call even when stored as varying;
@@ -855,6 +895,16 @@ void op_spline_c(float* dst, int sd, const float* t, int st,
                  int n, const int* tags) {
     if (numKnots < 4) return;
     const int numPieces = numKnots - 3;
+    if (n > 0) {
+        float cmin = 1e30f, cmax = -1e30f;
+        for (int i = 0; i < n; ++i) {
+            if (tags && tags[i]) continue;
+            float v = IDX(t, st, i)[0];
+            if (v < cmin) cmin = v;
+            if (v > cmax) cmax = v;
+        }
+        log_debug("[JIT-spline-c] grid={} csp[0]={:.6f} range=[{:.6f},{:.6f}]", g_jit_grid, IDX(t,st,0)[0], cmin, cmax);
+    }
     for (int i = 0; i < n; ++i) {
         if (tags && tags[i]) continue;
         float *r  = IDX(dst, sd, i);
@@ -877,6 +927,10 @@ void op_spline_c(float* dst, int sd, const float* t, int st,
                 r[2] += w[k] * knots[piece+k][2];
             }
         }
+    }
+    if (n > 0) {
+        log_debug("[JIT-spline-c-out] grid={} Ct[0]=({:.4f},{:.4f},{:.4f})",
+                  g_jit_grid, IDX(dst,sd,0)[0], IDX(dst,sd,0)[1], IDX(dst,sd,0)[2]);
     }
 }
 

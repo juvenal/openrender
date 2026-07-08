@@ -221,9 +221,10 @@ void op_solar_end(int* tags, int n, int* numActive, int* numPassive);
 /* -----------------------------------------------------------------------
  * Coordinate-space transforms
  * ----------------------------------------------------------------------- */
-void op_pfrom    (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
-void op_ntransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
-void op_vtransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+void op_pfrom      (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+void op_ptransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+void op_ntransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+void op_vtransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
  * Layer G — additional math / comparison ops
