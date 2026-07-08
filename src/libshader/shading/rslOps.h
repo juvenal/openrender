@@ -302,6 +302,13 @@ void op_spline_f(float* dst, int sd, const float* t, int st,
 
 #ifdef __cplusplus
 }
+
+/* Supplies the shader-space from/to matrices to op_pfrom / op_ptransform
+ * during JIT init execution.  Called by CRendererContext::init() before and
+ * after jitInitEntry when libshader::activeContext() is not yet set.
+ * Pass (nullptr, nullptr) to clear after jitInitEntry returns. */
+void jitSetInitXform(const float* fromMat, const float* toMat);
+
 #endif
 
 #endif /* RI_RSLOPS_H */

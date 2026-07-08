@@ -490,7 +490,16 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
             stuffInit[SL_VARYING_OPERAND]   = jitLocals;
 
             int initTag = 0;
+            // Supply the shader-space xform so op_pfrom("shader",...) in the init
+            // section can convert space-qualified parameter defaults correctly.
+            // activeContext() is null at bind time; jitSetInitXform provides the fallback.
+            extern void jitSetInitXform(const float*, const float*);
+            if (currentShaderInstance->xform) {
+                jitSetInitXform(currentShaderInstance->xform->from,
+                                currentShaderInstance->xform->to);
+            }
             currentShaderInstance->jitInitEntry(1, (void ***)stuffInit, &initTag);
+            jitSetInitXform(nullptr, nullptr);
         }
         return;
     }

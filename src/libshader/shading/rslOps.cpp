@@ -448,9 +448,27 @@ void op_lightsource_f(float* result, int sr, const char* attrName, float* outPar
 // Coordinate transforms
 // =========================================================================
 
+// Thread-local xform supplied by CRendererContext::init() before jitInitEntry
+// so that op_pfrom/op_ptransform can resolve "shader" space at bind time,
+// before any render thread sets libshader::activeContext().
+static thread_local const float* s_jit_init_from = nullptr;
+static thread_local const float* s_jit_init_to   = nullptr;
+
+void jitSetInitXform(const float* fromMat, const float* toMat) {
+    s_jit_init_from = fromMat;
+    s_jit_init_to   = toMat;
+}
+
 static bool getFromMatrix(const char* space, const float*& fromMat) {
     CShadingContext *ctx = libshader::activeContext();
-    if (!ctx) { fromMat = nullptr; return false; }
+    if (!ctx) {
+        if (s_jit_init_from && space && strcmp(space, "shader") == 0) {
+            fromMat = s_jit_init_from;
+            return true;
+        }
+        fromMat = nullptr;
+        return false;
+    }
     const float *to = nullptr;
     ECoordinateSystem dummy;
     ctx->jitFindCoordinateSystem(space, fromMat, to, dummy);
@@ -458,7 +476,14 @@ static bool getFromMatrix(const char* space, const float*& fromMat) {
 }
 static bool getToMatrix(const char* space, const float*& toMat) {
     CShadingContext *ctx = libshader::activeContext();
-    if (!ctx) { toMat = nullptr; return false; }
+    if (!ctx) {
+        if (s_jit_init_to && space && strcmp(space, "shader") == 0) {
+            toMat = s_jit_init_to;
+            return true;
+        }
+        toMat = nullptr;
+        return false;
+    }
     const float *from = nullptr;
     ECoordinateSystem dummy;
     ctx->jitFindCoordinateSystem(space, from, toMat, dummy);
