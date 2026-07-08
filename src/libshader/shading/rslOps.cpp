@@ -759,6 +759,39 @@ void op_noise_vp(float* dst, int sd, const float* p, int sp, int n, const int* t
     }
 }
 
+void op_cellnoise_ff(float* dst, int sd, const float* x, int sx, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = cellNoiseFloat(IDX(x,sx,i)[0]);
+}
+void op_cellnoise_fp(float* dst, int sd, const float* p, int sp, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = cellNoiseFloat(IDX(p,sp,i));
+}
+void op_cellnoise_vf(float* dst, int sd, const float* x, int sx, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        cellNoiseVector(IDX(dst,sd,i), IDX(x,sx,i)[0]);
+}
+void op_cellnoise_vp(float* dst, int sd, const float* p, int sp, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        cellNoiseVector(IDX(dst,sd,i), IDX(p,sp,i));
+}
+void op_cellnoise_fff(float* dst, int sd, const float* x, int sx, const float* y, int sy, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = cellNoiseFloat(IDX(x,sx,i)[0], IDX(y,sy,i)[0]);
+}
+void op_cellnoise_fpf(float* dst, int sd, const float* p, int sp, const float* f, int sf, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = cellNoiseFloat(IDX(p,sp,i), IDX(f,sf,i)[0]);
+}
+void op_cellnoise_vff(float* dst, int sd, const float* x, int sx, const float* y, int sy, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        cellNoiseVector(IDX(dst,sd,i), IDX(x,sx,i)[0], IDX(y,sy,i)[0]);
+}
+void op_cellnoise_vpf(float* dst, int sd, const float* p, int sp, const float* f, int sf, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
+        cellNoiseVector(IDX(dst,sd,i), IDX(p,sp,i), IDX(f,sf,i)[0]);
+}
+
 // =========================================================================
 // Layer G — context-dependent geometric built-ins
 // =========================================================================

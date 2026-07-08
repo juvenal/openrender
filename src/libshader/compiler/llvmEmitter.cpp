@@ -1110,6 +1110,39 @@ static void emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
+            // Layer G — cellnoise: single- and two-source variants
+            // (f→f/p): op_cellnoise_ff/fp   (f→ff/pf): op_cellnoise_fff/fpf
+            // (v→f/p): op_cellnoise_vf/vp   (v→ff/pf): op_cellnoise_vff/vpf
+            // ================================================================
+            else if (op == "cellnoise") {
+                auto [x, sx] = getVar(ins, 0);
+                if (!dst || !x) continue;
+                bool dstIsVec = (dstDesc.stride == 3);
+                bool srcIsVec = (sx == 3);
+                if (ins.operands.size() >= 2) {
+                    auto [y, sy] = getVar(ins, 1);
+                    if (!y) continue;
+                    const char *fnName = dstIsVec
+                        ? (srcIsVec ? "op_cellnoise_vpf" : "op_cellnoise_vff")
+                        : (srcIsVec ? "op_cellnoise_fpf" : "op_cellnoise_fff");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                        {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, fnName, ty);
+                    B.CreateCall(fn, {dst, dstStride,
+                                      x, B.getInt32(sx), y, B.getInt32(sy),
+                                      numVerts, tags});
+                } else {
+                    const char *fnName = dstIsVec
+                        ? (srcIsVec ? "op_cellnoise_vp" : "op_cellnoise_vf")
+                        : (srcIsVec ? "op_cellnoise_fp" : "op_cellnoise_ff");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                        {ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, fnName, ty);
+                    B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), numVerts, tags});
+                }
+            }
+
+            // ================================================================
             // Layer G — string equality
             // seql / sneql: operands are char** (string locals), not float*.
             // ================================================================

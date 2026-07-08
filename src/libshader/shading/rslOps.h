@@ -251,6 +251,16 @@ void op_noise_ff(float* dst, int sd, const float* x, int sx, int n, const int* t
 void op_noise_fp(float* dst, int sd, const float* p, int sp, int n, const int* tags);
 void op_noise_vf(float* dst, int sd, const float* x, int sx, int n, const int* tags);
 void op_noise_vp(float* dst, int sd, const float* p, int sp, int n, const int* tags);
+/* cellnoise — single-source variants */
+void op_cellnoise_ff (float* dst, int sd, const float* x,  int sx, int n, const int* tags);
+void op_cellnoise_fp (float* dst, int sd, const float* p,  int sp, int n, const int* tags);
+void op_cellnoise_vf (float* dst, int sd, const float* x,  int sx, int n, const int* tags);
+void op_cellnoise_vp (float* dst, int sd, const float* p,  int sp, int n, const int* tags);
+/* cellnoise — two-source variants */
+void op_cellnoise_fff(float* dst, int sd, const float* x,  int sx, const float* y,  int sy, int n, const int* tags);
+void op_cellnoise_fpf(float* dst, int sd, const float* p,  int sp, const float* f,  int sf, int n, const int* tags);
+void op_cellnoise_vff(float* dst, int sd, const float* x,  int sx, const float* y,  int sy, int n, const int* tags);
+void op_cellnoise_vpf(float* dst, int sd, const float* p,  int sp, const float* f,  int sf, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
  * Layer G — context-dependent geometric built-ins (call via activeContext())
