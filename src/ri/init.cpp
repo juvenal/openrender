@@ -465,6 +465,45 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
     int i;
     CVariable *cParameter;
 
+#ifdef OPENRENDER_HAVE_LLVM
+    // .slo-only (JIT) shaders have no interpreter bytecode.
+    // Run the JIT init section here, at shader-bind time, so that op_pfrom("shader",...)
+    // uses context->getXform() which correctly reflects the shader's bind-time transform.
+    if (currentShader->codeArea == nullptr) {
+        if (currentShaderInstance->jitInitEntry != nullptr) {
+            const int nVars = currentShader->numVariables;
+            // locals: param slots point at persistent defaultValue storage so the
+            // init results (e.g. transformed light position) persist across frames.
+            // Temporary slots get transient scratch buffers (3 floats each, uniform).
+            void **jitLocals = (void **)alloca(nVars * sizeof(void *));
+            float *scratch    = (float *)alloca(nVars * 3 * sizeof(float));
+            memset(scratch, 0, nVars * 3 * sizeof(float));
+            for (int vi = 0; vi < nVars; vi++)
+                jitLocals[vi] = scratch + vi * 3;
+            for (CVariable *v = currentShaderInstance->parameters; v; v = v->next)
+                if (v->entry < nVars && v->defaultValue != nullptr)
+                    jitLocals[v->entry] = v->defaultValue;
+
+            void **stuffInit[3];
+            stuffInit[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries;
+            stuffInit[SL_GLOBAL_OPERAND]    = nullptr; // init section never uses globals
+            stuffInit[SL_VARYING_OPERAND]   = jitLocals;
+
+            int initTag = 0;
+            // Supply the shader-space xform so op_pfrom("shader",...) in the init
+            // section can convert space-qualified parameter defaults correctly.
+            // activeContext() is null at bind time; jitSetInitXform provides the fallback.
+            extern void jitSetInitXform(const float*, const float*);
+            if (currentShaderInstance->xform) {
+                jitSetInitXform(currentShaderInstance->xform->from,
+                                currentShaderInstance->xform->to);
+            }
+            currentShaderInstance->jitInitEntry(1, (void ***)stuffInit, &initTag);
+            jitSetInitXform(nullptr, nullptr);
+        }
+        return;
+    }
+#endif
     code = currentShader->codeArea + currentShader->initEntryPoint;
 
     numVertices = 1;

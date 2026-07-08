@@ -1,9 +1,11 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include <stdbool.h>
 #include <stdio.h>
-#include <time.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 typedef enum {
     LOG_LEVEL_DEBUG,
@@ -14,25 +16,58 @@ typedef enum {
 } LogLevel;
 
 #ifdef LOGGING_IMPLEMENTATION
-    FILE* _log_output = NULL;
-    LogLevel _log_level = LOG_LEVEL_INFO;
+    FILE*    _log_output   = NULL;
+    LogLevel _log_level    = LOG_LEVEL_INFO;
+    bool     _log_init_done = false;
+    bool     _log_enabled   = false;
 #else
-    extern FILE* _log_output;
+    extern FILE*    _log_output;
     extern LogLevel _log_level;
+    extern bool     _log_init_done;
+    extern bool     _log_enabled;
 #endif
 
-#define LOG_INIT(stream, level) do { \
-    _log_output = (stream); \
-    _log_level = (level); \
-} while(0)
+// orender_log_init — reads env vars once and configures logging state.
+// ORENDER_INSTR_LEVEL: "debug"|"info"|"warn"|"error" → enables logging at that threshold.
+//   Absent or unrecognized → logging disabled.
+// ORENDER_INSTR_OUTPUT: "stderr"|"stdout"|<filepath> → output destination (default: stderr).
+// Idempotent: returns immediately on subsequent calls.
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef LOGGING_IMPLEMENTATION
+void orender_log_init(void) {
+    if (_log_init_done) return;
+    _log_init_done = true;
 
-#define LOG_SET_LEVEL(level) do { \
-    _log_level = (level); \
-} while(0)
+    const char *lv = getenv("ORENDER_INSTR_LEVEL");
+    if (!lv) return;
 
-#define LOG_SET_OUTPUT(stream) do { \
-    _log_output = (stream); \
-} while(0)
+    if      (strcmp(lv, "debug") == 0) _log_level = LOG_LEVEL_DEBUG;
+    else if (strcmp(lv, "info")  == 0) _log_level = LOG_LEVEL_INFO;
+    else if (strcmp(lv, "warn")  == 0) _log_level = LOG_LEVEL_WARN;
+    else if (strcmp(lv, "error") == 0) _log_level = LOG_LEVEL_ERROR;
+    else    return;  // unrecognized level → stay disabled
+
+    _log_enabled = true;
+
+    const char *out = getenv("ORENDER_INSTR_OUTPUT");
+    if      (!out || strcmp(out, "stderr") == 0) _log_output = stderr;
+    else if (strcmp(out, "stdout") == 0)          _log_output = stdout;
+    else {
+        _log_output = fopen(out, "a");
+        if (!_log_output) _log_output = stderr;
+    }
+}
+#else
+void orender_log_init(void);
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+#define LOG_SET_LEVEL(level) do { _log_level = (level); } while(0)
+#define LOG_SET_OUTPUT(stream) do { _log_output = (stream); } while(0)
 
 static inline const char* _log_level_str(LogLevel level) {
     switch(level) {
@@ -59,7 +94,8 @@ static inline const char* _log_level_str(LogLevel level) {
 #endif
 
 #define LOG(level, fmt, ...) do { \
-    if ((level) >= _log_level && _log_output) { \
+    if (!_log_init_done) orender_log_init(); \
+    if (_log_enabled && (level) >= _log_level && _log_output) { \
         struct timespec _ts; \
         timespec_get(&_ts, TIME_UTC); \
         struct tm *_tm = localtime(&_ts.tv_sec); \

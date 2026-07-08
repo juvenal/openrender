@@ -261,6 +261,7 @@ COptions::COptions() {
     jitter = 0.99f;
 
     hider = strdup("stochastic");
+    defaultShaderFormat = nullptr;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -440,6 +441,7 @@ COptions::COptions(const COptions *o) {
     globalIn = (o->globalIn != NULL ? strdup(o->globalIn) : NULL);
     globalOut = (o->globalOut != NULL ? strdup(o->globalOut) : NULL);
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
+    defaultShaderFormat = (o->defaultShaderFormat != nullptr ? strdup(o->defaultShaderFormat) : nullptr);
 
     if (imager != nullptr)
         imager->attach();
@@ -501,6 +503,8 @@ COptions::~COptions() {
         free(globalOut);
     if (filelog != NULL)
         free(filelog);
+    if (defaultShaderFormat != nullptr)
+        free((void *)defaultShaderFormat);
 
     if (imager != nullptr)
         imager->detach();
@@ -557,10 +561,11 @@ TSearchpath *COptions::pickSearchpath(const char *name) {
     else if (strstr(name, "bm") != NULL) {
         return texturePath;
     }
-    else if (strstr(name, "rslo") != NULL || strstr(name, "sdr") != NULL) {
+    else if (strstr(name, "slo") != NULL ||
+             strstr(name, "rslo") != NULL) {
         return shaderPath;
     }
-    else if (strstr(name, "oslo") != NULL) {
+    else if (strstr(name, "oso") != NULL) {
         return shaderPath;
     }
     else if (strstr(name, osModuleExtension) != NULL) {
@@ -689,8 +694,9 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                                 }
                             }
 
-                            if (*valueEnd == '\0')
+                            if (*valueEnd == '\0') {
                                 break;
+                            }
                             valueStart = valueEnd + 1;
                         }
                     }
@@ -707,8 +713,9 @@ TSearchpath *optionsGetSearchPath(const char *path, TSearchpath *oldPath) {
                     dest = tmp;
                     *dest = '\0';                                // Truncate dest path
                     currentPath = strchr(endOfCurrentPath, ':'); // Skip to next path
-                    if (!currentPath)
+                    if (!currentPath) {
                         currentPath = strchr(endOfCurrentPath, '\0'); // ...or end if last path
+                    }
                 }
             }
             else {

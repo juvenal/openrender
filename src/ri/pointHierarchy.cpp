@@ -164,10 +164,8 @@ void CPointHierarchy::computeHierarchy() {
     for (i = 1; i <= CMap<CPointCloudPoint>::numItems; i++)
         tmp[i - 1] = i;
 
-    // Compute the map hierarchy
-    cluster(CMap<CPointCloudPoint>::numItems, tmp);
-
-    // Root is always the first item in the array
+    // Compute the map hierarchy — root index must always be 0
+    [[maybe_unused]] const int root = cluster(CMap<CPointCloudPoint>::numItems, tmp);
     assert(root == 0);
 
     // Ditch the temp memory

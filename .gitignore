@@ -16,6 +16,9 @@ cmake_install.cmake
 CTestTestfile.cmake
 Makefile
 
+# Clang generated files
+.cache/
+
 # SwiftPM
 .build/
 

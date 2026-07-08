@@ -208,14 +208,14 @@ static	int		parameterListCheck() {
 	numUniform		=	0;
 
 	// For each parameter encountered
-	for (i=0;i<numParameters;i++) {
-		TParameter		*par	=	parameters+i;
-		CVariable		*var	=	CRenderer::retrieveVariable(par->name);
-		EVariableClass	container;
+	for (i = 0; i < numParameters; i++) {
+		TParameter *par = parameters + i;
+		CVariable  *var = CRenderer::retrieveVariable(par->name);
+		EVariableClass container;
 
 		// Get the variable container to check the number of items
 		if (var == NULL) {
-			if (parseVariable(&tmp,NULL,par->name)) {
+			if (parseVariable(&tmp, NULL, par->name)) {
 				// We have an inline declaration, use that container
 				container	=	tmp.container;
 				var			=	&tmp;

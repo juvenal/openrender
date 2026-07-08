@@ -16,7 +16,7 @@ WorldBegin
   Rotate -30 0 0 1
   Color [0.98 0.8 0.01]
   Surface "brushedmetal" "Ka" [0.05] "Kd" [0.2] "Ks" [0.7] "xroughness" [0.15] "yroughness" [0.5]
-  #Surface "blue_marble"
+  # Surface "blue_marble"
   # Surface "matte"
   # Surface "metal"
   # Surface "mtorPhong"

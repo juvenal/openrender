@@ -1,0 +1,16 @@
+#!version 1.0.0
+surface
+#!parameters:
+#!variables:
+varying	vector	temporary_0
+varying	float	temporary_1
+uniform	vector	temporary_2
+#!Init:
+	return            
+#!Code:
+	vufloat  temporary_1 0
+	vfromf  temporary_0 s t temporary_1
+	cfrom  Ci "rgb" temporary_0
+	vfromf  temporary_2 1
+	vuvector  Oi temporary_2
+	return

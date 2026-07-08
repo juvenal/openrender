@@ -1,0 +1,33 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Options and declarations
+Declare "Km" "float"
+Declare "background" "uniform color"
+Option "searchpath" "shader" ["&:./shaders"]
+Hider "stochastic"
+# Camera settings
+Display "killeroo-reyes.tif" "file" "rgba"
+Format 623 691 1
+PixelSamples 2 2
+Projection "perspective" "fov" [ 40.5716 ]
+Imager "background" "background" [ 1 1 0 ]
+# Camera transformation
+Identity
+Translate 0 0 304.908
+Rotate -90 1 0 0
+Rotate -225.5 0 0 1
+#Rotate 0 0 0 1
+#Rotate 5 1 0 0
+#Translate 18.3095 46.8071 -43.5387
+# Clipping planes
+Clipping 20.3272 2032.72
+# Final scene
+WorldBegin
+  LightSource "distantlight" 1 "from" [0.267906 0.836333 0.478302] "to" [0 0 0]
+  LightSource "ambientlight" 2 "intensity" [0.2]
+  AttributeBegin
+    Color [0.9 0.9 0.9]
+    Surface "matte"
+    Geometry "killeroo"
+  AttributeEnd
+WorldEnd

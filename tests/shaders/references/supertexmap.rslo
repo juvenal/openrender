@@ -1,0 +1,1163 @@
+#!version 1.0.0
+surface
+#!parameters:
+uniform	float	Ka	=	1
+uniform	float	Kd	=	0.5
+uniform	float	Ks	=	0.5
+uniform	float	roughness	=	0.1
+uniform	color	specularcolor	=	1
+uniform	string	Csmapname	=	""
+uniform	string	Csproj	=	"st"
+uniform	string	Csspace	=	"shader"
+uniform	float	Csmx[16]	=	[ 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1  ]
+uniform	string	Osmapname	=	""
+uniform	string	Osproj	=	"st"
+uniform	string	Osspace	=	"shader"
+uniform	float	Osmx[16]	=	[ 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1  ]
+uniform	string	Ksmapname	=	""
+uniform	string	Ksproj	=	"st"
+uniform	string	Ksspace	=	"shader"
+uniform	float	Ksmx[16]	=	[ 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1  ]
+uniform	string	dispmapname	=	""
+uniform	string	dispproj	=	"st"
+uniform	string	dispspace	=	"shader"
+uniform	float	dispmx[16]	=	[ 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1  ]
+uniform	float	truedisp	=	1
+#!variables:
+varying	vector	Ct
+varying	vector	Ot
+varying	float	ks
+varying	float	disp
+varying	vector	Nf
+varying	float	temporary_0
+uniform	float	temporary_1
+varying	matrix	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	temporary_10
+varying	float	temporary_11
+varying	float	temporary_12
+varying	float	temporary_13
+varying	float	temporary_14
+varying	float	temporary_15
+varying	float	temporary_16
+varying	float	temporary_17
+varying	float	temporary_18
+varying	float	temporary_19
+varying	float	temporary_20
+varying	float	alpha_1
+varying	vector	Ct_1
+varying	float	ss
+varying	float	tt
+varying	float	ds
+varying	float	dt
+varying	vector	Ct_2
+varying	vector	Pproj
+uniform	float	temporary_21
+uniform	float	temporary_22
+varying	float	z
+varying	vector	V
+varying	vector	V_1
+varying	vector	temporary_23
+varying	vector	temporary_24
+varying	float	temporary_25
+varying	float	alpha_2
+varying	float	x
+varying	float	ss_1
+varying	float	tt_1
+varying	float	ds_1
+varying	float	dt_1
+varying	float	val
+varying	float	spacescale
+varying	vector	Ndisp
+varying	vector	temporary_26
+varying	vector	temporary_27
+varying	vector	temporary_28
+uniform	vector	temporary_29
+varying	vector	temporary_30
+#!Init:
+	ftoa  Csmx 0 1
+	ftoa  Csmx 1 0
+	ftoa  Csmx 2 0
+	ftoa  Csmx 3 0
+	ftoa  Csmx 4 0
+	ftoa  Csmx 5 1
+	ftoa  Csmx 6 0
+	ftoa  Csmx 7 0
+	ftoa  Csmx 8 0
+	ftoa  Csmx 9 0
+	ftoa  Csmx 10 1
+	ftoa  Csmx 11 0
+	ftoa  Csmx 12 0
+	ftoa  Csmx 13 0
+	ftoa  Csmx 14 0
+	ftoa  Csmx 15 1
+	ftoa  Osmx 0 1
+	ftoa  Osmx 1 0
+	ftoa  Osmx 2 0
+	ftoa  Osmx 3 0
+	ftoa  Osmx 4 0
+	ftoa  Osmx 5 1
+	ftoa  Osmx 6 0
+	ftoa  Osmx 7 0
+	ftoa  Osmx 8 0
+	ftoa  Osmx 9 0
+	ftoa  Osmx 10 1
+	ftoa  Osmx 11 0
+	ftoa  Osmx 12 0
+	ftoa  Osmx 13 0
+	ftoa  Osmx 14 0
+	ftoa  Osmx 15 1
+	ftoa  Ksmx 0 1
+	ftoa  Ksmx 1 0
+	ftoa  Ksmx 2 0
+	ftoa  Ksmx 3 0
+	ftoa  Ksmx 4 0
+	ftoa  Ksmx 5 1
+	ftoa  Ksmx 6 0
+	ftoa  Ksmx 7 0
+	ftoa  Ksmx 8 0
+	ftoa  Ksmx 9 0
+	ftoa  Ksmx 10 1
+	ftoa  Ksmx 11 0
+	ftoa  Ksmx 12 0
+	ftoa  Ksmx 13 0
+	ftoa  Ksmx 14 0
+	ftoa  Ksmx 15 1
+	ftoa  dispmx 0 1
+	ftoa  dispmx 1 0
+	ftoa  dispmx 2 0
+	ftoa  dispmx 3 0
+	ftoa  dispmx 4 0
+	ftoa  dispmx 5 1
+	ftoa  dispmx 6 0
+	ftoa  dispmx 7 0
+	ftoa  dispmx 8 0
+	ftoa  dispmx 9 0
+	ftoa  dispmx 10 1
+	ftoa  dispmx 11 0
+	ftoa  dispmx 12 0
+	ftoa  dispmx 13 0
+	ftoa  dispmx 14 0
+	ftoa  dispmx 15 1
+	return            
+#!Code:
+	movevv  Ct Cs
+	movevv  Ot Os
+	vufloat  ks Ks
+	vufloat  disp 0
+	sneql  temporary_1 Csmapname ""
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label73
+	vufloat  temporary_3 Csmx
+	moveff  temporary_5 disp
+	ffroma  temporary_4 temporary_3 temporary_5
+	vufloat  temporary_6 1
+	ffroma  temporary_5 temporary_3 temporary_6
+	vufloat  temporary_7 2
+	ffroma  temporary_6 temporary_3 temporary_7
+	vufloat  temporary_8 3
+	ffroma  temporary_7 temporary_3 temporary_8
+	vufloat  temporary_9 4
+	ffroma  temporary_8 temporary_3 temporary_9
+	vufloat  temporary_10 5
+	ffroma  temporary_9 temporary_3 temporary_10
+	vufloat  temporary_11 6
+	ffroma  temporary_10 temporary_3 temporary_11
+	vufloat  temporary_12 7
+	ffroma  temporary_11 temporary_3 temporary_12
+	vufloat  temporary_13 8
+	ffroma  temporary_12 temporary_3 temporary_13
+	vufloat  temporary_14 9
+	ffroma  temporary_13 temporary_3 temporary_14
+	vufloat  temporary_15 10
+	ffroma  temporary_14 temporary_3 temporary_15
+	vufloat  temporary_16 11
+	ffroma  temporary_15 temporary_3 temporary_16
+	vufloat  temporary_17 12
+	ffroma  temporary_16 temporary_3 temporary_17
+	vufloat  temporary_18 13
+	ffroma  temporary_17 temporary_3 temporary_18
+	vufloat  temporary_19 14
+	ffroma  temporary_18 temporary_3 temporary_19
+	vufloat  temporary_20 15
+	ffroma  temporary_19 temporary_3 temporary_20
+	mfromf  temporary_2 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19
+	moveff  temporary_3 disp
+	vufloat  temporary_4 3
+	seql  temporary_1 Csproj " st"
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label76
+	moveff  temporary_6 disp
+	vfromf  Pproj s t temporary_6
+#!Label76:
+	else #!Label75
+	transform	("p=Sp")  Pproj Csspace P
+#!Label75:
+	endif
+	transform	("p=mp")  Pproj temporary_2 Pproj
+	seql  temporary_21 Csproj "planar"
+	seql  temporary_22 Csproj "st"
+	or  temporary_1 temporary_21 temporary_22
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label78
+	xcomp	("f=p")  ss Pproj
+	ycomp	("f=p")  tt Pproj
+	Du	("f=f")  temporary_9 ss
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 ss
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  ds temporary_6 temporary_7
+	Du	("f=f")  temporary_9 tt
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 tt
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  dt temporary_6 temporary_7
+#!Label78:
+	else #!Label77
+	seql  temporary_1 Csproj "perspective"
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label80
+	zcomp	("f=p")  temporary_7 Pproj
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  z temporary_7 temporary_8
+	xcomp	("f=p")  temporary_7 Pproj
+	divff  ss temporary_7 z
+	ycomp	("f=p")  temporary_7 Pproj
+	divff  tt temporary_7 z
+	Du	("f=f")  temporary_10 ss
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 ss
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  ds temporary_7 temporary_8
+	Du	("f=f")  temporary_10 tt
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 tt
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  dt temporary_7 temporary_8
+#!Label80:
+	else #!Label79
+	seql  temporary_1 Csproj "spherical"
+	vufloat  temporary_7 temporary_1
+	if temporary_7 #!Label82
+	normalize	("v=v")  V Pproj
+	ycomp	("f=p")  temporary_11 V
+	xcomp	("f=p")  temporary_12 V
+	atan	("f=ff")  temporary_10 temporary_11 temporary_12
+	negf  temporary_9 temporary_10
+	vufloat  temporary_10 3.141592654
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_9 temporary_1
+	divff  ss temporary_8 temporary_9
+	vufloat  temporary_8 0.5
+	zcomp	("f=p")  temporary_11 V
+	acos	("f=f")  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	divff  temporary_9 temporary_10 temporary_11
+	subff  tt temporary_8 temporary_9
+	Du	("f=f")  temporary_11 ss
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 ss
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  ds temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 ds temporary_9
+	if temporary_8 #!Label83
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 ds
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds temporary_9 temporary_10
+#!Label83:
+	endif
+	Du	("f=f")  temporary_11 tt
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 tt
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  dt temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 dt temporary_9
+	if temporary_8 #!Label85
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 dt
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt temporary_9 temporary_10
+#!Label85:
+	endif
+#!Label82:
+	else #!Label81
+	seql  temporary_1 Csproj "cylindrical"
+	vufloat  temporary_8 temporary_1
+	if temporary_8 #!Label87
+	normalize	("v=v")  V_1 Pproj
+	ycomp	("f=p")  temporary_12 V_1
+	xcomp	("f=p")  temporary_13 V_1
+	atan	("f=ff")  temporary_11 temporary_12 temporary_13
+	negf  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_10 temporary_1
+	divff  ss temporary_9 temporary_10
+	zcomp	("f=p")  tt Pproj
+	Du	("f=f")  temporary_12 ss
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 ss
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds temporary_9 temporary_10
+	vufloat  temporary_10 0.5
+	fgt  temporary_9 ds temporary_10
+	if temporary_9 #!Label89
+	vufloat  temporary_11 1
+	subff  temporary_10 temporary_11 ds
+	vufloat  temporary_11 1.0e-6
+	max	("f=ff")  ds temporary_10 temporary_11
+#!Label89:
+	endif
+	Du	("f=f")  temporary_12 tt
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 tt
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt temporary_9 temporary_10
+#!Label87:
+	endif
+#!Label81:
+	endif
+#!Label79:
+	endif
+#!Label77:
+	endif
+	vufloat  temporary_5 0.5
+	mulff  ds ds temporary_5
+	vufloat  temporary_5 0.5
+	mulff  dt dt temporary_5
+	subff  temporary_5 ss ds
+	subff  temporary_6 tt dt
+	addff  temporary_7 ss ds
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt dt
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("c=SFffffffffSf")  Ct_2 Csmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3
+	subff  temporary_5 ss ds
+	subff  temporary_6 tt dt
+	addff  temporary_7 ss ds
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt dt
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("f=SFffffffffSfsf")  alpha_1 Csmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1
+	movevv  Ct_1 Ct_2
+	vufloat  temporary_5 1
+	subff  temporary_4 temporary_5 alpha_1
+	vfromf  temporary_24 temporary_4
+	mulvv  temporary_23 temporary_24 Ct
+	addvv  Ct Ct_1 temporary_23
+#!Label73:
+	endif
+	sneql  temporary_1 Osmapname ""
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label91
+	vufloat  temporary_3 Osmx
+	vufloat  temporary_5 0
+	ffroma  temporary_4 temporary_3 temporary_5
+	vufloat  temporary_6 1
+	ffroma  temporary_5 temporary_3 temporary_6
+	vufloat  temporary_7 2
+	ffroma  temporary_6 temporary_3 temporary_7
+	vufloat  temporary_8 3
+	ffroma  temporary_7 temporary_3 temporary_8
+	vufloat  temporary_9 4
+	ffroma  temporary_8 temporary_3 temporary_9
+	vufloat  temporary_10 5
+	ffroma  temporary_9 temporary_3 temporary_10
+	vufloat  temporary_11 6
+	ffroma  temporary_10 temporary_3 temporary_11
+	vufloat  temporary_12 7
+	ffroma  temporary_11 temporary_3 temporary_12
+	vufloat  temporary_13 8
+	ffroma  temporary_12 temporary_3 temporary_13
+	vufloat  temporary_14 9
+	ffroma  temporary_13 temporary_3 temporary_14
+	vufloat  temporary_15 10
+	ffroma  temporary_14 temporary_3 temporary_15
+	vufloat  temporary_16 11
+	ffroma  temporary_15 temporary_3 temporary_16
+	vufloat  temporary_17 12
+	ffroma  temporary_16 temporary_3 temporary_17
+	vufloat  temporary_18 13
+	ffroma  temporary_17 temporary_3 temporary_18
+	vufloat  temporary_19 14
+	ffroma  temporary_18 temporary_3 temporary_19
+	vufloat  temporary_20 15
+	ffroma  temporary_19 temporary_3 temporary_20
+	mfromf  temporary_2 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19
+	vufloat  temporary_3 0
+	vufloat  temporary_4 3
+	seql  temporary_1 Osproj " st"
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label94
+	moveff  temporary_6 temporary_3
+	vfromf  Pproj s t temporary_6
+#!Label94:
+	else #!Label93
+	transform	("p=Sp")  Pproj Osspace P
+#!Label93:
+	endif
+	transform	("p=mp")  Pproj temporary_2 Pproj
+	seql  temporary_21 Osproj "planar"
+	seql  temporary_22 Osproj "st"
+	or  temporary_1 temporary_21 temporary_22
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label96
+	xcomp	("f=p")  ss Pproj
+	ycomp	("f=p")  tt Pproj
+	Du	("f=f")  temporary_9 ss
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 ss
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  ds temporary_6 temporary_7
+	Du	("f=f")  temporary_9 tt
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 tt
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  dt temporary_6 temporary_7
+#!Label96:
+	else #!Label95
+	seql  temporary_1 Osproj "perspective"
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label98
+	zcomp	("f=p")  temporary_7 Pproj
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  z temporary_7 temporary_8
+	xcomp	("f=p")  temporary_7 Pproj
+	divff  ss temporary_7 z
+	ycomp	("f=p")  temporary_7 Pproj
+	divff  tt temporary_7 z
+	Du	("f=f")  temporary_10 ss
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 ss
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  ds temporary_7 temporary_8
+	Du	("f=f")  temporary_10 tt
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 tt
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  dt temporary_7 temporary_8
+#!Label98:
+	else #!Label97
+	seql  temporary_1 Osproj "spherical"
+	vufloat  temporary_7 temporary_1
+	if temporary_7 #!Label100
+	normalize	("v=v")  V Pproj
+	ycomp	("f=p")  temporary_11 V
+	xcomp	("f=p")  temporary_12 V
+	atan	("f=ff")  temporary_10 temporary_11 temporary_12
+	negf  temporary_9 temporary_10
+	vufloat  temporary_10 3.141592654
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_9 temporary_1
+	divff  ss temporary_8 temporary_9
+	vufloat  temporary_8 0.5
+	zcomp	("f=p")  temporary_11 V
+	acos	("f=f")  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	divff  temporary_9 temporary_10 temporary_11
+	subff  tt temporary_8 temporary_9
+	Du	("f=f")  temporary_11 ss
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 ss
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  ds temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 ds temporary_9
+	if temporary_8 #!Label101
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 ds
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds temporary_9 temporary_10
+#!Label101:
+	endif
+	Du	("f=f")  temporary_11 tt
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 tt
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  dt temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 dt temporary_9
+	if temporary_8 #!Label103
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 dt
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt temporary_9 temporary_10
+#!Label103:
+	endif
+#!Label100:
+	else #!Label99
+	seql  temporary_1 Osproj "cylindrical"
+	vufloat  temporary_8 temporary_1
+	if temporary_8 #!Label105
+	normalize	("v=v")  V_1 Pproj
+	ycomp	("f=p")  temporary_12 V_1
+	xcomp	("f=p")  temporary_13 V_1
+	atan	("f=ff")  temporary_11 temporary_12 temporary_13
+	negf  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_10 temporary_1
+	divff  ss temporary_9 temporary_10
+	zcomp	("f=p")  tt Pproj
+	Du	("f=f")  temporary_12 ss
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 ss
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds temporary_9 temporary_10
+	vufloat  temporary_10 0.5
+	fgt  temporary_9 ds temporary_10
+	if temporary_9 #!Label107
+	vufloat  temporary_11 1
+	subff  temporary_10 temporary_11 ds
+	vufloat  temporary_11 1.0e-6
+	max	("f=ff")  ds temporary_10 temporary_11
+#!Label107:
+	endif
+	Du	("f=f")  temporary_12 tt
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 tt
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt temporary_9 temporary_10
+#!Label105:
+	endif
+#!Label99:
+	endif
+#!Label97:
+	endif
+#!Label95:
+	endif
+	vufloat  temporary_5 0.5
+	mulff  ds ds temporary_5
+	vufloat  temporary_5 0.5
+	mulff  dt dt temporary_5
+	subff  temporary_5 ss ds
+	subff  temporary_6 tt dt
+	addff  temporary_7 ss ds
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt dt
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("c=SFffffffffSf")  Ct_2 Osmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3
+	subff  temporary_5 ss ds
+	subff  temporary_6 tt dt
+	addff  temporary_7 ss ds
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt dt
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("f=SFffffffffSfsf")  alpha_1 Osmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1
+	movevv  Ct_1 Ct_2
+	vufloat  temporary_5 1
+	subff  temporary_4 temporary_5 alpha_1
+	vfromf  temporary_24 temporary_4
+	mulvv  temporary_23 temporary_24 Ot
+	addvv  Ot Ct_1 temporary_23
+#!Label91:
+	endif
+	sneql  temporary_1 Ksmapname ""
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label109
+	vufloat  temporary_3 Ks
+	vufloat  temporary_4 Ksmx
+	vufloat  temporary_6 0
+	ffroma  temporary_5 temporary_4 temporary_6
+	vufloat  temporary_7 1
+	ffroma  temporary_6 temporary_4 temporary_7
+	vufloat  temporary_8 2
+	ffroma  temporary_7 temporary_4 temporary_8
+	vufloat  temporary_9 3
+	ffroma  temporary_8 temporary_4 temporary_9
+	vufloat  temporary_10 4
+	ffroma  temporary_9 temporary_4 temporary_10
+	vufloat  temporary_11 5
+	ffroma  temporary_10 temporary_4 temporary_11
+	vufloat  temporary_12 6
+	ffroma  temporary_11 temporary_4 temporary_12
+	vufloat  temporary_13 7
+	ffroma  temporary_12 temporary_4 temporary_13
+	vufloat  temporary_14 8
+	ffroma  temporary_13 temporary_4 temporary_14
+	vufloat  temporary_15 9
+	ffroma  temporary_14 temporary_4 temporary_15
+	vufloat  temporary_16 10
+	ffroma  temporary_15 temporary_4 temporary_16
+	vufloat  temporary_17 11
+	ffroma  temporary_16 temporary_4 temporary_17
+	vufloat  temporary_18 12
+	ffroma  temporary_17 temporary_4 temporary_18
+	vufloat  temporary_19 13
+	ffroma  temporary_18 temporary_4 temporary_19
+	vufloat  temporary_20 14
+	ffroma  temporary_19 temporary_4 temporary_20
+	vufloat  temporary_25 15
+	ffroma  temporary_20 temporary_4 temporary_25
+	mfromf  temporary_2 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19 temporary_20
+	vufloat  temporary_4 0
+	seql  temporary_1 Ksproj " st"
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label112
+	moveff  temporary_6 temporary_4
+	vfromf  Pproj s t temporary_6
+#!Label112:
+	else #!Label111
+	transform	("p=Sp")  Pproj Ksspace P
+#!Label111:
+	endif
+	transform	("p=mp")  Pproj temporary_2 Pproj
+	seql  temporary_21 Ksproj "planar"
+	seql  temporary_22 Ksproj "st"
+	or  temporary_1 temporary_21 temporary_22
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label114
+	xcomp	("f=p")  ss_1 Pproj
+	ycomp	("f=p")  tt_1 Pproj
+	Du	("f=f")  temporary_9 ss_1
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 ss_1
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  ds_1 temporary_6 temporary_7
+	Du	("f=f")  temporary_9 tt_1
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 tt_1
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  dt_1 temporary_6 temporary_7
+#!Label114:
+	else #!Label113
+	seql  temporary_1 Ksproj "perspective"
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label116
+	zcomp	("f=p")  temporary_7 Pproj
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  z temporary_7 temporary_8
+	xcomp	("f=p")  temporary_7 Pproj
+	divff  ss_1 temporary_7 z
+	ycomp	("f=p")  temporary_7 Pproj
+	divff  tt_1 temporary_7 z
+	Du	("f=f")  temporary_10 ss_1
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 ss_1
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  ds_1 temporary_7 temporary_8
+	Du	("f=f")  temporary_10 tt_1
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 tt_1
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  dt_1 temporary_7 temporary_8
+#!Label116:
+	else #!Label115
+	seql  temporary_1 Ksproj "spherical"
+	vufloat  temporary_7 temporary_1
+	if temporary_7 #!Label118
+	normalize	("v=v")  V Pproj
+	ycomp	("f=p")  temporary_11 V
+	xcomp	("f=p")  temporary_12 V
+	atan	("f=ff")  temporary_10 temporary_11 temporary_12
+	negf  temporary_9 temporary_10
+	vufloat  temporary_10 3.141592654
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_9 temporary_1
+	divff  ss_1 temporary_8 temporary_9
+	vufloat  temporary_8 0.5
+	zcomp	("f=p")  temporary_11 V
+	acos	("f=f")  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	divff  temporary_9 temporary_10 temporary_11
+	subff  tt_1 temporary_8 temporary_9
+	Du	("f=f")  temporary_11 ss_1
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 ss_1
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  ds_1 temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 ds_1 temporary_9
+	if temporary_8 #!Label119
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 ds_1
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds_1 temporary_9 temporary_10
+#!Label119:
+	endif
+	Du	("f=f")  temporary_11 tt_1
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 tt_1
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  dt_1 temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 dt_1 temporary_9
+	if temporary_8 #!Label121
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 dt_1
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt_1 temporary_9 temporary_10
+#!Label121:
+	endif
+#!Label118:
+	else #!Label117
+	seql  temporary_1 Ksproj "cylindrical"
+	vufloat  temporary_8 temporary_1
+	if temporary_8 #!Label123
+	normalize	("v=v")  V_1 Pproj
+	ycomp	("f=p")  temporary_12 V_1
+	xcomp	("f=p")  temporary_13 V_1
+	atan	("f=ff")  temporary_11 temporary_12 temporary_13
+	negf  temporary_10 temporary_11
+	vufloat  temporary_11 3.141592654
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_10 temporary_1
+	divff  ss_1 temporary_9 temporary_10
+	zcomp	("f=p")  tt_1 Pproj
+	Du	("f=f")  temporary_12 ss_1
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 ss_1
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds_1 temporary_9 temporary_10
+	vufloat  temporary_10 0.5
+	fgt  temporary_9 ds_1 temporary_10
+	if temporary_9 #!Label125
+	vufloat  temporary_11 1
+	subff  temporary_10 temporary_11 ds_1
+	vufloat  temporary_11 1.0e-6
+	max	("f=ff")  ds_1 temporary_10 temporary_11
+#!Label125:
+	endif
+	Du	("f=f")  temporary_12 tt_1
+	mulff  temporary_11 temporary_12 du
+	abs	("f=f")  temporary_10 temporary_11
+	Dv	("f=f")  temporary_13 tt_1
+	mulff  temporary_12 temporary_13 dv
+	abs	("f=f")  temporary_11 temporary_12
+	addff  temporary_9 temporary_10 temporary_11
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  dt_1 temporary_9 temporary_10
+#!Label123:
+	endif
+#!Label117:
+	endif
+#!Label115:
+	endif
+#!Label113:
+	endif
+	vufloat  temporary_5 0.5
+	mulff  ds_1 ds_1 temporary_5
+	vufloat  temporary_5 0.5
+	mulff  dt_1 dt_1 temporary_5
+	subff  temporary_5 ss_1 ds_1
+	subff  temporary_6 tt_1 dt_1
+	addff  temporary_7 ss_1 ds_1
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt_1 dt_1
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("f=SFffffffffSf")  val Ksmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4
+	subff  temporary_5 ss_1 ds_1
+	subff  temporary_6 tt_1 dt_1
+	addff  temporary_7 ss_1 ds_1
+	moveff  temporary_8 temporary_6
+	moveff  temporary_9 temporary_5
+	addff  temporary_10 tt_1 dt_1
+	moveff  temporary_11 temporary_7
+	moveff  temporary_12 temporary_10
+	texture	("f=SFffffffffSfsf")  alpha_2 Ksmapname 3 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4 "fill" 1
+	moveff  x val
+	vufloat  temporary_7 1
+	subff  temporary_6 temporary_7 alpha_2
+	mulff  temporary_5 temporary_6 temporary_3
+	addff  ks x temporary_5
+#!Label109:
+	endif
+	sneql  temporary_1 dispmapname ""
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label127
+	vufloat  temporary_3 dispmx
+	vufloat  temporary_5 0
+	ffroma  temporary_4 temporary_3 temporary_5
+	vufloat  temporary_6 1
+	ffroma  temporary_5 temporary_3 temporary_6
+	vufloat  temporary_7 2
+	ffroma  temporary_6 temporary_3 temporary_7
+	vufloat  temporary_8 3
+	ffroma  temporary_7 temporary_3 temporary_8
+	vufloat  temporary_9 4
+	ffroma  temporary_8 temporary_3 temporary_9
+	vufloat  temporary_10 5
+	ffroma  temporary_9 temporary_3 temporary_10
+	vufloat  temporary_11 6
+	ffroma  temporary_10 temporary_3 temporary_11
+	vufloat  temporary_12 7
+	ffroma  temporary_11 temporary_3 temporary_12
+	vufloat  temporary_13 8
+	ffroma  temporary_12 temporary_3 temporary_13
+	vufloat  temporary_14 9
+	ffroma  temporary_13 temporary_3 temporary_14
+	vufloat  temporary_15 10
+	ffroma  temporary_14 temporary_3 temporary_15
+	vufloat  temporary_16 11
+	ffroma  temporary_15 temporary_3 temporary_16
+	vufloat  temporary_17 12
+	ffroma  temporary_16 temporary_3 temporary_17
+	vufloat  temporary_18 13
+	ffroma  temporary_17 temporary_3 temporary_18
+	vufloat  temporary_19 14
+	ffroma  temporary_18 temporary_3 temporary_19
+	vufloat  temporary_20 15
+	ffroma  temporary_19 temporary_3 temporary_20
+	mfromf  temporary_2 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15 temporary_16 temporary_17 temporary_18 temporary_19
+	vufloat  temporary_3 0
+	seql  temporary_1 dispproj " st"
+	vufloat  temporary_4 temporary_1
+	if temporary_4 #!Label130
+	moveff  temporary_5 temporary_3
+	vfromf  Pproj s t temporary_5
+#!Label130:
+	else #!Label129
+	transform	("p=Sp")  Pproj dispspace P
+#!Label129:
+	endif
+	transform	("p=mp")  Pproj temporary_2 Pproj
+	seql  temporary_21 dispproj "planar"
+	seql  temporary_22 dispproj "st"
+	or  temporary_1 temporary_21 temporary_22
+	vufloat  temporary_4 temporary_1
+	if temporary_4 #!Label132
+	xcomp	("f=p")  ss_1 Pproj
+	ycomp	("f=p")  tt_1 Pproj
+	Du	("f=f")  temporary_8 ss_1
+	mulff  temporary_7 temporary_8 du
+	abs	("f=f")  temporary_6 temporary_7
+	Dv	("f=f")  temporary_9 ss_1
+	mulff  temporary_8 temporary_9 dv
+	abs	("f=f")  temporary_7 temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_6 1.0e-6
+	max	("f=ff")  ds_1 temporary_5 temporary_6
+	Du	("f=f")  temporary_8 tt_1
+	mulff  temporary_7 temporary_8 du
+	abs	("f=f")  temporary_6 temporary_7
+	Dv	("f=f")  temporary_9 tt_1
+	mulff  temporary_8 temporary_9 dv
+	abs	("f=f")  temporary_7 temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_6 1.0e-6
+	max	("f=ff")  dt_1 temporary_5 temporary_6
+#!Label132:
+	else #!Label131
+	seql  temporary_1 dispproj "perspective"
+	vufloat  temporary_5 temporary_1
+	if temporary_5 #!Label134
+	zcomp	("f=p")  temporary_6 Pproj
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  z temporary_6 temporary_7
+	xcomp	("f=p")  temporary_6 Pproj
+	divff  ss_1 temporary_6 z
+	ycomp	("f=p")  temporary_6 Pproj
+	divff  tt_1 temporary_6 z
+	Du	("f=f")  temporary_9 ss_1
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 ss_1
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  ds_1 temporary_6 temporary_7
+	Du	("f=f")  temporary_9 tt_1
+	mulff  temporary_8 temporary_9 du
+	abs	("f=f")  temporary_7 temporary_8
+	Dv	("f=f")  temporary_10 tt_1
+	mulff  temporary_9 temporary_10 dv
+	abs	("f=f")  temporary_8 temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 1.0e-6
+	max	("f=ff")  dt_1 temporary_6 temporary_7
+#!Label134:
+	else #!Label133
+	seql  temporary_1 dispproj "spherical"
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label136
+	normalize	("v=v")  V Pproj
+	ycomp	("f=p")  temporary_10 V
+	xcomp	("f=p")  temporary_11 V
+	atan	("f=ff")  temporary_9 temporary_10 temporary_11
+	negf  temporary_8 temporary_9
+	vufloat  temporary_9 3.141592654
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_8 temporary_1
+	divff  ss_1 temporary_7 temporary_8
+	vufloat  temporary_7 0.5
+	zcomp	("f=p")  temporary_10 V
+	acos	("f=f")  temporary_9 temporary_10
+	vufloat  temporary_10 3.141592654
+	divff  temporary_8 temporary_9 temporary_10
+	subff  tt_1 temporary_7 temporary_8
+	Du	("f=f")  temporary_10 ss_1
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 ss_1
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  ds_1 temporary_7 temporary_8
+	vufloat  temporary_8 0.5
+	fgt  temporary_7 ds_1 temporary_8
+	if temporary_7 #!Label137
+	vufloat  temporary_9 1
+	subff  temporary_8 temporary_9 ds_1
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  ds_1 temporary_8 temporary_9
+#!Label137:
+	endif
+	Du	("f=f")  temporary_10 tt_1
+	mulff  temporary_9 temporary_10 du
+	abs	("f=f")  temporary_8 temporary_9
+	Dv	("f=f")  temporary_11 tt_1
+	mulff  temporary_10 temporary_11 dv
+	abs	("f=f")  temporary_9 temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_8 1.0e-6
+	max	("f=ff")  dt_1 temporary_7 temporary_8
+	vufloat  temporary_8 0.5
+	fgt  temporary_7 dt_1 temporary_8
+	if temporary_7 #!Label139
+	vufloat  temporary_9 1
+	subff  temporary_8 temporary_9 dt_1
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  dt_1 temporary_8 temporary_9
+#!Label139:
+	endif
+#!Label136:
+	else #!Label135
+	seql  temporary_1 dispproj "cylindrical"
+	vufloat  temporary_7 temporary_1
+	if temporary_7 #!Label141
+	normalize	("v=v")  V_1 Pproj
+	ycomp	("f=p")  temporary_11 V_1
+	xcomp	("f=p")  temporary_12 V_1
+	atan	("f=ff")  temporary_10 temporary_11 temporary_12
+	negf  temporary_9 temporary_10
+	vufloat  temporary_10 3.141592654
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_9 temporary_1
+	divff  ss_1 temporary_8 temporary_9
+	zcomp	("f=p")  tt_1 Pproj
+	Du	("f=f")  temporary_11 ss_1
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 ss_1
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  ds_1 temporary_8 temporary_9
+	vufloat  temporary_9 0.5
+	fgt  temporary_8 ds_1 temporary_9
+	if temporary_8 #!Label143
+	vufloat  temporary_10 1
+	subff  temporary_9 temporary_10 ds_1
+	vufloat  temporary_10 1.0e-6
+	max	("f=ff")  ds_1 temporary_9 temporary_10
+#!Label143:
+	endif
+	Du	("f=f")  temporary_11 tt_1
+	mulff  temporary_10 temporary_11 du
+	abs	("f=f")  temporary_9 temporary_10
+	Dv	("f=f")  temporary_12 tt_1
+	mulff  temporary_11 temporary_12 dv
+	abs	("f=f")  temporary_10 temporary_11
+	addff  temporary_8 temporary_9 temporary_10
+	vufloat  temporary_9 1.0e-6
+	max	("f=ff")  dt_1 temporary_8 temporary_9
+#!Label141:
+	endif
+#!Label135:
+	endif
+#!Label133:
+	endif
+#!Label131:
+	endif
+	vufloat  temporary_4 0.5
+	mulff  ds_1 ds_1 temporary_4
+	vufloat  temporary_4 0.5
+	mulff  dt_1 dt_1 temporary_4
+	subff  temporary_4 ss_1 ds_1
+	subff  temporary_5 tt_1 dt_1
+	addff  temporary_6 ss_1 ds_1
+	moveff  temporary_7 temporary_5
+	moveff  temporary_8 temporary_4
+	addff  temporary_9 tt_1 dt_1
+	moveff  temporary_10 temporary_6
+	moveff  temporary_11 temporary_9
+	texture	("f=SFffffffffSf")  val dispmapname 0 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3
+	subff  temporary_4 ss_1 ds_1
+	subff  temporary_5 tt_1 dt_1
+	addff  temporary_6 ss_1 ds_1
+	moveff  temporary_7 temporary_5
+	moveff  temporary_8 temporary_4
+	addff  temporary_9 tt_1 dt_1
+	moveff  temporary_10 temporary_6
+	moveff  temporary_11 temporary_9
+	texture	("f=SFffffffffSfsf")  alpha_2 dispmapname 3 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3 "fill" 1
+	moveff  x val
+	vufloat  temporary_6 1
+	subff  temporary_5 temporary_6 alpha_2
+	mulff  temporary_4 temporary_5 disp
+	addff  disp x temporary_4
+	normalize	("v=v")  temporary_23 N
+	vufloat  temporary_3 truedisp
+	vtransform	("v=Sv")  temporary_24 dispspace temporary_23
+	length	("f=v")  spacescale temporary_24
+	divff  temporary_4 disp spacescale
+	vfromf  temporary_24 temporary_4
+	mulvv  Ndisp temporary_23 temporary_24
+	vfromf  temporary_26 temporary_3
+	mulvv  temporary_24 temporary_26 Ndisp
+	addvv  P P temporary_24
+	moveff  temporary_5 temporary_6
+	subff  temporary_4 temporary_5 temporary_3
+	vfromf  temporary_28 temporary_4
+	mulvv  temporary_27 temporary_28 Ndisp
+	addvv  temporary_26 P temporary_27
+	calculatenormal	("p=p")  temporary_24 temporary_26
+	normalize	("v=v")  N temporary_24
+#!Label127:
+	endif
+	normalize	("v=v")  temporary_23 N
+	faceforward	("v=vv")  Nf temporary_23 I
+	vfromf  temporary_29 Ka
+	vuvector  temporary_27 temporary_29
+	ambient	("c=")  temporary_28
+	mulvv  temporary_26 temporary_27 temporary_28
+	vfromf  temporary_29 Kd
+	vuvector  temporary_28 temporary_29
+	diffuse	("c=n")  temporary_30 Nf
+	mulvv  temporary_27 temporary_28 temporary_30
+	addvv  temporary_24 temporary_26 temporary_27
+	mulvv  temporary_23 Ct temporary_24
+	vuvector  temporary_27 specularcolor
+	vfromf  temporary_28 ks
+	mulvv  temporary_26 temporary_27 temporary_28
+	normalize	("v=v")  temporary_30 I
+	negv  temporary_28 temporary_30
+	vufloat  temporary_0 roughness
+	specular	("c=nvf")  temporary_27 Nf temporary_28 temporary_0
+	mulvv  temporary_24 temporary_26 temporary_27
+	addvv  Ci temporary_23 temporary_24
+	movevv  Oi Ot
+	mulvv  Ci Ci Oi
+	return

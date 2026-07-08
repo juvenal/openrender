@@ -290,6 +290,7 @@ class CRenderer {
         static CTextureInfoBase *getTextureInfo(const char *);                                                                 // Load a textureinfo
         static CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int hierarchy = FALSE); // Load a point cloud or brickmap
         static CShader *getShader(const char *, TSearchpath *search = NULL);                                                   // Load a shader
+        static CShader *getShader(const char *, TSearchpath *search, const char *preferredType);                             // Load shader with type preference
         static int getAOVFilter(const char *name);                                                                             // Get an AOV filter name
         static const char *getFilter(RtFilterFunc);                                                                            // The other way around
         static CDSO *getDSO(const char *, const char *);                                                                       // Find a DSO function

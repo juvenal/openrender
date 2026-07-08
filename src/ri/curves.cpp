@@ -574,7 +574,7 @@ CLinearCurve::~CLinearCurve() {
 // Description			:	Sample the curves
 // Return Value			:	-
 // Comments				:
-void CLinearCurve::sample(int, int numVertices, float **varying, float ***locals, unsigned int &up) const {
+void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **varying, float ***locals, unsigned int &up) const {
     int j, k;
     float *intr, *intrStart;
     CVertexData *variables = base->variables;

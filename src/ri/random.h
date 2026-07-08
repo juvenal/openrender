@@ -32,6 +32,7 @@
 #include "common/algebra.h"
 #include "common/global.h" // The global header file
 #include "common/os.h"
+#include "common/sobolTables.h"  // SOBOL_MAX_DIMENSION, Sobol sequence tables
 
 ////////////////////////////////////////////////////////////////////////////
 //
@@ -43,21 +44,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-// maximum allowed space dimension
-#define SOBOL_MAX_DIMENSION 40
-
 // bit count; assumes sizeof(int) >= 32-bit
 #define SOBOL_BIT_COUNT 30
-
-// primitive polynomials in binary encoding
-extern const int primitive_polynomials[SOBOL_MAX_DIMENSION];
-
-// degrees of the primitive polynomials
-extern const int degree_table[SOBOL_MAX_DIMENSION];
-
-// initial values for direction tables, following
-// Bratley+Fox, taken from [Sobol+Levitan, preprint 1976]
-extern const int v_init[8][SOBOL_MAX_DIMENSION];
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSobol

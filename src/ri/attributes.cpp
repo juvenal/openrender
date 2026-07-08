@@ -114,6 +114,8 @@ CAttributes::CAttributes() {
 
     shadingModel = SM_MATTE;
 
+    shaderFormat = nullptr; // No per-object override; falls through to option/compile-time default
+
     globalMapName = NULL;
     causticMapName = NULL;
     globalMap = NULL;
@@ -154,8 +156,10 @@ CAttributes::CAttributes(const CAttributes *a) {
 
     this[0] = a[0];
 
-    // Note: The assignment here also invokes the assignment operator of userAttributes
-    //      so there's no need for a separate copy for that
+    /**
+     *   Note: The assignment here also invokes the assignment operator of userAttributes
+     *         so there's no need for a separate copy for that
+     */
 
     refCount = 0;
 
@@ -195,6 +199,8 @@ CAttributes::CAttributes(const CAttributes *a) {
     }
 
     name = (a->name != NULL ? strdup(a->name) : NULL);
+
+    shaderFormat = (a->shaderFormat != NULL ? strdup(a->shaderFormat) : nullptr);
 
     if (a->next != NULL)
         next = new CAttributes(a->next);
@@ -238,6 +244,9 @@ CAttributes::~CAttributes() {
     if (name != NULL)
         free(name);
 
+    if (shaderFormat != NULL)
+        free(shaderFormat);
+
     if (maxDisplacementSpace != NULL)
         free(maxDisplacementSpace);
 
@@ -269,7 +278,8 @@ void CAttributes::addLight(CShaderInstance *cLight) {
     // Make sure lighting order matches RIB order
     if (pLight == NULL) {
         nLight = lightSources = new CActiveLight;
-    } else {
+    }
+    else {
         nLight = pLight->next = new CActiveLight;
     }
 
@@ -441,6 +451,11 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
         globalMapName = (other->globalMapName == NULL ? NULL : strdup(other->globalMapName));
         causticMapName = (other->causticMapName == NULL ? NULL : strdup(other->causticMapName));
 
+        // Restore shader type preference
+        if (shaderFormat != NULL)
+            free(shaderFormat);
+        shaderFormat = (other->shaderFormat != NULL ? strdup(other->shaderFormat) : nullptr);
+
         // Copy the user attributes
         userAttributes = other->userAttributes;
 
@@ -495,20 +510,24 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             type = TYPE_INTEGER;
             value = &numUProbes;
             return TRUE;
-        } else if (strcmp(name, RI_MINSPLITS) == 0) {
+        }
+        else if (strcmp(name, RI_MINSPLITS) == 0) {
             type = TYPE_INTEGER;
             value = &minSplits;
             return TRUE;
-        } else if (strcmp(name, RI_BOUNDEXPAND) == 0) {
+        }
+        else if (strcmp(name, RI_BOUNDEXPAND) == 0) {
             type = TYPE_FLOAT;
             value = &rasterExpand;
             return TRUE;
-        } else if (strcmp(name, RI_BINARY) == 0) {
+        }
+        else if (strcmp(name, RI_BINARY) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_BINARY_DICE) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_RASTERORIENT) == 0) {
+        }
+        else if (strcmp(name, RI_RASTERORIENT) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE) != 0;
@@ -521,7 +540,8 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             type = TYPE_FLOAT;
             value = &maxDisplacement;
             return TRUE;
-        } else if (strcmp(name, RI_COORDINATESYSYTEM) == 0) {
+        }
+        else if (strcmp(name, RI_COORDINATESYSYTEM) == 0) {
             type = TYPE_STRING;
             value = maxDisplacementSpace;
             return TRUE;
@@ -533,15 +553,18 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             type = TYPE_FLOAT;
             value = &bias;
             return TRUE;
-        } else if (strcmp(name, RI_MAXDIFFUSEDEPTH) == 0) {
+        }
+        else if (strcmp(name, RI_MAXDIFFUSEDEPTH) == 0) {
             type = TYPE_INTEGER;
             value = &maxDiffuseDepth;
             return TRUE;
-        } else if (strcmp(name, RI_MAXSPECULARDEPTH) == 0) {
+        }
+        else if (strcmp(name, RI_MAXSPECULARDEPTH) == 0) {
             type = TYPE_INTEGER;
             value = &maxSpecularDepth;
             return TRUE;
-        } else if (strcmp(name, RI_DISPLACEMENTS) == 0) {
+        }
+        else if (strcmp(name, RI_DISPLACEMENTS) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_DISPLACEMENTS) != 0;
@@ -554,11 +577,13 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             type = TYPE_STRING;
             value = irradianceHandle;
             return TRUE;
-        } else if (strcmp(name, RI_FILEMODE) == 0) {
+        }
+        else if (strcmp(name, RI_FILEMODE) == 0) {
             type = TYPE_STRING;
             value = irradianceHandleMode;
             return TRUE;
-        } else if (strcmp(name, RI_MAXERROR) == 0) {
+        }
+        else if (strcmp(name, RI_MAXERROR) == 0) {
             type = TYPE_FLOAT;
             value = &irradianceMaxError;
             return TRUE;
@@ -570,25 +595,58 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             type = TYPE_STRING;
             value = globalMapName;
             return TRUE;
-        } else if (strcmp(name, RI_CAUSTICMAP) == 0) {
+        }
+        else if (strcmp(name, RI_CAUSTICMAP) == 0) {
             type = TYPE_STRING;
             value = causticMapName;
             return TRUE;
-        } else if (strcmp(name, RI_IOR) == 0) {
+        }
+        else if (strcmp(name, RI_IOR) == 0) {
             type = TYPE_FLOAT;
             value = photonIor;
             return TRUE;
-        } else if (strcmp(name, RI_IORRANGE) == 0) {
+        }
+        else if (strcmp(name, RI_IORRANGE) == 0) {
             type = TYPE_FLOAT;
             value = photonIor;
             return TRUE;
-        } else if (strcmp(name, RI_ESTIMATOR) == 0) {
+        }
+        else if (strcmp(name, RI_ESTIMATOR) == 0) {
             type = TYPE_INTEGER;
             value = &photonEstimator;
             return TRUE;
-        } else if (strcmp(name, RI_SHADINGMODEL) == 0) {
+        }
+        else if (strcmp(name, RI_SHADINGMODEL) == 0) {
             type = TYPE_STRING;
             value = findShadingModel(shadingModel);
+            return TRUE;
+        }
+    }
+
+    if ((category == NULL) || (strcmp(category, RI_SHADE) == 0)) {
+        if (strcmp(name, RI_TRANSMISSIONHITMODE) == 0) {
+            type = TYPE_STRING;
+            value = findHitMode(transmissionHitMode);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_DIFFUSEHITMODE) == 0) {
+            type = TYPE_STRING;
+            value = findHitMode(diffuseHitMode);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_SPECULARHITMODE) == 0) {
+            type = TYPE_STRING;
+            value = findHitMode(specularHitMode);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_CAMERAHITMODE) == 0) {
+            type = TYPE_STRING;
+            value = findHitMode(cameraHitMode);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_SHADERFORMAT) == 0) {
+            type = TYPE_STRING;
+            value = (shaderFormat != NULL) ? shaderFormat : "slo";
             return TRUE;
         }
     }
@@ -599,22 +657,26 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_PRIMARY_VISIBLE) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_DIFFUSE) == 0) {
+        }
+        else if (strcmp(name, RI_DIFFUSE) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_SPECULAR) == 0) {
+        }
+        else if (strcmp(name, RI_SPECULAR) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_SPECULAR_VISIBLE) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_PHOTON) == 0) {
+        }
+        else if (strcmp(name, RI_PHOTON) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_PHOTON_VISIBLE) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_TRANSMISSION) == 0) {
+        }
+        else if (strcmp(name, RI_TRANSMISSION) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE) != 0;
@@ -636,7 +698,8 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_SHADE_HIDDEN) != 0;
             return TRUE;
-        } else if (strcmp(name, RI_BACKFACING) == 0) {
+        }
+        else if (strcmp(name, RI_BACKFACING) == 0) {
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & ATTRIBUTES_FLAGS_SHADE_BACKFACE) != 0;
@@ -657,19 +720,26 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
 EShadingModel CAttributes::findShadingModel(const char *val) {
     if (strcmp(val, "matte") == 0) {
         return SM_MATTE;
-    } else if (strcmp(val, "translucent") == 0) {
+    }
+    else if (strcmp(val, "translucent") == 0) {
         return SM_TRANSLUCENT;
-    } else if (strcmp(val, "chrome") == 0) {
+    }
+    else if (strcmp(val, "chrome") == 0) {
         return SM_CHROME;
-    } else if (strcmp(val, "glass") == 0) {
+    }
+    else if (strcmp(val, "glass") == 0) {
         return SM_GLASS;
-    } else if (strcmp(val, "water") == 0) {
+    }
+    else if (strcmp(val, "water") == 0) {
         return SM_WATER;
-    } else if (strcmp(val, "dielectric") == 0) {
+    }
+    else if (strcmp(val, "dielectric") == 0) {
         return SM_DIELECTRIC;
-    } else if (strcmp(val, "transparent") == 0) {
+    }
+    else if (strcmp(val, "transparent") == 0) {
         return SM_TRANSPARENT;
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown shading model: \"%s\"\n", val);
         return SM_MATTE;
     }
@@ -683,27 +753,27 @@ EShadingModel CAttributes::findShadingModel(const char *val) {
 // Comments				:
 const char *CAttributes::findShadingModel(EShadingModel model) {
     switch (model) {
-    case SM_MATTE:
-        return "matte";
-        break;
-    case SM_TRANSLUCENT:
-        return "translucent";
-        break;
-    case SM_CHROME:
-        return "chrome";
-        break;
-    case SM_GLASS:
-        return "glass";
-        break;
-    case SM_WATER:
-        return "water";
-        break;
-    case SM_DIELECTRIC:
-        return "dielectric";
-        break;
-    case SM_TRANSPARENT:
-        return "transparent";
-        break;
+        case SM_MATTE:
+            return "matte";
+            break;
+        case SM_TRANSLUCENT:
+            return "translucent";
+            break;
+        case SM_CHROME:
+            return "chrome";
+            break;
+        case SM_GLASS:
+            return "glass";
+            break;
+        case SM_WATER:
+            return "water";
+            break;
+        case SM_DIELECTRIC:
+            return "dielectric";
+            break;
+        case SM_TRANSPARENT:
+            return "transparent";
+            break;
     }
 
     return "matte";
@@ -720,9 +790,11 @@ char CAttributes::findHitMode(const char *mode) {
     // Figure out the hit mode
     if (strcmp(mode, "primitive") == 0) {
         return 'p';
-    } else if (strcmp(mode, "shader") == 0) {
+    }
+    else if (strcmp(mode, "shader") == 0) {
         return 's';
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unrecognized hit mode \"%s\"\n", mode);
         return 'p';
     }
@@ -743,4 +815,25 @@ const char *CAttributes::findHitMode(char mode) {
         error(CODE_BUG, "Invalid hit mode encountered: \'%c\'\n", mode);
 
     return "primitive";
+}
+
+/**
+ * CAttributes::setShaderFormat
+ *     Translate shader format from string
+ * Return Value :	-
+ * Comments :
+ *     This is used to set the shader format preference for shader loading,
+ *     and does not affect the actual shader format used for shading.
+ *     The actual shader type used for shading is determined by the shader
+ *     file extension and the presence of .slo or .rslo files.
+ */
+char *CAttributes::setShaderFormat(const char *format) {
+    if (strcmp(format, "slo") == 0 || strcmp(format, "rslo") == 0) {
+        warning(CODE_LOG, "Shader format '%s' set.", format);
+        return strdup(format);
+    }
+    else {
+        warning(CODE_BADTOKEN, "Invalid shader format '%s'; must be 'slo' or 'rslo'. Using default 'slo'.", format);
+        return strdup("slo");
+    }
 }

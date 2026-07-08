@@ -280,6 +280,36 @@ else()
 endif()
 
 # ###########################################################################
+# ########## LLVM (optional — required only for JIT shader compilation)
+# ###########################################################################
+# Hint for Homebrew LLVM on macOS (llvm-config may not be in PATH)
+if(APPLE AND NOT DEFINED LLVM_DIR)
+    find_program(_LLVM_CONFIG NAMES llvm-config
+        HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin)
+    if(_LLVM_CONFIG)
+        execute_process(COMMAND ${_LLVM_CONFIG} --cmakedir
+            OUTPUT_VARIABLE _LLVM_CMAKE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(_LLVM_CMAKE_DIR AND NOT LLVM_DIR)
+            set(LLVM_DIR "${_LLVM_CMAKE_DIR}" CACHE PATH "LLVM cmake dir (auto-detected)" FORCE)
+        endif()
+    elseif(EXISTS "/opt/homebrew/opt/llvm/lib/cmake/llvm/LLVMConfig.cmake" AND NOT LLVM_DIR)
+        set(LLVM_DIR "/opt/homebrew/opt/llvm/lib/cmake/llvm" CACHE PATH "LLVM cmake dir (Homebrew fallback)" FORCE)
+    endif()
+endif()
+find_package(LLVM CONFIG QUIET)
+if(LLVM_FOUND)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    set(OPENRENDER_HAVE_LLVM ON)
+    set(OPENRENDER_LLVM_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
+    set(OPENRENDER_LLVM_VERSION_MINOR ${LLVM_VERSION_MINOR})
+else()
+    message(STATUS "LLVM not found -- JIT shader path disabled")
+    set(OPENRENDER_HAVE_LLVM OFF)
+    set(OPENRENDER_LLVM_VERSION_MAJOR 0)
+    set(OPENRENDER_LLVM_VERSION_MINOR 0)
+endif()
+
+# ###########################################################################
 # ########## Installation Configuration
 # ###########################################################################
 
@@ -351,11 +381,11 @@ install(FILES ${doc_files} DESTINATION ${OPENRENDER_DOCDIR})
 file(GLOB man_files man/*.1)
 install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-# Install shaders
+# Install shader sources and includes (pre-built .rslo/.sdr objects are NOT installed;
+# they are compiled from source at install time by the oshader binary below).
 file(GLOB shader_sl_files shaders/*.sl)
-file(GLOB shader_sdr_files shaders/*.sdr)
-file(GLOB shader_rslo_files shaders/*.rslo)
-install(FILES ${shader_sl_files} ${shader_sdr_files} ${shader_rslo_files} DESTINATION ${OPENRENDER_SHADERDIR})
+install(FILES ${shader_sl_files} DESTINATION ${OPENRENDER_SHADERDIR})
+install(DIRECTORY shaders/includes/ DESTINATION ${OPENRENDER_SHADERDIR}/includes)
 
 # Install geometry files
 file(GLOB geometry_rib_files geometry/*.rib)
@@ -515,4 +545,83 @@ if(INSTALL_SELFCONTAINED)
             endforeach()
         endif()
     ")
+endif()
+
+########################################################################
+# Compile shaders at install time (runs AFTER all install(TARGETS))
+########################################################################
+# At this point in the install sequence, all binaries (including oshader)
+# have been installed to their final destinations. This install(CODE) block
+# compiles the installed .sl sources into .rslo objects in-place.
+install(CODE "
+    message(STATUS \"Compiling installed RSL shaders...\")
+    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
+    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
+    set(_incdir \"-I\${_shaderdir}/includes\")
+
+    # Check if the installed oshader exists (it should, since install(TARGETS) runs first)
+    if(NOT EXISTS \"\${_oshader_install}\")
+        message(WARNING \"  oshader binary not found at \${_oshader_install} — skipping shader compilation\")
+    else()
+        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
+        set(_ok 0)
+        set(_failed 0)
+        foreach(_sl \${_sl_files})
+            get_filename_component(_base \${_sl} NAME_WE)
+            execute_process(
+                COMMAND \"\${_oshader_install}\" \${_incdir} \${_sl}
+                WORKING_DIRECTORY \${_shaderdir}
+                RESULT_VARIABLE _rc
+                OUTPUT_VARIABLE _out
+                ERROR_VARIABLE _err
+            )
+            if(_rc)
+                message(WARNING \"  oshader: \${_base}.sl failed (rc=\${_rc})\")
+                if(_err)
+                    message(WARNING \"    stderr: \${_err}\")
+                endif()
+                math(EXPR _failed \"\${_failed} + 1\")
+            else()
+                math(EXPR _ok \"\${_ok} + 1\")
+            endif()
+        endforeach()
+        message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
+    endif()
+")
+
+# Second independent pass: compile .slo (LLVM JIT bitcode) when LLVM is available.
+# Runs only when OPENRENDER_HAVE_LLVM was set at configure time.
+# Failures here are warnings only — .rslo is always the authoritative fallback.
+if(OPENRENDER_HAVE_LLVM)
+install(CODE "
+    message(STATUS \"Compiling installed RSL shaders to .slo (LLVM JIT)...\")
+    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
+    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
+    set(_incdir \"-I\${_shaderdir}/includes\")
+
+    if(NOT EXISTS \"\${_oshader_install}\")
+        message(WARNING \"  oshader binary not found — skipping .slo compilation\")
+    else()
+        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
+        set(_ok 0)
+        set(_failed 0)
+        foreach(_sl \${_sl_files})
+            get_filename_component(_base \${_sl} NAME_WE)
+            execute_process(
+                COMMAND \"\${_oshader_install}\" --jit \${_incdir} \${_sl}
+                WORKING_DIRECTORY \${_shaderdir}
+                RESULT_VARIABLE _rc
+                OUTPUT_VARIABLE _out
+                ERROR_VARIABLE _err
+            )
+            if(_rc)
+                message(WARNING \"  oshader --jit: \${_base}.sl failed (rc=\${_rc})\")
+                math(EXPR _failed \"\${_failed} + 1\")
+            else()
+                math(EXPR _ok \"\${_ok} + 1\")
+            endif()
+        endforeach()
+        message(STATUS \"  Shaders compiled to .slo: \${_ok} ok, \${_failed} failed\")
+    endif()
+")
 endif()

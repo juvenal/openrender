@@ -1,0 +1,47 @@
+.TH SLOINFO 1
+.SH NAME
+sloinfo \- display information about compiled openRender shaders
+.SH SYNOPSIS
+\fBsloinfo\fR [ name.slo | name.rslo ... ]
+.SH DESCRIPTION
+.I Sloinfo
+scans the specified compiled shader files and displays information about them.
+It auto-detects the file format from the first two bytes: files beginning with
+\fB0x42 0x43\fR (LLVM bitcode magic) are parsed as \fB.slo\fR LLVM bitcode shaders;
+all other files are parsed as \fB.rslo\fR interpreter bytecode shaders.
+If no files are specified,
+.I sloinfo
+displays information about all compiled shaders (\fB.slo\fR and \fB.rslo\fR) in the
+current directory.
+.PP
+The information displayed for each shader is:
+.IP \(bu 4
+the shader's name,
+.IP \(bu 4
+the shader's type (surface, light, displacement, volume, imager, transformation),
+.IP \(bu 4
+the shader's parameters, their types, storage class, and default values.
+.SH OPTIONS
+.TP
+.B \-v
+Be verbose.
+.TP
+.B \-h
+Print a short help message.
+.TP
+.B \-version
+Print version information.
+.SH ENVIRONMENT
+.TP
+.B OPENRENDER_SHADERPATH
+A colon-separated list of directories to search for shaders when no files are specified.
+.SH "SEE ALSO"
+orender(1), oshader(1), rsloinfo(1)
+.SH AUTHOR
+The openRender Team.
+.SH NOTES
+.I sloinfo
+is part of the openRender project.
+.I rsloinfo
+is a compatibility symlink pointing to
+.I sloinfo.

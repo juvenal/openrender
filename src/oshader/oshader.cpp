@@ -30,7 +30,11 @@
 #include "common/global.h" // The glorious global header
 #include "common/os.h"     // OS dependent stuff)
 #include "opcodes.h"       // The opcodes/arguments
-#include "rslo.h"           // The CScriptContext
+#include "rslo.h"          // The CScriptContext
+
+#ifdef OPENRENDER_HAVE_LLVM
+#include "llvmEmitter.h"
+#endif
 
 // Standard includes
 #include <stdarg.h>
@@ -77,6 +81,7 @@ static const char *argumentPrintVersionInfo = "-v";
 static const char *argumentQuietInfo = "-q";
 static const char *argumentLogLevel = "-d";
 static const char *argumentLegacyRSLObject = "--legacy-sdr";
+static const char *argumentJIT = "--jit";
 // static const char *argumentLogLevelLong = "--log";
 
 /**
@@ -111,6 +116,9 @@ static void printUsage() {
     printf("      %s <symbol>=<value> Define <symbol> to be <value>\n", argumentDefine);
     printf("      %s <filename>       Output to <filename> \n", argumentOutput);
     printf("      %s        Force .sdr output extension (legacy)\n", argumentLegacyRSLObject);
+#ifdef OPENRENDER_HAVE_LLVM
+    printf("      %s              Emit .slo (LLVM JIT bitcode) instead of .rslo\n", argumentJIT);
+#endif
     printf("      %s                 Suppress warnings\n", argumentSuppressWarnings);
     printf("      %s                 Suppress errors\n", argumentSuppressErrors);
     printf("      %s                  Quiet, suppress progress display\n", argumentQuietInfo);
@@ -172,9 +180,9 @@ int main(int argc, char *argv[]) {
     char *includeEnv = osEnvironment(SHADERS_INCLUDE);
     int error = ERR_NONE;
     int legacyRSLObjectExt = FALSE;
+    int emitJIT = FALSE;
 
-    // Default log level is NONE; can be overridden via -x or -d.
-    LOG_INIT(stderr, LOG_LEVEL_NONE);
+    orender_log_init();
 
     sourceFiles = new CList<char *>;
 
@@ -261,6 +269,14 @@ int main(int argc, char *argv[]) {
         }
         else if (strcmp(argv[i], argumentLegacyRSLObject) == 0) {
             legacyRSLObjectExt = TRUE;
+        }
+        else if (strcmp(argv[i], argumentJIT) == 0) {
+#ifdef OPENRENDER_HAVE_LLVM
+            emitJIT = TRUE;
+#else
+            fprintf(stderr, "oshader: --jit requires LLVM support (not compiled in)\n");
+            exit(1);
+#endif
         }
         else if (strcmp(argv[i], argumentHelp) == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0) {
             printVersion();
@@ -378,6 +394,9 @@ int main(int argc, char *argv[]) {
         currentCompiler = new CScriptContext(settings);
         currentCompiler->dsoPath = dsoPath;
         currentCompiler->legacyRSLObjectExt = legacyRSLObjectExt;
+#ifdef OPENRENDER_HAVE_LLVM
+        currentCompiler->emitJIT = (emitJIT == TRUE);
+#endif
 
         // Compile the file
         currentCompiler->sourceFile = sourceFile;
@@ -388,21 +407,52 @@ int main(int argc, char *argv[]) {
             error = ERR_COMPILE;
         }
         else {
-            // Inform compiled file (only on success)
             char rsloName[OS_MAX_PATH_LENGTH];
             const char *compiledBasename = nullptr;
-            if (outName != nullptr) {
-                const char *outSep = strrchr(outName, OS_DIR_SEPERATOR);
-                compiledBasename = (outSep != nullptr) ? outSep + 1 : outName;
+
+#ifdef OPENRENDER_HAVE_LLVM
+            // JIT path: emit .slo from the retained IRModule.
+            if (emitJIT && currentCompiler->lastCompiledModule &&
+                currentCompiler->shaderName != nullptr) {
+                // Determine .slo output path.
+                std::string sloPath;
+                if (outName != nullptr) {
+                    sloPath = outName;
+                    // Replace or append .slo extension.
+                    const char *ext = strrchr(outName, '.');
+                    if (ext) sloPath = std::string(outName, ext - outName) + ".slo";
+                    else     sloPath = std::string(outName) + ".slo";
+                } else {
+                    sloPath = std::string(currentCompiler->shaderName) + ".slo";
+                }
+                const bool ok = emitLLVMBitcode(
+                    *currentCompiler->lastCompiledModule, sloPath,
+                    currentCompiler->shaderName);
+                if (!ok) error = ERR_COMPILE;
+                else {
+                    snprintf(rsloName, sizeof(rsloName), "%s", sloPath.c_str());
+                    compiledBasename = strrchr(rsloName, OS_DIR_SEPERATOR);
+                    compiledBasename = compiledBasename ? compiledBasename + 1 : rsloName;
+                }
+            } else
+#endif
+            {
+                // Default: .rslo path.
+                if (outName != nullptr) {
+                    const char *outSep = strrchr(outName, OS_DIR_SEPERATOR);
+                    compiledBasename = (outSep != nullptr) ? outSep + 1 : outName;
+                }
+                else if (currentCompiler->shaderName != nullptr) {
+                    if (currentCompiler->legacyRSLObjectExt)
+                        snprintf(rsloName, sizeof(rsloName), "%s.sdr", currentCompiler->shaderName);
+                    else
+                        snprintf(rsloName, sizeof(rsloName), "%s.rslo", currentCompiler->shaderName);
+                    compiledBasename = rsloName;
+                }
             }
-            else if (currentCompiler->shaderName != nullptr) {
-                if (currentCompiler->legacyRSLObjectExt)
-                    snprintf(rsloName, sizeof(rsloName), "%s.sdr", currentCompiler->shaderName);
-                else
-                    snprintf(rsloName, sizeof(rsloName), "%s.rslo", currentCompiler->shaderName);
-                compiledBasename = rsloName;
-            }
-            fprintf(stderr, "... compiled %s\n", compiledBasename != nullptr ? compiledBasename : "(unknown)");
+
+            if (compiledBasename)
+                fprintf(stderr, "... compiled %s\n", compiledBasename);
         }
 
         // Cleanup
