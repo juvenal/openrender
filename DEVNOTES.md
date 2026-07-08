@@ -5,6 +5,7 @@
 | Area | Status | Detail File |
 |------|--------|-------------|
 | oshader compiler | Complete — IR, optimization passes, `.rslo` / `rsloinfo` | [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) |
+| LLVM JIT shading engine | Complete — `oshader --jit` produces `.slo` LLVM bitcode; `libshader` extraction; JIT runtime; `sloinfo` inspector; 43-scene visual test suite | [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) |
 | Imager shaders | Complete — all 7 spec variables, thread-safe, spec-correct pipeline order (Exposure → Imager → Quantize) | [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md) |
 | RIB output | Complete — unified init, standard preamble headers | [RIB_GUIDE.md](DEVNOTES_DETAILS/RIB_GUIDE.md) |
 | Framebuffer IPC display | Complete — Unified driver, macOS/Linux parity | [FRAMEBUFFER_GUIDE.md](DEVNOTES_DETAILS/FRAMEBUFFER_GUIDE.md) |
@@ -17,6 +18,7 @@
 
 ## Recent Major Refactors
 
+- **libshader extraction & LLVM JIT shading engine**: Extracted the shader compiler (`src/oshader` → `src/libshader/compiler`) and interpreter runtime (`src/rslo` → `src/libshader/runtime`) into a new `libshader` static library hierarchy. Added a LLVM-based JIT backend: `oshader --jit` compiles RSL shaders to LLVM bitcode (`.slo`) with embedded metadata (shader type, `usedParameters` bitmask, parameter defaults). The JIT runtime loads `.slo` via LLJIT and dispatches through the same `op_*`/`rsl_*` C-linkage ABI used by the interpreter. New `sloinfo` binary auto-detects `.slo` vs `.rslo` by file magic bytes. Symbol retention for macOS dead-stripping handled by `jitSymbolRetain.cpp` with `__attribute__((constructor))`. Coordinate-transform ops (`op_vtransform`, `op_ntransform`, `op_ptransform`) corrected. Shader-space parameter defaults at bind time fixed via `jitSetInitXform` thread-local fallback. Shader format selection: `Attribute "shade" "shaderformat"` (per-primitive), `Option "shaderformat" "default"` (scene-wide), or `OPENRENDER_DEFAULT_FORMAT` (compile-time fallback). See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
 - **CSE Pass — Intra-Block Scope Fix**: The CSE optimizer previously shared its expression cache across all IR basic blocks, enabling incorrect substitutions across if/else branch boundaries. `exprMap` is now cleared per block; cross-block CSE requires dominator analysis not yet encoded in the IR. The regression manifested as a corrupted `windowhighlight.sl` highlight shape. See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
 - **Shader Built-In Scope Enforcement**: A new `globalVarScope` map on `CScriptContext` records per-variable shader-type restrictions. `getVariable()` is restructured to enforce these restrictions regardless of which internal lookup path resolves the variable. `Ps` is now rejected in surface shaders; imager output variables (`Ci`, `Oi`, `alpha`) have their scope masks corrected to include `SLC_IMAGER`. See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
 - **Imager Shader Pipeline Order Fix**: `CRenderer::dispatch()` now applies exposure (gain/gamma) to color (Ci) and coverage (Oi/alpha) channels before executing the imager shader, per the RenderMan spec pipeline (Render → Exposure → Imager → Quantize). Previously the imager saw raw linear-light values. Exposure is removed from `CFileOutputBase::applyColorPipeline()`, which is now quantize-only. The `gain` member is removed from `CFileOutputBase`; `gamma` is retained for PNG gAMA metadata embedding.
@@ -44,7 +46,6 @@
 - [ ] Trace subsets (`trace()` does not yet filter by subset)
 - [ ] Patch crack stitching (currently handled via displacement bounds)
 - [ ] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)
-- [ ] LLVM integration and binary shader compilation — see [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md)
 
 ## See Also
 

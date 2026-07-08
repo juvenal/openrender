@@ -88,20 +88,108 @@ The new `supertexmap` surface shader (`supertexmap.sl`) provides a high-performa
 
 ---
 
-## Future Roadmap: LLVM and Binary Shaders
+## LLVM JIT Shading Engine
 
-The long-term goal for `oshader` is to achieve high-performance execution through native binary compilation.
+`oshader` can now compile RSL shaders to LLVM bitcode (`.slo`) using the `--jit` flag.
+The JIT runtime in `libshader_shading` loads `.slo` files at render time and executes
+them natively via LLVM LLJIT, sharing the same `op_*`/`rsl_*` C-linkage runtime ABI used
+by the `.rslo` interpreter.
 
-### LLVM Integration
+### Library structure (`src/libshader/`)
 
-The existing IR infrastructure was designed as a stepping stone toward full LLVM integration. The planned workflow is:
-1. **IR to LLVM IR:** Translate the `oshader` IR directly into LLVM IR.
-2. **LLVM Backend:** Utilize the LLVM optimization and code generation backend to produce machine-specific binary code.
-3. **Binary Shaders:** Shaders will be distributed as `.rslo` files containing either the IR (for JIT) or pre-compiled binary blobs for target architectures.
+| Directory | Contents |
+|-----------|----------|
+| `compiler/` | Shader compiler (moved from `src/oshader/`) |
+| `runtime/` | `.rslo` interpreter runtime (moved from `src/rslo/`) |
+| `shading/` | JIT-callable `op_*` / `rsl_*` ops, builtins, coordinate transforms |
+| `include/openrender/` | Public API stubs: `RSLShading.h`, `RSLShadingState.h` |
 
-### JIT Compilation
+### Compiler output: `oshader --jit`
 
-At runtime, the renderer will use the LLVM JIT (Just-In-Time) compiler to generate optimized machine code for the specific CPU features of the host machine (e.g., AVX-512, NEON), further closing the gap between programmable shading and native C++ performance.
+Produces a `.slo` file alongside the `.sl` source. The file is LLVM bitcode (magic bytes
+`0x42 0x43`). Embedded metadata includes: shader name, shader type, `usedParameters`
+bitmask (bit-encoded list of RSL global variables the shader reads), and parameter default
+values for each declared parameter.
+
+The runtime reads the metadata at load time (`parseSloShader()`) and populates the
+`CShader` struct in the same way the `.rslo` parser does. JIT entry points:
+- `initFn(int n, void*** stuff, int* tags)` — runs parameter defaults at shader-bind time
+- `codeFn(int n, void*** stuff, int* tags)` — runs per-shading-context at render time
+
+`stuff[0]` = constants, `stuff[1]` = globals, `stuff[2]` = locals (RSL variables).
+
+### CLLVMEmitter phases (`src/oshader/llvmEmitter.cpp`)
+
+| Phase | Opcodes added |
+|-------|--------------|
+| A | literals, vufloat/vuvector, moveff/movevv, arithmetic, math builtins (noise, smoothstep, clamp, pow, mix, sqrt, abs, sign, mod, floor, ceil, round, step, max, min) |
+| B | control flow: ifbegin/ifend/elsebegin/elseend, forbegin/for/forend |
+| C | lighting model: diffuse, specular, ambient; illuminate/solar prologue/epilogue; 6 C-linkage light dispatch wrappers; faceforward, normalize, cross, dot, length, reflect, fresnel |
+| D | illuminance loop: illuminance_begin/next/end, lightsource; coordinate transforms (pfrom, ptransform, vtransform, ntransform); spline, area, calculatenormal, depth |
+| G | cellnoise: 8 batch variants (`rsl_cellnoise_f_f`, `_f_p`, `_v_f`, `_v_p`, `_f_ff`, `_f_pf`, `_v_ff`, `_v_pf`) |
+
+Unrecognised opcodes emit a once-per-shader-per-opcode warning; the instruction is skipped.
+
+### Runtime fixes
+
+**lightTags** (`src/ri/shading.cpp`): `callDiffuse` and `callSpecular` now check
+`light->lightTags[i]` before accumulating per-vertex contributions. Without this check,
+non-illuminated vertices received garbage `L` (uninitialized `savedState[0]`) and stale
+`Cl` from adjacent illuminated vertices, causing reddish tint and wrong shadow boundaries.
+
+**jitSetInitXform** (`src/libshader/shading/rslOps.cpp`, `src/ri/init.cpp`): At
+shader-bind time `libshader::activeContext()` is null (no render thread is active yet).
+A `thread_local` pair of matrix pointers (`s_jit_init_from`, `s_jit_init_to`) is populated
+by `CRendererContext::init()` before calling `jitInitEntry`, allowing `op_pfrom("shader")`
+to resolve the shader→world matrix for space-qualified parameter defaults (e.g.,
+`point "shader" (0,0,1)` in `somewood.sl`). Cleared to null after `jitInitEntry` returns.
+
+**macOS symbol retention** (`src/ri/jitSymbolRetain.cpp`): `op_*` and `rsl_*` functions
+in the static `libshader_shading.a` have no C++ call graph references and are dead-stripped
+by `ld` on macOS. A `__attribute__((constructor))` function calls
+`CLLVMJitEngine::addProcessSymbol()` for each function, retaining them and registering
+with LLVM's `DynamicLibrarySearchGenerator`.
+
+### sloinfo
+
+`sloinfo` (`src/sloinfo/sloinfo.cpp`) is a unified shader inspector that auto-detects file
+format from the first two bytes:
+- `0x42 0x43` (LLVM bitcode magic) → parse `.slo` embedded metadata
+- anything else → delegate to the `.rslo` interpreter parser
+
+Reports shader name, type, parameters (name, type, storage class, default value).
+`rsloinfo` is a compatibility symlink to `sloinfo` for the `.rslo`-only inspector workflow.
+
+### Shader format selection
+
+Three-tier priority chain (highest first):
+
+| RIB / mechanism | Syntax | Scope |
+|-----------------|--------|-------|
+| Per-primitive attribute | `Attribute "shade" "shaderformat" ["slo"]` | One primitive block |
+| Global scene option | `Option "shaderformat" "default" ["slo"]` | Entire RIB scene |
+| Compile-time / env default | `OPENRENDER_DEFAULT_FORMAT=slo` (env var or CMake cache) | Renderer startup |
+
+`Attribute "shade" "shaderformat"` sets the format for the current attribute block only.
+`Option "shaderformat" "default"` sets the scene-wide default before `WorldBegin`; it is
+overridden by any `Attribute` within the scene. `OPENRENDER_DEFAULT_FORMAT` acts as the
+fallback when neither is specified.
+
+### Structured logging environment variables
+
+| Variable | Values | Effect |
+|----------|--------|--------|
+| `ORENDER_INSTR_LEVEL` | `debug`, `info`, `warn`, `error` | Minimum log level |
+| `ORENDER_INSTR_OUTPUT` | `stderr`, `stdout`, or file path | Log destination |
+| `OPENRENDER_DUMP_JIT_IR` | any non-empty value | Print IR after each pass to stderr |
+
+### Visual regression tests
+
+43 scenes registered under the `visual` CTest label (threshold 20/255 block-average).
+Includes `.slo` JIT variants for all material shaders (matte, wood, blue_marble,
+brushedmetal, somewood, full-metal) compared against their `.rslo` reference images.
+New somewood reference TIFs: `examples/rib/tests/references/teapot-somewood-reyes.tif`,
+`teapot-somewood-raytrace.tif`.
 
 ---
 

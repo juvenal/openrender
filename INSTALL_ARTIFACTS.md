@@ -8,7 +8,7 @@
 
 ---
 
-## Executables (7 binaries)
+## Executables (7 binaries + 1 symlink)
 
 Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
@@ -17,7 +17,8 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 | `orender` | Main renderer executable | `/usr/local/bin/orender` |
 | `orender-wire` | Interactive RIB wireframe previewer (macOS: `.app` bundle; Linux: GTK 4 binary) | `/usr/local/bin/orender-wire` |
 | `oshader` | Shader compiler | `/usr/local/bin/oshader` |
-| `rsloinfo` | Shader information utility | `/usr/local/bin/rsloinfo` |
+| `sloinfo` | Unified shader inspector (auto-detects `.slo` / `.rslo` by file magic) | `/usr/local/bin/sloinfo` |
+| `rsloinfo` | Symlink to `sloinfo` for backward compatibility | `/usr/local/bin/rsloinfo` → `sloinfo` |
 | `otexmake` | Texture creation utility | `/usr/local/bin/otexmake` |
 | `oshow` | GUI viewer (FLTK-based, optional) | `/usr/local/bin/oshow` |
 | `precomp` | Preprocessor (not installed by default) | Build only |
@@ -75,6 +76,8 @@ Built from the same OBJECT library as the shared variants (one compilation pass,
 |---------|-------------|
 | `libopenrendercommon.a` | Common utilities (object code embedded in libri/librslo; not installed separately) |
 | `libribpreview.a` | Scene geometry extraction for wireframe preview (`ribpreview_api.h` C API) |
+| `libshader_shading.a` | JIT-callable `op_*`/`rsl_*` ops + builtins; embedded in `libri` at link time |
+| `libshader_compiler.a` | Shader compiler library; embedded in `oshader` at link time |
 
 ---
 
@@ -121,7 +124,7 @@ Installed to: `${OPENRENDER_SHADERDIR}` → `/usr/local/shaders/`
 
 Includes:
 - `.sl` files - Shader source files (RenderMan Shading Language)
-- `.sdr` / `.rslo` files - Compiled shader files
+- `.rslo` / `.slo` files - Compiled shader files (`.slo` = LLVM bitcode, produced on demand by `oshader --jit`)
 
 Examples:
 - Surface shaders: `plastic.sl`, `matte.sl`, `metal.sl`, etc.
@@ -130,7 +133,7 @@ Examples:
 
 ---
 
-## Man Pages (5 files)
+## Man Pages (6 files)
 
 Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 
@@ -140,6 +143,7 @@ Installed to: `${CMAKE_INSTALL_MANDIR}/man1` → `/usr/local/share/man/man1/`
 | `orender-wire.1` | orender-wire(1) |
 | `oshader.1` | oshader(1) |
 | `rsloinfo.1` | rsloinfo(1) |
+| `sloinfo.1` | sloinfo(1) |
 | `otexmake.1` | otexmake(1) |
 
 ---
@@ -169,7 +173,8 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── orender
 │   ├── orender-wire
 │   ├── oshader
-│   ├── rsloinfo
+│   ├── sloinfo
+│   ├── rsloinfo -> sloinfo
 │   ├── otexmake
 │   └── oshow
 ├── lib/
@@ -191,7 +196,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   └── openexr.dsply
 ├── shaders/             # Shader files (54 files)
 │   ├── *.sl
-│   └── *.sdr / *.rslo
+│   └── *.rslo / *.slo
 ├── python/
 │   └── prman.py         # Python RenderMan binding
 ├── lua/
@@ -202,6 +207,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   │   ├── orender-wire.1
 │   │   ├── oshader.1
 │   │   ├── rsloinfo.1
+│   │   ├── sloinfo.1
 │   │   └── otexmake.1
 │   └── doc/             # Documentation
 │       ├── AUTHORS.md
@@ -289,17 +295,32 @@ When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 
 ---
 
+## Environment Variables
+
+| Variable | Values | Description |
+|----------|--------|-------------|
+| `ORENDERHOME` | directory path | Base directory for openRender resources |
+| `SHADERS` | directory path | Shader search path (overrides `ORENDERHOME/shaders`) |
+| `DISPLAYS` | directory path | Display driver search path |
+| `GEOMETRIES` | directory path | Geometry plugin search path |
+| `ORENDER_INSTR_LEVEL` | `debug`, `info`, `warn`, `error` | Minimum log verbosity level |
+| `ORENDER_INSTR_OUTPUT` | `stderr`, `stdout`, or file path | Log output destination |
+| `OPENRENDER_DEFAULT_FORMAT` | `rslo`, `slo` | Default shader format when not overridden by RIB |
+| `OPENRENDER_DUMP_JIT_IR` | any non-empty | Print JIT IR after each optimization pass to stderr |
+
+---
+
 ## Total Artifact Count
 
 | Category | Count |
 |----------|-------|
-| Executables | 7 (6 installed + 1 build-only) |
+| Executables | 7 (6 installed + 1 build-only) + 1 symlink (rsloinfo → sloinfo) |
 | Shared Libraries | 2 (installed) |
-| Static Libraries | 2 (installed) + 2 (build-only) |
+| Static Libraries | 2 (installed) + 4 (build-only) |
 | Display Modules | 4 |
 | Header Files | 6 |
 | Language Binding Files | 2 |
 | Shader Files | 54 |
-| Man Pages | 5 |
+| Man Pages | 6 |
 | Documentation Files | 8 |
-| **Total Installed Files** | **89** |
+| **Total Installed Files** | **91** |

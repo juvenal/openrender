@@ -5,7 +5,7 @@ oshader \- compile an sl shader.
 \fBoshader\fR [ options... ] [ name.sl ...  ]
 .SH DESCRIPTION
 .I  Oshader
-Compiles renderman SL shaders to openRender rslo code for use with
+Compiles RenderMan SL shaders to openRender shader objects (.rslo interpreter bytecode by default, or .slo LLVM bitcode with \fB\-\-jit\fR) for use with
 .I orender.
 .P
 The main documentation is maintained in html form
@@ -33,6 +33,13 @@ Display resolution info for names and functions.
 .B \-v
 Display version.
 .TP
+.B \-\-jit
+Compile to LLVM bitcode (.slo) instead of the default interpreter bytecode (.rslo).
+The .slo file is executed natively at render time via the LLVM LLJIT runtime.
+.TP
+.B \-\-legacy\-sdr
+Output legacy .sdr format (deprecated; for backward compatibility only).
+.TP
 .B \--help
 Display help.
 .SH ENVIRONMENT
@@ -46,6 +53,6 @@ Additional include paths for the preprocessor
 .B OPENRENDERHOME
 Used to locate dsos.
 .SH "SEE ALSO"
-orender(1), otexmake(1), oshow(1), rsloinfo(1)
+orender(1), otexmake(1), oshow(1), rsloinfo(1), sloinfo(1)
 .SH AUTHOR
 See the sourceforge forums / tracker at http://openrender.sourceforge.net
