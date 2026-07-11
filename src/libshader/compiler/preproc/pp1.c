@@ -724,7 +724,7 @@ void init(void) {
 /*									*/
 /************************************************************************/
 
-void usage(int v) {
+_Noreturn void usage(int v) {
     printf(
 #if DEBUG
         "Usage: pp <input> -[cdeilostuvz?]\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",

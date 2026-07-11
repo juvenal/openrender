@@ -1035,7 +1035,7 @@ struct param *getparams(void) {
     struct param *lh;
     struct param *lt;
     struct param *p;
-    char pname[TOKENSIZE];
+    char pname[TOKENSIZE + 1]; /* Matches Token's buffer size to avoid truncation */
     int t;
 
     lh = NULL;

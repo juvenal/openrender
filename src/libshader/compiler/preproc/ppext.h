@@ -31,7 +31,7 @@
 extern int preprocess(char *inFile, FILE *outFile, int argc, char **argv);
 extern char *getnext(char *cp, int *argc, char ***argv, int swvalid);
 extern void init(void);
-extern void usage(int v);
+extern _Noreturn void usage(int v);
 
 /*
  *	pp2.c

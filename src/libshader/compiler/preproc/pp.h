@@ -256,7 +256,11 @@ extern int istype(int c, int v);
 #endif /* PP */
 
 #ifdef MAIN
-char typetab[] =
+/* Sized to 257 (not just the number of initializers below) because the PP
+ * macro form of istype() indexes with (c & 0xFF), i.e. the full unsigned
+ * byte range 0-255 via (typetab + 1)[...]; bytes beyond the last named
+ * entry fall back to the implicit zero-fill (no type bits set). */
+char typetab[257] =
     {
         (char)(C_C | C_N), /* EOF         */
         0, 0, 0, 0,        /* ^@ ^A ^B ^C */

@@ -161,7 +161,6 @@ int CTransmissionBundle::postTraceAction() {
 // Return Value			:	-
 // Comments				:
 void CTransmissionBundle::postShade(int nr, CRay **r, float **varying) {
-    float *Ci = varying[VARIABLE_CI];
     float *Oi = varying[VARIABLE_OI];
     int i;
     T32 one;
@@ -171,7 +170,7 @@ void CTransmissionBundle::postShade(int nr, CRay **r, float **varying) {
 
     if (depth == 0) {
         // First hit
-        for (i = nr; i > 0; i--, Ci += 3, Oi += 3) {
+        for (i = nr; i > 0; i--, Oi += 3) {
             CTransmissionRay *cRay = (CTransmissionRay *)(*r++);
 
             opacity = (T32 *)Oi;
@@ -185,7 +184,7 @@ void CTransmissionBundle::postShade(int nr, CRay **r, float **varying) {
         }
     } else {
         // Transparency hit
-        for (i = nr; i > 0; i--, Ci += 3, Oi += 3) {
+        for (i = nr; i > 0; i--, Oi += 3) {
             CTransmissionRay *cRay = (CTransmissionRay *)(*r++);
 
             opacity = (T32 *)Oi;

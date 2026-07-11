@@ -18,6 +18,18 @@ if(OPENRENDER_HAVE_LLVM)
         ${LLVM_INCLUDE_DIRS}
     )
     target_compile_definitions(sloinfo PRIVATE ${LLVM_DEFINITIONS})
+
+    # libshader_shading references ri symbols (CRenderer, error()/warning()/info(), etc.)
+    # that sloinfo intentionally does not link (see libshader/shading/CMakeLists.txt)
+    # -- extractMetadataFromFile() never exercises those call paths. On macOS this is
+    # already tolerated because libshader_shading itself is built with
+    # "-undefined dynamic_lookup". GNU ld has the opposite default: undefined symbols
+    # in a linked .so are allowed while building another shared library, but rejected
+    # while linking a final executable -- which is what sloinfo is. Relax that check
+    # here to mirror the macOS behavior.
+    if(UNIX AND NOT APPLE)
+        target_link_options(sloinfo PRIVATE "-Wl,--allow-shlib-undefined")
+    endif()
 endif()
 
 install(TARGETS sloinfo RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

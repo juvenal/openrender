@@ -35,6 +35,7 @@ typedef enum {
 #ifdef __cplusplus
 extern "C" {
 #endif
+void orender_log_init(void);
 #ifdef LOGGING_IMPLEMENTATION
 void orender_log_init(void) {
     if (_log_init_done) return;
@@ -59,8 +60,6 @@ void orender_log_init(void) {
         if (!_log_output) _log_output = stderr;
     }
 }
-#else
-void orender_log_init(void);
 #endif
 #ifdef __cplusplus
 }

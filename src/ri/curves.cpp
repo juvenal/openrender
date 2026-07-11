@@ -757,7 +757,6 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
             }
         }
     } else {
-        int k = 0;
         int cVertex = 0;
         matrix geometryMatrix;
 
@@ -771,7 +770,7 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
             const int ncsegs = (wrap == FALSE ? (nverts[i] - 4) / attributes->vStep + 1 : nverts[i] / attributes->vStep);
             int j;
 
-            for (j = 0; j < ncsegs; j++, k++) {
+            for (j = 0; j < ncsegs; j++) {
                 float *v0 = pl->data0 + (cVertex + (j * attributes->vStep + 0) % nverts[i]) * 3;
                 float *v1 = pl->data0 + (cVertex + (j * attributes->vStep + 1) % nverts[i]) * 3;
                 float *v2 = pl->data0 + (cVertex + (j * attributes->vStep + 2) % nverts[i]) * 3;
@@ -918,7 +917,6 @@ void CCurveMesh::create(CShadingContext *context) {
     if (degree == 3) {
         float *baseVertex;
         int t = 0;
-        int k = 0;
         int cVertex = 0;
 
         for (baseVertex = vertex, i = 0; i < numCurves; i++) {
@@ -926,7 +924,7 @@ void CCurveMesh::create(CShadingContext *context) {
             int j;
             const int nvars = ncsegs + 1 - wrap;
 
-            for (j = 0; j < ncsegs; j++, k++) {
+            for (j = 0; j < ncsegs; j++) {
                 float *v0 = baseVertex + (cVertex + (j * attributes->vStep + 0) % nverts[i]) * vertexSize;
                 float *v1 = baseVertex + (cVertex + (j * attributes->vStep + 1) % nverts[i]) * vertexSize;
                 float *v2 = baseVertex + (cVertex + (j * attributes->vStep + 2) % nverts[i]) * vertexSize;
@@ -962,7 +960,6 @@ void CCurveMesh::create(CShadingContext *context) {
     }
     if (degree == 1) {
         float *baseVertex;
-        int k = 0;
         int t = 0;
         int cVertex = 0;
 
@@ -971,7 +968,7 @@ void CCurveMesh::create(CShadingContext *context) {
             int j;
             const int nvars = nverts[i];
 
-            for (j = 0; j < ncsegs; j++, k++) {
+            for (j = 0; j < ncsegs; j++) {
                 float *v0 = baseVertex + (cVertex + (j + 0) % nverts[i]) * vertexSize;
                 float *v1 = baseVertex + (cVertex + (j + 1) % nverts[i]) * vertexSize;
                 CParameter *parameters;
