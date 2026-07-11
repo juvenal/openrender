@@ -38,6 +38,8 @@
         __a = new CFragment;                                           \
         if (CRenderer::numExtraSamples > 0) {                          \
             __a->extraSamples = new float[CRenderer::numExtraSamples]; \
+        } else {                                                       \
+            __a->extraSamples = NULL;                                  \
         }                                                              \
     } else {                                                           \
         __a = freeFragments;                                           \

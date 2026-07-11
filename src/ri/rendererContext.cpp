@@ -4086,7 +4086,7 @@ void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const
     CAttributes *attributes;
     CXform *xform;
     float *p0, *p1;
-    int numVertices, numSegments, numVaryings;
+    int numVertices, numVaryings;
     int i;
     int degree, wrap;
     CPl *pl;
@@ -4104,18 +4104,16 @@ void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const
         degree = 1;
 
         if (strcmp(w, RI_PERIODIC) == 0) {
-            for (numVertices = 0, numSegments = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
+            for (numVertices = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
                 numVertices += nverts[i];
-                numSegments += nverts[i];
                 numVaryings += nverts[i];
             }
 
             wrap = TRUE;
         }
         else {
-            for (numVertices = 0, numSegments = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
+            for (numVertices = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
                 numVertices += nverts[i];
-                numSegments += nverts[i] - 1;
                 numVaryings += nverts[i];
             }
 
@@ -4126,18 +4124,16 @@ void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const
         degree = 3;
 
         if (strcmp(w, RI_PERIODIC) == 0) {
-            for (numVertices = 0, numSegments = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
+            for (numVertices = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
                 numVertices += nverts[i];
-                numSegments += (nverts[i] - 4) / attributes->vStep + 1;
                 numVaryings += (nverts[i] - 4) / attributes->vStep + 1;
             }
 
             wrap = TRUE;
         }
         else {
-            for (numVertices = 0, numSegments = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
+            for (numVertices = 0, numVaryings = 0, i = 0; i < ncurves; i++) {
                 numVertices += nverts[i];
-                numSegments += nverts[i] / attributes->vStep;
                 numVaryings += (nverts[i] - 4) / attributes->vStep + 2;
             }
 
