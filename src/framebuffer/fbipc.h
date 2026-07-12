@@ -49,6 +49,7 @@ struct FBStartPayload {
     uint32_t width;       // image width in pixels
     uint32_t height;      // image height in pixels
     uint32_t numSamples;  // 3 = RGB, 4 = RGBA
+    uint64_t startEpoch;  // unix time (seconds) render began, for title "@ <time>"
     uint32_t titleLen;    // byte length of title string that follows (0..512)
     // followed by titleLen bytes of UTF-8 title (no NUL terminator)
 };
@@ -59,6 +60,10 @@ struct FBDataPayload {
     uint32_t w;  // tile width
     uint32_t h;  // tile height
     // followed by w*h*numSamples*sizeof(float) bytes of float32 pixel data (LE)
+};
+
+struct FBDonePayload {
+    uint32_t durationMillis; // wall-clock render duration, milliseconds
 };
 
 #pragma pack(pop)
@@ -151,7 +156,8 @@ inline bool sendHeader(int fd, FBOpcode opcode, uint32_t payloadLen) {
 }
 
 inline bool sendStart(int fd, uint32_t width, uint32_t height,
-                      uint32_t numSamples, const char *title) {
+                      uint32_t numSamples, uint64_t startEpoch,
+                      const char *title) {
     uint32_t titleLen = title ? (uint32_t)strlen(title) : 0;
     if (titleLen > 512) titleLen = 512;
     uint32_t payloadLen = sizeof(FBStartPayload) + titleLen;
@@ -162,6 +168,7 @@ inline bool sendStart(int fd, uint32_t width, uint32_t height,
     sp.width      = width;
     sp.height     = height;
     sp.numSamples = numSamples;
+    sp.startEpoch = startEpoch;
     sp.titleLen   = titleLen;
     if (!writeAll(fd, &sp, sizeof(sp))) return false;
     if (titleLen > 0 && !writeAll(fd, title, titleLen)) return false;
@@ -185,8 +192,11 @@ inline bool sendData(int fd, uint32_t x, uint32_t y, uint32_t w, uint32_t h,
     return true;
 }
 
-inline bool sendDone(int fd) {
-    return sendHeader(fd, FBOpcode::DONE, 0);
+inline bool sendDone(int fd, uint32_t durationMillis) {
+    if (!sendHeader(fd, FBOpcode::DONE, sizeof(FBDonePayload))) return false;
+    FBDonePayload dp;
+    dp.durationMillis = durationMillis;
+    return writeAll(fd, &dp, sizeof(dp));
 }
 
 inline bool sendQuit(int fd) {

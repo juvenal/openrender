@@ -33,6 +33,8 @@
 #include <string>
 #include <vector>
 
+#include <ctime>
+
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
@@ -69,11 +71,30 @@ struct SessionCtx {
     uint32_t numSamples = 0;
     char     title[512] = {};
     char     baseTitle[512] = {};  // original title before status prefix
+    time_t   startEpoch = 0;       // wall-clock time render began (from START)
+    char     startTimeStr[16] = {}; // formatted HH:MM:SS
     int      tileCount  = 0;
     bool     done       = false;
     bool     interrupted = false;
     bool     quit       = false;
 };
+
+// ---------------------------------------------------------------------------
+// Title formatting helpers — shared by both the X11 and Wayland code paths
+// ---------------------------------------------------------------------------
+
+static void formatStartTime(time_t epoch, char *out, size_t outSize) {
+    struct tm tmv;
+    localtime_r(&epoch, &tmv);
+    strftime(out, outSize, "%H:%M:%S", &tmv);
+}
+
+static void formatDuration(uint32_t ms, char *out, size_t outSize) {
+    uint32_t m = ms / 60000;
+    double secs = (ms % 60000) / 1000.0;
+    if (m > 0) snprintf(out, outSize, "%um %.3fs", m, secs);
+    else       snprintf(out, outSize, "%.3fs", secs);
+}
 
 // ---------------------------------------------------------------------------
 // Pixel clamp helper: clamp floats to [0,1]
@@ -329,11 +350,17 @@ static bool runX11Window(int sockfd, SessionCtx &ctx) {
                 ctx.tileCount++;
                 break;
             }
-            case FBOpcode::DONE:
+            case FBOpcode::DONE: {
                 ctx.done = true;
                 socketOpen = false;
+                char durationStr[32] = "0.000s";
+                if (len >= sizeof(FBDonePayload)) {
+                    auto *donep = reinterpret_cast<const FBDonePayload *>(pbuf.data());
+                    formatDuration(donep->durationMillis, durationStr, sizeof(durationStr));
+                }
                 snprintf(ctx.title, sizeof(ctx.title),
-                         "Rendering Complete \xe2\x80\x94 %s", ctx.baseTitle);
+                         "Rendering Completed - %s @ %s [%s]",
+                         ctx.baseTitle, ctx.startTimeStr, durationStr);
                 XChangeProperty(display, xcanvas, _NET_WM_NAME, UTF8_STRING, 8,
                                 PropModeReplace,
                                 reinterpret_cast<const unsigned char *>(ctx.title),
@@ -342,6 +369,7 @@ static bool runX11Window(int sockfd, SessionCtx &ctx) {
                 XPutImage(display, xcanvas, gc, xim, 0, 0, 0, 0, ctx.width, ctx.height);
                 XFlush(display);
                 break;
+            }
             case FBOpcode::QUIT:
                 ctx.quit = true;
                 socketOpen = false;
@@ -692,11 +720,17 @@ static bool runWaylandWindow(int sockfd, SessionCtx &ctx) {
                     ctx.tileCount++;
                     break;
                 }
-                case FBOpcode::DONE:
+                case FBOpcode::DONE: {
                     ctx.done = true;
                     socketOpen = false;
+                    char durationStr[32] = "0.000s";
+                    if (len >= sizeof(FBDonePayload)) {
+                        auto *donep = reinterpret_cast<const FBDonePayload *>(pbuf.data());
+                        formatDuration(donep->durationMillis, durationStr, sizeof(durationStr));
+                    }
                     snprintf(ctx.title, sizeof(ctx.title),
-                             "Rendering Complete \xe2\x80\x94 %s", ctx.baseTitle);
+                             "Rendering Completed - %s @ %s [%s]",
+                             ctx.baseTitle, ctx.startTimeStr, durationStr);
 #ifdef HAVE_LIBDECOR
                     libdecor_frame_set_title(w.decor_frame, ctx.title);
 #else
@@ -704,6 +738,7 @@ static bool runWaylandWindow(int sockfd, SessionCtx &ctx) {
 #endif
                     wlCommitFrame(w);
                     break;
+                }
                 case FBOpcode::QUIT:
                     ctx.quit     = true;
                     socketOpen   = false;
@@ -804,16 +839,19 @@ static void *sessionThread(void *raw) {
     ctx.width      = sp->width;
     ctx.height     = sp->height;
     ctx.numSamples = sp->numSamples;
+    ctx.startEpoch = (time_t)sp->startEpoch;
+    formatStartTime(ctx.startEpoch, ctx.startTimeStr, sizeof(ctx.startTimeStr));
 
     uint32_t titleLen = sp->titleLen;
     if (titleLen > 0 && payloadLen >= sizeof(FBStartPayload) + titleLen) {
-        size_t copy = (titleLen < sizeof(ctx.title) - 1) ? titleLen : sizeof(ctx.title) - 1;
-        memcpy(ctx.title, startBuf.data() + sizeof(FBStartPayload), copy);
-        ctx.title[copy] = '\0';
+        size_t copy = (titleLen < sizeof(ctx.baseTitle) - 1) ? titleLen : sizeof(ctx.baseTitle) - 1;
+        memcpy(ctx.baseTitle, startBuf.data() + sizeof(FBStartPayload), copy);
+        ctx.baseTitle[copy] = '\0';
     } else {
-        strncpy(ctx.title, "openRender", sizeof(ctx.title) - 1);
+        strncpy(ctx.baseTitle, "openRender", sizeof(ctx.baseTitle) - 1);
     }
-    strncpy(ctx.baseTitle, ctx.title, sizeof(ctx.baseTitle) - 1);
+    snprintf(ctx.title, sizeof(ctx.title), "Rendering - %s @ %s",
+             ctx.baseTitle, ctx.startTimeStr);
 
     // Run the appropriate display window; it blocks until the user closes it
     bool continueServing;

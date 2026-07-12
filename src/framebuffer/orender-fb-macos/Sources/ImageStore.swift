@@ -41,6 +41,7 @@ public final class ImageStore: ObservableObject {
     public let height:     Int
     public let numSamples: Int
     private let baseTitle: String
+    private let startTimeStr: String
     private var context:   CGContext?
     private var interrupted = false
     private var completed   = false
@@ -49,12 +50,19 @@ public final class ImageStore: ObservableObject {
     // Init (called once START packet is received)
     // ---------------------------------------------------------------------------
 
-    public init(width: UInt32, height: UInt32, numSamples: UInt32, title: String) {
+    public init(width: UInt32, height: UInt32, numSamples: UInt32, title: String,
+               startEpoch: UInt64) {
         self.width      = Int(width)
         self.height     = Int(height)
         self.numSamples = Int(numSamples)
         self.baseTitle  = title.isEmpty ? "orender" : title
-        self.windowTitle = "orender — \(self.baseTitle)"
+
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm:ss"
+        df.timeZone   = TimeZone.current
+        self.startTimeStr = df.string(from: Date(timeIntervalSince1970: TimeInterval(startEpoch)))
+
+        self.windowTitle = "Rendering - \(self.baseTitle) @ \(self.startTimeStr)"
 
         // Create RGBA8 backing context
         let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -132,9 +140,10 @@ public final class ImageStore: ObservableObject {
     // Session lifecycle
     // ---------------------------------------------------------------------------
 
-    public func markDone() {
+    public func markDone(durationMillis: UInt32) {
         completed   = true
-        windowTitle = "Rendering Complete — \(baseTitle)"
+        let durationStr = Self.formatDuration(durationMillis)
+        windowTitle = "Rendering Completed - \(baseTitle) @ \(startTimeStr) [\(durationStr)]"
     }
 
     public func markInterrupted() {
@@ -149,5 +158,12 @@ public final class ImageStore: ObservableObject {
     private func floatToByte(_ f: Float) -> UInt8 {
         guard f.isFinite else { return f > 0 ? 255 : 0 }
         return UInt8(max(0, min(255, Int(f * 255.0 + 0.5))))
+    }
+
+    private static func formatDuration(_ ms: UInt32) -> String {
+        let m = ms / 60000
+        let secs = Double(ms % 60000) / 1000.0
+        let secsStr = String(format: "%.3f", secs)
+        return m > 0 ? "\(m)m \(secsStr)s" : "\(secsStr)s"
     }
 }

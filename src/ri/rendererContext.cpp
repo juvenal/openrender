@@ -729,9 +729,22 @@ void CRendererContext::RiWorldBegin(void) {
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.
     if (riAddFramebuffer()) {
-        if (currentOptions->displays == NULL)
+        if (currentOptions->displays == NULL) {
+            // No Display entry at all: fall back to the canonical default name.
             RiDisplayV("ri.tif", RI_FILE, RI_RGBA, 0, NULL, NULL);
-        RiDisplayV("+ri", RI_FRAMEBUFFER, RI_RGB, 0, NULL, NULL);
+            RiDisplayV("+ri.tif", RI_FRAMEBUFFER, RI_RGB, 0, NULL, NULL);
+        }
+        else {
+            // Mirror the first-declared Display entry's name onto the
+            // framebuffer window. options->displays is prepended (LIFO), so
+            // the first-declared entry is the tail of the list.
+            COptions::CDisplay *firstDisplay = currentOptions->displays;
+            while (firstDisplay->next != NULL)
+                firstDisplay = firstDisplay->next;
+            char fbName[OS_MAX_PATH_LENGTH];
+            snprintf(fbName, sizeof(fbName), "+%s", firstDisplay->outName);
+            RiDisplayV(fbName, RI_FRAMEBUFFER, RI_RGB, 0, NULL, NULL);
+        }
     }
 
     optionBegin();

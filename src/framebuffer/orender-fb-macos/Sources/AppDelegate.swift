@@ -41,8 +41,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         server.onData = { [weak self] dp in
             self?.store?.applyTile(dp)
         }
-        server.onDone = { [weak self] in
-            self?.store?.markDone()
+        server.onDone = { [weak self] dp in
+            self?.store?.markDone(durationMillis: dp.durationMillis)
         }
         server.onInterrupt = { [weak self] in
             self?.store?.markInterrupted()
@@ -60,7 +60,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func handleStart(_ sp: StartPayload) {
         let s = ImageStore(width: sp.width, height: sp.height,
-                           numSamples: sp.numSamples, title: sp.title)
+                           numSamples: sp.numSamples, title: sp.title,
+                           startEpoch: sp.startEpoch)
         store = s
 
         let rect = NSRect(x: 100, y: 100,

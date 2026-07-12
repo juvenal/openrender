@@ -70,7 +70,7 @@ static void makePair(int sv[2]) {
 static void test_start_packet_field_values() {
     int sv[2]; makePair(sv);
 
-    bool ok = sendStart(sv[0], 1920, 1080, 3, "test-scene");
+    bool ok = sendStart(sv[0], 1920, 1080, 3, 1750000000ULL, "test-scene");
     EXPECT_TRUE(ok);
     close(sv[0]);
 
@@ -78,14 +78,15 @@ static void test_start_packet_field_values() {
     EXPECT_TRUE(readAll(sv[1], &hdr, sizeof(hdr)));
     EXPECT_EQ(static_cast<uint8_t>(hdr.opcode), 0x01); // START
 
-    // Payload: FBStartPayload(16) + "test-scene"(10) = 26
-    EXPECT_EQ(hdr.length, (uint32_t)26);
+    // Payload: FBStartPayload(24) + "test-scene"(10) = 34
+    EXPECT_EQ(hdr.length, (uint32_t)34);
 
     FBStartPayload sp;
     EXPECT_TRUE(readAll(sv[1], &sp, sizeof(sp)));
     EXPECT_EQ(sp.width,      (uint32_t)1920);
     EXPECT_EQ(sp.height,     (uint32_t)1080);
     EXPECT_EQ(sp.numSamples, (uint32_t)3);
+    EXPECT_EQ(sp.startEpoch, (uint64_t)1750000000ULL);
     EXPECT_EQ(sp.titleLen,   (uint32_t)10);
 
     char title[11] = {};
@@ -98,15 +99,15 @@ static void test_start_packet_field_values() {
 static void test_start_packet_zero_title() {
     int sv[2]; makePair(sv);
 
-    bool ok = sendStart(sv[0], 320, 240, 4, "");
+    bool ok = sendStart(sv[0], 320, 240, 4, 0, "");
     EXPECT_TRUE(ok);
     close(sv[0]);
 
     FBHeader hdr;
     EXPECT_TRUE(readAll(sv[1], &hdr, sizeof(hdr)));
     EXPECT_EQ(static_cast<uint8_t>(hdr.opcode), 0x01);
-    // Payload: FBStartPayload(16) + 0 title bytes = 16
-    EXPECT_EQ(hdr.length, (uint32_t)16);
+    // Payload: FBStartPayload(24) + 0 title bytes = 24
+    EXPECT_EQ(hdr.length, (uint32_t)24);
 
     FBStartPayload sp;
     EXPECT_TRUE(readAll(sv[1], &sp, sizeof(sp)));
@@ -197,14 +198,18 @@ static void test_data_packet_large_tile() {
 static void test_done_packet() {
     int sv[2]; makePair(sv);
 
-    bool ok = sendDone(sv[0]);
+    bool ok = sendDone(sv[0], 1234);
     EXPECT_TRUE(ok);
     close(sv[0]);
 
     FBHeader hdr;
     EXPECT_TRUE(readAll(sv[1], &hdr, sizeof(hdr)));
     EXPECT_EQ(static_cast<uint8_t>(hdr.opcode), 0x03); // DONE
-    EXPECT_EQ(hdr.length, (uint32_t)0);
+    EXPECT_EQ(hdr.length, (uint32_t)sizeof(FBDonePayload));
+
+    FBDonePayload dp;
+    EXPECT_TRUE(readAll(sv[1], &dp, sizeof(dp)));
+    EXPECT_EQ(dp.durationMillis, (uint32_t)1234);
 
     close(sv[1]);
 }
@@ -212,14 +217,17 @@ static void test_done_packet() {
 static void test_done_packet_eof() {
     int sv[2]; makePair(sv);
 
-    bool ok = sendDone(sv[0]);
+    bool ok = sendDone(sv[0], 1234);
     EXPECT_TRUE(ok);
     close(sv[0]);
 
     FBHeader hdr;
     EXPECT_TRUE(readAll(sv[1], &hdr, sizeof(hdr)));
     EXPECT_EQ(static_cast<uint8_t>(hdr.opcode), 0x03); // DONE
-    EXPECT_EQ(hdr.length, (uint32_t)0);
+    EXPECT_EQ(hdr.length, (uint32_t)sizeof(FBDonePayload));
+
+    FBDonePayload dp;
+    EXPECT_TRUE(readAll(sv[1], &dp, sizeof(dp)));
 
     // After DONE + close, next read should return 0 (EOF)
     uint8_t byte;
@@ -250,7 +258,7 @@ static void test_sendDone_to_closed_fd_fails() {
     int sv[2]; makePair(sv);
     close(sv[1]);
     signal(SIGPIPE, SIG_IGN);
-    bool ok = sendDone(sv[0]);
+    bool ok = sendDone(sv[0], 0);
     EXPECT_EQ(ok, false);
     close(sv[0]);
 }

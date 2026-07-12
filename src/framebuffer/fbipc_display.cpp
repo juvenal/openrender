@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <csignal>
+#include <ctime>
 #include <mutex>
 #include <unistd.h>
 #include <fcntl.h>
@@ -129,7 +130,8 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
                          int width, int height, int numSamples)
     : CDisplay(name, samples, width, height, numSamples),
       socketFd(-1), helperPid(-1), disconnected(false),
-      numSamplesVal(numSamples), tilesSent(0)
+      numSamplesVal(numSamples), tilesSent(0),
+      startEpoch(time(NULL)), startClock(osTime())
 {
     // Fixed socket path per user — shared across renders so successive orender
     // invocations reuse the same helper process and window.
@@ -219,7 +221,7 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
     // Send START packet (to either reused or freshly spawned helper)
     signal(SIGPIPE, SIG_IGN);
     if (!sendStart(socketFd, (uint32_t)width, (uint32_t)height,
-                   (uint32_t)numSamples, name)) {
+                   (uint32_t)numSamples, (uint64_t)startEpoch, name)) {
         fprintf(stderr, "openRender: framebuffer display — START send failed\n");
         close(socketFd);
         socketFd     = -1;
@@ -271,8 +273,9 @@ void CIPCDisplay::finish() {
               disconnected, socketFd, tilesSent);
     if (!disconnected && socketFd >= 0) {
         signal(SIGPIPE, SIG_IGN);
-        log_debug("finish: sending DONE");
-        sendDone(socketFd);
+        uint32_t durationMillis = (uint32_t)((osTime() - startClock) * 1000.0f);
+        log_debug("finish: sending DONE (durationMillis={})", durationMillis);
+        sendDone(socketFd, durationMillis);
         log_debug("finish: DONE sent, closing socket");
         close(socketFd);
         socketFd = -1;

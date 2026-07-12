@@ -104,8 +104,8 @@ static void test_struct_sizes() {
     // FBHeader: 1 (opcode) + 4 (length LE) = 5 bytes, packed
     EXPECT_EQ(sizeof(FBHeader), (size_t)5);
 
-    // FBStartPayload fixed fields: 4+4+4+4 = 16 bytes (no variable title)
-    EXPECT_EQ(sizeof(FBStartPayload), (size_t)16);
+    // FBStartPayload fixed fields: 4+4+4+8+4 = 24 bytes (no variable title)
+    EXPECT_EQ(sizeof(FBStartPayload), (size_t)24);
 
     // FBDataPayload fixed fields: 4+4+4+4 = 16 bytes (no pixel array)
     EXPECT_EQ(sizeof(FBDataPayload), (size_t)16);

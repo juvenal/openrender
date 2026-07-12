@@ -171,7 +171,7 @@ static void test_start_initialises_session() {
     int sv[2]; makePair(sv);
     SessionCtx ctx;
 
-    sendStart(sv[0], 320, 240, 3, "test-scene");
+    sendStart(sv[0], 320, 240, 3, 0, "test-scene");
     close(sv[0]); // triggers EOF after START
 
     runLoop(sv[1], ctx);
@@ -191,7 +191,7 @@ static void test_data_updates_pixel_buffer() {
     int sv[2]; makePair(sv);
     SessionCtx ctx;
 
-    sendStart(sv[0], 4, 4, 3, "");
+    sendStart(sv[0], 4, 4, 3, 0, "");
     float pixels[3] = {0.9f, 0.1f, 0.5f}; // 1x1 RGB at (2,3)
     sendData(sv[0], 2, 3, 1, 1, 3, pixels);
     close(sv[0]);
@@ -217,8 +217,8 @@ static void test_done_sets_complete_state() {
     int sv[2]; makePair(sv);
     SessionCtx ctx;
 
-    sendStart(sv[0], 8, 8, 3, "my-render");
-    sendDone(sv[0]);
+    sendStart(sv[0], 8, 8, 3, 0, "my-render");
+    sendDone(sv[0], 0);
     close(sv[0]);
 
     runLoop(sv[1], ctx);
@@ -235,7 +235,7 @@ static void test_quit_sets_quit_state() {
     int sv[2]; makePair(sv);
     SessionCtx ctx;
 
-    sendStart(sv[0], 8, 8, 3, "quit-test");
+    sendStart(sv[0], 8, 8, 3, 0, "quit-test");
     sendQuit(sv[0]);
     close(sv[0]);
 
@@ -253,7 +253,7 @@ static void test_eof_without_quit_sets_interrupted() {
     SessionCtx ctx;
 
     float pixels[3] = {0.5f, 0.5f, 0.5f};
-    sendStart(sv[0], 4, 4, 3, "partial");
+    sendStart(sv[0], 4, 4, 3, 0, "partial");
     sendData(sv[0], 0, 0, 1, 1, 3, pixels); // one tile delivered
     close(sv[0]); // abrupt disconnect
 
@@ -271,7 +271,7 @@ static void test_unknown_opcode_safe_close() {
     int sv[2]; makePair(sv);
     SessionCtx ctx;
 
-    sendStart(sv[0], 4, 4, 3, "bad-pkt");
+    sendStart(sv[0], 4, 4, 3, 0, "bad-pkt");
 
     // Inject an unknown opcode (0xFF)
     uint8_t bad[5] = {0xFF, 0x00, 0x00, 0x00, 0x00}; // opcode=0xFF, length=0

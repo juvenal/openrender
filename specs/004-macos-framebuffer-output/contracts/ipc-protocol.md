@@ -1,12 +1,12 @@
 # Contract: Framebuffer IPC Protocol
 
 **Feature**: 004-macos-framebuffer-output  
-**Version**: 1.0  
-**Date**: 2026-05-06
+**Version**: 1.1  
+**Date**: 2026-07-11
 
 ## Overview
 
-The display driver (`fbq.cpp`, `fbx.cpp`, `fbwl.cpp`) and the display helper (`orender-fb-macos`, `orender-fb-linux`) communicate over a **Unix domain socket** using a **TLV (Type-Length-Value)** binary protocol. The driver is always the client; the helper is always the server.
+The display driver (`src/framebuffer/fbipc_display.cpp`) and the display helper (`orender-fb-macos`, `orender-fb-linux`) communicate over a **Unix domain socket** using a **TLV (Type-Length-Value)** binary protocol. The driver is always the client; the helper is always the server.
 
 ## Socket Lifecycle
 
@@ -84,11 +84,11 @@ Sent **once**, immediately after the socket connection is established. The helpe
 **Payload**:
 
 ```
-┌──────────┬──────────┬────────────┬──────────┬──────────────────┐
-│  width   │  height  │ numSamples │ titleLen │     title        │
-│ uint32_t │ uint32_t │  uint32_t  │ uint32_t │ titleLen bytes   │
-│  4 bytes │  4 bytes │   4 bytes  │  4 bytes │  (UTF-8, no NUL) │
-└──────────┴──────────┴────────────┴──────────┴──────────────────┘
+┌──────────┬──────────┬────────────┬────────────┬──────────┬──────────────────┐
+│  width   │  height  │ numSamples │ startEpoch │ titleLen │     title        │
+│ uint32_t │ uint32_t │  uint32_t  │  uint64_t  │ uint32_t │ titleLen bytes   │
+│  4 bytes │  4 bytes │   4 bytes  │   8 bytes  │  4 bytes │  (UTF-8, no NUL) │
+└──────────┴──────────┴────────────┴────────────┴──────────┴──────────────────┘
 ```
 
 | Field | Constraints |
@@ -96,10 +96,11 @@ Sent **once**, immediately after the socket connection is established. The helpe
 | `width` | 1 ≤ width ≤ 16384 |
 | `height` | 1 ≤ height ≤ 16384 |
 | `numSamples` | 3 (RGB) or 4 (RGBA) |
+| `startEpoch` | Unix time (seconds) the render began, for the window title's `@ <START_TIME>` (added in v1.1) |
 | `titleLen` | 0 ≤ titleLen ≤ 512 |
-| `title` | UTF-8 encoded display name from RIB `Display` statement |
+| `title` | UTF-8 encoded display name — the first-declared RIB `Display` entry's name, or `ri.tif` when the RIB has no `Display` entry |
 
-**Helper response**: Create window of `width × height` pixels, set window title to `title` (or a default if `titleLen == 0`).
+**Helper response**: Create window of `width × height` pixels, format `startEpoch` as local `HH:MM:SS`, set window title to `Rendering - <title> @ <START_TIME>` (or the equivalent default title if `titleLen == 0`).
 
 ---
 
@@ -135,9 +136,21 @@ Sent once per pixel tile during rendering. Multiple DATA packets MAY arrive in r
 
 Sent once, after the last DATA packet. Signals that rendering is complete.
 
-**Payload**: empty (`length = 0`).
+**Payload** (added in v1.1; was empty in v1.0):
 
-**Helper response**: After draining any remaining queued tiles, update window title to indicate "Rendering Complete" (platform-appropriate wording). Keep window open until user closes it or QUIT is received.
+```
+┌────────────────┐
+│ durationMillis │
+│    uint32_t    │
+│    4 bytes     │
+└────────────────┘
+```
+
+| Field | Constraints |
+|-------|-------------|
+| `durationMillis` | Wall-clock render duration in milliseconds, measured from START to DONE on the driver side |
+
+**Helper response**: After draining any remaining queued tiles, format `durationMillis` as compact human units with millisecond-precision fractional seconds (e.g. `2m 14.032s`, or `45.103s` under a minute) and update window title to `Rendering Completed - <title> @ <START_TIME> [<duration>]`. Keep window open until user closes it or QUIT is received.
 
 **Driver behavior**: After sending DONE, the driver closes the socket and returns from `displayFinish()`. The renderer process exits. The helper continues running independently.
 
@@ -169,15 +182,13 @@ May be sent by **either side**. Signals graceful shutdown.
 
 ## Versioning
 
-Protocol version 1.0. No version negotiation handshake in v1 — both sides must be from the same build. Future protocol changes increment the version and add a handshake in START.
+Protocol version 1.1. No version negotiation handshake — both sides must be from the same build. v1.1 added `startEpoch` to START and a `durationMillis` payload to DONE (previously empty) to support start-time/duration display in the window title; the wire layout otherwise carries only raw semantic data, no locale-formatted strings — each helper formats `startEpoch`/`durationMillis` locally. Future protocol changes increment the version and add a handshake in START.
 
 ## Implementation Reference Files
 
 | File | Role |
 |------|------|
 | `src/framebuffer/fbipc.h` | C++ opcode constants, packet structs, helper path utilities |
-| `src/framebuffer/fbq.cpp` | macOS IPC client (driver side) |
-| `src/framebuffer/fbx.cpp` | Linux X11 IPC client (driver side, refactored) |
-| `src/framebuffer/fbwl.cpp` | Linux Wayland IPC client (driver side, refactored) |
+| `src/framebuffer/fbipc_display.h` / `fbipc_display.cpp` | IPC client (driver side, `CIPCDisplay`) — used by all platforms |
 | `src/framebuffer/orender-fb-macos/Sources/Protocol.swift` | Swift TLV parser (helper side) |
-| `src/framebuffer/orender-fb-linux/main.cpp` | C++ TLV parser + window host (helper side) |
+| `src/framebuffer/orender-fb-linux/main.cpp` | C++ TLV parser + window host (helper side, X11 and Wayland) |

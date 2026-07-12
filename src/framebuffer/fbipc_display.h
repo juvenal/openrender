@@ -32,6 +32,8 @@ private:
     bool       disconnected;
     int        numSamplesVal;
     int        tilesSent;
+    time_t     startEpoch; // wall-clock time render began, for START's "@ <time>"
+    float      startClock; // osTime() at construction, for precise duration math
     std::mutex writeMutex;
 };
 

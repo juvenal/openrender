@@ -20,7 +20,7 @@ public final class SocketServer: @unchecked Sendable {
     // Callbacks — all dispatched to main queue before invocation
     public var onStart:     ((StartPayload) -> Void)?
     public var onData:      ((DataPayload)  -> Void)?
-    public var onDone:      (() -> Void)?
+    public var onDone:      ((DonePayload)  -> Void)?
     public var onInterrupt: (() -> Void)?
     public var onEmpty:     (() -> Void)?
 
@@ -144,8 +144,10 @@ public final class SocketServer: @unchecked Sendable {
                     DispatchQueue.main.async { cb?(tile) }
 
                 case .done:
+                    let dp = (try? TLVParser.parseDonePayload(from: payloadData))
+                        ?? DonePayload(durationMillis: 0)
                     let cb = self.onDone
-                    DispatchQueue.main.async { cb?() }
+                    DispatchQueue.main.async { cb?(dp) }
                     continueAfterSession = true  // loop back to accept() for next render
                     break innerLoop
 

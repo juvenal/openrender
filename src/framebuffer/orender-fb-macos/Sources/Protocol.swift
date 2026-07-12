@@ -33,7 +33,12 @@ public struct StartPayload: Sendable {
     public let width:      UInt32
     public let height:     UInt32
     public let numSamples: UInt32
+    public let startEpoch: UInt64
     public let title:      String
+}
+
+public struct DonePayload: Sendable {
+    public let durationMillis: UInt32
 }
 
 public struct DataPayload: Sendable {
@@ -75,9 +80,9 @@ public enum TLVParser {
         return PacketHeader(opcode: opcode, length: length)
     }
 
-    // Parse a START payload. Data must include the 16-byte fixed fields + title bytes.
+    // Parse a START payload. Data must include the 24-byte fixed fields + title bytes.
     public static func parseStartPayload(from data: Data) throws -> StartPayload {
-        let fixedSize = 16
+        let fixedSize = 24
         guard data.count >= fixedSize else {
             throw TLVError.truncated(expected: fixedSize, got: data.count)
         }
@@ -86,10 +91,16 @@ public enum TLVParser {
                 ptr.loadUnaligned(as: UInt32.self).littleEndian
             }
         }
+        func u64(at offset: Int) -> UInt64 {
+            data.dropFirst(offset).prefix(8).withUnsafeBytes { ptr in
+                ptr.loadUnaligned(as: UInt64.self).littleEndian
+            }
+        }
         let width      = u32(at: 0)
         let height     = u32(at: 4)
         let numSamples = u32(at: 8)
-        let titleLen   = u32(at: 12)
+        let startEpoch = u64(at: 12)
+        let titleLen   = u32(at: 20)
 
         let totalExpected = fixedSize + Int(titleLen)
         guard data.count >= totalExpected else {
@@ -99,8 +110,20 @@ public enum TLVParser {
         guard let title = String(bytes: titleData, encoding: .utf8) else {
             throw TLVError.titleDecodingFailed
         }
-        return StartPayload(width: width, height: height,
-                            numSamples: numSamples, title: title)
+        return StartPayload(width: width, height: height, numSamples: numSamples,
+                            startEpoch: startEpoch, title: title)
+    }
+
+    // Parse a DONE payload. Data must include the 4-byte duration field.
+    public static func parseDonePayload(from data: Data) throws -> DonePayload {
+        let fixedSize = 4
+        guard data.count >= fixedSize else {
+            throw TLVError.truncated(expected: fixedSize, got: data.count)
+        }
+        let durationMillis = data.prefix(4).withUnsafeBytes { ptr in
+            ptr.loadUnaligned(as: UInt32.self).littleEndian
+        }
+        return DonePayload(durationMillis: durationMillis)
     }
 
     // Parse a DATA payload. Data must include the 16-byte fixed fields + pixel floats.
