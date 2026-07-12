@@ -26,20 +26,29 @@ varying	float	dd
 varying	float	pd
 varying	float	alpha_1
 varying	float	nn
+varying	float	fw
+varying	float	ringArg
+varying	float	ringFw
+varying	float	alphaRaw
 varying	vector	Cwood
 varying	vector	temporary_1
 varying	float	temporary_2
 varying	float	temporary_3
 varying	float	temporary_4
 varying	vector	temporary_5
-uniform	float	temporary_6
-varying	vector	temporary_7
-varying	vector	temporary_8
-varying	vector	temporary_9
-varying	vector	temporary_10
-varying	vector	temporary_11
+varying	float	result
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	temporary_10
+uniform	float	temporary_11
 varying	float	temporary_12
-varying	float	temporary_13
+varying	vector	temporary_13
+varying	vector	temporary_14
+varying	vector	temporary_15
+varying	vector	temporary_16
+varying	vector	temporary_17
 #!Init:
 	vfromf  temporary_0 0 0 0
 	pfrom  c0 "shader" temporary_0
@@ -64,92 +73,196 @@ varying	float	temporary_13
 	mulff  temporary_4 pd pd
 	subff  temporary_2 temporary_3 temporary_4
 	sqrt	("f=f")  dd temporary_2
+	vfromf  temporary_0 swirlfreq
+	vuvector  temporary_5 temporary_0
+	mulvv  temporary_1 temporary_5 newP
+	area	("f=p")  temporary_3 temporary_1
+	sqrt	("f=f")  temporary_2 temporary_3
+	vufloat  temporary_3 1.0e-6
+	max	("f=ff")  fw temporary_2 temporary_3
 	vufloat  temporary_2 swirl
 	vfromf  temporary_0 swirlfreq
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_3 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_6 1
+	flt  temporary_4 fw temporary_6
+	if temporary_4 #!Label13
+	noise	("f=p")  temporary_6 temporary_1
+	moveff  temporary_7 result
+	vufloat  temporary_9 0.2
+	vufloat  temporary_10 0.6
+	smoothstep	("f=fff")  temporary_8 temporary_9 temporary_10 fw
+	mix	("f=fff")  result temporary_6 temporary_7 temporary_8
+#!Label13:
+	endif
+	moveff  temporary_3 result
 	mulff  nn temporary_2 temporary_3
-	mulff  temporary_6 0.5 swirl
-	vufloat  temporary_3 temporary_6
-	mulff  temporary_6 2.0 swirlfreq
-	vfromf  temporary_0 temporary_6
+	vufloat  temporary_2 2
+	mulff  fw fw temporary_2
+	mulff  temporary_11 0.5 swirl
+	vufloat  temporary_3 temporary_11
+	mulff  temporary_11 2.0 swirlfreq
+	vfromf  temporary_0 temporary_11
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_4 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_7 1
+	flt  temporary_6 fw temporary_7
+	if temporary_6 #!Label15
+	noise	("f=p")  temporary_7 temporary_1
+	moveff  temporary_8 result
+	vufloat  temporary_10 0.2
+	vufloat  temporary_12 0.6
+	smoothstep	("f=fff")  temporary_9 temporary_10 temporary_12 fw
+	mix	("f=fff")  result temporary_7 temporary_8 temporary_9
+#!Label15:
+	endif
+	moveff  temporary_4 result
 	mulff  temporary_2 temporary_3 temporary_4
 	addff  nn nn temporary_2
-	mulff  temporary_6 0.25 swirl
-	vufloat  temporary_3 temporary_6
-	mulff  temporary_6 4.0 swirlfreq
-	vfromf  temporary_0 temporary_6
+	vufloat  temporary_2 2
+	mulff  fw fw temporary_2
+	mulff  temporary_11 0.25 swirl
+	vufloat  temporary_3 temporary_11
+	mulff  temporary_11 4.0 swirlfreq
+	vfromf  temporary_0 temporary_11
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_4 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_7 1
+	flt  temporary_6 fw temporary_7
+	if temporary_6 #!Label17
+	noise	("f=p")  temporary_7 temporary_1
+	moveff  temporary_8 result
+	vufloat  temporary_10 0.2
+	vufloat  temporary_12 0.6
+	smoothstep	("f=fff")  temporary_9 temporary_10 temporary_12 fw
+	mix	("f=fff")  result temporary_7 temporary_8 temporary_9
+#!Label17:
+	endif
+	moveff  temporary_4 result
 	mulff  temporary_2 temporary_3 temporary_4
 	addff  nn nn temporary_2
-	mulff  temporary_6 0.125 swirl
-	vufloat  temporary_3 temporary_6
-	mulff  temporary_6 8.0 swirlfreq
-	vfromf  temporary_0 temporary_6
+	vufloat  temporary_2 2
+	mulff  fw fw temporary_2
+	mulff  temporary_11 0.125 swirl
+	vufloat  temporary_3 temporary_11
+	mulff  temporary_11 8.0 swirlfreq
+	vfromf  temporary_0 temporary_11
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_4 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_7 1
+	flt  temporary_6 fw temporary_7
+	if temporary_6 #!Label19
+	noise	("f=p")  temporary_7 temporary_1
+	moveff  temporary_8 result
+	vufloat  temporary_10 0.2
+	vufloat  temporary_12 0.6
+	smoothstep	("f=fff")  temporary_9 temporary_10 temporary_12 fw
+	mix	("f=fff")  result temporary_7 temporary_8 temporary_9
+#!Label19:
+	endif
+	moveff  temporary_4 result
 	mulff  temporary_2 temporary_3 temporary_4
 	addff  nn nn temporary_2
-	mulff  temporary_6 0.0625 swirl
-	vufloat  temporary_3 temporary_6
-	mulff  temporary_6 16.0 swirlfreq
-	vfromf  temporary_0 temporary_6
+	vufloat  temporary_2 2
+	mulff  fw fw temporary_2
+	mulff  temporary_11 0.0625 swirl
+	vufloat  temporary_3 temporary_11
+	mulff  temporary_11 16.0 swirlfreq
+	vfromf  temporary_0 temporary_11
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_4 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_7 1
+	flt  temporary_6 fw temporary_7
+	if temporary_6 #!Label21
+	noise	("f=p")  temporary_7 temporary_1
+	moveff  temporary_8 result
+	vufloat  temporary_10 0.2
+	vufloat  temporary_12 0.6
+	smoothstep	("f=fff")  temporary_9 temporary_10 temporary_12 fw
+	mix	("f=fff")  result temporary_7 temporary_8 temporary_9
+#!Label21:
+	endif
+	moveff  temporary_4 result
 	mulff  temporary_2 temporary_3 temporary_4
 	addff  nn nn temporary_2
-	mulff  temporary_6 0.03125 swirl
-	vufloat  temporary_3 temporary_6
-	mulff  temporary_6 32.0 swirlfreq
-	vfromf  temporary_0 temporary_6
+	vufloat  temporary_2 2
+	mulff  fw fw temporary_2
+	mulff  temporary_11 0.03125 swirl
+	vufloat  temporary_3 temporary_11
+	mulff  temporary_11 32.0 swirlfreq
+	vfromf  temporary_0 temporary_11
 	vuvector  temporary_5 temporary_0
 	mulvv  temporary_1 temporary_5 newP
-	noise	("f=p")  temporary_4 temporary_1
+	vufloat  result 0.5
+	vufloat  temporary_7 1
+	flt  temporary_6 fw temporary_7
+	if temporary_6 #!Label23
+	noise	("f=p")  temporary_7 temporary_1
+	moveff  temporary_8 result
+	vufloat  temporary_10 0.2
+	vufloat  temporary_12 0.6
+	smoothstep	("f=fff")  temporary_9 temporary_10 temporary_12 fw
+	mix	("f=fff")  result temporary_7 temporary_8 temporary_9
+#!Label23:
+	endif
+	moveff  temporary_4 result
 	mulff  temporary_2 temporary_3 temporary_4
 	addff  nn nn temporary_2
 	addff  dd dd nn
-	vufloat  temporary_3 grain
-	mulff  temporary_2 temporary_3 dd
-	vufloat  temporary_3 1
-	mod	("f=ff")  alpha_1 temporary_2 temporary_3
-	mulff  alpha_1 alpha_1 alpha_1
+	vufloat  temporary_2 grain
+	mulff  ringArg temporary_2 dd
+	Du	("f=f")  temporary_6 ringArg
+	mulff  temporary_4 temporary_6 du
+	abs	("f=f")  temporary_3 temporary_4
+	Dv	("f=f")  temporary_7 ringArg
+	mulff  temporary_6 temporary_7 dv
+	abs	("f=f")  temporary_4 temporary_6
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_3 1.0e-6
+	max	("f=ff")  ringFw temporary_2 temporary_3
+	vufloat  temporary_2 1
+	mod	("f=ff")  alphaRaw ringArg temporary_2
+	mulff  alphaRaw alphaRaw alphaRaw
+	vufloat  temporary_11 0.33333333333333331
+	vufloat  temporary_2 temporary_11
+	vufloat  temporary_4 0.2
+	vufloat  temporary_6 0.6
+	smoothstep	("f=fff")  temporary_3 temporary_4 temporary_6 ringFw
+	mix	("f=fff")  alpha_1 alphaRaw temporary_2 temporary_3
 	movevv  Oi Os
 	vuvector  temporary_1 darkcolor
 	mix	("v=vvf")  Cwood temporary_1 Cs alpha_1
 	vfromf  temporary_0 Ka
-	vuvector  temporary_9 temporary_0
-	ambient	("c=")  temporary_10
-	mulvv  temporary_8 temporary_9 temporary_10
+	vuvector  temporary_15 temporary_0
+	ambient	("c=")  temporary_16
+	mulvv  temporary_14 temporary_15 temporary_16
 	vfromf  temporary_0 Kd
-	vuvector  temporary_10 temporary_0
-	diffuse	("c=n")  temporary_11 Nf
-	mulvv  temporary_9 temporary_10 temporary_11
-	addvv  temporary_7 temporary_8 temporary_9
-	mulvv  temporary_5 Cwood temporary_7
-	moveff  temporary_13 temporary_3
-	subff  temporary_12 temporary_13 alpha_1
-	subff  temporary_6 1 darkfactor
-	vufloat  temporary_13 temporary_6
-	addff  temporary_4 temporary_12 temporary_13
-	vufloat  temporary_12 0.75
-	moveff  temporary_13 temporary_3
-	clamp	("f=fff")  temporary_3 temporary_4 temporary_12 temporary_13
+	vuvector  temporary_16 temporary_0
+	diffuse	("c=n")  temporary_17 Nf
+	mulvv  temporary_15 temporary_16 temporary_17
+	addvv  temporary_13 temporary_14 temporary_15
+	mulvv  temporary_5 Cwood temporary_13
+	vufloat  temporary_7 1
+	subff  temporary_6 temporary_7 alpha_1
+	subff  temporary_11 1 darkfactor
+	vufloat  temporary_7 temporary_11
+	addff  temporary_4 temporary_6 temporary_7
+	vufloat  temporary_6 0.75
+	vufloat  temporary_7 1
+	clamp	("f=fff")  temporary_3 temporary_4 temporary_6 temporary_7
 	vufloat  temporary_4 Ks
 	mulff  temporary_2 temporary_3 temporary_4
-	vfromf  temporary_9 temporary_2
-	vuvector  temporary_10 specularcolor
-	mulvv  temporary_8 temporary_9 temporary_10
+	vfromf  temporary_15 temporary_2
+	vuvector  temporary_16 specularcolor
+	mulvv  temporary_14 temporary_15 temporary_16
 	vufloat  temporary_2 roughness
-	specular	("c=nvf")  temporary_9 Nf V temporary_2
-	mulvv  temporary_7 temporary_8 temporary_9
-	addvv  temporary_1 temporary_5 temporary_7
+	specular	("c=nvf")  temporary_15 Nf V temporary_2
+	mulvv  temporary_13 temporary_14 temporary_15
+	addvv  temporary_1 temporary_5 temporary_13
 	mulvv  Ci Os temporary_1
 	return

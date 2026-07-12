@@ -15,6 +15,16 @@
  *
  */
 
+#include "filterwidth.slh"
+
+float
+filteredNoise(point p; float fw) {
+    float result = 0.5;
+    if (fw < 1)
+        result = mix(noise(p), 0.5, smoothstep(0.2, 0.6, fw));
+    return result;
+}
+
 surface
 somewood (float Ka = 1,
                 Kd = 0.6,
@@ -30,7 +40,7 @@ somewood (float Ka = 1,
           float darkfactor = 1)
 {
     point  cP, C1, C0, PP, Nf, V, newP;
-    float  dd, pd, alpha, nn;
+    float  dd, pd, alpha, nn, fw, ringArg, ringFw, alphaRaw;
     color  Cwood;
 
     Nf = faceforward( normalize(N), I );
@@ -45,19 +55,27 @@ somewood (float Ka = 1,
     pd = PP.cP;
     dd = sqrt(PP.PP - pd*pd);
 
-    /* add some turbulence */
-    nn = swirl*noise(swirlfreq*newP);
-    nn += 0.5*swirl*noise(2.0*swirlfreq*newP);
-    nn += 0.25*swirl*noise(4.0*swirlfreq*newP);
-    nn += 0.125*swirl*noise(8.0*swirlfreq*newP);
-    nn += 0.0625*swirl*noise(16.0*swirlfreq*newP);
-    nn += 0.03125*swirl*noise(32.0*swirlfreq*newP);
+    /* add some turbulence, fading each octave toward its average (0.5)
+       as its filter width approaches one period to avoid aliasing */
+    fw = filterwidthp(swirlfreq*newP);
+    nn = swirl*filteredNoise(swirlfreq*newP, fw);              fw *= 2;
+    nn += 0.5*swirl*filteredNoise(2.0*swirlfreq*newP, fw);     fw *= 2;
+    nn += 0.25*swirl*filteredNoise(4.0*swirlfreq*newP, fw);    fw *= 2;
+    nn += 0.125*swirl*filteredNoise(8.0*swirlfreq*newP, fw);   fw *= 2;
+    nn += 0.0625*swirl*filteredNoise(16.0*swirlfreq*newP, fw); fw *= 2;
+    nn += 0.03125*swirl*filteredNoise(32.0*swirlfreq*newP, fw);
     dd += nn;
 
     /* Compute the scale factor to be applied to the color to generate the
-       grain.  The factor will vary between (1-darkfactor) and 1. */
-    alpha = mod(grain * dd, 1);
-    alpha *= alpha;
+       grain.  The factor will vary between (1-darkfactor) and 1.
+       Fade the ring pattern toward its true average (1/3, since the
+       average of frac(x)^2 over one period is 1/3) as its filter width
+       approaches one period, to avoid aliasing on the veins. */
+    ringArg = grain * dd;
+    ringFw = filterwidth(ringArg);
+    alphaRaw = mod(ringArg, 1);
+    alphaRaw *= alphaRaw;
+    alpha = mix(alphaRaw, 1.0/3.0, smoothstep(0.2, 0.6, ringFw));
 
     /* Finally, compute the output color.  It is a specular surface scaled by
        the grain pattern. The specularity also varies with the grain:

@@ -2,10 +2,8 @@
 version 3.03
 Declare "location" "uniform point"
 Hider "stochastic"
-Display "teapot-somewood-reyes.tif" "file" "rgba"
+Display "teapot-somewood-aliasing.tif" "file" "rgba"
 Projection "perspective"
-ShadingRate 0.25
-PixelSamples 4 4
 Clipping 1 100000
 Transform [1 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1]
 ScreenWindow -0.414336 0.414336 -0.31075 0.31075
@@ -17,9 +15,6 @@ WorldBegin
   Rotate 20 1 0 0
   Rotate -30 0 0 1
   Color [0.98 0.8 0.01]
-  Surface "somewood"
-  # Surface "matte"
-  # Surface "metal"
-  # Surface "mtorPhong"
+  Surface "somewood" "grain" [800] "swirlfreq" [4]
   Geometry "teapot"
 WorldEnd

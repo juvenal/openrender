@@ -160,6 +160,13 @@ add_visual_test(teapot-somewood-raytrace-slo
     examples/rib/tests/teapot-somewood-raytrace-slo.rib
     teapot-somewood-raytrace-slo.tif  teapot-somewood-raytrace.tif)
 
+# --- somewood aliasing stress test (elevated grain/swirlfreq to push filter
+# width fw well past the fade threshold; guards against vein/turbulence
+# aliasing regressing back in) ---
+add_visual_test(teapot-somewood-aliasing
+    examples/rib/tests/teapot-somewood-aliasing.rib
+    teapot-somewood-aliasing.tif  teapot-somewood-aliasing.tif)
+
 # teapot-full-metal uses the "teapot-full-*" reference images
 add_visual_test(teapot-full-metal-reyes
     examples/rib/tests/teapot-full-metal-reyes.rib
@@ -279,4 +286,4 @@ add_visual_test(camera-motion-huge-reyes
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      43 scenes registered under label 'visual'")
+message(STATUS "      44 scenes registered under label 'visual'")
