@@ -130,7 +130,9 @@
       "Bash(make clean *)",
       "Bash(make)",
       "Bash(./colorcircles out.rib)",
-      "Bash(pdftotext /Volumes/Projects/Development/CLI/openrender-worktrees/006-scene-wireframe-viewer/docs/references/RISpec3_2.pdf -)"
+      "Bash(pdftotext /Volumes/Projects/Development/CLI/openrender-worktrees/006-scene-wireframe-viewer/docs/references/RISpec3_2.pdf -)",
+      "Bash(codegraph explore *)",
+      "Artifact"
     ]
   }
 }
