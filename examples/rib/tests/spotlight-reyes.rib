@@ -1,6 +1,6 @@
 ##RenderMan RIB
 version 3.04
-Hider "stochastic"
+Hider "reyes"
 Display "spotlight-reyes.tif" "file" "rgba"
 Format 640 480 1
 Projection "perspective" "fov" 35

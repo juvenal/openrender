@@ -1322,7 +1322,11 @@ void CRendererContext::RiHiderV(const char *type, int n, const char *tokens[], c
         free(options->hider);
 
     if (strcmp(type, RI_HIDDEN) == 0)
-        options->hider = strdup("stochastic");
+        options->hider = strdup("reyes");
+    else if (strcmp(type, "stochastic") == 0) {
+        warning(CODE_BADTOKEN, "Deprecated Hider \"stochastic\"; use \"reyes\" instead\n");
+        options->hider = strdup("reyes");
+    }
     else
         options->hider = strdup(type);
 

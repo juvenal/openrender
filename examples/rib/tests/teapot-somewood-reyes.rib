@@ -1,7 +1,7 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 Declare "location" "uniform point"
-Hider "stochastic"
+Hider "reyes"
 Display "teapot-somewood-reyes.tif" "file" "rgba"
 Projection "perspective"
 ShadingRate 0.25

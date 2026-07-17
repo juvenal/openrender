@@ -4,7 +4,7 @@ version 3.03
 Declare "Km" "float"
 Declare "background" "uniform color"
 Option "searchpath" "shader" ["&:./shaders"]
-Hider "stochastic"
+Hider "reyes"
 # Camera settings
 Display "killeroo-reyes.tif" "file" "rgba"
 Format 623 691 1

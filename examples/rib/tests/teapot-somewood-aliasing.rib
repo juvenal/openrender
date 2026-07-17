@@ -1,7 +1,7 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 Declare "location" "uniform point"
-Hider "stochastic"
+Hider "reyes"
 Display "teapot-somewood-aliasing.tif" "file" "rgba"
 Projection "perspective"
 Clipping 1 100000

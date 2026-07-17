@@ -732,8 +732,8 @@ void CRenderer::computeDisplayData() {
                 if (bucketWidth != bucketHeight) {
                     error(CODE_LIMIT, "Bucket width and height must be same for TSM: (%d,%d)\n", bucketWidth, bucketHeight);
                 } else {
-                    if (strcmp(hider, "stochastic") != 0) {
-                        error(CODE_LIMIT, "Hider must be stochastic or hidden for TSM\n");
+                    if (strcmp(hider, "reyes") != 0) {
+                        error(CODE_LIMIT, "Hider must be reyes (or hidden, or the deprecated stochastic alias) for TSM\n");
                     } else {
                         if (deepShadowFile != NULL) {
                             error(CODE_LIMIT, "There can only be one TSM output\n");

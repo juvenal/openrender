@@ -913,7 +913,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Allow the hider to control display setup
     if (strcmp(hider, "raytrace") == 0) {
         CRaytracer::preDisplaySetup();
-    } else if (strcmp(hider, "stochastic") == 0) {
+    } else if (strcmp(hider, "reyes") == 0) {
         CStochastic::preDisplaySetup();
     } else if (strcmp(hider, "zbuffer") == 0) {
         CZbuffer::preDisplaySetup();
@@ -940,7 +940,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         if (strcmp(hider, "raytrace") == 0) {
             contexts[i] = new CRaytracer(i);
             dispatchJob = dispatchReyes;
-        } else if (strcmp(hider, "stochastic") == 0) {
+        } else if (strcmp(hider, "reyes") == 0) {
             contexts[i] = new CStochastic(i);
             dispatchJob = dispatchReyes;
         } else if (strcmp(hider, "zbuffer") == 0) {

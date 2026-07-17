@@ -3,6 +3,8 @@ version 3.03
 Declare "intensity" "uniform float"
 Declare "bucketsize" "uniform integer[2]"
 Option "limits" "bucketsize" [32 32]
+# Intentionally left as the deprecated "stochastic" alias to keep the
+# backward-compat path under regression coverage; canonical name is "reyes".
 Hider "stochastic"
 Display "bunny-reyes.tif" "file" "rgba"
 Projection "perspective"

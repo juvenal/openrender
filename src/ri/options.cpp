@@ -260,7 +260,7 @@ COptions::COptions() {
 
     jitter = 0.99f;
 
-    hider = strdup("stochastic");
+    hider = strdup("reyes");
     defaultShaderFormat = nullptr;
 
     // Unified search paths across all platforms. Environment expansion is handled
