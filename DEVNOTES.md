@@ -15,6 +15,7 @@
 | Hider parity | Partial — filtering and jitter done; motion blur, transparency pending | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
 | RISpec 3.2 gaps | 1 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
 | C++20 / C17 migration | Phase 2 complete — portable I/O, binary security; Phase 3 future | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) |
+| PBR path-tracing hider + OSL (`Bxdf`) | Not started — feasibility analysis only, not yet scheduled | [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md) |
 
 ## Recent Major Refactors
 
@@ -46,6 +47,7 @@
 - [ ] Trace subsets (`trace()` does not yet filter by subset)
 - [ ] Patch crack stitching (currently handled via displacement bounds)
 - [ ] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)
+- [ ] PBR path-tracing hider (`"pathtracer"`) + OSL `Bxdf` support — see [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md)
 
 ## See Also
 
@@ -61,3 +63,4 @@
 | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) | Stochastic vs. raytrace hider alignment |
 | [VERIFICATION_LINUX_PREVIEW.md](DEVNOTES_DETAILS/VERIFICATION_LINUX_PREVIEW.md) | Linux orender-wire and orender-fb verification results |
 | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) | C++20/C17 migration, portable I/O, binary format changes |
+| [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md) | PBR path-tracing hider + OSL `Bxdf` feasibility analysis (not started) |
