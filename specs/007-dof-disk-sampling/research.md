@@ -136,7 +136,10 @@ the way the existing suite does.
    - produces an area-uniform distribution, checked by binning `r²` (not `r`) into equal-width
      buckets — area-uniform disk sampling makes `r²` itself uniform on `[0,1)`, so a
      center-biased (linear-`r`) generator fails this check while a correct one passes within a
-     statistical tolerance.
+     statistical tolerance. Concretely: with ≥1000 samples and 8-16 equal-width `r²` buckets,
+     accept uniformity via a chi-square goodness-of-fit test against the expected per-bucket
+     count, requiring p > 0.01 (fail to reject uniformity) — this replaces an arbitrary
+     hand-picked percentage with a standard, reproducible test.
    This test is written and run (failing to compile / failing to link, since `sampleDisk()`
    does not exist yet) before any implementation.
 2. **Green**: Implement `sampleDisk()` in `random.h` until the new unit test passes.

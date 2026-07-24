@@ -94,7 +94,7 @@ A renderer maintainer needs to change or extend how the lens aperture is sampled
 - **FR-005**: The fix MUST NOT change rendered output for scenes that do not enable depth of field (i.e., pinhole-camera renders are unaffected).
 - **FR-006**: The renderer's automated visual-regression test scenes and reference images covering ray-traced depth of field MUST be updated so they validate the corrected, unbiased behavior rather than continuing to encode the previous center-biased defect. New raytrace reference images MUST be validated against the REYES hider's converged output for the same scene (within the existing visual-regression diff threshold) before being accepted as the new baseline, since REYES's lens sampling is already correct and provides an independent ground truth.
 - **FR-007**: The corrected lens sampling MUST remain numerically stable across the full valid input range (zero radius through maximum aperture radius), producing no invalid (NaN/undefined) sample positions.
-- **FR-008**: The project's renderer-parity documentation MUST be updated to reflect that depth-of-field lens sampling is no longer a known parity gap between the REYES and ray-tracing hiders.
+- **FR-008**: The project's renderer-parity documentation MUST be updated to add an entry documenting that depth-of-field lens-sampling parity between the REYES and ray-tracing hiders has been achieved and verified.
 - **FR-009**: A radial-energy-histogram validation tool MUST be produced that bins a rendered blur circle's pixel energy by distance from its center and reports the resulting energy-vs-radius curve, so that distribution shape (not just raw pixel differences) can be compared before/after the fix and between hiders.
 
 ### Key Entities

@@ -65,3 +65,15 @@ Tool output (stdout, machine-parseable per Constitution Principle IV): one row p
 indicates area-uniform (correct) sampling; a curve decaying with radius indicates
 center-bias. Supports two-file mode (candidate vs. REYES ground truth) for the FR-006 /
 Clarification-Q1 cross-check.
+
+**Acceptance thresholds**:
+- *Single-curve flatness (SC-001, T017)*: excluding the innermost bin (`r_lo < 0.1 * radius`,
+  where low pixel counts make the bin noise-dominated), the coefficient of variation
+  (stddev ÷ mean) of `energy/annulus_area` across the remaining bins MUST be ≤ 15%. For
+  reference, the pre-fix linear-radius sampler is expected to show CoV well above 50% given
+  its ~4× energy-density falloff between inner and outer bins.
+- *Two-file cross-check (FR-006/SC-002, T014/T019)*: for each bin excluding the innermost
+  (same rationale), the candidate's `energy/annulus_area` MUST be within ±20% of the REYES
+  reference's value for that bin — wide enough to absorb each hider's own sampling-noise
+  floor (REYES's `CSobol<2>` sequence vs. the raytracer's MT19937-backed `urand()`), tight
+  enough to reject a systematic distribution-shape difference.

@@ -34,7 +34,7 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Write failing unit test `tests/test_disk_sampling.cpp` (new file, flat in `tests/`, same pattern as `tests/test_64bit_portability.cpp`): assert generated samples always satisfy `x² + y² < 1` and are finite (covers FR-007's aperture-edge/near-pinhole extremes), and assert area-uniformity by binning `r²` (not `r`) into equal-width buckets and checking near-flat bin counts (research.md §6 step 1). `sampleDisk()` does not exist yet — this must fail to compile/link (TDD Red).
+- [ ] T002 Write failing unit test `tests/test_disk_sampling.cpp` (new file, flat in `tests/`, same pattern as `tests/test_64bit_portability.cpp`): assert generated samples always satisfy `x² + y² < 1` and are finite (covers FR-007's aperture-edge/near-pinhole extremes), and assert area-uniformity via a chi-square goodness-of-fit test on `r²` (not `r`) binned into 8-16 equal-width buckets across ≥1000 samples, requiring p > 0.01 to accept uniformity (research.md §6 step 1). `sampleDisk()` does not exist yet — this must fail to compile/link (TDD Red).
 - [ ] T003 Register the `test_disk_sampling` executable and a `DiskSampling`-labeled CTest entry in `tests/CMakeLists.txt`, following the existing `test_64bit_portability` registration pattern (depends on T002).
 - [ ] T004 Check: run `ctest --test-dir build -R DiskSampling --output-on-failure` and confirm it fails to build (Red) — this is the TDD gate proving the test was written before the implementation (depends on T003).
 - [ ] T005 [P] Write `tests/visual/test_radial_histogram.cpp` (new file, FR-009): a standalone CLI tool mirroring `tests/visual/test_visual_render.cpp`'s libtiff-based structure, taking a rendered TIF plus `--center x y --radius r --bins n`, emitting `r_lo,r_hi,energy,energy/annulus_area` rows to stdout; supports a two-file mode (candidate vs. REYES ground-truth) for the FR-006/Clarification-Q1 cross-check (research.md §5, data-model.md "Radial energy histogram"). Independent of the `sampleDisk()` track (different files) — safe to do in parallel with T002-T008.
@@ -57,10 +57,10 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 - [ ] T011 [US1] Fix `src/ri/raytracer.cpp`'s `CRaytracer::computeSamples()` (~line 519-526): replace the buggy `theta = urand() * 2*PI` / `r = urand() * CRenderer::aperture` polar-mapping block with `sampleDisk(aperture, [this](float *s) { s[0] = urand(); s[1] = urand(); })`, then scale `from[COMP_X]`/`from[COMP_Y]` by `aperture[0] * CRenderer::aperture` / `aperture[1] * CRenderer::aperture` (research.md §3 call-site sketch; depends on T010).
 - [ ] T012 [US1] Check: run `ctest --test-dir build -L visual --output-on-failure -R "camera-dof-raytrace|camera-motion-small-dof-raytrace"` and confirm both now **fail** against their old (pre-fix, buggy-baseline) reference images — this failure is the proof the center-bias fix actually changed the raytracer's output (quickstart.md step 4; depends on T011).
 - [ ] T013 [US1] Render `examples/rib/tests/camera-dof-raytrace.rib` and `examples/rib/tests/camera-motion-small+dof-raytrace.rib` with the fixed `build/src/orender/orender` to produce candidate TIFs (depends on T011).
-- [ ] T014 [US1] Check: cross-check both candidate TIFs against the existing (untouched) `camera-dof-reyes.tif` / `camera-motion-small+dof-reyes.tif` reference images using `build/tests/visual/test_radial_histogram`'s two-file mode; confirm `energy/annulus_area` curves match within tolerance (flat, not center-peaked) per FR-006/SC-001/SC-002 (depends on T013, T006).
+- [ ] T014 [US1] Check: cross-check both candidate TIFs against the existing (untouched) `camera-dof-reyes.tif` / `camera-motion-small+dof-reyes.tif` reference images using `build/tests/visual/test_radial_histogram`'s two-file mode; confirm each non-innermost bin's `energy/annulus_area` is within ±20% of the REYES reference's value (data-model.md "Acceptance thresholds") per FR-006/SC-001/SC-002 (depends on T013, T006).
 - [ ] T015 [US1] Copy the validated candidate TIFs into `examples/rib/tests/references/`, replacing the stale `camera-dof-raytrace.tif` and `camera-motion-small+dof-raytrace.tif` baselines (depends on T014).
 - [ ] T016 [US1] Check: re-run `ctest --test-dir build -L visual --output-on-failure -R "camera-dof-raytrace|camera-motion-small-dof-raytrace"` and confirm both now **pass** against the newly-committed references (SC-003; depends on T015).
-- [ ] T017 [US1] Check: run `build/tests/visual/test_radial_histogram` single-file mode on the new raytrace TIFs; confirm the `energy/annulus_area` curve is roughly flat across bins, not decaying with radius (direct visual confirmation of SC-001; depends on T015).
+- [ ] T017 [US1] Check: run `build/tests/visual/test_radial_histogram` single-file mode on the new raytrace TIFs; confirm the coefficient of variation (stddev ÷ mean) of `energy/annulus_area` across non-innermost bins is ≤ 15% (data-model.md "Acceptance thresholds"; direct confirmation of SC-001; depends on T015).
 
 **Checkpoint**: Raytrace DOF is fixed, validated against REYES ground truth, and its regression references are updated and green. This alone is a shippable MVP.
 
@@ -73,7 +73,7 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 **Independent Test**: Render the same DOF scene with both hiders and compare blur-circle size/distribution for equivalence (spec.md US2 Independent Test).
 
 - [ ] T018 [US2] Check: run the full suite `ctest --test-dir build -L visual --output-on-failure` and confirm 100% pass — all DOF scenes (both hiders) against updated/unchanged references, and all non-DOF (pinhole) scenes unaffected (FR-005, SC-003; depends on T016, T010).
-- [ ] T019 [US2] Check: run `build/tests/visual/test_radial_histogram` two-file mode comparing the committed `camera-dof-raytrace.tif` vs. `camera-dof-reyes.tif` (and the motion-blur+DOF pair) as a durable cross-hider consistency record — distinct from T014's pre-commit gate, this is the SC-002 regression-level confirmation (depends on T015).
+- [ ] T019 [US2] Check: run `build/tests/visual/test_radial_histogram` two-file mode comparing the committed `camera-dof-raytrace.tif` vs. `camera-dof-reyes.tif` (and the motion-blur+DOF pair); confirm the same ±20%-per-bin threshold from T014 still holds as a durable cross-hider consistency record — distinct from T014's pre-commit gate, this is the SC-002 regression-level confirmation (depends on T015).
 - [ ] T020 [US2] Check: re-time `camera-dof-raytrace.rib`/`camera-motion-small+dof-raytrace.rib` renders with the fixed binary and compare against the T001 baseline; confirm ≤1% regression (SC-005; depends on T001, T015).
 
 **Checkpoint**: Both hiders verified statistically consistent; full regression suite green; performance within bound.
@@ -97,7 +97,8 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 
 **Purpose**: End-to-end sign-off and cleanup.
 
-- [ ] T023 Run the full `quickstart.md` validation sequence end-to-end (steps 1-9) as the final combined gate before considering the feature done (depends on T017, T018, T019, T020, T022).
+- [ ] T025 [P] Check: confirm no changes to the RIB-facing attribute-system files (`src/ri/ri.h`, `src/ri/ri.cpp`, `src/ri/rendererContext.cpp`'s `RiAttributeV()`, `src/ri/attributes.h`/`.cpp`, `src/ri/rendererDeclerations.cpp`) — verifies FR-004 (no new/altered RIB tokens, options, or attributes for DOF/aperture/FStop/FocalDistance). Depends on T011 (the only change with any plausible proximity to the API surface).
+- [ ] T023 Run the full `quickstart.md` validation sequence end-to-end (steps 1-9) as the final combined gate before considering the feature done (depends on T017, T018, T019, T020, T022, T025).
 - [ ] T024 [P] Clean up any scratch/temporary render outputs produced during T013/T019 that live outside `examples/rib/tests/references/` (e.g. working-directory TIFs from manual render/cross-check steps).
 
 ---
@@ -107,7 +108,7 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies — can start immediately.
-- **Foundational (Phase 2)**: Depends on Setup completion — BLOCKS all user stories. Contains two parallel-safe tracks: the `sampleDisk()`/REYES-refactor track (T002→T004→T007→T008→T009→T010) and the histogram-tool track (T005→T006), which don't touch the same files.
+- **Foundational (Phase 2)**: Depends on Setup completion — BLOCKS all user stories. Contains two parallel-safe tracks: the `sampleDisk()`/REYES-refactor track (T002→T003→T004→T007→T008→T009→T010) and the histogram-tool track (T005→T006), which don't touch the same files.
 - **User Story 1 (Phase 3)**: Depends on Foundational (specifically T010, the REYES-stability gate — research.md §6 explicitly sequences the raytracer fix *after* this proof) and T006 (tool needed for T014's cross-check).
 - **User Story 2 (Phase 4)**: Depends on User Story 1 completion (T015/T016) — it validates the state US1 produces, plus reuses the T001 baseline.
 - **User Story 3 (Phase 5)**: Depends on both call sites being migrated (T009 from Foundational, T011 from US1).
@@ -118,6 +119,7 @@ Existing single C++ project layout (`src/`, `tests/` at repo root) — see plan.
 - T005/T006 (histogram tool) can run in parallel with T002-T010 (`sampleDisk()`/REYES track) — disjoint files.
 - Within Foundational, T002 and T005 can start together at the very beginning.
 - T024 is parallel-safe with nothing else outstanding — it's cleanup, do it last regardless.
+- T025 is parallel-safe with T017-T022 — it's a static file-diff check independent of the visual-regression/histogram tracks, gated only by T011.
 
 ---
 
@@ -162,7 +164,7 @@ Task: "Register test_radial_histogram in tests/visual/CMakeLists.txt"
 
 ## Notes
 
-- Checks (T004, T008, T010, T012, T014, T016, T017, T018, T019, T020, T023) are interleaved with implementation tasks throughout, not batched at the end, per the request to keep verification distributed along the process.
+- Checks (T004, T008, T010, T012, T014, T016, T017, T018, T019, T020, T023, T025) are interleaved with implementation tasks throughout, not batched at the end, per the request to keep verification distributed along the process.
 - The `stochastic.{h,cpp}` → `reyes` file reorganization requested alongside this fix is deliberately **not** in this task list — recorded as an out-of-scope follow-up in research.md §7 per explicit user decision during planning.
 - `[P]` tasks touch different files with no ordering dependency on each other.
 - `[Story]` labels map every Phase 3+ task to spec.md's US1/US2/US3 for traceability.

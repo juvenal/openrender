@@ -58,8 +58,8 @@ build/tests/visual/test_radial_histogram \
 # Repeat for camera-motion-small+dof-{raytrace,reyes}.rib
 ```
 
-Expected: the tool reports both curves' `energy/annulus_area` matching within tolerance
-(flat, not center-peaked). Only once this passes, copy the new raytrace TIFs into
+Expected: the tool reports both curves' `energy/annulus_area` matching within ±20% per bin
+(excluding the innermost, noise-dominated bin) — flat, not center-peaked. Only once this passes, copy the new raytrace TIFs into
 `examples/rib/tests/references/`, replacing the two stale (buggy-baseline) files.
 
 ## 6. Full regression suite
