@@ -32,4 +32,5 @@
 ## Notes
 
 - All items pass on first validation pass. No [NEEDS CLARIFICATION] markers were needed: the feature description supplied by the user (backed by codebase investigation) was specific enough to make reasonable defaults for scope (circular aperture only), consistency bar (statistical, not bit-identical, equivalence), and reference-image handling (regenerate rather than treat as regression gate) — all recorded in the spec's Assumptions section.
-- Ready for `/speckit.clarify` (optional, given no open markers) or `/speckit.plan`.
+- Re-validated 2026-07-23 after a 3-question `/speckit-clarify` session (reference-image ground truth, radial-distribution validation method, performance bound). All items still pass; no regressions.
+- Ready for `/speckit.plan`.

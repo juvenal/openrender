@@ -8,6 +8,14 @@
 
 **Input**: User description: "Fix the raytrace hider's depth-of-field (DOF) center-bias defect and de-duplicate/unify lens-disk sampling between the REYES (CStochastic) and raytrace (CRaytracer) hiders, so both hiders compute depth-of-field using the same correct disk-sampling resolver and produce the same, correct DOF blur-circle (circle-of-confusion) result."
 
+## Clarifications
+
+### Session 2026-07-23
+
+- Q: When the raytrace hider's DOF reference images are regenerated post-fix, how should their correctness be validated before they become the new automated-test baseline? → A: Cross-check vs REYES output — validate new raytrace references by comparing against the REYES hider's (already-correct) converged output for the same scene, within the existing visual-regression diff threshold.
+- Q: Beyond existing pixel-diff visual-regression tests, what validation method should confirm the center-bias distribution shape itself is fixed (not just that pixels changed)? → A: Build a new radial-energy-histogram tool — bins pixel energy by radius within a blur circle and compares the resulting energy(r) curve shape before/after the fix and between hiders.
+- Q: SC-005 says raytrace DOF rendering time must not regress "by more than a negligible margin" — what's the acceptable bound? → A: <= 1% regression versus current baseline, measured via the project's existing example DOF scenes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -84,24 +92,26 @@ A renderer maintainer needs to change or extend how the lens aperture is sampled
 - **FR-003**: For identical camera, `FStop`, and `FocalDistance` settings, the two hiders MUST produce depth-of-field blur that is equivalent in size and radial energy distribution, within the normal sampling-noise variation already expected between the two hiders.
 - **FR-004**: The fix MUST NOT change any user-facing scene-description API (no new or altered RIB tokens, options, or attributes related to depth of field, aperture, `FStop`, or `FocalDistance`).
 - **FR-005**: The fix MUST NOT change rendered output for scenes that do not enable depth of field (i.e., pinhole-camera renders are unaffected).
-- **FR-006**: The renderer's automated visual-regression test scenes and reference images covering ray-traced depth of field MUST be updated so they validate the corrected, unbiased behavior rather than continuing to encode the previous center-biased defect.
+- **FR-006**: The renderer's automated visual-regression test scenes and reference images covering ray-traced depth of field MUST be updated so they validate the corrected, unbiased behavior rather than continuing to encode the previous center-biased defect. New raytrace reference images MUST be validated against the REYES hider's converged output for the same scene (within the existing visual-regression diff threshold) before being accepted as the new baseline, since REYES's lens sampling is already correct and provides an independent ground truth.
 - **FR-007**: The corrected lens sampling MUST remain numerically stable across the full valid input range (zero radius through maximum aperture radius), producing no invalid (NaN/undefined) sample positions.
 - **FR-008**: The project's renderer-parity documentation MUST be updated to reflect that depth-of-field lens sampling is no longer a known parity gap between the REYES and ray-tracing hiders.
+- **FR-009**: A radial-energy-histogram validation tool MUST be produced that bins a rendered blur circle's pixel energy by distance from its center and reports the resulting energy-vs-radius curve, so that distribution shape (not just raw pixel differences) can be compared before/after the fix and between hiders.
 
 ### Key Entities
 
 - **Lens/aperture sample**: A single 2D point on the camera's lens aperture disk, used to originate one ray (or offset one shading sample) for a depth-of-field render; characterized by its position relative to the disk center and its contribution to the overall, area-uniform distribution of samples across the disk.
 - **Depth-of-field visual regression scene**: An existing example scene and its reference image, used to automatically detect unintended changes to depth-of-field rendering; affected scenes need their reference images regenerated as part of this fix since the prior references encode the defect being corrected.
+- **Radial energy histogram**: A derived measurement from a rendered blur circle — pixel energy binned by radius from the circle's center — used to quantitatively confirm that energy is spread uniformly across the disk rather than concentrated near the center.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Ray-traced renders with depth of field enabled show no visually detectable center-bias artifact in out-of-focus blur circles, verified by visual inspection of representative test scenes.
-- **SC-002**: For the same scene and camera settings, blur-circle size and radial energy distribution produced by the ray-tracing hider and the REYES hider differ only by an amount attributable to each hider's normal sampling noise, not by a systematic distribution shape difference.
-- **SC-003**: 100% of the renderer's automated visual-regression tests covering depth of field (both hiders) pass against updated reference images after the fix.
+- **SC-001**: Ray-traced renders with depth of field enabled show no center-bias artifact in out-of-focus blur circles, confirmed both by visual inspection and by a radial energy histogram showing energy proportional to the annular area at each radius (flat, not center-peaked).
+- **SC-002**: For the same scene and camera settings, blur-circle size and radial energy histograms produced by the ray-tracing hider and the REYES hider match within an amount attributable to each hider's normal sampling noise, not a systematic distribution shape difference.
+- **SC-003**: 100% of the renderer's automated visual-regression tests covering depth of field (both hiders) pass against updated reference images after the fix, and the new raytrace reference images themselves pass comparison against REYES's converged output for the same scenes before being committed as baselines.
 - **SC-004**: There is exactly one place in the renderer's source responsible for generating a uniform lens-disk sample point, used by both hiders that support depth of field.
-- **SC-005**: Rendering time for depth-of-field scenes does not regress by more than a negligible margin (no meaningful performance cost from the fix).
+- **SC-005**: Rendering time for depth-of-field scenes does not increase by more than 1% versus the current (pre-fix) baseline, measured using the project's existing example depth-of-field scenes.
 
 ## Assumptions
 
