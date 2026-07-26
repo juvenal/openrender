@@ -147,6 +147,18 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     assert(sampleWidth <= totalWidth);
     assert(sampleHeight <= totalHeight);
 
+    // Camera pure-rotation fast path: precompute the inverse rotation so each
+    // sample can be rotated back to the t=0 camera frame once, letting the
+    // rasterizer test moving quads against their static positions
+    quaternion invRotQ = {0.0f, 0.0f, 0.0f, 1.0f};
+    if (CRenderer::cameraRotationOnly) {
+        invRotQ[0] = -CRenderer::relRotQ[0];
+        invRotQ[1] = -CRenderer::relRotQ[1];
+        invRotQ[2] = -CRenderer::relRotQ[2];
+        invRotQ[3] = CRenderer::relRotQ[3];
+    }
+    static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
+
     // Init the occlusion culler to zero
     initToZero();
     for (i = 0, pxi = CRenderer::pixelYsamples - CRenderer::ySampleOffset; i < sampleHeight; i++, pxi++) {
@@ -195,6 +207,34 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             // Center location of the sample
             pixel->xcent = (j + pixel->jx) + left;
             pixel->ycent = (i + pixel->jy) + top;
+
+            if (CRenderer::cameraRotationOnly) {
+                // Inverse-rotate the sample ray to the t=0 camera frame. A pure
+                // camera rotation maps image points independently of depth, so
+                // this one transform replaces the per-(sample x quad) forward
+                // vertex transforms in the rasterizer. zScale maps a t=0
+                // interpolated depth to the sample's own time.
+                quaternion Rjt;
+                slerpq(Rjt, identQ, invRotQ, pixel->jt);
+                matrix M;
+                qtoR(M, Rjt);
+                const float sx = pixel->xcent / CRenderer::dSampledx + CRenderer::pixelLeft;
+                const float sy = pixel->ycent / CRenderer::dSampledy + CRenderer::pixelTop;
+                const float d[3] = {sx * CRenderer::invImagePlane, sy * CRenderer::invImagePlane, 1.0f};
+                float r[3];
+                mulmp(r, M, d);
+                if (r[2] > C_EPSILON) {
+                    pixel->xcentRot = (CRenderer::imagePlane * r[0] / r[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
+                    pixel->ycentRot = (CRenderer::imagePlane * r[1] / r[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
+                    pixel->zScale = 1.0f / r[2];
+                } else {
+                    // Rotated beyond the eye plane: park the sample far outside
+                    // every bound so no quad can ever match it
+                    pixel->xcentRot = -1e9f;
+                    pixel->ycentRot = -1e9f;
+                    pixel->zScale = 1.0f;
+                }
+            }
 
             pixel->z = CRenderer::clipMax;
             pixel->zold = zoldStart;

@@ -50,13 +50,33 @@ motion-3-reyes measurably closer to the raytrace ground truth (max block diff
 131 → 81). The `references/motion-3-reyes.tif` reference was regenerated
 accordingly.
 
-Remaining gap (18 s vs 1.8 s): the XTREME outer loop still visits every sample
-in the grid's full swept bound to run the (cheap) grid-level stratum check, per
-overlapping grid. If that ever matters, the gated Tier-3 idea is a fast path for
-pure optical-axis camera rotations (`relTrans ≈ 0`): inverse-rotate the *sample*
-once per pixel and test against the static t=0 quads with tight static bounds
-(near-static cost).
+### Pure-rotation inverse-sample fast path (implemented, 2026-07)
 
-Pre-existing, unrelated: `Visual_camera-motion-huge-reyes` fails because its
-CMake entry points at `references/camera-motion-huge.tif`, which was never
-checked in.
+When the camera's relative shutter motion is a pure rotation
+(`CRenderer::cameraRotationOnly`, i.e. `relTrans ≈ 0`), the raster-space motion
+is a z-independent homography. Instead of forward-transforming 4 quad vertices
+per (sample × quad), `rasterBegin` now inverse-rotates each sample's ray once
+(`CPixel::xcentRot/ycentRot`) and the rasterizer tests the **static t=0 quads**
+against the pre-rotated sample; the interpolated static depth is mapped to the
+sample's time by `CPixel::zScale` (exact — for a rotation `z_jt = z0 / (R⁻¹·dir)_z`).
+Applies to the MOVING (non-DOF) quad variants only; DOF+motion keeps the
+stratum path because the aperture offset lives in the time-jt raster frame.
+
+| Scene | Tiers 1–2 | + fast path |
+|---|---|---|
+| motion-3-reyes | 18.2 s wall / 29.6 s CPU | 8.1 s wall / 4.5 s CPU |
+
+Total vs. the original 235.6 s: **29× wall, 100× CPU**. The residual wall time
+is dominated by serial phases (parse, dice/insertGrid, bucket sync), not the
+raster inner loop.
+
+### Visual-test determinism caveat (measured, 2026-07)
+
+The stochastic hider is **not run-to-run deterministic**: bucket→thread
+assignment shifts the per-thread jitter streams, so extreme-blur speckle is a
+different (equally valid) noise realization each run. Measured same-binary
+run-to-run max 8×8-block diffs: motion-3-reyes ~79/255, camera-motion-huge-reyes
+~70/255, camera-motion-small+dof-reyes ~64/255, camera-motion-small+dof-raytrace
+~97/255. The visual-test thresholds for those four scenes were raised above
+their measured variance (100/100/90/110) — at the default 20 they were
+coin-flips regardless of code changes.

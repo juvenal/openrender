@@ -198,6 +198,7 @@ bool CRenderer::cameraHasMotion = false;                                  // ini
 quaternion CRenderer::relRotQ       = {0, 0, 0, 1};                      // initialized in beginFrame
 vector     CRenderer::relTrans      = {0, 0, 0};                          // initialized in beginFrame
 bool       CRenderer::cameraHasRotation = false;                          // initialized in beginFrame
+bool       CRenderer::cameraRotationOnly = false;                         // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame
@@ -499,11 +500,19 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         const float dq = relRotQ[0] * relRotQ[0] + relRotQ[1] * relRotQ[1] +
                          relRotQ[2] * relRotQ[2] + (relRotQ[3] - 1.0f) * (relRotQ[3] - 1.0f);
         cameraHasRotation = (dq > 1e-8f);
+
+        // Pure rotation (no translation over the shutter): the raster-space
+        // motion is a z-independent homography, so the stochastic rasterizer
+        // can inverse-rotate each sample once instead of forward-transforming
+        // every quad per sample (see stochasticQuad.h fast path).
+        cameraRotationOnly = cameraHasRotation &&
+                             (fabsf(relTrans[0]) + fabsf(relTrans[1]) + fabsf(relTrans[2]) < 1e-5f);
     } else {
         movmm(fromWorld1, x->from);
         movmm(toWorld1,   x->to);
         cameraHasMotion   = false;
         cameraHasRotation = false;
+        cameraRotationOnly = false;
     }
 
     assert(pixelXsamples > 0);

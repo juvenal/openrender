@@ -367,6 +367,42 @@ const float importance = grid->object->attributes->lodImportance;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // This macro is used to check whether the sample is inside the quad or not
+#if defined(STOCHASTIC_MOVING) && !defined(STOCHASTIC_FOCAL_BLUR)
+
+// Camera pure-rotation fast path: the quad stays at its static t=0 position and
+// the sample center is the pre-rotated one from rasterBegin; the interpolated
+// static depth is scaled to the sample's time by zScale
+#define checkPixel(__op)                                                                                             \
+    const int camRotFast = CRenderer::cameraRotationOnly;                                                            \
+    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                                 \
+    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                                 \
+    float aleft, atop, aright, abottom;                                                                              \
+                                                                                                                     \
+    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                        \
+        continue;                                                                                                    \
+    }                                                                                                                \
+    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                      \
+        continue;                                                                                                    \
+    }                                                                                                                \
+    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {                     \
+        continue;                                                                                                    \
+    }                                                                                                                \
+    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                       \
+        continue;                                                                                                    \
+    }                                                                                                                \
+                                                                                                                     \
+    const float u = aleft / (aleft + aright);                                                                        \
+    const float v = atop / (atop + abottom);                                                                         \
+    float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v;       \
+    if (camRotFast) {                                                                                                \
+        z *= pixel->zScale;                                                                                          \
+    }                                                                                                                \
+    if (z < CRenderer::clipMin) {                                                                                    \
+        continue;                                                                                                    \
+    }
+
+#else
+
 #define checkPixel(__op)                                                                                             \
     const float xcent = pixel->xcent;                                                                                \
     const float ycent = pixel->ycent;                                                                                \
@@ -391,6 +427,8 @@ const float importance = grid->object->attributes->lodImportance;
     if (z < CRenderer::clipMin) {                                                                                    \
         continue;                                                                                                    \
     }
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -457,7 +495,13 @@ for (y = ymin; y <= ymax; y++) {
 #ifdef STOCHASTIC_MOVING
         matrix Mjt_pix = {};
         float tx_pix = 0.0f, ty_pix = 0.0f, tz_pix = 0.0f;
-        if (CRenderer::cameraHasRotation) {
+        if (CRenderer::cameraHasRotation
+#ifndef STOCHASTIC_FOCAL_BLUR
+            // The pure-rotation fast path tests static quads against the
+            // pre-rotated sample from rasterBegin — no forward matrix needed
+            && !CRenderer::cameraRotationOnly
+#endif
+        ) {
             static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
             quaternion Rjt_pix;
             slerpq(Rjt_pix, identQ, CRenderer::relRotQ, pixel->jt);
@@ -524,33 +568,40 @@ for (y = ymin; y <= ymax; y++) {
                 vector v1movTmp;
                 vector v2movTmp;
                 vector v3movTmp;
-                if (CRenderer::cameraHasRotation) {
-                    // Camera rotation: LERP of raster-space positions traces a
-                    // chord instead of the correct arc. Unproject each vertex to
-                    // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
-                    // translation), then re-project (rasterCameraMotionTransform,
-                    // shared with insertGrid's bound computation).
-                    // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
-                    //                    0         1      2   3..5  6..8    9
-                    // Rotation matrix pre-computed per-pixel as Mjt_pix above
-                    // (hoisted out of the quad loop — same jt for all quads at this pixel).
-                    if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
-                        !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
-                        !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
-                        !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt_pix, tx_pix, ty_pix, tz_pix)) {
-                        // A vertex landed at/behind the eye plane at this time
-                        continue;
+#ifndef STOCHASTIC_FOCAL_BLUR
+                // Pure-rotation fast path: leave the quad at its static t=0
+                // position — checkPixel tests it against the pre-rotated sample
+                if (!CRenderer::cameraRotationOnly)
+#endif
+                {
+                    if (CRenderer::cameraHasRotation) {
+                        // Camera rotation: LERP of raster-space positions traces a
+                        // chord instead of the correct arc. Unproject each vertex to
+                        // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
+                        // translation), then re-project (rasterCameraMotionTransform,
+                        // shared with insertGrid's bound computation).
+                        // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
+                        //                    0         1      2   3..5  6..8    9
+                        // Rotation matrix pre-computed per-pixel as Mjt_pix above
+                        // (hoisted out of the quad loop — same jt for all quads at this pixel).
+                        if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                            !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                            !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                            !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt_pix, tx_pix, ty_pix, tz_pix)) {
+                            // A vertex landed at/behind the eye plane at this time
+                            continue;
+                        }
+                    } else {
+                        interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
+                        interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
+                        interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
+                        interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
                     }
-                } else {
-                    interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
-                    interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
-                    interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
-                    interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                    v0 = v0movTmp;
+                    v1 = v1movTmp;
+                    v2 = v2movTmp;
+                    v3 = v3movTmp;
                 }
-                v0 = v0movTmp;
-                v1 = v1movTmp;
-                v2 = v2movTmp;
-                v3 = v3movTmp;
 #endif
 
 #ifdef STOCHASTIC_FOCAL_BLUR
@@ -797,41 +848,48 @@ for (j = 0; j < vdiv; j++) {
                 vector v1movTmp;
                 vector v2movTmp;
                 vector v3movTmp;
-                if (CRenderer::cameraHasRotation) {
-                    // Camera rotation: LERP of raster-space positions traces a
-                    // chord instead of the correct arc. Unproject each vertex to
-                    // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
-                    // translation), then re-project (rasterCameraMotionTransform,
-                    // shared with insertGrid's bound computation).
-                    // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
-                    //                    0         1      2   3..5  6..8    9
-                    const float jt = pixel->jt;
-                    const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-                    quaternion Rjt;
-                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
-                    matrix Mjt;
-                    qtoR(Mjt, Rjt);
-                    const float tx = jt * CRenderer::relTrans[0];
-                    const float ty = jt * CRenderer::relTrans[1];
-                    const float tz = jt * CRenderer::relTrans[2];
+#ifndef STOCHASTIC_FOCAL_BLUR
+                // Pure-rotation fast path: leave the quad at its static t=0
+                // position — checkPixel tests it against the pre-rotated sample
+                if (!CRenderer::cameraRotationOnly)
+#endif
+                {
+                    if (CRenderer::cameraHasRotation) {
+                        // Camera rotation: LERP of raster-space positions traces a
+                        // chord instead of the correct arc. Unproject each vertex to
+                        // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
+                        // translation), then re-project (rasterCameraMotionTransform,
+                        // shared with insertGrid's bound computation).
+                        // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
+                        //                    0         1      2   3..5  6..8    9
+                        const float jt = pixel->jt;
+                        const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+                        quaternion Rjt;
+                        slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                        matrix Mjt;
+                        qtoR(Mjt, Rjt);
+                        const float tx = jt * CRenderer::relTrans[0];
+                        const float ty = jt * CRenderer::relTrans[1];
+                        const float tz = jt * CRenderer::relTrans[2];
 
-                    if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt, tx, ty, tz) ||
-                        !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt, tx, ty, tz) ||
-                        !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt, tx, ty, tz) ||
-                        !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt, tx, ty, tz)) {
-                        // A vertex landed at/behind the eye plane at this time
-                        continue;
+                        if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt, tx, ty, tz) ||
+                            !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt, tx, ty, tz) ||
+                            !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt, tx, ty, tz) ||
+                            !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt, tx, ty, tz)) {
+                            // A vertex landed at/behind the eye plane at this time
+                            continue;
+                        }
+                    } else {
+                        interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
+                        interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
+                        interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
+                        interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
                     }
-                } else {
-                    interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
-                    interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
-                    interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
-                    interpolatev(v3movTmp, v3, v3 + displacement, pixel->jt);
+                    v0 = v0movTmp;
+                    v1 = v1movTmp;
+                    v2 = v2movTmp;
+                    v3 = v3movTmp;
                 }
-                v0 = v0movTmp;
-                v1 = v1movTmp;
-                v2 = v2movTmp;
-                v3 = v3movTmp;
 #endif
 
 #ifdef STOCHASTIC_FOCAL_BLUR

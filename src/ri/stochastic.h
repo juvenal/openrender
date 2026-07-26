@@ -80,6 +80,8 @@ class CStochastic : public CReyes, public COcclusionCuller {
                 int jtStratum;         // The time stratum this sample's jt falls in (indexes the per-stratum motion bounds)
                 float jdx, jdy;        // The aperture jitter	(Gaussian)
                 float jimp;            // The relative important // GSHHACK
+                float xcentRot, ycentRot; // Sample center inverse-rotated to the t=0 camera frame (camera pure-rotation fast path)
+                float zScale;          // Depth scale mapping a t=0 interpolated z to the sample's time (fast path)
                 float z;               // The farthest opaque z value
                 float zold;            // This is the old Z value (for depth filtering)
                 int numSplats;         // The number of splats to this pixel (used by the avg. depth filter);

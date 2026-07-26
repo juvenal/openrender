@@ -403,6 +403,7 @@ class CRenderer {
         static quaternion relRotQ;                              // Rotation quaternion of relMotion (cam_t0 -> cam_t1)
         static vector     relTrans;                             // Translation part of relMotion (cam_t0 -> cam_t1)
         static bool       cameraHasRotation;                   // True when relMotion contains a non-trivial rotation
+        static bool       cameraRotationOnly;                  // True when relMotion is a pure rotation (relTrans ~ 0); enables the inverse-sample fast path
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;
