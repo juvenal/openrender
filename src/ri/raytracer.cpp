@@ -520,10 +520,14 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             pixels2camera(from, x, y, 0);
             pixels2camera(to, x, y, CRenderer::focaldistance);
 
-            const float theta = (float)(urand() * 2 * C_PI);
-            const float r = urand() * CRenderer::aperture;
-            from[COMP_X] += cosf(theta) * r;
-            from[COMP_Y] += sinf(theta) * r;
+            // Area-uniform disk sample via the shared sampleDisk() (random.h) —
+            // the previous polar-coordinate scheme (theta uniform, r uniform)
+            // biased samples toward the aperture center instead of uniformly
+            // covering its area.
+            float diskSample[2];
+            sampleDisk(diskSample, [this](float *s) { s[0] = urand(); s[1] = urand(); });
+            from[COMP_X] += diskSample[0] * CRenderer::aperture;
+            from[COMP_Y] += diskSample[1] * CRenderer::aperture;
 
             movvv(cRay->from, from);
             subvv(cRay->dir, to, from);

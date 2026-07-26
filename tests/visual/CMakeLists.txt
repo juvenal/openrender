@@ -32,6 +32,13 @@ add_executable(test_visual_render test_visual_render.cpp)
 target_link_libraries(test_visual_render PRIVATE TIFF::TIFF)
 target_compile_features(test_visual_render PRIVATE cxx_std_20)
 
+# Radial-energy-histogram CLI tool (FR-009): validates depth-of-field lens
+# sampling uniformity. Not wired into ctest — invoked manually against
+# rendered DoF scenes (see quickstart.md).
+add_executable(test_radial_histogram test_radial_histogram.cpp)
+target_link_libraries(test_radial_histogram PRIVATE TIFF::TIFF)
+target_compile_features(test_radial_histogram PRIVATE cxx_std_20)
+
 # ---------------------------------------------------------------------------
 # Environment common to all visual tests
 # ---------------------------------------------------------------------------

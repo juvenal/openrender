@@ -188,14 +188,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             if (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) {
 
                 // Aperture sample for depth of field
-                while (TRUE) {
-                    apertureGenerator.get(aperture);
-                    aperture[0] = 2.0f * aperture[0] - 1.0f;
-                    aperture[1] = 2.0f * aperture[1] - 1.0f;
-                    if ((aperture[0] * aperture[0] + aperture[1] * aperture[1]) < 1.0f) {
-                        break;
-                    }
-                }
+                sampleDisk(aperture, [this](float *s) { apertureGenerator.get(s); });
 
                 pixel->jdx = aperture[0];
                 pixel->jdy = aperture[1];

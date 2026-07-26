@@ -21,6 +21,27 @@ set_tests_properties(Portability64Bit PROPERTIES
     LABELS "portability;64bit;core"
 )
 
+# Create test executable for sampleDisk() (depth-of-field lens sampling)
+add_executable(test_disk_sampling test_disk_sampling.cpp)
+
+# Link against common flags (includes C++20 standard)
+target_link_libraries(test_disk_sampling PRIVATE openrender_common_flags)
+
+# Include directories for accessing source headers
+target_include_directories(test_disk_sampling PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}  # For config.h
+)
+
+# Add test to CTest
+add_test(NAME DiskSampling COMMAND test_disk_sampling)
+
+# Set test properties
+set_tests_properties(DiskSampling PROPERTIES
+    TIMEOUT 30
+    LABELS "sampling;core"
+)
+
 # Future tests can be added here:
 # add_executable(test_atomics test_atomics.cpp)
 # add_test(NAME AtomicOperations COMMAND test_atomics)

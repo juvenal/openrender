@@ -159,6 +159,26 @@ void sampleCosineHemisphere(float *R, const float *Z, const float theta, CSobol<
 void sampleSphere(float *P, CSobol<3> &generator);
 
 ///////////////////////////////////////////////////////////////////////
+// Function             :   sampleDisk
+// Description          :   Area-uniform sample on the unit disk, via
+//                          square-to-disk rejection sampling. Sampler is any
+//                          callable taking a float[2] out-param and writing
+//                          two independent U(0,1) values (e.g. a CSobol<2>
+//                          sequence or a pair of urand() calls) — this lets
+//                          both hiders share exactly one disk-sampling
+//                          algorithm while keeping their own RNG sources.
+// Comments             :
+template <typename Sampler>
+inline void sampleDisk(float *R, Sampler &&sampler) {
+    float s[2];
+    do {
+        sampler(s);
+        R[0] = 2.0f * s[0] - 1.0f;
+        R[1] = 2.0f * s[1] - 1.0f;
+    } while (R[0] * R[0] + R[1] * R[1] >= 1.0f);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Thread-safe random number generators (replaces non-thread-safe rand()/random())
 // Uses a per-thread Mersenne Twister so concurrent shading threads never share state.
 ///////////////////////////////////////////////////////////////////////

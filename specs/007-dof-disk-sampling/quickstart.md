@@ -62,6 +62,19 @@ Expected: the tool reports both curves' `energy/annulus_area` matching within ±
 (excluding the innermost, noise-dominated bin) — flat, not center-peaked. Only once this passes, copy the new raytrace TIFs into
 `examples/rib/tests/references/`, replacing the two stale (buggy-baseline) files.
 
+**Known limitation**: this repo's DOF regression scenes (`camera-dof-*.rib`) are large opaque
+solid-color cones, not isolated point-light/bokeh features. At the only plausible measurement
+location (e.g. the largest/most-blurred cone's centroid), the ±20%/bin threshold does not fully
+hold, because the region is dominated by the cone's own conical silhouette shape rather than an
+isolated, symmetric blur disk — confirmed by running the same check against REYES ground truth
+at the same location, which itself reports a large, non-flat energy curve. In this situation,
+treat the check as informative rather than a hard gate: compare the *pre-fix* candidate against
+REYES at the same center/radius too, and confirm the *post-fix* candidate is closer to REYES in
+every bin (this bin-by-bin improvement is the meaningful evidence, not the literal ±20% pass).
+The rigorous, location-independent proof of area-uniformity is the `DiskSampling` unit test's
+chi-square test on r² (step 2) — treat that as the primary SC-001/SC-004 evidence, and this
+histogram check as corroborating, scene-limited evidence.
+
 ## 6. Full regression suite
 
 ```bash
@@ -79,6 +92,10 @@ build/tests/visual/test_radial_histogram camera-dof-raytrace.tif --center <x> <y
 
 Expected: `energy/annulus_area` roughly constant across bins (flat curve), not decaying with
 radius (which would indicate the pre-fix center-bias is still present).
+
+Same limitation as step 5 applies here: on the cone-silhouette scenes in this repo, the curve's
+shape reflects scene geometry more than lens-sampling behavior at any radius large enough to
+cover a cone. See step 5's note; the unit test in step 2 is the reliable check for this property.
 
 ## 8. Performance check (SC-005: ≤1% regression)
 

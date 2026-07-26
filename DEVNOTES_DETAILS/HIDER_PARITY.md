@@ -6,6 +6,7 @@ The goal is for the `stochastic` and `raytrace` hiders to produce pixel-identica
 
 - [x] **Unified Pixel Filtering:** Both hiders utilize the global `CRenderer::pixelFilterKernel` precomputed in `beginFrame`, ensuring consistent anti-aliasing.
 - [x] **Sampling Distribution:** Both hiders respect `Option "hider" "float jitter"` for sample positions.
+- [x] **Depth-of-Field Lens Sampling:** Both hiders sample the lens aperture disk through the single shared `sampleDisk()` in `src/ri/random.h` (square-to-disk rejection sampling), templated on the caller's RNG source — `CStochastic` via its `CSobol<2> apertureGenerator` (`stochastic.cpp`), `CRaytracer` via its per-instance `urand()` (`raytracer.cpp`). Fixes a prior raytracer defect where `r = urand() * aperture` biased samples toward the aperture center instead of sampling its area uniformly.
 - [ ] **Motion Blur Implementation:** `CRaytracer` needs to implement support for moving surfaces (interpolation of vertex positions over time) to match the stochastic hider's temporal sampling.
 - [ ] **Shading Interpolation & Derivatives:** Ensure that shading derivatives (Du, Dv) and variables like `s`, `t`, `u`, `v` are computed consistently. Stochastic hider shades at micro-polygon vertices, while Raytrace shades at intersection points.
 - [ ] **Displacement Parity:** Both hiders should use the same dicing/tessellation levels for displaced surfaces. Raytracer currently stubs some advanced displacement cases.
