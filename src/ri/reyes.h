@@ -57,6 +57,45 @@ const unsigned int RASTER_DRAW_BACK = 1 << 11;      // Draw the back of the prim
 const unsigned int RASTER_SHADE_HIDDEN = 1 << 12;   // Shade the primitive even if occluded
 const unsigned int RASTER_SHADE_BACKFACE = 1 << 13; // Shade the primitive even if backfacing
 
+// Sample times are stratified by sub-pixel index (see CStochastic::rasterBegin),
+// so every sample's time falls in exactly one of pixelXsamples*pixelYsamples
+// shutter sub-intervals. Moving grids carry raster bounds per time stratum,
+// letting the stochastic rasterizer reject a (sample, quad) pair whose times
+// can never match instead of testing every sample in the full-shutter sweep.
+// The stratum count is capped to bound the per-quad memory; when the cap is
+// hit, adjacent sample-time strata share a (slightly wider) bound.
+const int RASTER_MAX_TIME_STRATA = 16;
+
+inline int rasterTimeStrata() {
+    const int n = CRenderer::pixelXsamples * CRenderer::pixelYsamples;
+    return (n < RASTER_MAX_TIME_STRATA) ? n : RASTER_MAX_TIME_STRATA;
+}
+
+// Transform a t=0 raster-space vertex (sample coordinates) to its raster
+// position at shutter time jt under the relative camera motion (Mjt/t* from
+// slerp(identity, CRenderer::relRotQ, jt) and jt*CRenderer::relTrans).
+// Shared by bound computation (CReyes::insertGrid) and the stochastic
+// rasterizer (stochasticQuad.h). Returns FALSE when the transformed point
+// lands at/behind the eye plane, in which case the outputs are not written.
+inline int rasterCameraMotionTransform(float *xOut, float *yOut, float *zOut, const float *vIn, const float *Mjt, const float tx, const float ty, const float tz) {
+    const float z = vIn[COMP_Z];
+    const float sx = vIn[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;
+    const float sy = vIn[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;
+    const float cp[3] = {sx * z * CRenderer::invImagePlane, sy * z * CRenderer::invImagePlane, z};
+    float rp[3];
+    mulmp(rp, Mjt, cp);
+    rp[0] += tx;
+    rp[1] += ty;
+    rp[2] += tz;
+    if (rp[2] <= C_EPSILON) {
+        return FALSE;
+    }
+    *xOut = (CRenderer::imagePlane * rp[0] / rp[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
+    *yOut = (CRenderer::imagePlane * rp[1] / rp[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
+    *zOut = rp[2];
+    return TRUE;
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CReyes
 // Description			:	This class is implementes a REYES like scan
@@ -91,6 +130,9 @@ class CReyes : public CShadingContext {
             public:
                 float *vertices;              // Array of vertices
                 int *bounds;                  // The bound of the primitive (4 numbers per primitive)
+                int *quadStratumBounds;       // Per-quad bounds per time stratum (4*timeStrata numbers per quad; NULL unless a moving quad grid)
+                int stratumBounds[RASTER_MAX_TIME_STRATA][4]; // Grid-level bounds per time stratum (moving quad grids only)
+                int timeStrata;               // Number of time strata in the stratum bounds (0 when absent)
                 float *sizes;                 // The size of the primitive (only makes sense for points)
                 EShadingDim dim;              // Dimensionality (0,1 or 2)
                 float umin, umax, vmin, vmax; // The parametric range

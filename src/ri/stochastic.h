@@ -77,6 +77,7 @@ class CStochastic : public CReyes, public COcclusionCuller {
             public:
                 float jx, jy;          // The sampling jitter
                 float jt;              // The time jitter
+                int jtStratum;         // The time stratum this sample's jt falls in (indexes the per-stratum motion bounds)
                 float jdx, jdy;        // The aperture jitter	(Gaussian)
                 float jimp;            // The relative important // GSHHACK
                 float z;               // The farthest opaque z value

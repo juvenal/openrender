@@ -168,6 +168,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
                 pxj = 0;
             }
             pixel->jt = (pxi * CRenderer::pixelXsamples + pxj + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(CRenderer::pixelXsamples * CRenderer::pixelYsamples);
+            pixel->jtStratum = ((pxi * CRenderer::pixelXsamples + pxj) * rasterTimeStrata()) / (CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
             // Importance blend / jitter
             pixel->jimp = 1.0f - (pxj * CRenderer::pixelYsamples + pxi + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(CRenderer::pixelXsamples * CRenderer::pixelYsamples);

@@ -431,7 +431,19 @@ for (y = ymin; y <= ymax; y++) {
         CPixel *pixel = fb[y] + x;
         int i, j;
 
+#ifdef STOCHASTIC_MOVING
+        // Reject the whole grid for this sample unless the sample lies inside
+        // the grid's bound during the sample's own time stratum — the vast
+        // majority of samples inside a full-shutter sweep fail this
+        const int *gsb = grid->stratumBounds[pixel->jtStratum];
+        if ((x + left < gsb[0]) || (x + left > gsb[1]) || (y + top < gsb[2]) || (y + top > gsb[3])) {
+            continue;
+        }
+        const int qsbStep = grid->timeStrata << 2;
+        const int *qsb = grid->quadStratumBounds + (pixel->jtStratum << 2);
+#else
         const int *bounds = grid->bounds;
+#endif
 
         const float *vertices = grid->vertices;
         const int udiv = grid->udiv;
@@ -457,10 +469,27 @@ for (y = ymin; y <= ymax; y++) {
 #endif
 
         for (j = 0; j < vdiv; j++) {
+#ifdef STOCHASTIC_MOVING
+            for (i = 0; i < udiv; i++, qsb += qsbStep, vertices += numVertexSamples) {
+
+                // Cull against the quad's bound during this sample's own time
+                // stratum (computed in insertGrid) — far tighter than the
+                // full-shutter bound
+                if (x + left < qsb[0]) {
+                    continue;
+                }
+                if (x + left > qsb[1]) {
+                    continue;
+                }
+                if (y + top < qsb[2]) {
+                    continue;
+                }
+                if (y + top > qsb[3]) {
+                    continue;
+                }
+#else
             for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
 
-                // Per-quad bounds are arc-expanded in insertGrid() for camera rotation,
-                // so bounds culling is now correct unconditionally.
                 if (x + left < bounds[0]) {
                     continue;
                 }
@@ -473,6 +502,7 @@ for (y = ymin; y <= ymax; y++) {
                 if (y + top > bounds[3]) {
                     continue;
                 }
+#endif
                 lodCheck();
 
                 const float *v0 = vertices;
@@ -496,42 +526,21 @@ for (y = ymin; y <= ymax; y++) {
                 vector v3movTmp;
                 if (CRenderer::cameraHasRotation) {
                     // Camera rotation: LERP of raster-space positions traces a
-                    // chord instead of the correct arc.
-                    // Fix: unproject each vertex from raster-space back to
-                    // camera-space, apply slerp(I, relRotQ, jt) rotation
-                    // (+ lerped translation), then re-project to raster-space.
+                    // chord instead of the correct arc. Unproject each vertex to
+                    // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
+                    // translation), then re-project (rasterCameraMotionTransform,
+                    // shared with insertGrid's bound computation).
                     // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
                     //                    0         1      2   3..5  6..8    9
                     // Rotation matrix pre-computed per-pixel as Mjt_pix above
                     // (hoisted out of the quad loop — same jt for all quads at this pixel).
-
-                    // Unproject sample coords -> screen -> camera, rotate, re-project -> sample.
-                    // vertex buffer is in sample space: screen_x = sampleX / dSampledx + pixelLeft
-                    // camX = screen_x * camZ * invImagePlane
-                    // re-project: sampleX' = (imagePlane * camX' / camZ' - pixelLeft) * dSampledx
-
-#define APPLY_CAM_ROT(vOut, vIn)                                                                            \
-                    {                                                                                       \
-                        const float _z   = (vIn)[COMP_Z];                                                  \
-                        const float _sx  = (vIn)[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;   \
-                        const float _sy  = (vIn)[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;    \
-                        float _cp[3] = {_sx * _z * CRenderer::invImagePlane,                              \
-                                        _sy * _z * CRenderer::invImagePlane, _z};                          \
-                        float _rp[3];                                                                      \
-                        mulmp(_rp, Mjt_pix, _cp);                                                          \
-                        _rp[0] += tx_pix; _rp[1] += ty_pix; _rp[2] += tz_pix;                             \
-                        (vOut)[COMP_X] = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) \
-                                         * CRenderer::dSampledx;                                           \
-                        (vOut)[COMP_Y] = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop)  \
-                                         * CRenderer::dSampledy;                                           \
-                        (vOut)[COMP_Z] = _rp[2];                                                           \
+                    if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                        !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                        !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt_pix, tx_pix, ty_pix, tz_pix) ||
+                        !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt_pix, tx_pix, ty_pix, tz_pix)) {
+                        // A vertex landed at/behind the eye plane at this time
+                        continue;
                     }
-
-                    APPLY_CAM_ROT(v0movTmp, v0)
-                    APPLY_CAM_ROT(v1movTmp, v1)
-                    APPLY_CAM_ROT(v2movTmp, v2)
-                    APPLY_CAM_ROT(v3movTmp, v3)
-#undef APPLY_CAM_ROT
                 } else {
                     interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
                     interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
@@ -624,8 +633,17 @@ const int udiv = grid->udiv;
 const int vdiv = grid->vdiv;
 const int flags = grid->flags;
 
+#ifdef STOCHASTIC_MOVING
+const int qsbStep = grid->timeStrata << 2;
+const int *qsbBase = grid->quadStratumBounds;
+#endif
+
 for (j = 0; j < vdiv; j++) {
+#ifdef STOCHASTIC_MOVING
+    for (i = 0; i < udiv; i++, bounds += 4, qsbBase += qsbStep, vertices += numVertexSamples) {
+#else
     for (i = 0; i < udiv; i++, bounds += 4, vertices += numVertexSamples) {
+#endif
 
         // Trivial rejects
         if (bounds[1] < left) {
@@ -748,6 +766,18 @@ for (j = 0; j < vdiv; j++) {
 
                 lodCheck();
 
+#ifdef STOCHASTIC_MOVING
+                // Cull against the quad's bound during this sample's own time
+                // stratum (computed in insertGrid) before doing any per-sample
+                // vertex deformation
+                {
+                    const int *qsb = qsbBase + (pixel->jtStratum << 2);
+                    if ((x + left < qsb[0]) || (x + left > qsb[1]) || (y + top < qsb[2]) || (y + top > qsb[3])) {
+                        continue;
+                    }
+                }
+#endif
+
                 const float *v0 = vertices;
                 const float *v1 = vertices + numVertexSamples;
                 const float *v2 = v1 + udiv * numVertexSamples;
@@ -769,10 +799,10 @@ for (j = 0; j < vdiv; j++) {
                 vector v3movTmp;
                 if (CRenderer::cameraHasRotation) {
                     // Camera rotation: LERP of raster-space positions traces a
-                    // chord instead of the correct arc.
-                    // Fix: unproject each vertex from raster-space back to
-                    // camera-space, apply slerp(I, relRotQ, jt) rotation
-                    // (+ lerped translation), then re-project to raster-space.
+                    // chord instead of the correct arc. Unproject each vertex to
+                    // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
+                    // translation), then re-project (rasterCameraMotionTransform,
+                    // shared with insertGrid's bound computation).
                     // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
                     //                    0         1      2   3..5  6..8    9
                     const float jt = pixel->jt;
@@ -785,33 +815,13 @@ for (j = 0; j < vdiv; j++) {
                     const float ty = jt * CRenderer::relTrans[1];
                     const float tz = jt * CRenderer::relTrans[2];
 
-                    // Unproject sample coords -> screen -> camera, rotate, re-project -> sample.
-                    // vertex buffer is in sample space: screen_x = sampleX / dSampledx + pixelLeft
-                    // camX = screen_x * camZ * invImagePlane
-                    // re-project: sampleX' = (imagePlane * camX' / camZ' - pixelLeft) * dSampledx
-
-#define APPLY_CAM_ROT(vOut, vIn)                                                                            \
-                    {                                                                                       \
-                        const float _z   = (vIn)[COMP_Z];                                                  \
-                        const float _sx  = (vIn)[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;   \
-                        const float _sy  = (vIn)[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;    \
-                        float _cp[3] = {_sx * _z * CRenderer::invImagePlane,                              \
-                                        _sy * _z * CRenderer::invImagePlane, _z};                          \
-                        float _rp[3];                                                                      \
-                        mulmp(_rp, Mjt, _cp);                                                              \
-                        _rp[0] += tx; _rp[1] += ty; _rp[2] += tz;                                         \
-                        (vOut)[COMP_X] = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) \
-                                         * CRenderer::dSampledx;                                           \
-                        (vOut)[COMP_Y] = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop)  \
-                                         * CRenderer::dSampledy;                                           \
-                        (vOut)[COMP_Z] = _rp[2];                                                           \
+                    if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt, tx, ty, tz) ||
+                        !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt, tx, ty, tz) ||
+                        !rasterCameraMotionTransform(v2movTmp + COMP_X, v2movTmp + COMP_Y, v2movTmp + COMP_Z, v2, Mjt, tx, ty, tz) ||
+                        !rasterCameraMotionTransform(v3movTmp + COMP_X, v3movTmp + COMP_Y, v3movTmp + COMP_Z, v3, Mjt, tx, ty, tz)) {
+                        // A vertex landed at/behind the eye plane at this time
+                        continue;
                     }
-
-                    APPLY_CAM_ROT(v0movTmp, v0)
-                    APPLY_CAM_ROT(v1movTmp, v1)
-                    APPLY_CAM_ROT(v2movTmp, v2)
-                    APPLY_CAM_ROT(v3movTmp, v3)
-#undef APPLY_CAM_ROT
                 } else {
                     interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
                     interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);

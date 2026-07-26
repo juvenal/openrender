@@ -1199,6 +1199,8 @@ CReyes::CRasterGrid *CReyes::newGrid(CSurface *object, int points, int numVertic
         grid->bounds = new int[(numVerticesU - 1) * (numVerticesV - 1) * 4];
         grid->sizes = NULL;
     }
+    grid->quadStratumBounds = NULL; // Allocated in insertGrid for moving quad grids
+    grid->timeStrata = 0;
 
     object->attach();
 
@@ -1237,6 +1239,8 @@ void CReyes::deleteObject(CRasterObject *dObject) {
         delete[] dObject->next;
         delete[] grid->vertices;
         delete[] grid->bounds;
+        if (grid->quadStratumBounds != NULL)
+            delete[] grid->quadStratumBounds;
         if (grid->sizes != NULL)
             delete[] grid->sizes;
         delete grid;
@@ -1458,6 +1462,55 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         float originalArea = 0; // This is the total area of the grid without mb/dof
         float expandedArea = 0; // This is the total area of the grid with mb/dof
 
+        // For moving quad grids, sample the vertex raster positions across the
+        // shutter once (each stratum's endpoints plus its midpoint). The samples
+        // feed the per-quad and grid-level per-time-stratum bounds below, which
+        // let the rasterizer skip (sample, quad) pairs whose times cannot match.
+        const int numStrata = (grid->flags & RASTER_MOVING) ? rasterTimeStrata() : 0;
+        const int numTimeSamples = 2 * numStrata + 1;
+        float *timePos = NULL;
+        if (numStrata > 0) {
+            grid->timeStrata = numStrata;
+            grid->quadStratumBounds = new int[udiv * vdiv * numStrata * 4];
+            timePos = new float[numTimeSamples * grid->numVertices * 2];
+
+            const int t1offset = CRenderer::numExtraSamples + 10;
+            float *dst = timePos;
+            for (int ti = 0; ti < numTimeSamples; ti++) {
+                const float jt = (float)ti / (float)(2 * numStrata);
+
+                if (CRenderer::cameraHasRotation && (ti > 0)) {
+                    // Arc positions — the same transform the rasterizer applies
+                    static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
+                    quaternion Rjt;
+                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
+                    matrix Mjt;
+                    qtoR(Mjt, Rjt);
+                    const float tx = jt * CRenderer::relTrans[0];
+                    const float ty = jt * CRenderer::relTrans[1];
+                    const float tz = jt * CRenderer::relTrans[2];
+
+                    const float *cv = grid->vertices;
+                    for (int v = grid->numVertices; v > 0; v--, cv += numVertexSamples, dst += 2) {
+                        float rz;
+                        if (!rasterCameraMotionTransform(dst, dst + 1, &rz, cv, Mjt, tx, ty, tz)) {
+                            // Behind the eye plane: fall back to the raster-space chord
+                            dst[0] = cv[COMP_X] * (1 - jt) + cv[t1offset + COMP_X] * jt;
+                            dst[1] = cv[COMP_Y] * (1 - jt) + cv[t1offset + COMP_Y] * jt;
+                        }
+                    }
+                } else {
+                    // Raster-space chord (matches the rasterizer's interpolatev);
+                    // ti == 0 degenerates to a copy of the t=0 positions
+                    const float *cv = grid->vertices;
+                    for (int v = grid->numVertices; v > 0; v--, cv += numVertexSamples, dst += 2) {
+                        dst[0] = cv[COMP_X] * (1 - jt) + cv[t1offset + COMP_X] * jt;
+                        dst[1] = cv[COMP_Y] * (1 - jt) + cv[t1offset + COMP_Y] * jt;
+                    }
+                }
+            }
+        }
+
         // Precompute arc-time rotation matrices for per-quad arc bounds expansion.
         // Reusing the same 3 sample times as the grid-level arc loop (t=0.25,0.5,0.75).
         matrix arcMjt[3];
@@ -1481,6 +1534,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             for (i = 0; i < udiv; i++, bounds += 4) {
                 float xbound[2];
                 float ybound[2];
+                float quadCoc = 0; // The focal blur expansion applied to this quad's bounds
                 const float *cVertex = vertices + (j * (udiv + 1) + i) * numVertexSamples; // The top left vertex
                 const float *P;
 
@@ -1595,6 +1649,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                     xbound[1] += mcoc;
                     ybound[0] -= mcoc;
                     ybound[1] += mcoc;
+                    quadCoc = mcoc;
                 }
 
                 // Expand per-quad bounds to cover the full arc for camera rotation.
@@ -1639,7 +1694,76 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                 bounds[1] = (int)floor(xbound[1]); // xmax
                 bounds[2] = (int)floor(ybound[0]); // ymin
                 bounds[3] = (int)floor(ybound[1]); // ymax
+
+                // Per-time-stratum bounds: bound the quad over each shutter
+                // sub-interval (endpoints + midpoint samples from timePos) so the
+                // rasterizer only tests samples whose own time stratum can
+                // intersect the quad
+                if (timePos != NULL) {
+                    const int v00 = j * (udiv + 1) + i;
+                    const int vIdx[4] = {v00, v00 + 1, v00 + udiv + 1, v00 + udiv + 2};
+                    int *qsb = grid->quadStratumBounds + (j * udiv + i) * numStrata * 4;
+
+                    for (int k = 0; k < numStrata; k++, qsb += 4) {
+                        float sxmin = C_INFINITY, sxmax = -C_INFINITY;
+                        float symin = C_INFINITY, symax = -C_INFINITY;
+
+                        for (int ti = 2 * k; ti <= 2 * k + 2; ti++) {
+                            const float *tp = timePos + ti * grid->numVertices * 2;
+
+                            for (int vi = 0; vi < 4; vi++) {
+                                const float px = tp[vIdx[vi] * 2];
+                                const float py = tp[vIdx[vi] * 2 + 1];
+                                if (px < sxmin) sxmin = px;
+                                if (px > sxmax) sxmax = px;
+                                if (py < symin) symin = py;
+                                if (py > symax) symax = py;
+                            }
+                        }
+
+                        // +/- 2 samples of slack: the time jitter can spill a hair
+                        // past the stratum edge, and the midpoint-sampled polyline
+                        // slightly under-bounds the true arc
+                        qsb[0] = (int)floor(sxmin - quadCoc) - 2;
+                        qsb[1] = (int)floor(sxmax + quadCoc) + 2;
+                        qsb[2] = (int)floor(symin - quadCoc) - 2;
+                        qsb[3] = (int)floor(symax + quadCoc) + 2;
+                    }
+                }
             }
+        }
+
+        // Grid-level per-time-stratum bounds: the union over all vertices of the
+        // sampled positions inside each stratum. The rasterizer checks these
+        // before touching the grid's quads for a given sample.
+        if (timePos != NULL) {
+            float gridCoc = 0;
+            if (CRenderer::aperture != 0) {
+                const float coc1 = cocSamples(zmin);
+                const float coc2 = cocSamples(zmax);
+                gridCoc = (coc2 > coc1) ? coc2 : coc1;
+            }
+
+            for (int k = 0; k < numStrata; k++) {
+                float sxmin = C_INFINITY, sxmax = -C_INFINITY;
+                float symin = C_INFINITY, symax = -C_INFINITY;
+
+                // Samples 2k .. 2k+2 are contiguous in timePos
+                const float *tp = timePos + 2 * k * grid->numVertices * 2;
+                for (int n = 3 * grid->numVertices; n > 0; n--, tp += 2) {
+                    if (tp[0] < sxmin) sxmin = tp[0];
+                    if (tp[0] > sxmax) sxmax = tp[0];
+                    if (tp[1] < symin) symin = tp[1];
+                    if (tp[1] > symax) symax = tp[1];
+                }
+
+                grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc) - 2;
+                grid->stratumBounds[k][1] = (int)floor(sxmax + gridCoc) + 2;
+                grid->stratumBounds[k][2] = (int)floor(symin - gridCoc) - 2;
+                grid->stratumBounds[k][3] = (int)floor(symax + gridCoc) + 2;
+            }
+
+            delete[] timePos;
         }
 
         // Check if we have xtreme mb/dof.
