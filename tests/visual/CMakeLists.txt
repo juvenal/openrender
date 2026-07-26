@@ -231,10 +231,14 @@ add_visual_test(motion-2-raytrace
     examples/rib/tests/motion-2-raytrace.rib
     motion-2-raytrace.tif  motion-2-raytrace.tif)
 
-# motion-3-reyes: 90° camera rotation with PixelSamples 3 3, 800x600 — very slow (~10 min)
+# motion-3-reyes: 90° camera rotation with PixelSamples 3 3, 800x600.
+# The extreme-blur bands are sparse speckle whose realization depends on the
+# thread->bucket assignment of the per-thread jitter streams: two runs of the
+# same binary measure up to ~79/255 max block diff. Threshold 100 stays above
+# that variance while still catching gross regressions in solid regions.
 add_visual_test(motion-3-reyes
     examples/rib/tests/motion-3-reyes.rib
-    motion-3-reyes.tif  motion-3-reyes.tif)
+    motion-3-reyes.tif  motion-3-reyes.tif  100)
 set_tests_properties(Visual_motion-3-reyes PROPERTIES
     TIMEOUT 900
     LABELS  "visual;regression;slow")
@@ -270,19 +274,24 @@ add_visual_test(camera-motion-small-raytrace
     examples/rib/tests/camera-motion-small-raytrace.rib
     camera-motion-small-raytrace.tif  camera-motion-small-raytrace.tif)
 
+# DoF+motion sampling is realization-sensitive: two runs of the same binary
+# measure up to ~64/255 (reyes) and ~97/255 (raytrace) max block diff, so the
+# thresholds must sit above that run-to-run variance.
 add_visual_test(camera-motion-small-dof-reyes
     "examples/rib/tests/camera-motion-small+dof-reyes.rib"
-    camera-motion-small+dof-reyes.tif  camera-motion-small+dof-reyes.tif)
+    camera-motion-small+dof-reyes.tif  camera-motion-small+dof-reyes.tif  90)
 
-# DoF+motion raytrace: stochastic DoF+motion sampling has high variance (~22/block)
 add_visual_test(camera-motion-small-dof-raytrace
     "examples/rib/tests/camera-motion-small+dof-raytrace.rib"
-    camera-motion-small+dof-raytrace.tif  camera-motion-small+dof-raytrace.tif  30)
+    camera-motion-small+dof-raytrace.tif  camera-motion-small+dof-raytrace.tif  110)
 
-# camera-motion-huge: only the reyes variant is tested
+# camera-motion-huge: only the reyes variant is tested.
+# Like motion-3-reyes, the huge-blur bands are thread-schedule-sensitive
+# speckle: two runs of the same binary measure up to ~70/255 max block diff,
+# so the threshold must sit above that run-to-run variance.
 add_visual_test(camera-motion-huge-reyes
     examples/rib/tests/camera-motion-huge-reyes.rib
-    camera-motion-huge-reyes.tif  camera-motion-huge-reyes.tif)
+    camera-motion-huge-reyes.tif  camera-motion-huge-reyes.tif  100)
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
