@@ -279,10 +279,10 @@ add_visual_test(camera-motion-small-dof-raytrace
     "examples/rib/tests/camera-motion-small+dof-raytrace.rib"
     camera-motion-small+dof-raytrace.tif  camera-motion-small+dof-raytrace.tif  30)
 
-# camera-motion-huge: both RIBs write the same output file; test only the reyes variant
+# camera-motion-huge: only the reyes variant is tested
 add_visual_test(camera-motion-huge-reyes
     examples/rib/tests/camera-motion-huge-reyes.rib
-    camera-motion-huge-reyes.tif  camera-motion-huge.tif)
+    camera-motion-huge-reyes.tif  camera-motion-huge-reyes.tif)
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
