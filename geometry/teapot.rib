@@ -15,7 +15,7 @@ ObjectBegin "teapot"
     Basis "bezier" 3 "bezier" 3
 
     AttributeBegin
-      Attribute "identifier" "name" ["UtahTeapot"]
+      Attribute "identifier" "name" ["teapot"]
 
       # Patch 01/32  [Rim]
       Patch "bicubic" "P" [

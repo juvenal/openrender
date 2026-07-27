@@ -2,6 +2,7 @@
 # killeroo.rib
 ObjectBegin "killeroo"
 AttributeBegin
+Attribute "identifier" "name" ["killeroo"]
 #Surface "cyslice_subd_matte" "Ka" 0 "Kd" 1 "cyslice_subd_color" [ "subd-1024.tif" ]
 #Displacement "cyslice_subd_disp" "Km" 3.000000 "cyslice_subd_disp" [ "subd-1024_3.tif" ]
 #Attribute "displacementbound" "coordinatesystem" ["world"] "sphere" [3]
