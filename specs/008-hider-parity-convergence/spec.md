@@ -16,6 +16,11 @@
 - Q: Is raytraced motion blur scoped as verification-only, or as new feature work from a lower baseline? → A: Verification-only — treat existing per-hit-time interpolation as the mechanism; add cross-hider motion tests and fix any correctness bugs the tests surface, but do not design new motion-blur infrastructure.
 - Q: Should the Option B unified per-bucket sample table's determinism/replay property become a documented, user-facing guarantee? → A: Internal only — sample-table sharing is purely an implementation detail that correlates noise for tighter parity-test thresholds; no new user-facing determinism contract or RIB-level API is introduced.
 
+### Session 2026-08-01 (clarify)
+
+- Q: Should raytraced motion-blur parity coverage (Story 6) be a single representative moving-geometry scene, or per-primitive-type (patches, polygons, quadrics) coverage? → A: Per-primitive-type coverage is required — since each primitive type's time interpolation is implemented independently, a single generic scene could miss a type-specific bug and leave D10 only partially closed.
+- Q: Should this spec's performance requirement be regression-only, or also commit to narrowing the existing raytrace-vs-reyes render-speed gap (caused by redundant per-hit shading)? → A: Regression-only — neither hider may get slower than today, but closing the existing speed gap is out of scope, matching the audit's own verdict that gap-closing belongs to the future path-tracing/Option-C effort.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Cross-hider parity safety net (Priority: P1)
@@ -106,13 +111,13 @@ A scene author renders a scene with moving geometry (not just a moving camera) u
 
 **Why this priority**: Motion blur is a widely-used effect; an "unverified" status on a code path that's already exercised by the raytracer means either a hidden bug or an outdated warning — both need resolving, but this depends on the parity harness (Story 1) to distinguish the two.
 
-**Independent Test**: Render a scene with moving (deforming or translating) geometry using both hiders with identical shutter/motion settings and compare motion-blurred results via the Story 1 harness.
+**Independent Test**: Render, for each supported moving-geometry primitive type (patches, polygons, quadrics), a scene with that primitive translating and a scene with it deforming, using both hiders with identical shutter/motion settings, and compare motion-blurred results via the Story 1 harness.
 
 **Acceptance Scenarios**:
 
-1. **Given** a scene with translating geometry over the shutter interval, **When** rendered with the raytrace hider, **Then** the motion-blurred result matches reyes's motion-blurred result for the same scene within the harness's motion threshold.
-2. **Given** a scene with deforming (per-vertex time-varying) geometry over the shutter interval, **When** rendered with the raytrace hider, **Then** the result shows correct motion blur, and any correctness bug the harness surfaces is fixed as part of this story.
-3. **Given** raytraced object motion blur passes the new cross-hider tests, **When** this story is complete, **Then** the renderer's status documentation is updated to remove the "incomplete/unverified" flag for this path.
+1. **Given** a scene with translating geometry over the shutter interval, for each supported moving-geometry primitive type (patches, polygons, quadrics), **When** rendered with the raytrace hider, **Then** the motion-blurred result matches reyes's motion-blurred result for the same scene and primitive type within the harness's motion threshold.
+2. **Given** a scene with deforming (per-vertex time-varying) geometry over the shutter interval, for each supported moving-geometry primitive type, **When** rendered with the raytrace hider, **Then** the result shows correct motion blur, and any correctness bug the harness surfaces for that primitive type is fixed as part of this story.
+3. **Given** raytraced object motion blur passes the new cross-hider tests for every covered primitive type, **When** this story is complete, **Then** the renderer's status documentation is updated to remove the "incomplete/unverified" flag for this path.
 
 ---
 
@@ -177,7 +182,7 @@ A renderer maintainer wants to tighten the pass/fail thresholds on the Story 1 p
 ### Functional Requirements
 
 - **FR-001**: The renderer MUST provide a cross-hider parity test harness that renders the same scene with both the reyes and raytrace hiders and reports a per-scene divergence measurement against a documented, per-effect threshold.
-- **FR-002**: The parity harness MUST include at least one scene pair for each of: flat shading, depth of field, motion blur, transparency, matte objects, and extra AOV channels, plus at least one combined-effect scene (e.g. depth of field + motion blur, transparency + matte).
+- **FR-002**: The parity harness MUST include at least one scene pair for each of: flat shading, depth of field, transparency, matte objects, and extra AOV channels; motion blur MUST have separate translating and deforming scene pairs for each supported moving-geometry primitive type (patches, polygons, quadrics); the harness MUST also include at least one combined-effect scene (e.g. depth of field + motion blur, transparency + matte).
 - **FR-003**: The parity harness MUST run as part of the renderer's existing automated test invocation and MUST NOT require a maintainer to manually diff images to get a pass/fail result.
 - **FR-004**: The renderer MUST expose exactly one shared component that generates a pixel sample's jitter offset, time stratum, and lens/aperture point, consumed identically by both the reyes and raytrace hiders.
 - **FR-005**: The shared per-sample generator MUST incorporate the existing, already-fixed area-uniform lens-disk sampling logic as its lens/aperture point source, rather than duplicating or replacing it.
@@ -193,8 +198,8 @@ A renderer maintainer wants to tighten the pass/fail thresholds on the Story 1 p
 - **FR-015**: The raytrace hider MUST displace geometry with a displacement shader applied by default (no scene attribute required), matching reyes's always-displace behavior.
 - **FR-016**: Scene authors MUST retain a way to explicitly opt a surface out of ray-traced displacement for performance reasons, via the existing attribute mechanism.
 - **FR-017**: This default-behavior change to raytrace displacement MUST be documented as a behavior change (not a silent default shift) in the renderer's parity/status documentation.
-- **FR-018**: The renderer MUST provide cross-hider parity test coverage for both translating and deforming (time-varying-vertex) moving geometry rendered with the raytrace hider, verified against reyes's motion-blurred output for the same scene.
-- **FR-019**: Any correctness bug in raytraced object motion blur that the new motion-blur parity tests surface MUST be fixed as part of this work; if no bug is found, the existing per-hit-time interpolation mechanism MUST be confirmed sufficient and the renderer's status documentation updated to remove the "incomplete/unverified" flag.
+- **FR-018**: The renderer MUST provide cross-hider parity test coverage for both translating and deforming (time-varying-vertex) moving geometry rendered with the raytrace hider, verified against reyes's motion-blurred output for the same scene, with separate coverage for each supported moving-geometry primitive type (patches, polygons, quadrics) rather than a single generic scene, since each type's time interpolation is implemented independently.
+- **FR-019**: Any correctness bug in raytraced object motion blur that the new motion-blur parity tests surface, for any covered primitive type, MUST be fixed as part of this work; if no bug is found for a given type, the existing per-hit-time interpolation mechanism MUST be confirmed sufficient for that type, and once all covered types pass, the renderer's status documentation is updated to remove the "incomplete/unverified" flag.
 - **FR-020**: The renderer MUST expose exactly one shared component that combines weighted sub-pixel samples into a final pixel value (filter kernel evaluation and weight normalization), consumed by the reyes, raytrace, and z-buffer hiders.
 - **FR-021**: Introducing the shared pixel-filter module MUST NOT change any hider's rendered output for scenes that already pass the existing visual-regression suite.
 - **FR-022**: The shared shading/tracing engine that all hiders inherit from MUST expose shading and ray-tracing operations only; bucket-rasterization operations (`drawObject`, `drawGrid`, `drawPoints`) MUST be owned only by the reyes-family hiders that perform rasterization.
@@ -205,7 +210,7 @@ A renderer maintainer wants to tighten the pass/fail thresholds on the Story 1 p
 - **FR-027**: The shared per-bucket sample table MUST remain an internal implementation detail: it MUST NOT introduce a new user-facing determinism/replay guarantee, RIB token, or option.
 - **FR-028**: The Story 1 parity harness MUST document, for each effect where this spec does not aim for full convergence (shading-density/interpolation differences; depth-of-field occlusion-model differences), the residual difference as an explicit, bounded, documented threshold rather than a silently-loosened or suppressed check.
 - **FR-029**: None of the refactors in this spec (Stories 2, 3, 7, 8) MUST change any user-facing scene-description API — no new or altered RIB tokens, options, or attributes are introduced except where a story explicitly says otherwise (Story 5's existing displacement opt-out attribute continues to exist unchanged).
-- **FR-030**: Raster hot-loop performance for the reyes hider MUST NOT regress by more than 2-3% on the renderer's existing depth-of-field and motion example scenes as a result of any refactor in this spec, measured before and after each change.
+- **FR-030**: Hot-loop rendering performance for both the reyes and raytrace hiders MUST NOT regress by more than 2-3% on the renderer's existing depth-of-field and motion example scenes as a result of any refactor in this spec, measured before and after each change. Narrowing the existing raytrace-vs-reyes render-speed gap (attributable to raytrace's per-hit redundant shading) is explicitly out of scope for this spec.
 
 ### Key Entities
 
@@ -228,7 +233,7 @@ A renderer maintainer wants to tighten the pass/fail thresholds on the Story 1 p
 - **SC-004**: There is exactly one shared implementation each for: per-sample jitter/time/lens generation, transparency/matte compositing, and pixel-filter combination — each independently verifiable by inspecting the renderer's source.
 - **SC-005**: 100% of the existing 33+-scene visual-regression suite continues to pass after this spec's structural changes, except for scenes affected by the documented displacement-default change, whose reference images are regenerated and whose change is documented.
 - **SC-006**: Raytraced motion blur for both translating and deforming geometry passes cross-hider parity comparison against reyes for 100% of the new motion parity scenes.
-- **SC-007**: Reyes raster-loop rendering time for the existing depth-of-field and motion example scenes does not regress by more than 2-3% versus pre-change baseline, measured after each structural change lands.
+- **SC-007**: Rendering time for both hiders on the existing depth-of-field and motion example scenes does not regress by more than 2-3% versus pre-change baseline, measured after each structural change lands. This is a regression guard only — narrowing the pre-existing raytrace-vs-reyes speed gap is not a goal of this spec.
 - **SC-008**: After the shared per-bucket sample table (Option B) lands, at least one previously-loose parity threshold is tightened and the full parity suite still passes with zero false failures against unmodified code.
 
 ## Assumptions
@@ -236,6 +241,8 @@ A renderer maintainer wants to tighten the pass/fail thresholds on the Story 1 p
 - The already-completed lens-sampling fix (shared `sampleDisk()` in `src/ri/random.h`, consumed by both hiders' own random-number sources) is treated as a correct, working starting asset. This spec folds its logic into the new shared per-sample generator rather than re-deriving or re-validating disk-sampling correctness from scratch; the existing disk-sampling and radial-histogram tests remain the source of truth for that correctness.
 - "Parity" in this spec means cross-hider divergence within a documented, per-effect threshold — not bit-exact identical images. Effects with inherent algorithmic or physical differences (shading-density/interpolation between grid-vertex shading and per-hit shading; depth-of-field's screen-space scatter vs. true lens-ray occlusion) are explicitly out of scope for full convergence and are instead recorded as bounded, documented residuals with their own thresholds.
 - The full hybrid/unified hider architecture described as "Option C" in the source audit (one pipeline with pluggable rasterization/ray-tracing visibility) is out of scope for this spec; it belongs to the separate, not-yet-started path-tracing hider effort.
+- This spec's performance requirement is regression-only: neither hider may render slower than its pre-change baseline. The pre-existing raytrace-vs-reyes render-speed gap (caused by raytrace's redundant per-hit shading with no grid-level amortization) is a known, documented characteristic this spec does not attempt to narrow — closing it is reserved for the future path-tracing/Option-C effort, per the source audit's own verdict.
+- Raytraced motion-blur verification (Story 6) requires separate parity coverage per moving-geometry primitive type (patches, polygons, quadrics), since each type's time-interpolation code is implemented and could fail independently; a single generic moving-geometry scene is not sufficient evidence that D10 is closed.
 - Raytrace displacement defaults to matching reyes's always-on behavior (per the resolved clarification); this is a deliberate, documented default-behavior change, not a bug fix disguised as a non-change, and scene authors retain an explicit opt-out for performance.
 - Raytraced motion blur is scoped as verification plus bug-fixing against the existing per-hit-time interpolation mechanism, not as new ground-up feature design; if the new parity tests find no bug, the outcome is a documentation update (removing the "incomplete/unverified" flag), not new code.
 - The Option B shared per-bucket sample table's determinism/replay property is an internal testing/precision improvement only; it does not add a new user-facing feature, RIB token, or documented guarantee about reproducibility.
