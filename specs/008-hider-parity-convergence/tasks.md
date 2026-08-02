@@ -91,38 +91,38 @@ until a later story's fix lands (transparency, matte, all depth-filter non-defau
 motion blur, displacement) get their scene pairs added within the story that fixes them, in
 Phases 5-8, so each story's Red→Green transition stays honest.
 
-- [ ] T004 [US1] Duplicate `test_visual_render.cpp`'s `TiffImage`/`readTiff`/`compareTiffs`
+- [X] T004 [US1] Duplicate `test_visual_render.cpp`'s `TiffImage`/`readTiff`/`compareTiffs`
       block-average diff code into a new `tests/visual/test_hider_parity.cpp`, per
       research.md's decision to follow the same duplication-over-shared-header convention
       `test_radial_histogram.cpp` already uses.
-- [ ] T005 [US1] Extend `test_hider_parity.cpp`'s `main()` to accept two
+- [X] T005 [US1] Extend `test_hider_parity.cpp`'s `main()` to accept two
       `(orender_path, rib_path, output_tif_name)` triples, run `orender` twice, and diff the
       two fresh outputs against each other with a per-scene threshold argument (candidate vs.
       candidate, not candidate vs. static reference).
-- [ ] T006 [US1] Add an `add_parity_test(SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B [THRESHOLD])`
+- [X] T006 [US1] Add an `add_parity_test(SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B [THRESHOLD])`
       CMake macro to `tests/visual/CMakeLists.txt`, modeled on the existing `add_visual_test`
       macro (same scratch-dir pattern, `VISUAL_ENV`, `TIMEOUT 360`), adding a `parity` ctest
       label alongside `visual;regression`.
-- [ ] T007 [P] [US1] Author the flat-shading parity scene pair
+- [X] T007 [P] [US1] Author the flat-shading parity scene pair
       `examples/rib/tests/parity/flatshade-reyes.rib` / `flatshade-raytrace.rib`.
-- [ ] T008 [P] [US1] Author the depth-of-field parity scene pair
+- [X] T008 [P] [US1] Author the depth-of-field parity scene pair
       `examples/rib/tests/parity/dof-reyes.rib` / `dof-raytrace.rib`. Note: D1 (lens sample
       distribution) is already fixed, but D2 (pixel-jitter-constant drift, `0.5001011` vs
       `0.5`) is not — this scene pair's initial threshold must be set loosely enough to
       tolerate D2's residual contribution today; Phase 4's T021 re-measures it once D2 closes
       and is where a materially tighter DOF result is actually expected.
-- [ ] T009 [P] [US1] Author the AOV-without-transparency parity scene pair
+- [X] T009 [P] [US1] Author the AOV-without-transparency parity scene pair
       `examples/rib/tests/parity/aov-reyes.rib` / `aov-raytrace.rib`.
-- [ ] T010 [P] [US1] Author the depth-filter-default-mode parity scene pair
+- [X] T010 [P] [US1] Author the depth-filter-default-mode parity scene pair
       `examples/rib/tests/parity/depthdefault-reyes.rib` / `depthdefault-raytrace.rib`.
-- [ ] T011 [US1] Register T007-T010's scene pairs in `tests/visual/CMakeLists.txt` via
+- [X] T011 [US1] Register T007-T010's scene pairs in `tests/visual/CMakeLists.txt` via
       `add_parity_test`, each tagged with its effect's initial threshold
       (data-model.md Entity 2: Per-effect parity threshold).
-- [ ] T012 [US1] Document each effect's threshold and rationale in
+- [X] T012 [US1] Document each effect's threshold and rationale in
       `tests/visual/parity-thresholds.md`, including the two documented residuals from
       data-model.md Entity 8 (shading-interpolation, DOF-occlusion-model) with their bounding
       thresholds (FR-028).
-- [ ] T013 [US1] Run `ctest --test-dir build -L parity --output-on-failure`, confirm T007-T010
+- [X] T013 [US1] Run `ctest --test-dir build -L parity --output-on-failure`, confirm T007-T010
       all pass, then deliberately perturb a shared constant to confirm at least one scene fails
       (Story 1 acceptance scenario 3), and revert the deliberate change.
 

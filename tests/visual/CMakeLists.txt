@@ -39,6 +39,13 @@ add_executable(test_radial_histogram test_radial_histogram.cpp)
 target_link_libraries(test_radial_histogram PRIVATE TIFF::TIFF)
 target_compile_features(test_radial_histogram PRIVATE cxx_std_20)
 
+# Cross-hider (reyes vs. raytrace) parity test driver (spec 008). Renders
+# both hider variants of a scene and diffs their fresh outputs against each
+# other (no static reference — see test_hider_parity.cpp header comment).
+add_executable(test_hider_parity test_hider_parity.cpp)
+target_link_libraries(test_hider_parity PRIVATE TIFF::TIFF)
+target_compile_features(test_hider_parity PRIVATE cxx_std_20)
+
 # ---------------------------------------------------------------------------
 # Environment common to all visual tests
 # ---------------------------------------------------------------------------
@@ -82,6 +89,50 @@ macro(add_visual_test SCENE_NAME RIB_FILE OUTPUT_TIF REF_TIF)
     set_tests_properties(Visual_${SCENE_NAME} PROPERTIES
         TIMEOUT        360
         LABELS         "visual;regression"
+        ENVIRONMENT    "${VISUAL_ENV}"
+        DEPENDS        orender
+    )
+endmacro()
+
+# ---------------------------------------------------------------------------
+# Helper macro: register one cross-hider parity test (spec 008)
+#
+# Renders both RIB_A and RIB_B with orender, then diffs the two fresh
+# outputs against each other (no static reference — both hiders' outputs
+# are compared to each other, not to a "ground truth" image).
+#
+# Arguments:
+#   SCENE_NAME   — test identifier (used as CTest name suffix and for scratch dir)
+#   RIB_A        — path to the first hider's .rib scene (relative to CMAKE_SOURCE_DIR)
+#   OUTPUT_A     — filename RIB_A's Display statement writes (relative to CWD)
+#   RIB_B        — path to the second hider's .rib scene (relative to CMAKE_SOURCE_DIR)
+#   OUTPUT_B     — filename RIB_B's Display statement writes (relative to CWD)
+#   THRESHOLD    — (optional) per-scene threshold override; defaults to VISUAL_THRESHOLD
+# ---------------------------------------------------------------------------
+macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
+    if(${ARGC} GREATER 5)
+        set(_thresh ${ARGV5})
+    else()
+        set(_thresh ${VISUAL_THRESHOLD})
+    endif()
+
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/parity-${SCENE_NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+
+    add_test(NAME Parity_${SCENE_NAME}
+        COMMAND test_hider_parity
+            $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/${RIB_A}
+            ${OUTPUT_A}
+            ${CMAKE_SOURCE_DIR}/${RIB_B}
+            ${OUTPUT_B}
+            ${_thresh}
+        WORKING_DIRECTORY ${_scratch}
+    )
+
+    set_tests_properties(Parity_${SCENE_NAME} PROPERTIES
+        TIMEOUT        360
+        LABELS         "parity;regression"
         ENVIRONMENT    "${VISUAL_ENV}"
         DEPENDS        orender
     )
@@ -301,5 +352,50 @@ add_visual_test(camera-motion-huge-reyes
     camera-motion-huge-reyes.tif  camera-motion-huge-reyes.tif  100)
 
 # ---------------------------------------------------------------------------
+# Cross-hider parity tests (spec 008, US1/Phase 3)
+#
+# Same-scene reyes-vs-raytrace comparisons — see test_hider_parity.cpp
+# header and specs/008-hider-parity-convergence/tasks.md T007-T013.
+# Thresholds and rationale are documented in tests/visual/parity-thresholds.md.
+# ---------------------------------------------------------------------------
+
+# --- Flat-shading (no DOF, no transparency): matte teapot under 3 lights ---
+add_parity_test(flatshade
+    examples/rib/tests/parity/flatshade-reyes.rib
+    flatshade-reyes.tif
+    examples/rib/tests/parity/flatshade-raytrace.rib
+    flatshade-raytrace.tif  20)
+
+# --- Depth of field: three cones at staggered depths through a wide lens ---
+# D2 (pixel-jitter-constant drift, 0.5001011 vs 0.5) is not yet fixed —
+# threshold stays loose until Phase 4/T021 unifies jitter via CSampler.
+add_parity_test(dof
+    examples/rib/tests/parity/dof-reyes.rib
+    dof-reyes.tif
+    examples/rib/tests/parity/dof-raytrace.rib
+    dof-raytrace.tif  60)
+
+# --- AOV capture without transparency: single-file "N" (surface normal) ---
+add_parity_test(aov
+    examples/rib/tests/parity/aov-reyes.rib
+    aov-reyes.tif
+    examples/rib/tests/parity/aov-raytrace.rib
+    aov-raytrace.tif  25)
+
+# --- Depth-filter default mode: raw float32 "z" AOV, teapot scene ---
+# Threshold is dominated by a known raytrace gap (D7): raytrace has no
+# depth-filter/zvisibilityThreshold logic yet, so it blends the background
+# sentinel into silhouette-edge pixels' averaged z (observed worst-case
+# ~437496 block-avg diff in world-space depth units, vs. sub-unit agreement
+# everywhere else). Phase 6/S3 implements shared depth-filter modes and
+# T045 re-measures/tightens this threshold once that lands.
+add_parity_test(depthdefault
+    examples/rib/tests/parity/depthdefault-reyes.rib
+    depthdefault-reyes.tif
+    examples/rib/tests/parity/depthdefault-raytrace.rib
+    depthdefault-raytrace.tif  500000)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      44 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 4 scene pairs registered under label 'parity'")
