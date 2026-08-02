@@ -45,7 +45,7 @@ Project Structure section for the authoritative file map this task list follows.
 
 **Purpose**: Establish the pre-change baseline every later regression/perf check compares against.
 
-- [ ] T001 Build the renderer (`cmake --build build --config Release`) and run the existing
+- [X] T001 Build the renderer (`cmake --build build --config Release`) and run the existing
       baseline suites — `ctest --test-dir build -L visual --output-on-failure` and
       `ctest --test-dir build -R "disk_sampling|radial_histogram" --output-on-failure` — then
       time `build/src/orender/orender examples/rib/camera-dof.rib` and
@@ -61,9 +61,9 @@ shared production code is foundational here — R1-R4/S1-S5 are each scoped to t
 phase, not to this phase, since none of them individually blocks more than one downstream
 story (see Dependencies section).
 
-- [ ] T002 [P] Create the `examples/rib/tests/parity/` directory that will hold every new
+- [X] T002 [P] Create the `examples/rib/tests/parity/` directory that will hold every new
       cross-hider scene pair added across Phases 3-11.
-- [ ] T003 [P] Read `DEVNOTES_DETAILS/HIDER_PARITY.md`'s current Alignment Status checklist in
+- [X] T003 [P] Read `DEVNOTES_DETAILS/HIDER_PARITY.md`'s current Alignment Status checklist in
       full and note the exact checkbox lines each later phase must update (Motion Blur
       Implementation, Shading Interpolation & Derivatives, Displacement Parity, Transparency
       Handling; Unified Pixel Filtering is already `[x]`).
