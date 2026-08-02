@@ -13,8 +13,13 @@ description: "Task list for feature implementation"
 `test_disk_sampling.cpp`/`test_radial_histogram.cpp` gates — not a new unit-test framework.
 research.md explicitly rejects introducing a separate test-infra boundary; Constitution
 Principle III (TDD, NON-NEGOTIABLE) is satisfied by Story 1's parity harness landing first
-and every subsequent story adding scene pairs that are expected to fail (Red) against
-unmodified code and pass (Green) once that story's fix lands.
+and every subsequent story authoring its own scene pairs and confirming them fail (Red)
+against unmodified code *before* writing the shared-component code that makes them pass
+(Green). Stories whose safety net is the pre-existing full visual-regression suite instead
+of new scene pairs (Stories 7 and 8, both pure code-motion refactors with no new behavior to
+diff) satisfy Red→Green via that suite instead: it already exists and already passes before
+these stories touch anything, so "existing green suite must stay green" is itself the
+regression gate.
 
 **Organization**: Tasks are grouped by user story, in the priority order given in spec.md
 (P1 → P2 → P3 → P4 → P5). Unlike the generic template, these stories are **not** independent
@@ -76,11 +81,15 @@ pass/fail divergence verdict, with no manual image diffing required.
 pair; deliberately break shared sampling/compositing code and confirm at least one scene fails.
 
 This story's own scene pairs are limited to effects expected to **already converge** on
-unmodified code (flat shading; depth of field, since D1's `sampleDisk()` fix predates this
-feature; AOV capture without transparency; the raytrace depth-filter's current default mode).
-Effects that are known to diverge until a later story's fix lands (transparency, matte, all
-depth-filter non-default modes, motion blur, displacement) get their scene pairs added within
-the story that fixes them, in Phases 5-8, so each story's Red→Green transition stays honest.
+unmodified code (flat shading; AOV capture without transparency; the raytrace depth-filter's
+current default mode). The depth-of-field scene pair is included here too, since D1's
+`sampleDisk()` fix predates this feature and gives it a working starting point — but see
+T008's note: its cross-hider agreement may still carry a small residual from the *separate*,
+still-open pixel-jitter-constant drift (D2) that Phase 4 closes, so it is authored now but not
+required to pass tightly until Phase 4's T021 re-checks it. Effects that are known to diverge
+until a later story's fix lands (transparency, matte, all depth-filter non-default modes,
+motion blur, displacement) get their scene pairs added within the story that fixes them, in
+Phases 5-8, so each story's Red→Green transition stays honest.
 
 - [ ] T004 [US1] Duplicate `test_visual_render.cpp`'s `TiffImage`/`readTiff`/`compareTiffs`
       block-average diff code into a new `tests/visual/test_hider_parity.cpp`, per
@@ -97,7 +106,11 @@ the story that fixes them, in Phases 5-8, so each story's Red→Green transition
 - [ ] T007 [P] [US1] Author the flat-shading parity scene pair
       `examples/rib/tests/parity/flatshade-reyes.rib` / `flatshade-raytrace.rib`.
 - [ ] T008 [P] [US1] Author the depth-of-field parity scene pair
-      `examples/rib/tests/parity/dof-reyes.rib` / `dof-raytrace.rib`.
+      `examples/rib/tests/parity/dof-reyes.rib` / `dof-raytrace.rib`. Note: D1 (lens sample
+      distribution) is already fixed, but D2 (pixel-jitter-constant drift, `0.5001011` vs
+      `0.5`) is not — this scene pair's initial threshold must be set loosely enough to
+      tolerate D2's residual contribution today; Phase 4's T021 re-measures it once D2 closes
+      and is where a materially tighter DOF result is actually expected.
 - [ ] T009 [P] [US1] Author the AOV-without-transparency parity scene pair
       `examples/rib/tests/parity/aov-reyes.rib` / `aov-raytrace.rib`.
 - [ ] T010 [P] [US1] Author the depth-filter-default-mode parity scene pair
@@ -126,7 +139,10 @@ already-fixed `sampleDisk()` lens logic and the canonical lens/CoC formula set (
 `test_disk_sampling`/`test_radial_histogram` still pass; confirm the DOF parity scene's
 jitter-constant divergence is gone.
 
-*Depends on Phase 3 (harness must exist to measure T020 below).*
+*Depends on Phase 3 (harness must exist to measure T021 below). Its Red→Green gate is the
+pre-existing `disk_sampling`/`radial_histogram` tests (from spec 007) plus Phase 3's T008 DOF
+scene — all of which already exist before this phase's implementation tasks, so
+implementation-after-tests ordering holds without needing new scene pairs authored here.*
 
 - [ ] T014 [US2] Create `src/ri/sampler.h` defining `CSampler`'s sample-value struct
       (jitterX, jitterY, timeStratum, lensU, lensV, importance) and class interface per
@@ -145,12 +161,14 @@ jitter-constant divergence is gone.
 - [ ] T018 [US2] Replace reyes's per-vertex `cocSamples()` (`reyes.cpp:1067`, called from
       `copyPoints`) with a call into `CSampler`'s canonical CoC formula, so reyes and raytrace
       derive circle-of-confusion from one formula set (S1/FR-006).
-- [ ] T019 [US2] Run `ctest --test-dir build -R "disk_sampling|radial_histogram" --output-on-failure`
+- [ ] T019 [US2] Confirm no new RIB token, attribute, or option was introduced by the
+      `CSampler` extraction (FR-029) — a code-review checklist item, not a new test.
+- [ ] T020 [US2] Run `ctest --test-dir build -R "disk_sampling|radial_histogram" --output-on-failure`
       and confirm both continue to pass unmodified (FR-008) — gate before proceeding further.
-- [ ] T020 [US2] Run `ctest --test-dir build -L parity --output-on-failure` on the T008 DOF
+- [ ] T021 [US2] Run `ctest --test-dir build -L parity --output-on-failure` on the T008 DOF
       scene pair and confirm the previously-known pixel-jitter-constant divergence no longer
       measurably contributes (FR-007).
-- [ ] T021 [US2] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030
+- [ ] T022 [US2] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030
       perf timing commands on `camera-dof.rib` and `motion-1-{reyes,raytrace}.rib`; confirm no
       regression >2-3% versus the T001 baseline.
 
@@ -172,40 +190,47 @@ is unchanged.
 (sampler) so both land before the remaining refactors — no direct code dependency on Phase 4,
 but both edit `stochastic.cpp`/`raytracer.cpp`, so sequencing avoids merge conflicts.*
 
-- [ ] T022 [US3] Read `CPrimaryBundle`'s continuation-ray compositing loop in
+- [ ] T023 [US3] Read `CPrimaryBundle`'s continuation-ray compositing loop in
       `src/ri/raytracer.cpp` in full — the research.md open item (`codegraph_explore`
       previously surfaced `CGatherBundle::postShade` instead, a different class) — to confirm
       its exact current per-hit color/opacity/AOV state shape before writing the adapter.
-- [ ] T023 [US3] Create `src/ri/compositor.h` defining the `CompositeSample` struct and
+- [ ] T024 [P] [US3] Author the transparency parity scene pair
+      `examples/rib/tests/parity/transparency-reyes.rib` / `transparency-raytrace.rib`
+      (several stacked semi-transparent surfaces).
+- [ ] T025 [P] [US3] Author the matte parity scene pair
+      `examples/rib/tests/parity/matte-reyes.rib` / `matte-raytrace.rib` (matte object
+      partially covering non-matte geometry).
+- [ ] T026 [P] [US3] Author the combined transparency+matte+AOV parity scene pair
+      `examples/rib/tests/parity/transparency-matte-aov-reyes.rib` / `-raytrace.rib` (the
+      FR-002 combined-effect scene for this story's interacting features).
+- [ ] T027 [US3] Register T024-T026 in `tests/visual/CMakeLists.txt` via `add_parity_test` with
+      initial thresholds.
+- [ ] T028 [US3] Run `ctest --test-dir build -L parity --output-on-failure -R "transparency|matte"`
+      and confirm T024-T026 currently FAIL (or diverge past threshold) against pre-Phase-5
+      code — this is the Red state Constitution Principle III requires before writing
+      `CCompositor`.
+- [ ] T029 [US3] Create `src/ri/compositor.h` defining the `CompositeSample` struct and
       `CCompositor` class interface per `contracts/compositor-contract.md`.
-- [ ] T024 [US3] Implement `src/ri/compositor.cpp`: `CCompositor::composite()` (front-to-back
+- [ ] T030 [US3] Implement `src/ri/compositor.cpp`: `CCompositor::composite()` (front-to-back
       over, opacity threshold, matte carve-out, `compChannelOrder`/`nonCompChannelOrder` AOV
       rules), ported from `CStochastic::rasterEnd`'s `NonCompositeSampleLoop()`/
       `compositeSampleLoop()` macro logic (`stochastic.cpp:445-714`).
-- [ ] T025 [US3] Wire `CStochastic::rasterEnd`'s fragment-list walk to populate a
+- [ ] T031 [US3] Wire `CStochastic::rasterEnd`'s fragment-list walk to populate a
       `CompositeSample` from each walked `CFragment` node and feed it to `CCompositor`,
       without altering `CFragment`'s layout (FR-010) — deep-shadow's direct reads
       (`stochastic.cpp:1302-1415`) must remain unaffected.
-- [ ] T026 [US3] Wire `CRaytracer`'s continuation-ray path (per T022's findings) to populate a
+- [ ] T032 [US3] Wire `CRaytracer`'s continuation-ray path (per T023's findings) to populate a
       `CompositeSample` per hit and feed it to the same `CCompositor`, routing extra AOV
       channels through `compChannelOrder`/`nonCompChannelOrder` (`raytracer.cpp:221`) instead
       of first-hit-only capture (S4/FR-011).
-- [ ] T027 [P] [US3] Author the transparency parity scene pair
-      `examples/rib/tests/parity/transparency-reyes.rib` / `transparency-raytrace.rib`
-      (several stacked semi-transparent surfaces).
-- [ ] T028 [P] [US3] Author the matte parity scene pair
-      `examples/rib/tests/parity/matte-reyes.rib` / `matte-raytrace.rib` (matte object
-      partially covering non-matte geometry).
-- [ ] T029 [P] [US3] Author the combined transparency+matte+AOV parity scene pair
-      `examples/rib/tests/parity/transparency-matte-aov-reyes.rib` / `-raytrace.rib` (the
-      FR-002 combined-effect scene for this story's interacting features).
-- [ ] T030 [US3] Register T027-T029 in `tests/visual/CMakeLists.txt` via `add_parity_test` with
-      initial thresholds.
-- [ ] T031 [US3] Run the existing deep-shadow-map test scenes and confirm output is
+- [ ] T033 [US3] Confirm no new RIB token, attribute, or option was introduced by this
+      compositor extraction (FR-029) — a code-review checklist item, not a new test.
+- [ ] T034 [US3] Run the existing deep-shadow-map test scenes and confirm output is
       byte-for-byte unchanged (FR-010, Story 3 acceptance scenario 4).
-- [ ] T032 [US3] Run `ctest --test-dir build -L parity --output-on-failure` on T027-T029 and
-      confirm transparency/matte/AOV divergence is within threshold on both hiders.
-- [ ] T033 [US3] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
+- [ ] T035 [US3] Re-run `ctest --test-dir build -L parity --output-on-failure -R "transparency|matte"`
+      on T024-T026 and confirm they now PASS (Green) — transparency/matte/AOV divergence is
+      within threshold on both hiders.
+- [ ] T036 [US3] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
       timing check; confirm no regression versus baseline.
 
 **Checkpoint**: One shared transparency/matte compositor in place; transparency/matte/AOV
@@ -225,26 +250,31 @@ settings, and that the default mode's output is unchanged from pre-change raytra
 *Depends on Phase 5: reuses `CCompositor` (extends it with `evaluateDepth`) rather than
 introducing a second shared component.*
 
-- [ ] T034 [US4] Extend `CCompositor` (`src/ri/compositor.h`/`.cpp`) with the static
+- [ ] T037 [P] [US4] Author depth-filter-mode parity scene pairs for min/max/avg/mid under
+      `examples/rib/tests/parity/` exercising overlapping geometry at different depths.
+- [ ] T038 [US4] Register T037's scene pairs in `tests/visual/CMakeLists.txt` via
+      `add_parity_test`.
+- [ ] T039 [US4] Run `ctest --test-dir build -L parity --output-on-failure` on T037's scenes and
+      confirm raytrace currently FAILS or diverges past threshold (it has neither depth-filter
+      modes nor a z-visibility threshold yet) — the Red state before extending `CCompositor`.
+- [ ] T040 [US4] Extend `CCompositor` (`src/ri/compositor.h`/`.cpp`) with the static
       `evaluateDepth(candidates, mode, zvisibilityThreshold)` function per
       `contracts/compositor-contract.md`, porting reyes's `DEPTH_MID`/min/max/avg dispatch and
       `checkZThreshold()` logic from `CStochastic::rasterEnd` (`stochastic.cpp:609-640`).
-- [ ] T035 [US4] Replace `CStochastic::rasterEnd`'s inline depth-filter dispatch with a call to
+- [ ] T041 [US4] Replace `CStochastic::rasterEnd`'s inline depth-filter dispatch with a call to
       `CCompositor::evaluateDepth`; confirm reyes's own output is unchanged (regression check).
-- [ ] T036 [US4] Add a raytrace-side z-channel collection path (`src/ri/raytracer.cpp`) that
+- [ ] T042 [US4] Add a raytrace-side z-channel collection path (`src/ri/raytracer.cpp`) that
       gathers per-hit `(z, opacity)` candidates along the continuation-ray path and calls
       `CCompositor::evaluateDepth`, replacing raytrace's current always-first-hit z output
       (FR-012).
-- [ ] T037 [US4] Wire the same `zvisibilityThreshold` exclusion into the raytrace-side call
+- [ ] T043 [US4] Wire the same `zvisibilityThreshold` exclusion into the raytrace-side call
       (FR-013), matching reyes's `checkZThreshold()` semantics.
-- [ ] T038 [P] [US4] Author depth-filter-mode parity scene pairs for min/max/avg/mid under
-      `examples/rib/tests/parity/` exercising overlapping geometry at different depths.
-- [ ] T039 [US4] Register T038's scene pairs in `tests/visual/CMakeLists.txt` via
-      `add_parity_test`.
-- [ ] T040 [US4] Run `ctest --test-dir build -L parity --output-on-failure` on T038 and T010
+- [ ] T044 [US4] Confirm no new RIB token, attribute, or option was introduced by this
+      depth-filter extension (FR-029) — a code-review checklist item.
+- [ ] T045 [US4] Run `ctest --test-dir build -L parity --output-on-failure` on T037 and T010
       (default-mode scene); confirm all pass, and confirm T010's default-mode output is
       bit-for-bit unchanged versus pre-Story-4 raytrace output (FR-014).
-- [ ] T041 [US4] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
+- [ ] T046 [US4] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
       timing check; confirm no regression versus baseline.
 
 **Checkpoint**: Raytrace supports all four depth-filter modes plus z-visibility threshold,
@@ -264,25 +294,30 @@ it when set.
 *Independent of Phases 4-6 (touches `shading.cpp`'s displacement-gating condition only); kept
 in priority order after Phase 6 per spec.md's P3 grouping.*
 
-- [ ] T042 [US5] Flip the displacement-gating condition in
+- [ ] T047 [P] [US5] Author the displacement parity scene pair
+      `examples/rib/tests/parity/displacement-reyes.rib` / `displacement-raytrace.rib` (the
+      raytrace variant has no `Attribute "trace" "displacements"` set) and register it via
+      `add_parity_test`.
+- [ ] T048 [US5] Run `ctest --test-dir build -L parity --output-on-failure -R displacement` and
+      confirm T047's scene pair currently FAILS — raytrace does not displace by default yet —
+      the Red state before flipping the gating condition.
+- [ ] T049 [US5] Flip the displacement-gating condition in
       `src/libshader/shading/shading.cpp:676-683`
       (`(usedParameters & PARAMETER_RAYTRACE) && !(currentAttributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)`)
       so raytrace displaces by default unless the existing `Attribute "trace" "displacements"`
       opt-out is explicitly set (FR-015/FR-016).
-- [ ] T043 [US5] Confirm the existing opt-out attribute mechanism still suppresses raytrace
+- [ ] T050 [US5] Confirm the existing opt-out attribute mechanism still suppresses raytrace
       displacement when explicitly set (FR-016).
-- [ ] T044 [P] [US5] Author the displacement parity scene pair
-      `examples/rib/tests/parity/displacement-reyes.rib` / `displacement-raytrace.rib` (the
-      raytrace variant has no `Attribute "trace" "displacements"` set) and register it via
-      `add_parity_test`.
-- [ ] T045 [US5] Run `ctest --test-dir build -L visual --output-on-failure`, identify any
+- [ ] T051 [US5] Re-run `ctest --test-dir build -L parity --output-on-failure -R displacement`
+      and confirm T047's scene pair now PASSES (Green).
+- [ ] T052 [US5] Run `ctest --test-dir build -L visual --output-on-failure`, identify any
       existing reference images whose raytrace output changes due to this default flip, and
       regenerate only those references (FR-024's documented exception).
-- [ ] T046 [US5] Document this default-behavior change in
+- [ ] T053 [US5] Document this default-behavior change in
       `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Displacement Parity checkbox/notes (FR-017),
       explicitly calling out that it is a default change, not a silent absorption.
-- [ ] T047 [US5] Re-run `ctest --test-dir build -L visual --output-on-failure` (expecting only
-      T045's regenerated scenes to differ from the prior run) and the FR-030 perf timing check
+- [ ] T054 [US5] Re-run `ctest --test-dir build -L visual --output-on-failure` (expecting only
+      T052's regenerated scenes to differ from the prior run) and the FR-030 perf timing check
       on a displacement-heavy scene.
 
 **Checkpoint**: Raytrace displaces by default, matching reyes, with a documented opt-out and
@@ -302,29 +337,29 @@ for all six scene pairs.
 *Independent of Phases 4-7 in terms of code touched (intersection kernels' existing
 `ray->time` interpolation, not sampling/compositing), but depends on Phase 3's harness.*
 
-- [ ] T048 [P] [US6] Author patches translate/deform parity scene pairs
+- [ ] T055 [P] [US6] Author patches translate/deform parity scene pairs
       `examples/rib/tests/parity/motion-patches-translate-{reyes,raytrace}.rib` and
       `motion-patches-deform-{reyes,raytrace}.rib`.
-- [ ] T049 [P] [US6] Author polygons translate/deform parity scene pairs
+- [ ] T056 [P] [US6] Author polygons translate/deform parity scene pairs
       `examples/rib/tests/parity/motion-polygons-translate-{reyes,raytrace}.rib` and
       `motion-polygons-deform-{reyes,raytrace}.rib`.
-- [ ] T050 [P] [US6] Author quadrics translate/deform parity scene pairs
+- [ ] T057 [P] [US6] Author quadrics translate/deform parity scene pairs
       `examples/rib/tests/parity/motion-quadrics-translate-{reyes,raytrace}.rib` and
       `motion-quadrics-deform-{reyes,raytrace}.rib`.
-- [ ] T051 [US6] Register T048-T050's six scene pairs in `tests/visual/CMakeLists.txt` via
+- [ ] T058 [US6] Register T055-T057's six scene pairs in `tests/visual/CMakeLists.txt` via
       `add_parity_test` with motion-effect thresholds.
-- [ ] T052 [US6] Run `ctest --test-dir build -L parity --output-on-failure -R motion` on all
+- [ ] T059 [US6] Run `ctest --test-dir build -L parity --output-on-failure -R motion` on all
       six scene pairs; for each primitive type that fails, investigate and fix the correctness
       bug in that primitive's ray-time interpolation path (`patches.cpp`, `polygons.cpp`, or
       `quadrics.cpp` respectively, per FR-019) — repeat until all six pass.
-- [ ] T053 [US6] Author the combined DOF+motion parity scene pair
+- [ ] T060 [US6] Author the combined DOF+motion parity scene pair
       `examples/rib/tests/parity/dof-motion-reyes.rib` / `dof-motion-raytrace.rib` (the FR-002
       combined-effect scene for this story, exercising Phase 4's converged lens sampling
       together with this story's converged motion blur) and register it via `add_parity_test`.
-- [ ] T054 [US6] Update `DEVNOTES.md:39` and `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Motion Blur
+- [ ] T061 [US6] Update `DEVNOTES.md:39` and `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Motion Blur
       Implementation checkbox to remove the "incomplete/unverified" flag now that all covered
       primitive types pass (FR-019 acceptance scenario 3).
-- [ ] T055 [US6] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
+- [ ] T062 [US6] Run `ctest --test-dir build -L visual --output-on-failure` and the FR-030 perf
       timing check on `motion-1-{reyes,raytrace}.rib`; confirm no regression versus baseline.
 
 **Checkpoint**: Raytraced motion blur verified/fixed for all three primitive types, translate
@@ -341,22 +376,31 @@ for reyes, raytrace, and zbuffer.
 each hider before and after and confirm pixel output is unchanged.
 
 *Independent of Phases 4-8 (touches the splat/gather step, not sampling/compositing logic),
-but sequenced after them since it also edits `stochastic.cpp`/`raytracer.cpp`.*
+but sequenced after them since it also edits `stochastic.cpp`/`raytracer.cpp`. This is a pure
+code-motion refactor with no new behavior to diff, so its Red→Green gate is the pre-existing
+full visual-regression suite (already green before this phase starts) rather than new scene
+pairs — see the Tests note above.*
 
-- [ ] T056 [US7] Create the shared pixel-filter module (filename TBD per
+- [ ] T063 [US7] Create the shared pixel-filter module (filename TBD per
       `contracts/filter-module-contract.md`, e.g. `src/ri/pixelFilter.h`/`.cpp`) defining
       `CPixelFilterAccumulator`, wrapping the existing `CRenderer::pixelFilterKernel`.
-- [ ] T057 [US7] Wire `CStochastic::rasterEnd`'s splat/gather accumulation to use
+- [ ] T064 [US7] Wire `CStochastic::rasterEnd`'s splat/gather accumulation to use
       `CPixelFilterAccumulator` instead of its own inline loop.
-- [ ] T058 [US7] Wire `CRaytracer`'s per-ray-hit pixel accumulation to use the same
+- [ ] T065 [US7] Wire `CRaytracer`'s per-ray-hit pixel accumulation to use the same
       `CPixelFilterAccumulator`.
-- [ ] T059 [US7] Wire `CZbuffer::rasterEnd` (`zbuffer.cpp:160-198`)'s simple opaque
+- [ ] T066 [US7] Wire `CZbuffer::rasterEnd` (`zbuffer.cpp:160-198`)'s simple opaque
       filter/gather to use the same `CPixelFilterAccumulator`, handling its
       single-contributing-sample case as the accumulator's generic degenerate case (not a
       special path).
-- [ ] T060 [US7] Run `ctest --test-dir build -L visual --output-on-failure` (all 33+ scenes
+- [ ] T067 [US7] Run `ctest --test-dir build -L visual --output-on-failure` (all 33+ scenes
       across all three hiders) and confirm byte-identical output versus pre-change baseline
       (FR-021) — this story changes structure only, not results.
+- [ ] T068 [US7] Confirm no new RIB token, attribute, or option was introduced by this
+      pixel-filter extraction (FR-029) — a code-review checklist item; none is expected since
+      this is a pure code-motion refactor.
+- [ ] T069 [US7] Run the FR-030 perf timing commands on `camera-dof.rib` and
+      `motion-1-{reyes,raytrace}.rib` for all three hiders (reyes, raytrace, zbuffer); confirm
+      no regression >2-3% versus the T001 baseline.
 
 **Checkpoint**: One shared pixel-filter module used by reyes, raytrace, and zbuffer.
 
@@ -373,30 +417,37 @@ visual-regression suite still passes.
 
 *Purely structural — no dependency on Phases 4-9's output, but touches
 `shading.{h,cpp}`/`object.{h,cpp}`/every `CSurface::dice()` override, so sequenced last among
-the refactors to avoid rebasing structural churn under in-flight sampling/compositing work.*
+the refactors to avoid rebasing structural churn under in-flight sampling/compositing work.
+Like Phase 9, this is a pure signature/ownership refactor with no new behavior, so its
+Red→Green gate is the pre-existing full visual-regression suite rather than new scene pairs.*
 
-- [ ] T061 [US8] Remove `drawObject`/`drawGrid`/`drawPoints` declarations from
+- [ ] T070 [US8] Remove `drawObject`/`drawGrid`/`drawPoints` declarations from
       `CShadingContext` (`src/libshader/shading/shading.h`) and its stub definition
       (`shading.cpp:568`), narrowing the shared engine to shading/tracing only (FR-022).
-- [ ] T062 [US8] Add/confirm `drawObject`/`drawGrid`/`drawPoints` as `CReyes`'s own virtuals in
+- [ ] T071 [US8] Add/confirm `drawObject`/`drawGrid`/`drawPoints` as `CReyes`'s own virtuals in
       `src/ri/reyes.h`/`reyes.cpp` (the one owner, per `contracts/hider-contract.md`).
-- [ ] T063 [US8] Change `CObject::dice()`'s parameter type from `CShadingContext*` to
+- [ ] T072 [US8] Change `CObject::dice()`'s parameter type from `CShadingContext*` to
       `CReyes*` in `src/ri/object.h`/`object.cpp` (`object.cpp:80-91`), matching its body's
       `rasterizer->drawObject(cObject)` call.
-- [ ] T064 [US8] Update every `CSurface`-derived `dice()` override's parameter type to
+- [ ] T073 [US8] Update every `CSurface`-derived `dice()` override's parameter type to
       `CReyes*` across the ~27-type set (`patches.cpp`, `polygons.cpp`, `quadrics.cpp`,
       `points.cpp`, NURBS/implicit-surface/dynamic-load-object files, and the remaining
       `CSurface` subclasses) — mechanical and compiler-enforced; a successful build after this
       change is proof every override was updated.
-- [ ] T065 [US8] Delete `CRaytracer`'s no-op `drawObject`/`drawGrid`/`drawPoints` stub
+- [ ] T074 [US8] Delete `CRaytracer`'s no-op `drawObject`/`drawGrid`/`drawPoints` stub
       overrides (`raytracer.h:76-94`) (FR-023).
-- [ ] T066 [US8] Delete `CPhotonHider`'s identical no-op stub overrides (`photon.h:41-59`) —
+- [ ] T075 [US8] Delete `CPhotonHider`'s identical no-op stub overrides (`photon.h:41-59`) —
       required for the build to compile once the base declarations are gone.
-- [ ] T067 [US8] Full clean build (`cmake --build build --config Release`) confirming the
+- [ ] T076 [US8] Full clean build (`cmake --build build --config Release`) confirming the
       ~27-type ripple compiles cleanly with no missed override.
-- [ ] T068 [US8] Run `ctest --test-dir build -L visual --output-on-failure` (full 33+-scene
+- [ ] T077 [US8] Run `ctest --test-dir build -L visual --output-on-failure` (full 33+-scene
       suite across reyes, raytrace, and zbuffer) and confirm 100% pass with no output change
       (FR-024, Story 8 acceptance scenario 3).
+- [ ] T078 [US8] Confirm no new RIB token, attribute, or option was introduced by this
+      hider-contract split (FR-029) — a code-review checklist item; none is expected since this
+      is a purely structural refactor.
+- [ ] T079 [US8] Run the FR-030 perf timing commands on `camera-dof.rib` and
+      `motion-1-{reyes,raytrace}.rib`; confirm no regression >2-3% versus the T001 baseline.
 
 **Checkpoint**: `CShadingContext` exposes shading/tracing only; `CReyes` owns rasterization;
 `CZbuffer` and a future backlogged `abuffer` hider inherit the contract for free.
@@ -415,23 +466,26 @@ identical consumed values; confirm a tightened threshold still passes on unmodif
 to measure the tightened threshold). This is explicitly the audit's second stage — valuable
 only once Stories 1 and 2 exist.*
 
-- [ ] T069 [US9] Add a per-bucket generation mode to `CSampler` (`src/ri/sampler.h`/`.cpp`):
+- [ ] T080 [US9] Add a per-bucket generation mode to `CSampler` (`src/ri/sampler.h`/`.cpp`):
       `generateBucketTable(bucketId, sampleCount)` per `contracts/sampler-contract.md`, reusing
       Phase 4's per-sample formulas without duplication.
-- [ ] T070 [US9] Wire `CStochastic::rasterBegin` to consume the per-bucket table verbatim for a
+- [ ] T081 [US9] Wire `CStochastic::rasterBegin` to consume the per-bucket table verbatim for a
       given bucket instead of drawing its own per-sample stream, when the table is available.
-- [ ] T071 [US9] Wire `CRaytracer::computeSamples` to consume the same per-bucket table
+- [ ] T082 [US9] Wire `CRaytracer::computeSamples` to consume the same per-bucket table
       verbatim for the corresponding bucket, so both hiders' noise patterns correlate for the
       same scene (FR-025).
-- [ ] T072 [US9] Confirm no new RIB token, option, or user-facing determinism guarantee is
+- [ ] T083 [US9] Confirm no new RIB token, option, or user-facing determinism guarantee is
       introduced (FR-027) — a code-review checklist item, not a new test.
-- [ ] T073 [US9] Tighten at least one previously-loose parity threshold (transparency or
+- [ ] T084 [US9] Tighten at least one previously-loose parity threshold (transparency or
       motion, per FR-026/SC-008) in `tests/visual/parity-thresholds.md` and its
       `add_parity_test` registration, using the now-correlated noise to justify the tighter
       bound.
-- [ ] T074 [US9] Run `ctest --test-dir build -L parity --output-on-failure` (full parity suite)
+- [ ] T085 [US9] Run `ctest --test-dir build -L parity --output-on-failure` (full parity suite)
       and confirm zero false failures against unmodified code with the tightened threshold
       (SC-008).
+- [ ] T086 [US9] Run the FR-030/SC-007 perf timing commands on `camera-dof.rib` and
+      `motion-1-{reyes,raytrace}.rib`; confirm the per-bucket sample table's extra bookkeeping
+      does not regress either hider versus the T001 baseline.
 
 **Checkpoint**: All nine user stories complete; parity thresholds tightened where correlated
 sampling permits.
@@ -442,13 +496,13 @@ sampling permits.
 
 **Purpose**: Final sign-off across every story.
 
-- [ ] T075 [P] Run the full `quickstart.md` validation guide end-to-end (visual suite, parity
+- [ ] T087 [P] Run the full `quickstart.md` validation guide end-to-end (visual suite, parity
       suite, lens-sampling gates, manual perf timing) as a final sign-off.
-- [ ] T076 Final pass over `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Alignment Status checklist,
+- [ ] T088 Final pass over `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Alignment Status checklist,
       confirming all items are now `[x]` (Motion Blur Implementation, Shading Interpolation &
       Derivatives residual note, Displacement Parity, Transparency Handling), per
       FR-017/FR-019.
-- [ ] T077 Final FR-030/SC-007 performance comparison: re-run the T001 baseline timing commands
+- [ ] T089 Final FR-030/SC-007 performance comparison: re-run the T001 baseline timing commands
       on `camera-dof.rib` and `motion-1-{reyes,raytrace}.rib` and confirm cumulative regression
       across all refactors stays within 2-3% of the original pre-feature baseline.
 
@@ -472,7 +526,7 @@ sampling permits.
   code, sequenced here to match spec.md's P3 priority grouping.
 - **Phase 8 (US6, motion verification)**: Depends on Phase 3 only; independent of Phases 4-7's
   code (different files: `patches.cpp`/`polygons.cpp`/`quadrics.cpp`), sequenced here to match
-  spec.md's P3 grouping. Its combined-effect task (T053) additionally depends on Phase 4.
+  spec.md's P3 grouping. Its combined-effect task (T060) additionally depends on Phase 4.
 - **Phase 9 (US7, pixel-filter)**: Depends on Phase 3; independent of Phases 4-8's logic, but
   sequenced after them to avoid churn in `stochastic.cpp`/`raytracer.cpp` while they're in flight.
 - **Phase 10 (US8, hider contract split)**: Depends on Phase 3 only; purely structural, no
@@ -493,9 +547,9 @@ several having no *logical* dependency chain between them.
 
 - Within Phase 2: T002, T003.
 - Within Phase 3: T007-T010 (four independent RIB scene files).
-- Within Phase 5: T027-T029 (three independent RIB scene files).
-- Within Phase 8: T048-T050 (three independent primitive-type RIB scene sets).
-- T075 (Phase 12) can run alongside T076/T077 since it only reads existing state.
+- Within Phase 5: T024-T026 (three independent RIB scene files).
+- Within Phase 8: T055-T057 (three independent primitive-type RIB scene sets).
+- T087 (Phase 12) can run alongside T088/T089 since it only reads existing state.
 - No cross-phase parallelism is recommended given the file-contention note above.
 
 ---
@@ -534,7 +588,12 @@ avoidance, not by an arbitrary tie-break.
 - No `[P]` marker spans two different user-story phases — file contention on
   `stochastic.cpp`/`raytracer.cpp` makes that unsafe regardless of logical independence.
 - Tests for each story are its own parity scene pairs, registered via `add_parity_test` — this
-  repo's existing test-authoring convention — not a new unit-test framework.
+  repo's existing test-authoring convention — not a new unit-test framework, with the
+  exception of Stories 7 and 8 (pure code-motion refactors), whose test is the pre-existing
+  full visual-regression suite staying green.
+- Within each story that authors new scene pairs (Stories 3, 4, 5, 6), those scene pairs are
+  registered and run *before* the shared-component implementation tasks, confirming a Red
+  (failing/diverging) state first, per Constitution Principle III.
 - Commit after each phase's Checkpoint.
 - Verify `ctest -L visual` and the relevant `-L parity` scenes at every checkpoint before
   starting the next phase.

@@ -156,9 +156,11 @@ tests/
 examples/rib/tests/
 ├── references/                         # existing per-hider reference TIFs (unchanged, except S2's
 │                                       #   documented displacement-default reference regeneration)
-└── parity/                             # NEW — scene pairs for Story 1 (flat-shade, DOF, motion
-                                        #   ×3 primitive types ×2 (translate/deform), transparency,
-                                        #   matte, AOVs, ≥1 combined-effect scene)
+└── parity/                             # NEW — scene pairs land incrementally as each story's
+                                        #   phase completes: flat-shade/DOF/AOV/depth-default
+                                        #   (Story 1), transparency/matte/combined-effect (Story 3),
+                                        #   depth-filter modes (Story 4), displacement (Story 5),
+                                        #   motion ×3 primitive types ×2 translate/deform (Story 6)
 DEVNOTES_DETAILS/HIDER_PARITY.md         # checkbox updates as each story lands (FR-017/FR-019)
 ```
 
