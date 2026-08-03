@@ -23,10 +23,11 @@ and `data-model.md` for entity definitions.
 # Full existing visual-regression suite — must stay green throughout this feature
 ctest --test-dir build -L visual --output-on-failure
 
-# Existing lens-sampling regression gates — FR-008 requires these keep passing
-# unmodified as R2/S1 land
-ctest --test-dir build -R disk_sampling --output-on-failure
-ctest --test-dir build -R radial_histogram --output-on-failure
+# Existing lens-sampling regression gate — FR-008 requires this keep passing
+# unmodified as R2/S1 land. (test_radial_histogram is a manual diagnostic
+# binary from spec 007, not wired into ctest — see tests/visual/CMakeLists.txt;
+# it is not part of this automated gate.)
+ctest --test-dir build -R DiskSampling --output-on-failure
 ```
 
 ## Running the new parity harness (once Story 1 lands)
@@ -68,8 +69,8 @@ ctest --test-dir build -L visual --output-on-failure
 # 2. Full parity suite must not regress
 ctest --test-dir build -L parity --output-on-failure
 
-# 3. Lens-sampling gates (R2/S1 specifically)
-ctest --test-dir build -R "disk_sampling|radial_histogram" --output-on-failure
+# 3. Lens-sampling gate (R2/S1 specifically)
+ctest --test-dir build -R DiskSampling --output-on-failure
 
 # 4. Performance regression guard (FR-030/SC-007) — manual timing comparison,
 #    both hiders, both scenes, before/after this specific change:
@@ -85,8 +86,7 @@ time build/src/orender/orender examples/rib/tests/motion-1-raytrace.rib
 - `ctest -L parity`: 100% pass for flat-shading/matte/depth-filter scenes
   (SC-002) and for dof/motion/transparency scenes within their
   residual-adjusted thresholds (SC-003).
-- `ctest -R "disk_sampling|radial_histogram"`: 100% pass, unmodified
-  pass/fail intent (FR-008).
+- `ctest -R DiskSampling`: 100% pass, unmodified pass/fail intent (FR-008).
 - `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Alignment Status checklist: all items
   checked (Motion Blur Implementation, Shading Interpolation & Derivatives
   documented-residual note, Displacement Parity, Transparency Handling).

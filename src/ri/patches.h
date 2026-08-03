@@ -146,7 +146,7 @@ class CPatchMesh : public CObject {
 
         // CObject interface
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *rasterizer);
+        void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:
@@ -171,7 +171,7 @@ class CNURBSPatchMesh : public CObject {
 
         // CObject interface
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *rasterizer);
+        void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:

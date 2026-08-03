@@ -34,6 +34,7 @@
 #include "polygons.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "shading.h"
 #include "stats.h"
 #include "surface.h"
@@ -1317,7 +1318,7 @@ void CPolygonMesh::intersect(CShadingContext *r, CRay *) {
 // Description			:	Split the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::dice(CShadingContext *r) {
+void CPolygonMesh::dice(CReyes *r) {
 
     if (children == NULL)
         create(r);

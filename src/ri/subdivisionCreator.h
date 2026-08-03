@@ -41,7 +41,7 @@ class CSubdivMesh : public CObject {
         ~CSubdivMesh();
 
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *rasterizer);
+        void dice(CReyes *rasterizer);
         void instantiate(CAttributes *a, CXform *x, CRiInterface *c) const;
 
         int moving() const { return pl->data1 != NULL; }

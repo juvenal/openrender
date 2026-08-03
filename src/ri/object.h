@@ -40,6 +40,7 @@ const unsigned int GEOMETRY_FORCE_VERTEX = 2;  // Force varying variables to be 
 
 class CVariable;
 class CShadingContext;
+class CReyes;
 class CVolume;
 class CRendererContext;
 class CRiInterface;
@@ -72,7 +73,7 @@ class CObject : public CRefCounter {
         //
         //
         virtual void intersect(CShadingContext *, CRay *) = 0;
-        virtual void dice(CShadingContext *);
+        virtual void dice(CReyes *);
         virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const = 0;
 
         // Cluster the children
@@ -120,7 +121,7 @@ class CSurface : public CObject {
 
         // CObject interface
         virtual void intersect(CShadingContext *, CRay *); // Intersect a ray with the surface
-        virtual void dice(CShadingContext *);              // Split or render this object
+        virtual void dice(CReyes *);                       // Split or render this object
 
         // CSurface interface
         virtual int moving() const;                                               // TRUE if we're moving

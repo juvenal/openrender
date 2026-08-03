@@ -33,6 +33,7 @@
 #include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
+#include "sampler.h"
 #include "stats.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1064,7 +1065,7 @@ void CReyes::copyPoints(int numVertices, float **varying, float *vertices, int s
         for (i = numVertices; i > 0; i--, vertices += numVertexSamples) {
             const float z = vertices[COMP_Z];
 
-            vertices[9] = cocSamples(z);
+            vertices[9] = CSampler::circleOfConfusion(z, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
         }
     }
 }
@@ -1348,8 +1349,8 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
 
     if (CRenderer::aperture != 0) {
         // Expand the bound by the maximum focal blur amount
-        const float coc1 = cocSamples(zmin);
-        const float coc2 = cocSamples(zmax);
+        const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
+        const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
         float mcoc2;
         if (coc2 > coc1) {
             mcoc2 = coc2;
@@ -1739,8 +1740,8 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         if (timePos != NULL) {
             float gridCoc = 0;
             if (CRenderer::aperture != 0) {
-                const float coc1 = cocSamples(zmin);
-                const float coc2 = cocSamples(zmax);
+                const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
+                const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
                 gridCoc = (coc2 > coc1) ? coc2 : coc1;
             }
 

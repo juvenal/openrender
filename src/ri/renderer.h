@@ -34,9 +34,10 @@
 #include "options.h"
 #include "shadeop.h"
 
-// Compute the circle of confusion as a function of the depth
+// Compute the circle of confusion as a function of the depth.
+// cocSamples(z) is now CSampler::circleOfConfusion() (sampler.h, S1) --
+// canonical formula shared across its reyes call sites.
 #define cocPixels(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorPixels
-#define cocSamples(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorSamples
 #define cocScreen(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorScreen
 
 // The following bits can be used by the hiders
@@ -404,6 +405,7 @@ class CRenderer {
         static vector     relTrans;                             // Translation part of relMotion (cam_t0 -> cam_t1)
         static bool       cameraHasRotation;                   // True when relMotion contains a non-trivial rotation
         static bool       cameraRotationOnly;                  // True when relMotion is a pure rotation (relTrans ~ 0); enables the inverse-sample fast path
+        static bool       correlatedSampleTable;                // Internal/gated (FR-027, no RIB token): OPENRENDER_CORRELATED_SAMPLE_TABLE env var set; both hiders consume CSampler::generateBucketTable() verbatim instead of their own live RNG streams (spec 008-hider-parity-convergence, R2/US9)
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;

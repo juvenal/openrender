@@ -41,11 +41,11 @@ class CPatch : public CObject {
         ~CPatch();
 
         void intersect(CShadingContext *, CRay *) { assert(FALSE); }
-        void dice(CShadingContext *); // Split or render this object
+        void dice(CReyes *); // Split or render this object
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
     private:
-        void splitToChildren(CShadingContext *, int);
+        void splitToChildren(CReyes *, int);
 
         int depth;                    // Depth of the patch
         int minDepth;                 // The minimum depth of the patch
@@ -75,7 +75,7 @@ class CTesselationPatch : public CObject {
         ~CTesselationPatch();
 
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *) { assert(FALSE); }
+        void dice(CReyes *) { assert(FALSE); }
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         void initTesselation(CShadingContext *context);

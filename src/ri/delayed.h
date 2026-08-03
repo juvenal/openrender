@@ -64,7 +64,7 @@ class CDelayedObject : public CObject {
 
         // Object interface
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *);
+        void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         void (*subdivisionFunction)(void *, float);
@@ -88,7 +88,7 @@ class CDelayedInstance : public CObject {
 
         // Object interface
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *);
+        void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         CObject *instance;

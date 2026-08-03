@@ -26,10 +26,15 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include <vector>
+
 #include "common/portable_io.h"
+#include "compositor.h"
 #include "error.h"
 #include "memory.h"
+#include "pixelFilter.h"
 #include "random.h"
+#include "sampler.h"
 #include "stochastic.h"
 
 // This macro is used to allocate fragments
@@ -159,6 +164,26 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     }
     static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
 
+    // Shared per-sample generator (spec 008-hider-parity-convergence, R2):
+    // single home for the jitter/time/lens constants previously duplicated
+    // (and drifted) here and in CRaytracer.
+    CSampler sampler(
+        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
+        [this]() { return urand(); },
+        [this](float *s) { apertureGenerator.get(s); });
+    const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
+
+    // Option B (US9, gated -- FR-027): consume the deterministic, bucket-
+    // seeded table verbatim instead of this hider's own live CSobol/urand
+    // stream, so raytrace regenerates the identical values for the same
+    // bucket (see CSampler::generateBucketTable).
+    std::vector<CSampleValue> correlatedTable;
+    if (CRenderer::correlatedSampleTable) {
+        correlatedTable = sampler.generateBucketTable(
+            left, top, sampleWidth, sampleHeight,
+            CRenderer::xSampleOffset, CRenderer::ySampleOffset, wantLens);
+    }
+
     // Init the occlusion culler to zero
     initToZero();
     for (i = 0, pxi = CRenderer::pixelYsamples - CRenderer::ySampleOffset; i < sampleHeight; i++, pxi++) {
@@ -169,33 +194,26 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
         }
 
         for (j = 0, pxj = CRenderer::pixelXsamples - CRenderer::xSampleOffset; j < sampleWidth; j++, pxj++, pixel++) {
-            float aperture[2];
-
-            // The stratified sample
-            pixel->jx = (CRenderer::jitter * (urand() - 0.5f) + 0.5001011f);
-            pixel->jy = (CRenderer::jitter * (urand() - 0.5f) + 0.5001017f);
 
             // Time of the sample for motion blur
             if (pxj >= CRenderer::pixelXsamples) {
                 pxj = 0;
             }
-            pixel->jt = (pxi * CRenderer::pixelXsamples + pxj + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(CRenderer::pixelXsamples * CRenderer::pixelYsamples);
             pixel->jtStratum = ((pxi * CRenderer::pixelXsamples + pxj) * rasterTimeStrata()) / (CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
-            // Importance blend / jitter
-            pixel->jimp = 1.0f - (pxj * CRenderer::pixelYsamples + pxi + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(CRenderer::pixelXsamples * CRenderer::pixelYsamples);
+            const CSampleValue sample = CRenderer::correlatedSampleTable
+                ? correlatedTable[(size_t)i * sampleWidth + j]
+                : sampler.nextSample(
+                      pxi * CRenderer::pixelXsamples + pxj,
+                      pxj * CRenderer::pixelYsamples + pxi,
+                      wantLens);
 
-            if (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) {
-
-                // Aperture sample for depth of field
-                sampleDisk(aperture, [this](float *s) { apertureGenerator.get(s); });
-
-                pixel->jdx = aperture[0];
-                pixel->jdy = aperture[1];
-            } else {
-                pixel->jdx = 0;
-                pixel->jdy = 0;
-            }
+            pixel->jx = sample.jitterX;
+            pixel->jy = sample.jitterY;
+            pixel->jt = sample.timeStratum;
+            pixel->jimp = sample.importance;
+            pixel->jdx = sample.lensU;
+            pixel->jdy = sample.lensV;
 
             // Center location of the sample
             pixel->xcent = (j + pixel->jx) + left;
@@ -477,7 +495,6 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
 
     // Collapse the samples (transparency composite)
     const int numExtraNonCompChannels = CRenderer::numExtraNonCompChannels;
-    const int numExtraCompChannels = CRenderer::numExtraCompChannels;
 
     // pull local for speed
     vector zvisibilityThreshold;
@@ -492,14 +509,19 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
     const int sampleLineDisplacement = CRenderer::pixelXsamples * pixelSize;
     int sx, sy;
 
+    // Reused across subsamples so vector capacity is amortized rather than
+    // reallocated per pixel (CCompositor::evaluateDepth's flattened candidate
+    // list, spec 008-hider-parity-convergence S3).
+    std::vector<float> depthFilterZs;
+    std::vector<float> depthFilterOpacities;
+
     // 0	=	alpha
     // 1	=	z;
     // 2-4	=	color
-    // 5	=	z2
+    // 5	=	z2 (unused since evaluateDepth's Mid mode returns the already-resolved midpoint)
     for (int y = 0; y < sampleHeight; y++) {
         CPixel *cPixel = fb[y];
         float *cFb = &fbs[y * totalWidth * pixelSize];
-        vector ropacity;
 
         for (i = sampleWidth; i > 0; i--, cPixel++, cFb += pixelSize) {
             CFragment *cSample;
@@ -508,7 +530,6 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
             float *C = &cFb[2];
             // float		*O			=	&cFb[5];
             vector O;
-            float *Z2 = &cFb[5];
             float *ES = &cFb[6];
 
             assert(cPixel->first.z == -C_INFINITY);
@@ -542,60 +563,33 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
     for (int ess = numSamples; ess > 0; ess--) \
         *ESD++ = *ESS++;
 
-#define checkZThreshold() (opacity[0] > zvisibilityThreshold[0]) || (opacity[1] > zvisibilityThreshold[1]) || (opacity[2] > zvisibilityThreshold[2])
-#define checkMatteZThreshold() (1 + opacity[0] > zvisibilityThreshold[0]) || (1 + opacity[1] > zvisibilityThreshold[1]) || (1 + opacity[2] > zvisibilityThreshold[2])
-
                 cSample = cPixel->first.next;
 
-                if (cPixel->first.opacity[0] >= 0 || cPixel->first.opacity[1] >= 0 || cPixel->first.opacity[2] >= 0) { // Pixel has no Matte
+                // Whether ANY fragment in this pixel's list is a matte
+                // (opacity[i] < 0) decides which threshold formula applies
+                // to EVERY sample tested below -- a pixel-level switch, not
+                // a per-sample one (see CCompositor::compositeNonComp).
+                const bool pixelHasMatte = !(cPixel->first.opacity[0] >= 0 || cPixel->first.opacity[1] >= 0 || cPixel->first.opacity[2] >= 0);
 
-                    for (; cSample != NULL;) {
-                        const float *opacity = cSample->opacity;
+                for (; cSample != NULL; cSample = cSample->next) {
+                    CompositeSample cs;
+                    cs.color = cSample->color;
+                    cs.opacity = cSample->opacity;
+                    cs.extraSamples = cSample->extraSamples;
+                    cs.z = cSample->z;
 
-                        // copy when we see sufficiently opaque sample, check against zthreshold
-                        if (checkZThreshold()) {
-                            NonCompositeSampleLoop()
-                                copyNonCompSamples(sampleExtra + sampleOffset);
-                        }
-
+                    if (CCompositor::compositeNonComp(ES, cs, zvisibilityThreshold, pixelHasMatte)) {
                         Z[0] = cSample->z;
-                        // We've found our sample quit out
+                        // We've found our sample, quit out
                         break;
                     }
-                    cSample = cSample->next;
-                }
-            }
-            else {
-                for (; cSample != NULL;) {
-                    // const float *color = cSample->color;
-                    const float *opacity = cSample->opacity;
-
-                    int isMatte = (opacity[0] < 0 || opacity[1] < 0 || opacity[2] < 0);
-                    // Matte
-
-                    if (checkMatteZThreshold()) {
-                        // Copy default non-composited AOVs - default values unless ignoring matte
-                        NonCompositeSampleLoop()
-                            const int matteMode = CRenderer::nonCompChannelOrder[es * 4 + 2];
-                        if (isMatte && matteMode) {
-                            copyNonCompSamples(CRenderer::sampleDefaults + sampleOffset);
-                        } else {
-                            copyNonCompSamples(sampleExtra + sampleOffset);
-                        }
-                    }
-                    // FIXME: respect matte mode for main display (also reset it)
-
-                    // if (isMatte && matteMode)
-                    Z[0] = cSample->z;
-                    // We've found our sample, quit out
-                    break;
                 }
 
-                cSample = cSample->next;
-            }
-        }
-
-        // Deal with no samples, and finding a second sample for midpoint
+        // Deal with no samples, and resolve the depth-filter z (min/max/avg/mid)
+        // via the shared CCompositor::evaluateDepth (spec 008-hider-parity-convergence,
+        // S3) -- the candidate-list walk + threshold test + Mid-mode second-candidate
+        // search + zold floor + clip-correct all now live there, ported verbatim from
+        // what this block used to do inline.
 
         if (cSample == NULL) {
             // No samples that satisfy zthreshold, use defaults
@@ -605,50 +599,28 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
                 copyNonCompSamples(CRenderer::sampleDefaults + sampleOffset);
             }
             Z[0] = C_INFINITY;
-            Z2[0] = C_INFINITY;
-        } else if (CRenderer::depthFilter == DEPTH_MID) {
-
-            // Find the second sample for midpoint, if needed
-            // Q: Why not just use zold?
-            // A: It doesn't take account of transparent samples
-
-            for (; cSample != NULL; cSample = cSample->next) {
-                const float *opacity = cSample->opacity;
-
-                if (opacity[0] < 0 || opacity[1] < 0 || opacity[2] < 0) {
-                    if (checkMatteZThreshold()) {
-                        // FIXME: respect matteMode
-                        Z2[0] = cSample->z;
-                        break;
-                    }
-                } else {
-                    if (checkZThreshold()) {
-                        // FIXME: respect matteMode
-                        Z2[0] = cSample->z;
-                        break;
-                    }
-                }
+        } else {
+            depthFilterZs.clear();
+            depthFilterOpacities.clear();
+            for (CFragment *dSample = cPixel->first.next; dSample != NULL; dSample = dSample->next) {
+                depthFilterZs.push_back(dSample->z);
+                depthFilterOpacities.push_back(dSample->opacity[0]);
+                depthFilterOpacities.push_back(dSample->opacity[1]);
+                depthFilterOpacities.push_back(dSample->opacity[2]);
             }
-            if (cSample == NULL) {
-                // no second sample, use the first (we have one,
-                // otherwise we'd be in the first case)
-                Z2[0] = Z[0];
-            }
-            if (cPixel->zold > Z2[0]) {
-                Z2[0] = cPixel->zold;
-            }
+
+            // Min/Max/Avg all resolve identically at this per-sample-point level
+            // (nearest passing candidate) -- only Mid's second-candidate search
+            // differs, so any non-Mid mode is passed through as Min here.
+            const DepthFilterMode mode = (CRenderer::depthFilter == DEPTH_MID) ? DepthFilterMode::Mid : DepthFilterMode::Min;
+
+            Z[0] = CCompositor::evaluateDepth(depthFilterZs.data(), depthFilterOpacities.data(),
+                                               (int)depthFilterZs.size(), mode, zvisibilityThreshold,
+                                               pixelHasMatte, cPixel->zold);
         }
 
 #undef NonCompositeSampleLoop
 #undef copyNonCompSamples
-#undef checkZThreshold
-#undef checkMatteZThreshold
-
-        // clip-correct the depth components
-        if (Z[0] >= CRenderer::clipMax)
-            Z[0] = C_INFINITY;
-        if (Z2[0] >= CRenderer::clipMax)
-            Z2[0] = C_INFINITY;
     }
 
     ///////////////////////////////////////////////
@@ -657,147 +629,41 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
     ///////////////////////////////////////////////
 
     {
-#define compositeSampleLoop()                           \
-    const float *sampleExtra = cSample->extraSamples;   \
-    for (int es = 0; es < numExtraCompChannels; es++) { \
-        const int sampleOffset = CRenderer::compChannelOrder[es * 4];
+        CompositeAccumulator acc;
+        CCompositor::begin(acc, ES);
 
         cSample = cPixel->first.next;
+        oSample = cSample;
+        cSample = cSample->next;
 
-        if (!(cPixel->first.opacity[0] < 0 || cPixel->first.opacity[1] < 0 || cPixel->first.opacity[2] < 0)) {
-            // Pixel samples have no Mattes
-
-            // Get the base color and opacity
-            movvv(C, cSample->color);
-            movvv(O, cSample->opacity);
-            ropacity[0] = 1 - O[0];
-            ropacity[1] = 1 - O[1];
-            ropacity[2] = 1 - O[2];
-
-            // If this sample has no valid samples, this will fill in the sample defaults
-            // because pixel->last's AOVs get initialized to the defaults
-            compositeSampleLoop()
-                movvv(ES + sampleOffset, sampleExtra + sampleOffset);
-        }
+        CompositeSample cs;
+        cs.color = oSample->color;
+        cs.opacity = oSample->opacity;
+        cs.extraSamples = oSample->extraSamples;
+        cs.z = oSample->z;
+        CCompositor::composite(acc, cs);
 
         // Transparency collapse, and delete samples
-        oSample = cSample;
-        cSample = cSample->next;
         for (; cSample != NULL;) {
             deleteFragment(oSample);
-            const float *color = cSample->color;
-            const float *opacity = cSample->opacity;
-            sampleExtra = cSample->extraSamples;
 
-            // Composite
-            C[0] += ropacity[0] * color[0];
-            C[1] += ropacity[1] * color[1];
-            C[2] += ropacity[2] * color[2];
-            O[0] += ropacity[0] * opacity[0];
-            O[1] += ropacity[1] * opacity[1];
-            O[2] += ropacity[2] * opacity[2];
+            cs.color = cSample->color;
+            cs.opacity = cSample->opacity;
+            cs.extraSamples = cSample->extraSamples;
+            cs.z = cSample->z;
+            CCompositor::composite(acc, cs);
 
-            // Composite extra samples
-            compositeSampleLoop()
-                ES[sampleOffset + 0] += ropacity[0] * sampleExtra[sampleOffset + 0];
-            ES[sampleOffset + 1] += ropacity[1] * sampleExtra[sampleOffset + 1];
-            ES[sampleOffset + 2] += ropacity[2] * sampleExtra[sampleOffset + 2];
+            oSample = cSample;
+            cSample = cSample->next;
         }
 
-        ropacity[0] *= 1 - opacity[0];
-        ropacity[1] *= 1 - opacity[1];
-        ropacity[2] *= 1 - opacity[2];
+        movvv(C, acc.color);
+        movvv(O, acc.opacity);
 
-        oSample = cSample;
-        cSample = cSample->next;
+        // Alpha is the average opacity
+        // I know this is wrong but this is more useful
+        cFb[0] = ((O[0] + O[1] + O[2]) * 0.3333333333333333f);
     }
-}
-else {
-    // We have mattes in the stack
-
-    // Get the base color, opacity and extra samples
-    // This will install defaults if there are no valid samples
-    if (cSample->opacity[0] < 0 || cSample->opacity[1] < 0 || cSample->opacity[2] < 0) {
-        // Matte base sample
-        initv(C, 0);
-        initv(O, 0);
-        ropacity[0] = 1 + cSample->opacity[0];
-        ropacity[1] = 1 + cSample->opacity[1];
-        ropacity[2] = 1 + cSample->opacity[2];
-
-        // Composite AOVs with ignore matte flag
-        compositeSampleLoop()
-            const int matteMode = CRenderer::compChannelOrder[es * 4 + 2];
-        if (matteMode)
-            initv(ES + sampleOffset, 0);
-        else
-            movvv(ES + sampleOffset, sampleExtra + sampleOffset);
-    }
-}
-else {
-    // Non-matte base sample
-    movvv(C, cSample->color);
-    movvv(O, cSample->opacity);
-    ropacity[0] = 1 - O[0];
-    ropacity[1] = 1 - O[1];
-    ropacity[2] = 1 - O[2];
-
-    // Composite extra samples
-    compositeSampleLoop()
-        movvv(ES + sampleOffset, sampleExtra + sampleOffset);
-}
-}
-
-// Transparency collapse, and delete samples
-oSample = cSample;
-cSample = cSample->next;
-for (; cSample != NULL;) {
-    deleteFragment(oSample);
-    const float *color = cSample->color;
-    const float *opacity = cSample->opacity;
-
-    if (opacity[0] < 0 || opacity[1] < 0 || opacity[2] < 0) {
-        // Composite Matte
-        ropacity[0] *= 1 + opacity[0];
-        ropacity[1] *= 1 + opacity[1];
-        ropacity[2] *= 1 + opacity[2];
-
-        // Composite AOVs with ignore matte flag
-        compositeSampleLoop()
-            const int matteMode = CRenderer::compChannelOrder[es * 4 + 2];
-        if (!matteMode)
-            movvv(ES + sampleOffset, sampleExtra + sampleOffset);
-    }
-}
-else {
-    // Composite non-matte
-    C[0] += ropacity[0] * color[0];
-    C[1] += ropacity[1] * color[1];
-    C[2] += ropacity[2] * color[2];
-    O[0] += ropacity[0] * opacity[0];
-    O[1] += ropacity[1] * opacity[1];
-    O[2] += ropacity[2] * opacity[2];
-
-    compositeSampleLoop()
-        ES[sampleOffset + 0] += ropacity[0] * sampleExtra[sampleOffset + 0];
-    ES[sampleOffset + 1] += ropacity[1] * sampleExtra[sampleOffset + 1];
-    ES[sampleOffset + 2] += ropacity[2] * sampleExtra[sampleOffset + 2];
-}
-
-ropacity[0] *= 1 - opacity[0];
-ropacity[1] *= 1 - opacity[1];
-ropacity[2] *= 1 - opacity[2];
-}
-
-oSample = cSample;
-cSample = cSample->next;
-}
-}
-
-// Alpha is the average opacity
-// I know this is wrong but this is more useful
-cFb[0] = ((O[0] + O[1] + O[2]) * 0.3333333333333333f);
-}
 }
 }
 
@@ -912,8 +778,9 @@ case DEPTH_AVG:
     break;
 
 case DEPTH_MID:
-    /// FIXME: for midpoint should be working out front most 2 planes (min of front, min of 2nd)
-    // and do midpoint on the - need extra working space to do this.
+    // cSample[1] already holds the per-subsample midpoint z resolved by
+    // CCompositor::evaluateDepth (spec 008-hider-parity-convergence, S3);
+    // this is just the cross-subsample average of that value.
 
     for (int y = 0; y < yres; y++) {
         float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
@@ -930,7 +797,7 @@ case DEPTH_MID:
             cPixel = cPixelLine;
             for (i = 0; i < xres; i++) {
                 for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    cPixel[4] += 0.5f * (cSample[1] + cSample[5]); // FIXME: this is wrong, we're doing average on midpoint values
+                    cPixel[4] += cSample[1];
                 }
                 cPixel += CRenderer::numSamples;
             }
@@ -965,17 +832,13 @@ if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
                 const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
 
                 for (i = 0; i < xres; i++) {
-                    int es;
-
-                    pixelLine[0] += filterResponse * sampleLine[2];
-                    pixelLine[1] += filterResponse * sampleLine[3];
-                    pixelLine[2] += filterResponse * sampleLine[4];
-                    pixelLine[3] += filterResponse * sampleLine[0];
+                    CPixelFilterAccumulator::splat(&pixelLine[0], &sampleLine[2], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pixelLine[1], &sampleLine[3], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pixelLine[2], &sampleLine[4], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pixelLine[3], &sampleLine[0], 1, filterResponse);
 
                     // Filter the extra samples here
-                    for (es = 0; es < CRenderer::numExtraSamples; es++) {
-                        pixelLine[5 + es] += filterResponse * sampleLine[6 + es];
-                    }
+                    CPixelFilterAccumulator::splat(&pixelLine[5], &sampleLine[6], CRenderer::numExtraSamples, filterResponse);
 
                     // Advance
                     pixelLine += CRenderer::numSamples;
@@ -1004,16 +867,12 @@ if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
                 float *pLine = pixelLine;
                 const float *sLine = sampleLine;
                 for (i = 0; i < xres; i++) {
-                    int es;
+                    CPixelFilterAccumulator::splat(&pLine[0], &sLine[2], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pLine[1], &sLine[3], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pLine[2], &sLine[4], 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pLine[3], &sLine[0], 1, filterResponse);
 
-                    pLine[0] += filterResponse * sLine[2];
-                    pLine[1] += filterResponse * sLine[3];
-                    pLine[2] += filterResponse * sLine[4];
-                    pLine[3] += filterResponse * sLine[0];
-
-                    for (es = 0; es < CRenderer::numExtraSamples; es++) {
-                        pLine[5 + es] += filterResponse * sLine[6 + es];
-                    }
+                    CPixelFilterAccumulator::splat(&pLine[5], &sLine[6], CRenderer::numExtraSamples, filterResponse);
 
                     filterNorm[i] += filterResponse;
                     pLine  += CRenderer::numSamples;
@@ -1023,14 +882,7 @@ if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
         }
 
         // Normalize each pixel by accumulated filter weight
-        float *pLine = pixelLine;
-        for (i = 0; i < xres; i++, pLine += CRenderer::numSamples) {
-            if (filterNorm[i] > 0) {
-                const float inv = 1.0f / filterNorm[i];
-                for (int j = 0; j < CRenderer::numSamples; j++)
-                    pLine[j] *= inv;
-            }
-        }
+        CPixelFilterAccumulator::normalizeByWeight(pixelLine, filterNorm, xres, CRenderer::numSamples);
     }
 }
 

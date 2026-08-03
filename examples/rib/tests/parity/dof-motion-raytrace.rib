@@ -1,0 +1,40 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "raytrace"
+PixelSamples 4 4
+Shutter 0 1
+Display "dof-motion-raytrace.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 320 240 1
+DepthOfField 2 1 5
+Translate 0 0 5
+
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "finite" 2 "location" [-4 4 -4] "intensity" [0.9]
+
+  AttributeBegin
+    Color 0.9 0.3 0.2
+    Surface "matte"
+    Translate -1.2 0.6 -1.5
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 0.9 0.3
+    Surface "matte"
+    Translate 0 -0.4 0.8
+    MotionBegin [0 1]
+      Translate 0 0 0
+      Translate 0.9 0 0
+    MotionEnd
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 0.4 0.9
+    Surface "matte"
+    Translate 1.3 0.5 2.2
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+WorldEnd

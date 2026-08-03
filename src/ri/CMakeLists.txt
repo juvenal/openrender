@@ -9,6 +9,7 @@ set(ri_sources
 	attributes.cpp
 	brickmap.cpp
 	bundles.cpp
+	compositor.cpp
 	curves.cpp
 	bsplinePatchgrid.cpp
 	debug.cpp
@@ -55,6 +56,7 @@ set(ri_sources
 	rendererNetwork.cpp
 	rendererShadingServices.cpp
 	resource.cpp
+	sampler.cpp
 	reyes.cpp
 	ri.cpp
 #	rib.cpp

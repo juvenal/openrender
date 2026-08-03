@@ -29,6 +29,7 @@
 #include "delayed.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -108,7 +109,7 @@ void CDelayedObject::intersect(CShadingContext *context, CRay *) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::dice(CShadingContext *r) {
+void CDelayedObject::dice(CReyes *r) {
 
     // Process the object
     if (processed == FALSE) {
@@ -201,7 +202,7 @@ void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::dice(CShadingContext *r) {
+void CDelayedInstance::dice(CReyes *r) {
 
     // Process the instance
     if (processed == FALSE) {

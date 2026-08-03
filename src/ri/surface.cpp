@@ -33,6 +33,7 @@
 #include "memory.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "shading.h"
 #include "stats.h"
 #include "surface.h"
@@ -137,7 +138,7 @@ static inline int cull(float *bmin, float *bmax, const float *P, const float *N,
 // Description			:	Dice the surface into smaller primitives
 // Return Value			:	-
 // Comments				:
-void CPatch::dice(CShadingContext *r) {
+void CPatch::dice(CReyes *r) {
 
     // Have we checked size of this piece before ?
     if ((udiv == -1) && (vdiv == -1)) {
@@ -440,7 +441,7 @@ void CPatch::dice(CShadingContext *r) {
 // Description			:	Split the surface into smaller ones
 // Return Value			:	-
 // Comments				:
-void CPatch::splitToChildren(CShadingContext *r, int dir) {
+void CPatch::splitToChildren(CReyes *r, int dir) {
     CPatch *p1, *p2, *p3, *p4;
     float umid, vmid;
 

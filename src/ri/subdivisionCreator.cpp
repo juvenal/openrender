@@ -35,6 +35,7 @@
 #include "pl.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
 #include "shading.h"
@@ -1623,7 +1624,7 @@ void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::dice(CShadingContext *rasterizer) {
+void CSubdivMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
         create(rasterizer);

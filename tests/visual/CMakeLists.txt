@@ -56,6 +56,23 @@ set(VISUAL_ENV
     "GEOMETRIES=${CMAKE_SOURCE_DIR}/openrender/geometry"
 )
 
+# Same as VISUAL_ENV, plus Option B's unified per-bucket sample table (spec
+# 008 Phase 11/US9). Only worth enabling on a parity test where correlating
+# the two hiders' random draws demonstrably tightens the diff -- T084
+# measured this per-scene rather than assuming it universally helps (see
+# motion-*-translate-correlated below): dof's diff got *worse* under
+# correlation (D9 is a different-model-same-input structural residual, not
+# RNG noise, so forcing an identical draw through two different DOF formulas
+# just makes the error spatially coherent instead of letting independent
+# noise partially cancel), and motion-polygons-translate was flat within
+# run-to-run noise. motion-quadrics-translate and motion-patches-translate,
+# by contrast, are same-model/different-RNG-stream residuals that the
+# correlated table genuinely closes.
+set(VISUAL_ENV_CORRELATED
+    ${VISUAL_ENV}
+    "OPENRENDER_CORRELATED_SAMPLE_TABLE=1"
+)
+
 # ---------------------------------------------------------------------------
 # Helper macro: register one visual regression test
 #
@@ -108,12 +125,22 @@ endmacro()
 #   RIB_B        — path to the second hider's .rib scene (relative to CMAKE_SOURCE_DIR)
 #   OUTPUT_B     — filename RIB_B's Display statement writes (relative to CWD)
 #   THRESHOLD    — (optional) per-scene threshold override; defaults to VISUAL_THRESHOLD
+#   ENV_LIST     — (optional) environment override; defaults to VISUAL_ENV. Pass
+#                  VISUAL_ENV_CORRELATED to exercise Option B's unified sample
+#                  table (spec 008 Phase 11/US9) instead of each hider drawing
+#                  its own independent stream.
 # ---------------------------------------------------------------------------
 macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
     if(${ARGC} GREATER 5)
         set(_thresh ${ARGV5})
     else()
         set(_thresh ${VISUAL_THRESHOLD})
+    endif()
+
+    if(${ARGC} GREATER 6)
+        set(_env ${ARGV6})
+    else()
+        set(_env ${VISUAL_ENV})
     endif()
 
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/parity-${SCENE_NAME})
@@ -133,7 +160,7 @@ macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
     set_tests_properties(Parity_${SCENE_NAME} PROPERTIES
         TIMEOUT        360
         LABELS         "parity;regression"
-        ENVIRONMENT    "${VISUAL_ENV}"
+        ENVIRONMENT    "${_env}"
         DEPENDS        orender
     )
 endmacro()
@@ -395,7 +422,200 @@ add_parity_test(depthdefault
     examples/rib/tests/parity/depthdefault-raytrace.rib
     depthdefault-raytrace.tif  500000)
 
+# --- Transparency: three overlapping semi-transparent spheres (front-to-back
+# "over" compositing) — spec 008 Phase 5/US3/R3. Measured ~1.19 pre-refactor;
+# plain color/opacity compositing is already shared behavior between hiders,
+# so this threshold is not expected to move much after CCompositor lands.
+add_parity_test(transparency
+    examples/rib/tests/parity/transparency-reyes.rib
+    transparency-reyes.tif
+    examples/rib/tests/parity/transparency-raytrace.rib
+    transparency-raytrace.tif  20)
+
+# --- Matte: a Matte 1 (holdout) sphere partially covering a background
+# sphere, plus a normal (non-matte) sphere as a control — spec 008 Phase
+# 5/US3/R3. Measured ~3.94 pre-refactor in the rgba channel; matte holdout
+# semantics already agree between hiders here (D8 only manifests in the AOV
+# channel — see transparency-matte-aov below).
+add_parity_test(matte
+    examples/rib/tests/parity/matte-reyes.rib
+    matte-reyes.tif
+    examples/rib/tests/parity/matte-raytrace.rib
+    matte-raytrace.tif  20)
+
+# --- Combined effect: an "N" AOV surface behind a semi-transparent sphere,
+# plus a separate Matte 1 sphere — spec 008 Phase 5/US3/R3/S4. This is the
+# TDD Red gate for T028: measured ~255.00 (maxed out) pre-refactor because
+# raytrace's CPrimaryBundle::postShade only copies extra AOV channels on the
+# first hit (D6) and doesn't apply the matte holdout to the AOV channel (D8)
+# — both spheres show up as separate uncomposited "ghost" layers instead of
+# being properly over-composited/held-out the way reyes's rasterEnd already
+# does. Threshold set tight (matches the plain "aov" scene) so it fails now
+# and is expected to go green once CCompositor (T029-T032) lands; re-measure
+# and tighten further at T035.
+add_parity_test(transparency-matte-aov
+    examples/rib/tests/parity/transparency-matte-aov-reyes.rib
+    transparency-matte-aov-reyes.tif
+    examples/rib/tests/parity/transparency-matte-aov-raytrace.rib
+    transparency-matte-aov-raytrace.tif  25)
+
+# --- Depth-filter modes: same three overlapping semi-transparent spheres as
+# "transparency" above, but rendered with PixelSamples 4 4 (so min/max/avg
+# diverge across a pixel's subsample grid, not just within one fragment
+# list) and a "z" AOV output. A zthreshold of 0.4 excludes the back sphere
+# (opacity 0.35) from z-visibility, exercising FR-013 alongside the mode
+# dispatch. This is the TDD Red gate for T039/T040-T043: raytrace has
+# neither depth-filter-mode dispatch nor zvisibilityThreshold logic yet
+# (raytracer.cpp always emits the first hit's z, D7), so threshold is left
+# loose until CCompositor::evaluateDepth lands; T045 re-measures/tightens.
+add_parity_test(depthfilter-min
+    examples/rib/tests/parity/depthfilter-min-reyes.rib
+    depthfilter-min-reyes.tif
+    examples/rib/tests/parity/depthfilter-min-raytrace.rib
+    depthfilter-min-raytrace.tif  500000)
+
+add_parity_test(depthfilter-max
+    examples/rib/tests/parity/depthfilter-max-reyes.rib
+    depthfilter-max-reyes.tif
+    examples/rib/tests/parity/depthfilter-max-raytrace.rib
+    depthfilter-max-raytrace.tif  500000)
+
+add_parity_test(depthfilter-avg
+    examples/rib/tests/parity/depthfilter-avg-reyes.rib
+    depthfilter-avg-reyes.tif
+    examples/rib/tests/parity/depthfilter-avg-raytrace.rib
+    depthfilter-avg-raytrace.tif  500000)
+
+add_parity_test(depthfilter-mid
+    examples/rib/tests/parity/depthfilter-mid-reyes.rib
+    depthfilter-mid-reyes.tif
+    examples/rib/tests/parity/depthfilter-mid-raytrace.rib
+    depthfilter-mid-raytrace.tif  500000)
+
+# --- Displacement parity: a single sphere with the "bump_lowfreq"
+# displacement shader bound (no "trace"/"displacements" attribute set on
+# the raytrace side). This is the TDD Red gate for T047/T048-T051 (spec
+# 008-hider-parity-convergence, Phase 7/S2): today raytrace requires an
+# explicit `Attribute "trace" "displacements" [1]` opt-in to displace at all
+# (ATTRIBUTES_FLAGS_DISPLACEMENTS defaults off), so its shading stays on the
+# undisplaced sphere while reyes always displaces when a displacement shader
+# is bound.
+#
+# Originally used the "dented" shader (6-octave 1/f turbulence), but that
+# shader's high-frequency content aliased into each hider's independently
+# adaptive dicing/tessellation grid -- reyes dices by ShadingRate, raytrace
+# by ray-differential screen footprint, so the two grids sample the same
+# noise field at different parametric points and produce a hairline
+# ridge-vs-ridge diff that swamped the real "is this side displaced at all"
+# signal (measured ~2.7/255 for both-displaced vs ~2.6/255 for the pre-fix
+# one-side-disabled bug -- the metric could not tell the two apart).
+# Switched to "bump_lowfreq" (single-octave, large-period noise, see
+# shaders/bump_lowfreq.sl) so the two grids converge to nearly the same
+# displaced surface; residual diff is now dominated by ordinary silhouette
+# antialiasing (measured MaxBlockAvgDiff ~2.3-2.7/255, 48-53/1200 blocks
+# fail across repeated runs -- some run-to-run jitter is expected from
+# PixelSamples). A simulated regression (raytrace displacement forced off
+# again) measures MaxBlockAvgDiff ~204/255, 240/1200 blocks fail -- an ~80x
+# gap that a threshold of 6 cleanly separates: passes real parity, still
+# fails the pre-fix bug.
+add_parity_test(displacement
+    examples/rib/tests/parity/displacement-reyes.rib
+    displacement-reyes.tif
+    examples/rib/tests/parity/displacement-raytrace.rib
+    displacement-raytrace.tif  6)
+
+# --- Object motion blur (spec 008 Phase 8/US6/S5, closes D10): verifies the
+# raytracer's tessellation-path ray-time interpolation (cRay->time for
+# patches/polygons, rv->time for quadrics) against reyes on a per-primitive
+# basis, for both transform-motion (MotionBegin wraps a Translate) and
+# deform-motion (MotionBegin wraps two different geometry snapshots — a
+# repeated Patch/Polygon/Sphere with different data). No pre-existing example
+# scene exercised object (non-camera) motion through the raytracer before
+# this; all six pairs measured genuinely converged (both hiders agree on
+# silhouette, streak/interpolated shape, and shading) with no correctness
+# fix required — residual diff is ordinary silhouette antialiasing on a
+# curved/moving edge. Thresholds set at the standard 20 used for
+# flatshade/transparency/matte, except motion-patches-deform (measured
+# ~16.8-17.1 across repeated runs, a curved bicubic patch flattening over
+# the shutter interval produces more silhouette-edge shading gradient than
+# the other five) which gets a slightly looser 25 for run-to-run margin.
+add_parity_test(motion-patches-translate
+    examples/rib/tests/parity/motion-patches-translate-reyes.rib
+    motion-patches-translate-reyes.tif
+    examples/rib/tests/parity/motion-patches-translate-raytrace.rib
+    motion-patches-translate-raytrace.tif  20)
+
+# Correlated-table variant (spec 008 Phase 11/US9, T084): same scene, same
+# RIB pair, run with Option B's unified per-bucket sample table instead of
+# each hider drawing independently. Measured 2.95/3.12/3.00 across 3 runs
+# (vs. ~5.81 uncorrelated) -- a genuine, stable improvement, so this variant
+# gets its own tightened threshold rather than loosening the uncorrelated
+# test above (which stays as-is; Option B is opt-in, not the default path).
+add_parity_test(motion-patches-translate-correlated
+    examples/rib/tests/parity/motion-patches-translate-reyes.rib
+    motion-patches-translate-reyes.tif
+    examples/rib/tests/parity/motion-patches-translate-raytrace.rib
+    motion-patches-translate-raytrace.tif  8  "${VISUAL_ENV_CORRELATED}")
+
+add_parity_test(motion-patches-deform
+    examples/rib/tests/parity/motion-patches-deform-reyes.rib
+    motion-patches-deform-reyes.tif
+    examples/rib/tests/parity/motion-patches-deform-raytrace.rib
+    motion-patches-deform-raytrace.tif  25)
+
+add_parity_test(motion-polygons-translate
+    examples/rib/tests/parity/motion-polygons-translate-reyes.rib
+    motion-polygons-translate-reyes.tif
+    examples/rib/tests/parity/motion-polygons-translate-raytrace.rib
+    motion-polygons-translate-raytrace.tif  20)
+
+add_parity_test(motion-polygons-deform
+    examples/rib/tests/parity/motion-polygons-deform-reyes.rib
+    motion-polygons-deform-reyes.tif
+    examples/rib/tests/parity/motion-polygons-deform-raytrace.rib
+    motion-polygons-deform-raytrace.tif  20)
+
+add_parity_test(motion-quadrics-translate
+    examples/rib/tests/parity/motion-quadrics-translate-reyes.rib
+    motion-quadrics-translate-reyes.tif
+    examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib
+    motion-quadrics-translate-raytrace.tif  20)
+
+# Correlated-table variant (spec 008 Phase 11/US9, T084): measured
+# 2.16/2.19/2.20/2.31 across 4 runs (vs. ~4.05 uncorrelated) -- the largest,
+# most stable improvement of any candidate scene re-measured for T084. See
+# motion-patches-translate-correlated above for why this is a new variant
+# rather than a change to the uncorrelated test's threshold.
+add_parity_test(motion-quadrics-translate-correlated
+    examples/rib/tests/parity/motion-quadrics-translate-reyes.rib
+    motion-quadrics-translate-reyes.tif
+    examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib
+    motion-quadrics-translate-raytrace.tif  6  "${VISUAL_ENV_CORRELATED}")
+
+add_parity_test(motion-quadrics-deform
+    examples/rib/tests/parity/motion-quadrics-deform-reyes.rib
+    motion-quadrics-deform-reyes.tif
+    examples/rib/tests/parity/motion-quadrics-deform-raytrace.rib
+    motion-quadrics-deform-raytrace.tif  20)
+
+# --- Combined effect: FR-002's DOF+motion scene for this story (spec 008
+# Phase 8/US6/S5) — three spheres at staggered depths through the same lens
+# as the "dof" scene above (DepthOfField 2 1 5), with the middle sphere also
+# translate-motion-blurred. Measured ~26.50, stable across repeated runs,
+# well under the standalone "dof" scene's own residual (~45.94, threshold
+# 60) — the combined scene's divergence is dominated by DOF's own D9
+# residual (screen-space scatter vs true lens rays, explicitly documented
+# as a bounded, not-closable-by-refactor residual, not this story's motion
+# blur — motion alone converges to ~5-17 per the six scenes above).
+# Threshold set at 40 (~1.5x measured, matching the margin convention used
+# elsewhere in this file).
+add_parity_test(dof-motion
+    examples/rib/tests/parity/dof-motion-reyes.rib
+    dof-motion-reyes.tif
+    examples/rib/tests/parity/dof-motion-raytrace.rib
+    dof-motion-raytrace.tif  40)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      44 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 4 scene pairs registered under label 'parity'")
+message(STATUS "  - Cross-hider parity tests: 21 scene pairs registered under label 'parity'")

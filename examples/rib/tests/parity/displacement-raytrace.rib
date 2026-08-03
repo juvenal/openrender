@@ -1,0 +1,21 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "raytrace"
+PixelSamples 4 4
+Display "displacement-raytrace.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 320 240 1
+Translate 0 0 5
+
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "finite" 2 "location" [-4 4 -4] "intensity" [0.9]
+
+  AttributeBegin
+    Color 0.7 0.7 0.75
+    Surface "matte"
+    Attribute "bound" "displacement" [0.3]
+    Displacement "bump_lowfreq" "Km" [0.25]
+    Sphere 1.2 -1.2 1.2 360
+  AttributeEnd
+WorldEnd

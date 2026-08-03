@@ -130,10 +130,10 @@ If the camera hitmode is specified to be `"primitive"` then the `Opacity` attrib
 These attributes control the raytracer behavior.
 
 ```
-Attribute "trace" "int displacements" [0]
+Attribute "trace" "int displacements" [1]
 ```
 
-If 1, the surface will be displaced before the raytracing. True displacements for raytracing may be very expensive. Use this attribute sparingly as for most displacement shaders, this will not create noticeable change.
+Raytraced surfaces are displaced by default whenever a `Displacement` shader is bound, matching the standard hider's behavior. Set this to `0` to skip displacement for ray hits on a primitive. True displacements for raytracing may be very expensive; disable it on primitives where the displacement shader will not create a noticeable change.
 
 ```
 Attribute "trace" "float bias" [0.01]

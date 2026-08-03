@@ -12,13 +12,14 @@
 | Language bindings | Complete — Python, Lua, C/C++ | [BINDINGS_GUIDE.md](DEVNOTES_DETAILS/BINDINGS_GUIDE.md) |
 | Geometry statements | Complete — in-place expansion, circularity detection | [GEOMETRY_STATEMENT.md](DEVNOTES_DETAILS/GEOMETRY_STATEMENT.md) |
 | Scene wireframe previewer | Complete — orender-wire (macOS Metal + Linux GTK4/OpenGL), libribpreview, full test suite | [VERIFICATION_LINUX_PREVIEW.md](DEVNOTES_DETAILS/VERIFICATION_LINUX_PREVIEW.md) |
-| Hider parity | Partial — filtering and jitter done; motion blur, transparency pending | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
-| RISpec 3.2 gaps | 1 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
+| Hider parity | Complete — shared `CSampler`/`CCompositor`/`CPixelFilterAccumulator` kernels converge reyes/raytrace on motion blur, transparency, matte, displacement, and depth-filter modes; D3/D4 (shading-interpolation model) and D9 (DOF occlusion model) remain permanent, documented residuals, not open work | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
+| RISpec 3.2 gaps | 2 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
 | C++20 / C17 migration | Phase 2 complete — portable I/O, binary security; Phase 3 future | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) |
 | PBR path-tracing hider + OSL (`Bxdf`) | Not started — feasibility analysis only, not yet scheduled | [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md) |
 
 ## Recent Major Refactors
 
+- **Reyes/Raytrace Hider Parity Convergence**: Split the hider contract — `drawObject`/`drawGrid`/`drawPoints` moved off `CShadingContext` and down into `CReyes`, so `CRaytracer` no longer carries stub overrides. Extracted three shared kernels consumed by both hiders: `CSampler` (`src/ri/sampler.{h,cpp}`, jitter xy/time stratum/lens point, absorbing the spec-007 `sampleDisk()` disk logic and killing the pixel-jitter-constant drift between reyes and raytrace), `CCompositor` (`src/ri/compositor.{h,cpp}`, shared front-to-back transparency/matte compositing, without altering the fragment-list data structure deep shadows read directly), and `CPixelFilterAccumulator` (`src/ri/pixelFilter.h`, one splat/gather/normalization module for stochastic, raytrace, and zbuffer). Closed remaining reyes/raytrace divergences: displacement now defaults on for raytrace (opt-out via `Attribute "trace" "int displacements" [0]`), depth-filter modes (min/max/avg/mid) and `zvisibilityThreshold` now work in raytrace, transparent-hit AOV compositing uses the existing comp/non-comp channel tables, and raytraced object motion blur was verified working on the tessellation path. Added an internal-only `OPENRENDER_CORRELATED_SAMPLE_TABLE` diagnostic env var (no RIB token) that gates both hiders onto one deterministic per-bucket sample table, isolating RNG-stream noise from structural divergence for parity-threshold tuning. See [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md).
 - **libshader extraction & LLVM JIT shading engine**: Extracted the shader compiler (`src/oshader` → `src/libshader/compiler`) and interpreter runtime (`src/rslo` → `src/libshader/runtime`) into a new `libshader` static library hierarchy. Added a LLVM-based JIT backend: `oshader --jit` compiles RSL shaders to LLVM bitcode (`.slo`) with embedded metadata (shader type, `usedParameters` bitmask, parameter defaults). The JIT runtime loads `.slo` via LLJIT and dispatches through the same `op_*`/`rsl_*` C-linkage ABI used by the interpreter. New `sloinfo` binary auto-detects `.slo` vs `.rslo` by file magic bytes. Symbol retention for macOS dead-stripping handled by `jitSymbolRetain.cpp` with `__attribute__((constructor))`. Coordinate-transform ops (`op_vtransform`, `op_ntransform`, `op_ptransform`) corrected. Shader-space parameter defaults at bind time fixed via `jitSetInitXform` thread-local fallback. Shader format selection: `Attribute "shade" "shaderformat"` (per-primitive), `Option "shaderformat" "default"` (scene-wide), or `OPENRENDER_DEFAULT_FORMAT` (compile-time fallback). See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
 - **CSE Pass — Intra-Block Scope Fix**: The CSE optimizer previously shared its expression cache across all IR basic blocks, enabling incorrect substitutions across if/else branch boundaries. `exprMap` is now cleared per block; cross-block CSE requires dominator analysis not yet encoded in the IR. The regression manifested as a corrupted `windowhighlight.sl` highlight shape. See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
 - **Shader Built-In Scope Enforcement**: A new `globalVarScope` map on `CScriptContext` records per-variable shader-type restrictions. `getVariable()` is restructured to enforce these restrictions regardless of which internal lookup path resolves the variable. `Ps` is now rejected in surface shaders; imager output variables (`Ci`, `Oi`, `alpha`) have their scope masks corrected to include `SLC_IMAGER`. See [OSHADER_UPDATES.md](DEVNOTES_DETAILS/OSHADER_UPDATES.md).
@@ -36,7 +37,7 @@
 ## Open Issues
 
 - [ ] Purging tessellations for raytracing (no cache eviction mechanism found)
-- [ ] Moving raytraced surface (`CRaytracer` lacks native motion blur support)
+- [x] Moving raytraced surface — verified 2026-08 (spec 008 Phase 8/US6): `CRaytracer`'s tessellation-path intersection kernels already interpolated geometry on the ray's shutter time (`cRay->time` in `patches.cpp`/`polygons.cpp`, `rv->time` in `quadrics.cpp`); 7 new cross-hider parity scenes (`Parity_motion-{patches,polygons,quadrics}-{translate,deform}`, `Parity_dof-motion`) confirm convergence with the stochastic hider (see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)). Scoped to object/surface motion only — camera motion blur (interpolating the camera-to-world transform) is not assessed by this work.
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
 - [ ] Irradiance accuracy issues
@@ -46,7 +47,7 @@
 - [ ] OpenEXR input for textures (output is supported; input/texture reading is missing)
 - [ ] Trace subsets (`trace()` does not yet filter by subset)
 - [ ] Patch crack stitching (currently handled via displacement bounds)
-- [ ] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)
+- [x] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md); D3/D4 and D9 remain permanent, documented residuals (not closable by refactor)
 - [ ] PBR path-tracing hider (`"pathtracer"`) + OSL `Bxdf` support — see [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md)
 
 ## See Also

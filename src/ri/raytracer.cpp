@@ -26,11 +26,14 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include <vector>
+
 #include "error.h"
 #include "memory.h"
-#include "random.h"
+#include "pixelFilter.h"
 #include "raytracer.h"
 #include "renderer.h"
+#include "sampler.h"
 #include "shading.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -74,6 +77,116 @@ CPrimaryBundle::~CPrimaryBundle() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	resolveNonComp
+// Description			:	Resolve a ray's buffered non-comp AOV samples
+//							once its whole continuation chain is known
+//							(the ray stopped: opaque hit, miss, or maxRayDepth
+//							cap). `pixelHasMatte` is the OR of every buffered
+//							hit's matte-ness -- mirrors stochastic.cpp's
+//							pixel-wide flag, computed there upfront because
+//							the whole fragment list is built before
+//							compositing starts (T031/T032; see
+//							CBufferedNonCompSample in raytracer.h). Falls back
+//							to CRenderer::sampleDefaults if nothing passes,
+//							mirroring stochastic.cpp's `cSample == NULL`
+//							branch.
+// Return Value			:	-
+// Comments				:
+static void resolveNonComp(CPrimaryRay *cRay) {
+    if (cRay->nonCompLatched) return;
+
+    bool pixelHasMatte = false;
+    for (const auto &s : cRay->pendingNonComp) {
+        if (s.opacity[0] < 0 || s.opacity[1] < 0 || s.opacity[2] < 0) {
+            pixelHasMatte = true;
+            break;
+        }
+    }
+
+    for (const auto &s : cRay->pendingNonComp) {
+        CompositeSample sample;
+        sample.color = NULL;
+        sample.opacity = s.opacity;
+        sample.extraSamples = s.extra.data();
+        sample.z = 0;
+
+        if (CCompositor::compositeNonComp(cRay->samples + 5, sample, CRenderer::zvisibilityThreshold, pixelHasMatte)) {
+            cRay->nonCompLatched = true;
+            return;
+        }
+    }
+
+    const int numExtraNonCompChannels = CRenderer::numExtraNonCompChannels;
+    const int *nonCompChannelOrder = CRenderer::nonCompChannelOrder;
+    for (int es = 0; es < numExtraNonCompChannels; es++) {
+        const int sampleOffset = nonCompChannelOrder[es * 4];
+        const int numSamples = nonCompChannelOrder[es * 4 + 1];
+        float *d = cRay->samples + 5 + sampleOffset;
+        const float *s = CRenderer::sampleDefaults + sampleOffset;
+        for (int i = 0; i < numSamples; i++)
+            *d++ = *s++;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	resolveDepth
+// Description			:	Resolve a ray's z output (samples[4]) from its
+//							buffered continuation-hit chain once the chain
+//							is known to have stopped, via the shared
+//							CCompositor::evaluateDepth (spec
+//							008-hider-parity-convergence, S3/T042-T043) --
+//							mirrors CStochastic::rasterEnd's per-subsample
+//							Z[0] resolution, with `cRay->pendingDepth`
+//							standing in for a reyes subsample's fragment
+//							list. Min/Max/Avg all resolve identically at this
+//							per-ray level (nearest zvisibilityThreshold-
+//							passing candidate) -- only Mid's second-candidate
+//							search differs, so any non-Mid mode is passed
+//							through as Min here, exactly matching
+//							stochastic.cpp's own mode-collapsing rule. The
+//							cross-sample min/max/avg/mid grid reduction (this
+//							function's caller-side analog of reyes's Stage-2
+//							switch(depthFilter)) is out of scope here --
+//							raytrace has none yet, matching its pre-existing
+//							filter-only splat of this channel.
+// Return Value			:	-
+// Comments				:
+static void resolveDepth(CPrimaryRay *cRay) {
+    const int count = (int)cRay->pendingDepth.size();
+    if (count == 0) {
+        cRay->samples[4] = C_INFINITY;
+        return;
+    }
+
+    std::vector<float> zs(count);
+    std::vector<float> opacities((size_t)count * 3);
+    bool pixelHasMatte = false;
+
+    for (int i = 0; i < count; i++) {
+        const CDepthCandidate &c = cRay->pendingDepth[i];
+        zs[i] = c.z;
+        opacities[i * 3 + 0] = c.opacity[0];
+        opacities[i * 3 + 1] = c.opacity[1];
+        opacities[i * 3 + 2] = c.opacity[2];
+        if (c.opacity[0] < 0 || c.opacity[1] < 0 || c.opacity[2] < 0)
+            pixelHasMatte = true;
+    }
+
+    const DepthFilterMode mode = (CRenderer::depthFilter == DEPTH_MID) ? DepthFilterMode::Mid : DepthFilterMode::Min;
+
+    // zold mirrors reyes's zoldStart = CRenderer::clipMax (stochastic.cpp:139)
+    // -- the initial/no-lower-candidate-found state of CPixel::zold. Reyes's
+    // hierarchical z-buffer culling can subsequently lower it per pixel, but
+    // raytrace has no equivalent culling structure to lower it from, so this
+    // is raytrace's exact analog of "zold never got lowered": clipMax, not
+    // -infinity (a -infinity no-op silently drops the floor that produces
+    // reyes's own clipMax-collapsed Mid-mode output).
+    cRay->samples[4] = CCompositor::evaluateDepth(zs.data(), opacities.data(), count, mode,
+                                                   CRenderer::zvisibilityThreshold, pixelHasMatte,
+                                                   CRenderer::clipMax);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CRaytracer
 // Method				:	postTraceAction
 // Description			:	Post trace action, force shading
@@ -92,133 +205,104 @@ int CPrimaryBundle::postTraceAction() {
 void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
     float *Ci = varying[VARIABLE_CI];
     float *Oi = varying[VARIABLE_OI];
-    const int *cOrder = sampleOrder;
 
-    // FIXME: make this deal with comp and non comp channels properly
-    if (depth == 0) {
+    const int numExtraCompChannels = CRenderer::numExtraCompChannels;
+    const int *compChannelOrder = CRenderer::compChannelOrder;
+    const int numExtraNonCompChannels = CRenderer::numExtraNonCompChannels;
+    const int *nonCompChannelOrder = CRenderer::nonCompChannelOrder;
 
-        // First hit
-        for (int i = 0; i < nr; i++, Ci += 3, Oi += 3) {
-            CPrimaryRay *cRay = (CPrimaryRay *)r[i];
+    // Per-hit scratch for this depth level's extra AOV samples, keyed by the
+    // shared sampleOffset numbering (rendererDisplay.cpp) -- CompositeSample
+    // needs a location distinct from CompositeAccumulator::extra (the running
+    // total CCompositor::composite() writes into).
+    std::vector<float> scratch(numExtraSamples > 0 ? numExtraSamples : 0);
 
-            // Is this a matte surface
-            if (cRay->object->attributes->flags & ATTRIBUTES_FLAGS_MATTE) {
-                initv(cRay->color, 0);
-                initv(cRay->opacity, 0);
-                cRay->ropacity[0] = 1 - Oi[0];
-                cRay->ropacity[1] = 1 - Oi[1];
-                cRay->ropacity[2] = 1 - Oi[2];
-            } else {
-                movvv(cRay->color, Ci);
-                movvv(cRay->opacity, Oi);
-                cRay->ropacity[0] = 1 - Oi[0];
-                cRay->ropacity[1] = 1 - Oi[1];
-                cRay->ropacity[2] = 1 - Oi[2];
-            }
+    for (int i = 0; i < nr; i++, Ci += 3, Oi += 3) {
+        CPrimaryRay *cRay = (CPrimaryRay *)r[i];
+        const bool isMatteHit = (cRay->object->attributes->flags & ATTRIBUTES_FLAGS_MATTE) != 0;
 
-            if ((Oi[0] < CRenderer::opacityThreshold[0]) ||
-                (Oi[1] < CRenderer::opacityThreshold[1]) ||
-                (Oi[2] < CRenderer::opacityThreshold[2])) {
-                rays[last++] = cRay;
-            } else {
-                movvv(cRay->samples, cRay->color);
-            }
-
-            cRay->samples[3] = (float)((cRay->opacity[0] + cRay->opacity[1] + cRay->opacity[2]) * 0.333333333);
-            cRay->samples[4] = cRay->t;
+        for (int es = 0; es < numExtraCompChannels; es++) {
+            const int sampleOffset = compChannelOrder[es * 4];
+            const int chanSamples = compChannelOrder[es * 4 + 1];
+            const int outType = compChannelOrder[es * 4 + 3];
+            const float *s = varying[outType] + (size_t)i * chanSamples;
+            for (int k = 0; k < chanSamples; k++)
+                scratch[sampleOffset + k] = s[k];
+        }
+        for (int es = 0; es < numExtraNonCompChannels; es++) {
+            const int sampleOffset = nonCompChannelOrder[es * 4];
+            const int chanSamples = nonCompChannelOrder[es * 4 + 1];
+            const int outType = nonCompChannelOrder[es * 4 + 3];
+            const float *s = varying[outType] + (size_t)i * chanSamples;
+            for (int k = 0; k < chanSamples; k++)
+                scratch[sampleOffset + k] = s[k];
         }
 
-        // Copy the extra samples
-        int k = 5;
-        for (int i = 0; i < numExtraChannels; i++) {
-            const int outType = *cOrder++;
-            const int channelSamples = *cOrder++;
-            const float *s = varying[outType];
-            float *d;
-
-            switch (channelSamples) {
-            case 0:
-                break;
-            case 1:
-                for (int j = 0; j < nr; j++) {
-                    d = ((CPrimaryRay *)r[j])->samples + k;
-                    *d++ = *s++;
-                }
-                k++;
-                break;
-            case 2:
-                for (int j = 0; j < nr; j++) {
-                    d = ((CPrimaryRay *)r[j])->samples + k;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                }
-                k += 2;
-                break;
-            case 3:
-                for (int j = 0; j < nr; j++) {
-                    d = ((CPrimaryRay *)r[j])->samples + k;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                }
-                k += 3;
-                break;
-            case 4:
-                for (int j = 0; j < nr; j++) {
-                    d = ((CPrimaryRay *)r[j])->samples + k;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                    *d++ = *s++;
-                }
-                k += 4;
-                break;
-            default:
-                for (int j = 0; j < nr; j++) {
-                    d = ((CPrimaryRay *)r[j])->samples + k;
-                    for (int l = channelSamples; l > 0; l--) {
-                        *d++ = *s++;
-                    }
-                }
-                k += channelSamples;
-            }
-        }
-    } else {
-        // Transparency hit
-        for (int i = 0; i < nr; i++, Ci += 3, Oi += 3) {
-            CPrimaryRay *cRay = (CPrimaryRay *)r[i];
-
-            const int transparent = ((Oi[0] < CRenderer::opacityThreshold[0]) ||
-                                     (Oi[1] < CRenderer::opacityThreshold[1]) ||
-                                     (Oi[2] < CRenderer::opacityThreshold[2]));
-
-            if (cRay->object->attributes->flags & ATTRIBUTES_FLAGS_MATTE) {
-                cRay->ropacity[0] *= 1 - Oi[0];
-                cRay->ropacity[1] *= 1 - Oi[1];
-                cRay->ropacity[2] *= 1 - Oi[2];
-            } else {
-                vector t;
-                movvv(t, Oi);
-                mulvv(Ci, cRay->ropacity);
-                mulvv(Oi, cRay->ropacity);
-
-                addvv(cRay->color, Ci);
-                addvv(cRay->opacity, Oi);
-                cRay->ropacity[0] *= 1 - t[0];
-                cRay->ropacity[1] *= 1 - t[1];
-                cRay->ropacity[2] *= 1 - t[2];
-            }
-
-            if (transparent) {
-                rays[last++] = cRay;
-            } else {
-                movvv(cRay->samples, cRay->color);
-            }
-
-            cRay->samples[3] = (float)((cRay->opacity[0] + cRay->opacity[1] + cRay->opacity[2]) * 0.333333333); // 1;
+        // Matte is CCompositor's negative-opacity convention; negating Oi
+        // here reproduces the old ropacity carve-out math bit-for-bit (see
+        // compositor.cpp) while also gaining the matte AOV holdout for free.
+        vector sOpacity;
+        if (isMatteHit) {
+            sOpacity[0] = -Oi[0];
+            sOpacity[1] = -Oi[1];
+            sOpacity[2] = -Oi[2];
+        } else {
+            movvv(sOpacity, Oi);
         }
 
-        // The extra samples are copied from the closest intersection
+        CompositeSample sample;
+        sample.color = Ci;
+        sample.opacity = sOpacity;
+        sample.extraSamples = scratch.data();
+        sample.z = cRay->t;
+
+        if (depth == 0) {
+            CCompositor::begin(cRay->acc, cRay->samples + 5);
+            cRay->pendingNonComp.clear();
+            cRay->pendingDepth.clear();
+            cRay->nonCompLatched = false;
+        }
+
+        CCompositor::composite(cRay->acc, sample);
+
+        // pixelHasMatte can't be resolved yet -- a farther hit not seen
+        // until a later depth can retroactively change which threshold
+        // formula this and every other buffered hit should use (see
+        // resolveNonComp()). Buffer this hit and defer the decision until
+        // the chain is known to have stopped. Skip entirely when there are
+        // no non-comp AOVs to resolve -- nothing for resolveNonComp() to
+        // latch, so the buffering would be pure per-ray heap traffic.
+        if (!cRay->nonCompLatched && CRenderer::numExtraNonCompChannels > 0) {
+            CBufferedNonCompSample entry;
+            movvv(entry.opacity, sOpacity);
+            entry.extra = scratch;
+            cRay->pendingNonComp.push_back(std::move(entry));
+        }
+
+        // Unlike pendingNonComp above, this buffers unconditionally: z is
+        // always output, and Mid mode's evaluateDepth() needs the whole
+        // front-to-back list even past a first passing candidate (see
+        // resolveDepth()).
+        {
+            CDepthCandidate dc;
+            dc.z = cRay->t;
+            movvv(dc.opacity, sOpacity);
+            cRay->pendingDepth.push_back(dc);
+        }
+
+        const bool transparent = (Oi[0] < CRenderer::opacityThreshold[0]) ||
+                                  (Oi[1] < CRenderer::opacityThreshold[1]) ||
+                                  (Oi[2] < CRenderer::opacityThreshold[2]);
+
+        if (transparent) {
+            rays[last++] = cRay;
+        } else {
+            movvv(cRay->samples, cRay->acc.color);
+            resolveNonComp(cRay);
+            resolveDepth(cRay);
+        }
+
+        cRay->samples[3] = (float)((cRay->acc.opacity[0] + cRay->acc.opacity[1] + cRay->acc.opacity[2]) * 0.333333333);
     }
 }
 
@@ -253,7 +337,9 @@ void CPrimaryBundle::postShade(int nr, CRay **r) {
         for (int i = 0; i < nr; i++) {
             CPrimaryRay *cRay = (CPrimaryRay *)r[i];
 
-            movvv(cRay->samples, cRay->color);
+            movvv(cRay->samples, cRay->acc.color);
+            resolveNonComp(cRay);
+            resolveDepth(cRay);
         }
     }
 }
@@ -393,6 +479,32 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
     const float invXsamples = 1 / (float)CRenderer::pixelXsamples;
     const float invYsamples = 1 / (float)CRenderer::pixelYsamples;
 
+    // Shared per-sample generator (spec 008-hider-parity-convergence, R2):
+    // single home for the jitter/time constants previously duplicated (and
+    // drifted, D2) here and in CStochastic. Lens sampling is intentionally
+    // NOT requested here (wantLens=false) -- this hider's DOF disk sample is
+    // generated later, in computeSamples(), once primary rays are already
+    // batched, via CSampler::lensSample().
+    CSampler sampler(
+        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
+        [this]() { return urand(); },
+        [this](float *s) { s[0] = urand(); s[1] = urand(); });
+    const bool sampleMotion = (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) != 0;
+
+    // Option B (US9, gated -- FR-027): consume the same deterministic,
+    // bucket-seeded table stochastic would generate for this bucket
+    // (CSampler::generateBucketTable), including its lens field, so both
+    // hiders' noise patterns correlate. wantLens mirrors stochastic's own
+    // FOCALBLUR-gated condition rather than this loop's native `false`, so
+    // the table's lens entries are populated whenever DOF is active.
+    std::vector<CSampleValue> correlatedTable;
+    if (CRenderer::correlatedSampleTable) {
+        const bool wantLensForTable = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
+        correlatedTable = sampler.generateBucketTable(
+            left, top, xsamples, ysamples,
+            CRenderer::xSampleOffset, CRenderer::ySampleOffset, wantLensForTable);
+    }
+
     // Clear the framebuffer
     for (i = 0; i < (xpixels * ypixels); i++) {
         fbContribution[i] = 0;
@@ -426,22 +538,29 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                 }
                 for (y = 0; y < my; y++) {
                     for (x = 0; x < mx; x++) {
-                        cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + CRenderer::jitter * (urand() - (float)0.5) + (float)0.5) * invXsamples; // Center the sample location in the pixel
-                        cRay->y = (float)top + (float)(j + y - CRenderer::ySampleOffset + CRenderer::jitter * (urand() - (float)0.5) + (float)0.5) * invYsamples;
-
                         // Stratified time sampling — assign each ray to a time stratum based on
-                        // its sub-pixel position, matching the stochastic hider's formula exactly.
-                        // This eliminates the graininess and exaggerated arc extent caused by
-                        // pure urand() sampling (which covers [0,1] vs stochastic's [0.5/N², (N²-0.5)/N²]).
-                        {
-                            const int nx = CRenderer::pixelXsamples;
-                            const int ny = CRenderer::pixelYsamples;
-                            const int sub_x = (i + x) % nx;
-                            const int sub_y = (j + y) % ny;
-                            cRay->time = ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION)
-                                          ? (sub_y * nx + sub_x + CRenderer::jitter * (urand() - 0.5f) + 0.5001011f) / (float)(nx * ny)
-                                          : 0.0f);
-                        }
+                        // its sub-pixel position, matching the stochastic hider's formula exactly
+                        // (both traverse via the same sub_y*nx+sub_x linear index).
+                        const int nx = CRenderer::pixelXsamples;
+                        const int ny = CRenderer::pixelYsamples;
+                        const int sub_x = (i + x) % nx;
+                        const int sub_y = (j + y) % ny;
+
+                        // Option B (US9, gated): the table is indexed by
+                        // bucket-local (row, col) -- row = j+y (Y direction,
+                        // stochastic's `i`), col = i+x (X direction,
+                        // stochastic's `j`) -- exactly the position stochastic
+                        // would have drawn this entry for, so no sub_x/sub_y
+                        // modulo remapping is needed on this side.
+                        const CSampleValue jitterSample = CRenderer::correlatedSampleTable
+                            ? correlatedTable[(size_t)(j + y) * xsamples + (i + x)]
+                            : sampler.nextSample(sub_y * nx + sub_x, 0, false);
+
+                        cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + jitterSample.jitterX) * invXsamples; // Center the sample location in the pixel
+                        cRay->y = (float)top + (float)(j + y - CRenderer::ySampleOffset + jitterSample.jitterY) * invYsamples;
+                        cRay->time = sampleMotion ? jitterSample.timeStratum : 0.0f;
+                        cRay->lensU = jitterSample.lensU;
+                        cRay->lensV = jitterSample.lensV;
 
                         rayPointers[numShading++] = cRay;
                         cRay++;
@@ -467,15 +586,7 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
     // Normalize each pixel by accumulated filter weights (both modes).
     // Precomputed kernel sums to 1 per sample, but multiple samples accumulate
     // per pixel; fbContribution tracks the true total weight applied.
-    for (i = 0; i < xpixels * ypixels; i++) {
-        if (fbContribution[i] > 0) {
-            const float invContribution = 1.0f / fbContribution[i];
-
-            for (int k = 0; k < CRenderer::numSamples; k++) {
-                fbPixels[i * CRenderer::numSamples + k] *= invContribution;
-            }
-        }
-    }
+    CPixelFilterAccumulator::normalizeByWeight(fbPixels, fbContribution, xpixels * ypixels, CRenderer::numSamples);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -488,6 +599,15 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     int i;
     float x, y;
     CPrimaryRay *cRay = rays;
+
+    // Shared per-sample generator (R2), used here only for its lens/aperture
+    // point: the DOF disk sample is generated at this later pipeline stage
+    // (after primary rays are batched in sample()), not bundled with the
+    // jitter/time sample computed earlier -- see CSampler::lensSample().
+    CSampler lensSampler(
+        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
+        [this]() { return urand(); },
+        [this](float *s) { s[0] = urand(); s[1] = urand(); });
 
     if (CRenderer::aperture == 0) {
         // No Depth of field effect
@@ -520,12 +640,22 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             pixels2camera(from, x, y, 0);
             pixels2camera(to, x, y, CRenderer::focaldistance);
 
-            // Area-uniform disk sample via the shared sampleDisk() (random.h) —
-            // the previous polar-coordinate scheme (theta uniform, r uniform)
-            // biased samples toward the aperture center instead of uniformly
-            // covering its area.
+            // Area-uniform disk sample via the shared CSampler::lensSample()
+            // (S1) — the previous polar-coordinate scheme (theta uniform, r
+            // uniform) biased samples toward the aperture center instead of
+            // uniformly covering its area.
+            //
+            // Option B (US9, gated): reuse the lens sample already drawn
+            // alongside this ray's jitter/time in sample() from the
+            // correlated bucket table, instead of drawing a second,
+            // uncorrelated one here.
             float diskSample[2];
-            sampleDisk(diskSample, [this](float *s) { s[0] = urand(); s[1] = urand(); });
+            if (CRenderer::correlatedSampleTable) {
+                diskSample[0] = cRay->lensU;
+                diskSample[1] = cRay->lensV;
+            } else {
+                lensSampler.lensSample(diskSample);
+            }
             from[COMP_X] += diskSample[0] * CRenderer::aperture;
             from[COMP_Y] += diskSample[1] * CRenderer::aperture;
 
@@ -623,18 +753,15 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
                     int py = (int)floor((pixelY + 0.5f - y) * CRenderer::pixelYsamples + halfFilterHeight);
                     if (px < 0) px = 0; else if (px >= filterWidth)  px = filterWidth  - 1;
                     if (py < 0) py = 0; else if (py >= filterHeight) py = filterHeight - 1;
-                    const float contribution = CRenderer::pixelFilterKernel[py * filterWidth + px];
+                    const float contribution = CPixelFilterAccumulator::precomputedWeight(px, py, filterWidth);
                     const int pixelIdx = (pixelY - top) * xpixels + pixelX - left;
-                    float *dest = &fbPixels[pixelIdx * CRenderer::numSamples];
-                    const float *src = fbs;
 
                     assert((top + ypixels) > pixelY);
                     assert((left + xpixels) > pixelX);
 
                     fbContribution[pixelIdx] += contribution;
 
-                    for (int j = CRenderer::numSamples; j > 0; j--)
-                        *dest++ += (*src++) * contribution;
+                    CPixelFilterAccumulator::splat(&fbPixels[pixelIdx * CRenderer::numSamples], fbs, CRenderer::numSamples, contribution);
                 }
             }
         } else {
@@ -642,18 +769,16 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
             for (cy = pt + 0.5f - y, pixelY = pt; pixelY <= pb; pixelY++, cy++) {
                 for (cx = pl + 0.5f - x, pixelX = pl; pixelX <= pr; pixelX++, cx++) {
                     const float contribution = CRenderer::pixelFilter(cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
-                    float *dest = &fbPixels[((pixelY - top) * xpixels + pixelX - left) * CRenderer::numSamples];
-                    const float *src = fbs;
+                    const int pixelIdx = (pixelY - top) * xpixels + pixelX - left;
 
                     assert((top + ypixels) > pixelY);
                     assert((left + xpixels) > pixelX);
 
                     // Save the contribution for later normalization
-                    fbContribution[((pixelY - top) * xpixels + pixelX - left)] += contribution;
+                    fbContribution[pixelIdx] += contribution;
 
                     // Accumulate the pixel filter results
-                    for (int j = CRenderer::numSamples; j > 0; j--)
-                        *dest++ += (*src++) * contribution;
+                    CPixelFilterAccumulator::splat(&fbPixels[pixelIdx * CRenderer::numSamples], fbs, CRenderer::numSamples, contribution);
                 }
             }
         }

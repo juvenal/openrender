@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "memory.h"
+#include "pixelFilter.h"
 #include "zbuffer.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -184,11 +185,11 @@ void CZbuffer::rasterEnd(float *fb2, int /*noObjects*/) {
                 const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
 
                 for (i = 0; i < xres; i++) {
-                    pixelLine[0] += filterResponse * sampleLine[1];
-                    pixelLine[1] += filterResponse * sampleLine[2];
-                    pixelLine[2] += filterResponse * sampleLine[3];
-                    pixelLine[3] += filterResponse * ((sampleLine[0] != CRenderer::clipMax) ? 1.0f : 0.0f);
-                    pixelLine[4] += filterResponse * sampleLine[0];
+                    const float coverage = (sampleLine[0] != CRenderer::clipMax) ? 1.0f : 0.0f;
+
+                    CPixelFilterAccumulator::splat(&pixelLine[0], &sampleLine[1], 3, filterResponse);
+                    CPixelFilterAccumulator::splat(&pixelLine[3], &coverage, 1, filterResponse);
+                    CPixelFilterAccumulator::splat(&pixelLine[4], &sampleLine[0], 1, filterResponse);
                     pixelLine += 5;
                     sampleLine += CRenderer::pixelXsamples * SAMPLES_PER_PIXEL;
                 }

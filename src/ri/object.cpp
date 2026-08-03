@@ -32,6 +32,7 @@
 #include "random.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
 #include "shading.h"
@@ -77,7 +78,7 @@ CObject::~CObject() {
 // Description			:	Dice the children objects
 // Return Value			:	-
 // Comments				:
-void CObject::dice(CShadingContext *rasterizer) {
+void CObject::dice(CReyes *rasterizer) {
     CObject *cObject, *nObject;
     for (cObject = children; cObject != NULL; cObject = nObject) {
         nObject = cObject->sibling;
@@ -578,7 +579,7 @@ void CSurface::intersect(CShadingContext *context, CRay *cRay) {
 // Description			:	Dice the object into smaller ones
 // Return Value			:
 // Comments				:
-void CSurface::dice(CShadingContext *rasterizer) {
+void CSurface::dice(CReyes *rasterizer) {
 
     int minU, minV;
     int dicingStatsResult = getDicingStats(0, minU, minV);

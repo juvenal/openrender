@@ -561,16 +561,6 @@ CVariable *       CShadingContext::rendererRetrieveVariable(const char *n) const
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	renderPrimitive
-// Description			:	Add an object into the scene
-// Return Value			:
-// Comments				:
-void CShadingContext::drawObject(CObject *) {
-    // This function must be overriden
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
 // Method				:	shade2D
 // Description			:	Sample/Shade bunch of points
 // Return Value			:	-

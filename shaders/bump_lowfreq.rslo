@@ -1,0 +1,29 @@
+#!version 1.0.0
+displacement
+#!parameters:
+uniform	float	Km	=	1.0
+#!variables:
+varying	vector	P2
+varying	vector	temporary_0
+varying	vector	temporary_1
+varying	vector	temporary_2
+varying	vector	temporary_3
+varying	vector	temporary_4
+varying	vector	temporary_5
+uniform	vector	temporary_6
+#!Init:
+	return            
+#!Code:
+	transform	("p=Sp")  P2 "shader" P
+	normalize	("v=v")  temporary_2 N
+	vfromf  temporary_6 0.35
+	vuvector  temporary_5 temporary_6
+	mulvv  temporary_4 P2 temporary_5
+	noise	("c=p")  temporary_3 temporary_4
+	mulvv  temporary_1 temporary_2 temporary_3
+	vfromf  temporary_6 Km
+	vuvector  temporary_2 temporary_6
+	mulvv  temporary_0 temporary_1 temporary_2
+	subvv  P P temporary_0
+	calculatenormal	("p=p")  N P
+	return

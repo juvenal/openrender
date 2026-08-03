@@ -87,6 +87,10 @@ CAttributes::CAttributes() {
     flags = 0;
     flags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
     flags |= ATTRIBUTES_FLAGS_DOUBLE_SIDED;
+    // Raytrace displaces by default, matching reyes (spec
+    // 008-hider-parity-convergence, S2/T049); `Attribute "trace"
+    // "displacements" [0]` remains the opt-out (rendererContext.cpp).
+    flags |= ATTRIBUTES_FLAGS_DISPLACEMENTS;
 
     maxDisplacement = 0;
     maxDisplacementSpace = NULL;

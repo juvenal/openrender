@@ -30,6 +30,7 @@
 #include "implicitSurface.h"
 #include "objectMisc.h"
 #include "renderer.h"
+#include "reyes.h"
 #include "shading.h"
 #include "stats.h"
 
@@ -199,7 +200,7 @@ void CImplicit::interpolate(int, float **, float ***) const {
 // Description			:	Dice the surface for scan-line rendering
 // Return Value			:	-
 // Comments				:
-void CImplicit::dice(CShadingContext *) {
+void CImplicit::dice(CReyes *) {
 }
 
 ///////////////////////////////////////////////////////////////////////

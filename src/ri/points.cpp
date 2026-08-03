@@ -30,6 +30,7 @@
 #include "points.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -192,7 +193,7 @@ CPoints::~CPoints() {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CPoints::dice(CShadingContext *rasterizer) {
+void CPoints::dice(CReyes *rasterizer) {
     if (pl != NULL)
         prep();
 

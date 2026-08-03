@@ -41,6 +41,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
                              1.0, 1.0, 1.0, 1.0};
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "shading.h"
 #include "stats.h"
 #include "surface.h"
@@ -1558,7 +1559,7 @@ void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CPatchMesh::dice(CShadingContext *rasterizer) {
+void CPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1806,7 +1807,7 @@ void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CNURBSPatchMesh::dice(CShadingContext *rasterizer) {
+void CNURBSPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
         create(rasterizer);

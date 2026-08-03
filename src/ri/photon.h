@@ -49,15 +49,6 @@ class CPhotonHider : public CShadingContext {
         // The following functions are commented out for we want the CShadingContext to handle those
         void renderingLoop(); // Right after world end to force rendering of the entire frame
 
-        // Since we're not doing any rasterization, the following functions are simple stubs
-
-        // Delayed rendering functions
-        void drawObject(CObject *) {}
-
-        // Primitive creation functions
-        void drawGrid(CSurface *, int, int, float, float, float, float) {}
-        void drawPoints(CSurface *, int) {}
-
     protected:
         void solarBegin(const float *, const float *);
         void solarEnd();

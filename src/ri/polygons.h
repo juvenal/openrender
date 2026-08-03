@@ -45,7 +45,7 @@ class CPolygonMesh : public CObject {
         ~CPolygonMesh();
 
         void intersect(CShadingContext *, CRay *);
-        void dice(CShadingContext *);
+        void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:

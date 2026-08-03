@@ -66,7 +66,7 @@ class CCurve : public CSurface {
         ~CCurve();
 
         // Object interface
-        void dice(CShadingContext *);
+        void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         // Surface interface
@@ -74,7 +74,7 @@ class CCurve : public CSurface {
         void interpolate(int, float **, float ***) const;
 
     protected:
-        virtual void splitToChildren(CShadingContext *) = 0;
+        virtual void splitToChildren(CReyes *) = 0;
 
         CBase *base;
         float vmin, vmax;   // The parametric range of the curves
@@ -94,7 +94,7 @@ class CCubicCurve : public CCurve {
         void sample(int, int, float **, float ***, unsigned int &) const;
 
     protected:
-        void splitToChildren(CShadingContext *);
+        void splitToChildren(CReyes *);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ class CLinearCurve : public CCurve {
         void sample(int, int, float **, float ***, unsigned int &) const;
 
     protected:
-        void splitToChildren(CShadingContext *);
+        void splitToChildren(CReyes *);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -124,7 +124,7 @@ class CCurveMesh : public CObject {
 
         // Object interface
         void intersect(CShadingContext *, CRay *) {}
-        void dice(CShadingContext *rasterizer);
+        void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
     private:

@@ -268,13 +268,6 @@ class CShadingContext {
         // This function is called to to render
         virtual void renderingLoop() = 0;
 
-        // Delayed rendering functions
-        virtual void drawObject(CObject *) = 0;
-
-        // Primitive creation functions
-        virtual void drawGrid(CSurface *, int, int, float, float, float, float) = 0;
-        virtual void drawPoints(CSurface *, int) = 0;
-
         // The current shading state
         CShadingState *currentShadingState;
 

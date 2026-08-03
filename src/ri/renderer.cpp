@@ -56,6 +56,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
 #include "rib.h"
@@ -199,6 +200,7 @@ quaternion CRenderer::relRotQ       = {0, 0, 0, 1};                      // init
 vector     CRenderer::relTrans      = {0, 0, 0};                          // initialized in beginFrame
 bool       CRenderer::cameraHasRotation = false;                          // initialized in beginFrame
 bool       CRenderer::cameraRotationOnly = false;                         // initialized in beginFrame
+bool       CRenderer::correlatedSampleTable = false;                      // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame
@@ -514,6 +516,11 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         cameraHasRotation = false;
         cameraRotationOnly = false;
     }
+
+    // Internal/gated (FR-027, no RIB token): both hiders consume
+    // CSampler::generateBucketTable() verbatim instead of their own live RNG
+    // streams when set (spec 008-hider-parity-convergence, R2/US9).
+    correlatedSampleTable = (osEnvironment("OPENRENDER_CORRELATED_SAMPLE_TABLE") != NULL);
 
     assert(pixelXsamples > 0);
     assert(pixelYsamples > 0);
@@ -1116,8 +1123,12 @@ void CRenderer::render(CObject *cObject) {
     }
 
     // Only add to this first context, it will do the culling and add it to the rest of the threads
+    // (reyes-family hiders only: drawObject is not part of the CShadingContext
+    // contract, and raytrace/photon hiders reach objects via the intersection
+    // hierarchy above instead)
     if (cObject->attributes->flags & ATTRIBUTES_FLAGS_PRIMARY_VISIBLE) {
-        contexts[0]->drawObject(cObject);
+        if (CReyes *reyesContext = dynamic_cast<CReyes *>(contexts[0]))
+            reyesContext->drawObject(cObject);
     }
 }
 

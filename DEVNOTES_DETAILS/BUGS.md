@@ -5,13 +5,13 @@ This file tracks known defects and implementation gaps in openRender. Open items
 ## Open Issues
 
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
-- [ ] Moving raytraced surface (Incomplete: CRaytracer lacks native motion blur support)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
 - [ ] Irradiance accuracy issues
 
 ## Resolved Bugs
 
+- [x] Moving raytraced surface (FIXED — verified 2026-08, spec 008 Phase 8/US6: `CRaytracer`'s tessellation-path intersection kernels already interpolated geometry on the ray's shutter time; this was a verification gap, not an actual defect. Confirmed via 7 new cross-hider parity scenes against the standard hider — see [HIDER_PARITY.md](HIDER_PARITY.md)).
 - [x] Bug: CSE optimizer cross-block corruption — `windowhighlight.sl` sphere highlight regression vs. PRMan 3.9 (FIXED — `CCSEPass::cseFn()` now clears `exprMap` at the start of each IR basic block. The shared map caused `"vufloat||0" → yfract` cached in the y-range ELSE block to replace `vufloat tmp 0` in the x-range block, corrupting the boundary test. Fix: intra-block-only CSE in `src/oshader/passes/passCSE.cpp`).
 - [x] Bug: `oshader` accepted `Ps` (surface point in light shaders) inside surface shaders — violates RI Spec (FIXED — Added `globalVarScope` map to `CScriptContext`; `getVariable()` restructured so scope check applies to all lookup paths including the `rootFunction` fallback. `Ps` scope changed to `SLC_LIGHT` only. Imager output variables `Ci`/`Oi`/`alpha`/`ncomps`/`time`/`dtime` scope masks corrected to include `SLC_IMAGER`; `src/oshader/rslo.cpp`, `src/oshader/rslo.h`).
 

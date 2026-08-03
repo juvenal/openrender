@@ -30,6 +30,7 @@
 #include "memory.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "reyes.h"
 #include "stats.h"
 
 // The inverse of the Bezier basis
@@ -170,7 +171,7 @@ void CCurve::interpolate(int numVertices, float **varying, float ***locals) cons
 // Description			:	Dice the curve group into smaller ones
 // Return Value			:	-
 // Comments				:
-void CCurve::dice(CShadingContext *rasterizer) {
+void CCurve::dice(CReyes *rasterizer) {
     // We can sample the object, so do so
     float **varying = rasterizer->currentShadingState->varying;
     float *u = varying[VARIABLE_U];
@@ -518,7 +519,7 @@ void CCubicCurve::sample(int start, int numVertices, float **varying, float ***l
 // Description			:	Dice the curve group into smaller ones
 // Return Value			:	-
 // Comments				:
-void CCubicCurve::splitToChildren(CShadingContext *rasterizer) {
+void CCubicCurve::splitToChildren(CReyes *rasterizer) {
     const float vmid = (vmin + vmax) * 0.5f;
 
     // Create the children
@@ -663,7 +664,7 @@ void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **v
 // Description			:	Dice the curve group into smaller ones
 // Return Value			:	-
 // Comments				:
-void CLinearCurve::splitToChildren(CShadingContext *rasterizer) {
+void CLinearCurve::splitToChildren(CReyes *rasterizer) {
     const float vmid = (vmin + vmax) * 0.5f;
 
     // Create the children
@@ -848,7 +849,7 @@ void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CCurveMesh::dice(CShadingContext *rasterizer) {
+void CCurveMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
         create(rasterizer);
