@@ -1,0 +1,24 @@
+#!version 1.0.0
+surface
+#!parameters:
+#!variables:
+varying	vector	Nn
+varying	vector	In
+varying	float	facingRatio
+varying	vector	R
+varying	vector	temporary_0
+varying	vector	temporary_1
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	normalize	("v=v")  In I
+	negv  temporary_0 In
+	dot  facingRatio Nn temporary_0
+	reflect	("v=vv")  R In Nn
+	vfromf  temporary_0 facingRatio
+	mulvv  Ci Cs temporary_0
+	trace	("c=pv")  temporary_1 P R
+	mulvv  temporary_0 Cs temporary_1
+	addvv  Ci Ci temporary_0
+	return
