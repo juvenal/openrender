@@ -1,0 +1,17 @@
+Projection "perspective"
+Display "basictrace.tif" "file" "rgba"
+WorldBegin
+    Translate 0 0 2
+    Attribute "visibility" "int specular" [1]
+    Surface "basictrace"
+    TransformBegin
+        Translate -1 0 0
+        Color 0.5 0 0
+        Sphere 1 -1 1 360
+    TransformEnd
+    TransformBegin
+        Translate 1 0 0
+        Color 0.5 0.5 0.5
+        Sphere 1 -1 1 360
+    TransformEnd
+WorldEnd
