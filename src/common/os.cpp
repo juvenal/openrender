@@ -73,25 +73,6 @@ static void gettimeofday(struct timeval *tv, void *time_zone) {
 #endif
 
 ///////////////////////////////////////////////////////////////////////
-// These two hold the operating start time
-static time_t osStartTimeSec;
-static time_t osStartTimeMsec;
-
-///////////////////////////////////////////////////////////////////////
-// Funvtion				:	osInit
-// Description			:	Initialize the operating system
-// Return Value			:	-
-// Comments				:
-void osInit() {
-    struct timeval ti;
-
-    gettimeofday(&ti, NULL);
-
-    osStartTimeSec = ti.tv_sec;
-    osStartTimeMsec = ti.tv_usec;
-}
-
-///////////////////////////////////////////////////////////////////////
 // Funvtion				:	osShutdown
 // Description			:	Shutdown the operating system
 // Return Value			:	-
@@ -367,11 +348,17 @@ void osEnumerate(const char *name, int (*callback)(const char *, void *), void *
 // Return Value			:
 // Comments				:
 float osTime() {
+    static const struct timeval startTi = [] {
+        struct timeval t;
+        gettimeofday(&t, NULL);
+        return t;
+    }();
+
     struct timeval ti;
 
     gettimeofday(&ti, NULL);
 
-    return (float)(ti.tv_sec - osStartTimeSec) + (ti.tv_usec - osStartTimeMsec) / 1000000.0f;
+    return (float)(ti.tv_sec - startTi.tv_sec) + (ti.tv_usec - startTi.tv_usec) / 1000000.0f;
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -124,7 +124,6 @@ typedef void *(*TFun)(void *);
 const int OS_MAX_PATH_LENGTH = 512;
 
 // Init/shutdown
-void osInit();
 void osShutdown();
 
 // Module I/O
