@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: rendererDeclerations.cpp
+ * File: rendererDeclarations.cpp
  *
  * Description:
- *   This file implements the functionality for rendererDeclerations.
+ *   This file implements the functionality for rendererDeclarations.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>

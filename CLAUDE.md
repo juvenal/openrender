@@ -105,7 +105,7 @@ sites), `src/ri/shaderFunctions.h` (built-ins), `src/ri/zbufferQuad.h`.
 1. Token constants — `src/ri/ri.h` / `ri.cpp`
 2. RIB parsing — `RiAttributeV()` in `src/ri/rendererContext.cpp`
 3. Storage/query — `CAttributes` in `src/ri/attributes.h/cpp` (`find()`)
-4. Pre-declaration — `initDeclarations()` in `src/ri/rendererDeclerations.cpp` (required, or RIB parser rejects the attribute with "Parameter not declared" before it ever reaches step 2)
+4. Pre-declaration — `initDeclarations()` in `src/ri/rendererDeclarations.cpp` (required, or RIB parser rejects the attribute with "Parameter not declared" before it ever reaches step 2)
 
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,

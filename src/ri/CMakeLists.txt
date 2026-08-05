@@ -48,7 +48,7 @@ set(ri_sources
 	renderer.cpp
 	rendererClipping.cpp
 	rendererContext.cpp
-	rendererDeclerations.cpp
+	rendererDeclarations.cpp
 	rendererDisplay.cpp
 	rendererFiles.cpp
 	rendererJobs.cpp
