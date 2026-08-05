@@ -9,27 +9,23 @@ target_include_directories(sloinfo PRIVATE
     ${CMAKE_SOURCE_DIR}/src/libshader/runtime
 )
 
-# When LLVM is available, link the shading library for CLLVMJitEngine::extractMetadataFromFile.
-# LLVM itself propagates transitively from libshader_shading (PUBLIC LLVM deps).
+# When LLVM is available, link libshader_jitmeta for CLLVMJitEngine::extractMetadataFromFile.
+# This is a small standalone static library (see libshader/shading/CMakeLists.txt) built
+# from only the metadata-probe half of llvmJit.cpp -- pure LLVM bitcode inspection, with
+# no dependency on ri/CRenderer symbols. sloinfo deliberately links this instead of the
+# full libshader_shading .dylib: that library also contains code (e.g. the RSLO grammar's
+# parseShader(), CFilterLookup's Ri*StepFilter bindings) that references ri-only symbols.
+# Those symbols are meant to be resolved only when ri.dylib loads the library, but macOS
+# dyld binds data/vtable/RTTI references eagerly at image load regardless of whether the
+# owning code path ever runs -- so linking the whole library into a standalone tool like
+# sloinfo aborts at startup even though extractMetadataFromFile() itself never touches ri.
 if(OPENRENDER_HAVE_LLVM)
-    target_link_libraries(sloinfo PRIVATE libshader_shading)
+    target_link_libraries(sloinfo PRIVATE libshader_jitmeta)
     target_include_directories(sloinfo PRIVATE
         ${CMAKE_SOURCE_DIR}/src/libshader/shading
         ${LLVM_INCLUDE_DIRS}
     )
     target_compile_definitions(sloinfo PRIVATE ${LLVM_DEFINITIONS})
-
-    # libshader_shading references ri symbols (CRenderer, error()/warning()/info(), etc.)
-    # that sloinfo intentionally does not link (see libshader/shading/CMakeLists.txt)
-    # -- extractMetadataFromFile() never exercises those call paths. On macOS this is
-    # already tolerated because libshader_shading itself is built with
-    # "-undefined dynamic_lookup". GNU ld has the opposite default: undefined symbols
-    # in a linked .so are allowed while building another shared library, but rejected
-    # while linking a final executable -- which is what sloinfo is. Relax that check
-    # here to mirror the macOS behavior.
-    if(UNIX AND NOT APPLE)
-        target_link_options(sloinfo PRIVATE "-Wl,--allow-shlib-undefined")
-    endif()
 endif()
 
 install(TARGETS sloinfo RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

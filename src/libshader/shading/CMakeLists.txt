@@ -44,6 +44,24 @@ if(OPENRENDER_HAVE_LLVM)
     llvm_map_components_to_libnames(SHADING_LLVM_LIBS
         core orcjit native bitreader support
     )
+
+    # libshader_jitmeta — standalone .slo bitcode metadata probe
+    # (CLLVMJitEngine::extractMetadataFromFile/extractMetadataFromModule).
+    # Deliberately split out of libshader_shading: this code touches only LLVM
+    # bitcode APIs, never CRenderer/stats/vtables/etc. from ri. Tools like sloinfo
+    # that only need metadata inspection link this instead of the full
+    # libshader_shading .dylib, so they aren't exposed to that library's
+    # -undefined dynamic_lookup symbols (which dyld binds eagerly for data/vtable/
+    # RTTI references regardless of whether the code path is ever exercised).
+    llvm_map_components_to_libnames(JITMETA_LLVM_LIBS core bitreader support)
+    add_library(libshader_jitmeta STATIC llvmJitMetadata.cpp)
+    set_target_properties(libshader_jitmeta PROPERTIES OUTPUT_NAME shader_jitmeta)
+    target_include_directories(libshader_jitmeta PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${LLVM_INCLUDE_DIRS}
+    )
+    target_compile_definitions(libshader_jitmeta PRIVATE ${LLVM_DEFINITIONS})
+    target_link_libraries(libshader_jitmeta PUBLIC ${JITMETA_LLVM_LIBS})
 endif()
 
 add_library(libshader_shading SHARED ${shading_sources})
@@ -86,6 +104,7 @@ if(OPENRENDER_HAVE_LLVM)
     target_link_libraries(libshader_shading PUBLIC ${SHADING_LLVM_LIBS})
     target_include_directories(libshader_shading PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_shading PRIVATE ${LLVM_DEFINITIONS})
+    target_link_libraries(libshader_shading PRIVATE libshader_jitmeta)
 endif()
 
 # Install the shared library
