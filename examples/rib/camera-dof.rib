@@ -1,4 +1,9 @@
-## camera-dof.rib — minimal scene for wireframe preview integration test
+##RenderMan RIB-Structure 1.1
+##Frames 1
+##Shaders somewood
+##CapabilitiesNeeded ShadingLanguage
+# camera-dof.rib — minimal scene for wireframe preview integration test
+version 3.03
 Display "camera-dof.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 400 300 1

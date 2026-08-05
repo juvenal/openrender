@@ -1,4 +1,4 @@
-##RenderMan RIB
+##RenderMan RIB-Structure 1.0
 version 3.04
 Display "spotlight_scene.tif" "file" "rgba"
 Format 640 480 1
