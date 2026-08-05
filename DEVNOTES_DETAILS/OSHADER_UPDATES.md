@@ -160,6 +160,20 @@ format from the first two bytes:
 Reports shader name, type, parameters (name, type, storage class, default value).
 `rsloinfo` is a compatibility symlink to `sloinfo` for the `.rslo`-only inspector workflow.
 
+**Linking (`libshader_jitmeta`, macOS eager-bind crash)**: `sloinfo`/`rsloinfo` deliberately
+do not link `libri` or the full `libshader_shading` .dylib. For `.slo` inspection they need
+only `CLLVMJitEngine::extractMetadataFromFile()`, a pure LLVM-bitcode metadata probe with no
+`ri`/`CRenderer` dependency — but macOS dyld binds *all* data/vtable/RTTI cross-library
+references in a loaded image eagerly at load time, regardless of whether the owning code path
+ever executes. Linking the whole `libshader_shading` .dylib (whose `-undefined dynamic_lookup`
+symbols like `CRenderer::globalMemory`, `stats`, and RTTI/vtables for `CTraceBundle` et al. are
+meant to resolve only once `ri.dylib` loads it) therefore aborted `sloinfo` at startup even
+though the metadata probe itself never touched those symbols. Fix: `extractMetadataFromFile`/
+`extractMetadataFromModule` were split out of `llvmJit.cpp` into `llvmJitMetadata.cpp`, built
+into a new minimal static library `libshader_jitmeta` (LLVM `core`/`bitreader`/`support` only);
+`sloinfo` links `libshader_jitmeta` instead of `libshader_shading`. See
+[BUGS.md](BUGS.md) for the full crash writeup.
+
 ### Shader format selection
 
 Three-tier priority chain (highest first):
