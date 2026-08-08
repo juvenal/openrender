@@ -8,6 +8,14 @@
 
 **Input**: User description: "Add support for missing 'NURBS Trim Curves' (RiTrimCurve) to openRender, grounded in RenderMan Interface Specification 3.2.1 (docs/references/RISpec3_2.pdf), adjusted to this codebase's existing geometry/attribute implementation conventions. Must be purely additive: existing (untrimmed) NURBS geometry must render exactly as it does today."
 
+## Clarifications
+
+### Session 2026-08-08
+
+- Q: How should the renderer evaluate a trim loop's boundary against each sampled surface point — by pre-flattening each trim curve into a polyline once per surface and testing crossings against that, or by re-evaluating the NURBS curve directly for every sampled vertex? → A: Flatten each trim curve to a polyline once per surface (amortized cost); sampled-vertex tests are O(edges) crossing checks against the polyline.
+- Q: When a trim curve control point has a homogeneous weight `w` that is zero or negative, what should the renderer do with that trim loop? → A: Reject just that trim loop (treat it as absent) and emit a diagnostic warning, same pattern as the unclosed-loop case.
+- Q: If a malformed `NuPatch`/`TrimCurve` combination (an unclosed loop or a non-positive weight) is referenced many times via `ObjectInstance`, should the diagnostic warning be emitted once per distinct malformed loop, or once per instance rendered? → A: Once per distinct malformed loop definition, not once per instance, to avoid flooding the log for heavily-instanced scenes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Cut a hole or boundary out of a NURBS surface (Priority: P1)
@@ -97,6 +105,7 @@ A scene author defines more than one trim loop for a single surface — for exam
 - What happens when a trim loop's curves are not closed (head-to-tail continuity is broken)? This is a malformed scene per the specification; the renderer's per-loop closure MUST NOT crash — an incomplete loop is closed implicitly by connecting its last point back to its first, matching the specification's requirement that loops be explicitly closed. The renderer MUST additionally emit a diagnostic warning identifying the affected loop and stating that implicit closure was assumed, so the scene author is aware of the decision made on their behalf; any resulting visual artifact remains the scene author's responsibility.
 - What happens to a trim loop when the surface it targets is itself part of motion blur (moving geometry)? Trim curves are static, parameter-space data; they apply identically to every motion sample of the same `NuPatch`, since the trim shape is defined in `(u,v)` space, not world space.
 - What happens for a scene that already uses `-writerib`/`ribOut` to round-trip a RIB file containing `TrimCurve` statements? The output RIB MUST continue to contain an equivalent `TrimCurve` statement, since round-trip serialization already works today and must not regress.
+- What happens when a trim curve control point has a homogeneous weight `w` that is zero or negative (a malformed loop, since dividing by `w` to recover `(u,v)` would produce NaN/Inf or an inverted boundary)? The renderer MUST NOT crash or propagate NaN/Inf into rendering; the affected trim loop is rejected in its entirety (treated as if not declared, per FR-019) and a diagnostic warning identifying the affected `NuPatch`/loop is emitted, the same pattern used for an unclosed loop (FR-017).
 
 ## Requirements *(mandatory)*
 
@@ -119,6 +128,9 @@ A scene author defines more than one trim loop for a single surface — for exam
 - **FR-015**: Existing language bindings that already expose `TrimCurve` for RIB serialization (Python, Lua) MUST continue to function without signature changes.
 - **FR-016**: The tracked gap entry for NURBS Trim Curves in the project's implementation-gaps documentation MUST be updated to reference the correct implementation location and marked resolved once this feature lands; the project's living status documentation MUST be updated accordingly.
 - **FR-017**: When a trim loop's curves are not head-to-tail closed, in addition to the implicit closure described in Edge Cases, the renderer MUST emit a diagnostic warning identifying the affected `NuPatch`/loop and stating that implicit closure (connecting the loop's last point back to its first) was assumed.
+- **FR-018**: The shared trim test (FR-010) MUST evaluate loop boundaries against a polyline flattened from each trim curve once per `NuPatch` surface (amortized at surface-setup time), rather than re-evaluating the underlying NURBS curve for every sampled vertex; per-vertex classification MUST be an O(polyline edges) crossing test against this precomputed representation.
+- **FR-019**: When flattening a trim loop's curves (FR-018), any control point with a non-positive homogeneous weight (`w <= 0`) MUST cause the entire affected trim loop — not just that control point — to be rejected (excluded from trim classification, as if it had not been declared), rather than dividing by `w` to recover `(u,v)` and risking NaN/Inf or an inverted boundary. The renderer MUST emit a diagnostic warning identifying the affected `NuPatch`/loop and the reason for rejection, following the same pattern as the unclosed-loop diagnostic (FR-017).
+- **FR-020**: Diagnostic warnings for malformed trim loops (FR-017 unclosed loop, FR-019 non-positive weight) MUST be emitted once per distinct malformed loop definition, not once per rendered instance, so that a malformed loop referenced many times via `ObjectInstance` does not flood renderer output with duplicate warnings.
 
 ### Key Entities
 
@@ -126,7 +138,7 @@ A scene author defines more than one trim loop for a single surface — for exam
 - **Trim Curve Attribute State**: The renderer's current, possibly-empty set of trim loops for the active attribute scope; ordinary graphics-state attribute data, saved and restored by `AttributeBegin`/`AttributeEnd` like color, shaders, or other surface attributes.
 - **Trim Sense**: The `"trimcurve"`/`"sense"` attribute value (`"inside"` or `"outside"`) determining whether the region enclosed by trim loops is discarded or kept.
 - **Retained Region**: The portion of a `NuPatch`'s parameter domain that survives trim classification and is diced, shaded, and rendered normally.
-- **Shared Trim Test**: A single, hider-agnostic `(u,v)` inside/outside classification, owned by the `NuPatch` mesh (spanning its full global knot range) and consulted identically by every tessellation/sampling code path — the REYES dicing path and the ray-tracing hider's on-demand tessellation path alike — so that trim behavior does not vary by hider.
+- **Shared Trim Test**: A single, hider-agnostic `(u,v)` inside/outside classification, owned by the `NuPatch` mesh (spanning its full global knot range) and consulted identically by every tessellation/sampling code path — the REYES dicing path and the ray-tracing hider's on-demand tessellation path alike — so that trim behavior does not vary by hider. Backed by a polyline flattened from each trim curve once per surface (amortized at setup time), against which sampled-vertex crossing tests run.
 - **Untrimmed-NuPatch Regression Baseline**: A visual-regression scene and reference image, captured before this feature's implementation begins, whose continued pass/fail status is the primary evidence that existing NURBS rendering is unaffected.
 
 ## Success Criteria *(mandatory)*
