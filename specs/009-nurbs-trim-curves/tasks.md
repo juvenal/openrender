@@ -117,7 +117,10 @@ matches an equivalent untrimmed scene, verified identically across the reyes and
   result (FR-010, FR-012). (depends on T013, T011)
 - [ ] T018 [P] [US1] Author `examples/rib/tests/nupatch-vase-trimmed-hole.rib` (default/reyes hider, single
   circular trim loop cutting a hole in the vase body), render it, capture its reference image, and register it in
-  `tests/visual/CMakeLists.txt`. (depends on T012, T014, T015, T016, T017)
+  `tests/visual/CMakeLists.txt`. Position the loop so it crosses at least one non-origin Bezier-span boundary of
+  the vase's multi-span knot vector (not just the mesh's first span), so this scene also exercises FR-009's
+  global-knot-range mapping for spans away from the origin span, not only the origin span itself. (depends on
+  T012, T014, T015, T016, T017)
 - [ ] T019 [P] [US1] Author `examples/rib/tests/nupatch-vase-trimmed-hole-raytrace.rib` (same scene with
   `Hider "raytrace"`), render it, capture its reference image, and register it in `tests/visual/CMakeLists.txt`,
   for the SC-008 cross-hider comparison against T018's output. (depends on T012, T014, T015, T016, T017)
@@ -237,14 +240,19 @@ sweep, and documentation close-out.
 - [ ] T032 [P] Author, render, capture reference, and register a malformed-loop diagnostic scene (a `w <= 0`
   control point) in `tests/visual/CMakeLists.txt`; confirm the loop is rejected and exactly one warning is emitted
   via T014's rejection path (FR-019). (depends on T014)
-- [ ] T033 Reference the T031/T032 malformed geometry via multiple `ObjectInstance` calls in a shared scene;
-  confirm the warning still appears exactly once, not once per instance (FR-020). (depends on T031, T032)
+- [ ] T033 Author `examples/rib/tests/nupatch-vase-trimmed-malformed-instanced.rib`, referencing the T031/T032
+  malformed geometry via multiple `ObjectInstance` calls in a shared scene; render it, capture its reference
+  image, and register it in `tests/visual/CMakeLists.txt`; confirm the warning still appears exactly once, not
+  once per instance (FR-020). (depends on T031, T032)
 - [ ] T034 [P] Verify the RIB round-trip (FR-014, SC-006): run `orender -writerib` on
   `examples/rib/tests/nupatch-vase-trimmed-hole.rib` and grep the output for an equivalent `TrimCurve` statement.
   (depends on T018, T010)
 - [ ] T035 Run the full `ctest --test-dir build -L visual --output-on-failure` suite and confirm 100% pass (SC-002),
-  including every scene registered by T003, T018, T019, T023, T024, T028, T030, T031, T032, T033. (depends on all
-  registration tasks: T003, T018, T019, T023, T024, T028, T030, T031, T032, T033)
+  including every scene registered by T003, T018, T019, T023, T024, T028, T030, T031, T032, T033. While running,
+  observe that wall-clock time for the pre-existing (non-trim) scenes is unchanged within normal run-to-run
+  variance versus the pre-feature baseline (SC-007), per `quickstart.md` Step 7 — no new timing harness is
+  introduced; this is an observational check alongside the pass/fail sweep. (depends on all registration tasks:
+  T003, T018, T019, T023, T024, T028, T030, T031, T032, T033)
 - [ ] T036 Mark the `DEVNOTES_DETAILS/RISPEC_GAPS.md:9` gap entry resolved and finalize the `DEVNOTES.md` status
   table entry for NURBS Trim Curves (completes T008/T009). (depends on T035)
 
@@ -296,18 +304,16 @@ worked simultaneously regardless of which phase/story they belong to above.
 | Level | Tasks | Count |
 |---|---|---|
 | **L0** | T001, T004, T005, T006, T007, T008, T009, T010, T011 | 9 |
-| **L1** | T002, T012, T013, T020, T021, T024\*, T025, T026, T028\* | 9 |
+| **L1** | T002, T012, T013, T020, T021, T025, T026, T027, T029 | 9 |
 | **L2** | T003, T014, T016, T017, T022 | 5 |
-| **L3** | T015, T023, T024, T027, T029, T031\* | 6 |
-| **L4** | T018, T019, T030\* | 3 |
-| **L5** | T032, T033\* | 2 |
+| **L3** | T015, T023, T024, T028, T030, T032 | 6 |
+| **L4** | T018, T019, T031 | 3 |
+| **L5** | T033, T034 | 2 |
 | **L6** | T035 | 1 |
 | **L7** | T036 | 1 |
 
-\* Task-ID collisions above are an artifact of Phase-8/Phase-6/Phase-7 renumbering — see the exact task list per
-level below; use the level table's task lists, not phase order, when maximizing parallel execution.
-
-Exact per-level task lists (unambiguous, matching the checklist above):
+Exact per-level task lists (derivation for the table above — every task's level is exactly one more than the
+highest level among its own dependencies):
 
 - **L0** (9, all mutually independent — different files, pure additive declarations, no shared state): T001, T004,
   T005, T006, T007, T008, T009, T010, T011.
@@ -316,15 +322,17 @@ Exact per-level task lists (unambiguous, matching the checklist above):
   T029 (needs T011).
 - **L2** (5, each depends on exactly one L1 task): T003 (needs T002), T014 (needs T013), T016 (needs T013, T011),
   T017 (needs T013, T011), T022 (needs T012).
-- **L3** (6): T015 (needs T014), T023 (needs T020, T021, T022, T016, T017), T024 (needs T002, T013, T016, T017),
-  T028 (needs T025, T026, T027, T016, T017), T030 (needs T029, T016, T017), T032 (needs T014).
-- **L4** (3): T018 (needs T012, T014, T015, T016, T017), T019 (same as T018), T031 (needs T015).
-- **L5** (2): T033 (needs T031, T032), T034 (needs T018, T010).
+- **L3** (6, each depends on at least one L2 task): T015 (needs T014), T023 (needs T020, T021, T022, T016, T017),
+  T024 (needs T002, T013, T016, T017), T028 (needs T025, T026, T027, T016, T017), T030 (needs T029, T016, T017),
+  T032 (needs T014).
+- **L4** (3, each depends on at least one L3 task): T018 (needs T012, T014, T015, T016, T017), T019 (same as T018),
+  T031 (needs T015).
+- **L5** (2, each depends on at least one L4 task): T033 (needs T031, T032), T034 (needs T018, T010).
 - **L6** (1): T035 (needs every registration task: T003, T018, T019, T023, T024, T028, T030, T031, T032, T033).
 - **L7** (1): T036 (needs T035).
 
-(The table above lists task IDs in numeric order for scanability; the bulleted breakdown immediately below it is
-the authoritative per-level grouping — cross-reference against it, not the table, when assigning parallel work.)
+The table and the bulleted list above are the same grouping — the table is generated directly from the bulleted
+derivation, so either can be used when assigning parallel work.
 
 ### Parallel Opportunities
 
@@ -432,5 +440,8 @@ delivery:
   rather than being labeled `[P]` to inflate the parallelism count.
 - T014 and T015 are intentionally sequential (not `[P]`) despite both being "validation" work, because they edit
   the same function region of `CNURBSPatchMesh::create()` — a real same-file conflict risk, not a fabricated one.
+- FR-015 (Python/Lua bindings continue to function without signature changes) has no dedicated task: this feature
+  never touches `src/python/`, `src/lua/`, or any RI call signature (per plan.md's Project Structure), so FR-015 is
+  satisfied by non-modification rather than by a verification step.
 - Commit after each task or logical group, per this repo's standard workflow.
 - Stop at any story checkpoint to validate that story independently before continuing.
