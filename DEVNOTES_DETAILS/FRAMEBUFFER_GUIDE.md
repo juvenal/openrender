@@ -12,6 +12,7 @@ Unified IPC-based framebuffer display model: the renderer spawns a standalone he
 - [x] **Multiple windows**: Each render opens its own window/panel. All remain visible until individually closed. Helpers track active sessions and exit only when the last window is closed.
 - [x] **TTY hang fix**: `posix_spawn_file_actions_adddup2` redirects child stdin/stdout/stderr to `/dev/null`. Without this, AppKit/X11 modifies the inherited controlling TTY and orender's C-runtime stdio flush blocks after `main()` returns.
 - [x] **CoreServices elimination**: `proc_pidpath()` (`<libproc.h>`) replaces `_NSGetExecutablePath()`. CoreServices initializes background threads that prevent clean process exit.
+- [x] **`-d` duplicate-connection deadlock fix**: `orender`'s `-d` flag used to unconditionally add a second `RI_FRAMEBUFFER` `Display` in `CRendererContext::RiWorldBegin()`, even when the RIB scene already declared its own. Two concurrent `CIPCDisplay` connections to the same single-session, backlog-1 macOS helper deadlocked once the second connection's write buffer filled, since the helper won't `accept()` a second client until the first disconnects. `RiWorldBegin()` now skips the `-d` injection when an `RI_FRAMEBUFFER`-type `Display` is already present. See [BUGS.md](BUGS.md).
 - [ ] **Validation**: Linux helper architecture is synced to macOS reference, but requires extensive end-to-end testing on varied X11/Wayland distributions.
 - [ ] **Documentation**: Hugo site page for new framebuffer IPC architecture and macOS/Linux build notes.
 

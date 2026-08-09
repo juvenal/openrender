@@ -729,7 +729,22 @@ void CRendererContext::RiWorldBegin(void) {
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.
     if (riAddFramebuffer()) {
-        if (currentOptions->displays == NULL) {
+        // If the RIB already declares its own framebuffer Display, adding a second
+        // one would open a second concurrent IPC connection that orender-fb's
+        // single-session accept loop can't service until the first disconnects,
+        // deadlocking the render. Skip in that case.
+        bool hasFramebufferDisplay = false;
+        for (COptions::CDisplay *d = currentOptions->displays; d != NULL; d = d->next) {
+            if (strcmp(d->outDevice, RI_FRAMEBUFFER) == 0) {
+                hasFramebufferDisplay = true;
+                break;
+            }
+        }
+
+        if (hasFramebufferDisplay) {
+            // Nothing to do: the RIB's own framebuffer Display already covers -d.
+        }
+        else if (currentOptions->displays == NULL) {
             // No Display entry at all: fall back to the canonical default name.
             RiDisplayV("ri.tif", RI_FILE, RI_RGBA, 0, NULL, NULL);
             RiDisplayV("+ri.tif", RI_FRAMEBUFFER, RI_RGB, 0, NULL, NULL);

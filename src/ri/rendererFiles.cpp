@@ -757,8 +757,12 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *p
 
         if (cShader != NULL) {
             log_debug("getShader: loaded shader '{}' from '{}'", name, shaderLocation);
-            // Cache under the logical shader name so subsequent calls hit the cache.
-            globalFiles->insert(name, cShader);
+            // Cache under cShader->name (a stable, owned copy from CFileResource's
+            // ctor), not the caller's `name`: the RIB parser's per-statement memory
+            // arena is rewound (memRestore) before the next statement is lexed, so
+            // `name` can be silently overwritten once a later statement's tokens
+            // reuse the same address, aliasing the trie's cached key.
+            globalFiles->insert(cShader->name, cShader);
         }
     }
 
