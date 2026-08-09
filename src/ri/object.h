@@ -134,6 +134,15 @@ class CSurface : public CObject {
             return 0;
         }
 
+        // Trim-curve coverage test in the object's own (u,v) parameter space
+        // (FR-005/FR-009/FR-010). Trivial default: no trim state, always inside.
+        virtual bool trimAccepts(float /*u*/, float /*v*/) const { return TRUE; }
+
+        // TRUE if this object has active trim state (trimAccepts can reject).
+        // Lets dicing skip the per-vertex trimAccepts calls/bookkeeping entirely
+        // for the common untrimmed case (FR-004).
+        virtual bool hasTrim() const { return FALSE; }
+
     protected:
 };
 

@@ -29,10 +29,13 @@
 #ifndef PATCHES_H
 #define PATCHES_H
 
+#include "attributes.h" // ETrimSense
 #include "common/global.h"
 #include "memory.h"
 #include "object.h"
 #include "pl.h"
+
+class CTrimTest; // Forward declaration; full definition below (after CPatchMesh)
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBilinearPatch
@@ -95,7 +98,7 @@ class CBicubicPatch : public CSurface {
 // Comments				:
 class CNURBSPatch : public CSurface {
     public:
-        CNURBSPatch(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, float *, float *, float *);
+        CNURBSPatch(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, float *, float *, float *, CTrimTest * = NULL);
         ~CNURBSPatch();
 
         // CObject interface
@@ -122,6 +125,9 @@ class CNURBSPatch : public CSurface {
             return 0;
         }
 
+        bool trimAccepts(float u, float v) const;
+        bool hasTrim() const { return trimTest != NULL; }
+
     private:
         void precompBasisCoefficients(double *, unsigned int, unsigned int, unsigned int, const float *);
         void precomputeVertexData(double *, const double *, const double *, float *, int);
@@ -131,6 +137,7 @@ class CNURBSPatch : public CSurface {
         double *vertex;                 // The vertex data
         int uOrder, vOrder;             // The order of the patch
         float uOrg, vOrg, uMult, vMult; // The parametric range of the patch
+        CTrimTest *trimTest;            // Shared trim classification (refcounted, see CTrimTest); NULL if untrimmed
 
         friend class CPreviewContext;
 };
@@ -161,12 +168,65 @@ class CPatchMesh : public CObject {
 };
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CTrimPolyline
+// Description			:	A single trim loop, flattened once to a closed
+//							polyline in (u,v) parameter space.
+// Comments				:
+class CTrimPolyline {
+    public:
+        CTrimPolyline() : numVertices(0), uv(NULL) {}
+        ~CTrimPolyline() { delete[] uv; }
+
+        int numVertices;
+        float *uv; // Flattened (u,v) pairs, uv[2 * numVertices]
+};
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CTrimTest
+// Description			:	Hider-agnostic (u,v) inside/outside classification
+//							built once per CNURBSPatchMesh from its pending
+//							RiTrimCurve state, and consulted identically by
+//							every tessellation/sampling code path.
+// Comments				:	CRefCounter-based: the owning mesh and every
+//							per-span CNURBSPatch that references it each hold
+//							an attach(), since diced spans can outlive the
+//							mesh once dispatched to worker threads.
+class CTrimTest : public CRefCounter {
+    public:
+        CTrimTest() : numLoops(0), loopPolylines(NULL), sense(TS_INSIDE) {}
+        ~CTrimTest() { delete[] loopPolylines; }
+
+        int numLoops;
+        CTrimPolyline *loopPolylines; // One flattened polyline per surviving (non-rejected) trim loop
+        ETrimSense sense;             // Snapshot of CAttributes::trimSense at mesh-construction time
+};
+
+// Flattens a single Trim Loop's connected curves into one closed (u,v)
+// polyline, amortized once per loop (FR-018). Assumes the loop has already
+// passed weight/closure validation (see CNURBSPatchMesh::create()).
+void trimFlattenLoop(const CTrimLoop &loop, CTrimPolyline &polyline);
+
+// Classifies a sampled (u,v) point against a built Shared Trim Test using an
+// O(polyline edges) odd-crossing-count test per loop, composed across every
+// loop and combined with the test's trim sense (FR-005, FR-006). Returns
+// true if the point should be retained (kept) in the diced/tessellated
+// surface; false if it should be excluded.
+bool trimClassifyPoint(const CTrimTest &test, float u, float v);
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CNURBSPatchMesh
 // Description			:	Encapsulates a NURBS patch mesh
 // Comments				:
 class CNURBSPatchMesh : public CObject {
     public:
-        CNURBSPatchMesh(CAttributes *, CXform *, CPl *, int, int, int, int, float *, float *);
+        // The trailing CTrimTest*/eagerBuildTrim pair exists solely for
+        // instantiate()'s use: it passes the template mesh's own already-
+        // decided trimTest (attach()'d verbatim, even if NULL) with
+        // eagerBuildTrim=FALSE, so a clone never re-derives trim state from
+        // the ObjectInstance call-site's ambient CAttributes. The normal
+        // RiNuPatchV definition path uses the defaults, eagerly consuming
+        // whatever RiTrimCurve loops are pending on the given CAttributes.
+        CNURBSPatchMesh(CAttributes *, CXform *, CPl *, int, int, int, int, float *, float *, CTrimTest * = NULL, int = TRUE);
         ~CNURBSPatchMesh();
 
         // CObject interface
@@ -181,6 +241,8 @@ class CNURBSPatchMesh : public CObject {
         int uVertices, vVertices, uOrder, vOrder;
         float *uKnots, *vKnots;
         TMutex mutex;
+
+        CTrimTest *trimTest; // Shared trim classification for this mesh (nullptr if no TrimCurve was set)
 
         friend class CPreviewContext;
 };

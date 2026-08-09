@@ -153,9 +153,25 @@ void CPatch::dice(CReyes *r) {
         int k;
         int cullFlags = TRUE;
         int moving = (CRenderer::flags & OPTIONS_FLAGS_MOTIONBLUR) && (object->moving());
+        const int hasTrim = object->hasTrim();
+        float *trimU = nullptr;
+        float *trimV = nullptr;
 
         if (moving == TRUE) {
             Pmov = (float *)alloca(CRenderer::maxGridSize * 3 * 2 * sizeof(float));
+        }
+
+        // object->interpolate() (invoked inside displaceEstimate() below) remaps
+        // varying[VARIABLE_U]/[VARIABLE_V] in place from this patch's local [0,1]
+        // probe coordinates to the surface's global parametric space (e.g.
+        // CNURBSPatch applies u*uMult+uOrg). trimAccepts() expects local [0,1]
+        // coordinates and performs that same mapping itself, so the trim test
+        // below must not read varying[VARIABLE_U]/[VARIABLE_V] after
+        // displaceEstimate() has run - doing so double-maps the coordinates.
+        // Snapshot the local probe values before displaceEstimate() mutates them.
+        if (hasTrim) {
+            trimU = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
+            trimV = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
         }
 
         // We need to split this patch, so no need to compute udiv / vdiv
@@ -223,6 +239,13 @@ void CPatch::dice(CReyes *r) {
             }
 
             assert(k <= (int)CRenderer::maxGridSize);
+
+            // Snapshot the local [0,1] probe coordinates before displaceEstimate()
+            // below overwrites them with global surface parametric coordinates.
+            if (hasTrim) {
+                memcpy(trimU, uv, k * sizeof(float));
+                memcpy(trimV, vv, k * sizeof(float));
+            }
 
 // FIXME: correct this
 #if 1
@@ -296,6 +319,48 @@ void CPatch::dice(CReyes *r) {
             //  Are we culled ?
             if (cullFlags)
                 return;
+
+            // Trim-curve exclusion (FR-005/FR-009/FR-010/FR-011): classify the
+            // same probed (u,v) samples used for dicing decisions against the
+            // object's own trim test. A patch entirely outside the retained
+            // region is excluded the same way a backface/frustum-culled patch
+            // is excluded above (early return; no grid is ever built for it).
+            // A patch straddling the trim boundary is forced to split further,
+            // the same way a patch spanning the eye plane is forced to split
+            // below (udiv = 0), so the boundary resolves at finer granularity
+            // instead of drawing one grid that ignores trimming. Once depth
+            // reaches CRenderer::maxEyeSplits, the remaining imprecision is
+            // accepted, consistent with the specification's own trim-curve
+            // approximation caveat. No new grid data structure is introduced;
+            // this only decides whether/how the existing dicing path proceeds.
+            if (hasTrim) {
+                const float *tu = trimU;
+                const float *tv = trimV;
+                int numTrimAccepted = 0;
+                for (int i = 0; i < k; i++, tu++, tv++) {
+                    if (object->trimAccepts(*tu, *tv))
+                        numTrimAccepted++;
+                }
+
+                if (numTrimAccepted == 0) {
+                    return;
+                }
+
+                if (numTrimAccepted < k) {
+                    if (depth < CRenderer::maxEyeSplits) {
+                        udiv = 0;
+                        break;
+                    }
+
+                    // Still straddling the trim boundary after exhausting the
+                    // eyesplit recursion budget: give up in favor of the trim
+                    // decision (reject) rather than falling through and
+                    // drawing this patch as if it were fully untrimmed. This
+                    // mirrors the eyesplit-depth-cap precedent below, which
+                    // also returns without drawing once depth is exhausted.
+                    return;
+                }
+            }
 
             // Expand the bound
             float xDiff = bmax[COMP_X] - bmin[COMP_X];
@@ -779,7 +844,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
             else                                                                                                      \
                 t = (float)((P[COMP_Z] - r[COMP_Z]) * iq[COMP_Z]);                                                    \
                                                                                                                       \
-            if ((t > cRay->tmin) && (t < cRay->t)) {                                                                  \
+            if ((t > cRay->tmin) && (t < cRay->t) &&                                                                 \
+                (!objectHasTrim || object->trimAccepts(umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg))) { \
                 vector dPdu, dPdv, N;                                                                                 \
                 vector tmp1, tmp2;                                                                                    \
                 subvv(tmp1, P10, P00);                                                                                \
@@ -943,6 +1009,11 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
         const float *r = cRay->from;
         const float *q = cRay->dir;
         const double *iq = cRay->invDir;
+
+        // Trim-curve exclusion (FR-005/FR-010/FR-011/FR-012): cached once per
+        // ray/object so solve()'s per-hit-candidate trim test below is a plain
+        // bool check, not a virtual call, in this hot loop.
+        const bool objectHasTrim = object->hasTrim();
 
         // We treat moving patches differently
         if (!(flags & OBJECT_MOVING_TESSELATION)) {

@@ -13,7 +13,8 @@
 | Geometry statements | Complete — in-place expansion, circularity detection | [GEOMETRY_STATEMENT.md](DEVNOTES_DETAILS/GEOMETRY_STATEMENT.md) |
 | Scene wireframe previewer | Complete — orender-wire (macOS Metal + Linux GTK4/OpenGL), libribpreview, full test suite | [VERIFICATION_LINUX_PREVIEW.md](DEVNOTES_DETAILS/VERIFICATION_LINUX_PREVIEW.md) |
 | Hider parity | Complete — shared `CSampler`/`CCompositor`/`CPixelFilterAccumulator` kernels converge reyes/raytrace on motion blur, transparency, matte, displacement, and depth-filter modes; D3/D4 (shading-interpolation model) and D9 (DOF occlusion model) remain permanent, documented residuals, not open work | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
-| RISpec 3.2 gaps | 2 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
+| RISpec 3.2 gaps | 3 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
+| NURBS trim curves (RiTrimCurve) | Complete — attribute-scoped `TrimCurve` state, shared odd-winding classification test at both REYES and raytrace tessellation paths, `"trimcurve"/"sense"` attribute; additive-only, 100% visual regression pass | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md), `specs/009-nurbs-trim-curves/` |
 | C++20 / C17 migration | Phase 2 complete — portable I/O, binary security; Phase 3 future | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) |
 | PBR path-tracing hider + OSL (`Bxdf`) | Not started — feasibility analysis only, not yet scheduled | [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md) |
 

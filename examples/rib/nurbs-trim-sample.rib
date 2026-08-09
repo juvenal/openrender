@@ -1,0 +1,43 @@
+##RenderMan RIB-Structure 1.0
+version 3.3
+
+FrameBegin 1
+
+  Display "trimmed_nurb.tif" "framebuffer" "rgb"
+  Projection "perspective" "fov" 45
+  Translate 0 0 3
+
+  WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" 0.3
+    LightSource "pointlight" 2 "from" [2 3 -3] "intensity" 1.5
+
+    Color [0.8 0.2 0.2]
+    Surface "plastic"
+
+    # Define a single trim loop using a linear/cubic boundary in UV space
+    # RiTrimCurve parameters: ncurves, order, knot, min, max, n, u, v, w
+    # (nloops is implicit from the length of the ncurves array, per RI Spec 3.2.1)
+    TrimCurve
+        [1]                    # Number of curves in loop 1
+        [3]                    # Order of trim curve u/v expansion
+        [0 0 0  1 1 1]         # Knot vector for the trim curve
+        [0.0] [1.0]            # Min and max parametric bounds
+        [4]                    # Number of vertices in curve
+        [0.2 0.8 0.8 0.2]      # U coordinates in param space
+        [0.2 0.2 0.8 0.8]      # V coordinates in param space
+        [1.0 1.0 1.0 1.0]      # Homogeneous w coordinates
+
+    # Base NURBS surface patch: clamped bicubic Bezier (single span, 4x4 control points)
+    NuPatch
+        4 4 [0 0 0 0 1 1 1 1] 0.0 1.0  # U number, order, knots, min, max
+        4 4 [0 0 0 0 1 1 1 1] 0.0 1.0  # V number, order, knots, min, max
+        "P" [
+            -1 -1 0   -0.3 -1 0   0.3 -1 0   1 -1 0
+            -1 -0.3 0 -0.3 -0.3 0 0.3 -0.3 0 1 -0.3 0
+            -1  0.3 0 -0.3  0.3 0 0.3  0.3 0 1  0.3 0
+            -1  1 0   -0.3  1 0   0.3  1 0   1  1 0
+        ]
+
+  WorldEnd
+FrameEnd

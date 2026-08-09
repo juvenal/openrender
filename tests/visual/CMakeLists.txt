@@ -378,6 +378,73 @@ add_visual_test(camera-motion-huge-reyes
     examples/rib/tests/camera-motion-huge-reyes.rib
     camera-motion-huge-reyes.tif  camera-motion-huge-reyes.tif  100)
 
+# --- NURBS (NuPatch) untrimmed baseline — spec 009, locks in current
+# (pre-trim-curve) rendering behavior before any RiTrimCurve code lands ---
+add_visual_test(nupatch-vase-untrimmed
+    examples/rib/tests/nupatch-vase-untrimmed.rib
+    nupatch-vase-untrimmed.tif  nupatch-vase-untrimmed.tif)
+
+# --- NURBS (NuPatch) trimmed hole — spec 009 US1, RiTrimCurve cutting a
+# rectangular hole through the vase body, straddling a non-origin u-knot
+# span boundary to exercise multi-span trim classification (reyes hider) ---
+add_visual_test(nupatch-vase-trimmed-hole
+    examples/rib/tests/nupatch-vase-trimmed-hole.rib
+    nupatch-vase-trimmed-hole.tif  nupatch-vase-trimmed-hole.tif)
+
+# --- Same scene, raytrace hider — spec 009 US1 SC-008 cross-hider trim
+# parity: exercises CTesselationPatch's trim integration (T017) rather than
+# CPatch::dice()'s (T016) ---
+add_visual_test(nupatch-vase-trimmed-hole-raytrace
+    examples/rib/tests/nupatch-vase-trimmed-hole-raytrace.rib
+    nupatch-vase-trimmed-hole-raytrace.tif  nupatch-vase-trimmed-hole-raytrace.tif)
+
+# --- NURBS (NuPatch) trim attribute scoping — spec 009 US2, four vase copies
+# demonstrating RiTrimCurve as attribute state: scoped inside
+# AttributeBegin/End (popped on End), a sibling untrimmed copy outside that
+# scope, and one TrimCurve call whose trim persists across two subsequent
+# NuPatch calls with no intervening TrimCurve ---
+add_visual_test(nupatch-vase-trimmed-scoping
+    examples/rib/tests/nupatch-vase-trimmed-scoping.rib
+    nupatch-vase-trimmed-scoping.tif  nupatch-vase-trimmed-scoping.tif)
+
+# --- NURBS (NuPatch) trimcurve/sense attribute — spec 009 US3, left vase
+# uses the default "inside" sense (same hole as nupatch-vase-trimmed-hole),
+# right vase sets Attribute "trimcurve" "sense" ["outside"] to invert which
+# side of the loop is kept ---
+add_visual_test(nupatch-vase-trimmed-sense
+    examples/rib/tests/nupatch-vase-trimmed-sense.rib
+    nupatch-vase-trimmed-sense.tif  nupatch-vase-trimmed-sense.tif)
+
+# --- NURBS (NuPatch) multi-loop composition — spec 009 US5, one TrimCurve
+# call defining three disjoint rectangular holes (reusing the
+# nupatch-vase-trimmed-hole loop plus two more near the neck) to exercise
+# the even-odd/XOR composition across independently-toggling loops ---
+add_visual_test(nupatch-vase-trimmed-multiloop
+    examples/rib/tests/nupatch-vase-trimmed-multiloop.rib
+    nupatch-vase-trimmed-multiloop.tif  nupatch-vase-trimmed-multiloop.tif)
+
+# --- NURBS (NuPatch) malformed trim-loop diagnostics — spec 009 Polish phase,
+# T031/T032. Same rectangular loop as nupatch-vase-trimmed-hole but perturbed
+# to exercise the two malformed-loop paths: an unclosed loop (implicit-closure
+# warning, loop still used) and a non-positive weight (loop rejected, warning,
+# fallback to untrimmed rendering). Each must emit exactly one diagnostic and
+# must not crash ---
+add_visual_test(nupatch-vase-trimmed-malformed-unclosed
+    examples/rib/tests/nupatch-vase-trimmed-malformed-unclosed.rib
+    nupatch-vase-trimmed-malformed-unclosed.tif  nupatch-vase-trimmed-malformed-unclosed.tif)
+
+add_visual_test(nupatch-vase-trimmed-malformed-badweight
+    examples/rib/tests/nupatch-vase-trimmed-malformed-badweight.rib
+    nupatch-vase-trimmed-malformed-badweight.tif  nupatch-vase-trimmed-malformed-badweight.tif)
+
+# T033 (FR-020): both malformed loops above, each captured once inside
+# ObjectBegin/ObjectEnd and referenced by three ObjectInstance calls apiece —
+# verifies the per-loop diagnostic dedup applies to the loop *definition*,
+# not to each instantiated copy (six rendered vases, two diagnostics total).
+add_visual_test(nupatch-vase-trimmed-malformed-instanced
+    examples/rib/tests/nupatch-vase-trimmed-malformed-instanced.rib
+    nupatch-vase-trimmed-malformed-instanced.tif  nupatch-vase-trimmed-malformed-instanced.tif)
+
 # ---------------------------------------------------------------------------
 # Cross-hider parity tests (spec 008, US1/Phase 3)
 #
@@ -617,5 +684,5 @@ add_parity_test(dof-motion
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      44 scenes registered under label 'visual'")
+message(STATUS "      45 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 21 scene pairs registered under label 'parity'")

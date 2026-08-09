@@ -285,7 +285,9 @@ EXTERN(RtToken)
     RI_COMPRESSION,
     RI_RIB,
     RI_SHUTTER,
-    RI_USER;
+    RI_USER,
+    RI_TRIMCURVE,
+    RI_SENSE;
 
 EXTERN(RtToken)
     RI_DICE,

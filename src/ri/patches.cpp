@@ -27,6 +27,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
+#include <vector>
 
 #include "common/polynomial.h"
 #include "error.h"
@@ -844,7 +845,7 @@ void CBicubicPatch::interpolate(int numVertices, float **varying, float ***local
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:	-
-CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *p, int uOrder, int vOrder, float *uKnots, float *vKnots, float *vertex0) : CSurface(a, x) {
+CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *p, int uOrder, int vOrder, float *uKnots, float *vKnots, float *vertex0, CTrimTest *trimTest) : CSurface(a, x) {
     int j;
     const int vertexSize = v->vertexSize;
 
@@ -855,6 +856,9 @@ CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *
     this->parameters = p;
     this->uOrder = uOrder;
     this->vOrder = vOrder;
+    this->trimTest = trimTest;
+    if (trimTest != NULL)
+        trimTest->attach();
 
     uOrg = uKnots[uOrder - 1];
     const float umax = uKnots[uOrder];
@@ -907,6 +911,26 @@ CNURBSPatch::~CNURBSPatch() {
     delete[] vertex;
 
     variables->detach();
+    if (trimTest != NULL)
+        trimTest->detach();
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CNURBSPatch
+// Method				:	trimAccepts
+// Description			:	Maps this span's local [0,1] (u,v) to the mesh's
+//							global knot-domain (u,v) and consults the shared
+//							trim test (FR-005/FR-009/FR-010)
+// Return Value			:	TRUE if the point should be retained
+// Comments				:	-
+bool CNURBSPatch::trimAccepts(float u, float v) const {
+    if (trimTest == NULL)
+        return TRUE;
+
+    const float gu = u * uMult + uOrg;
+    const float gv = v * vMult + vOrg;
+
+    return trimClassifyPoint(*trimTest, gu, gv);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1698,12 +1722,18 @@ void CPatchMesh::create(CShadingContext *context) {
     osUnlock(mutex);
 }
 
+// Validates and flattens any RiTrimCurve loops pending on the given
+// attributes into a Shared Trim Test (FR-004: absent pending state yields
+// NULL, leaving callers on the untrimmed path). Defined below, after the
+// trimEvalCurvePoint/trimFlattenLoop helpers it depends on.
+static CTrimTest *buildTrimTestFromPending(CAttributes *attributes);
+
 ///////////////////////////////////////////////////////////////////////
 // Function				:	CNURBSPatchMesh
 // Description			:	CNURBSPatchMesh
 // Return Value			:	Ctor
 // Comments				:	-
-CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int nv, int uo, int vo, float *uk, float *vk) : CObject(a, x) {
+CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int nv, int uo, int vo, float *uk, float *vk, CTrimTest *suppliedTrimTest, int eagerBuildTrim) : CObject(a, x) {
     int i;
     const float *P;
 
@@ -1753,6 +1783,20 @@ CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int 
 
     makeBound(bmin, bmax);
 
+    // Eagerly snapshot trim state at definition time (RiNuPatchV), so that
+    // later mutation of the ambient CAttributes (e.g. a subsequent
+    // ObjectBegin block reusing the same pointer) cannot retroactively
+    // change an already-defined mesh's trim. instantiate() bypasses this by
+    // passing eagerBuildTrim=FALSE and its own already-decided trimTest
+    // (possibly NULL) verbatim.
+    if (eagerBuildTrim) {
+        trimTest = buildTrimTestFromPending(attributes);
+    } else {
+        trimTest = suppliedTrimTest;
+        if (trimTest != NULL)
+            trimTest->attach();
+    }
+
     // Create the synch. object
     osCreateMutex(mutex);
 }
@@ -1768,6 +1812,8 @@ CNURBSPatchMesh::~CNURBSPatchMesh() {
     delete[] uKnots;
     delete[] vKnots;
     delete pl;
+    if (trimTest != NULL)
+        trimTest->detach();
 
     // We're done with the synch. object
     osDeleteMutex(mutex);
@@ -1786,7 +1832,12 @@ void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) co
     if (a == NULL)
         a = attributes;
 
-    c->addObject(new CNURBSPatchMesh(a, nx, pl->clone(a), uVertices, vVertices, uOrder, vOrder, uKnots, vKnots));
+    // Propagate this template's own already-decided trim classification
+    // verbatim (eagerBuildTrim=FALSE) instead of letting the clone re-derive
+    // it from the ObjectInstance call-site's ambient attributes `a` -- those
+    // may have accumulated unrelated pendingTrimLoops mutations from other
+    // ObjectBegin/ObjectEnd blocks sharing the same CAttributes pointer.
+    c->addObject(new CNURBSPatchMesh(a, nx, pl->clone(a), uVertices, vVertices, uOrder, vOrder, uKnots, vKnots, trimTest, FALSE));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1813,6 +1864,264 @@ void CNURBSPatchMesh::dice(CReyes *rasterizer) {
         create(rasterizer);
 
     CObject::dice(rasterizer);
+}
+
+// Number of flattened samples per Bezier-equivalent span of a trim curve.
+// A fixed subdivision (rather than adaptive/error-bound flattening) is
+// deliberate: RISpec itself documents trim curves as an approximation with
+// possible boundary artifacts, and trim loops are typically simple boundary
+// shapes, so a modest fixed density is sufficient without adaptive-flattening
+// complexity (research.md R2).
+static const int TRIM_SAMPLES_PER_SPAN = 8;
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimFindSpan
+// Description			:	Finds the knot span index containing parameter t,
+//							via the standard NURBS book binary search
+//							(n = index of the last control point, p = degree)
+// Return Value			:	The span index
+// Comments				:	-
+static int trimFindSpan(int n, int p, double t, const double *U) {
+    if (t >= U[n + 1])
+        return n;
+    if (t <= U[p])
+        return p;
+
+    int low = p, high = n + 1, mid = (low + high) / 2;
+    while (t < U[mid] || t >= U[mid + 1]) {
+        if (t < U[mid])
+            high = mid;
+        else
+            low = mid;
+        mid = (low + high) / 2;
+    }
+    return mid;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimBasisFuns
+// Description			:	Evaluates the p+1 non-zero B-spline basis
+//							functions at parameter t (standard NURBS book
+//							Cox-de Boor recurrence), span = trimFindSpan(...)
+// Return Value			:	-
+// Comments				:	N must have room for p+1 entries
+static void trimBasisFuns(int span, double t, int p, const double *U, double *N) {
+    std::vector<double> left(p + 1), right(p + 1);
+
+    N[0] = 1.0;
+    for (int j = 1; j <= p; j++) {
+        left[j] = t - U[span + 1 - j];
+        right[j] = U[span + j] - t;
+        double saved = 0.0;
+        for (int r = 0; r < j; r++) {
+            double temp = N[r] / (right[r + 1] + left[j - r]);
+            N[r] = saved + right[r + 1] * temp;
+            saved = left[j - r] * temp;
+        }
+        N[j] = saved;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimEvalCurvePoint
+// Description			:	Evaluates one homogeneous rational B-spline curve
+//							(order, knot, n control points u/v/w) at
+//							parameter t, dividing out the rational weight
+// Return Value			:	-
+// Comments				:	-
+static void trimEvalCurvePoint(int order, const double *knot, int n, const double *u, const double *v, const double *w, double t, float &outU, float &outV) {
+    int p = order - 1;
+    int span = trimFindSpan(n - 1, p, t, knot);
+    std::vector<double> N(p + 1);
+
+    trimBasisFuns(span, t, p, knot, N.data());
+
+    double su = 0.0, sv = 0.0, sw = 0.0;
+    for (int r = 0; r <= p; r++) {
+        int idx = span - p + r;
+        double weighted = N[r] * w[idx];
+        su += weighted * u[idx];
+        sv += weighted * v[idx];
+        sw += weighted;
+    }
+
+    outU = (float)(su / sw);
+    outV = (float)(sv / sw);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimFlattenLoop
+// Description			:	Flattens a Trim Loop's connected curves into one
+//							closed (u,v) polyline (FR-018). Curves are
+//							head-to-tail connected, so each curve after the
+//							first contributes only its interior/end samples;
+//							the polyline is treated as implicitly closed by
+//							trimClassifyPoint (last vertex back to first)
+// Return Value			:	-
+// Comments				:	-
+void trimFlattenLoop(const CTrimLoop &loop, CTrimPolyline &polyline) {
+    std::vector<int> samplesPerCurve(loop.curveCount);
+    int totalVertices = 0;
+
+    for (int c = 0; c < loop.curveCount; c++) {
+        int spans = loop.n[c] - loop.order[c] + 1;
+        if (spans < 1)
+            spans = 1;
+        int samples = spans * TRIM_SAMPLES_PER_SPAN;
+        samplesPerCurve[c] = samples;
+        totalVertices += samples;
+    }
+
+    polyline.numVertices = totalVertices;
+    polyline.uv = new float[2 * totalVertices];
+
+    int knotOffset = 0, ptOffset = 0, outIndex = 0;
+    for (int c = 0; c < loop.curveCount; c++) {
+        int order = loop.order[c];
+        int n = loop.n[c];
+        const double *knot = loop.knot + knotOffset;
+        const double *u = loop.u + ptOffset;
+        const double *v = loop.v + ptOffset;
+        const double *w = loop.w + ptOffset;
+        double tmin = loop.min[c], tmax = loop.max[c];
+        int samples = samplesPerCurve[c];
+
+        for (int i = 0; i < samples; i++) {
+            double t = tmin + (tmax - tmin) * ((double)i / (double)samples);
+            float pu, pv;
+
+            trimEvalCurvePoint(order, knot, n, u, v, w, t, pu, pv);
+            polyline.uv[2 * outIndex] = pu;
+            polyline.uv[2 * outIndex + 1] = pv;
+            outIndex++;
+        }
+
+        knotOffset += n + order;
+        ptOffset += n;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimPointInPolyline
+// Description			:	Odd-crossing-count (ray-casting) point-in-polygon
+//							test against one closed (u,v) polyline,
+//							O(numVertices) (FR-018)
+// Return Value			:	TRUE if (u,v) is enclosed by the polyline
+// Comments				:	-
+static int trimPointInPolyline(const CTrimPolyline &poly, float u, float v) {
+    int inside = FALSE;
+    int n = poly.numVertices;
+
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+        float ui = poly.uv[2 * i], vi = poly.uv[2 * i + 1];
+        float uj = poly.uv[2 * j], vj = poly.uv[2 * j + 1];
+
+        if (((vi > v) != (vj > v)) && (u < (uj - ui) * (v - vi) / (vj - vi) + ui))
+            inside = !inside;
+    }
+
+    return inside;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	trimClassifyPoint
+// Description			:	Classifies a sampled (u,v) point against a built
+//							Shared Trim Test: composes the odd-crossing result
+//							across every loop (data-model.md's Shared Trim
+//							Test entity: XOR-ing per-loop parity is equivalent
+//							to summing raw crossings across all loops and
+//							taking the total's parity), then applies trimSense
+//							(FR-005, FR-006)
+// Return Value			:	TRUE if the point should be retained (kept)
+// Comments			:	-
+bool trimClassifyPoint(const CTrimTest &test, float u, float v) {
+    int enclosed = FALSE;
+
+    for (int i = 0; i < test.numLoops; i++) {
+        if (trimPointInPolyline(test.loopPolylines[i], u, v))
+            enclosed = !enclosed;
+    }
+
+    return (test.sense == TS_OUTSIDE) ? (enclosed != FALSE) : (enclosed == FALSE);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	buildTrimTestFromPending
+// Description			:	Validates and flattens any RiTrimCurve loops
+//							pending on the given attributes into a Shared
+//							Trim Test (FR-004: absent pending state yields
+//							NULL, leaving callers on the untrimmed path).
+// Return Value			:	A freshly attach()'d CTrimTest, or NULL
+// Comments				:	Called eagerly from CNURBSPatchMesh's constructor
+//							(RiNuPatchV definition time), not lazily at
+//							dice/create() time, so a mesh's own trim state
+//							can't be retroactively changed by later mutation
+//							of the ambient CAttributes it was defined against.
+static CTrimTest *buildTrimTestFromPending(CAttributes *attributes) {
+    if (attributes->numPendingTrimLoops <= 0)
+        return NULL;
+
+    std::vector<int> survivingLoops; // indices into attributes->pendingTrimLoops that passed validation
+
+    for (int loopIndex = 0; loopIndex < attributes->numPendingTrimLoops; loopIndex++) {
+        const CTrimLoop &loop = attributes->pendingTrimLoops[loopIndex];
+
+        // FR-019/FR-020: any control point with w <= 0 rejects the whole
+        // loop, with one diagnostic per distinct (malformed) loop
+        int totalPoints = 0;
+        for (int c = 0; c < loop.curveCount; c++)
+            totalPoints += loop.n[c];
+
+        int weightsValid = TRUE;
+        for (int p = 0; p < totalPoints; p++) {
+            if (loop.w[p] <= 0) {
+                weightsValid = FALSE;
+                break;
+            }
+        }
+
+        if (!weightsValid) {
+            warning(CODE_BADTOKEN, "RiTrimCurve loop %d has a control point with a non-positive weight; loop discarded\n", loopIndex);
+            continue;
+        }
+
+        // FR-017: a loop whose curves are not head-to-tail closed is
+        // implicitly closed (trimClassifyPoint wraps the last flattened
+        // vertex back to the first); diagnose once, but still use it
+        if (loop.curveCount > 0) {
+            const int lastCurve = loop.curveCount - 1;
+            int lastKnotOffset = 0, lastPtOffset = 0;
+
+            for (int c = 0; c < lastCurve; c++) {
+                lastKnotOffset += loop.n[c] + loop.order[c];
+                lastPtOffset += loop.n[c];
+            }
+
+            float startU, startV, endU, endV;
+            trimEvalCurvePoint(loop.order[0], loop.knot, loop.n[0], loop.u, loop.v, loop.w, loop.min[0], startU, startV);
+            trimEvalCurvePoint(loop.order[lastCurve], loop.knot + lastKnotOffset, loop.n[lastCurve], loop.u + lastPtOffset, loop.v + lastPtOffset, loop.w + lastPtOffset, loop.max[lastCurve], endU, endV);
+
+            const float closeEps = 1e-4f;
+            if ((fabsf(endU - startU) > closeEps) || (fabsf(endV - startV) > closeEps))
+                warning(CODE_BADTOKEN, "RiTrimCurve loop %d is not closed (start != end); treating as implicitly closed\n", loopIndex);
+        }
+
+        survivingLoops.push_back(loopIndex);
+    }
+
+    if (survivingLoops.empty())
+        return NULL;
+
+    CTrimTest *nTrimTest = new CTrimTest();
+    nTrimTest->numLoops = (int)survivingLoops.size();
+    nTrimTest->loopPolylines = new CTrimPolyline[nTrimTest->numLoops];
+    nTrimTest->sense = attributes->trimSense;
+
+    for (size_t s = 0; s < survivingLoops.size(); s++)
+        trimFlattenLoop(attributes->pendingTrimLoops[survivingLoops[s]], nTrimTest->loopPolylines[s]);
+
+    nTrimTest->attach();
+    return nTrimTest;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1854,6 +2163,11 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 
     memBegin(context->threadMemory);
 
+    // trimTest (if any) was already built eagerly at construction time by
+    // buildTrimTestFromPending() / instantiate()'s inherited-trimTest path;
+    // FR-004: if it's NULL, the loop below is byte-for-byte unchanged from
+    // the untrimmed path.
+
     // Create the NURBS patches
     for (k = 0, j = 0; j < vPatches; j++) {
         for (i = 0; i < uPatches; i++, k++) {
@@ -1871,7 +2185,7 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 
                 gatherData(context, i, j, uOrder, vOrder, i, j, k, vertex, parameters);
 
-                nObject = new CNURBSPatch(attributes, xform, vertexData, parameters, uOrder, vOrder, uKnots + i, vKnots + j, vertex);
+                nObject = new CNURBSPatch(attributes, xform, vertexData, parameters, uOrder, vOrder, uKnots + i, vKnots + j, vertex, trimTest);
 
                 nObject->sibling = allChildren;
                 allChildren = nObject;

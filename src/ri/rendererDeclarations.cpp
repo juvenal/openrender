@@ -184,6 +184,8 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_HIDDEN, "int");
     declareVariable(RI_BACKFACING, "int");
 
+    declareVariable(RI_SENSE, "string"); // Attribute "trimcurve" "sense" ("inside"/"outside")
+
     ////////////////////////////////////////////////////////////////////////////////////////////
     //
     //

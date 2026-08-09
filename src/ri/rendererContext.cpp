@@ -3438,6 +3438,31 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 }
             }
         }
+        else if (strcmp(name, RI_TRIMCURVE) == 0) {
+            for (i = 0; i < n; i++) {
+                if (strcmp(tokens[i], RI_SENSE) == 0) {
+                    const char *val = ((const char **)params[i])[0];
+                    if (strcmp(val, RI_OUTSIDE) == 0) {
+                        attributes->trimSense = TS_OUTSIDE;
+                    }
+                    else if (strcmp(val, RI_INSIDE) == 0) {
+                        attributes->trimSense = TS_INSIDE;
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Invalid value for \"%s\": \"%s\"\n", RI_SENSE, val);
+                    }
+                }
+                else {
+                    CVariable var;
+                    if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                        RiAttribute(name, var.name, params[i], RI_NULL);
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
+                    }
+                }
+            }
+        }
         /*
         else if (strcmp(name, RI_SHADE) == 0) {
             for (i = 0; i < n; i++) {
@@ -4091,12 +4116,65 @@ void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float /*umin
     memEnd(CRenderer::globalMemory);
 }
 
-void CRendererContext::RiTrimCurve(int, int *, int *, float *, float *, float *, int *, float *, float *, float *) {
-    // Unimplemented: trim curves are not supported.
+void CRendererContext::RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w) {
+    CAttributes *attributes;
+
     if (CRenderer::netNumServers > 0)
         return;
 
-    error(CODE_INCAPABLE, "Trim curves are not currently supported\n");
+    attributes = getAttributes(TRUE);
+
+    if (attributes->pendingTrimLoops != NULL) {
+        delete[] attributes->pendingTrimLoops;
+        attributes->pendingTrimLoops = NULL;
+        attributes->numPendingTrimLoops = 0;
+    }
+
+    if (nloops <= 0)
+        return;
+
+    CTrimLoop *loops = new CTrimLoop[nloops];
+    int knotOffset = 0, ptOffset = 0, curveIndex = 0;
+
+    for (int i = 0; i < nloops; i++) {
+        int curveCount = ncurves[i];
+
+        loops[i].curveCount = curveCount;
+        loops[i].order = new int[curveCount];
+        loops[i].min = new double[curveCount];
+        loops[i].max = new double[curveCount];
+        loops[i].n = new int[curveCount];
+
+        int loopKnotCount = 0, loopPointCount = 0;
+        for (int c = 0; c < curveCount; c++) {
+            loops[i].order[c] = order[curveIndex + c];
+            loops[i].min[c] = amin[curveIndex + c];
+            loops[i].max[c] = amax[curveIndex + c];
+            loops[i].n[c] = n[curveIndex + c];
+            loopKnotCount += n[curveIndex + c] + order[curveIndex + c];
+            loopPointCount += n[curveIndex + c];
+        }
+
+        loops[i].knot = new double[loopKnotCount];
+        loops[i].u = new double[loopPointCount];
+        loops[i].v = new double[loopPointCount];
+        loops[i].w = new double[loopPointCount];
+
+        for (int k = 0; k < loopKnotCount; k++)
+            loops[i].knot[k] = knot[knotOffset + k];
+        for (int p = 0; p < loopPointCount; p++) {
+            loops[i].u[p] = u[ptOffset + p];
+            loops[i].v[p] = v[ptOffset + p];
+            loops[i].w[p] = w[ptOffset + p];
+        }
+
+        knotOffset += loopKnotCount;
+        ptOffset += loopPointCount;
+        curveIndex += curveCount;
+    }
+
+    attributes->numPendingTrimLoops = nloops;
+    attributes->pendingTrimLoops = loops;
 }
 
 void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const char *w, int n, const char *tokens[], const void *params[]) {

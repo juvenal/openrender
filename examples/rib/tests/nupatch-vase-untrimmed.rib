@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "reyes"
+Display "nupatch-vase-untrimmed.tif" "file" "rgba"
+Format 640 480 1
+Projection "orthographic"
+ScreenWindow -18 18 -18 18
+Rotate -103.02 1 0 0
+Translate 0 -13 -15
+
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.15]
+  LightSource "distantlight" 2 "intensity" [0.9] "lightcolor" [1 .95 .9] "from" [20 30 25] "to" [0 0 0]
+  LightSource "distantlight" 3 "intensity" [0.35] "lightcolor" [.7 .8 1] "from" [-25 10 -20] "to" [0 0 0]
+
+  AttributeBegin
+    Sides 2
+    Color 1 .3 .05
+    Surface "plastic"
+    Geometry "vase"
+  AttributeEnd
+WorldEnd

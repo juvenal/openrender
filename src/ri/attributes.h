@@ -82,6 +82,28 @@ typedef enum {
     SM_TRANSPARENT
 } EShadingModel;
 
+// The "trimcurve"/"sense" attribute: which side of the trim loops is discarded
+typedef enum {
+    TS_INSIDE, // Region enclosed by trim loops is discarded (default)
+    TS_OUTSIDE // Region enclosed by trim loops is kept; everything outside is discarded
+} ETrimSense;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CTrimLoop
+// Description			:	One or more homogeneous rational B-spline curves
+//							in (u,v,w) parameter space, connected head-to-tail
+//							into a single closed boundary (RiTrimCurve).
+// Comments				:
+class CTrimLoop {
+    public:
+        int curveCount;   // Number of curves composing this loop (ncurves[i])
+        int *order;       // B-spline order per curve, order[curveCount]
+        double *knot;     // Concatenated knot vectors, one run per curve
+        double *min, *max; // Parameter-range clamp per curve, min[curveCount]/max[curveCount]
+        int *n;           // Control-point count per curve, n[curveCount]
+        double *u, *v, *w; // Concatenated homogeneous control points (u,v,w) across all curves
+};
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
 // Description			:	This class encapsulates the attributes attached
@@ -168,6 +190,10 @@ class CAttributes : public CRefCounter {
         float lodRange[4]; // LOD variables
         float lodSize;
         float lodImportance;
+
+        int numPendingTrimLoops;     // Number of loops in pendingTrimLoops (0 if none)
+        CTrimLoop *pendingTrimLoops; // Pending TrimCurve loops (RiTrimCurve) for the next NuPatch in scope; heap-owned, nullptr if none
+        ETrimSense trimSense;        // Backing storage for Attribute "trimcurve" "sense" (default TS_INSIDE)
 
         CUserAttributeDictionary userAttributes; // Duh.
 

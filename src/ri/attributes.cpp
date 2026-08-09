@@ -143,7 +143,66 @@ CAttributes::CAttributes() {
     lodSize = 0;
     lodImportance = 1;
 
+    numPendingTrimLoops = 0;
+    pendingTrimLoops = NULL;
+    trimSense = TS_INSIDE;
+
     checkParameters();
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	copyTrimLoop
+// Description			:	Deep-copies a single CTrimLoop (all of its
+//							heap-owned per-curve arrays) from src into dst
+// Return Value			:	-
+// Comments				:	-
+static void copyTrimLoop(CTrimLoop &dst, const CTrimLoop &src) {
+    int curveCount = src.curveCount;
+
+    dst.curveCount = curveCount;
+    dst.order = new int[curveCount];
+    dst.min = new double[curveCount];
+    dst.max = new double[curveCount];
+    dst.n = new int[curveCount];
+    memcpy(dst.order, src.order, sizeof(int) * curveCount);
+    memcpy(dst.min, src.min, sizeof(double) * curveCount);
+    memcpy(dst.max, src.max, sizeof(double) * curveCount);
+    memcpy(dst.n, src.n, sizeof(int) * curveCount);
+
+    int knotCount = 0, ptCount = 0;
+    for (int c = 0; c < curveCount; c++) {
+        knotCount += src.n[c] + src.order[c];
+        ptCount += src.n[c];
+    }
+
+    dst.knot = new double[knotCount];
+    dst.u = new double[ptCount];
+    dst.v = new double[ptCount];
+    dst.w = new double[ptCount];
+    memcpy(dst.knot, src.knot, sizeof(double) * knotCount);
+    memcpy(dst.u, src.u, sizeof(double) * ptCount);
+    memcpy(dst.v, src.v, sizeof(double) * ptCount);
+    memcpy(dst.w, src.w, sizeof(double) * ptCount);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	freeTrimLoops
+// Description			:	Frees a heap-allocated array of CTrimLoop and all
+//							of its nested per-curve heap arrays
+// Return Value			:	-
+// Comments				:	-
+static void freeTrimLoops(CTrimLoop *loops, int numLoops) {
+    for (int i = 0; i < numLoops; i++) {
+        delete[] loops[i].order;
+        delete[] loops[i].knot;
+        delete[] loops[i].min;
+        delete[] loops[i].max;
+        delete[] loops[i].n;
+        delete[] loops[i].u;
+        delete[] loops[i].v;
+        delete[] loops[i].w;
+    }
+    delete[] loops;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -206,6 +265,12 @@ CAttributes::CAttributes(const CAttributes *a) {
 
     shaderFormat = (a->shaderFormat != NULL ? strdup(a->shaderFormat) : nullptr);
 
+    if (numPendingTrimLoops > 0) {
+        pendingTrimLoops = new CTrimLoop[numPendingTrimLoops];
+        for (int i = 0; i < numPendingTrimLoops; i++)
+            copyTrimLoop(pendingTrimLoops[i], a->pendingTrimLoops[i]);
+    }
+
     if (a->next != NULL)
         next = new CAttributes(a->next);
 }
@@ -253,6 +318,9 @@ CAttributes::~CAttributes() {
 
     if (maxDisplacementSpace != NULL)
         free(maxDisplacementSpace);
+
+    if (pendingTrimLoops != NULL)
+        freeTrimLoops(pendingTrimLoops, numPendingTrimLoops);
 
     while ((cLight = lightSources) != NULL) {
         lightSources = cLight->next;

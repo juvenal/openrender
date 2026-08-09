@@ -220,6 +220,8 @@ RtToken RI_COMPRESSION = "compression";
 RtToken RI_RIB = "rib";
 RtToken RI_SHUTTER = "shutter";
 RtToken RI_USER = "user";
+RtToken RI_TRIMCURVE = "trimcurve";
+RtToken RI_SENSE = "sense";
 
 ////////////////////////////////////////////////////////////////////////
 //
