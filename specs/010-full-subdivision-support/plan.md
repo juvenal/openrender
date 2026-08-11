@@ -95,7 +95,7 @@ not-required) `CShow`, per spec.md's testing requirements. No change to any hide
 | IV. Command Line Interface | No new CLI tool. `RiHierarchicalSubdivisionMesh` is a RIB/RI-API addition; its `-writerib` round-trip is handled by a new parallel `CRibOut::RiHierarchicalSubdivisionMeshV` serializer (Layer 5 of `contracts/hierarchical-subdivision-contract.md`), consistent with how every other primitive round-trips today. | PASS |
 | V. Minimal Dependencies | No new third-party dependency at any tier. Research.md R7 explicitly rejects a Loop-specific eigenbasis-generation dependency in favor of iterative/uniform subdivision using only existing facilities. | PASS |
 | VI. Platform Targeting | Linux/macOS only; no platform-conditional code introduced at any tier. | PASS |
-| VII. Documentation and Site Management | `HIDER_PARITY.md` gains a new subdivision-surfaces section (research.md R1/R2/R5's findings — motion-blur verification, camera-SLERP closed note, crease-quality outcome). `DEVNOTES.md:42-43`'s two open, unreproduced crease-quality checkboxes are resolved or explicitly deferred with written rationale, per User Story 4's own gate — never left silently stale. | PASS |
+| VII. Documentation and Site Management | `HIDER_PARITY.md` gains a new subdivision-surfaces section (research.md R1/R2/R5's findings — motion-blur verification, camera-SLERP closed note, crease-quality outcome). `DEVNOTES.md:42-43`'s two open, unreproduced crease-quality checkboxes are resolved or explicitly deferred with written rationale, per User Story 4's own gate — never left silently stale. **No `site/` Hugo folder exists anywhere in this repository yet** — the repo-wide migration (`specs/001-hugo-docs-migration`) has not landed. This feature uses the same `DEVNOTES.md`/`HIDER_PARITY.md` interim convention every other landed spec (009 included) uses pending that migration, and does not build `site/` itself — that is 001's scope. | PASS (interim convention, pending 001) |
 
 No violations requiring justification — Complexity Tracking is empty.
 
@@ -183,4 +183,6 @@ additive to existing directories.
 
 ## Complexity Tracking
 
-*No Constitution Check violations — this section is intentionally empty.*
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|---|---|---|
+| Principle VII's `site/` Hugo folder is not created or updated by this feature | The repo-wide Hugo migration (`specs/001-hugo-docs-migration`) has not landed; no `site/` directory exists to update | Building a one-off `site/` page ahead of 001's own structure/tooling decisions risks being thrown away when that migration lands; `HIDER_PARITY.md`/`DEVNOTES.md` is the interim convention 009 and every other current spec already uses |

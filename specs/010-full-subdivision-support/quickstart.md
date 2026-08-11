@@ -49,8 +49,9 @@ already covers subdivision surfaces the same way it covers patches/quadrics:
    ```
 3. Confirm both pairs agree within the existing block-average parity threshold (`add_parity_test`, mirroring the
    9 existing motion-parity registrations at `tests/visual/CMakeLists.txt:609-679`).
-4. Add the `HIDER_PARITY.md` subdivision-surfaces section documenting this as closed (R1/R2), including the
-   7-vs-9 scene/registration-count note.
+4. Add the `HIDER_PARITY.md` subdivision-surfaces section documenting this as closed (R1/R2), citing the 9
+   pre-existing non-subdivision `add_parity_test` entries at `tests/visual/CMakeLists.txt:609-679` alongside this
+   feature's 2 new subdivision-specific entries (T008) as the evidence satisfying SC-001 — not a 7-vs-9 split.
 
 ## Step 2 — Facevarying seam fix (User Story 2, FR-004, P1)
 

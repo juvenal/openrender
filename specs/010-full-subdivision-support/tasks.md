@@ -93,8 +93,13 @@ correctly exercises `CSubdivision::sample()`'s two-time-sample path.
 - [ ] T009 [US1] Generate reference `.tif` images for the four scenes from T005/T006 under
   `examples/rib/tests/references/`
 - [ ] T010 [US1] Fill in `DEVNOTES_DETAILS/HIDER_PARITY.md`'s "Motion Blur" subsection (skeleton from T002),
-  documenting the mechanism as verified-closed (research.md R1/R2) and noting the 7-vs-9 scene/registration count
-  relative to the pre-existing motion-parity coverage
+  documenting the mechanism as verified-closed (research.md R1/R2), and explicitly citing the 9 pre-existing
+  non-subdivision `add_parity_test` entries at `tests/visual/CMakeLists.txt:609-679`
+  (`motion-patches-translate`, `motion-patches-deform`, `motion-polygons-translate`, `motion-polygons-deform`,
+  `motion-quadrics-translate`, `motion-quadrics-deform`, their two correlated-table variants, and `dof-motion`) as
+  the evidence satisfying SC-001/the Independent Test's "confirm the mechanism is generic, not subdivision-
+  specific, using a non-subdivision primitive first" requirement — this feature adds 2 new subdivision-specific
+  entries (T008) alongside those 9, not a 7-vs-9 split
 
 **Checkpoint**: US1 independently testable — cross-hider subdivision-surface motion blur is verified and
 regression-locked, with zero renderer code touched.
@@ -166,14 +171,20 @@ tag and value, with the mesh still rendering via a documented fallback.
   out-of-range input while still rendering via a documented fallback (Acceptance Scenario 2) — depends on T023
 - [ ] T025 [US3] Author `examples/rib/tests/subdiv-new-tags-raytrace.rib` using all three new tags together with
   the existing four tags, confirming no `CODE_BADTOKEN` error (Acceptance Scenario 1) — depends on T024
+- [ ] T025a [P] [US3] Author three single-tag isolation scenes —
+  `examples/rib/tests/subdiv-tag-facevaryinginterpolateboundary-raytrace.rib`,
+  `subdiv-tag-facevaryingpropagatecorners-raytrace.rib`, `subdiv-tag-creasemethod-raytrace.rib` — each rendered
+  with and without its one tag on an otherwise-identical mesh, confirming a visible behavioral difference from
+  the tag's absence per-tag (SC-004's literal per-tag requirement, not demonstrable from T025's all-three-at-once
+  scene alone) — depends on T024
 - [ ] T026 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-badvalue-raytrace.rib` supplying an out-of-range
   value for one new tag, confirming the diagnostic + documented fallback (Acceptance Scenario 2) — depends on T024
 - [ ] T027 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib` combining a new tag with
   the existing `hole`/`interpolateboundary` tags already exercised at scale by `geometry/killeroo.rib` (R8),
   confirming interaction correctness (quickstart.md Step 3.3) — depends on T024
-- [ ] T028 [US3] Register `subdiv-new-tags-raytrace.rib`, `subdiv-new-tags-badvalue-raytrace.rib`, and
-  `subdiv-new-tags-with-hole-raytrace.rib` in `tests/visual/CMakeLists.txt`; generate reference `.tif` images —
-  depends on T025, T026, T027
+- [ ] T028 [US3] Register `subdiv-new-tags-raytrace.rib`, `subdiv-new-tags-badvalue-raytrace.rib`,
+  `subdiv-new-tags-with-hole-raytrace.rib`, and T025a's three single-tag isolation scenes in
+  `tests/visual/CMakeLists.txt`; generate reference `.tif` images — depends on T025, T025a, T026, T027
 
 **Checkpoint**: US3 independently testable — all three new tags parse, store, and render correctly, singly and
 combined with existing tags, with correct diagnostics on bad values. **US1 + US2 + US3 together form this
@@ -255,6 +266,10 @@ with a diagnostic, not a whole-primitive failure; confirm RIB round-trip fidelit
 - [ ] T046 [US5] Author `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` with a per-face, per-level
   tag override; confirm the effect is visible only at its targeted face/level and the base mesh's own default
   tags are otherwise unaffected (Acceptance Scenario 1) — depends on T041
+- [ ] T046a [US5] Author `examples/rib/tests/subdiv-hierarchical-tag-override-precedence-raytrace.rib` — a face
+  carrying both a User-Story-3 tag and a hierarchical override at the same `(face, level)`; confirm the
+  override's value visibly wins, verifying `contracts/hierarchical-subdivision-contract.md`'s precedence rule
+  renders correctly (not just resolves correctly in T041's code) — depends on T041, T024
 - [ ] T047 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-invalid-raytrace.rib` targeting a
   nonexistent face/level; confirm the mesh still renders (base mesh intact) with exactly one diagnostic naming
   the invalid override (FR-009) — depends on T040
@@ -265,9 +280,9 @@ with a diagnostic, not a whole-primitive failure; confirm RIB round-trip fidelit
   confirm cross-hider parity within the block-average threshold (SC-005) — depends on T046
 - [ ] T050 [US5] Load `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` in `orender-wire` and confirm
   it parses and draws the base mesh wireframe without crashing (Layer 6 preview sanity) — depends on T044, T046
-- [ ] T051 [US5] Register `subdiv-hierarchical-override-{reyes,raytrace}.rib` and
-  `subdiv-hierarchical-override-invalid-raytrace.rib` in `tests/visual/CMakeLists.txt`; generate reference `.tif`
-  images — depends on T047, T048, T049, T050
+- [ ] T051 [US5] Register `subdiv-hierarchical-override-{reyes,raytrace}.rib`,
+  `subdiv-hierarchical-override-invalid-raytrace.rib`, and T046a's precedence scene in
+  `tests/visual/CMakeLists.txt`; generate reference `.tif` images — depends on T046a, T047, T048, T049, T050
 
 **Checkpoint**: US5 independently testable — `RiHierarchicalSubdivisionMesh` parses, renders with correct override
 precedence, round-trips through RIB, previews (base topology only), and is cross-hider parity-verified; zero
@@ -321,8 +336,9 @@ and close out this feature's documentation deliverables.
   zero matches, unchanged from the T004 baseline (SC-008)
 - [ ] T061 Run the full regression sweep: `ctest --test-dir build -L visual --output-on-failure` and
   `ctest --test-dir build -L libshader --output-on-failure`; confirm all existing scenes plus every new scene
-  above pass (`CShow`-targeting and photon-hider motion-blur scenes are authored-but-not-required, per spec.md's
-  Clarifications) — depends on T060
+  above pass (`CShow`-targeting scenes and T069's photon motion-blur scene are authored-but-not-required per
+  spec.md's Clarifications; T065-T068's other photon-hider scenes are required-to-pass, per FR-014) — depends on
+  T060
 - [ ] T062 [P] Finalize `DEVNOTES_DETAILS/HIDER_PARITY.md`'s subdivision-surfaces section, consolidating the
   Motion Blur / Facevarying / New Tags / Crease Quality / Hierarchical Edits / Loop Scheme subsections each story
   phase appended incrementally
@@ -331,6 +347,17 @@ and close out this feature's documentation deliverables.
 - [ ] T064 Author `CShow`-targeting scenes for each of US1–US6's new capabilities under `examples/rib/tests/` (not
   required to pass, per spec.md's Edge Cases); confirm they are registered in `tests/visual/CMakeLists.txt` as
   authored-not-required, matching the photon-hider motion-blur treatment
+- [ ] T065 [P] [US2] Author `examples/rib/tests/subdiv-facevarying-seam-photon.rib`; register as a required-to-pass
+  `add_visual_test(...)` entry in `tests/visual/CMakeLists.txt` (FR-014's photon-hider requirement) — depends on
+  T016
+- [ ] T066 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-photon.rib`; register as required-to-pass —
+  depends on T024
+- [ ] T067 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-photon.rib`; register as
+  required-to-pass — depends on T041
+- [ ] T068 [P] [US6] Author `examples/rib/tests/subdiv-loop-photon.rib`; register as required-to-pass — depends
+  on T055
+- [ ] T069 [US1] Author `examples/rib/tests/parity/motion-subdiv-translate-photon.rib` (authored-but-not-required,
+  matching the `CShow` treatment per FR-017's photon-motion-blur exception) — depends on T005
 
 ---
 
@@ -344,19 +371,20 @@ safe to run in parallel (subject to the `[P]` marker, which additionally require
 | Level | Tasks |
 |---|---|
 | L0 | T001, T002, T003, T004, T005, T006, T011, T021, T022, T029, T034, T035, T039, T043, T052 |
-| L1 | T007, T008, T009, T012, T023, T030, T036, T053 |
+| L1 | T007, T008, T009, T012, T023, T030, T036, T053, T069 |
 | L2 | T010, T013, T024, T031, T032, T037, T054 |
-| L3 | T014, T025, T026, T027, T033, T038, T055, T057 |
-| L4 | T015, T028, T040, T042, T044, T045, T056, T058 |
+| L3 | T014, T025, T026, T027, T033, T038, T055, T057, T025a, T066 |
+| L4 | T015, T028, T040, T042, T044, T045, T056, T058, T068 |
 | L5 | T016, T041, T047, T059 |
-| L6 | T017, T018, T019, T046 |
+| L6 | T017, T018, T019, T046, T046a, T065, T067 |
 | L7 | T020, T048, T049, T050 |
 | L8 | T051 |
 | L9 | T060, T061, T062, T063, T064 |
 
 Derivation: a task's level is `max(level of every task it depends on) + 1`; tasks with no listed dependency are L0.
 The deepest chain is User Story 5's seven-layer contract (T034→T036→T037→T038→T040→T041→T046→T048/T049/T050→T051,
-8 hops), reflecting that hierarchical edits are genuinely more sequential than the other five stories — RIB
+8 hops; T046a is a shorter parallel branch off T041 also feeding T051), reflecting that hierarchical edits are
+genuinely more sequential than the other five stories — RIB
 grammar must exist before the RI entry point, which must exist before the renderer implementation, which must
 exist before override resolution, before precedence, before the acceptance scene, before round-trip/parity/preview
 verification, before registration.
@@ -459,7 +487,7 @@ Incremental Delivery ordering above would produce.
   order-dependent way (e.g. T012→T013→T014→T015→T016 all touch `subdivisionCreator.{h,cpp}`'s facevarying chain
   in a strict build-on-each-other sequence) or because a later task's assertion depends on an earlier task's code
   change actually existing (e.g. T017 cannot confirm the fix until T016 lands).
-- US5's task count (18, T034–T051) reflects the seven-layer contract's genuine structural size, not
+- US5's task count (19, T034–T051 plus T046a) reflects the seven-layer contract's genuine structural size, not
   over-decomposition — each layer is a materially different file/subsystem (`contracts/
   hierarchical-subdivision-contract.md`), matching how spec 009's own largest story was its most architecturally
   novel one.
