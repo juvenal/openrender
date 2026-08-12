@@ -27,6 +27,7 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Support/MemoryBuffer.h>
@@ -114,6 +115,20 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
         if (!us.empty()) {
             try { info.usedParameters = static_cast<unsigned>(std::stoul(us)); }
             catch (...) { info.usedParameters = 0; }
+        }
+    }
+
+    // Confirm this is really a JIT-callable shader: a defined (not merely
+    // declared) function named `info.name` with the entry signature
+    // void(i32 numVertices, ptr stuff, ptr tags) — the exact lookup the
+    // JIT performs at bind time (see CLLVMJitEngine::compileShader).
+    if (const llvm::Function *fn = mod.getFunction(info.name)) {
+        if (!fn->isDeclaration() && fn->arg_size() == 3 &&
+            fn->getReturnType()->isVoidTy() &&
+            fn->getFunctionType()->getParamType(0)->isIntegerTy(32) &&
+            fn->getFunctionType()->getParamType(1)->isPointerTy() &&
+            fn->getFunctionType()->getParamType(2)->isPointerTy()) {
+            info.hasJitEntry = true;
         }
     }
 

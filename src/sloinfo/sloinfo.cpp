@@ -173,7 +173,15 @@ static int displaySlo(const char *filename) {
         return 1;
     }
 
-    fprintf(stdout, "%s \"%s\"\n", info.typeName.c_str(), info.name.c_str());
+    if (!info.hasJitEntry) {
+        fprintf(stderr,
+                "sloinfo: warning: '%s' has openrender metadata but no matching "
+                "JIT entry function \"%s\" — not a valid JIT-callable shader.\n",
+                filename, info.name.c_str());
+    }
+
+    fprintf(stdout, "%s \"%s\"%s\n", info.typeName.c_str(), info.name.c_str(),
+            info.hasJitEntry ? " (JIT version)" : "");
 
     for (const SLOParamInfo &p : info.params) {
         fprintf(stdout, "\t\"%s\" \"", p.name.c_str());

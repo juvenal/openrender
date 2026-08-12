@@ -53,7 +53,9 @@ struct SLOShaderInfo {
     unsigned int             usedParameters; // PARAMETER_* bitmask (see rendererc.h)
     std::vector<SLOParamInfo> params;      // shader parameters
     std::vector<SLOParamInfo> vars;        // local variables (temporaries)
+    bool                      hasJitEntry; // true if the module defines a callable
+                                            // JIT entry function matching `name`
 
-    SLOShaderInfo() : version(1), usedParameters(0) {}
+    SLOShaderInfo() : version(1), usedParameters(0), hasJitEntry(false) {}
     bool valid() const { return !name.empty() && !typeName.empty(); }
 };

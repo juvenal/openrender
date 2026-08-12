@@ -1433,7 +1433,18 @@ TRSLObjectShader		*rsloGet(const char *in,const char *searchpath) {
 		cShader->name = strdup(fallbackName);
 	}
 	cShader->type		=	shaderType;
-	cShader->parameters	=	parameters;
+
+	// The grammar above prepends each parsed parameter to the head of
+	// "parameters", which leaves the list in reverse declaration order.
+	// Reverse it once here so callers see parameters in source order.
+	TRSLObjectParameter *reversed = NULL;
+	while (parameters != NULL) {
+		TRSLObjectParameter *next = parameters->next;
+		parameters->next = reversed;
+		reversed = parameters;
+		parameters = next;
+	}
+	cShader->parameters	=	reversed;
 
 	return cShader;
 }
