@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "brushedmetal"
 surface
 #!parameters:
 uniform	float	Ka	=	0.2

@@ -38,6 +38,7 @@ DSO													return SCRL_DSO;
 \,													return SCRL_COMMA;
 
 \#\!version[ ]+[0-9]+\.[0-9]+\.[0-9]+\n				{	int	r,b,a;	sscanf(rslotext+9,"%d.%d.%d",&r,&b,&a);	if ((r != VERSION_MAJOR) || (b != VERSION_MINOR)) rsloerror("Version mismatch");	}
+\#\!name[ ]+\"[^\"]*\"\n							{	const char *start = strchr(rslotext,'"') + 1; const char *end = strrchr(rslotext,'"'); size_t len = (size_t) (end - start); if (len >= sizeof(parsedShaderName)) len = sizeof(parsedShaderName) - 1; memcpy(parsedShaderName,start,len); parsedShaderName[len] = '\0'; }
 \"[^\"]*\"											{   strcpy(rslolval.string,&rslotext[1]);	rslolval.string[strlen(rslolval.string)-1] = '\0'; osProcessEscapes(rslolval.string); return SCRL_TEXT_VALUE;}
 [a-zA-Z\_][a-zA-Z0-9\_]*							{	strcpy(rslolval.string,rslotext); return SCRL_IDENTIFIER_VALUE; }
 \#\![a-zA-Z][a-zA-Z0-9\_]*							{	strcpy(rslolval.string,rslotext); return SCRL_LABEL_VALUE; }

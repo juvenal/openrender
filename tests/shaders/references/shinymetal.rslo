@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "shinymetal"
 surface
 #!parameters:
 uniform	float	Ka	=	1

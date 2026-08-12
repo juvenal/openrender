@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "windowlight"
 light
 #!parameters:
 uniform	point	from

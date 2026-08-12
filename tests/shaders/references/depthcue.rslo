@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "depthcue"
 volume
 #!parameters:
 uniform	float	mindistance	=	0

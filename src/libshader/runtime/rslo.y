@@ -49,6 +49,7 @@
 		UDefaultVal		*currentDefaultItem;
 		int				numArrayItemsRemaining;
 		ERSLObjectShaderType	shaderType;
+		char			parsedShaderName[512];	// Populated by the "#!name" pragma, if present
 
 %}
 %union rsloval {
@@ -1401,7 +1402,8 @@ TRSLObjectShader		*rsloGet(const char *in,const char *searchpath) {
 
 	if (rsloin == NULL)	return NULL;
 
-	parameters	=	NULL;
+	parameters			=	NULL;
+	parsedShaderName[0]	=	'\0';
 
 	rsloparse();
 
@@ -1409,7 +1411,27 @@ TRSLObjectShader		*rsloGet(const char *in,const char *searchpath) {
 
 	cShader	=	new TRSLObjectShader;
 
-	cShader->name		=	strdup(in);
+	if (parsedShaderName[0] != '\0') {
+		// The file carried a "#!name" pragma — use it.
+		cShader->name = strdup(parsedShaderName);
+	} else {
+		// Older .rslo/.sdr file with no "#!name" pragma: derive the name
+		// from the leaf filename (strip directory and extension).
+		char fallbackName[512];
+		const char *leaf = in;
+		const char *lastSlash = strrchr(in, '/');
+		const char *lastBackslash = strrchr(in, '\\');
+		if (lastBackslash && (!lastSlash || lastBackslash > lastSlash)) lastSlash = lastBackslash;
+		if (lastSlash) leaf = lastSlash + 1;
+
+		strncpy(fallbackName, leaf, sizeof(fallbackName));
+		fallbackName[sizeof(fallbackName)-1] = '\0';
+		char *fallbackDot = strrchr(fallbackName, '.');
+		if (fallbackDot && (strcmp(fallbackDot, ".sdr") == 0 || strcmp(fallbackDot, ".rslo") == 0)) {
+			*fallbackDot = '\0';
+		}
+		cShader->name = strdup(fallbackName);
+	}
 	cShader->type		=	shaderType;
 	cShader->parameters	=	parameters;
 

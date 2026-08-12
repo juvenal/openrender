@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "bump_lowfreq"
 displacement
 #!parameters:
 uniform	float	Km	=	1.0

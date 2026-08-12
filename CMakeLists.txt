@@ -431,7 +431,7 @@ if(INSTALL_SELFCONTAINED)
 
         # Collect installed executables that exist (some may be optional).
         set(_scan_exes)
-        foreach(_exe orender oshader otexmake rsloinfo oshow)
+        foreach(_exe orender oshader otexmake sloinfo oshow)
             if(EXISTS \"\${_binpath}/\${_exe}\")
                 list(APPEND _scan_exes \"\${_binpath}/\${_exe}\")
             endif()

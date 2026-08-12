@@ -29,11 +29,15 @@
 // CRSLObjectEmitter::emit
 // -------------------------------------------------------------------------
 
-void CRSLObjectEmitter::emit(const IRModule &mod, FILE *out) {
+void CRSLObjectEmitter::emit(const IRModule &mod, FILE *out, const char *shaderName) {
     assert(out != nullptr);
 
     // Version line.
     fprintf(out, "#!version %s\n", mod.version.c_str());
+
+    // Shader name.
+    if (shaderName != nullptr)
+        fprintf(out, "#!name \"%s\"\n", shaderName);
 
     // Shader type.
     fprintf(out, "%s\n", mod.shaderType.c_str());

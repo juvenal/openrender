@@ -186,14 +186,6 @@ static int displaySlo(const char *filename) {
             fprintf(stdout, "\t\tDefault value: %s\n", p.defaultStr.c_str());
     }
 
-    if (!info.vars.empty()) {
-        fprintf(stdout, "  # local variables (%zu):\n", info.vars.size());
-        for (const SLOParamInfo &v : info.vars) {
-            fprintf(stdout, "\t\"%s\" \"%s %s\"\n",
-                    v.name.c_str(), v.storage.c_str(), v.typeName.c_str());
-        }
-    }
-
     return 0;
 }
 #endif // OPENRENDER_HAVE_LLVM

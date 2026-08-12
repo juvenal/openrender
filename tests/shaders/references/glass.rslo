@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "glass"
 surface
 #!parameters:
 uniform	float	eta	=	1.5

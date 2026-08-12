@@ -1,4 +1,5 @@
 #!version 1.0.0
+#!name "metal"
 surface
 #!parameters:
 uniform	float	Ka	=	1

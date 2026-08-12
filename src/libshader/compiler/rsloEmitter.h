@@ -40,7 +40,9 @@ public:
     // Emit the full .sdr file including headers and code sections.
     // The version line and shader type line are written first, then
     // #!parameters:, #!variables:, #!Init: and #!Code: sections.
-    void emit(const IRModule &mod, FILE *out);
+    // shaderName, when non-null, is written as a "#!name" line right after
+    // the version line (mirrors CScriptContext::generateCode()).
+    void emit(const IRModule &mod, FILE *out, const char *shaderName = nullptr);
 
     // Emit only the #!Init: and #!Code: function sections to an already-open
     // file.  Use this when the caller has already written the header sections
