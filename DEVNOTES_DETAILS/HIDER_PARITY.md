@@ -101,3 +101,86 @@ pre-existing (present in code before and unrelated to the 008-hider-parity-conve
 T040/T041 `evaluateDepth` extraction — reproduces identically on both sides of
 that refactor). Not fixed here; tracked as a residual defect, out of scope for
 this spec.
+
+## Subdivision Surfaces (spec 010-full-subdivision-support)
+
+`CSubdivMesh : CObject` / `CSubdivision : CSurface` already satisfy the
+generic `CObject`/`CSurface` virtual-dispatch contract (`src/ri/object.h:
+60-144`) by construction — no hider file contains a subdivision-specific
+branch, and this feature's own regression check (FR-013,
+`contracts/hider-invariant-contract.md`) verifies that stays true. This
+section tracks cross-hider parity/status for subdivision-surface capability
+specifically, the same way the sections above track it for the shading
+pipeline generally.
+
+### Motion Blur
+
+**Closed — User Story 1 (P1), verification-only.** `CSubdivMesh : CObject` /
+`CSubdivision : CSurface` reach the raytracer's tessellation path
+(`CTesselationPatch::sampleTesselation()`/`intersect()`,
+`surface.cpp:1393-1513,1164-1319`) through the same generic virtual dispatch
+as `CPatchMesh`/`CBicubicPatch`, and object (non-camera) motion blur across
+REYES and raytrace was already closed for that shared path (see the
+Object/Surface Motion Blur entry above). No new renderer code was needed to
+extend that to subdivision surfaces (research.md R1/R2) — this subsection
+documents the confirming evidence, not a fix.
+
+Evidence is the 9 pre-existing non-subdivision `add_parity_test` entries at
+`tests/visual/CMakeLists.txt:609-679` (`motion-patches-translate`,
+`motion-patches-translate-correlated`, `motion-patches-deform`,
+`motion-polygons-translate`, `motion-polygons-deform`,
+`motion-quadrics-translate`, `motion-quadrics-translate-correlated`,
+`motion-quadrics-deform`, `dof-motion`) — which already prove the mechanism
+is generic across primitive types — **plus** this feature's 2 new
+subdivision-specific entries registered immediately after them:
+
+- `motion-subdiv-translate` (transform-motion via a `MotionBegin`-wrapped
+  `Translate` around a `SubdivisionMesh`) — measured ~4.48 max block-avg
+  diff, well within the standard threshold of 20, consistent with the six
+  non-deform scenes above.
+- `motion-subdiv-rotate` (transform-motion via a `MotionBegin`-wrapped 75°
+  `Rotate`, exercising `CSubdivision::sample()`'s two-time-sample eigen-basis
+  path, `subdivision.cpp:149-188`) — measured ~37.8-38.3 max block-avg diff
+  across repeated runs, confirmed not an undersampling artifact (doubling
+  `PixelSamples` to 8x8 moved the measurement by <0.5). A genuinely rotating
+  Catmull-Clark limit surface sweeps more silhouette per shutter than the
+  translate/deform cases, producing a larger (but still bounded, legitimate)
+  REYES-dicing-vs-raytrace-tessellation antialiasing residual. Registered at
+  threshold 45 (~1.2x measured), following the same margin convention as
+  `dof-motion`'s threshold of 40.
+
+This is 11 total registrations proving the mechanism generically, not a
+"7-vs-9" or subdivision-only split — the 9 pre-existing scenes already
+closed the generic case; the 2 new ones extend coverage to subdivision
+surfaces specifically.
+
+### Facevarying
+
+_Pending — User Story 2 (P1). Tracks the `CSVertex`/`CVertexFace`
+facevarying pointer-collapse fix (`subdivisionCreator.{h,cpp}`) and its
+cross-hider verification._
+
+### New Tags
+
+_Pending — User Story 3 (P1). Tracks
+`facevaryinginterpolateboundary`/`facevaryingpropagatecorners`/`creasemethod`
+tag support added to `ri.h`/`ri.cpp`/`subdivisionCreator.cpp`._
+
+### Crease Quality
+
+_Pending — User Story 4 (P2, gated on reproduction). Tracks whether the
+known crease-quality/efficiency issue (`DEVNOTES.md`) reproduces, and if so,
+whether it shares a root cause with the Facevarying fix above._
+
+### Hierarchical Edits
+
+_Pending — User Story 5 (P3). Tracks the new, parallel
+`RiHierarchicalSubdivisionMesh[V]` primitive
+(`contracts/hierarchical-subdivision-contract.md`) across its seven
+integration layers._
+
+### Loop Scheme
+
+_Pending — User Story 6 (P4). Tracks the Loop subdivision algorithm as a
+second scheme alongside Catmull-Clark, sharing the same
+`CObject`/`CSurface` integration seam._

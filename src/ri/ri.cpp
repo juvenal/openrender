@@ -161,6 +161,9 @@ RtToken RI_HOLE = "hole";
 RtToken RI_CREASE = "crease";
 RtToken RI_CORNER = "corner";
 RtToken RI_INTERPOLATEBOUNDARY = "interpolateboundary";
+RtToken RI_FACEVARYINGINTERPOLATEBOUNDARY = "facevaryinginterpolateboundary";
+RtToken RI_FACEVARYINGPROPAGATECORNERS = "facevaryingpropagatecorners";
+RtToken RI_CREASEMETHOD = "creasemethod";
 
 RtToken RI_CURRENT = "current";
 RtToken RI_WORLD = "world";

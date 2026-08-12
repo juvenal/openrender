@@ -682,7 +682,104 @@ add_parity_test(dof-motion
     examples/rib/tests/parity/dof-motion-raytrace.rib
     dof-motion-raytrace.tif  40)
 
+# --- Subdivision surfaces (spec 010-full-subdivision-support, US1) — same
+# generic tessellation-path mechanism as the six patches/polygons/quadrics
+# scenes above, exercised on CSubdivMesh/CSubdivision instead; confirms the
+# mechanism needs zero subdivision-specific code (research.md R1/R2). The
+# translate scene (transform-motion via MotionBegin-wrapped Translate)
+# measured ~4.48, in line with the standard-threshold scenes above, so it
+# keeps the default 20. The rotate scene (transform-motion via
+# MotionBegin-wrapped Rotate, 75 degrees) measured ~37.8-38.3 across runs
+# (confirmed stable, not an undersampling artifact -- doubling PixelSamples
+# to 8x8 moved it by <0.5) -- a genuinely rotating Catmull-Clark limit
+# surface's silhouette sweeps more screen area per shutter than the
+# translate/deform cases above, producing more REYES-dicing-vs-raytrace-
+# tessellation antialiasing residual on the edge. Threshold set at 45
+# (~1.2x measured), the same margin-based convention used for dof-motion.
+add_parity_test(motion-subdiv-translate
+    examples/rib/tests/parity/motion-subdiv-translate-reyes.rib
+    motion-subdiv-translate-reyes.tif
+    examples/rib/tests/parity/motion-subdiv-translate-raytrace.rib
+    motion-subdiv-translate-raytrace.tif  20)
+
+add_parity_test(motion-subdiv-rotate
+    examples/rib/tests/parity/motion-subdiv-rotate-reyes.rib
+    motion-subdiv-rotate-reyes.tif
+    examples/rib/tests/parity/motion-subdiv-rotate-raytrace.rib
+    motion-subdiv-rotate-raytrace.tif  45)
+
+# --- Subdivision surfaces facevarying seam (spec 010-full-subdivision-support,
+# US2/T017-T020) — a 2x2-quad Catmull-Clark mesh whose center vertex is shared
+# by all 4 faces, each carrying a distinct "facevarying float[2] st" corner
+# value ((1.0,0.0)/(0.0,1.0)/(1.0,1.0)/(0.3,0.3)); show_st.sl colors each
+# fragment by its (s,t), so a correctly-preserved seam renders 4 visibly
+# distinct colors meeting at the vertex instead of collapsing to one (the
+# T011-T016 bug this locks in a fix for). Both scenes pin
+# Option "shaderformat" "default" ["rslo"] — the JIT (.slo) backend has an
+# unrelated, pre-existing gap that drops show_st's explicit-colorspace
+# "color \"rgb\" (s,t,0)" constructor entirely (see DEVNOTES_DETAILS/BUGS.md);
+# pinning rslo sidesteps it and keeps this scene's result independent of the
+# local machine's default shader-format configuration. ---
+add_visual_test(subdiv-facevarying-seam-raytrace
+    examples/rib/tests/subdiv-facevarying-seam-raytrace.rib
+    subdiv-facevarying-seam-raytrace.tif  subdiv-facevarying-seam-raytrace.tif)
+
+add_visual_test(subdiv-facevarying-seam-reyes
+    examples/rib/tests/subdiv-facevarying-seam-reyes.rib
+    subdiv-facevarying-seam-reyes.tif  subdiv-facevarying-seam-reyes.tif)
+
+add_parity_test(subdiv-facevarying-seam
+    examples/rib/tests/subdiv-facevarying-seam-reyes.rib
+    subdiv-facevarying-seam-reyes.tif
+    examples/rib/tests/subdiv-facevarying-seam-raytrace.rib
+    subdiv-facevarying-seam-raytrace.tif  20)
+
+# --- Subdivision surfaces: new tags (spec 010-full-subdivision-support,
+# US3/T021-T028) — facevaryinginterpolateboundary, facevaryingpropagatecorners,
+# and creasemethod, previously unsupported (any unrecognized tag hit
+# CODE_BADTOKEN). Raytrace-only: these are geometry/tag-parsing correctness
+# checks, not cross-hider parity checks, and the raytrace hider is this
+# project's shading-correctness ground truth for facevarying/crease scenes
+# (only per-ray shading, not REYES micropolygon dicing, genuinely
+# supersamples shading detail). ---
+add_visual_test(subdiv-new-tags-raytrace
+    examples/rib/tests/subdiv-new-tags-raytrace.rib
+    subdiv-new-tags-raytrace.tif  subdiv-new-tags-raytrace.tif)
+
+# Single-tag isolation scenes (T025a) — each isolates one new tag's visible
+# effect against an otherwise-identical mesh with the tag absent/defaulted.
+# The facevaryingpropagatecorners scene requires "interpolateboundary" to be
+# present: on this coarse 2x2-face mesh, omitting it lets the Catmull-Clark
+# limit surface collapse to geometry no raytraced ray intersects at all
+# (byte-identical blank renders regardless of the tag under test) -- a
+# test-scene authoring pitfall, not a renderer defect.
+add_visual_test(subdiv-tag-facevaryinginterpolateboundary-raytrace
+    examples/rib/tests/subdiv-tag-facevaryinginterpolateboundary-raytrace.rib
+    subdiv-tag-facevaryinginterpolateboundary-raytrace.tif
+    subdiv-tag-facevaryinginterpolateboundary-raytrace.tif)
+
+add_visual_test(subdiv-tag-facevaryingpropagatecorners-raytrace
+    examples/rib/tests/subdiv-tag-facevaryingpropagatecorners-raytrace.rib
+    subdiv-tag-facevaryingpropagatecorners-raytrace.tif
+    subdiv-tag-facevaryingpropagatecorners-raytrace.tif)
+
+add_visual_test(subdiv-tag-creasemethod-raytrace
+    examples/rib/tests/subdiv-tag-creasemethod-raytrace.rib
+    subdiv-tag-creasemethod-raytrace.tif
+    subdiv-tag-creasemethod-raytrace.tif)
+
+# Out-of-range tag value (T026) — facevaryinginterpolateboundary=99 must warn
+# and fall back to the documented default (2), not error out.
+add_visual_test(subdiv-new-tags-badvalue-raytrace
+    examples/rib/tests/subdiv-new-tags-badvalue-raytrace.rib
+    subdiv-new-tags-badvalue-raytrace.tif  subdiv-new-tags-badvalue-raytrace.tif)
+
+# New tag combined with the existing hole/interpolateboundary tags (T027).
+add_visual_test(subdiv-new-tags-with-hole-raytrace
+    examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib
+    subdiv-new-tags-with-hole-raytrace.tif  subdiv-new-tags-with-hole-raytrace.tif)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      45 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 21 scene pairs registered under label 'parity'")
+message(STATUS "      53 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 22 scene pairs registered under label 'parity'")

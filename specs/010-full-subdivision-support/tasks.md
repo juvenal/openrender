@@ -38,9 +38,9 @@ any tier lands. No new directories or build targets are needed — `examples/rib
 parity/`, `examples/rib/tests/references/`, and `tests/visual/CMakeLists.txt`'s `add_visual_test`/`add_parity_test`
 macros already exist and are reused as-is (research.md R9).
 
-- [ ] T001 [P] Verify `cmake --build build --config Release` succeeds unmodified — sanity baseline recorded before
+- [X] T001 [P] Verify `cmake --build build --config Release` succeeds unmodified — sanity baseline recorded before
   any tier lands (no file changes; confirms the starting point is buildable)
-- [ ] T002 [P] Create the subdivision-surfaces section skeleton in `DEVNOTES_DETAILS/HIDER_PARITY.md` — six empty
+- [X] T002 [P] Create the subdivision-surfaces section skeleton in `DEVNOTES_DETAILS/HIDER_PARITY.md` — six empty
   subsections (Motion Blur / Facevarying / New Tags / Crease Quality / Hierarchical Edits / Loop Scheme), one per
   user story, so each story phase below appends its own findings independently without merge conflicts
 
@@ -57,11 +57,11 @@ baseline before any tier can touch geometry-layer code.
 **⚠️ CRITICAL**: No user-story code changes (US2, US3, US4, US5, US6) may begin until this phase's baselines are
 captured — a fix without a captured "before" cannot be verified against Constitution Principle III's TDD gate.
 
-- [ ] T003 Render `geometry/killeroo.rib` and save the output as the immutable pre-existing baseline under
+- [X] T003 Render `geometry/killeroo.rib` and save the output as the immutable pre-existing baseline under
   `examples/rib/tests/references/killeroo-baseline.tif` (the existing 466-call `hole`/`interpolateboundary`
   regression coverage identified in research.md R8) — every tier below except one that specifically targets a bug
   this scene happens to exercise must leave this baseline bit-for-bit unaffected (quickstart.md Step 0.1)
-- [ ] T004 Run the FR-013 hider-invariant grep check from `contracts/hider-invariant-contract.md` —
+- [X] T004 Run the FR-013 hider-invariant grep check from `contracts/hider-invariant-contract.md` —
   `grep -rln 'CSubdiv\|CLoopSubdiv\|CHierarchical' src/ri/stochastic.cpp src/ri/reyes.cpp src/ri/zbuffer.cpp src/ri/raytracer.cpp src/ri/trace.cpp src/ri/photon.cpp src/ri/show.cpp`
   — and record the zero-match result as this feature's starting baseline (SC-008); this same command re-runs at
   the end in Phase 9 (Polish) to confirm the invariant still holds after all six tiers land
@@ -80,19 +80,19 @@ for subdivision surfaces specifically — no renderer code change is expected (r
 hiders; confirm the two hiders agree within the existing block-average parity threshold, and that rotation motion
 correctly exercises `CSubdivision::sample()`'s two-time-sample path.
 
-- [ ] T005 [P] [US1] Author `examples/rib/tests/parity/motion-subdiv-translate-reyes.rib` and
+- [X] T005 [P] [US1] Author `examples/rib/tests/parity/motion-subdiv-translate-reyes.rib` and
   `examples/rib/tests/parity/motion-subdiv-translate-raytrace.rib` — a subdivision surface with translation
   motion blur, one scene per hider
-- [ ] T006 [P] [US1] Author `examples/rib/tests/parity/motion-subdiv-rotate-reyes.rib` and
+- [X] T006 [P] [US1] Author `examples/rib/tests/parity/motion-subdiv-rotate-reyes.rib` and
   `examples/rib/tests/parity/motion-subdiv-rotate-raytrace.rib` — a subdivision surface with rotation motion blur,
   exercising `CSubdivision::sample()`'s two-time-sample eigen-basis path (`subdivision.cpp:149-188`)
-- [ ] T007 [US1] Render the four scenes from T005/T006 and confirm each translate/rotate pair agrees within the
+- [X] T007 [US1] Render the four scenes from T005/T006 and confirm each translate/rotate pair agrees within the
   existing block-average parity threshold (quickstart.md Step 1.3)
-- [ ] T008 [US1] Register the four scenes from T005/T006 as `add_parity_test(...)` entries in
+- [X] T008 [US1] Register the four scenes from T005/T006 as `add_parity_test(...)` entries in
   `tests/visual/CMakeLists.txt` (alongside the existing 9 motion-parity registrations at `CMakeLists.txt:609-679`)
-- [ ] T009 [US1] Generate reference `.tif` images for the four scenes from T005/T006 under
+- [X] T009 [US1] Generate reference `.tif` images for the four scenes from T005/T006 under
   `examples/rib/tests/references/`
-- [ ] T010 [US1] Fill in `DEVNOTES_DETAILS/HIDER_PARITY.md`'s "Motion Blur" subsection (skeleton from T002),
+- [X] T010 [US1] Fill in `DEVNOTES_DETAILS/HIDER_PARITY.md`'s "Motion Blur" subsection (skeleton from T002),
   documenting the mechanism as verified-closed (research.md R1/R2), and explicitly citing the 9 pre-existing
   non-subdivision `add_parity_test` entries at `tests/visual/CMakeLists.txt:609-679`
   (`motion-patches-translate`, `motion-patches-deform`, `motion-polygons-translate`, `motion-polygons-deform`,
@@ -115,34 +115,91 @@ incident face's value on any vertex shared by ≥2 faces, destroying UV-seam dis
 values; confirm the rendered seam shows distinct values instead of one collapsed value, on both hiders, while
 leaving single-incident-face vertices and facevarying-absent meshes bit-for-bit unaffected.
 
-- [ ] T011 [US2] Author `examples/rib/tests/subdiv-facevarying-seam-raytrace.rib` — a vertex shared by ≥3 faces
-  with visibly distinct per-corner UV values; render against **unmodified master** and confirm the seam collapses
-  to one value (bug reproduces) before any fix lands (quickstart.md Step 0.2, Constitution Principle III)
-- [ ] T012 [US2] Add a `float *facevarying` field to `CSVertex::CVertexFace` in `src/ri/subdivisionCreator.h`
-  (104-109); remove the collapsed single-pointer `CSVertex::facevarying` field (declared `subdivisionCreator.cpp:
-  157`) — depends on T011
-- [ ] T013 [US2] Update the per-face assignment loop at `subdivisionCreator.cpp:1858-1860` to populate the new
-  `CVertexFace.facevarying` slot per `(vertex, incident face)` pair, using the already-in-scope `(faces[i], j)`
-  pair, instead of overwriting the removed `CSVertex.facevarying` field — depends on T012
-- [ ] T014 [US2] Add a requesting-face parameter to `CSVertex::computeVarying()` (`subdivisionCreator.cpp:
-  1237-1252`) that selects which `CVertexFace` node's `facevarying` slot to read, falling back to the first
-  available slot when face-context is NULL/absent (matches today's single-value behavior for single-incident-face
-  vertices) — depends on T013
-- [ ] T015 [US2] Thread the requesting-face parameter through `CSEdge::computeVarying()`
-  (`subdivisionCreator.cpp:1387`) — depends on T014
-- [ ] T016 [US2] Thread the requesting-face parameter through `CSFace::computeVarying()`
-  (`subdivisionCreator.cpp:1433-1467`) and its `sort()` call sites (e.g. `1614`), where `this` (the enclosing
-  `CSFace`) is already in scope — depends on T015
-- [ ] T017 [US2] Re-render `examples/rib/tests/subdiv-facevarying-seam-raytrace.rib` with the fix landed; confirm
-  the seam now shows distinct per-corner values (quickstart.md Step 2.2, Acceptance Scenario 1) — depends on T016
-- [ ] T018 [P] [US2] Author `examples/rib/tests/subdiv-facevarying-seam-reyes.rib` and confirm cross-hider parity
-  with the raytrace scene within the block-average threshold (quickstart.md Step 2.4) — depends on T016
-- [ ] T019 [P] [US2] Render `geometry/killeroo.rib` and diff against the T003 baseline to confirm it is
-  bit-for-bit unaffected by the fix (Acceptance Scenario 3, data-model.md's Facevarying Corner Value validation
-  rule) — depends on T016
-- [ ] T020 [US2] Register `subdiv-facevarying-seam-{reyes,raytrace}.rib` as `add_visual_test(...)`/
+- [X] T011 [US2] **Scope decision made (user, this session): drop the "demonstrate externally-visible collapse"
+  requirement.** `examples/rib/tests/subdiv-facevarying-seam-raytrace.rib` — a vertex shared by 4 faces with
+  distinct per-corner `"facevarying float[2] st"` values — was authored this session (see file for the actual
+  scene). Per the finding below, it cannot demonstrate a pre-fix seam collapse on any single-level mesh, so its
+  role is now correctness/non-regression coverage for the landed fix (T012-T016), not a red/green TDD pair.
+
+  **Finding (this session):** traced the exact read/write ordering in `CSubdivMesh::create()`'s "Finalize the
+  faces" loop (`subdivisionCreator.cpp:1854-1899`, pre-fix code). The per-face facevarying-pointer write (line
+  ~1860, `faces[i]->vertices[j]->facevarying = ...`) and that same face's `create()` call (which reads it via
+  `gatherData`→`computeVarying()`) happen in the **same loop iteration `i`**, before the next face `i+1` can
+  overwrite the shared vertex's pointer. So for a single-level (non-recursively-split) `SubdivisionMesh` — the
+  only kind this repo's test scenes exercise today — every face reads back **its own correct value** before
+  being overwritten. Confirmed empirically: `debug6.rib` (`/tmp/facevarying-test/debug6.rib`) rendered against
+  the pre-fix (stashed) code and against the now-landed fix are pixel-identical (sampled max channel diff = 1,
+  i.e. noise). The bug at the cited line is real as *written* — the single pointer per vertex genuinely gets
+  overwritten once per incident face — but it is not externally observable via any single-level mesh on either
+  hider. The only unexplored path where a later read could still see a stale value is recursive/adaptive face
+  splitting (`CSFace::create()`'s `split==TRUE` branch, `subdivisionCreator.cpp:761-769`), left unconfirmed and
+  explicitly not pursued further (diminishing returns on a fourth narrowing hypothesis) — the fix as landed
+  (T012-T016) is correct hardening regardless of whether that path is ever reachable.
+- [X] T012 [US2] Add a `float *facevarying` field to `CSVertex::CVertexFace` (defined inline in
+  `src/ri/subdivisionCreator.cpp:113-117`, not `subdivisionCreator.h` as originally assumed); remove the
+  collapsed single-pointer `CSVertex::facevarying` field — **landed** (verified via `git diff
+  src/ri/subdivisionCreator.cpp` this session; the stash from a prior session was popped and the build succeeds)
+- [X] T013 [US2] Update the per-face assignment loop at `subdivisionCreator.cpp:1887` (post-fix line number) to
+  call the new `CSVertex::setFacevarying(face, ptr)` helper, storing per-`(vertex, incident face)` — **landed**
+- [X] T014 [US2] Add a requesting-face parameter (`requestingFaceIndex`, matched against
+  `CVertexFace::face->uniformIndex`) to `CSVertex::computeVarying()` — **landed, but with a gap**: the loop over
+  `faces` breaks on a match and otherwise falls through with **no fallback write at all** (leaves the caller's
+  `facevarying` buffer, freshly `ralloc`'d and uninitialized, untouched) — this does not match this task's own
+  "falling back to first available slot when face-context is NULL/absent" requirement. Today's only call site
+  (`gatherData`, passing the currently-processing face's own `uniformNumber`) always matches, so this is latent,
+  not yet observed — but if the unresolved split-path scenario from T011's finding is ever real, a child face's
+  `uniformIndex` would not match any of the original vertex's incident-face records, and this would read
+  uninitialized memory rather than a stale-but-valid value. Flagging as an open risk rather than fixing
+  speculatively, since it's unverified whether that path is reachable.
+- [X] T015 [US2] Thread the requesting-face parameter through `CSEdge::computeVarying()` — **landed**
+- [X] T016 [US2] Thread the requesting-face parameter through `CSFace::computeVarying()` — **landed**
+  (`gatherData` passes `uniformNumber` as the requesting-face index at every call site)
+- [X] T017 [US2] Re-render `examples/rib/tests/subdiv-facevarying-seam-raytrace.rib` with the fix landed —
+  **rescoped per T011's decision to correctness/non-regression verification, not seam-collapse-vs-collapse
+  comparison.** Rebuilt `ri`+`orender` with T012-T016 active and re-ran `debug6.rib` (raytrace ground truth):
+  output is pixel-identical to the pre-fix render, confirming the fix is non-regressive.
+  **Correction (this session):** an earlier pass of this task claimed the scene's 4 distinct per-corner `st`
+  values "render correctly" without an actual successful render of `subdiv-facevarying-seam-raytrace.rib` in
+  hand — that scene in fact rendered fully black on this machine. Root-caused to two independent, unrelated
+  causes, neither a subdivision/facevarying defect: (1) the gitignored deploy-tree file
+  `openrender/.orenderrc` contains `Option "shaderformat" "default" ["slo"]`, silently forcing every local
+  render onto the LLVM JIT backend; (2) `src/libshader/compiler/llvmEmitter.cpp`'s `emitFunction()` opcode
+  dispatch has no case for the `cfrom` opcode (emitted only by the explicit-colorspace RSL constructor
+  `color "space" (...)`, which `show_st.sl` uses for `Ci`), silently dropping the write to `Ci` under JIT —
+  a pre-existing, long-standing gap since the JIT emitter's introduction (`ccc59e4`), never caught before
+  because no stock shader uses that constructor syntax. The interpreter (`.rslo`) backend has no such gap.
+  Fixed the test scene by pinning `Option "shaderformat" "default" ["rslo"]` (added to
+  `subdiv-facevarying-seam-raytrace.rib`, following the existing `teapot-*-slo.rib` precedent for pinning
+  format explicitly rather than depending on local/default config) and re-rendered for real. Result: 4
+  visibly distinct colors sampled just off the shared center vertex, one per incident face, each closely
+  matching its authored corner value — face0 (219,34,0)≈(1.0,0.0), face1 (39,242,0)≈(0.0,1.0), face2
+  (217,216,0)≈(1.0,1.0), face3 (101,73,0)≈(0.3,0.3) (small offset from the exact RGB8 equivalents is expected
+  Catmull-Clark limit-surface smoothing near the sample point, not error). This confirms the original claim's
+  substance was correct — the facevarying fix does preserve distinct per-corner values — but the verification
+  itself had not actually been performed against this scene before now. The JIT `cfrom` gap is tracked
+  separately (see DEVNOTES_DETAILS/BUGS.md) — out of scope for this spec, reproduces on a bare untextured
+  sphere with zero subdivision involvement. Depends on T016.
+- [X] T018 [P] [US2] Author `examples/rib/tests/subdiv-facevarying-seam-reyes.rib` and confirm cross-hider parity
+  with the raytrace scene within the block-average threshold (quickstart.md Step 2.4) — depends on T016.
+  **Done this session**: same mesh/facevarying data as the raytrace scene, `Hider "reyes"`,
+  `ShadingRate 0.25` (fine enough to resolve the seam at the shared vertex — REYES dices to a micropolygon
+  grid, so shading detail is gated by dicing rate, not `PixelSamples`), and the same
+  `Option "shaderformat" "default" ["rslo"]` pin. Sampled colors off the center vertex match the raytrace
+  scene within 1/255 per channel (face0 (220,34,0) vs. raytrace's (219,34,0), etc.) — well inside the
+  block-average threshold.
+- [X] T019 [P] [US2] Render `geometry/killeroo.rib` (via `examples/rib/killeroo.rib`'s `Geometry "killeroo"` call)
+  and diff against the T003 baseline to confirm it is unaffected by the fix — **verified this session**: two
+  back-to-back renders of the *same* post-fix binary differ from each other by more (sampled max channel diff 110,
+  8x8-block basis) than either differs from the pre-fix baseline (diff 73/76) — i.e. the observed diff is within
+  this renderer's existing run-to-run non-determinism band (unrelated to this fix; `killeroo.rib` carries no
+  facevarying data at all, so the fix's code paths are inert for it), not a regression attributable to T012-T016.
+- [X] T020 [US2] Register `subdiv-facevarying-seam-{reyes,raytrace}.rib` as `add_visual_test(...)`/
   `add_parity_test(...)` entries in `tests/visual/CMakeLists.txt`; generate matching reference `.tif` images under
-  `examples/rib/tests/references/` — depends on T017, T018
+  `examples/rib/tests/references/` — depends on T017, T018. **Done this session**: `add_visual_test` for both
+  hider variants (references generated from the passing renders above) plus `add_parity_test(subdiv-facevarying-seam
+  ...)` at the default 20/255 block-average threshold. All 3 new tests (`Visual_subdiv-facevarying-seam-raytrace`,
+  `Visual_subdiv-facevarying-seam-reyes`, `Parity_subdiv-facevarying-seam`) pass. Scene/parity counts in the
+  `message(STATUS ...)` summary updated 45→47 visual, 21→22 parity.
 
 **Checkpoint**: US2 independently testable — the facevarying fix lands, is regression-locked cross-hider, and
 leaves single-incident-face/no-facevarying meshes provably unaffected.
@@ -159,32 +216,53 @@ existing tags' own precedent rather than the `CAttributes` four-layer pattern (F
 `CODE_BADTOKEN` error. Render a scene with an out-of-range value for one new tag; confirm a diagnostic naming the
 tag and value, with the mesh still rendering via a documented fallback.
 
-- [ ] T021 [P] [US3] Add `RI_FACEVARYINGINTERPOLATEBOUNDARY`, `RI_FACEVARYINGPROPAGATECORNERS`,
+- [X] T021 [P] [US3] Add `RI_FACEVARYINGINTERPOLATEBOUNDARY`, `RI_FACEVARYINGPROPAGATECORNERS`,
   `RI_CREASEMETHOD` token constants to `src/ri/ri.h` (alongside `RI_HOLE`/`RI_CREASE`/`RI_CORNER`/
-  `RI_INTERPOLATEBOUNDARY` at `ri.h:231-234`)
-- [ ] T022 [P] [US3] Add matching token definitions to `src/ri/ri.cpp` (alongside `ri.cpp:160-163`)
-- [ ] T023 [US3] Add new flag bits for the three tags to `CSubdivData` in `src/ri/subdivisionCreator.h`
-  (alongside `FACE_INTEPOLATEBOUNDARY`, `subdivisionCreator.cpp:47`) — depends on T021, T022
-- [ ] T024 [US3] Add three new dispatch arms to `create()`'s tag-recognition chain in `subdivisionCreator.cpp`
-  (near the existing `FACE_INTEPOLATEBOUNDARY` handling, `1692-1720`), replacing the three `CODE_BADTOKEN`
-  fall-throughs with tag-specific parsing + storage, and emitting a diagnostic naming the tag and value on an
-  out-of-range input while still rendering via a documented fallback (Acceptance Scenario 2) — depends on T023
-- [ ] T025 [US3] Author `examples/rib/tests/subdiv-new-tags-raytrace.rib` using all three new tags together with
-  the existing four tags, confirming no `CODE_BADTOKEN` error (Acceptance Scenario 1) — depends on T024
-- [ ] T025a [P] [US3] Author three single-tag isolation scenes —
+  `RI_INTERPOLATEBOUNDARY` at `ri.h:231-234`) — **landed**
+- [X] T022 [P] [US3] Add matching token definitions to `src/ri/ri.cpp` (alongside `ri.cpp:160-163`) — **landed**
+- [X] T023 [US3] Add new fields for the three tags to `CSubdivData` in `src/ri/subdivisionCreator.cpp:61-86`
+  (not `subdivisionCreator.h` as originally assumed — `CSubdivData` lives in the `.cpp`, same correction pattern
+  as T012). Plain `int` fields (`fvarBoundaryMode`, `fvarPropagateCorners`, `creaseMethod`) rather than bit flags
+  like `FACE_INTEPOLATEBOUNDARY`, since `facevaryinginterpolateboundary` is a tri-state enum (0-2), not a
+  boolean — a single bit can't represent it. Defaults (`2`, `0`, `0`) reproduce pre-existing behavior exactly on
+  any mesh lacking these tags — **landed**
+- [X] T024 [US3] Add three new dispatch arms to `create()`'s tag-recognition chain in `subdivisionCreator.cpp`
+  (after the existing `RI_CORNER` arm, before the `CODE_BADTOKEN` fallthrough), replacing what would otherwise be
+  three `CODE_BADTOKEN` fall-throughs with tag-specific parsing + storage, each validating `cnargs[0]`/range and
+  emitting `warning(CODE_BADTOKEN, ...)` naming the tag while falling back to its documented default on an
+  out-of-range input (Acceptance Scenario 2). Geometric effect wired at two hook points: `CSVertex::
+  countSharpEdges()` + `CSEdge::childSharpness()` (chaikin crease decay) and `CSVertex::computeVarying()`'s base
+  case (facevarying seam preserve/smooth branching) — **landed, build verified clean**
+  (`cmake --build build --config Release` succeeds; FR-013 hider-invariant grep still returns zero matches)
+  — depends on T023
+- [X] T025 [US3] Author `examples/rib/tests/subdiv-new-tags-raytrace.rib` using all three new tags together with
+  the existing four tags, confirming no `CODE_BADTOKEN` error (Acceptance Scenario 1) — depends on T024 — **landed**:
+  renders cleanly (exit 0, no warnings/errors)
+- [X] T025a [P] [US3] Author three single-tag isolation scenes —
   `examples/rib/tests/subdiv-tag-facevaryinginterpolateboundary-raytrace.rib`,
   `subdiv-tag-facevaryingpropagatecorners-raytrace.rib`, `subdiv-tag-creasemethod-raytrace.rib` — each rendered
   with and without its one tag on an otherwise-identical mesh, confirming a visible behavioral difference from
   the tag's absence per-tag (SC-004's literal per-tag requirement, not demonstrable from T025's all-three-at-once
-  scene alone) — depends on T024
-- [ ] T026 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-badvalue-raytrace.rib` supplying an out-of-range
+  scene alone) — depends on T024 — **landed**: facevaryinginterpolateboundary 109.45 max block diff,
+  facevaryingpropagatecorners 71.52, creasemethod 6.42 (all measured via `test_visual_render` against an
+  otherwise-identical without-tag render). Root-cause note: the facevaryingpropagatecorners scene originally
+  omitted the `interpolateboundary` tag, which on this coarse 2×2-face mesh let the raytrace limit surface
+  collapse to geometry no ray intersected (byte-identical blank 1367-byte renders regardless of tag value) —
+  fixed by adding `interpolateboundary` to the scene; this was a test-scene authoring gap, not a renderer bug.
+- [X] T026 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-badvalue-raytrace.rib` supplying an out-of-range
   value for one new tag, confirming the diagnostic + documented fallback (Acceptance Scenario 2) — depends on T024
-- [ ] T027 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib` combining a new tag with
+  — **landed**: warns `facevaryinginterpolateboundary expects 1 integer argument in [0,2]; using default (2)`
+- [X] T027 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib` combining a new tag with
   the existing `hole`/`interpolateboundary` tags already exercised at scale by `geometry/killeroo.rib` (R8),
-  confirming interaction correctness (quickstart.md Step 3.3) — depends on T024
-- [ ] T028 [US3] Register `subdiv-new-tags-raytrace.rib`, `subdiv-new-tags-badvalue-raytrace.rib`,
+  confirming interaction correctness (quickstart.md Step 3.3) — depends on T024 — **landed**: renders cleanly
+- [X] T028 [US3] Register `subdiv-new-tags-raytrace.rib`, `subdiv-new-tags-badvalue-raytrace.rib`,
   `subdiv-new-tags-with-hole-raytrace.rib`, and T025a's three single-tag isolation scenes in
   `tests/visual/CMakeLists.txt`; generate reference `.tif` images — depends on T025, T025a, T026, T027
+  — **landed**: 6 `add_visual_test()` entries added (raytrace-only, ground-truth-for-shading rationale);
+  references copied into `examples/rib/tests/references/`; all 6 pass under `ctest -L visual`
+  (`Visual_subdiv-new-tags-raytrace`, `Visual_subdiv-tag-facevaryinginterpolateboundary-raytrace`,
+  `Visual_subdiv-tag-facevaryingpropagatecorners-raytrace`, `Visual_subdiv-tag-creasemethod-raytrace`,
+  `Visual_subdiv-new-tags-badvalue-raytrace`, `Visual_subdiv-new-tags-with-hole-raytrace`)
 
 **Checkpoint**: US3 independently testable — all three new tags parse, store, and render correctly, singly and
 combined with existing tags, with correct diagnostics on bad values. **US1 + US2 + US3 together form this

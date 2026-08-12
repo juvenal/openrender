@@ -8,6 +8,19 @@ This file tracks known defects and implementation gaps in openRender. Open items
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
 - [ ] Irradiance accuracy issues
+- [ ] LLVM JIT emitter silently drops `Ci`/`Oi` writes that use the explicit-colorspace RSL color
+      constructor (`color "space" (s, t, 0)`, opcode `cfrom`, `src/libshader/shading/shaderOpcodes.h`).
+      `src/libshader/compiler/llvmEmitter.cpp`'s `emitFunction()` opcode dispatch (~lines 700-1436) has no
+      case for `cfrom`; it falls through to a silent "unrecognised opcode — skip" branch, so no LLVM IR is
+      emitted and the assignment is dropped with no error/warning. Only affects the `.slo`/JIT backend — the
+      `.rslo` interpreter implements `cfrom` correctly (`src/libshader/compiler/opcodes.cpp:91` emits it
+      correctly in both backends' bytecode; only the JIT lowering is missing). Long-standing since the JIT
+      emitter's introduction (`ccc59e4`); never caught because no stock shader (`plastic.sl`, `constant.sl`,
+      etc.) uses that constructor syntax — only the `show_st.sl` diagnostic shader does. Reproduces on a bare
+      untextured sphere, no subdivision/facevarying/hider involvement (discovered and root-caused during
+      `specs/010-full-subdivision-support` T017 verification). Workaround: pin
+      `Option "shaderformat" "default" ["rslo"]` (or `Attribute "shade" "shaderformat" ["rslo"]`) on any scene
+      using this RSL syntax. Fix: add a `cfrom` case to `emitFunction()`'s dispatch chain.
 
 ## Resolved Bugs
 

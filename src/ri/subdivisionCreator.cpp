@@ -76,6 +76,15 @@ class CSubdivData {
         int currentFlags;
         CPl *parameterList;
 
+        // facevaryinginterpolateboundary: 0 = none (smooth all facevarying
+        // seams away), 1 = edges only (seam corners smoothed unless
+        // fvarPropagateCorners preserves true topological boundary corners),
+        // 2 = edges and corners (default; preserve every distinct per-corner
+        // value, i.e. the pre-existing behavior before this tag existed).
+        int fvarBoundaryMode;
+        int fvarPropagateCorners; // facevaryingpropagatecorners: only consulted when fvarBoundaryMode == 1
+        int creaseMethod;         // creasemethod: 0 = normal (uniform decay), 1 = chaikin (neighbor-weighted decay)
+
         CShadingContext *context;
 };
 
@@ -113,6 +122,7 @@ class CSVertex {
         class CVertexFace {
             public:
                 CSFace *face;
+                float *facevarying; // This face's own facevarying corner value
                 CVertexFace *next;
         };
 
@@ -140,7 +150,6 @@ class CSVertex {
             fvalence = 0;
             vertex = NULL;
             varying = NULL;
-            facevarying = NULL;
             parentv = NULL;
             parente = NULL;
             parentf = NULL;
@@ -154,7 +163,7 @@ class CSVertex {
         int valence;                  // Edge valence
         int fvalence;                 // Face valence i.e., the number of faces incident on the vertex
         float *vertex;                // The vertex coordinates
-        float *varying, *facevarying; // The varying coordinates
+        float *varying;               // The varying coordinates
         CSVertex *parentv;            // The parent simplex
         CSEdge *parente;
         CSFace *parentf;
@@ -194,10 +203,32 @@ class CSVertex {
             CVertexFace *cFace = (CVertexFace *)ralloc(sizeof(CVertexFace), data.context->threadMemory);
 
             cFace->face = face;
+            cFace->facevarying = NULL;
             cFace->next = faces;
             faces = cFace;
 
             fvalence++;
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CSVertex
+        // Method				:	setFacevarying
+        // Description			:	Assign a facevarying corner value to the incident
+        //							face-record matching a specific face, so that a
+        //							vertex shared by multiple faces retains a distinct
+        //							value per incident face-corner instead of one
+        //							shared value.
+        // Return Value			:	-
+        // Comments				:
+        void setFacevarying(CSFace *face, float *fv) {
+            CVertexFace *cFace;
+
+            for (cFace = faces; cFace != NULL; cFace = cFace->next) {
+                if (cFace->face == face) {
+                    cFace->facevarying = fv;
+                    return;
+                }
+            }
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -221,10 +252,11 @@ class CSVertex {
         void sort(CSVertex **, CSEdge *, CSFace *, int);
         void compute(float *);
         void computeLimit(float *);
-        void computeVarying(float *, float *);
+        void computeVarying(float *, float *, int);
         void compute();
         int funny();
         int shouldSplit();
+        int countSharpEdges(CSEdge *excluding, float &otherSharpness);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -280,27 +312,46 @@ class CSEdge {
 
                 children[0]->vertices[0] = vertices[0]->childVertex;
                 children[0]->vertices[1] = childVertex;
-                int sharpnessVal0_2 = sharpness - 1;
-                if (0 > sharpnessVal0_2) {
-                    children[0]->sharpness = 0;
-                } else {
-                    children[0]->sharpness = sharpnessVal0_2;
-                }
+                children[0]->sharpness = childSharpness(vertices[0]);
 
                 children[1]->vertices[0] = vertices[1]->childVertex;
                 children[1]->vertices[1] = childVertex;
-                int sharpnessVal1 = sharpness - 1;
-                if (0 > sharpnessVal1) {
-                    children[1]->sharpness = 0;
-                } else {
-                    children[1]->sharpness = sharpnessVal1;
-                }
+                children[1]->sharpness = childSharpness(vertices[1]);
 
                 children[0]->vertices[0]->addEdge(children[0]);
                 children[0]->vertices[1]->addEdge(children[0]);
                 children[1]->vertices[0]->addEdge(children[1]);
                 children[1]->vertices[1]->addEdge(children[1]);
             }
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CSEdge
+        // Method				:	childSharpness
+        // Description			:	Compute a child edge's sharpness after one
+        //							subdivision step, on the side incident to v.
+        //							"normal" method: flat decay (sharpness - 1).
+        //							"chaikin" method (data.creaseMethod == 1): the
+        //							DeRose/Kass/Truong non-uniform crease rule --
+        //							at a regular crease vertex (exactly 2 incident
+        //							sharp edges), the new sharpness is a 3:1 blend
+        //							of this edge's and the other sharp edge's
+        //							sharpness, so unequal sharpness values
+        //							converging at a vertex decay towards each
+        //							other instead of independently.
+        // Return Value			:	The new child sharpness, clamped to >= 0
+        // Comments				:
+        float childSharpness(CSVertex *v) {
+            if (data.creaseMethod == 1) {
+                float otherSharpness;
+                if (v->countSharpEdges(this, otherSharpness) == 2) {
+                    float chaikin = (3 * sharpness + otherSharpness) / 4 - 1;
+                    return (0 > chaikin) ? 0 : chaikin;
+                }
+            }
+
+            float plain = sharpness - 1;
+            return (0 > plain) ? 0 : plain;
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -320,7 +371,7 @@ class CSEdge {
         }
 
         void compute(float *);
-        void computeVarying(float *, float *);
+        void computeVarying(float *, float *, int);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -890,7 +941,7 @@ class CSFace {
         }
 
         void compute(float *);
-        void computeVarying(float *, float *);
+        void computeVarying(float *, float *, int);
         char findEdgeVertices(int, int, CSVertex *&, CSVertex *&);
         int findCornerVertex(int, int, CSVertex *&);
 };
@@ -1137,6 +1188,33 @@ void CSVertex::compute() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSVertex
+// Method				:	countSharpEdges
+// Description			:	Count incident edges with sharpness > 0, and
+//							report the sharpness of the one such edge that
+//							isn't "excluding" (only meaningful when exactly
+//							2 sharp edges are incident, i.e. a regular crease
+//							vertex). Used by the "chaikin" creasemethod.
+// Return Value			:	The number of incident sharp edges
+// Comments				:
+int CSVertex::countSharpEdges(CSEdge *excluding, float &otherSharpness) {
+    CVertexEdge *cEdge;
+    int numSharp = 0;
+
+    otherSharpness = 0;
+    for (cEdge = edges; cEdge != NULL; cEdge = cEdge->next) {
+        if (cEdge->edge->sharpness > 0) {
+            numSharp++;
+            if (cEdge->edge != excluding) {
+                otherSharpness = cEdge->edge->sharpness;
+            }
+        }
+    }
+
+    return numSharp;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSVertex
 // Method				:	compute
 // Description			:	Compute the vertex / varying
 // Return Value			:	-
@@ -1234,20 +1312,89 @@ void CSVertex::compute(float *vertex) {
 // Description			:	Compute the vertex / varying
 // Return Value			:	-
 // Comments				:
-void CSVertex::computeVarying(float *varying, float *facevarying) {
+void CSVertex::computeVarying(float *varying, float *facevarying, int requestingFaceIndex) {
     if (parentv != NULL)
-        parentv->computeVarying(varying, facevarying);
+        parentv->computeVarying(varying, facevarying, requestingFaceIndex);
     else if (parente != NULL)
-        parente->computeVarying(varying, facevarying);
+        parente->computeVarying(varying, facevarying, requestingFaceIndex);
     else if (parentf != NULL)
-        parentf->computeVarying(varying, facevarying);
+        parentf->computeVarying(varying, facevarying, requestingFaceIndex);
     else {
+        CVertexFace *cFace, *cOther;
+        int isSeam = FALSE;
+        int preserve = TRUE;
+
         if (this->varying != NULL) {
             memcpy(varying, this->varying, sizeof(float) * data.varyingSize);
         }
 
-        if (this->facevarying != NULL) {
-            memcpy(facevarying, this->facevarying, sizeof(float) * data.facevaryingSize);
+        // A facevarying seam vertex is one whose incident faces don't all
+        // share the same corner value -- a genuine UV/facevarying
+        // discontinuity, as opposed to a plain shared value.
+        for (cFace = faces; (cFace != NULL) && !isSeam; cFace = cFace->next) {
+            for (cOther = cFace->next; cOther != NULL; cOther = cOther->next) {
+                if ((cFace->facevarying != NULL) && (cOther->facevarying != NULL) && (cFace->facevarying != cOther->facevarying)) {
+                    isSeam = TRUE;
+                    break;
+                }
+            }
+        }
+
+        if (isSeam) {
+            if (data.fvarBoundaryMode == 0) {
+                // "none": smooth every facevarying seam away.
+                preserve = FALSE;
+            } else if (data.fvarBoundaryMode == 1) {
+                // "edges only": seam corners smooth unless this is a true
+                // topological boundary corner and propagation is requested.
+                preserve = data.fvarPropagateCorners && (valence != fvalence);
+            }
+            // fvarBoundaryMode == 2 ("edges and corners"): always preserve --
+            // this is the default, and matches the behavior before these
+            // tags existed (every distinct per-corner value kept intact).
+        }
+
+        if (preserve) {
+            for (cFace = faces; cFace != NULL; cFace = cFace->next) {
+                if ((cFace->face->uniformIndex == requestingFaceIndex) && (cFace->facevarying != NULL)) {
+                    memcpy(facevarying, cFace->facevarying, sizeof(float) * data.facevaryingSize);
+                    break;
+                }
+            }
+        } else {
+            // Smooth the seam: average every distinct incident facevarying value.
+            int i, count = 0;
+
+            for (i = 0; i < data.facevaryingSize; i++) {
+                facevarying[i] = 0;
+            }
+
+            for (cFace = faces; cFace != NULL; cFace = cFace->next) {
+                int dup = FALSE;
+
+                if (cFace->facevarying == NULL)
+                    continue;
+
+                for (cOther = faces; cOther != cFace; cOther = cOther->next) {
+                    if (cOther->facevarying == cFace->facevarying) {
+                        dup = TRUE;
+                        break;
+                    }
+                }
+                if (dup)
+                    continue;
+
+                for (i = 0; i < data.facevaryingSize; i++) {
+                    facevarying[i] += cFace->facevarying[i];
+                }
+                count++;
+            }
+
+            if (count > 0) {
+                for (i = 0; i < data.facevaryingSize; i++) {
+                    facevarying[i] /= (float)count;
+                }
+            }
         }
     }
 }
@@ -1384,15 +1531,15 @@ void CSEdge::compute(float *vertex) {
 // Description			:	Edge subdivision rule
 // Return Value			:	-
 // Comments				:
-void CSEdge::computeVarying(float *varying, float *facevarying) {
+void CSEdge::computeVarying(float *varying, float *facevarying, int requestingFaceIndex) {
     float *varying1, *facevarying1;
     int i;
 
     varying1 = (float *)ralloc(sizeof(float) * data.varyingSize, data.context->threadMemory);
     facevarying1 = (float *)ralloc(sizeof(float) * data.facevaryingSize, data.context->threadMemory);
 
-    vertices[0]->computeVarying(varying, facevarying);
-    vertices[1]->computeVarying(varying1, facevarying1);
+    vertices[0]->computeVarying(varying, facevarying, requestingFaceIndex);
+    vertices[1]->computeVarying(varying1, facevarying1, requestingFaceIndex);
 
     for (i = 0; i < data.varyingSize; i++) {
         varying[i] = (varying[i] + varying1[i]) * 0.5f;
@@ -1430,7 +1577,7 @@ void CSFace::compute(float *vertex) {
 // Description			:	Face subdivision rule
 // Return Value			:	-
 // Comments				:
-void CSFace::computeVarying(float *varying, float *facevarying) {
+void CSFace::computeVarying(float *varying, float *facevarying, int requestingFaceIndex) {
     float *varying1, *facevarying1;
     int i, j;
     const float scale = 1 / (float)numEdges;
@@ -1447,7 +1594,7 @@ void CSFace::computeVarying(float *varying, float *facevarying) {
     }
 
     for (j = 0; j < numEdges; j++) {
-        vertices[j]->computeVarying(varying1, facevarying1);
+        vertices[j]->computeVarying(varying1, facevarying1, requestingFaceIndex);
 
         for (i = 0; i < data.varyingSize; i++) {
             varying[i] += varying1[i];
@@ -1486,7 +1633,7 @@ static void gatherData(CSubdivData &data, int numVertex, CSVertex **vertices, CS
     facevaryingsT = (float *)ralloc(data.facevaryingSize * 4 * sizeof(float), data.context->threadMemory);
 
     for (i = 0; i < 4; i++) {
-        varyings[i]->computeVarying(varyingsT + i * data.varyingSize, facevaryingsT + i * data.facevaryingSize);
+        varyings[i]->computeVarying(varyingsT + i * data.varyingSize, facevaryingsT + i * data.facevaryingSize, uniformNumber);
     }
 
     parameters = data.parameterList->uniform(uniformNumber, NULL);
@@ -1711,6 +1858,13 @@ void CSubdivMesh::create(CShadingContext *context) {
     data.currentXform = this->xform;
     data.parameterList = this->pl;
 
+    // Defaults match RISpec's most-conformant mode and this codebase's
+    // pre-existing behavior before these tags existed, so a mesh with none
+    // of the three new tags renders identically to before this feature.
+    data.fvarBoundaryMode = 2; // edges and corners: preserve every distinct facevarying corner value
+    data.fvarPropagateCorners = 0;
+    data.creaseMethod = 0; // normal: uniform per-level sharpness decay
+
     // Collect the misc data
     data.vertexData = NULL;
     pl->collect(data.vertexSize, data.vertexData, CONTAINER_VERTEX, context->threadMemory);
@@ -1823,6 +1977,27 @@ void CSubdivMesh::create(CShadingContext *context) {
             } else {
                 error(CODE_RANGE, "Corner has 1 or n float arguments\n");
             }
+        } else if (strcmp(tags[i], RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
+            if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 2)) {
+                warning(CODE_BADTOKEN, "facevaryinginterpolateboundary expects 1 integer argument in [0,2]; using default (2)\n");
+                data.fvarBoundaryMode = 2;
+            } else {
+                data.fvarBoundaryMode = cintargs[0];
+            }
+        } else if (strcmp(tags[i], RI_FACEVARYINGPROPAGATECORNERS) == 0) {
+            if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 1)) {
+                warning(CODE_BADTOKEN, "facevaryingpropagatecorners expects 1 boolean (0 or 1) argument; using default (0)\n");
+                data.fvarPropagateCorners = 0;
+            } else {
+                data.fvarPropagateCorners = cintargs[0];
+            }
+        } else if (strcmp(tags[i], RI_CREASEMETHOD) == 0) {
+            if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 1)) {
+                warning(CODE_BADTOKEN, "creasemethod expects 1 integer argument (0 = normal, 1 = chaikin); using default (0)\n");
+                data.creaseMethod = 0;
+            } else {
+                data.creaseMethod = cintargs[0];
+            }
         } else {
             error(CODE_BADTOKEN, "Unknown subdivision tag: \"%s\"\n", tags[i]);
         }
@@ -1857,7 +2032,7 @@ void CSubdivMesh::create(CShadingContext *context) {
 
         // Set the facevarying parameters
         for (j = 0; j < faces[i]->numEdges; j++) {
-            faces[i]->vertices[j]->facevarying = data.facevaryingData + (k + j) * data.facevaryingSize;
+            faces[i]->vertices[j]->setFacevarying(faces[i], data.facevaryingData + (k + j) * data.facevaryingSize);
 
             // Check for degenerate faces
             const int val = faces[i]->vertices[j]->valence;
