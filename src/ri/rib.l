@@ -116,6 +116,7 @@ Torus												return RIB_TORUS;
 Curves												return RIB_CURVES;
 Points												return RIB_POINTS;
 SubdivisionMesh										return RIB_SUBDIVISION_MESH;
+HierarchicalSubdivisionMesh							return RIB_HIERARCHICAL_SUBDIVISION_MESH;
 Blobby												return RIB_BLOBBY;
 Geometry											return RIB_GEOMETRY;
 

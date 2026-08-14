@@ -1,0 +1,57 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T064 (spec 010-full-subdivision-support, US3): CShow ("oshow:" hider)
+# targeting scene for the new-tags capability. See
+# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib's header
+# comment for why this is authored-but-not-required. Otherwise identical to
+# examples/rib/tests/subdiv-new-tags-raytrace.rib.
+Hider "oshow:none"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 4 4
+Display "subdiv-new-tags-oshow.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 320 240 1
+Translate 0 0 3
+
+WorldBegin
+  Sides 2
+  AttributeBegin
+    Surface "show_st"
+    SubdivisionMesh "catmull-clark"
+    [ 4 4 4 4 4 4 4 4 4 ]
+    [
+      0 1 5 4
+      1 2 6 5
+      2 3 7 6
+      4 5 9 8
+      5 6 10 9
+      6 7 11 10
+      8 9 13 12
+      9 10 14 13
+      10 11 15 14
+    ]
+    ["interpolateboundary" "hole" "corner" "crease" "crease"
+     "facevaryinginterpolateboundary" "facevaryingpropagatecorners" "creasemethod"]
+    [0 0  1 0  1 1  2 1  2 1  1 0  1 0  1 0]
+    [8  0  5 6  5 9  1  1  1]
+    [10  4.0  1.0]
+    "P" [
+      -0.6  0.6 0   -0.2  0.6 0    0.2  0.6 0    0.6  0.6 0
+      -0.6  0.2 0   -0.2  0.2 0    0.2  0.2 0    0.6  0.2 0
+      -0.6 -0.2 0   -0.2 -0.2 0    0.2 -0.2 0    0.6 -0.2 0
+      -0.6 -0.6 0   -0.2 -0.6 0    0.2 -0.6 0    0.6 -0.6 0
+    ]
+    "facevarying float[2] st" [
+      0.000 0.000  0.000 0.000  0.000 0.000  0.000 0.000
+      0.125 0.125  0.125 0.125  0.125 0.125  0.125 0.125
+      0.250 0.250  0.250 0.250  0.250 0.250  0.250 0.250
+      0.375 0.375  0.375 0.375  0.375 0.375  0.375 0.375
+      0.500 0.500  0.500 0.500  0.500 0.500  0.500 0.500
+      0.625 0.625  0.625 0.625  0.625 0.625  0.625 0.625
+      0.750 0.750  0.750 0.750  0.750 0.750  0.750 0.750
+      0.875 0.875  0.875 0.875  0.875 0.875  0.875 0.875
+      1.000 1.000  1.000 1.000  1.000 1.000  1.000 1.000
+    ]
+  AttributeEnd
+WorldEnd

@@ -303,6 +303,9 @@ void CRiInterface::RiPointsV(int, int, const char *[], const void *[]) {
 void CRiInterface::RiSubdivisionMeshV(const char *, int, int[], int[], int, const char *[], int[], int[], float[], int, const char *[], const void *[]) {
 }
 
+void CRiInterface::RiHierarchicalSubdivisionMeshV(const char *, int, int[], int[], int, const char *[], int[], int[], float[], int, int[], int[], const char *[], float[], int, const char *[], const void *[]) {
+}
+
 void CRiInterface::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
 }
 

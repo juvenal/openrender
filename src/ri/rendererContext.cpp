@@ -69,6 +69,7 @@
 #include "stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
+#include "subdivisionLoop.h"
 #include "texmake.h"
 #include "texture.h"
 #include "xform.h"
@@ -5361,8 +5362,9 @@ void CRendererContext::RiSubdivisionMeshV(const char *scheme, int nfaces, int nv
 
     checkGeometryOrDiscard();
 
-    // Only catmull clark is supported for the time being
-    if (strcmp(scheme, RI_CATMULLCLARK) != 0) {
+    // Catmull-Clark and Loop are supported for the time being
+    const int isLoop = (strcmp(scheme, RI_LOOP) == 0);
+    if (!isLoop && (strcmp(scheme, RI_CATMULLCLARK) != 0)) {
         error(CODE_INCAPABLE, "Unknown subdivision scheme: %s\n", scheme);
         return;
     }
@@ -5403,7 +5405,90 @@ void CRendererContext::RiSubdivisionMeshV(const char *scheme, int nfaces, int nv
     }
 
     // Create the object
-    addObject(new CSubdivMesh(attributes, xform, pl, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs));
+    if (isLoop)
+        addObject(new CLoopSubdivMesh(attributes, xform, pl, nfaces, nvertices, vertices));
+    else
+        addObject(new CSubdivMesh(attributes, xform, pl, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs));
+}
+
+void CRendererContext::RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int noverrides, int overrideFaceIndex[], int overrideLevel[], const char *overrideTags[], float overrideValues[], int n, const char *tokens[], const void *params[]) {
+    int i, j;
+    int numVertices;
+    CPl *pl;
+    CAttributes *attributes;
+    CXform *xform;
+    float *p0, *p1;
+    CHierarchicalOverride *overrides;
+
+    if (CRenderer::netNumServers > 0)
+        return;
+
+    xform = getXform(FALSE);
+    attributes = getAttributes(FALSE);
+
+    checkGeometryOrDiscard();
+
+    // Only catmull clark is supported for the time being
+    if (strcmp(scheme, RI_CATMULLCLARK) != 0) {
+        error(CODE_INCAPABLE, "Unknown subdivision scheme: %s\n", scheme);
+        return;
+    }
+
+    // Count the number of faces / vertices
+    for (i = 0, j = 0; i < nfaces; j += nvertices[i], i++)
+        ;
+
+    for (numVertices = -1, i = 0; i < j; i++) {
+        if (vertices[i] > numVertices)
+            numVertices = vertices[i];
+    }
+    numVertices++;
+
+    // Create the core
+    pl = parseParameterList(nfaces, numVertices, numVertices, j, n, tokens, params, RI_P, PL_VARYING_TO_VERTEX, attributes);
+    if (pl == NULL)
+        return;
+
+    switch (addMotion(pl->data0, pl->dataSize, "RiHierarchicalSubdivisionMesh", p0, p1)) {
+        case 0:
+            // Clean up the unneeded pl
+            delete pl;
+            // Get out of here
+            return;
+            break;
+        case 1:
+            if (p0 != pl->data0)
+                memcpy(pl->data0, p0, sizeof(float) * pl->dataSize);
+            break;
+        case 2:
+            // Restore the parameters
+            memcpy(pl->data0, p0, sizeof(float) * pl->dataSize);
+            pl->append(p1);
+            break;
+        default:
+            break;
+    }
+
+    // Build the override list. This entry point only parses the base mesh and the raw
+    // override arguments -- it does not resolve/apply overrides itself, that's the
+    // geometry layer's job (CSubdivMesh::create(), per contracts/
+    // hierarchical-subdivision-contract.md Layer 3/Layer 4 split).
+    overrides = NULL;
+    for (i = noverrides - 1; i >= 0; i--) {
+        CHierarchicalOverride *ov = new CHierarchicalOverride;
+
+        ov->faceIndex = overrideFaceIndex[i];
+        ov->level = overrideLevel[i];
+        ov->tagName = strdup(overrideTags[i]);
+        ov->value = overrideValues[i];
+        ov->next = overrides;
+        overrides = ov;
+    }
+
+    // Create the object (the constructor clones the override list, so the temporary one
+    // built above is ours to free)
+    addObject(new CSubdivMesh(attributes, xform, pl, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs, overrides));
+    deleteHierarchicalOverrides(overrides);
 }
 
 void CRendererContext::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {

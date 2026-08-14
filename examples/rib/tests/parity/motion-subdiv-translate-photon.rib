@@ -1,0 +1,97 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T069 (spec 010-full-subdivision-support, US1/FR-017): documents the
+# photon-hider + subdivision-motion-blur combination. Per spec.md's
+# Clarifications, the photon-mapping hider does not gain motion-blur support
+# in this feature (User Story 1's scope is limited to REYES/stochastic and
+# ray-tracing) -- this scene is authored as a deliverable to document that
+# gap but is NOT required to pass, matching the CShow treatment (see
+# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib). Registered
+# under CMake's "not-required" label, excluded from `ctest -L visual`.
+#
+# Structure: Frame 1 runs the photon hider (CPhotonHider never produces an
+# image on its own -- see subdiv-facevarying-seam-photon.rib's header
+# comment for why) against the same MotionBegin-wrapped geometry as
+# motion-subdiv-translate-raytrace.rib; Frame 2 is a raytrace+Display pass
+# with the identical motion-blurred geometry. Frame 1's emitted photons are
+# not expected to reflect the moving geometry correctly (CPhotonHider has no
+# motion-blur-aware tracing path), which is precisely the gap this scene
+# documents.
+FrameBegin 1
+  Hider "photon" "int emit" [2000]
+  PixelSamples 4 4
+  Shutter 0 1
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 5
+
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "finite" 2 "location" [-4 4 -4] "intensity" [0.9]
+
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["motion-subdiv-translate-photon.gpm"]
+      Color 0.9 0.3 0.2
+      Surface "matte"
+      MotionBegin [0 1]
+        Translate -0.6 0 0
+        Translate  0.6 0 0
+      MotionEnd
+      SubdivisionMesh "catmull-clark"
+      [ 4 4 4 4 4 4 ]
+      [
+        0 3 2 1
+        4 5 6 7
+        0 1 5 4
+        3 7 6 2
+        0 4 7 3
+        1 2 6 5
+      ]
+      [] [] [] []
+      "P" [
+        -0.4 -0.4 -0.4   0.4 -0.4 -0.4   0.4  0.4 -0.4  -0.4  0.4 -0.4
+        -0.4 -0.4  0.4   0.4 -0.4  0.4   0.4  0.4  0.4  -0.4  0.4  0.4
+      ]
+    AttributeEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  PixelSamples 4 4
+  Shutter 0 1
+  Display "motion-subdiv-translate-photon.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 5
+
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "finite" 2 "location" [-4 4 -4] "intensity" [0.9]
+
+    AttributeBegin
+      Color 0.9 0.3 0.2
+      Surface "matte"
+      MotionBegin [0 1]
+        Translate -0.6 0 0
+        Translate  0.6 0 0
+      MotionEnd
+      SubdivisionMesh "catmull-clark"
+      [ 4 4 4 4 4 4 ]
+      [
+        0 3 2 1
+        4 5 6 7
+        0 1 5 4
+        3 7 6 2
+        0 4 7 3
+        1 2 6 5
+      ]
+      [] [] [] []
+      "P" [
+        -0.4 -0.4 -0.4   0.4 -0.4 -0.4   0.4  0.4 -0.4  -0.4  0.4 -0.4
+        -0.4 -0.4  0.4   0.4 -0.4  0.4   0.4  0.4  0.4  -0.4  0.4  0.4
+      ]
+    AttributeEnd
+  WorldEnd
+FrameEnd

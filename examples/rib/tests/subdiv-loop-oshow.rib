@@ -1,0 +1,46 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T064 (spec 010-full-subdivision-support, US6): CShow ("oshow:" hider)
+# targeting scene for the Loop scheme capability. See
+# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib's header
+# comment for why this is authored-but-not-required. Otherwise identical to
+# examples/rib/tests/subdiv-loop-raytrace.rib.
+Hider "oshow:none"
+PixelSamples 4 4
+Display "subdiv-loop-oshow.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 320 240 1
+Translate 0 0 3
+
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.15]
+  LightSource "distantlight" 2 "intensity" [0.9] "lightcolor" [1 .95 .9] "from" [20 30 25] "to" [0 0 0]
+  LightSource "distantlight" 3 "intensity" [0.35] "lightcolor" [.7 .8 1] "from" [-25 10 -20] "to" [0 0 0]
+
+  Sides 2
+  Color [0.7 0.7 0.8]
+  Surface "matte"
+  Rotate 20 1 0.4 0
+  SubdivisionMesh "loop"
+  [ 3 3 3 3  3 3 3 3 ]
+  [
+    0 2 4
+    2 1 4
+    1 3 4
+    3 0 4
+    2 0 5
+    1 2 5
+    3 1 5
+    0 3 5
+  ]
+  [] [] [] []
+  "P" [
+     0.7  0    0
+    -0.7  0    0
+     0    0.7  0
+     0   -0.7  0
+     0    0    0.7
+     0    0   -0.7
+  ]
+WorldEnd

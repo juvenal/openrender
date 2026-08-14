@@ -68,6 +68,8 @@ set(ri_sources
 	stochastic.cpp
 	subdivision.cpp
 	subdivisionCreator.cpp
+	subdivisionHierarchical.cpp
+	subdivisionLoop.cpp
 	surface.cpp
 	texmake.cpp
 	texture.cpp

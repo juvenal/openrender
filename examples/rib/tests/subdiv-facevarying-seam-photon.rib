@@ -1,0 +1,87 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T065 (spec 010-full-subdivision-support, US2/FR-014): confirms the
+# facevarying-seam fix integrates with the photon hider's generic
+# tracePhoton() dispatch (CObject/CSurface contract; no subdivision-specific
+# branch in photon.cpp, per FR-012/FR-013). Hider "photon" never produces an
+# image on its own (CPhotonHider::preDisplaySetup() sets HIDER_NODISPLAY --
+# see doc/Documentation/Hiders.html: "This hider does not create an image"),
+# so Frame 1 emits/stores photons against the seam mesh, and Frame 2 is a
+# byte-for-byte copy of subdiv-facevarying-seam-raytrace.rib's raytrace pass.
+# Frame 2's output is therefore expected to match that scene's reference TIFF
+# within the usual threshold, so this test reuses it rather than capturing a
+# separate reference.
+FrameBegin 1
+  Hider "photon" "int emit" [2000]
+  Option "shaderformat" "default" ["rslo"]
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 3
+
+  WorldBegin
+    LightSource "distantlight" 1 "intensity" [0.9] "from" [2 2 5] "to" [0 0 0]
+    Sides 2
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["subdiv-facevarying-seam-photon.gpm"]
+      Surface "show_st"
+      SubdivisionMesh "catmull-clark"
+      [ 4 4 4 4 ]
+      [
+        0 1 4 3
+        1 2 5 4
+        3 4 7 6
+        4 5 8 7
+      ]
+      ["interpolateboundary"] [0 0] [] []
+      "P" [
+        -0.6  0.6 0    0  0.6 0    0.6  0.6 0
+        -0.6  0   0    0  0   0    0.6  0   0
+        -0.6 -0.6 0    0 -0.6 0    0.6 -0.6 0
+      ]
+      "facevarying float[2] st" [
+        0.0 1.0   0.5 1.0   1.0 0.0   0.0 0.5
+        0.5 1.0   1.0 1.0   1.0 0.5   0.0 1.0
+        0.0 0.5   1.0 1.0   0.5 0.0   0.0 0.0
+        0.3 0.3   1.0 0.5   1.0 0.0   0.5 0.0
+      ]
+    AttributeEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  Option "shaderformat" "default" ["rslo"]
+  PixelSamples 4 4
+  Display "subdiv-facevarying-seam-photon.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 3
+
+  WorldBegin
+    Sides 2
+    AttributeBegin
+      Surface "show_st"
+      SubdivisionMesh "catmull-clark"
+      [ 4 4 4 4 ]
+      [
+        0 1 4 3
+        1 2 5 4
+        3 4 7 6
+        4 5 8 7
+      ]
+      ["interpolateboundary"] [0 0] [] []
+      "P" [
+        -0.6  0.6 0    0  0.6 0    0.6  0.6 0
+        -0.6  0   0    0  0   0    0.6  0   0
+        -0.6 -0.6 0    0 -0.6 0    0.6 -0.6 0
+      ]
+      "facevarying float[2] st" [
+        0.0 1.0   0.5 1.0   1.0 0.0   0.0 0.5
+        0.5 1.0   1.0 1.0   1.0 0.5   0.0 1.0
+        0.0 0.5   1.0 1.0   0.5 0.0   0.0 0.0
+        0.3 0.3   1.0 0.5   1.0 0.0   0.5 0.0
+      ]
+    AttributeEnd
+  WorldEnd
+FrameEnd

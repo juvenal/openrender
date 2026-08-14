@@ -166,6 +166,47 @@ macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
 endmacro()
 
 # ---------------------------------------------------------------------------
+# Helper macro: register a "not-required" smoke test (spec
+# 010-full-subdivision-support, T064/T069)
+#
+# Some hider/scene combinations are pre-existing, documented gaps that this
+# project's test suite authors as deliverables but explicitly does not gate
+# on: CShow (the "oshow:" debug/visualization hider) is non-functional in
+# this build -- its OpenGL visualization module was removed (see
+# src/ri/show.cpp's "Opengl wrapper not found" path, CView::handle stays
+# NULL) -- and the photon hider has no motion-blur-aware tracing path
+# (spec.md's Clarifications). There was no pre-existing "authored-not-
+# required" CMake convention in this file before this feature to copy (only
+# "visual;regression" and "parity;regression" existed), so this macro
+# establishes one: register the scene as a plain orender smoke run (no
+# reference-image comparison -- CShow's HIDER_NODISPLAY means no image is
+# ever produced, and correctness of the photon+motion combination is
+# explicitly out of scope) under the "not-required" label, which
+# `ctest -L visual` and `ctest -L parity` never select. Run explicitly via
+# `ctest -L not-required` to smoke-test these by hand.
+#
+# Arguments:
+#   SCENE_NAME   — test identifier (used as CTest name suffix and for scratch dir)
+#   RIB_FILE     — path to the .rib scene (relative to CMAKE_SOURCE_DIR)
+# ---------------------------------------------------------------------------
+macro(add_not_required_test SCENE_NAME RIB_FILE)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/notreq-${SCENE_NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+
+    add_test(NAME NotRequired_${SCENE_NAME}
+        COMMAND $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB_FILE}
+        WORKING_DIRECTORY ${_scratch}
+    )
+
+    set_tests_properties(NotRequired_${SCENE_NAME} PROPERTIES
+        TIMEOUT        360
+        LABELS         "not-required"
+        ENVIRONMENT    "${VISUAL_ENV}"
+        DEPENDS        orender
+    )
+endmacro()
+
+# ---------------------------------------------------------------------------
 # Test registrations
 # (SCENE_NAME, RIB, output TIF from Display stmt, reference TIF filename)
 # ---------------------------------------------------------------------------
@@ -779,7 +820,177 @@ add_visual_test(subdiv-new-tags-with-hole-raytrace
     examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib
     subdiv-new-tags-with-hole-raytrace.tif  subdiv-new-tags-with-hole-raytrace.tif)
 
+# --- Subdivision surfaces: crease-quality reproduction (spec
+# 010-full-subdivision-support, US4/T029-T033). DEVNOTES.md:42-43 lists two
+# open, previously-unreproduced crease-quality/efficiency reports. These four
+# scenes isolate sharpness magnitude from convergence count (single low-sharpness
+# crease / three low-sharpness creases converging at one vertex / a single
+# high-sharpness crease / three high-sharpness creases converging at one
+# vertex) so the reproduction attempt is documented as coverage regardless of
+# outcome (see HIDER_PARITY.md's "Crease Quality" subsection: not reproduced —
+# no code fix landed here). Raytrace-only, per this project's shading-ground-truth
+# convention for crease/facevarying scenes. Registered for regression coverage
+# of a previously-untested primitive configuration, not as proof of a fixed
+# bug. ---
+add_visual_test(subdiv-crease-convergence-control-raytrace
+    examples/rib/tests/subdiv-crease-convergence-control-raytrace.rib
+    subdiv-crease-convergence-control-raytrace.tif
+    subdiv-crease-convergence-control-raytrace.tif)
+
+add_visual_test(subdiv-crease-shallow-convergence-raytrace
+    examples/rib/tests/subdiv-crease-shallow-convergence-raytrace.rib
+    subdiv-crease-shallow-convergence-raytrace.tif
+    subdiv-crease-shallow-convergence-raytrace.tif)
+
+add_visual_test(subdiv-crease-deep-single-raytrace
+    examples/rib/tests/subdiv-crease-deep-single-raytrace.rib
+    subdiv-crease-deep-single-raytrace.tif
+    subdiv-crease-deep-single-raytrace.tif)
+
+add_visual_test(subdiv-crease-convergence-raytrace
+    examples/rib/tests/subdiv-crease-convergence-raytrace.rib
+    subdiv-crease-convergence-raytrace.tif
+    subdiv-crease-convergence-raytrace.tif)
+
+# --- Subdivision surfaces: hierarchical edits (spec 010-full-subdivision-support,
+# US5/T034-T051) — RiHierarchicalSubdivisionMesh, the RISpec per-face/per-level
+# tag-override primitive layered on top of a base subdivision mesh. Override-
+# resolution logic lives entirely in the geometry layer (subdivisionCreator.cpp);
+# no hider file gained any hierarchical-specific branch. ---
+
+# Base valid hierarchical mesh: a 3x3-quad grid with one "hole" override on
+# face 4 (the center face) and a base-level "interpolateboundary" tag. Locks
+# in the T034-T045 grammar/RI-entry-point/geometry-resolution work.
+add_visual_test(subdiv-hierarchical-override-raytrace
+    examples/rib/tests/subdiv-hierarchical-override-raytrace.rib
+    subdiv-hierarchical-override-raytrace.tif
+    subdiv-hierarchical-override-raytrace.tif)
+
+# Out-of-range override face index (T047) — an override targeting face 99 on
+# a 4-face mesh must warn ("targets nonexistent face 99; skipped") and fall
+# back to rendering the base mesh unmodified, not crash or corrupt state.
+# Also regression-locks the nargs (nint,nfloat)-per-tag out-of-bounds-read
+# fix discovered during T048 (see that task's RESULT note above).
+add_visual_test(subdiv-hierarchical-override-invalid-raytrace
+    examples/rib/tests/subdiv-hierarchical-override-invalid-raytrace.rib
+    subdiv-hierarchical-override-invalid-raytrace.tif
+    subdiv-hierarchical-override-invalid-raytrace.tif)
+
+# Override-precedence scene (T046a) — a face carrying both a base-level tag
+# and a higher-level override of the same tag; the override must win.
+add_visual_test(subdiv-hierarchical-tag-override-precedence-raytrace
+    examples/rib/tests/subdiv-hierarchical-tag-override-precedence-raytrace.rib
+    subdiv-hierarchical-tag-override-precedence-raytrace.tif
+    subdiv-hierarchical-tag-override-precedence-raytrace.tif)
+
+# Cross-hider parity (T049) — same base hierarchical mesh/hole override,
+# reyes vs. raytrace. Threshold 20 matches flatshade/aov (plain "matte"
+# surface, no DOF/motion confound); measured MaxBlockAvgDiff 0.81/0.83/0.59
+# across 3 runs, well inside the documented D3/D4 shading-interpolation
+# residual band (tests/visual/parity-thresholds.md) — hole-face culling and
+# base-topology dicing agree cleanly across hiders.
+add_parity_test(subdiv-hierarchical-override
+    examples/rib/tests/parity/subdiv-hierarchical-override-reyes.rib
+    subdiv-hierarchical-override-reyes.tif
+    examples/rib/tests/parity/subdiv-hierarchical-override-raytrace.rib
+    subdiv-hierarchical-override-raytrace.tif  20)
+
+# --- Subdivision surfaces: Loop scheme (spec 010-full-subdivision-support,
+# US6/T052-T059). "loop" is accepted as a second scheme value alongside
+# "catmullclark" (CLoopSubdivMesh, subdivisionLoop.{h,cpp}), sharing the same
+# CObject/CSurface integration seam. An all-triangle octahedron exercises the
+# scheme on both REYES (dicing) and raytrace (tessellation fallback); a mixed
+# triangle/quad mesh exercises the CODE_RANGE rejection path (Edge Cases). ---
+add_visual_test(subdiv-loop-reyes
+    examples/rib/tests/subdiv-loop-reyes.rib
+    subdiv-loop-reyes.tif
+    subdiv-loop-reyes.tif)
+
+add_visual_test(subdiv-loop-raytrace
+    examples/rib/tests/subdiv-loop-raytrace.rib
+    subdiv-loop-raytrace.tif
+    subdiv-loop-raytrace.tif)
+
+# Mixed triangle/quad topology under scheme="loop" must be rejected with a
+# CODE_RANGE diagnostic and fall back to an empty mesh, not crash or
+# silently mis-tessellate the quad face.
+add_visual_test(subdiv-loop-mixed-invalid-raytrace
+    examples/rib/tests/subdiv-loop-mixed-invalid-raytrace.rib
+    subdiv-loop-mixed-invalid-raytrace.tif
+    subdiv-loop-mixed-invalid-raytrace.tif)
+
+# --- Subdivision surfaces: photon hider (spec 010-full-subdivision-support,
+# Phase 9 Polish, T065-T068, FR-014). CPhotonHider never produces an image on
+# its own (CPhotonHider::preDisplaySetup() sets HIDER_NODISPLAY --
+# doc/Documentation/Hiders.html: "This hider does not create an image"), so
+# each scene below is a two-Frame RIB: Frame 1 runs Hider "photon" against
+# the story's subdivision mesh (with Attribute "photon" "string globalmap"
+# set, so photons actually get traced/stored via the generic tracePhoton()
+# CObject/CSurface dispatch -- confirming no subdivision-specific branch was
+# needed, per FR-012/FR-013); Frame 2 is a byte-for-byte copy of the
+# corresponding "-raytrace" scene's own Hider "raytrace" + Display pass. Since
+# Frame 2 renders identically to the existing raytrace scene (same geometry,
+# same lights, same PixelSamples), each test below reuses that scene's
+# already-captured reference TIFF rather than a new one (measured: max block
+# diff 0.22-1.97 across all four, well under threshold 20 -- see
+# subdiv-*-photon.rib's header comments for details). Required to pass, like
+# any other hider, per FR-014 ("photon-hider scenes for every other
+# capability in this feature MUST pass like any other hider").
+add_visual_test(subdiv-facevarying-seam-photon
+    examples/rib/tests/subdiv-facevarying-seam-photon.rib
+    subdiv-facevarying-seam-photon.tif
+    subdiv-facevarying-seam-raytrace.tif)
+
+add_visual_test(subdiv-new-tags-photon
+    examples/rib/tests/subdiv-new-tags-photon.rib
+    subdiv-new-tags-photon.tif
+    subdiv-new-tags-raytrace.tif)
+
+add_visual_test(subdiv-hierarchical-override-photon
+    examples/rib/tests/subdiv-hierarchical-override-photon.rib
+    subdiv-hierarchical-override-photon.tif
+    subdiv-hierarchical-override-raytrace.tif)
+
+add_visual_test(subdiv-loop-photon
+    examples/rib/tests/subdiv-loop-photon.rib
+    subdiv-loop-photon.tif
+    subdiv-loop-raytrace.tif)
+
+# --- Subdivision surfaces: authored-but-not-required scenes (spec
+# 010-full-subdivision-support, Phase 9 Polish, T064/T069). See
+# add_not_required_test()'s definition above for why these are registered
+# under the "not-required" label instead of "visual"/"parity". CShow
+# ("oshow:" hider) scenes cover all six user stories (FR-014, spec.md's Edge
+# Cases); the photon-hider motion-blur scene documents the one capability
+# (subdivision + motion blur under the photon hider) this feature explicitly
+# does not extend to the photon hider (FR-017). Confirmed by direct
+# execution: all six CShow scenes fail deterministically and immediately
+# with "Opengl wrapper not found" (exit 255, not a hang or crash -- CShow's
+# OpenGL visualization module was removed from this fork, so CView::handle
+# is always NULL); the photon-motion-blur scene runs to completion (exit 0).
+add_not_required_test(motion-subdiv-translate-oshow
+    examples/rib/tests/parity/motion-subdiv-translate-oshow.rib)
+
+add_not_required_test(subdiv-facevarying-seam-oshow
+    examples/rib/tests/subdiv-facevarying-seam-oshow.rib)
+
+add_not_required_test(subdiv-new-tags-oshow
+    examples/rib/tests/subdiv-new-tags-oshow.rib)
+
+add_not_required_test(subdiv-crease-convergence-oshow
+    examples/rib/tests/subdiv-crease-convergence-oshow.rib)
+
+add_not_required_test(subdiv-hierarchical-override-oshow
+    examples/rib/tests/subdiv-hierarchical-override-oshow.rib)
+
+add_not_required_test(subdiv-loop-oshow
+    examples/rib/tests/subdiv-loop-oshow.rib)
+
+add_not_required_test(motion-subdiv-translate-photon
+    examples/rib/tests/parity/motion-subdiv-translate-photon.rib)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      53 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 22 scene pairs registered under label 'parity'")
+message(STATUS "      75 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
+message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

@@ -122,6 +122,11 @@ public:
     void RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[],
                              int ntags, const char *tags[], int nargs[], int intargs[],
                              float floatargs[], int n, const char *tokens[], const void *params[]) override;
+    void RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[],
+                             int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[],
+                             int noverrides, int overrideFaceIndex[], int overrideLevel[],
+                             const char *overrideTags[], float overrideValues[],
+                             int n, const char *tokens[], const void *params[]) override;
     void RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]) override;
     void RiProcedural(void *data, float *bound,
                       void (*subdivfunc)(void *, float), void (*freefunc)(void *)) override;

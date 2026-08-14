@@ -29,6 +29,7 @@
 
 #include "attributes.h"
 #include "common/global.h" // The global header file
+#include "subdivisionHierarchical.h"
 #include "xform.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -37,7 +38,7 @@
 // Comments				:
 class CSubdivMesh : public CObject {
     public:
-        CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs);
+        CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs, const CHierarchicalOverride *overrides = NULL);
         ~CSubdivMesh();
 
         void intersect(CShadingContext *, CRay *);
@@ -59,6 +60,7 @@ class CSubdivMesh : public CObject {
         int *nargs;
         int *intargs;
         float *floatargs;
+        CHierarchicalOverride *overrides;
         TMutex mutex;
 
         friend class CPreviewContext;

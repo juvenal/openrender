@@ -22,6 +22,7 @@ The Lua binding provides a full RIB-emitting interface, mirroring the functional
 
 - **Capabilities**:
   - complete RIB spec coverage including graphics state, camera/display options, and all geometric primitives.
+  - `Ri:HierarchicalSubdivisionMesh` (spec 010-full-subdivision-support) — per-face/per-level tag overrides layered on a base `Ri:SubdivisionMesh`, following the same argument-marshalling shape (`prman.lua:568,573`). Lua-only, matching `Ri:SubdivisionMesh`/`RiSubdivisionMeshV` itself, which has no Python binding either.
   - Standard RIB preamble emission: Automatically writes `##RenderMan RIB-Structure 1.1` and creator metadata when `Begin()` is called.
   - Support for compound RIB features like `MotionBegin`, `SolidBegin`, and `ObjectInstance`.
   - Validated test suite for file output and process pipe modes.

@@ -1340,6 +1340,81 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                                                                 writePL(numVertices, numVertices, numFacevaryings, nfaces, n, tokens, params);
                                                             }
 
+                                                            void CRibOut::RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int noverrides, int overrideFaceIndex[], int overrideLevel[], const char *overrideTags[], float overrideValues[], int n, const char *tokens[], const void *params[]) {
+                                                                int numVertices;
+                                                                int i, j;
+                                                                int numInt, numFloat;
+                                                                int numFacevaryings;
+
+                                                                for (i = 0, j = 0; i < nfaces; j += nvertices[i], i++)
+                                                                    ;
+                                                                numFacevaryings = j;
+
+                                                                for (numVertices = -1, i = 0; i < j; i++) {
+                                                                    if (vertices[i] > numVertices)
+                                                                        numVertices = vertices[i];
+                                                                }
+                                                                numVertices++;
+
+                                                                out("HierarchicalSubdivisionMesh \"%s\" [ ", scheme);
+                                                                for (i = 0; i < nfaces; i++) {
+                                                                    out("%d ", nvertices[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < j; i++) {
+                                                                    out("%d ", vertices[i]);
+                                                                }
+
+                                                                out("] [");
+                                                                for (i = 0; i < ntags; i++) {
+                                                                    out(" \"%s\" ", tags[i]);
+                                                                }
+
+                                                                out("] [");
+                                                                numInt = 0;
+                                                                numFloat = 0;
+                                                                for (i = 0; i < ntags; i++) {
+                                                                    out(" %d %d ", nargs[0], nargs[1]);
+                                                                    numInt += nargs[0];
+                                                                    numFloat += nargs[1];
+                                                                    nargs += 2;
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < numInt; i++) {
+                                                                    out("%d ", intargs[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < numFloat; i++) {
+                                                                    out("%g ", floatargs[i]);
+                                                                }
+                                                                out("] [ ");
+
+                                                                for (i = 0; i < noverrides; i++) {
+                                                                    out("%d ", overrideFaceIndex[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < noverrides; i++) {
+                                                                    out("%d ", overrideLevel[i]);
+                                                                }
+
+                                                                out("] [");
+                                                                for (i = 0; i < noverrides; i++) {
+                                                                    out(" \"%s\" ", overrideTags[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < noverrides; i++) {
+                                                                    out("%g ", overrideValues[i]);
+                                                                }
+                                                                out("] ");
+
+                                                                writePL(numVertices, numVertices, numFacevaryings, nfaces, n, tokens, params);
+                                                            }
+
                                                             void CRibOut::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
                                                                 errorHandler(RIE_UNIMPLEMENT, RIE_ERROR, "Blobby primitive is not implemented\n");
                                                             }

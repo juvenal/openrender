@@ -15,6 +15,7 @@
 | Hider parity | Complete — shared `CSampler`/`CCompositor`/`CPixelFilterAccumulator` kernels converge reyes/raytrace on motion blur, transparency, matte, displacement, and depth-filter modes; D3/D4 (shading-interpolation model) and D9 (DOF occlusion model) remain permanent, documented residuals, not open work | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) |
 | RISpec 3.2 gaps | 3 of 7 implemented | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md) |
 | NURBS trim curves (RiTrimCurve) | Complete — attribute-scoped `TrimCurve` state, shared odd-winding classification test at both REYES and raytrace tessellation paths, `"trimcurve"/"sense"` attribute; additive-only, 100% visual regression pass | [RISPEC_GAPS.md](DEVNOTES_DETAILS/RISPEC_GAPS.md), `specs/009-nurbs-trim-curves/` |
+| Full subdivision surface support | Complete (US1-US3, US5-US6) — cross-hider (REYES+raytrace+photon) subdivision motion blur, facevarying pointer-collapse fix, `facevaryinginterpolateboundary`/`facevaryingpropagatecorners`/`creasemethod` tags, `RiHierarchicalSubdivisionMesh[V]` (7-layer primitive: grammar, RI entry point, renderer, geometry-layer override resolution, RIB round-trip, preview, Lua binding), Loop scheme as a second scheme alongside Catmull-Clark (mask-based refinement → `CPolygonMesh`, no new hider code); crease-quality reports (US4) investigated and not reproduced (see Open Issues); zero hider-specific subdivision code, grep-verified; 75-scene visual suite (up from 33) + 25-scene parity suite, 100% passing; `CShow`-targeting scenes authored per spec.md's Edge Cases (not a gate, pre-existing non-functional hider) | [SUBDIVISION_SURFACES.md](DEVNOTES_DETAILS/SUBDIVISION_SURFACES.md), `specs/010-full-subdivision-support/` |
 | C++20 / C17 migration | Phase 2 complete — portable I/O, binary security; Phase 3 future | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) |
 | PBR path-tracing hider + OSL (`Bxdf`) | Not started — feasibility analysis only, not yet scheduled | [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md) |
 
@@ -39,8 +40,14 @@
 
 - [ ] Purging tessellations for raytracing (no cache eviction mechanism found)
 - [x] Moving raytraced surface — verified 2026-08 (spec 008 Phase 8/US6): `CRaytracer`'s tessellation-path intersection kernels already interpolated geometry on the ray's shutter time (`cRay->time` in `patches.cpp`/`polygons.cpp`, `rv->time` in `quadrics.cpp`); 7 new cross-hider parity scenes (`Parity_motion-{patches,polygons,quadrics}-{translate,deform}`, `Parity_dof-motion`) confirm convergence with the stochastic hider (see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md)). Scoped to object/surface motion only — camera motion blur (interpolating the camera-to-world transform) is not assessed by this work.
-- [ ] Efficient subdivision surface creases
-- [ ] Subdivision highly creased surface issues
+- [ ] Efficient subdivision surface creases — reproduction attempted 2026-08
+  (spec 010 US4): four scenes isolating crease sharpness from convergence
+  count show uniform ~0.5s/22-24MB across all configurations; not reproduced
+  — see [SUBDIVISION_SURFACES.md](DEVNOTES_DETAILS/SUBDIVISION_SURFACES.md)
+- [ ] Subdivision highly creased surface issues — reproduction attempted
+  2026-08 (spec 010 US4): full-frame pixel diff shows the flagged region is
+  present identically in a single-low-sharpness control scene; not
+  reproduced — see [SUBDIVISION_SURFACES.md](DEVNOTES_DETAILS/SUBDIVISION_SURFACES.md)
 - [ ] Irradiance accuracy issues
 
 ## Todos
@@ -63,6 +70,7 @@
 | [BINDINGS_GUIDE.md](DEVNOTES_DETAILS/BINDINGS_GUIDE.md) | Python, Lua, and C++ language bindings |
 | [GEOMETRY_STATEMENT.md](DEVNOTES_DETAILS/GEOMETRY_STATEMENT.md) | Geometry RIB statement implementation |
 | [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md) | Stochastic vs. raytrace hider alignment |
+| [SUBDIVISION_SURFACES.md](DEVNOTES_DETAILS/SUBDIVISION_SURFACES.md) | Catmull-Clark/Loop subdivision surface cross-hider parity, hierarchical edits, and future OpenSubdiv evaluation |
 | [REYES_PAPER_COMPARISON.md](DEVNOTES_DETAILS/REYES_PAPER_COMPARISON.md) | REYES hider vs. the original 1987 Cook/Carpenter/Catmull paper: fidelity, improvements, and limitations |
 | [VERIFICATION_LINUX_PREVIEW.md](DEVNOTES_DETAILS/VERIFICATION_LINUX_PREVIEW.md) | Linux orender-wire and orender-fb verification results |
 | [CXX20_MIGRATION.md](DEVNOTES_DETAILS/CXX20_MIGRATION.md) | C++20/C17 migration, portable I/O, binary format changes |

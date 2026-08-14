@@ -1,0 +1,90 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T067 (spec 010-full-subdivision-support, US5/FR-014): confirms
+# RiHierarchicalSubdivisionMesh integrates with the photon hider's generic
+# tracePhoton() dispatch, same rationale as subdiv-facevarying-seam-photon.rib
+# (T065) -- see that file's header comment for the two-pass structure
+# explanation. Frame 2 is a byte-for-byte copy of
+# subdiv-hierarchical-override-raytrace.rib's raytrace pass, so this test
+# reuses that scene's reference TIFF.
+FrameBegin 1
+  Hider "photon" "int emit" [2000]
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 4
+
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "lightcolor" [1 .95 .9] "from" [20 30 25] "to" [0 0 0]
+    LightSource "distantlight" 3 "intensity" [0.35] "lightcolor" [.7 .8 1] "from" [-25 10 -20] "to" [0 0 0]
+
+    Sides 2
+    Color [0.7 0.7 0.8]
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["subdiv-hierarchical-override-photon.gpm"]
+      Surface "matte"
+      HierarchicalSubdivisionMesh "catmull-clark"
+      [ 4 4 4 4 4 4 4 4 4 ]
+      [
+        0 1 5 4
+        1 2 6 5
+        2 3 7 6
+        4 5 9 8
+        5 6 10 9
+        6 7 11 10
+        8 9 13 12
+        9 10 14 13
+        10 11 15 14
+      ]
+      ["interpolateboundary"] [0 0] [] []
+      [4] [0] ["hole"] [0.0]
+      "P" [
+        -0.6  0.6 0   -0.2  0.6 0    0.2  0.6 0    0.6  0.6 0
+        -0.6  0.2 0   -0.2  0.2 0    0.2  0.2 0    0.6  0.2 0
+        -0.6 -0.2 0   -0.2 -0.2 0    0.2 -0.2 0    0.6 -0.2 0
+        -0.6 -0.6 0   -0.2 -0.6 0    0.2 -0.6 0    0.6 -0.6 0
+      ]
+    AttributeEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  PixelSamples 4 4
+  Display "subdiv-hierarchical-override-photon.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 320 240 1
+  Translate 0 0 4
+
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "lightcolor" [1 .95 .9] "from" [20 30 25] "to" [0 0 0]
+    LightSource "distantlight" 3 "intensity" [0.35] "lightcolor" [.7 .8 1] "from" [-25 10 -20] "to" [0 0 0]
+
+    Sides 2
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    HierarchicalSubdivisionMesh "catmull-clark"
+    [ 4 4 4 4 4 4 4 4 4 ]
+    [
+      0 1 5 4
+      1 2 6 5
+      2 3 7 6
+      4 5 9 8
+      5 6 10 9
+      6 7 11 10
+      8 9 13 12
+      9 10 14 13
+      10 11 15 14
+    ]
+    ["interpolateboundary"] [0 0] [] []
+    [4] [0] ["hole"] [0.0]
+    "P" [
+      -0.6  0.6 0   -0.2  0.6 0    0.2  0.6 0    0.6  0.6 0
+      -0.6  0.2 0   -0.2  0.2 0    0.2  0.2 0    0.6  0.2 0
+      -0.6 -0.2 0   -0.2 -0.2 0    0.2 -0.2 0    0.6 -0.2 0
+      -0.6 -0.6 0   -0.2 -0.6 0    0.2 -0.6 0    0.6 -0.6 0
+    ]
+  WorldEnd
+FrameEnd

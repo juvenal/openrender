@@ -410,6 +410,37 @@ static	int		sizeCheck(int numExpVertex,int numExpVarying,int numExpFaceVarying,i
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	ribHierarchicalSubdivisionMesh
+// Description			:	Validate + dispatch a RiHierarchicalSubdivisionMeshV
+//							call. Factored out because the grammar needs
+//							several alternates to cope with ribTextArray
+//							having no empty-bracket ("[]") production for
+//							the tags/overrideTags argument slots (unlike
+//							ribIntArray/ribFloatArray) -- see the "no tags"/
+//							"no overrideTags" grammar alternates below.
+// Comments				:
+static	void	ribHierarchicalSubdivisionMesh(const char *scheme,int nfaces,int *nvertices,int *vertices,
+												int ntags,const char **tags,int *nargs,int *intargs,float *floatargs,
+												int noverrides,int *overrideFaceIndex,int overrideLevelCount,int *overrideLevel,
+												int overrideTagsCount,const char **overrideTags,int overrideValuesCount,float *overrideValues) {
+	int	numVertices,i,j;
+
+	// Count the number of faces / vertices
+	for (i=0,j=0;i<nfaces;j+=nvertices[i],i++);
+
+	for (numVertices=-1,i=0;i<j;i++) {
+		if (vertices[i] > numVertices)	numVertices	=	vertices[i];
+	}
+	numVertices++;
+
+	if ((noverrides != overrideLevelCount) || (noverrides != overrideTagsCount) || (noverrides != overrideValuesCount)) {
+		error(CODE_BADTOKEN,"Hierarchical subdivision mesh override arrays must all be the same length\n");
+	} else if (sizeCheck(numVertices,numVertices,j,nfaces)) {
+		RiHierarchicalSubdivisionMeshV(scheme,nfaces,nvertices,vertices,ntags,tags,nargs,intargs,floatargs,noverrides,overrideFaceIndex,overrideLevel,overrideTags,overrideValues,numParameters,tokens,vals);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	getBasis
 // Description			:	Get the basis matrix from a given text
 // Return Value			:	TRUE if OK
@@ -578,6 +609,7 @@ static	RtErrorHandler	getErrorHandler(char *n) {
 %token	RIB_GEOMETRY
 %token	RIB_POINTS
 %token	RIB_SUBDIVISION_MESH
+%token	RIB_HIERARCHICAL_SUBDIVISION_MESH
 %token	RIB_BLOBBY
 %token	RIB_PROCEDURAL
 %token	RIB_SOLID_BEGIN
@@ -2442,6 +2474,112 @@ ribComm:		RIB_STRUCTURE_COMMENT
 							}
 						} else {
 							error(CODE_BADTOKEN,"Subdivision surface expected string array (tags) for argument 5\n");
+						}
+					}
+				}
+				|
+				RIB_HIERARCHICAL_SUBDIVISION_MESH
+				RIB_TEXT
+				ribIntArray
+				ribIntArray
+				ribTextArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribIntArray
+				ribIntArray
+				ribTextArray
+				ribFloatArray
+				ribPL
+				{
+					// tags non-empty, overrideTags non-empty
+					if (parameterListCheck()) {
+						ribHierarchicalSubdivisionMesh($2,$3,getInt(0),getInt($3),
+														$5,getString(0),getInt($3+$4),getInt($3+$4+$6),getFloat(0),
+														$9,getInt($3+$4+$6+$7),$10,getInt($3+$4+$6+$7+$9),
+														$11,getString($5),$12,getFloat($8));
+					}
+				}
+				|
+				RIB_HIERARCHICAL_SUBDIVISION_MESH
+				RIB_TEXT
+				ribIntArray
+				ribIntArray
+				ribTextArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribPL
+				{
+					// tags non-empty, overrideTags empty (parsed as int array for arg 11)
+					if (parameterListCheck()) {
+						if ($11 != 0) {
+							error(CODE_BADTOKEN,"Hierarchical subdivision mesh expected string array (overrideTags) for argument 11\n");
+						} else {
+							ribHierarchicalSubdivisionMesh($2,$3,getInt(0),getInt($3),
+															$5,getString(0),getInt($3+$4),getInt($3+$4+$6),getFloat(0),
+															$9,getInt($3+$4+$6+$7),$10,getInt($3+$4+$6+$7+$9),
+															0,getString($5),$12,getFloat($8));
+						}
+					}
+				}
+				|
+				RIB_HIERARCHICAL_SUBDIVISION_MESH
+				RIB_TEXT
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribIntArray
+				ribIntArray
+				ribTextArray
+				ribFloatArray
+				ribPL
+				{
+					// tags empty (parsed as int array for arg 5), overrideTags non-empty
+					if (parameterListCheck()) {
+						if ($5 != 0) {
+							error(CODE_BADTOKEN,"Hierarchical subdivision mesh expected string array (tags) for argument 5\n");
+						} else {
+							ribHierarchicalSubdivisionMesh($2,$3,getInt(0),getInt($3),
+															0,getString(0),getInt($3+$4),getInt($3+$4+$6),getFloat(0),
+															$9,getInt($3+$4+$6+$7),$10,getInt($3+$4+$6+$7+$9),
+															$11,getString(0),$12,getFloat($8));
+						}
+					}
+				}
+				|
+				RIB_HIERARCHICAL_SUBDIVISION_MESH
+				RIB_TEXT
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribIntArray
+				ribIntArray
+				ribIntArray
+				ribFloatArray
+				ribPL
+				{
+					// tags empty (parsed as int array for arg 5), overrideTags empty (parsed as int array for arg 11)
+					if (parameterListCheck()) {
+						if ($5 != 0) {
+							error(CODE_BADTOKEN,"Hierarchical subdivision mesh expected string array (tags) for argument 5\n");
+						} else if ($11 != 0) {
+							error(CODE_BADTOKEN,"Hierarchical subdivision mesh expected string array (overrideTags) for argument 11\n");
+						} else {
+							ribHierarchicalSubdivisionMesh($2,$3,getInt(0),getInt($3),
+															0,getString(0),getInt($3+$4),getInt($3+$4+$6),getFloat(0),
+															$9,getInt($3+$4+$6+$7),$10,getInt($3+$4+$6+$7+$9),
+															0,getString(0),$12,getFloat($8));
 						}
 					}
 				}

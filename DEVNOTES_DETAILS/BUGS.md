@@ -7,6 +7,18 @@ This file tracks known defects and implementation gaps in openRender. Open items
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
+- [ ] Subdivision mesh with no `interpolateboundary` tag renders no geometry at all when every face touches a
+      boundary vertex (`CSFace::create()`, `src/ri/subdivisionCreator.cpp:512`, ~line 540: any face where a
+      vertex's `valence != fvalence` returns immediately without building geometry unless
+      `FACE_INTEPOLATEBOUNDARY` is set). A mesh whose faces are *all* boundary-adjacent — e.g. a small
+      standalone grid with no fully interior vertex — silently produces zero children and never renders, rather
+      than falling back to the RISpec-default (non-interpolated, i.e. "receded") boundary treatment. As a
+      second-order effect, when this happens `CSubdivMesh::children` never gets set non-NULL, so the
+      `if (children == NULL) create()` memoization guard in `intersect()`/`dice()` re-runs the whole `create()`
+      body (topology build + tag/override processing) on every ray/dice call for that object's lifetime — cheap
+      to trigger accidentally on any small untagged test mesh. Discovered and worked around (by adding the tag
+      to the test scene, not by fixing the source) during `specs/010-full-subdivision-support` T047. Predates
+      this feature; independent of hierarchical overrides.
 - [ ] Irradiance accuracy issues
 - [ ] LLVM JIT emitter silently drops `Ci`/`Oi` writes that use the explicit-colorspace RSL color
       constructor (`color "space" (s, t, 0)`, opcode `cfrom`, `src/libshader/shading/shaderOpcodes.h`).

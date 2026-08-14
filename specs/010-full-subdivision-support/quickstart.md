@@ -109,10 +109,15 @@ Per `contracts/hierarchical-subdivision-contract.md`'s seven layers:
 3. Render a scene with an override targeting a nonexistent face/level; confirm the mesh still renders (base mesh
    intact) and exactly one diagnostic names the invalid override (FR-009) — not a hard failure of the whole
    primitive.
-4. RIB round-trip (Layer 5):
+4. RIB round-trip (Layer 5). `orender` has no `-writerib` flag — round-trip verification instead uses the
+   pre-existing `ArchiveBegin`/`ArchiveEnd` mechanism (`CRendererContext::RiArchiveBeginV`,
+   `rendererContext.cpp:5564`), which swaps in a real `CRibOut` for the scope of the block, per the precedent
+   established in `specs/009-nurbs-trim-curves/tasks.md` T034:
    ```bash
-   build/src/orender/orender -writerib out-hierarchical.rib examples/rib/tests/subdiv-hierarchical-override-raytrace.rib
-   grep -A5 HierarchicalSubdivisionMesh out-hierarchical.rib   # confirm an equivalent statement is present
+   # Wrap the HierarchicalSubdivisionMesh statement in ArchiveBegin "hsmtest" / ArchiveEnd, then:
+   TMPDIR=/tmp/scratch build/src/orender/orender examples/rib/tests/subdiv-hierarchical-override-raytrace.rib
+   # Capture openRenderTemp_<pid>/hsmtest BEFORE RiEnd's shutdownFiles() deletes it, then:
+   grep -A5 HierarchicalSubdivisionMesh /tmp/scratch/openRenderTemp_*/hsmtest   # confirm an equivalent statement is present
    ```
 5. Cross-hider parity: render the same scene on REYES and confirm parity within threshold (SC-005).
 6. Preview sanity (Layer 6, base-topology-only): load the RIB in `orender-wire` and confirm it parses and draws

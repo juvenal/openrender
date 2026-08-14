@@ -280,20 +280,29 @@ vertex) under the ray-tracing hider; compare against a lightly-creased control m
 is observed (reproduced-and-fixed, reproduced-and-deferred, or not-reproduced) — any of the three satisfies this
 story per its explicit gate.
 
-- [ ] T029 [US4] Author `examples/rib/tests/subdiv-crease-convergence-raytrace.rib` — multiple crease edges of
+- [X] T029 [US4] Author `examples/rib/tests/subdiv-crease-convergence-raytrace.rib` — multiple crease edges of
   varying sharpness converging at one shared vertex; render under the ray-tracing hider (shading ground truth,
-  FR-016)
-- [ ] T030 [US4] Render a lightly-creased control mesh of comparable complexity and compare visually against
+  FR-016) — **landed**: three additional isolation scenes also authored
+  (`subdiv-crease-convergence-control-raytrace.rib`, `subdiv-crease-shallow-convergence-raytrace.rib`,
+  `subdiv-crease-deep-single-raytrace.rib`) to separate crease-sharpness magnitude from convergence count
+- [X] T030 [US4] Render a lightly-creased control mesh of comparable complexity and compare visually against
   T029's output; record in `DEVNOTES_DETAILS/HIDER_PARITY.md`'s "Crease Quality" subsection (skeleton from T002)
   whether a visible artifact or a noticeably slower render is observed — qualitative bar only, no numeric
-  threshold (research.md R5) — depends on T029
-- [ ] T031 [US4] IF reproduced and root-caused: implement the fix entirely within `subdivisionCreator.cpp`/
+  threshold (research.md R5) — depends on T029 — **landed**: not reproduced, either axis (performance or visual
+  quality) — see HIDER_PARITY.md for the full method (normal-visualization diagnostic shader + full-frame pixel
+  diff against the control) and evidence
+- [X] T031 [US4] IF reproduced and root-caused: implement the fix entirely within `subdivisionCreator.cpp`/
   `subdivision.cpp` (`CSVertex`'s crease/corner accumulation logic), documenting whether it shares a root cause
-  with US2's facevarying fix (research.md R5's hypothesis) — depends on T030
-- [ ] T032 [US4] Update `DEVNOTES.md`'s two open crease-quality checkboxes (lines 42-43) to
+  with US2's facevarying fix (research.md R5's hypothesis) — depends on T030 — **N/A, not reproduced**: no fix
+  landed; `numSharp > 2` corner-freeze branch was not implicated by any evidence gathered and was left unchanged
+- [X] T032 [US4] Update `DEVNOTES.md`'s two open crease-quality checkboxes (lines 42-43) to
   resolved-with-fix-reference or explicitly-deferred-with-rationale — depends on T030 (and T031 if a fix landed)
-- [ ] T033 [US4] Register `subdiv-crease-convergence-raytrace.rib` in `tests/visual/CMakeLists.txt`; generate a
-  reference `.tif` image reflecting the final (fixed-or-documented) state — depends on T032
+  — **landed**: both left unchecked, annotated "reproduction attempted, not reproduced" with a HIDER_PARITY.md
+  cross-reference (not-reproduced is a documented negative result, not a deferral)
+- [X] T033 [US4] Register `subdiv-crease-convergence-raytrace.rib` in `tests/visual/CMakeLists.txt`; generate a
+  reference `.tif` image reflecting the final (fixed-or-documented) state — depends on T032 — **landed**: all
+  four scenes registered (control, shallow-convergence, deep-single, convergence) as raytrace-only
+  `add_visual_test` entries with fresh reference `.tif`s; all 4 pass under ctest
 
 **Checkpoint**: US4 independently testable — the crease-quality bug is either reproduced+fixed+documented,
 reproduced-and-explicitly-deferred, or not-reproduced-and-documented; every outcome satisfies this story's gate.
@@ -310,57 +319,239 @@ override resolution confined entirely to the geometry layer (FR-007/FR-008/FR-00
 only at its targeted face/level; confirm an override targeting a nonexistent face/level is skipped individually
 with a diagnostic, not a whole-primitive failure; confirm RIB round-trip fidelity and cross-hider parity.
 
-- [ ] T034 [P] [US5] Add a new `RIB_HIERARCHICAL_SUBDIVISION_MESH` grammar production to `src/ri/rib.y` (near the
+- [X] T034 [P] [US5] Add a new `RIB_HIERARCHICAL_SUBDIVISION_MESH` grammar production to `src/ri/rib.y` (near the
   three existing `RIB_SUBDIVISION_MESH` alternatives, `rib.y:2390-2473`) — a new production, not a new
   alternative on the existing rule (Layer 1, research.md R6)
-- [ ] T035 [P] [US5] Add a new `RIB_HIERARCHICAL_SUBDIVISION_MESH` token to `src/ri/rib.l` (alongside the existing
+- [X] T035 [P] [US5] Add a new `RIB_HIERARCHICAL_SUBDIVISION_MESH` token to `src/ri/rib.l` (alongside the existing
   `SubdivisionMesh` token, `rib.l:118`) (Layer 1)
-- [ ] T036 [US5] Add the `RiHierarchicalSubdivisionMesh[V]` declaration to `src/ri/ri.h`, parallel in shape to the
+- [X] T036 [US5] Add the `RiHierarchicalSubdivisionMesh[V]` declaration to `src/ri/ri.h`, parallel in shape to the
   existing `RiSubdivisionMeshV` declaration (Layer 2) — depends on T034, T035
-- [ ] T037 [US5] Add `RiHierarchicalSubdivisionMesh[V]` registration to `src/ri/ri.cpp` (Layer 2) — depends on T036
-- [ ] T038 [US5] Implement `RiHierarchicalSubdivisionMeshV` in `src/ri/rendererContext.cpp`, parallel to
+- [X] T037 [US5] Add `RiHierarchicalSubdivisionMesh[V]` registration to `src/ri/ri.cpp` (Layer 2) — depends on T036
+- [X] T038 [US5] Implement `RiHierarchicalSubdivisionMeshV` in `src/ri/rendererContext.cpp`, parallel to
   `RiSubdivisionMeshV` (`rendererContext.cpp:5348`) — parses the base mesh (identical shape to
   `RiSubdivisionMeshV`'s own parsing) plus the new override list, storing the list for the geometry layer to
   resolve (Layer 3) — depends on T037
-- [ ] T039 [P] [US5] Add the `CHierarchicalOverride` struct (`faceIndex`/`level`/`tagName`/value tuple) to new
+- [X] T039 [P] [US5] Add the `CHierarchicalOverride` struct (`faceIndex`/`level`/`tagName`/value tuple) to new
   file `src/ri/subdivisionHierarchical.h`
-- [ ] T040 [US5] Implement override-resolution logic in new file `src/ri/subdivisionHierarchical.cpp` (Layer 4) —
-  resolves per-face/per-level overrides against the base mesh's tag state at subdivision-evaluation time; an
-  override targeting a nonexistent `(face, level)` is skipped individually with a diagnostic naming the affected
-  face/level (FR-009); overrides never mutate the base mesh's own default tags — depends on T038, T039
-- [ ] T041 [US5] Implement the precedence rule in `subdivisionHierarchical.cpp`: when a User-Story-3 tag and a
-  hierarchical override target the same face, the override's value wins at its targeted face/level
-  (data-model.md's precedence rule) — depends on T040, T024
-- [ ] T042 [US5] Add a new, parallel `CRibOut::RiHierarchicalSubdivisionMeshV` serializer to `src/ri/ribOut.cpp`
+- [X] T040 [US5] Implement override-resolution logic (Layer 4) — resolves per-face/per-level overrides against the
+  base mesh's tag state at subdivision-evaluation time; an override targeting a nonexistent `(face, level)` is
+  skipped individually with a diagnostic naming the affected face/level (FR-009); overrides never mutate the base
+  mesh's own default tags — depends on T038, T039. **Location deviation from the task text above**: the resolution
+  loop lives inside `CSubdivMesh::create()` in `subdivisionCreator.cpp`, not in `subdivisionHierarchical.cpp`,
+  because it needs direct access to `CSFace`/`CSVertex`/`CSEdge`/`CSubdivData`, which are translation-unit-private
+  to `subdivisionCreator.cpp` (not declared in any header). The contract
+  (`contracts/hierarchical-subdivision-contract.md`) explicitly sanctions this: "Files: `subdivisionCreator.cpp`/
+  `subdivision.h`, or a new sibling file." `subdivisionHierarchical.{h,cpp}` was scoped instead to the
+  self-contained `CHierarchicalOverride` type and its clone/delete utilities, which have no dependency on those
+  private types. Verified: build clean; `smoke_hsm_grid.rib` (2x2 quad grid, one face's edges creased via
+  override) renders with `exit=0` and zero warnings, confirming the resolution loop runs correctly and produces no
+  regressions relative to the equivalent plain `smoke_sm_grid.rib`.
+- [X] T041 [US5] Implement the precedence rule: when a User-Story-3 tag and a hierarchical override target the
+  same face, the override's value wins at its targeted face/level (data-model.md's precedence rule) — depends on
+  T040, T024. Satisfied by construction: in `CSubdivMesh::create()`, the override-resolution loop
+  (`subdivisionCreator.cpp:2024-2054`) runs unconditionally *after* the base-tag dispatch loop
+  (`subdivisionCreator.cpp:1941-2011`, US3/T024) and writes directly to the same `CSFace`/`CSVertex`/`CSEdge`
+  fields the base loop just set, so an override for a given face always overwrites that face's base-tag value —
+  no conditional/priority logic needed beyond ordering.
+- [X] T042 [US5] Add a new, parallel `CRibOut::RiHierarchicalSubdivisionMeshV` serializer to `src/ri/ribOut.cpp`
   (alongside `RiSubdivisionMeshV` at `1288,1304`) (Layer 5) — depends on T038
-- [ ] T043 [P] [US5] Add the `RiHierarchicalSubdivisionMeshV` declaration to
+
+  RESULT: Implemented (~75 lines) — serializes scheme, per-face vertex counts, vertex indices, tags/nargs/
+  intargs/floatargs, and the four override arrays (`overrideFaceIndex`, `overrideLevel`, `overrideTags`,
+  `overrideValues`), then calls the shared `writePL(...)` parameter-list writer. Verified live by embedding a
+  `HierarchicalSubdivisionMesh` statement (crease tag + one override) directly in a scratch `.orenderrc` —
+  `.orenderrc` is parsed via `ribParse()` into the live `CRibOut` at `RiBegin()` time, so this exercises the real
+  serializer without needing a CLI round-trip flag. Output reproduced the scheme, face/vertex topology, tags, and
+  all four override arrays correctly. `orender` has no `-writerib` flag and none was added — per
+  `specs/009-nurbs-trim-curves/tasks.md` T034 precedent, that flag doesn't exist anywhere in this codebase and its
+  mention in this feature's early planning docs was the same kind of planning-stage documentation error 009
+  already diagnosed. T048 below performs the durable, in-repo round-trip verification via
+  `ArchiveBegin`/`ArchiveEnd`, mirroring 009's T034 methodology exactly.
+- [X] T043 [P] [US5] Add the `RiHierarchicalSubdivisionMeshV` declaration to
   `src/preview/libribpreview/ribGeometryContext.h` (alongside the existing `RiSubdivisionMeshV` at `.h:122`)
   (Layer 6)
-- [ ] T044 [US5] Add the `RiHierarchicalSubdivisionMeshV` handler to
+
+  RESULT: Declaration present (`ribGeometryContext.h:125-129`), signature matches `RiSubdivisionMeshV` plus the
+  four override array parameters. Compiles clean as part of `libribpreview`.
+- [X] T044 [US5] Add the `RiHierarchicalSubdivisionMeshV` handler to
   `src/preview/libribpreview/ribGeometryContext.cpp` (alongside the existing handler at `687,706`) — parses/draws
   base-mesh topology only, no override visualization (Layer 6) — depends on T043, T038
-- [ ] T045 [P] [US5] Add the `Ri:HierarchicalSubdivisionMesh` Lua binding to `src/lua/prman.lua` (alongside the
+
+  RESULT: Handler implemented, correctly draws base-mesh topology only and ignores the override arrays, per the
+  contract's Layer 6 base-topology-only requirement (an explanatory comment in the code notes why). Independent
+  in-`orender-wire` smoke verification is T050's job, not re-done here.
+- [X] T045 [P] [US5] Add the `Ri:HierarchicalSubdivisionMesh` Lua binding to `src/lua/prman.lua` (alongside the
   existing `Ri:SubdivisionMesh` binding at `568,573`) (Layer 7) — depends on T038
-- [ ] T046 [US5] Author `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` with a per-face, per-level
+
+  RESULT: `Ri:HierarchicalSubdivisionMesh(...)` binding present, mirrors `Ri:SubdivisionMesh`'s parameter-marshaling
+  pattern with the four additional override arrays appended.
+- [X] T046 [US5] Author `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` with a per-face, per-level
   tag override; confirm the effect is visible only at its targeted face/level and the base mesh's own default
   tags are otherwise unaffected (Acceptance Scenario 1) — depends on T041
-- [ ] T046a [US5] Author `examples/rib/tests/subdiv-hierarchical-tag-override-precedence-raytrace.rib` — a face
+
+  RESULT: Scene renders a 3×3-quad base mesh (raytrace, `matte`) with a level-0 `"hole"` override on the center
+  face (face 4); output shows the full shaded mesh with a clean hole punched only at that face, all 8 surrounding
+  faces rendering with their untouched default tags — satisfies Acceptance Scenario 1.
+
+  Debugging note (root-caused, not a hierarchical-override or hole-mechanism bug): the scene initially rendered
+  completely blank under raytrace. Isolation (`SubdivisionMesh` + base `"hole"` tag vs. `HierarchicalSubdivisionMesh`
+  + a non-hole `"corner"` override, same topology) showed the *hole* mechanism was implicated but *not* the
+  override-resolution code path, which worked correctly. Root cause: this 3×3-grid topology has 8 of 9 faces
+  touching the mesh boundary; per RISpec (and this codebase's correct, pre-existing implementation at
+  `subdivisionCreator.cpp:536-538`), a boundary-adjacent face's `CSFace::create()` returns without producing any
+  limit-surface geometry unless the base mesh carries the `"interpolateboundary"` tag. The scene never set that
+  tag, so only the single fully-interior face (face 4) was ever capable of rendering. That's also the face this
+  test targets as the hole, so with the tag missing, zero faces could produce geometry → blank image. Not a
+  regression from this feature's new code; the RIB scene itself omitted a required base tag. Fixed by adding
+  `["interpolateboundary"] [0] [] []` to the base tag arrays.
+- [X] T046a [US5] Author `examples/rib/tests/subdiv-hierarchical-tag-override-precedence-raytrace.rib` — a face
   carrying both a User-Story-3 tag and a hierarchical override at the same `(face, level)`; confirm the
   override's value visibly wins, verifying `contracts/hierarchical-subdivision-contract.md`'s precedence rule
   renders correctly (not just resolves correctly in T041's code) — depends on T041, T024
-- [ ] T047 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-invalid-raytrace.rib` targeting a
+
+  RESULT: scene authored (mesh-wide `facevaryinginterpolateboundary=0` base tag plus a face-0/level-0
+  hierarchical override to `facevaryinginterpolateboundary=2`, vertex 4 the shared facevarying-seam vertex).
+  Initially blocked: `CSVertex::computeVarying()`'s override-precedence logic never ran for face 0. Root-caused
+  via instrumented trace (not speculation) to a pre-existing, general loop-ordering bug in `CSubdivMesh::create()`
+  — not anything specific to hierarchical overrides. The original "Finalize the faces" loop interleaved, per
+  face, (a) attaching that face's facevarying corner pointer to its vertices via `setFacevarying()` and (b)
+  immediately calling that face's `create()`, which triggers `computeVarying()` on every corner vertex including
+  shared ones. `computeVarying()`'s seam detection (`isSeam`) requires two *distinct* non-NULL facevarying
+  pointers among a vertex's incident faces before it will run the override/`fvarBoundaryMode`/`propagateCorners`
+  resolution block at all. Because face 0 is processed first, when its `create()` ran, a shared vertex had only
+  face 0's own facevarying pointer attached — every other incident face's pointer was still NULL (their loop
+  iterations hadn't run yet) — so `isSeam` evaluated FALSE and the whole resolution path (including any
+  hierarchical override) was silently skipped for face 0, while faces processed later at the same vertex saw it
+  correctly. This is a general correctness bug that would affect any facevarying-seam scene, hierarchical or not,
+  for whichever face happens to be processed first at a shared vertex. Fixed by splitting the loop into two
+  sequential passes in `src/ri/subdivisionCreator.cpp`: pass 1 attaches every face's facevarying pointer to every
+  vertex (recording degenerate-face skips in a `skipFace[]` array instead of `goto`-jumping into face creation
+  mid-loop); pass 2 then calls `create()` for every non-skipped face — guaranteeing full facevarying-pointer
+  population before any face's seam detection runs, independent of processing order. Verified via before/after
+  instrumented trace: post-fix, face 0 now correctly resolves its own override (`boundaryMode=2`) while faces
+  1-3 correctly fall back to the mesh-wide base tag (`boundaryMode=0`) — matching the required precedence rule.
+  Full visual regression suite (`ctest -L visual -E slow`, 65 tests) re-run after the fix: 4 pre-existing
+  reference `.tif`s (`subdiv-new-tags-raytrace`, `subdiv-tag-facevaryinginterpolateboundary-raytrace`,
+  `subdiv-tag-facevaryingpropagatecorners-raytrace`, `subdiv-new-tags-with-hole-raytrace`, all committed in
+  `ee8a2fc` before this fix) initially failed; confirmed by code inspection that this is the fix's intended
+  effect, not a regression — those scenes use `facevaryinginterpolateboundary=0`/"none" mode on multi-face
+  meshes, and `computeVarying()`'s `preserve` flag defaults `TRUE`, so the pre-fix bug (isSeam wrongly FALSE for
+  the first-processed face) meant the smoothing/averaging that "none" mode requires never ran for that face; with
+  the fix, `isSeam` correctly evaluates TRUE and smoothing is correctly applied. References regenerated per the
+  documented procedure in `tests/visual/CMakeLists.txt`; full suite now passes 65/65, plus `LibShader_Compiler`.
+- [X] T047 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-invalid-raytrace.rib` targeting a
   nonexistent face/level; confirm the mesh still renders (base mesh intact) with exactly one diagnostic naming
   the invalid override (FR-009) — depends on T040
-- [ ] T048 [US5] RIB round-trip test: render `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` with
-  `-writerib`, grep the output for an equivalent `HierarchicalSubdivisionMesh` statement (Layer 5 verification) —
-  depends on T042, T046
-- [ ] T049 [P] [US5] Author `examples/rib/tests/parity/subdiv-hierarchical-override-{reyes,raytrace}.rib` and
+  RESULT: initial version of the scene (mimicking the T047 acceptance description literally) omitted the
+  `interpolateboundary` tag, unlike every other hierarchical-override test scene. That exposed a real,
+  independent pre-existing bug in `CSFace::create()` (`subdivisionCreator.cpp:512`, line ~540): any face
+  touching a boundary vertex (`valence != fvalence`) returns immediately without creating geometry when
+  `FACE_INTEPOLATEBOUNDARY` isn't set. This scene's 3×3 base grid has every face touching a boundary vertex, so
+  with the tag absent *every* face bailed out, `allChildren` stayed NULL, `CSubdivMesh::children` was therefore
+  never set non-NULL by `setChildren()`, and the `if (children == NULL) create()` memoization guard in
+  `intersect()`/`dice()` re-ran the *entire* `create()` body — including the override-validation warning loop —
+  on every single ray hit for the object's whole lifetime (reproduced at 3x on a minimal single-threaded 4×4px
+  scene, 228,019x on the full 320×240 @ 4×4 PixelSamples raytrace scene). Root-caused via a controlled
+  single-threaded (`numthreads=1`) minimal repro plus temporary `this`/`children` pointer tracing in
+  `create()`'s entry/exit (confirmed `this` was constant across all firings and `children` was NULL on every
+  entry despite `setChildren()` having run — ruling out object duplication and races, and pointing at
+  `allChildren` never getting populated). Fix: added `["interpolateboundary"] [0] [] []` to the test scene's
+  base tags, matching every other hierarchical-override scene's existing convention — verified this restores
+  exactly one `CODE_RANGE` warning and a non-blank render (13,696/76,800 non-background pixels). This is a
+  test-scene-only fix; no source change was needed or made. The `CSFace::create()` early-return-without-geometry
+  behavior for untagged boundary meshes is a separate, deeper pre-existing defect (predates this feature,
+  unrelated to hierarchical overrides) — out of scope for T047, flagged in `DEVNOTES_DETAILS/BUGS.md` (not
+  `RISPEC_GAPS.md`, which is a feature-coverage checklist with no bug-tracking section — corrects a wording slip
+  in the original version of this note) as a follow-up.
+  CORRECTION (found during T048): this scene's `nargs` array (`["interpolateboundary"] [0] [] []`) was itself
+  still wrong — one int for one tag, when `CSubdivMesh`'s tag-processing loop
+  (`subdivisionCreator.cpp:2001-2070`) unconditionally consumes exactly 2 ints per tag (`nint`, `nfloat`) for
+  *every* tag including `interpolateboundary`, matching the constructor's `memcpy(this->nargs, nargs,
+  sizeof(int) * ntags * 2)` and every other existing SubdivisionMesh/HierarchicalSubdivisionMesh test scene
+  (e.g. `subdiv-facevarying-seam-raytrace.rib`'s `["interpolateboundary"] [0 0] [] []`,
+  `subdiv-hierarchical-tag-override-precedence-raytrace.rib`'s 2-tag `[0 0  1 0]`). Supplying only 1 int caused
+  an out-of-bounds read past the caller's `nargs` array in both the constructor and (surfaced concretely by
+  T048's round-trip capture) `CRibOut::RiHierarchicalSubdivisionMeshV`. Fixed by changing `[0]` to `[0 0]` in
+  this scene; re-verified exactly 1 warning (now confirmed on stdout, not stderr — `"... (33): Hierarchical
+  subdivision override targets nonexistent face 99; skipped"`) and a non-blank render (13,786/76,800
+  non-background pixels).
+- [X] T048 [US5] RIB round-trip test (Layer 5 verification) — depends on T042, T046. `orender` has no `-writerib`
+  flag (see T042's RESULT note); use the pre-existing `ArchiveBegin`/`ArchiveEnd` mechanism instead, mirroring
+  `specs/009-nurbs-trim-curves/tasks.md` T034: wrap the `HierarchicalSubdivisionMesh` statement from
+  `subdiv-hierarchical-override-raytrace.rib` in `ArchiveBegin "hsmtest"` / `ArchiveEnd`, run unmodified `orender`
+  against it with `TMPDIR` pointed at a scratch directory, and capture `openRenderTemp_<pid>/hsmtest` **before**
+  `RiEnd`'s `CRenderer::shutdownFiles()` deletes it. Grep the captured file for an equivalent
+  `HierarchicalSubdivisionMesh` statement.
+  RESULT: confirmed `CRibOut::RiHierarchicalSubdivisionMeshV` already exists (`ribOut.cpp:1343`, implemented in
+  earlier T042 work). Built a scratch scene wrapping `subdiv-hierarchical-override-raytrace.rib`'s
+  `HierarchicalSubdivisionMesh` statement in `ArchiveBegin "hsmtest"`/`ArchiveEnd`, ran unmodified `orender`
+  with `TMPDIR` pointed at a scratch dir, and captured `openRenderTemp_<pid>/hsmtest` before `RiEnd` deleted it
+  — exit 0, empty stderr, matching the T034 (spec 009) precedent exactly.
+  The *first* capture attempt (before the nargs fix above) exposed a real bug: the output was
+  `[ "interpolateboundary" ] [ 0 4 ] [ ] [ 0 -0.6 0.6 0 ]` instead of the expected `[ "interpolateboundary" ]
+  [ 0 0 ] [ ] [ ]` — `CRibOut`'s serializer read 2 ints/tag from a caller-supplied `nargs` array that only had
+  1 int for the scene's single tag, so `nargs[1]` (and consequently up to 4 "float args") read past the end of
+  the array into adjacent heap memory (the override-face-index value `4` and P-array floats `-0.6 0.6 0` leaked
+  through). This confirmed the same OOB condition documented in T047's CORRECTION note above — `CRibOut` wasn't
+  buggy on its own, it was faithfully serializing an already-corrupted `nargs` array. After fixing the source
+  scene's `nargs` from `[0]` to `[0 0]` (see T047 CORRECTION), the round-trip capture is clean and byte-for-byte
+  equivalent to the input (modulo formatting): `HierarchicalSubdivisionMesh "catmull-clark" [ 4 4 4 4 4 4 4 4 4 ]
+  [ 0 1 5 4 ... 10 11 15 14 ] [ "interpolateboundary" ] [ 0 0 ] [ ] [ ] [ 4 ] [ 0 ] [ "hole" ] [ 0 ]  "P" [...]`
+  — tags, nargs, intargs, floatargs, overrideFaceIndex, overrideLevel, overrideTags, and overrideValues all
+  round-trip correctly through the real `CRibOut::RiHierarchicalSubdivisionMeshV`, satisfying FR-014/round-trip
+  intent for the hierarchical primitive. No source changes were needed for `CRibOut` itself — the bug was
+  entirely in the two test scenes' `nargs` arrays (now fixed).
+- [X] T049 [P] [US5] Author `examples/rib/tests/parity/subdiv-hierarchical-override-{reyes,raytrace}.rib` and
   confirm cross-hider parity within the block-average threshold (SC-005) — depends on T046
-- [ ] T050 [US5] Load `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` in `orender-wire` and confirm
+
+  RESULT: derived both scenes directly from the now-fixed, now-verified base scene
+  `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` (T046/T048's `["interpolateboundary"] [0 0] [] []`
+  nargs fix already applied), following the `motion-subdiv-translate-{reyes,raytrace}` precedent exactly: the two
+  scenes are identical apart from `Hider "raytrace"`/`Hider "reyes"` and the `Display` output filename — both keep
+  `PixelSamples 4 4` (no `ShadingRate` override) since the scene has no motion/DOF confound to control for. Rendered
+  both with unmodified `orender` (exit 0, empty logs on both), then measured with the existing `test_hider_parity`
+  harness (`build/tests/visual/test_hider_parity`, threshold 20 — same tier as `flatshade`/`aov`, since this scene
+  uses the same plain `"matte"` surface with no DOF/motion). Result: `MaxBlockAvgDiff` 0.81/0.83/0.59 across 3 runs
+  (1200 8x8 blocks, 0 failing blocks each run) — comfortably inside the D3/D4 shading-interpolation residual band
+  documented in `tests/visual/parity-thresholds.md`, and far below the threshold. No new residual class was
+  introduced by the hierarchical-override/hole-tag path — REYES and raytrace agree on the base mesh's dicing/
+  tessellation and hole-face culling. Threshold 20 is not tightened further, matching the existing `flatshade`
+  precedent (residual is bounded/non-closable per the audit, not scene-specific noise). Registration in
+  `tests/visual/CMakeLists.txt` (with reference `.tif` generation) is deferred to T051 per its own dependency list.
+- [X] T050 [US5] Load `examples/rib/tests/subdiv-hierarchical-override-raytrace.rib` in `orender-wire` and confirm
   it parses and draws the base mesh wireframe without crashing (Layer 6 preview sanity) — depends on T044, T046
-- [ ] T051 [US5] Register `subdiv-hierarchical-override-{reyes,raytrace}.rib`,
+
+  RESULT: rather than driving the actual GUI app (`orender-wire.app`/`orender-wire-macos`), used the existing
+  headless integration-test harness `tests/preview/test_integration.cpp` (built as `test_preview_integration`),
+  which already loads an arbitrary RIB path through the same `ribpreview_load()`/libribpreview C API the GUI itself
+  calls (`ribpreview_api.h`), and checks `vertexCount > 0`, valid near/far camera planes, and that every vertex
+  coordinate is finite (no NaN/Inf) — i.e. exactly "parses and draws the base mesh wireframe without crashing,"
+  verified at the API layer the GUI is built on, with zero new test code needed. Ran:
+  `build/tests/preview/test_preview_integration examples/rib/tests/subdiv-hierarchical-override-raytrace.rib`
+  (with `SHADERS`/`ORENDERHOME`/`DISPLAYS`/`GEOMETRIES` set per the standard run env) — output `test_integration: 4
+  pass, 0 fail`, exit 0. Confirms T044's `RiHierarchicalSubdivisionMesh` base-topology support in
+  `libribpreview`/`tessSubdivision.cpp` loads cleanly through the real preview pipeline: it tessellates the base
+  9-quad mesh into a non-empty, all-finite vertex buffer and a valid camera, with no crash — matching the intent of
+  the "in-`orender-wire` smoke verification" referenced at line 382 (T046a's note) without needing to launch the
+  interactive GUI, which is not scriptable/headless-checkable in this environment.
+- [X] T051 [US5] Register `subdiv-hierarchical-override-{reyes,raytrace}.rib`,
   `subdiv-hierarchical-override-invalid-raytrace.rib`, and T046a's precedence scene in
   `tests/visual/CMakeLists.txt`; generate reference `.tif` images — depends on T046a, T047, T048, T049, T050
+  RESULT: added four registrations to `tests/visual/CMakeLists.txt` — three `add_visual_test` entries
+  (`subdiv-hierarchical-override-raytrace`, `subdiv-hierarchical-override-invalid-raytrace`,
+  `subdiv-hierarchical-tag-override-precedence-raytrace`) plus one `add_parity_test`
+  (`subdiv-hierarchical-override`, reyes vs. raytrace, threshold 20) covering T049's pair. Generated all three needed
+  reference `.tif` images by rendering each scene with unmodified `orender` into a scratch dir and copying the output
+  into `examples/rib/tests/references/` under the matching basename (the invalid-override scene's render log showed
+  exactly the expected single warning: `"...targets nonexistent face 99; skipped"`). Rebuilt
+  (`cmake --build build --target test_visual_render test_hider_parity orender`) — CMake reconfigured cleanly, closing
+  summary counters corrected from a stale "57"/"22" to the grep-verified accurate "68 scenes"/"25 pairs" (drift
+  predated this change; corrected while already touching that line). Ran
+  `ctest --test-dir build -R "hierarchical" --output-on-failure`: all 4 newly-registered tests passed —
+  `Visual_subdiv-hierarchical-override-raytrace` (0.32s), `Visual_subdiv-hierarchical-override-invalid-raytrace`
+  (0.15s), `Visual_subdiv-hierarchical-tag-override-precedence-raytrace` (0.15s), and
+  `Parity_subdiv-hierarchical-override` (0.20s) — 100% pass, 0 failures. No source file was touched; this task was
+  purely test-registration/build-config work.
 
 **Checkpoint**: US5 independently testable — `RiHierarchicalSubdivisionMesh` parses, renders with correct override
 precedence, round-trips through RIB, previews (base topology only), and is cross-hider parity-verified; zero
@@ -378,25 +569,25 @@ capability (FR-010/FR-011, research.md R7).
 tessellates and shades correctly with no crashes; render a mixed triangle/non-triangle mesh with `scheme="loop"`,
 confirming rejection with a diagnostic; confirm every existing `scheme="catmullclark"` scene is unaffected.
 
-- [ ] T052 [US6] Accept `"loop"` as a second value alongside `"catmullclark"` at the scheme-rejection site in
+- [X] T052 [US6] Accept `"loop"` as a second value alongside `"catmullclark"` at the scheme-rejection site in
   `RiSubdivisionMeshV` (`rendererContext.cpp:5364-5366`, currently `error(CODE_INCAPABLE, ...)`)
-- [ ] T053 [P] [US6] Create new file `src/ri/subdivisionLoop.h` declaring `CLoopSubdivMesh : public CObject`
+- [X] T053 [P] [US6] Create new file `src/ri/subdivisionLoop.h` declaring `CLoopSubdivMesh : public CObject`
   implementing the `CObject`/`CSurface` contract (`intersect()`/`dice()`/`instantiate()`/`sample()`/
   `interpolate()`) — depends on T052
-- [ ] T054 [US6] Implement `src/ri/subdivisionLoop.cpp`: Loop-scheme subdivision using iterative/uniform
+- [X] T054 [US6] Implement `src/ri/subdivisionLoop.cpp`: Loop-scheme subdivision using iterative/uniform
   subdivision only, with no new eigenbasis-generation dependency (research.md R7); reject mixed
   triangle/non-triangle topology with a diagnostic identifying the mesh as unsuitable (Edge Cases) — depends on
   T053
-- [ ] T055 [US6] Wire `CLoopSubdivMesh` construction into `RiSubdivisionMeshV`'s scheme dispatch in
+- [X] T055 [US6] Wire `CLoopSubdivMesh` construction into `RiSubdivisionMeshV`'s scheme dispatch in
   `rendererContext.cpp` — depends on T052, T054
-- [ ] T056 [P] [US6] Author `examples/rib/tests/subdiv-loop-{reyes,raytrace}.rib` — an all-triangle mesh with
+- [X] T056 [P] [US6] Author `examples/rib/tests/subdiv-loop-{reyes,raytrace}.rib` — an all-triangle mesh with
   `scheme="loop"`, confirming it dices/tessellates and shades correctly on both hiders — depends on T055
-- [ ] T057 [P] [US6] Author `examples/rib/tests/subdiv-loop-mixed-invalid.rib` — a mixed triangle/non-triangle
+- [X] T057 [P] [US6] Author `examples/rib/tests/subdiv-loop-mixed-invalid.rib` — a mixed triangle/non-triangle
   mesh with `scheme="loop"`; confirm rejection with a diagnostic, not a crash or silently-degenerate geometry
   (Edge Cases) — depends on T054
-- [ ] T058 [US6] Re-render `geometry/killeroo.rib` and every existing `scheme="catmullclark"` scene; confirm
+- [X] T058 [US6] Re-render `geometry/killeroo.rib` and every existing `scheme="catmullclark"` scene; confirm
   bit-for-bit unaffected by the new scheme-dispatch branch (SC-007) — depends on T055
-- [ ] T059 [US6] Register `subdiv-loop-{reyes,raytrace}.rib` and `subdiv-loop-mixed-invalid.rib` in
+- [X] T059 [US6] Register `subdiv-loop-{reyes,raytrace}.rib` and `subdiv-loop-mixed-invalid.rib` in
   `tests/visual/CMakeLists.txt`; generate reference `.tif` images — depends on T056, T057
 
 **Checkpoint**: US6 independently testable — Loop scheme renders a smooth limit surface with no crashes on both
@@ -409,32 +600,32 @@ hiders, correctly rejects unsuitable topology, and leaves every Catmull-Clark sc
 **Purpose**: Confirm the standing architectural invariant held across every tier, run the full regression sweep,
 and close out this feature's documentation deliverables.
 
-- [ ] T060 Re-run the FR-013 hider-invariant grep check from `contracts/hider-invariant-contract.md` against
+- [X] T060 Re-run the FR-013 hider-invariant grep check from `contracts/hider-invariant-contract.md` against
   `src/ri/{stochastic,reyes,zbuffer,raytracer,trace,photon,show}.cpp` after all six tiers have landed; confirm
   zero matches, unchanged from the T004 baseline (SC-008)
-- [ ] T061 Run the full regression sweep: `ctest --test-dir build -L visual --output-on-failure` and
+- [X] T061 Run the full regression sweep: `ctest --test-dir build -L visual --output-on-failure` and
   `ctest --test-dir build -L libshader --output-on-failure`; confirm all existing scenes plus every new scene
   above pass (`CShow`-targeting scenes and T069's photon motion-blur scene are authored-but-not-required per
   spec.md's Clarifications; T065-T068's other photon-hider scenes are required-to-pass, per FR-014) — depends on
   T060
-- [ ] T062 [P] Finalize `DEVNOTES_DETAILS/HIDER_PARITY.md`'s subdivision-surfaces section, consolidating the
+- [X] T062 [P] Finalize `DEVNOTES_DETAILS/HIDER_PARITY.md`'s subdivision-surfaces section, consolidating the
   Motion Blur / Facevarying / New Tags / Crease Quality / Hierarchical Edits / Loop Scheme subsections each story
   phase appended incrementally
-- [ ] T063 [P] Update `DEVNOTES.md`'s top-level status table, marking Full Subdivision Surface Support's tiers
+- [X] T063 [P] Update `DEVNOTES.md`'s top-level status table, marking Full Subdivision Surface Support's tiers
   complete or explicitly deferred as appropriate
-- [ ] T064 Author `CShow`-targeting scenes for each of US1–US6's new capabilities under `examples/rib/tests/` (not
+- [X] T064 Author `CShow`-targeting scenes for each of US1–US6's new capabilities under `examples/rib/tests/` (not
   required to pass, per spec.md's Edge Cases); confirm they are registered in `tests/visual/CMakeLists.txt` as
   authored-not-required, matching the photon-hider motion-blur treatment
-- [ ] T065 [P] [US2] Author `examples/rib/tests/subdiv-facevarying-seam-photon.rib`; register as a required-to-pass
+- [X] T065 [P] [US2] Author `examples/rib/tests/subdiv-facevarying-seam-photon.rib`; register as a required-to-pass
   `add_visual_test(...)` entry in `tests/visual/CMakeLists.txt` (FR-014's photon-hider requirement) — depends on
   T016
-- [ ] T066 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-photon.rib`; register as required-to-pass —
+- [X] T066 [P] [US3] Author `examples/rib/tests/subdiv-new-tags-photon.rib`; register as required-to-pass —
   depends on T024
-- [ ] T067 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-photon.rib`; register as
+- [X] T067 [P] [US5] Author `examples/rib/tests/subdiv-hierarchical-override-photon.rib`; register as
   required-to-pass — depends on T041
-- [ ] T068 [P] [US6] Author `examples/rib/tests/subdiv-loop-photon.rib`; register as required-to-pass — depends
+- [X] T068 [P] [US6] Author `examples/rib/tests/subdiv-loop-photon.rib`; register as required-to-pass — depends
   on T055
-- [ ] T069 [US1] Author `examples/rib/tests/parity/motion-subdiv-translate-photon.rib` (authored-but-not-required,
+- [X] T069 [US1] Author `examples/rib/tests/parity/motion-subdiv-translate-photon.rib` (authored-but-not-required,
   matching the `CShow` treatment per FR-017's photon-motion-blur exception) — depends on T005
 
 ---

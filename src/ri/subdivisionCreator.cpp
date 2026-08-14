@@ -340,19 +340,10 @@ class CSEdge {
         //							converging at a vertex decay towards each
         //							other instead of independently.
         // Return Value			:	The new child sharpness, clamped to >= 0
-        // Comments				:
-        float childSharpness(CSVertex *v) {
-            if (data.creaseMethod == 1) {
-                float otherSharpness;
-                if (v->countSharpEdges(this, otherSharpness) == 2) {
-                    float chaikin = (3 * sharpness + otherSharpness) / 4 - 1;
-                    return (0 > chaikin) ? 0 : chaikin;
-                }
-            }
-
-            float plain = sharpness - 1;
-            return (0 > plain) ? 0 : plain;
-        }
+        // Comments				:	Defined out-of-line after CSFace (below), since it
+        //							consults faces[]->creaseMethodOverride and CSFace is
+        //							only forward-declared at this point in the file.
+        float childSharpness(CSVertex *v);
 
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CSEdge
@@ -394,6 +385,9 @@ class CSFace {
             children = NULL;
             childVertex = NULL;
             hole = FALSE;
+            fvarBoundaryModeOverride = -1;
+            fvarPropagateCornersOverride = -1;
+            creaseMethodOverride = -1;
         }
 
         CSubdivData &data;
@@ -404,6 +398,14 @@ class CSFace {
         int hole;
         CSFace **children;
         CSVertex *childVertex;
+
+        // Per-face hierarchical-override values for the three User-Story-3 mesh-wide
+        // tags (facevaryinginterpolateboundary, facevaryingpropagatecorners,
+        // creasemethod, FR-007/FR-008 precedence rule, data-model.md). -1 means "no
+        // override on this face" -- fall back to the base mesh's CSubdivData default.
+        int fvarBoundaryModeOverride;
+        int fvarPropagateCornersOverride;
+        int creaseMethodOverride;
 
         void *operator new(size_t s, CShadingContext *context) {
             return ralloc((int)s, context->threadMemory);
@@ -1320,7 +1322,7 @@ void CSVertex::computeVarying(float *varying, float *facevarying, int requesting
     else if (parentf != NULL)
         parentf->computeVarying(varying, facevarying, requestingFaceIndex);
     else {
-        CVertexFace *cFace, *cOther;
+        CVertexFace *cFace, *cOther, *requestingCFace = NULL;
         int isSeam = FALSE;
         int preserve = TRUE;
 
@@ -1340,14 +1342,31 @@ void CSVertex::computeVarying(float *varying, float *facevarying, int requesting
             }
         }
 
+        // Locate the requesting face's own incident-face record, so a hierarchical
+        // override on that specific face can win over the base mesh's mesh-wide
+        // fvarBoundaryMode/fvarPropagateCorners default (precedence rule,
+        // data-model.md) without affecting how any other face sees this vertex.
+        for (cFace = faces; cFace != NULL; cFace = cFace->next) {
+            if ((cFace->face != NULL) && (cFace->face->uniformIndex == requestingFaceIndex)) {
+                requestingCFace = cFace;
+                break;
+            }
+        }
+
         if (isSeam) {
-            if (data.fvarBoundaryMode == 0) {
+            int boundaryMode = ((requestingCFace != NULL) && (requestingCFace->face->fvarBoundaryModeOverride >= 0))
+                                    ? requestingCFace->face->fvarBoundaryModeOverride
+                                    : data.fvarBoundaryMode;
+            int propagateCorners = ((requestingCFace != NULL) && (requestingCFace->face->fvarPropagateCornersOverride >= 0))
+                                        ? requestingCFace->face->fvarPropagateCornersOverride
+                                        : data.fvarPropagateCorners;
+            if (boundaryMode == 0) {
                 // "none": smooth every facevarying seam away.
                 preserve = FALSE;
-            } else if (data.fvarBoundaryMode == 1) {
+            } else if (boundaryMode == 1) {
                 // "edges only": seam corners smooth unless this is a true
                 // topological boundary corner and propagation is requested.
-                preserve = data.fvarPropagateCorners && (valence != fvalence);
+                preserve = propagateCorners && (valence != fvalence);
             }
             // fvarBoundaryMode == 2 ("edges and corners"): always preserve --
             // this is the default, and matches the behavior before these
@@ -1527,6 +1546,47 @@ void CSEdge::compute(float *vertex) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSEdge
+// Method				:	childSharpness
+// Description			:	Compute a child edge's sharpness after one
+//							subdivision step, on the side incident to v.
+//							"normal" method: flat decay (sharpness - 1).
+//							"chaikin" method (creaseMethod == 1): the
+//							DeRose/Kass/Truong non-uniform crease rule --
+//							at a regular crease vertex (exactly 2 incident
+//							sharp edges), the new sharpness is a 3:1 blend
+//							of this edge's and the other sharp edge's
+//							sharpness, so unequal sharpness values
+//							converging at a vertex decay towards each
+//							other instead of independently.
+// Return Value			:	The new child sharpness, clamped to >= 0
+// Comments				:	A hierarchical override on either adjacent face wins over
+//							the base mesh's mesh-wide creasemethod default (precedence
+//							rule, data-model.md). faces[0] is checked first; ties (both
+//							faces overridden differently) are broken in favor of
+//							faces[0] -- an edge has no single "owning" face to prefer
+//							otherwise.
+float CSEdge::childSharpness(CSVertex *v) {
+    int effectiveCreaseMethod = data.creaseMethod;
+    if ((faces[0] != NULL) && (faces[0]->creaseMethodOverride >= 0)) {
+        effectiveCreaseMethod = faces[0]->creaseMethodOverride;
+    } else if ((faces[1] != NULL) && (faces[1]->creaseMethodOverride >= 0)) {
+        effectiveCreaseMethod = faces[1]->creaseMethodOverride;
+    }
+
+    if (effectiveCreaseMethod == 1) {
+        float otherSharpness;
+        if (v->countSharpEdges(this, otherSharpness) == 2) {
+            float chaikin = (3 * sharpness + otherSharpness) / 4 - 1;
+            return (0 > chaikin) ? 0 : chaikin;
+        }
+    }
+
+    float plain = sharpness - 1;
+    return (0 > plain) ? 0 : plain;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSEdge
 // Method				:	computeVarying
 // Description			:	Edge subdivision rule
 // Return Value			:	-
@@ -1653,7 +1713,7 @@ static void gatherData(CSubdivData &data, int numVertex, CSVertex **vertices, CS
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CSubdivMesh::CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs) : CObject(a, x) {
+CSubdivMesh::CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs, const CHierarchicalOverride *overrides) : CObject(a, x) {
     int i, j, ias, fas;
     const float *P;
 
@@ -1682,6 +1742,7 @@ CSubdivMesh::CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *n
     this->nargs = NULL;
     this->intargs = NULL;
     this->floatargs = NULL;
+    this->overrides = cloneHierarchicalOverrides(overrides);
 
     if (ntags > 0) {
         this->tags = new char *[ntags];
@@ -1749,6 +1810,8 @@ CSubdivMesh::~CSubdivMesh() {
             delete[] floatargs;
     }
 
+    deleteHierarchicalOverrides(overrides);
+
     // Delete the synch. object
     osDeleteMutex(mutex);
 }
@@ -1802,7 +1865,7 @@ void CSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const 
     if (a == NULL)
         a = attributes;
 
-    c->addObject(new CSubdivMesh(a, nx, pl->clone(a), numFaces, numVerticesPerFace, vertexIndices, ntags, (const char **)tags, nargs, intargs, floatargs));
+    c->addObject(new CSubdivMesh(a, nx, pl->clone(a), numFaces, numVerticesPerFace, vertexIndices, ntags, (const char **)tags, nargs, intargs, floatargs, overrides));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2007,6 +2070,55 @@ void CSubdivMesh::create(CShadingContext *context) {
         cnargs += 2;
     }
 
+    // Process hierarchical overrides (RiHierarchicalSubdivisionMesh, FR-007/FR-008/FR-009).
+    // They're resolved here, layered on top of the base tags just processed above, so a
+    // later override always takes precedence over the base mesh's default tag value for
+    // the same face (data-model.md's precedence rule) without mutating the base tag
+    // storage itself (this->tags/nargs/intargs/floatargs are never touched).
+    //
+    // Only level 0 has a well-defined target here: this codebase never materializes a
+    // literal per-level mesh to retag -- deeper levels are evaluated as a closed-form
+    // limit surface (CSubdivision's eigenbasis evaluation), not as explicit meshes built
+    // level-by-level. A level > 0 override is therefore validated but has no rendering
+    // effect; this is a documented architectural limitation, not a bug.
+    for (const CHierarchicalOverride *ov = overrides; ov != NULL; ov = ov->next) {
+        if (ov->faceIndex < 0 || ov->faceIndex >= numFaces) {
+            warning(CODE_RANGE, "Hierarchical subdivision override targets nonexistent face %d; skipped\n", ov->faceIndex);
+            continue;
+        }
+        if (ov->level < 0) {
+            warning(CODE_RANGE, "Hierarchical subdivision override targets invalid level %d; skipped\n", ov->level);
+            continue;
+        }
+        if (ov->level > 0) {
+            continue;
+        }
+
+        CSFace *cFace = faces[ov->faceIndex];
+
+        if (strcmp(ov->tagName, RI_HOLE) == 0) {
+            cFace->hole = TRUE;
+        } else if (strcmp(ov->tagName, RI_CREASE) == 0) {
+            for (j = 0; j < cFace->numEdges; j++) {
+                cFace->edges[j]->sharpness = (ov->value > 10) ? 10 : ov->value;
+            }
+        } else if (strcmp(ov->tagName, RI_CORNER) == 0) {
+            for (j = 0; j < cFace->numEdges; j++) {
+                cFace->vertices[j]->sharpness = ov->value;
+            }
+        } else if (strcmp(ov->tagName, RI_INTERPOLATEBOUNDARY) == 0) {
+            data.currentFlags |= FACE_INTEPOLATEBOUNDARY;
+        } else if (strcmp(ov->tagName, RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
+            cFace->fvarBoundaryModeOverride = (int) ov->value;
+        } else if (strcmp(ov->tagName, RI_FACEVARYINGPROPAGATECORNERS) == 0) {
+            cFace->fvarPropagateCornersOverride = (int) ov->value;
+        } else if (strcmp(ov->tagName, RI_CREASEMETHOD) == 0) {
+            cFace->creaseMethodOverride = (int) ov->value;
+        } else {
+            warning(CODE_BADTOKEN, "Unknown hierarchical subdivision override tag: \"%s\"\n", ov->tagName);
+        }
+    }
+
     // Add sharp creases when we've got an interpolateboundary tag
     // Note: corner in the literature refers to v.valence == 2,
     // whereas the spec overloads corners as tags to mean sharp vertices
@@ -2026,9 +2138,25 @@ void CSubdivMesh::create(CShadingContext *context) {
         }
     }
 
-    // Finalize the faces
-    allChildren = NULL;
+    // Finalize the faces.
+    //
+    // This must be two passes, not one interleaved pass: every face's
+    // facevarying corner data has to be attached to its vertices *before*
+    // any face's create() runs. create() ultimately calls
+    // CSVertex::computeVarying(), whose facevarying-seam detection declares
+    // a seam only once it sees two distinct non-NULL incident facevarying
+    // pointers on a shared vertex. If face creation were interleaved with
+    // facevarying assignment (as it originally was), the first-processed
+    // face incident on a given vertex would see only its own facevarying
+    // pointer set (the other incident faces' pointers are still NULL,
+    // since their turn in the loop hasn't come yet) and would wrongly
+    // conclude the vertex has no seam -- silently skipping seam resolution
+    // (and any hierarchical override on that face) for whichever face
+    // happens to be processed first at that vertex.
+    int *skipFace = (int *)ralloc(sizeof(int) * numFaces, context->threadMemory);
+
     for (k = 0, i = 0; i < numFaces; i++) {
+        skipFace[i] = FALSE;
 
         // Set the facevarying parameters
         for (j = 0; j < faces[i]->numEdges; j++) {
@@ -2039,27 +2167,30 @@ void CSubdivMesh::create(CShadingContext *context) {
             const int fval = faces[i]->vertices[j]->fvalence;
             if ((val == 1)) {
                 warning(CODE_CONSISTENCY, "Subdivision mesh has hanging vertex");
-                k += faces[i]->numEdges;
-                goto skipFace;
+                skipFace[i] = TRUE;
+                break;
             }
             if ((val == 2) && (fval != 1)) {
                 warning(CODE_CONSISTENCY, "Subdivision mesh is degenerate (face %d)\n", i);
-                k += faces[i]->numEdges;
-                goto skipFace;
+                skipFace[i] = TRUE;
+                break;
             }
             if ((val >= 3) && (fval > val)) {
                 warning(CODE_CONSISTENCY, "Subdivision mesh is degenerate (face %d)\n", i);
-                k += faces[i]->numEdges;
-                goto skipFace;
+                skipFace[i] = TRUE;
+                break;
             }
         }
 
-        k += j;
+        k += faces[i]->numEdges;
+    }
 
-        // Finally, create the face
+    allChildren = NULL;
+    for (i = 0; i < numFaces; i++) {
+        if (skipFace[i])
+            continue;
+
         faces[i]->create(allChildren);
-
-    skipFace:; // intentionally empty
     }
 
     // Re-claim the memory

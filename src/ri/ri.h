@@ -228,6 +228,7 @@ EXTERN(RtToken)
 
 EXTERN(RtToken)
     RI_CATMULLCLARK,
+    RI_LOOP,
     RI_HOLE,
     RI_CREASE,
     RI_CORNER,
@@ -655,6 +656,8 @@ EXTERN(RtVoid)
     RiPointsV(RtInt npts, RtInt n, RtToken tokens[], RtPointer params[]),
     RiSubdivisionMesh(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], ...),
     RiSubdivisionMeshV(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], RtInt n, RtToken tokens[], RtPointer params[]),
+    RiHierarchicalSubdivisionMesh(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], RtInt noverrides, RtInt overrideFaceIndex[], RtInt overrideLevel[], RtToken overrideTags[], RtFloat overrideValues[], ...),
+    RiHierarchicalSubdivisionMeshV(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], RtInt noverrides, RtInt overrideFaceIndex[], RtInt overrideLevel[], RtToken overrideTags[], RtFloat overrideValues[], RtInt n, RtToken tokens[], RtPointer params[]),
     RiBlobby(RtInt nleaf, RtInt ncode, RtInt code[], RtInt nflt, RtFloat flt[], RtInt nstr, RtString str[], ...),
     RiBlobbyV(RtInt nleaf, RtInt ncode, RtInt code[], RtInt nflt, RtFloat flt[], RtInt nstr, RtString str[], RtInt n, RtToken tokens[], RtPointer params[]);
 

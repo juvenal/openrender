@@ -157,6 +157,7 @@ RtToken RI_WIDTH = "width";
 RtToken RI_CONSTANTWIDTH = "constantwidth";
 
 RtToken RI_CATMULLCLARK = "catmull-clark";
+RtToken RI_LOOP = "loop";
 RtToken RI_HOLE = "hole";
 RtToken RI_CREASE = "crease";
 RtToken RI_CORNER = "corner";
@@ -588,6 +589,11 @@ RiBegin(RtToken name) {
         return;
     }
 
+    // Set for the CRibOut branches below; used to bootstrap
+    // CRenderer::globalMemory/declarations around the .orenderrc ribParse()
+    // call further down, since CRibOut never goes through beginRenderer().
+    bool ribOutMode = FALSE;
+
     // Parse the net string
     if (name != NULL) {
         if (name[0] == '#') {
@@ -623,6 +629,7 @@ RiBegin(RtToken name) {
         }
         else {
             renderMan = new CRibOut(name);
+            ribOutMode = TRUE;
         }
     }
     else {
@@ -630,6 +637,7 @@ RiBegin(RtToken name) {
         if (runProgEnv != NULL) {
             // If we're a runprogram, we should be writing out to stdout
             renderMan = new CRibOut(stdout);
+            ribOutMode = TRUE;
             insideRunProgram = TRUE;
         }
         else {
@@ -649,7 +657,25 @@ RiBegin(RtToken name) {
 
         if (osFileExists(rcPath) == TRUE) {
             log_debug("Loading .orenderrc from '{}'", rcPath);
+
+            // CRibOut never goes through CRenderer::beginRenderer(), so
+            // CRenderer::globalMemory/declarations are never initialized on
+            // that path. ribParse() unconditionally touches both (via
+            // memSave() and the parameter-list machinery in pl.cpp), so
+            // bootstrap them here for CRibOut only, mirroring the pattern
+            // CRibGeometryContext uses in previewContext.cpp.
+            if (ribOutMode) {
+                CRenderer::initDeclarations();
+                memoryInit(CRenderer::globalMemory);
+            }
+
             ribParse(rcPath, NULL);
+
+            if (ribOutMode) {
+                memoryTini(CRenderer::globalMemory);
+                CRenderer::shutdownDeclarations();
+            }
+
             log_info("Loaded .orenderrc defaults from '{}'", rcPath);
         }
         else {
@@ -1845,6 +1871,24 @@ RiSubdivisionMeshV(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertic
         return;
 
     renderMan->RiSubdivisionMeshV(scheme, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs, n, tokens, params);
+}
+
+EXTERN(RtVoid)
+RiHierarchicalSubdivisionMesh(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], RtInt noverrides, RtInt overrideFaceIndex[], RtInt overrideLevel[], RtToken overrideTags[], RtFloat overrideValues[], ...) {
+    va_list args;
+
+    va_start(args, overrideValues);
+    getArgs(args);
+    RiHierarchicalSubdivisionMeshV(scheme, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs, noverrides, overrideFaceIndex, overrideLevel, overrideTags, overrideValues, nTokens, tokens, values);
+    va_end(args);
+}
+
+EXTERN(RtVoid)
+RiHierarchicalSubdivisionMeshV(RtToken scheme, RtInt nfaces, RtInt nvertices[], RtInt vertices[], RtInt ntags, RtToken tags[], RtInt nargs[], RtInt intargs[], RtFloat floatargs[], RtInt noverrides, RtInt overrideFaceIndex[], RtInt overrideLevel[], RtToken overrideTags[], RtFloat overrideValues[], RtInt n, RtToken tokens[], RtPointer params[]) {
+    if (check("RiHierarchicalSubdivisionMesh", VALID_PRIMITIVE_BLOCKS))
+        return;
+
+    renderMan->RiHierarchicalSubdivisionMeshV(scheme, nfaces, nvertices, vertices, ntags, tags, nargs, intargs, floatargs, noverrides, overrideFaceIndex, overrideLevel, overrideTags, overrideValues, n, tokens, params);
 }
 
 EXTERN(RtVoid)

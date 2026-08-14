@@ -133,7 +133,11 @@ or DSO-backed primitive is displayed as an axis-aligned bounding box.
 Motion blur and deformation data are ignored; only the first time sample (t=0)
 of any motion block is displayed.
 .PP
-Subdivision surfaces are shown as their control cage without any refinement.
+Subdivision surfaces, including hierarchical subdivision meshes
+.RB ( RiHierarchicalSubdivisionMesh ),
+are shown as their control cage without any refinement; per-face/per-level
+tag overrides on a hierarchical mesh are not resolved by the previewer and
+do not affect the displayed cage.
 .PP
 The reference grid is drawn on the Y=0 plane of the viewer coordinate system.
 RIB files authored in Z-up DCCs typically include a Y\(haZ axis-swap

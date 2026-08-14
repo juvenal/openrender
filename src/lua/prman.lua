@@ -573,6 +573,18 @@ function Ri:SubdivisionMesh(scheme, nvertices, vertices, tags, nargs, intargs, f
     self:_write("SubdivisionMesh", scheme, nvertices, vertices, tags, nargs, intargs, floatargs, parameterlist)
 end
 
+function Ri:HierarchicalSubdivisionMesh(scheme, nvertices, vertices, tags, nargs, intargs, floatargs, overrideFaceIndex, overrideLevel, overrideTags, overrideValues, parameterlist)
+    tags = tags or {}
+    nargs = nargs or {}
+    intargs = intargs or {}
+    floatargs = floatargs or {}
+    overrideFaceIndex = overrideFaceIndex or {}
+    overrideLevel = overrideLevel or {}
+    overrideTags = overrideTags or {}
+    overrideValues = overrideValues or {}
+    self:_write("HierarchicalSubdivisionMesh", scheme, nvertices, vertices, tags, nargs, intargs, floatargs, overrideFaceIndex, overrideLevel, overrideTags, overrideValues, parameterlist)
+end
+
 function Ri:Blobby(nleaf, code, floats, strings, parameterlist)
     self:_write("Blobby", nleaf, code, floats, strings, parameterlist)
 end

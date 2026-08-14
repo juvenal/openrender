@@ -1,0 +1,42 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# T064 (spec 010-full-subdivision-support, US2): CShow ("oshow:" hider)
+# targeting scene for the facevarying-seam capability. See
+# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib's header
+# comment for why this is authored-but-not-required. Otherwise identical to
+# examples/rib/tests/subdiv-facevarying-seam-raytrace.rib.
+Hider "oshow:none"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 4 4
+Display "subdiv-facevarying-seam-oshow.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 320 240 1
+Translate 0 0 3
+
+WorldBegin
+  Sides 2
+  AttributeBegin
+    Surface "show_st"
+    SubdivisionMesh "catmull-clark"
+    [ 4 4 4 4 ]
+    [
+      0 1 4 3
+      1 2 5 4
+      3 4 7 6
+      4 5 8 7
+    ]
+    ["interpolateboundary"] [0 0] [] []
+    "P" [
+      -0.6  0.6 0    0  0.6 0    0.6  0.6 0
+      -0.6  0   0    0  0   0    0.6  0   0
+      -0.6 -0.6 0    0 -0.6 0    0.6 -0.6 0
+    ]
+    "facevarying float[2] st" [
+      0.0 1.0   0.5 1.0   1.0 0.0   0.0 0.5
+      0.5 1.0   1.0 1.0   1.0 0.5   0.0 1.0
+      0.0 0.5   1.0 1.0   0.5 0.0   0.0 0.0
+      0.3 0.3   1.0 0.5   1.0 0.0   0.5 0.0
+    ]
+  AttributeEnd
+WorldEnd

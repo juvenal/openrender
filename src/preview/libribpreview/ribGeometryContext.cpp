@@ -707,6 +707,32 @@ void CRibGeometryContext::RiSubdivisionMeshV(const char *scheme, int nfaces, int
                                ntags, tags, nargs, intargs, floatargs));
 }
 
+// Draws the base mesh topology only -- the hierarchical override list has no
+// visual effect in the wireframe preview (Layer 6 is base-topology-only per
+// contracts/hierarchical-subdivision-contract.md).
+void CRibGeometryContext::RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int, int[], int[], const char *[], float[], int n, const char *tokens[], const void *params[]) {
+    if (!shouldProcess(motionBlockDepth_, motionGeomConsumed_))
+        return;
+    if (strcmp(scheme, RI_CATMULLCLARK) != 0)
+        return;
+
+    int j = 0;
+    for (int i = 0; i < nfaces; j += nvertices[i], i++) {
+    }
+    int numVertices = -1;
+    for (int i = 0; i < j; i++)
+        if (vertices[i] > numVertices)
+            numVertices = vertices[i];
+    numVertices++;
+
+    CPl *pl = parseParameterList(nfaces, numVertices, numVertices, j,
+                                 n, tokens, params, RI_P, PL_VARYING_TO_VERTEX, currentAttributes_);
+    if (!pl)
+        return;
+    emitObject(new CSubdivMesh(currentAttributes_, currentXform_, pl, nfaces, nvertices, vertices,
+                               ntags, tags, nargs, intargs, floatargs));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Procedurals (represented as bounding boxes)
 // ─────────────────────────────────────────────────────────────────────────────
