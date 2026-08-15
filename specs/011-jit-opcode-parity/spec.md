@@ -8,6 +8,13 @@
 
 **Input**: User description: "LLVM JIT (.slo) opcode-coverage parity sweep with the .rslo interpreter." (full background: investigation of the documented `cfrom` silent-drop bug in `DEVNOTES_DETAILS/BUGS.md`, plus a broader audit of the LLVM JIT shading backend for additional opcodes that are silently dropped or silently mis-lowered relative to the `.rslo` interpreter, which is the RenderMan-spec reference implementation.)
 
+## Clarifications
+
+### Session 2026-08-14
+
+- Q: Should the coverage guard (FR-006/Story 4) keep working automatically if someone adds a brand-new RSL construct after this feature ships, or is it only required to catch the specific constructs this feature's inventory (FR-004) already found? → A: Dynamic (re-derives the reachable-opcode set each run and fails on any future gap too), executed as part of the test suite, not the build.
+- Q: Does the JIT backend need to keep its performance advantage over the interpreter for the constructs this feature fixes, or is matching correctness the only requirement even if a fix makes the JIT slower for that construct? → A: Yes — for every fixed construct, JIT rendering time for a given shader MUST be at least 10% faster than the interpreter's rendering time for the same shader (JIT time ≤ 90% of interpreter time).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Explicit-colorspace color/matrix constructors render correctly under JIT (Priority: P1)
@@ -134,9 +141,10 @@ Independent of Story 3's specific fixes, but most valuable once Story 2's
 verified inventory exists to check against.
 
 **Independent Test**: Deliberately introduce (in a local, uncommitted
-change) a new reachable construct with no JIT handling, and confirm the
-build or test suite fails with a message identifying the specific
-unhandled construct, rather than succeeding silently.
+change) a new reachable construct with no JIT handling — including one that
+did not exist in this feature's original inventory — and confirm the test
+suite fails with a message identifying the specific unhandled construct,
+rather than succeeding silently.
 
 **Acceptance Scenarios**:
 
@@ -145,6 +153,12 @@ unhandled construct, rather than succeeding silently.
    message naming the specific unhandled construct.
 2. **Given** every construct confirmed reachable and now handled by this
    feature, **When** the project's test suite is run, **Then** it passes.
+3. **Given** a reachable RSL construct introduced after this feature ships
+   (not part of this feature's original inventory) that lacks JIT handling,
+   **When** the project's test suite is run, **Then** it still fails with a
+   message naming that construct — the guard re-derives the reachable-opcode
+   set at run time rather than checking against a list frozen at the end of
+   this feature.
 
 ---
 
@@ -223,10 +237,13 @@ implementation of the underlying math remains.
   This explicitly covers, at minimum: matrix arithmetic and constructors,
   the `gather()` construct, comparison/boolean-logic operators, and array
   element access — pending confirmation of reachability per FR-004.
-- **FR-006**: The project's automated build or test process MUST fail,
-  with a message identifying the specific unhandled construct, if any
-  construct FR-004 confirms reachable is (now or in the future) left
-  without JIT handling.
+- **FR-006**: The project's automated test suite MUST fail, with a message
+  identifying the specific unhandled construct, if any RSL construct that is
+  actually reachable through the compiler is left without JIT handling. This
+  check MUST re-derive the reachable-opcode set at test-run time (not from a
+  list frozen at the end of this feature), so it also catches constructs
+  introduced after this feature ships. This is a test-suite-time check, not
+  a build/compile-time check.
 - **FR-007**: Every fix delivered under FR-001, FR-002, FR-003, and FR-005
   MUST compute its result by invoking the same underlying implementation
   the interpreter backend already uses for that construct, not by
@@ -242,6 +259,12 @@ implementation of the underlying math remains.
   coverage MUST be corrected where it is currently inaccurate (e.g. claims
   of a warning mechanism for unhandled constructs, or claims about a
   symbol-retention mechanism, that do not match the current implementation).
+- **FR-011**: For every construct fixed under FR-001, FR-002, FR-003, and
+  FR-005, the JIT backend's rendering time for a shader exercising that
+  construct MUST be at least 10% faster than the interpreter backend's
+  rendering time for the same shader (JIT time ≤ 90% of interpreter time).
+  A fix that meets FR-007's delegation constraint but fails this bar is not
+  complete.
 
 ### Key Entities
 
@@ -271,12 +294,16 @@ implementation of the underlying math remains.
   where reachable, backed by a passing demonstrating shader.
 - **SC-003**: 100% of constructs the inventory confirms reachable produce
   JIT output matching the interpreter backend.
-- **SC-004**: A deliberately-introduced unhandled reachable construct is
-  caught by the automated build/test process 100% of the time, with zero
-  manual/visual inspection required to detect it.
+- **SC-004**: A deliberately-introduced unhandled reachable construct,
+  including one introduced after this feature ships, is caught by the
+  automated test suite 100% of the time, with zero manual/visual inspection
+  required to detect it.
 - **SC-005**: Zero instances remain, after this feature, of JIT-side
   shading math (area, calculated normal, depth, Du/Dv) being computed by a
   separate implementation from the interpreter's.
+- **SC-006**: For 100% of the constructs fixed under FR-001, FR-002, FR-003,
+  and FR-005, measured JIT rendering time for a demonstrating shader is at
+  most 90% of the interpreter's rendering time for the same shader.
 
 ## Assumptions
 
@@ -300,3 +327,8 @@ implementation of the underlying math remains.
   built-ins, or change what scenes/shaders are considered valid — it only
   brings existing, already-valid RSL constructs to parity between the two
   already-shipping backends.
+- The FR-011/SC-006 performance bar (JIT ≤ 90% of interpreter rendering
+  time) is measured per demonstrating shader using the project's existing
+  render-timing/benchmarking approach, under otherwise-identical scene and
+  render settings for both backends; it is evaluated per fixed construct,
+  not as an aggregate across the whole feature.
