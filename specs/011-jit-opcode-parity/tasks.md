@@ -58,7 +58,7 @@ Single C++ project. `src/common/`, `src/ri/`, `src/libshader/{compiler,shading}/
 - [ ] T007 [P] [US2] Write minimal `.sl` triage repros for matrix-arithmetic candidates (`mulmm, addmm, submm, divmm, negm, movemm, mfromf, mfromv, ...`) in `tests/libshader/triage/matrix_ops.sl`; compile with `oshader` (non-JIT, IR text output) and grep for each literal mnemonic to confirm frontend emission.
 - [ ] T008 [P] [US2] Write minimal `.sl` triage repro for `gather()`/`gatherElse`/`gatherEnd` in `tests/libshader/triage/gather.sl`; compile (post-T005 fix) and inspect IR/compiler output to determine the actual failure mode (silent-wrong-output vs. hard compile/render failure) per spec.md's Edge Cases.
 - [ ] T009 [P] [US2] Write minimal `.sl` triage repros for comparison/logic candidates (`veql, vneql, meql, mneql, fegt, not, xor, nxor, ...`) in `tests/libshader/triage/comparison_logic.sl`; compile and grep to confirm emission.
-- [ ] T010 [P] [US2] Write minimal `.sl` triage repros for array move-op candidates (`ffroma, vfroma, mfroma, sfroma, ftoa, vtoa, ...`, including uniform `u*froma` variants) in `tests/libshader/triage/array_ops.sl`; compile and grep to confirm emission.
+- [ ] T010 [P] [US2] Write minimal `.sl` triage repros for array move-op candidates (`ffroma, vfroma, mfroma, sfroma, ftoa, vtoa, ...`, including uniform `u*froma` variants — spec.md's "array element access", US3 Acceptance Scenario 4) in `tests/libshader/triage/array_ops.sl`; compile and grep to confirm emission.
 - [ ] T011 [US2] Consolidate T007-T010 results into a Reachability Inventory table (new `specs/011-jit-opcode-parity/triage-results.md`), classifying every original ~48 candidate as reachable (with its repro reference) or not-reachable (with the specific reason: string-padding artifact, dead grammar path, etc.) — per `data-model.md`'s Reachability Inventory entity.
 
 **Checkpoint (US2 — mandatory review gate)**: Present the confirmed-reachable-vs-not opcode list to the user for review. **STOP — do not proceed to Phase 4 or Phase 6/7 until the user confirms the inventory is accurate.**
@@ -97,15 +97,15 @@ Single C++ project. `src/common/`, `src/ri/`, `src/libshader/{compiler,shading}/
 
 ### Sub-milestone: JIT wrappers + emitter cases
 
+- [ ] T019a [US1] Add `add_visual_test(<name>-slo, ...)` case(s) to `tests/visual/CMakeLists.txt` (pattern ~line 247-287) for `cfrom`/`mfrom`/`ctransform`, using the `rslo` render as the golden/reference image. Build and run `ctest --test-dir build -L visual --output-on-failure`; confirm these new cases currently **FAIL** (TDD Red — `op_cfrom`/`op_mfrom`/`op_ctransform` don't exist yet).
 - [ ] T020 [US1] Add `op_cfrom(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags)` to `src/libshader/shading/rslOps.h`/`.cpp`, cloned from `op_pfrom` (`rslOps.cpp:493`): resolve `cSystem` via `ctx->jitFindCoordinateSystem`, then call `convertColorFrom` per active tag — per `contracts/op-wrapper-abi.md`.
 - [ ] T021 [US1] Locate `MFROMEXPR`'s target function in `shaderOpcodes.h` (Phase-1 implementation detail per `research.md` D1) and add `op_mfrom` to `rslOps.h`/`.cpp` following T020's pattern, delegating to that same function.
 - [ ] T022 [US1] Add `op_ctransform` to `rslOps.h`/`.cpp`, delegating to `convertColorTo` (confirmed distinct from `convertColorFrom` per `research.md` D1) via the same `jitFindCoordinateSystem`-based space resolution.
 - [ ] T023 [US1] In `src/libshader/compiler/llvmEmitter.cpp`: add `cfrom`/`mfrom` entries to `kHandledOpcodes` and their `emitFunction()` cases (clone of the `pfrom` block, `llvmEmitter.cpp:942-978`, calling `declareOp(mod, "op_cfrom"/"op_mfrom", ty)` + `B.CreateCall(...)` — zero raw IR construction).
 - [ ] T024 [US1] In `llvmEmitter.cpp`: remove `ctransform` from the `pfrom`-family condition list; add its own `kHandledOpcodes` entry + `emitFunction()` case calling `op_ctransform`.
-- [ ] T025 [US1] Verify `op_cfrom`/`op_mfrom`/`op_ctransform` each resolve at JIT bind time via the existing `DynamicLibrarySearchGenerator` (build + a minimal JIT-shader smoke run). Only add `jitSymbolRetain.cpp`-style retention if one fails to resolve (verify-on-add per `research.md` D5) — do not add it preemptively.
+- [ ] T025 [US1] Verify `op_cfrom`/`op_mfrom`/`op_ctransform` each resolve at JIT bind time via the existing `DynamicLibrarySearchGenerator` (build + a minimal JIT-shader smoke run). Only add `jitSymbolRetain.cpp`-style retention if one fails to resolve (verify-on-add per `research.md` D5) — do not add it preemptively. Confirm by inspection that none of the three contain arithmetic/conditional logic beyond marshaling — only calls to `jitFindCoordinateSystem` and `convertColorFrom`/`convertColorTo` (FR-007).
 - [ ] T026 [US1] Repro per `quickstart.md` step 1: render a bare untextured sphere + `show_st.sl` pinned to `rslo`, then to `slo`; confirm the images now match for the color-constructor case (previously diverged). Repeat with matrix-constructor and `ctransform()`-exercising diagnostic shaders per spec.md's three Acceptance Scenarios.
-- [ ] T027 [P] [US1] Add new `add_visual_test(<name>-slo, ...)` case(s) to `tests/visual/CMakeLists.txt` (pattern ~line 247-287) covering `cfrom`/`mfrom`/`ctransform`, using the `rslo` render as the golden/reference image.
-- [ ] T028 [US1] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm the T012/T013 coverage-guard test's `cfrom`/`mfrom`/`ctransform` entries are now GREEN) and `ctest --test-dir build -L visual --output-on-failure` (new + existing cases pass).
+- [ ] T028 [US1] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm the T012/T013 coverage-guard test's `cfrom`/`mfrom`/`ctransform` entries are now GREEN) and `ctest --test-dir build -L visual --output-on-failure` (confirm the T019a case(s) now PASS).
 
 **Checkpoint (US1 complete — MVP)**: `cfrom`/`mfrom`/`ctransform` produce JIT output matching the interpreter; their coverage-guard entries are GREEN; new visual-regression cases pass. **STOP — wait for user confirmation before starting Phase 6.**
 
@@ -117,12 +117,12 @@ Single C++ project. `src/common/`, `src/ri/`, `src/libshader/{compiler,shading}/
 
 **Independent Test**: For each confirmed-reachable construct in scope, render a minimal shader exercising it under both backends and confirm the outputs match.
 
+- [ ] T028a [US3] Add `add_visual_test(<name>-slo, ...)` case(s) to `tests/visual/CMakeLists.txt` for matrix arithmetic, comparison/logic, and array-element-access opcodes confirmed reachable in T011. Build and run `ctest --test-dir build -L visual --output-on-failure`; confirm these new cases currently **FAIL** (Red — no `op_*` wrappers exist yet for these opcodes).
 - [ ] T029 [P] [US3] For each US2-confirmed-reachable matrix-arithmetic opcode: locate its interpreter macro/target function in `shaderOpcodes.h`/`shaderFunctions.h`; add a matching `op_*` wrapper to `rslOps.h`/`.cpp` delegating to that same function — no new math.
 - [ ] T030 [P] [US3] For each US2-confirmed-reachable comparison/logic opcode: same delegation pattern as T029; check first whether an existing `op_*` can be reused with inverted/swapped args (e.g. `not`) before adding a new function.
-- [ ] T031 [P] [US3] For each US2-confirmed-reachable array move-op opcode: locate the interpreter's array-indexing/stride helper in the `.rslo` path and delegate to it from a new `op_*` wrapper, rather than reimplementing array-stride math in the emitter.
+- [ ] T031 [P] [US3] For each US2-confirmed-reachable array move-op opcode (spec.md's "array element access"): locate the interpreter's array-indexing/stride helper in the `.rslo` path and delegate to it from a new `op_*` wrapper, rather than reimplementing array-stride math in the emitter.
 - [ ] T032 [US3] Add `kHandledOpcodes` + `emitFunction()` cases in `llvmEmitter.cpp` for every wrapper added in T029-T031, following the `declareOp`+`CreateCall` pattern.
-- [ ] T033 [P] [US3] Add corresponding `add_visual_test(<name>-slo, ...)` cases to `tests/visual/CMakeLists.txt` for matrix arithmetic, comparison/logic, and array move ops.
-- [ ] T034 [US3] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm these opcodes' coverage-guard entries now GREEN) and `ctest --test-dir build -L visual --output-on-failure`.
+- [ ] T034 [US3] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm these opcodes' coverage-guard entries now GREEN) and `ctest --test-dir build -L visual --output-on-failure` (confirm the T028a cases now PASS). Confirm by inspection that every `op_*` wrapper added in T029-T031 contains no new arithmetic beyond marshaling (FR-007).
 
 **Checkpoint (US3a complete)**: matrix arithmetic, comparison/logic, and array-move opcodes reach parity; their coverage-guard entries are GREEN. **STOP — wait for user confirmation before starting `gather()` (Phase 7).**
 
@@ -134,13 +134,13 @@ Single C++ project. `src/common/`, `src/ri/`, `src/libshader/{compiler,shading}/
 
 **Independent Test**: Render a shader using `gather()` for ambient occlusion or indirect illumination sampling under the JIT backend; output matches the interpreter backend.
 
-- [ ] T035 [US3] Gate check: if Phase 3's triage (T008/T011) found `gather()` unreachable, or this phase's scope proves infeasible within a reasonable checkpoint, **stop here**, record the descope decision with rationale in `research.md`/`spec.md`'s Assumptions, and skip T036-T041.
+- [ ] T035 [US3] Gate check: if Phase 3's triage (T008/T011) found `gather()` unreachable, **stop here**, record the descope decision with rationale in `research.md`/`spec.md`'s Assumptions, and skip T036-T041. Per FR-005/SC-003, "reachable but unfixed" is not a permitted outcome — if Phase 7's scope proves difficult during implementation, escalate to the user for an explicit scope decision (which would require a corresponding spec.md amendment) rather than unilaterally descoping here.
+- [ ] T035a [US3] (Only if T035 did not descope.) Add `add_visual_test(gather-slo, ...)` case(s) to `tests/visual/CMakeLists.txt` covering ambient-occlusion/indirect-illumination sampling. Build and run `ctest --test-dir build -L visual --output-on-failure`; confirm it currently **FAILS** (Red — no gather scaffolding exists yet).
 - [ ] T036 [US3] Study `illuminance`/`endilluminance`'s scope-tracking structure (`llvmEmitter.cpp:629,678`) as the template for lowering a looping RSL construct with a body block.
 - [ ] T037 [US3] Design and implement equivalent scope-tracking scaffolding for `gather`/`gatherElse`/`gatherEnd` in `llvmEmitter.cpp`, delegating the actual GI/AO sampling to whatever function the interpreter's existing `gather` handling calls — no new sampling math.
 - [ ] T038 [US3] Add the corresponding `op_*` wrapper(s) in `rslOps.h`/`.cpp` for the delegation target identified in T037.
 - [ ] T039 [US3] Add `kHandledOpcodes` + `emitFunction()` entries for `gather`/`gatherElse`/`gatherEnd`.
-- [ ] T040 [P] [US3] Add `add_visual_test(gather-slo, ...)` case(s) to `tests/visual/CMakeLists.txt` covering ambient-occlusion/indirect-illumination sampling.
-- [ ] T041 [US3] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm the `gather` family's coverage-guard entries GREEN) and `ctest --test-dir build -L visual --output-on-failure`.
+- [ ] T041 [US3] Build; run `ctest --test-dir build -L libshader --output-on-failure` (confirm the `gather` family's coverage-guard entries GREEN) and `ctest --test-dir build -L visual --output-on-failure` (confirm the T035a case now PASSES). Confirm by inspection that the T038 wrapper(s) delegate to the interpreter's existing gather-sampling function with no new sampling math (FR-007).
 
 **Checkpoint (US3b complete)**: `gather()` family reaches parity, or is explicitly and documentedly descoped per T035. **STOP — wait for user confirmation before Phase 8.**
 
@@ -185,7 +185,7 @@ Single C++ project. `src/common/`, `src/ri/`, `src/libshader/{compiler,shading}/
 - [ ] T052 [P] Update `DEVNOTES_DETAILS/BUGS.md`: extend the `cfrom` entry to cover `mfrom`/`ctransform`; move to Resolved.
 - [ ] T053 [P] Correct `DEVNOTES_DETAILS/OSHADER_UPDATES.md` and `CLAUDE.md` gotcha #3: remove the false "unrecognised opcode warning" claim; remove/adjust the `jitSymbolRetain.cpp` reference unless T025/T038 ended up genuinely needing it.
 - [ ] T054 Run the full `quickstart.md` validation guide end-to-end as a final sanity check (all 5 steps).
-- [ ] T055 Run `ctest --test-dir build -L visual --output-on-failure` (full suite, including `motion-3-reyes`) and `ctest --test-dir build -L libshader --output-on-failure` one final time; confirm everything green.
+- [ ] T055 Run `ctest --test-dir build -L visual --output-on-failure` (full suite, including `motion-3-reyes`) and `ctest --test-dir build -L libshader --output-on-failure` one final time; confirm everything green. Do a final FR-007 sweep: every `op_*` function added by this feature (T020-T022, T029-T031, T038) contains only marshaling code, confirmed by cross-referencing each against its `RSL Construct.interpreter_target` in `data-model.md`.
 
 **Final checkpoint**: Feature complete. **STOP — wait for user confirmation before considering this feature done and before any commit.**
 
@@ -253,6 +253,6 @@ Each step adds value without breaking previous steps; every checkpoint is a vali
 - [P] tasks touch different files/opcode categories with no dependencies between them.
 - [Story] label maps each task to its spec.md user story for traceability.
 - **Every checkpoint in this document is a mandatory stop** — do not proceed to the next phase or sub-milestone without explicit user confirmation, per the user's instruction for this task list.
-- Tests are written before the corresponding fix where TDD sequencing applies (T012/T013's coverage-guard test before Phases 5-7's fixes; T007-T010's triage repros before Phase 3's inventory is finalized).
+- Tests are written before the corresponding fix where TDD sequencing applies (T012/T013's coverage-guard test before Phases 5-7's fixes; T007-T010's triage repros before Phase 3's inventory is finalized; T019a/T028a/T035a's visual-regression Red-state stubs before each phase's `op_*` implementation).
 - Commit only when the user explicitly asks — this feature's standing instruction (from `/speckit-specify` through `/speckit-plan`) is no automatic commits at any step, including at checkpoints.
 - Avoid: reimplementing shading math independently in any `op_*` wrapper (FR-007, non-negotiable); changing interpreter (`.rslo`) behavior (FR-009); checking the coverage guard at render runtime (FR-006).

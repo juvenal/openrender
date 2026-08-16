@@ -103,6 +103,10 @@ narrower P1-only fix — broader parity coverage, but dependent on Story 2's
 inventory to know what's actually in scope, and lower priority than the
 already-diagnosed P1 defect.
 
+*(For task planning, this story is split into a lower-risk sub-phase covering
+matrix arithmetic/comparison-logic/array access, and a higher-risk sub-phase
+for `gather()`'s CFG scaffolding — see tasks.md Phases 6-7.)*
+
 **Independent Test**: For each confirmed-reachable construct, render a
 minimal shader exercising it under both backends and confirm the outputs
 match.
@@ -139,6 +143,10 @@ first-class deliverable of this feature — the payoff of Stories 1-3 is
 undermined if the same silent-failure class can reopen unnoticed.
 Independent of Story 3's specific fixes, but most valuable once Story 2's
 verified inventory exists to check against.
+
+*(For task planning, this story is split into two sub-phases: an early
+Red-state coverage-guard test authored before Story 1/3 fixes, and a later
+Green-state finalization once those fixes land — see tasks.md Phases 4 and 8.)*
 
 **Independent Test**: Deliberately introduce (in a local, uncommitted
 change) a new reachable construct with no JIT handling — including one that
@@ -332,3 +340,8 @@ implementation of the underlying math remains.
   render-timing/benchmarking approach, under otherwise-identical scene and
   render settings for both backends; it is evaluated per fixed construct,
   not as an aggregate across the whole feature.
+- This feature does not update the Hugo `site/` documentation (Constitution
+  Principle VII) — it is an internal engine parity/bug-fix, not new
+  user-facing functionality that the site's content model tracks;
+  `DEVNOTES_DETAILS/BUGS.md` and `CLAUDE.md` (FR-010) are the applicable
+  internal-doc corrections instead.

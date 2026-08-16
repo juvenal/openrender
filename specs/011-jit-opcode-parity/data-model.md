@@ -27,7 +27,7 @@ set.
 | Field | Type | Notes |
 |---|---|---|
 | `mnemonic` | string | Matches `RSL Construct.mnemonic`. |
-| `category` | enum | One of: color/matrix-space (`cfrom`/`mfrom`/`ctransform`), matrix arithmetic, GI (`gather` family), comparison/logic, array move. Mirrors spec.md's User Stories 1/3. |
+| `category` | enum | One of: color/matrix-space (`cfrom`/`mfrom`/`ctransform`), matrix arithmetic, GI (`gather` family), comparison/logic, array move (spec.md calls this category "array element access" — US3 Acceptance Scenario 4). Mirrors spec.md's User Stories 1/3. |
 | `triage_repro` | file reference | The minimal `.sl` file + IR-text grep used to confirm reachability; retained as a regression fixture. |
 
 ## Coverage Guard Table (`kHandledOpcodes`)
