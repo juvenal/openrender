@@ -50,6 +50,52 @@
 #include <cerrno>
 
 // =========================================================================
+// kHandledOpcodes — single source of truth for every mnemonic emitFunction()
+// dispatches on. Seeded from the current if/else-if chain (spec
+// 011-jit-opcode-parity T003); the libshader coverage-guard ctest links
+// this symbol directly (research.md D3), so it must stay in sync with the
+// chain below — any new `else if (op == "...")` case added to emitFunction()
+// needs a matching entry here or it silently regresses to a no-op via the
+// gate a few lines below.
+// =========================================================================
+const char *const kHandledOpcodes[] = {
+    "abs", "acos", "addff", "addvf", "addvf2", "addvv", "ambient", "and",
+    "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
+    "ceil", "cellnoise", "clamp", "clampf", "clampv", "continue", "cos",
+    "cross",
+    // Misrouted (calls op_pfrom, a 4x4 point-matrix transform) rather than
+    // op_ctransform's own colorspace math — a real correctness bug, tracked
+    // for spec 011-jit-opcode-parity Phase 5 (US1). Coverage-wise it IS
+    // dispatched today, so it belongs in this table; the guard test only
+    // checks presence, not correctness (contracts/coverage-guard-contract.md
+    // Non-goals).
+    "ctransform",
+    "depth", "diffuse", "divff", "divvf", "divvv", "dot", "Du", "Dv",
+    "else", "endfor", "endif", "endilluminance", "endilluminate",
+    "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
+    "feq", "feql", "fge", "fgt", "filterstep", "fle", "floor", "flt",
+    "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa", "if",
+    "illuminance", "illuminate", "inversesqrt", "jmp", "length",
+    "lightsource", "log", "max", "maxf", "mix", "mixf", "mixv", "mod",
+    "moveff", "movevv", "mulff", "mulvf", "mulvf2", "mulvv", "negf",
+    "negv", "nfrom", "noise", "normalize", "ntransform", "or", "orf",
+    "pfrom", "pow", "printf", "radians", "reflect", "return", "seql",
+    "setxcomp", "setycomp", "setzcomp", "shadow", "sign", "sin",
+    "smoothstep", "sneql", "snoise", "solar", "specular", "spline",
+    "sqrt", "subff", "subvf", "subvv", "tan", "texture", "transform",
+    "vfrom", "vfromf", "vfromfff", "vfromvff", "vtransform", "vufloat",
+    "vuvector", "while", "whilebegin", "xcomp", "ycomp", "zcomp",
+    nullptr
+};
+
+static bool isHandledOpcode(const std::string &op) {
+    for (int i = 0; kHandledOpcodes[i] != nullptr; ++i) {
+        if (op == kHandledOpcodes[i]) return true;
+    }
+    return false;
+}
+
+// =========================================================================
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 // =========================================================================
 static const std::unordered_map<std::string, int> s_rslGlobals = {
@@ -531,6 +577,15 @@ static void emitFunction(const IRFunction &irFn,
             bool    hasDst = !ins.result.empty() && resolveVar(ins.result, dstDesc);
             llvm::Value *dst      = hasDst ? loadVarPtr(dstDesc) : nullptr;
             llvm::Value *dstStride = B.getInt32(hasDst ? dstDesc.stride : 3);
+
+            // Coverage gate: kHandledOpcodes is the single source of truth
+            // the libshader coverage-guard ctest also reads (research.md
+            // D3). An opcode not in the table falls through here exactly as
+            // it always has (silent skip, zero emitted IR) — this does not
+            // change behavior for any opcode already dispatched below; it
+            // only makes that fallthrough consult the same table the guard
+            // test checks, instead of the two silently drifting apart.
+            if (!isHandledOpcode(op)) continue;
 
             // ================================================================
             // Layer C: Conditional control flow

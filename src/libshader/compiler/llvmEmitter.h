@@ -41,4 +41,15 @@ bool emitLLVMBitcode(const IRModule &mod,
                      const std::string &outPath,
                      const std::string &shaderName);
 
+/**
+ * @brief Single source of truth for the opcode mnemonics emitFunction()'s
+ *        dispatch recognizes. nullptr-terminated, defined in llvmEmitter.cpp.
+ *
+ *        External (not TU-local static) linkage is deliberate: the
+ *        libshader coverage-guard ctest links against this symbol and reads
+ *        it directly, so it can never drift from what the emitter actually
+ *        dispatches on (spec 011-jit-opcode-parity, research.md D3).
+ */
+extern const char *const kHandledOpcodes[];
+
 #endif // OSHADER_LLVM_EMITTER_H

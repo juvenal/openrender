@@ -258,7 +258,7 @@ bool CIRBuilder::parseLine(const char *line, IRInstr &out) {
         "illuminance", "endilluminance",
         "illuminate", "endilluminate",
         "solar", "endsolar",
-        "gatherhdr", "gather", "gatherelse", "gatherend",
+        "gatherHeader", "gather", "gatherElse", "gatherEnd",
         "break", "continue",
         nullptr
     };
