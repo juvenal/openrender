@@ -180,3 +180,75 @@ const char *constantBlockName = "1__$$__$$__$$__block";
 const char *constantShaderMain = "1__$$__$$__$$__main";
 const char *constantReturnValue = "__ReturnValue__";
 const char *constantBug = "Compiler bug, please report";
+
+////////////////////////////////////////////////////////////////////////
+//	Coverage-guard aggregates (spec 011-jit-opcode-parity, FR-006)
+
+// All 95 canonical opcode mnemonics, in definition order above. Entries
+// are pointer-aliases to the opcodeXxx constants themselves, not re-typed
+// literals, so this array is structurally incapable of drifting from
+// their text.
+const char *const kAllOpcodeMnemonics[] = {
+    opcodeIf, opcodeElse, opcodeEndif, opcodeGatherHeader, opcodeGather,
+    opcodeGatherElse, opcodeGatherEnd, opcodeFor, opcodeBeginfor, opcodeEndfor,
+    opcodeIlluminance, opcodeBeginIlluminance, opcodeEndIlluminance,
+    opcodeSolar, opcodeEndSolar, opcodeIlluminate, opcodeEndIlluminate,
+    opcodeBreak, opcodeContinue, opcodeReturn,
+    opcodeFloatEqual, opcodeVectorEqual, opcodeStringEqual, opcodeMatrixEqual,
+    opcodeFloatNotEqual, opcodeVectorNotEqual, opcodeStringNotEqual, opcodeMatrixNotEqual,
+    opcodeFloatELess, opcodeVectorELess,
+    opcodeFloatLess, opcodeVectorLess,
+    opcodeFloatEGreater, opcodeVectorEGreater,
+    opcodeFloatGreater, opcodeVectorGreater,
+    opcodeMatrixFromFloat, opcodeVectorFromFloat, opcodeMatrixFromVector,
+    opcodeVectorFrom, opcodeColorFrom, opcodePointFrom, opcodeMatrixFrom,
+    opcodeAnd, opcodeOr, opcodeXor, opcodeNXor, opcodeNot,
+    opcodeNegFloat, opcodeNegVector, opcodeNegMatrix,
+    opcodeDotProduct, opcodeCrossProduct,
+    opcodeDivFloatFloat, opcodeDivVectorVector, opcodeDivMatrixMatrix,
+    opcodeMulFloatFloat, opcodeMulVectorVector, opcodeMulMatrixMatrix,
+    opcodeMulMatrixPoint, opcodeMulMatrixNormal, opcodeMulMatrixVector,
+    opcodeMulPointMatrix, opcodeMulNormalMatrix, opcodeMulVectorMatrix,
+    opcodeAddFloatFloat, opcodeAddVectorVector, opcodeAddMatrixMatrix,
+    opcodeSubFloatFloat, opcodeSubVectorVector, opcodeSubMatrixMatrix,
+    opcodeVUFloat, opcodeVUVector, opcodeVUMatrix, opcodeVUString,
+    opcodeMoveFloatFloat, opcodeMoveVectorVector, opcodeMoveStringString, opcodeMoveMatrixMatrix,
+    opcodeMoveAFloatFloat, opcodeMoveAVectorVector, opcodeMoveAStringString, opcodeMoveAMatrixMatrix,
+    opcodeFFromArray, opcodeFToArray, opcodeVFromArray, opcodeVToArray,
+    opcodeMFromArray, opcodeMToArray, opcodeSFromArray, opcodeSToArray,
+    opcodeUFFromArray, opcodeUVFromArray, opcodeUMFromArray, opcodeUSFromArray,
+    nullptr
+};
+
+void stripOpcodeMnemonic(const char *raw, char *out, int outSize) {
+    while (*raw == '\t' || *raw == ' ') ++raw;
+    int i = 0;
+    while (*raw && *raw != '\t' && *raw != ' ' && i < outSize - 1) {
+        out[i++] = *raw++;
+    }
+    out[i] = '\0';
+}
+
+// Dead-opcode evidence, mirroring specs/011-jit-opcode-parity/triage-results.md
+// (the original 11) plus 4 found during Phase 4's post-checkpoint revision
+// (see tasks.md's revision note under T012/T013).
+const char *const kDeadOpcodes[] = {
+    // Matrix arithmetic -- type checker rejects matrix*point/normal/vector,
+    // zero opcodeMul* emission sites in expression.cpp.
+    "mulmp", "mulpm", "mulmn", "mulnm", "mulmv", "mulvm",
+    // Comparison -- rslo.y hardcodes nullptr for the matrix comparison
+    // opcode parameter on == and !=.
+    "meql", "mneql",
+    // Boolean -- zero call sites in src/libshader/compiler/; no xor/nxor
+    // token in the lexer or grammar.
+    "xor", "nxor",
+    // GI -- zero call sites anywhere in the compiler, no grammar token
+    // reaches it.
+    "beginilluminance",
+    // Data movement (array-element variants) -- zero call sites anywhere
+    // in src/libshader/compiler/ for opcodeMoveAFloatFloat/AVectorVector/
+    // AStringString/AMatrixMatrix; found during Phase 4's full opcodes.cpp
+    // accounting, not in the original triage.
+    "moveaff", "moveavv", "moveass", "moveamm",
+    nullptr
+};

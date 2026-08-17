@@ -85,15 +85,36 @@ same pattern rather than inventing a new one.
 ## D3: Dynamic opcode-coverage guard mechanism (FR-006)
 
 **Decision**: Refactor `llvmEmitter.cpp`'s `emitFunction()` opcode dispatch
-to consult a single `static const char* const kHandledOpcodes[]` table
-(or equivalent — exact structure finalized in Phase 1 `contracts/`) instead
-of scattering string literals across the `if/else-if` chain. A new
-`libshader`-labeled ctest includes/links that same table and diffs it
-against the Phase 0 triage's confirmed-reachable opcode set (itself derived
-from `opcodes.cpp`'s canonical mnemonics, filtered for the string-padding
-and `gatherHeader`/`gatherhdr` case-mismatch artifacts). The test fails,
-naming the specific unhandled construct, if any reachable opcode is absent
-from the table.
+to consult a single `kHandledOpcodes[]` table (`extern` linkage,
+`llvmEmitter.h`/`.cpp` — see T003's implementation note for why `extern`
+rather than a TU-local `static`) instead of scattering string literals
+across the `if/else-if` chain. The test's *expected*-reachable side is
+itself a **computed set**, not a hand-maintained list: `opcodes.h`/`.cpp`
+gained two new arrays — `kAllOpcodeMnemonics[]` (all 95 canonical mnemonics
+straight from `opcodes.cpp`'s existing `opcodeXxx` definitions, stripped of
+`.rslo`-format padding, `nullptr`-terminated) and `kDeadOpcodes[]` (every
+opcode confirmed structurally unreachable, each with an inline evidence
+comment — 15 entries as of this revision: the original 11 from
+`triage-results.md` plus 4 found during Phase 4's post-checkpoint
+revision). `test_opcode_coverage.cpp` computes the reachable set at test-run
+time as `kAllOpcodeMnemonics ∖ kDeadOpcodes` and diffs it against
+`kHandledOpcodes`, failing and naming the specific unhandled construct if
+any reachable opcode is absent.
+
+**Revision note (post-Phase-4-checkpoint)**: the original design (below,
+preserved for history) used a hand-maintained `static const char* const
+kReachableOpcodes[]` list in the test file itself, populated once from the
+Phase 3/US2 triage. A full accounting of `opcodes.cpp` against
+`kHandledOpcodes` and the dead-opcode list surfaced 7 opcodes
+(`vumatrix`, `vustring`, `movess`, `moveaff`, `moveavv`, `moveass`,
+`moveamm`) that `triage-results.md` never examined — a gap only possible
+because the old design never verified its list was actually exhaustive
+against `opcodes.cpp`. The computed-set design closes this class of gap
+structurally: any future addition to `opcodes.cpp` is automatically part of
+the guard's accounting (as newly-reachable-and-unhandled, i.e. a guard
+failure, until either implemented or added to `kDeadOpcodes[]` with
+evidence) instead of silently falling outside a list nobody remembers to
+update.
 
 **Rationale**: The user's reinforcement was explicit and two-part: the
 check must run *only* in the test suite, never at render runtime, and must
@@ -103,7 +124,10 @@ the emitter and the test consult directly satisfies "re-derived each run"
 without any source-text parsing fragility, and keeps the emitter itself
 simpler/more Clean-Code-compliant (Principle I) than the current scattered
 literal-string chain. This was chosen over source-text scraping in the
-user's clarifying answer.
+user's clarifying answer. The post-checkpoint revision to a computed
+reachable-set (rather than a hand-maintained list) is a strictly stronger
+reading of that same "dynamic, not frozen" requirement — it was the
+7-opcode gap, not a change of user intent, that prompted it.
 
 **Alternatives considered**: Regex-scraping `llvmEmitter.cpp`'s source text
 for `op == "..."` literals at test time — works without touching production

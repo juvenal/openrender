@@ -180,4 +180,28 @@ extern const char *constantShaderMain;
 extern const char *constantReturnValue;
 extern const char *constantBug;
 
+/////////////////////////////////////////////////
+// Coverage-guard aggregates (spec 011-jit-opcode-parity, FR-006)
+//
+// kAllOpcodeMnemonics aliases the opcodeXxx string constants above by
+// pointer -- it does not re-type their text -- so it can never drift from
+// the canonical definitions in opcodes.cpp. Each entry retains the
+// .rslo-text form ("\tmnemonic<padding>"); use stripOpcodeMnemonic() to
+// recover the bare mnemonic for dispatch/comparison. nullptr-terminated.
+extern const char *const kAllOpcodeMnemonics[];
+
+// Strips the leading tab and trailing space padding from a raw opcodeXxx
+// string, writing the bare mnemonic into `out` (caller-supplied buffer of
+// at least `outSize` bytes; 32 is sufficient for every current mnemonic).
+void stripOpcodeMnemonic(const char *raw, char *out, int outSize);
+
+// Opcodes confirmed structurally unreachable from any RSL surface syntax
+// (zero call sites in src/libshader/compiler/, or a grammar rule that
+// hardcodes nullptr for that opcode's dispatch parameter). See
+// specs/011-jit-opcode-parity/triage-results.md for the original 11 and
+// opcodes.cpp for the inline evidence behind the 4 found during Phase 4's
+// post-checkpoint revision. Bare mnemonics (no .rslo padding).
+// nullptr-terminated.
+extern const char *const kDeadOpcodes[];
+
 #endif
