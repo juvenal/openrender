@@ -64,6 +64,22 @@ void op_feq(float* dst, int sd, const float* a, int sa, const float* b, int sb, 
 void op_fne(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
+ * Vector comparisons → 0.0 or 1.0 (all-components for eql/lt/gt, any-component for neql)
+ * ----------------------------------------------------------------------- */
+void op_veql (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_vneql(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_velt (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_vlt  (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_vegt (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_vgt  (float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Logical negation (bitwise complement of the truncated-to-int operand,
+ * mirroring the interpreter's NOTEXPR exactly — not a boolean "!")
+ * ----------------------------------------------------------------------- */
+void op_not(float* dst, int sd, const float* a, int sa, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
  * Math — scalar float
  * ----------------------------------------------------------------------- */
 void op_sqrt       (float* dst, int sd, const float* a, int sa, int n, const int* tags);
@@ -121,6 +137,12 @@ void op_vfromfff(float* dst, int sd, const float* f0, int s0, const float* f1, i
  * ----------------------------------------------------------------------- */
 void op_moveff(float* dst, int sd, const float* src, int ss, int n, const int* tags);
 void op_movevv(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+/* movess: mirror of Movess (SUNARYEXPR, empty OPERATION). The interpreter
+ * declares Movess's operands as float pointers (not char** like the genuine
+ * string-compare opcodes Seql2/Sneql2) - mirrored here faithfully rather
+ * than "corrected", per non-goal: never alter interpreter behavior, even
+ * where its own operand typing looks unusual. */
+void op_movess(float* dst, int sd, const float* src, int ss, int n, const int* tags);
 /* Uniform-to-uniform copies (no loop, no tags) */
 void op_vufloat (float* dst, float val);               /* dst[0] = val */
 void op_vuvector(float* dst, const float* src);        /* dst[0..2] = src[0..2] */
@@ -238,6 +260,29 @@ void op_mfrom      (float* dst, int sd, const char* space, const float* src, int
 void op_ctransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
+ * Matrix arithmetic (stride-16)
+ * ----------------------------------------------------------------------- */
+/* addmm / submm: component-wise ADD/SUB, mirror MARITMETICEXPR (OPERATION +/-) */
+void op_addmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+void op_submm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+/* mulmm: mirror of MULMMEXPR — matrix mtmp; mulmm(mtmp,op1,op2); movmm(res,mtmp) */
+void op_mulmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+/* divmm: mirror of DIVMMEXPR — matrix inv; invertm(inv,op2); mulmm(res,op1,inv) */
+void op_divmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags);
+/* negm: mirror of MUNARYEXPR (OPERATION -) applied to all 16 elements */
+void op_negm  (float* dst, int sd, const float* a, int sa, int n, const int* tags);
+/* movemm: mirror of Movemm (MUNARYEXPR, empty OPERATION) — plain 16-float copy */
+void op_movemm(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+/* mfromv: mirror of MFROMVEXPR — diag(op[0],op[1],op[2],1) */
+void op_mfromv(float* dst, int sd, const float* v, int sv, int n, const int* tags);
+/* mfromf: mirror of MFROMFEXPR, the 2-operand arity of "mfromf" — diag(op[0],op[0],op[0],1) */
+void op_mfromf(float* dst, int sd, const float* f, int sf, int n, const int* tags);
+/* mfromf16: mirror of MFROMF17EXPR, the 17-operand arity of "mfromf" — res[k] = *e[k]
+ * for k in 0..15. e/se are arrays of the 16 explicit-float operand pointers/strides
+ * (dst is passed separately, so only 16 entries — not 17). */
+void op_mfromf16(float* dst, int sd, const float* const* e, const int* se, int n, const int* tags);
+
+/* -----------------------------------------------------------------------
  * Layer G — additional math / comparison ops
  * ----------------------------------------------------------------------- */
 /* max / logical */
@@ -310,6 +355,61 @@ void op_spline_c(float* dst, int sd, const float* t, int st,
 void op_spline_f(float* dst, int sd, const float* t, int st,
                  int numKnots, float** knots,
                  int n, const int* tags);
+
+/* -----------------------------------------------------------------------
+ * Array element access (array move ops)
+ * One wrapper per element type serves both the plain opcode (ffroma/
+ * vfroma/mfroma/sfroma) and its uniform-array/varying-index sibling
+ * (uffroma/uvfroma/umfroma/usfroma): mirrors the interpreter's
+ * ARRAY_UPDATE vs UARRAY_UPDATE macros, which differ only in whether the
+ * array and index operands advance per vertex or stay fixed at the first
+ * vertex's value. Callers pass the real per-vertex arrStride/idxStride for
+ * the plain opcode, or 0 for both to hold the operand fixed (U-prefixed).
+ * There is no U-prefixed write variant, but every operand — including
+ * idx/val — still needs its real stride threaded through (0 for a
+ * uniform/literal operand). The interpreter's dispatch loop never runs a
+ * compile-time-uniform instruction more than once (see execute.cpp's
+ * DEFOPCODE `code->uniform` fast path), so ARRAY_UPDATE's hardcoded
+ * per-vertex advance is only ever reached for genuinely-varying
+ * instructions and is safe as a fixed constant there. The JIT has no
+ * equivalent single-shot path — it always calls these n=numVerts times —
+ * so a uniform/literal idx or val (a single-element allocation) must be
+ * re-read via a real stride of 0, exactly like every other array-op
+ * operand, or the fixed advance walks past it.
+ * ----------------------------------------------------------------------- */
+void op_ffroma(float* dst, int sd,
+               const float* arr, int arrStride,
+               const float* idx, int idxStride,
+               int n, const int* tags);
+void op_vfroma(float* dst, int sd,
+               const float* arr, int arrStride,
+               const float* idx, int idxStride,
+               int n, const int* tags);
+void op_mfroma(float* dst, int sd,
+               const float* arr, int arrStride,
+               const float* idx, int idxStride,
+               int n, const int* tags);
+void op_sfroma(char** dst, int sd,
+               const char* const* arr, int arrStride,
+               const float* idx, int idxStride,
+               int n, const int* tags);
+
+void op_ftoa(float* arr, int arrStride,
+            const float* idx, int idxStride,
+            const float* val, int valStride,
+            int n, const int* tags);
+void op_vtoa(float* arr, int arrStride,
+            const float* idx, int idxStride,
+            const float* val, int valStride,
+            int n, const int* tags);
+void op_mtoa(float* arr, int arrStride,
+            const float* idx, int idxStride,
+            const float* val, int valStride,
+            int n, const int* tags);
+void op_stoa(char** arr, int arrStride,
+            const float* idx, int idxStride,
+            const char* const* val, int valStride,
+            int n, const int* tags);
 
 #ifdef __cplusplus
 }

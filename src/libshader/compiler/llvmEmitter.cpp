@@ -59,25 +59,32 @@
 // gate a few lines below.
 // =========================================================================
 const char *const kHandledOpcodes[] = {
-    "abs", "acos", "addff", "addvf", "addvf2", "addvv", "ambient", "and",
+    "abs", "acos", "addff", "addmm", "addvf", "addvf2", "addvv", "ambient",
+    "and",
     "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
     "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "continue",
     "cos", "cross", "ctransform",
-    "depth", "diffuse", "divff", "divvf", "divvv", "dot", "Du", "Dv",
+    "depth", "diffuse", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
-    "feq", "feql", "fge", "fgt", "filterstep", "fle", "floor", "flt",
+    "feq", "feql", "fegt", "fge", "fgt", "ffroma", "filterstep", "fle",
+    "floor", "flt",
     "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa", "if",
     "illuminance", "illuminate", "inversesqrt", "jmp", "length",
-    "lightsource", "log", "max", "maxf", "mfrom", "mix", "mixf", "mixv",
-    "mod", "moveff", "movevv", "mulff", "mulvf", "mulvf2", "mulvv", "negf",
-    "negv", "nfrom", "noise", "normalize", "ntransform", "or", "orf",
+    "lightsource", "log", "max", "maxf", "mfrom", "mfromf", "mfromv",
+    "mfroma", "mix", "mixf", "mixv",
+    "mod", "moveff", "movemm", "movess", "movevv", "mtoa", "mulff", "mulmm",
+    "mulvf", "mulvf2", "mulvv", "negf", "negm",
+    "negv", "nfrom", "noise", "normalize", "not", "ntransform", "or", "orf",
     "pfrom", "pow", "printf", "radians", "reflect", "return", "seql",
-    "setxcomp", "setycomp", "setzcomp", "shadow", "sign", "sin",
+    "setxcomp", "setycomp", "setzcomp", "sfroma", "shadow", "sign", "sin",
     "smoothstep", "sneql", "snoise", "solar", "specular", "spline",
-    "sqrt", "subff", "subvf", "subvv", "tan", "texture", "transform",
-    "vfrom", "vfromf", "vfromfff", "vfromvff", "vtransform", "vufloat",
-    "vuvector", "while", "whilebegin", "xcomp", "ycomp", "zcomp",
+    "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "tan", "texture",
+    "transform", "uffroma", "umfroma", "usfroma", "uvfroma",
+    "veql", "vegt", "velt", "vfrom", "vfroma", "vfromf", "vfromfff",
+    "vfromvff", "vgt", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
+    "vumatrix", "vustring", "vuvector", "while", "whilebegin", "xcomp",
+    "ycomp", "zcomp",
     nullptr
 };
 
@@ -137,11 +144,10 @@ buildVarTable(const IRModule &mod) {
         if (v.slcType & SLC_GLOBAL)    continue;
         if (!(v.slcType & SLC_PARAMETER)) continue;
 
-        int stride = 0;
-        if (v.slcType & SLC_UNIFORM)      stride = 0;
-        else if (v.slcType & SLC_MATRIX)  stride = 16;
-        else if (v.slcType & SLC_VECTOR)  stride = 3;
-        else                              stride = 1;
+        int elemSize = (v.slcType & SLC_MATRIX) ? 16
+                     : (v.slcType & SLC_VECTOR) ? 3
+                                                 : 1;
+        int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
         tbl[v.cName]      = {2, slot2Idx, stride};
         tbl[v.symbolName] = {2, slot2Idx, stride};
@@ -153,11 +159,10 @@ buildVarTable(const IRModule &mod) {
         if (v.slcType & SLC_GLOBAL)    continue;
         if (v.slcType & SLC_PARAMETER) continue;
 
-        int stride = 0;
-        if (v.slcType & SLC_UNIFORM)      stride = 0;
-        else if (v.slcType & SLC_MATRIX)  stride = 16;
-        else if (v.slcType & SLC_VECTOR)  stride = 3;
-        else                              stride = 1;
+        int elemSize = (v.slcType & SLC_MATRIX) ? 16
+                     : (v.slcType & SLC_VECTOR) ? 3
+                                                 : 1;
+        int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
         tbl[v.cName]      = {2, slot2Idx, stride};
         tbl[v.symbolName] = {2, slot2Idx, stride};
@@ -826,12 +831,38 @@ static void emitFunction(const IRFunction &irFn,
             else if (op == "fge")               emitBin(ins, "op_fge",   dst, dstStride);
             else if (op == "feq")               emitBin(ins, "op_feq",   dst, dstStride);
             else if (op == "fne")               emitBin(ins, "op_fne",   dst, dstStride);
+            // "fegt" (float >=) has no dedicated op_* — the interpreter's
+            // >= and op_fge share the same comparison, so delegate there.
+            else if (op == "fegt")              emitBin(ins, "op_fge",   dst, dstStride);
+
+            // ================================================================
+            // Vector comparison / logic
+            // ================================================================
+            else if (op == "veql")              emitBin(ins, "op_veql",  dst, dstStride);
+            else if (op == "vneql")             emitBin(ins, "op_vneql", dst, dstStride);
+            else if (op == "velt")              emitBin(ins, "op_velt",  dst, dstStride);
+            else if (op == "vlt")               emitBin(ins, "op_vlt",   dst, dstStride);
+            else if (op == "vegt")              emitBin(ins, "op_vegt",  dst, dstStride);
+            else if (op == "vgt")               emitBin(ins, "op_vgt",   dst, dstStride);
+
+            // ================================================================
+            // Matrix arithmetic
+            // ================================================================
+            else if (op == "mulmm")             emitBin(ins, "op_mulmm", dst, dstStride);
+            else if (op == "addmm")             emitBin(ins, "op_addmm", dst, dstStride);
+            else if (op == "submm")             emitBin(ins, "op_submm", dst, dstStride);
+            else if (op == "divmm")             emitBin(ins, "op_divmm", dst, dstStride);
 
             // ================================================================
             // Unary arithmetic / math
             // ================================================================
             else if (op == "movevv")         emitUn(ins, "op_movevv",      dst, dstStride);
             else if (op == "moveff")         emitUn(ins, "op_moveff",      dst, dstStride);
+            else if (op == "movess")         emitUn(ins, "op_movess",      dst, dstStride);
+            else if (op == "not")            emitUn(ins, "op_not",         dst, dstStride);
+            else if (op == "negm")           emitUn(ins, "op_negm",        dst, dstStride);
+            else if (op == "movemm")         emitUn(ins, "op_movemm",      dst, dstStride);
+            else if (op == "mfromv")         emitUn(ins, "op_mfromv",      dst, dstStride);
             else if (op == "negv")           emitUn(ins, "op_negv",        dst, dstStride);
             else if (op == "negf")           emitUn(ins, "op_negf",        dst, dstStride);
             else if (op == "normalize")      emitUn(ins, "op_normalize",   dst, dstStride);
@@ -887,6 +918,51 @@ static void emitFunction(const IRFunction &irFn,
                 if (!dst || !a) continue;
                 auto *fn = declareOp(mod, "op_moveff", unOpTy);
                 B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+            }
+            else if (op == "vumatrix") {
+                auto [a, sa] = getVar(ins, 0);
+                if (!dst || !a) continue;
+                auto *fn = declareOp(mod, "op_movemm", unOpTy);
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+            }
+            else if (op == "vustring") {
+                auto [a, sa] = getVar(ins, 0);
+                if (!dst || !a) continue;
+                auto *fn = declareOp(mod, "op_movess", unOpTy);
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+            }
+
+            // ================================================================
+            // mfromf: 1 operand → op_mfromf (uniform broadcast);
+            // 16 operands → op_mfromf16 (explicit element list)
+            // ================================================================
+            else if (op == "mfromf") {
+                if (ins.operands.size() >= 16) {
+                    llvm::Value *eArr  = B.CreateAlloca(
+                        llvm::ArrayType::get(ptrTy, 16), nullptr, "mfromf16_e");
+                    llvm::Value *seArr = B.CreateAlloca(
+                        llvm::ArrayType::get(i32Ty, 16), nullptr, "mfromf16_se");
+                    bool ok = true;
+                    for (int i = 0; i < 16; ++i) {
+                        auto [ei, sei] = getVar(ins, i);
+                        if (!ei) { ok = false; break; }
+                        llvm::Value *ePtr = B.CreateGEP(
+                            llvm::ArrayType::get(ptrTy, 16), eArr,
+                            {B.getInt32(0), B.getInt32(i)});
+                        B.CreateStore(ei, ePtr);
+                        llvm::Value *sePtr = B.CreateGEP(
+                            llvm::ArrayType::get(i32Ty, 16), seArr,
+                            {B.getInt32(0), B.getInt32(i)});
+                        B.CreateStore(B.getInt32(sei), sePtr);
+                    }
+                    if (!dst || !ok) continue;
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                        {ptrTy,i32Ty, ptrTy,ptrTy, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_mfromf16", ty);
+                    B.CreateCall(fn, {dst, dstStride, eArr, seArr, numVerts, tags});
+                } else {
+                    emitUn(ins, "op_mfromf", dst, dstStride);
+                }
             }
 
             // ================================================================
@@ -1105,7 +1181,7 @@ static void emitFunction(const IRFunction &irFn,
                 emitBin(ins, "op_feq", dst, dstStride);
             }
             else if (op == "felt") {
-                emitBin(ins, "op_flt", dst, dstStride);
+                emitBin(ins, "op_fle", dst, dstStride);
             }
             else if (op == "fneql") {
                 emitBin(ins, "op_fne", dst, dstStride);
@@ -1504,9 +1580,87 @@ static void emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
+            // Array move ops
+            // ================================================================
+            else if (op == "ffroma")            emitBin(ins, "op_ffroma", dst, dstStride);
+            else if (op == "vfroma")            emitBin(ins, "op_vfroma", dst, dstStride);
+            else if (op == "mfroma")            emitBin(ins, "op_mfroma", dst, dstStride);
+            else if (op == "sfroma")            emitBin(ins, "op_sfroma", dst, dstStride);
+            else if (op == "uffroma" || op == "uvfroma" ||
+                     op == "umfroma" || op == "usfroma") {
+                // Uniform-array + varying-index read: arr/idx strides forced
+                // to 0, mirroring the vufloat/vuvector uniform-broadcast
+                // pattern above — the 4 read wrappers are reused as-is.
+                auto [arr, sa]   = getVar(ins, 0);
+                auto [idx, sidx] = getVar(ins, 1);
+                if (!dst || !arr || !idx) continue;
+                const char *fnName = (op == "uffroma") ? "op_ffroma"
+                                    : (op == "uvfroma") ? "op_vfroma"
+                                    : (op == "umfroma") ? "op_mfroma"
+                                                         : "op_sfroma";
+                auto *fn = declareOp(mod, fnName, binOpTy);
+                B.CreateCall(fn, {dst, dstStride, arr, B.getInt32(0),
+                                  idx, B.getInt32(0), numVerts, tags});
+            }
+            else if (op == "ftoa" || op == "vtoa" || op == "mtoa") {
+                // Array element write: `ins.result` resolves to the array
+                // itself (dst/dstStride == arr/arrStride). idx/val strides
+                // must be threaded through (0 for a uniform/literal
+                // operand): op_ftoa/vtoa/mtoa always loop numVerts times,
+                // unlike the interpreter, which never advances a
+                // compile-time-uniform instruction's operands at all (see
+                // rslOps.h's array-move-ops comment) — a discarded stride
+                // here would walk a single-element idx/val allocation out
+                // of bounds.
+                auto [idx, sidx] = getVar(ins, 0);
+                auto [val, sval] = getVar(ins, 1);
+                if (!dst || !idx || !val) continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                    {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty,ptrTy}, false);
+                const char *fnName = (op == "ftoa") ? "op_ftoa"
+                                    : (op == "vtoa") ? "op_vtoa"
+                                                      : "op_mtoa";
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, idx, B.getInt32(sidx),
+                                  val, B.getInt32(sval), numVerts, tags});
+            }
+            else if (op == "stoa") {
+                // String array element write: val is char* const* (a
+                // string literal or char** local), not float*, so it needs
+                // the seql/sneql literal-string embedding pattern rather
+                // than getVar (which only resolves numeric literals).
+                if (ins.operands.size() < 2 || !dst) continue;
+                auto [idx, sidx] = getVar(ins, 0);
+                if (!idx) continue;
+                const std::string &valTok = ins.operands[1].token;
+                VarDesc valDesc;
+                llvm::Value *val = nullptr;
+                int sval = 0;
+                if (resolveVar(valTok, valDesc)) {
+                    val = loadVarPtr(valDesc);
+                    sval = valDesc.stride;
+                } else {
+                    std::string s = valTok;
+                    if (s.size() >= 2 && s.front() == '"')
+                        s = s.substr(1, s.size() - 2);
+                    llvm::Value *sptr = B.CreateGlobalString(s, "strlit");
+                    llvm::Value *alloca = B.CreateAlloca(ptrTy, nullptr, "strlit_pp");
+                    B.CreateStore(sptr, alloca);
+                    val = alloca;
+                    sval = 0;
+                }
+                if (!val) continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                    {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty,ptrTy}, false);
+                auto *fn = declareOp(mod, "op_stoa", ty);
+                B.CreateCall(fn, {dst, dstStride, idx, B.getInt32(sidx),
+                                  val, B.getInt32(sval), numVerts, tags});
+            }
+
+            // ================================================================
             // No-op opcodes (string/print built-ins with no per-vertex effect)
             // ================================================================
-            else if (op == "printf" || op == "ftoa" ||
+            else if (op == "printf" ||
                      op == "return" || op == "jmp") {
                 // Silently skip — no per-vertex output.
             }

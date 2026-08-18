@@ -169,6 +169,57 @@ void op_fne(float* dst, int sd, const float* a, int sa, const float* b, int sb, 
 }
 
 // =========================================================================
+// Vector comparisons
+// =========================================================================
+
+void op_veql(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] == bi[0] && ai[1] == bi[1] && ai[2] == bi[2]) ? 1.0f : 0.0f;
+    }
+}
+void op_vneql(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] != bi[0] || ai[1] != bi[1] || ai[2] != bi[2]) ? 1.0f : 0.0f;
+    }
+}
+void op_velt(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] <= bi[0] && ai[1] <= bi[1] && ai[2] <= bi[2]) ? 1.0f : 0.0f;
+    }
+}
+void op_vlt(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] < bi[0] && ai[1] < bi[1] && ai[2] < bi[2]) ? 1.0f : 0.0f;
+    }
+}
+void op_vegt(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] >= bi[0] && ai[1] >= bi[1] && ai[2] >= bi[2]) ? 1.0f : 0.0f;
+    }
+}
+void op_vgt(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        IDX(dst,sd,i)[0] = (ai[0] > bi[0] && ai[1] > bi[1] && ai[2] > bi[2]) ? 1.0f : 0.0f;
+    }
+}
+
+// =========================================================================
+// Logical negation
+// =========================================================================
+
+// Mirrors the interpreter's NOTEXPR exactly: *res = (float)~((int)(*op));
+void op_not(float* dst, int sd, const float* a, int sa, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = (float)(~((int)IDX(a,sa,i)[0]));
+}
+
+// =========================================================================
 // Math — scalar float
 // =========================================================================
 
@@ -301,6 +352,13 @@ void op_movevv(float* dst, int sd, const float* src, int ss, int n, const int* t
         IDX(dst,sd,i)[1] = IDX(src,ss,i)[1];
         IDX(dst,sd,i)[2] = IDX(src,ss,i)[2];
     }
+}
+
+// Mirrors Movess (SUNARYEXPR): same shape as op_moveff — the interpreter's
+// own operand declaration for Movess is float*/const float*, not char**.
+void op_movess(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i))
+        IDX(dst,sd,i)[0] = IDX(src,ss,i)[0];
 }
 
 void op_vufloat(float* dst, float val) {
@@ -631,6 +689,88 @@ void op_mfrom(float* dst, int sd, const char* space, const float* src, int ss, i
     }
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
         mulmm(IDX(dst,sd,i), from, IDX(src,ss,i));
+    }
+}
+
+// =========================================================================
+// Matrix arithmetic
+// =========================================================================
+
+void op_addmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        float *r = IDX(dst,sd,i);
+        for (int k = 0; k < 16; k++) r[k] = ai[k] + bi[k];
+    }
+}
+
+void op_submm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i), *bi = IDX(b,sb,i);
+        float *r = IDX(dst,sd,i);
+        for (int k = 0; k < 16; k++) r[k] = ai[k] - bi[k];
+    }
+}
+
+// Mirrors MULMMEXPR exactly, including the temp: guards against dst aliasing an operand.
+void op_mulmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        matrix mtmp;
+        mulmm(mtmp, IDX(a,sa,i), IDX(b,sb,i));
+        movmm(IDX(dst,sd,i), mtmp);
+    }
+}
+
+// Mirrors DIVMMEXPR exactly: op1 * invert(op2).
+void op_divmm(float* dst, int sd, const float* a, int sa, const float* b, int sb, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        matrix inv;
+        invertm(inv, IDX(b,sb,i));
+        mulmm(IDX(dst,sd,i), IDX(a,sa,i), inv);
+    }
+}
+
+void op_negm(float* dst, int sd, const float* a, int sa, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *ai = IDX(a,sa,i);
+        float *r = IDX(dst,sd,i);
+        for (int k = 0; k < 16; k++) r[k] = -ai[k];
+    }
+}
+
+void op_movemm(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        memcpy(IDX(dst,sd,i), IDX(src,ss,i), 16 * sizeof(float));
+    }
+}
+
+void op_mfromv(float* dst, int sd, const float* v, int sv, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        const float *vi = IDX(v,sv,i);
+        float *r = IDX(dst,sd,i);
+        r[0]=vi[0]; r[1]=0; r[2]=0; r[3]=0;
+        r[4]=0; r[5]=vi[1]; r[6]=0; r[7]=0;
+        r[8]=0; r[9]=0; r[10]=vi[2]; r[11]=0;
+        r[12]=0; r[13]=0; r[14]=0; r[15]=1;
+    }
+}
+
+void op_mfromf(float* dst, int sd, const float* f, int sf, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        float fi = IDX(f,sf,i)[0];
+        float *r = IDX(dst,sd,i);
+        r[0]=fi; r[1]=0; r[2]=0; r[3]=0;
+        r[4]=0; r[5]=fi; r[6]=0; r[7]=0;
+        r[8]=0; r[9]=0; r[10]=fi; r[11]=0;
+        r[12]=0; r[13]=0; r[14]=0; r[15]=1;
+    }
+}
+
+// Mirrors MFROMF17EXPR: e[k]/se[k] are the 16 explicit-float operands (dst excluded).
+void op_mfromf16(float* dst, int sd, const float* const* e, const int* se, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        float *r = IDX(dst,sd,i);
+        for (int k = 0; k < 16; k++) r[k] = IDX(e[k], se[k], i)[0];
     }
 }
 
@@ -1062,5 +1202,85 @@ void op_spline_f(float* dst, int sd, const float* t, int st,
             for (int k = 0; k < 4; ++k)
                 r[0] += w[k] * knots[piece+k][0];
         }
+    }
+}
+
+void op_ffroma(float* dst, int sd, const float* arr, int arrStride,
+               const float* idx, int idxStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        const float* op1 = IDX(arr, arrStride, i);
+        const float* op2 = IDX(idx, idxStride, i);
+        float* res = IDX(dst, sd, i);
+        *res = op1[(int)(*op2)];
+    }
+}
+
+void op_vfroma(float* dst, int sd, const float* arr, int arrStride,
+               const float* idx, int idxStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        const float* op1 = IDX(arr, arrStride, i);
+        const float* op2 = IDX(idx, idxStride, i);
+        float* res = IDX(dst, sd, i);
+        movvv(res, &op1[((int)(*op2)) * 3]);
+    }
+}
+
+void op_mfroma(float* dst, int sd, const float* arr, int arrStride,
+               const float* idx, int idxStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        const float* op1 = IDX(arr, arrStride, i);
+        const float* op2 = IDX(idx, idxStride, i);
+        float* res = IDX(dst, sd, i);
+        movmm(res, &op1[((int)(*op2)) * 16]);
+    }
+}
+
+void op_sfroma(char** dst, int sd, const char* const* arr, int arrStride,
+               const float* idx, int idxStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        const char* const* op1 = IDX(arr, arrStride, i);
+        const float* op2 = IDX(idx, idxStride, i);
+        char** res = IDX(dst, sd, i);
+        *res = const_cast<char*>(op1[(int)(*op2)]);
+    }
+}
+
+void op_ftoa(float* arr, int arrStride, const float* idx, int idxStride,
+            const float* val, int valStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        float* res = IDX(arr, arrStride, i);
+        const float* op1 = IDX(idx, idxStride, i);
+        const float* op2 = IDX(val, valStride, i);
+        res[(int)(*op1)] = *op2;
+    }
+}
+
+void op_vtoa(float* arr, int arrStride, const float* idx, int idxStride,
+            const float* val, int valStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        float* res = IDX(arr, arrStride, i);
+        const float* op1 = IDX(idx, idxStride, i);
+        const float* op2 = IDX(val, valStride, i);
+        movvv(res + ((int)(*op1)) * 3, op2);
+    }
+}
+
+void op_mtoa(float* arr, int arrStride, const float* idx, int idxStride,
+            const float* val, int valStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        float* res = IDX(arr, arrStride, i);
+        const float* op1 = IDX(idx, idxStride, i);
+        const float* op2 = IDX(val, valStride, i);
+        movmm(res + ((int)(*op1)) * 16, op2);
+    }
+}
+
+void op_stoa(char** arr, int arrStride, const float* idx, int idxStride,
+            const char* const* val, int valStride, int n, const int* tags) {
+    for (int i = 0; i < n; i++) if (ACTIVE(tags, i)) {
+        char** res = IDX(arr, arrStride, i);
+        const float* op1 = IDX(idx, idxStride, i);
+        const char* const* op2 = IDX(val, valStride, i);
+        res[(int)(*op1)] = const_cast<char*>(*op2);
     }
 }

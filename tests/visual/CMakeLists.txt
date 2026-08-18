@@ -311,6 +311,42 @@ add_visual_test(sphere-ctransform-reyes-slo
     examples/rib/tests/sphere-ctransform-reyes-slo.rib
     sphere-ctransform-reyes-slo.tif  sphere-ctransform-reyes.tif)
 
+# --- JIT opcode-coverage parity (spec 011-jit-opcode-parity), Phase 6/US3a:
+# matrix arithmetic, comparison/logic, and array move-op opcodes.
+# .rslo reference vs. .slo JIT variant, bare sphere + diagnostic shader, per
+# category (array_ops_probe.sl / matrix_ops_probe.sl /
+# comparison_logic_probe.sl — see each shader's header comment for the exact
+# opcode list exercised). Measured MaxBlockAvgDiff: arrayops 6.89, matrixops
+# 0.05, comparisonlogic 11.48 (all well under the default 20 threshold; the
+# comparison-logic figure is higher because its result value has hard
+# step-function boundaries at u==v across the sphere, where interpreter vs.
+# JIT float-rounding differences land on opposite sides of the threshold at
+# a sparse set of pixels — the same class of residual as the spotlight
+# scene's sharp cone edge above, not a correctness gap).
+add_visual_test(sphere-arrayops-reyes
+    examples/rib/tests/sphere-arrayops-reyes.rib
+    sphere-arrayops-reyes.tif  sphere-arrayops-reyes.tif)
+
+add_visual_test(sphere-arrayops-reyes-slo
+    examples/rib/tests/sphere-arrayops-reyes-slo.rib
+    sphere-arrayops-reyes-slo.tif  sphere-arrayops-reyes.tif)
+
+add_visual_test(sphere-matrixops-reyes
+    examples/rib/tests/sphere-matrixops-reyes.rib
+    sphere-matrixops-reyes.tif  sphere-matrixops-reyes.tif)
+
+add_visual_test(sphere-matrixops-reyes-slo
+    examples/rib/tests/sphere-matrixops-reyes-slo.rib
+    sphere-matrixops-reyes-slo.tif  sphere-matrixops-reyes.tif)
+
+add_visual_test(sphere-comparisonlogic-reyes
+    examples/rib/tests/sphere-comparisonlogic-reyes.rib
+    sphere-comparisonlogic-reyes.tif  sphere-comparisonlogic-reyes.tif)
+
+add_visual_test(sphere-comparisonlogic-reyes-slo
+    examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib
+    sphere-comparisonlogic-reyes-slo.tif  sphere-comparisonlogic-reyes.tif)
+
 # teapot-full-metal uses the "teapot-full-*" reference images
 add_visual_test(teapot-full-metal-reyes
     examples/rib/tests/teapot-full-metal-reyes.rib
@@ -1009,6 +1045,6 @@ add_not_required_test(motion-subdiv-translate-photon
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      75 scenes registered under label 'visual'")
+message(STATUS "      81 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
