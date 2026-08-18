@@ -293,6 +293,24 @@ add_visual_test(teapot-somewood-aliasing
     examples/rib/tests/teapot-somewood-aliasing.rib
     teapot-somewood-aliasing.tif  teapot-somewood-aliasing.tif)
 
+# --- JIT opcode-coverage parity (spec 011-jit-opcode-parity): cfrom/ctransform ---
+# Bare sphere + diagnostic shader, .rslo reference vs. .slo JIT variant.
+add_visual_test(sphere-cfrom-reyes
+    examples/rib/tests/sphere-cfrom-reyes.rib
+    sphere-cfrom-reyes.tif  sphere-cfrom-reyes.tif)
+
+add_visual_test(sphere-cfrom-reyes-slo
+    examples/rib/tests/sphere-cfrom-reyes-slo.rib
+    sphere-cfrom-reyes-slo.tif  sphere-cfrom-reyes.tif)
+
+add_visual_test(sphere-ctransform-reyes
+    examples/rib/tests/sphere-ctransform-reyes.rib
+    sphere-ctransform-reyes.tif  sphere-ctransform-reyes.tif)
+
+add_visual_test(sphere-ctransform-reyes-slo
+    examples/rib/tests/sphere-ctransform-reyes-slo.rib
+    sphere-ctransform-reyes-slo.tif  sphere-ctransform-reyes.tif)
+
 # teapot-full-metal uses the "teapot-full-*" reference images
 add_visual_test(teapot-full-metal-reyes
     examples/rib/tests/teapot-full-metal-reyes.rib

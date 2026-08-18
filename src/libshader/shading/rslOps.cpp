@@ -20,6 +20,7 @@
 #include "activeContext.h"
 #include "shading.h"
 #include "noise.h"
+#include "common/colorSpace.h"
 #include "includes/logging.hpp"
 
 #include <cmath>
@@ -584,6 +585,52 @@ void op_ntransform(float* dst, int sd, const char* space, const float* src, int 
         r[0] = from[0]*p[0] + from[1]*p[1] + from[2]*p[2];
         r[1] = from[4]*p[0] + from[5]*p[1] + from[6]*p[2];
         r[2] = from[8]*p[0] + from[9]*p[1] + from[10]*p[2];
+    }
+}
+
+// Resolves the ECoordinateSystem for a named color space (hsv/hsl/xyz/...),
+// same lookup findCoordinateSystem() uses for point spaces — colorspace names
+// and point-space names share one name trie and one ECoordinateSystem enum.
+// Falls back to COLOR_RGB (identity in convertColorFrom/To) when unresolved.
+static void getColorCoordinateSystem(const char* space, ECoordinateSystem& cSystem) {
+    cSystem = COLOR_RGB;
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx || !space) return;
+    const float *from = nullptr, *to = nullptr;
+    ctx->jitFindCoordinateSystem(space, from, to, cSystem);
+}
+
+// op_cfrom: RSL color "space" (...) constructor — mirrors CFROMEXPR, delegates
+// to the interpreter's own convertColorFrom() (src/common/colorSpace.cpp).
+void op_cfrom(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
+    ECoordinateSystem cSystem;
+    getColorCoordinateSystem(space, cSystem);
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        convertColorFrom(IDX(dst,sd,i), IDX(src,ss,i), cSystem);
+    }
+}
+
+// op_ctransform: RSL ctransform("space", c) — mirrors CTRANSFORMEXPR, delegates
+// to convertColorTo(). Distinct math from op_pfrom's point-matrix transform.
+void op_ctransform(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
+    ECoordinateSystem cSystem;
+    getColorCoordinateSystem(space, cSystem);
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        convertColorTo(IDX(dst,sd,i), IDX(src,ss,i), cSystem);
+    }
+}
+
+// op_mfrom: RSL matrix "space" (...) constructor — mirrors MFROMEXPR (mulmm(res, from, op)).
+void op_mfrom(float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags) {
+    const float *from = nullptr;
+    if (!space || !getFromMatrix(space, from)) {
+        for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+            memcpy(IDX(dst,sd,i), IDX(src,ss,i), 16 * sizeof(float));
+        }
+        return;
+    }
+    for (int i = 0; i < n; i++) if (ACTIVE(tags,i)) {
+        mulmm(IDX(dst,sd,i), from, IDX(src,ss,i));
     }
 }
 

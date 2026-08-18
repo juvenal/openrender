@@ -225,6 +225,17 @@ void op_pfrom      (float* dst, int sd, const char* space, const float* src, int
 void op_ptransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 void op_ntransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 void op_vtransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+/* op_cfrom: mirror of CFROMEXPR — color "space" (...) constructor, named→current
+ * via convertColorFrom(). Unlike op_pfrom, resolves an ECoordinateSystem (not a
+ * 4x4 matrix): color spaces (hsv/hsl/xyz/...) share the same name lookup as
+ * point spaces but carry no transform matrix. */
+void op_cfrom      (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+/* op_mfrom: mirror of MFROMEXPR — matrix "space" (...) constructor, mulmm(res, from, src). */
+void op_mfrom      (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
+/* op_ctransform: mirror of CTRANSFORMEXPR (shaderFunctions.h) — ctransform("space", c),
+ * current→named via convertColorTo(). Distinct math from op_pfrom; must not be
+ * routed through the pfrom/point-matrix family. */
+void op_ctransform (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags);
 
 /* -----------------------------------------------------------------------
  * Layer G — additional math / comparison ops

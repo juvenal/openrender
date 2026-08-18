@@ -61,23 +61,16 @@
 const char *const kHandledOpcodes[] = {
     "abs", "acos", "addff", "addvf", "addvf2", "addvv", "ambient", "and",
     "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
-    "ceil", "cellnoise", "clamp", "clampf", "clampv", "continue", "cos",
-    "cross",
-    // Misrouted (calls op_pfrom, a 4x4 point-matrix transform) rather than
-    // op_ctransform's own colorspace math — a real correctness bug, tracked
-    // for spec 011-jit-opcode-parity Phase 5 (US1). Coverage-wise it IS
-    // dispatched today, so it belongs in this table; the guard test only
-    // checks presence, not correctness (contracts/coverage-guard-contract.md
-    // Non-goals).
-    "ctransform",
+    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "continue",
+    "cos", "cross", "ctransform",
     "depth", "diffuse", "divff", "divvf", "divvv", "dot", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
     "feq", "feql", "fge", "fgt", "filterstep", "fle", "floor", "flt",
     "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa", "if",
     "illuminance", "illuminate", "inversesqrt", "jmp", "length",
-    "lightsource", "log", "max", "maxf", "mix", "mixf", "mixv", "mod",
-    "moveff", "movevv", "mulff", "mulvf", "mulvf2", "mulvv", "negf",
+    "lightsource", "log", "max", "maxf", "mfrom", "mix", "mixf", "mixv",
+    "mod", "moveff", "movevv", "mulff", "mulvf", "mulvf2", "mulvv", "negf",
     "negv", "nfrom", "noise", "normalize", "ntransform", "or", "orf",
     "pfrom", "pow", "printf", "radians", "reflect", "return", "seql",
     "setxcomp", "setycomp", "setzcomp", "shadow", "sign", "sin",
@@ -995,8 +988,7 @@ static void emitFunction(const IRFunction &irFn,
             // Quoted string operand is passed as a global char* constant.
             // ================================================================
             else if (op == "pfrom"      || op == "vtransform" ||
-                     op == "ntransform" || op == "ctransform"  ||
-                     op == "transform") {
+                     op == "ntransform" || op == "transform") {
                 // operands: space_string src
                 if (ins.operands.size() < 2) continue;
                 const std::string &spaceToken = ins.operands[0].token;
@@ -1027,8 +1019,40 @@ static void emitFunction(const IRFunction &irFn,
                            : (!ins.proto.empty() && ins.proto[0] == 'v') ? "op_vtransform"
                            :                                                "op_ptransform";
                 } else {
-                    fnName = "op_pfrom"; // pfrom, ctransform
+                    fnName = "op_pfrom";
                 }
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), numVerts, tags});
+            }
+
+            // ================================================================
+            // Color/matrix space constructors + ctransform — mirror of the
+            // pfrom/vtransform/ntransform block above, but distinct math
+            // families: op_cfrom/op_ctransform delegate to convertColorFrom/
+            // convertColorTo, op_mfrom to mulmm(from, src) (spec
+            // 011-jit-opcode-parity T023/T024 — see rslOps.cpp for the
+            // wrapper bodies and shaderOpcodes.h/shaderFunctions.h for the
+            // interpreter macros they mirror).
+            // ================================================================
+            else if (op == "cfrom" || op == "mfrom" || op == "ctransform") {
+                // operands: space_string src
+                if (ins.operands.size() < 2) continue;
+                const std::string &spaceToken = ins.operands[0].token;
+                auto [src, ss] = getVar(ins, 1);
+                if (!dst || !src) continue;
+
+                std::string spaceName = spaceToken;
+                if (spaceName.size() >= 2 && spaceName.front() == '"')
+                    spaceName = spaceName.substr(1, spaceName.size() - 2);
+
+                llvm::Value *spacePtr = B.CreateGlobalString(spaceName, "space_str");
+
+                // (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags)
+                auto *ty = llvm::FunctionType::get(voidTy,
+                    {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                const char *fnName = (op == "cfrom")      ? "op_cfrom"
+                                    : (op == "mfrom")      ? "op_mfrom"
+                                    :                         "op_ctransform";
                 auto *fn = declareOp(mod, fnName, ty);
                 B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), numVerts, tags});
             }
