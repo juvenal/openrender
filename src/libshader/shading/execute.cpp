@@ -29,6 +29,7 @@
 #include <stddef.h>
 
 #include "bundles.h"
+#include "common/colorSpace.h"
 #include "common/global.h"
 #include "error.h"
 #include "irradiance.h"
@@ -48,10 +49,6 @@
 
 // This function is defined in shader.cpp for debugging purposes
 void debugFunction(float *);
-
-// These functions are defined in init.cpp
-void convertColorFrom(float *, const float *, ECoordinateSystem);
-void convertColorTo(float *, const float *, ECoordinateSystem);
 
 // Lighting helpers
 #define saveLighting(__L)                                                                                                                                         \

@@ -5,6 +5,7 @@ add_library(openrendercommon STATIC
     algebra.cpp
     rslConstants.cpp  # RiBSplineBasis, filter functions (moved from ri.cpp for libshader)
     sobolTables.cpp   # Sobol sequence tables (moved from random.cpp for libshader)
+    colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     ${openrendercommon_headers}
 )
 set_target_properties(openrendercommon PROPERTIES POSITION_INDEPENDENT_CODE ON)
