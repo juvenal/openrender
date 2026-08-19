@@ -347,6 +347,29 @@ add_visual_test(sphere-comparisonlogic-reyes-slo
     examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib
     sphere-comparisonlogic-reyes-slo.tif  sphere-comparisonlogic-reyes.tif)
 
+# --- JIT opcode-coverage parity (spec 011-jit-opcode-parity), Phase 7/US3b:
+# gather()/gatherElse/gatherEnd/gatherHeader. .rslo reference vs. .slo JIT
+# variant; a lit sphere over a ground plane using gather_named_probe.sl
+# (full-RSL-parity gatherHeader operand surface: fixed operands, all five
+# named-parameter overrides, and all surface:/ray: output bindings) so the
+# construct has something illuminated to sample. T035a Red baseline
+# (measured, pre-T037/T038/T039 fix): the JIT currently silently drops
+# gather/gatherHeader entirely (kHandledOpcodes has no case for them), so Ci
+# collapses toward the shader's flat 0.05 ambient floor across most of the
+# sphere. Pixel-diff analysis confirmed the divergence is concentrated on
+# the sphere's own screen-space footprint (not scene-wide noise): center-crop
+# mean 78.6 (rslo) vs 65.1 (slo), max abs channel diff 226, ~2.15% of pixels
+# differing by >20 (raw-pixel measure; the ctest block-average metric below
+# is expected to differ from this raw figure). This test is expected to FAIL
+# until T037-T039 land.
+add_visual_test(sphere-gather-reyes
+    examples/rib/tests/sphere-gather-reyes.rib
+    sphere-gather-reyes.tif  sphere-gather-reyes.tif)
+
+add_visual_test(sphere-gather-reyes-slo
+    examples/rib/tests/sphere-gather-reyes-slo.rib
+    sphere-gather-reyes-slo.tif  sphere-gather-reyes.tif)
+
 # teapot-full-metal uses the "teapot-full-*" reference images
 add_visual_test(teapot-full-metal-reyes
     examples/rib/tests/teapot-full-metal-reyes.rib
@@ -1045,6 +1068,6 @@ add_not_required_test(motion-subdiv-translate-photon
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      81 scenes registered under label 'visual'")
+message(STATUS "      83 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

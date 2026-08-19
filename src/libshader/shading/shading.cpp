@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "brickmap.h"
+#include "bundles.h"
 #include "error.h"
 #include "irradiance.h"
 #include "memory.h"
@@ -970,6 +971,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     currentShadingState->lights = NULL;
     currentShadingState->alights = NULL;
     currentShadingState->currentLight = NULL;
+    currentShadingState->currentGather = NULL;
     currentShadingState->freeLights = NULL;
 
     // Run the displacement shader here
@@ -2119,6 +2121,43 @@ int CShadingContext::jitIlluminanceNext(
 }
 
 ///////////////////////////////////////////////////////////////////////
+// CShadingContext::jitGatherBegin / jitGatherElse / jitGatherEnd
+// JIT surface-shader wrappers for gather()/gatherElse/gatherEnd, delegating
+// to the shared gatherSample/gatherElseFlip/gatherEndAdvance (defined below,
+// shared verbatim with the .rslo interpreter's giOpcodes.h handling).
+// tags/N/time are read from currentShadingState rather than threaded through
+// the JIT call ABI, since gatherSample only ever needs the base pointer
+// (currentShadingState->tags) and gatherElseFlip/gatherEndAdvance's internal
+// tags++ walk starts fresh from that same base on every call.
+//
+// currentShadingState->currentGather must already be populated by
+// op_gatherHeader (the GATHEREXPR allocation/PL-binding counterpart, not yet
+// implemented) before jitGatherBegin fires; until then this returns 0.
+int CShadingContext::jitGatherBegin(int* numActive, int* numPassive) {
+    CShadingState *ss = currentShadingState;
+    if (!ss || !ss->currentGather) return 0;
+
+    return gatherSample(ss->currentGather, ss->tags, *numActive, *numPassive,
+                         ss->varying[VARIABLE_N], ss->varying[VARIABLE_TIME]) ? 1 : 0;
+}
+
+int CShadingContext::jitGatherElse(int* numActive, int* numPassive) {
+    CShadingState *ss = currentShadingState;
+    if (!ss) return 0;
+
+    int *tags = ss->tags;
+    return gatherElseFlip(tags, *numActive, *numPassive) ? 1 : 0;
+}
+
+int CShadingContext::jitGatherEnd(int* numActive, int* numPassive) {
+    CShadingState *ss = currentShadingState;
+    if (!ss || !ss->currentGather) return 0;
+
+    int *tags = ss->tags;
+    return gatherEndAdvance(ss->currentGather, tags, *numActive, *numPassive) ? 1 : 0;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
 // Method				:	shaderName
 // Description			:	Get the name of the shader
@@ -2483,6 +2522,137 @@ void CShadingContext::jitFindCoordinateSystem(const char* name, const float*& fr
     from = nullptr;
     to   = nullptr;
     findCoordinateSystem(name, from, to, type);
+}
+
+// gather()/gatherElse/gatherEnd shared computation. Byte-faithful transcriptions of
+// GATHEREXPR_PRE/GATHERELSEEXPR_PRE/GATHERENDEXPR_PRE (giOpcodes.h) with the bytecode
+// jmp(argument(0)) call itself left in the caller's macro -- these return the jump
+// condition instead of jumping directly, so both the .rslo interpreter and the JIT
+// wrappers share the exact same computation while each keeps its own control flow.
+bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive,
+                                    const float *normalN, const float *time) {
+    const int numRealVertices = currentShadingState->numRealVertices;
+    CGatherRay *raysBase = lastGather->raysBase;
+    CGatherRay **rays = (CGatherRay **)lastGather->raysStorage;
+    const float temp = 1 / (float)(lastGather->numSamples);
+    int numIntRays = 0;
+    int numExtRays = 0;
+    const CAttributes *cAttributes = currentShadingState->currentObject->attributes;
+    const int sampleMotion = cAttributes->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION;
+    for (int i = 0; i < numRealVertices; ++i) {
+        if (tags[i]) {
+            ++tags[i];
+        }
+        else {
+            vector tmp0, tmp1;
+            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase *(urand() - 0.5f));
+            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase *(urand() - 0.5f));
+            addvv(raysBase->from, tmp0, tmp1);
+            addvv(raysBase->from, raysBase->gatherP);
+
+            if (lastGather->uniformDist) {
+                sampleHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
+            }
+            else {
+                sampleCosineHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
+            }
+            raysBase->index = i;
+            raysBase->tmin = raysBase->bias;
+            raysBase->t = raysBase->maxDist;
+            if (sampleMotion)
+                raysBase->time = (urand() + lastGather->remainingSamples - 1) * temp;
+            else
+                raysBase->time = time[0];
+            raysBase->flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE | ATTRIBUTES_FLAGS_SPECULAR_VISIBLE;
+            raysBase->tags = &tags[i];
+            if (dotvv(raysBase->dir, normalN) > 0) {
+                rays[numExtRays++] = raysBase;
+            }
+            else {
+                rays[numRealVertices - 1 - numIntRays++] = raysBase;
+            }
+        }
+        raysBase++;
+        normalN += 3;
+        ++time;
+    }
+
+    bool shouldJump = false;
+    if ((numIntRays + numExtRays) > 0) {
+        if (numIntRays > 0) {
+            lastGather->numRays = numIntRays;
+            lastGather->rays = (CRay **)rays + numRealVertices - numIntRays;
+            lastGather->last = 0;
+            lastGather->depth = 0;
+            lastGather->postShader = cAttributes->interior;
+            lastGather->numMisses = 0;
+            traceEx(lastGather);
+            numActive -= lastGather->numMisses;
+            numPassive += lastGather->numMisses;
+        }
+        if (numExtRays > 0) {
+            lastGather->numRays = numExtRays;
+            lastGather->rays = (CRay **)rays;
+            lastGather->last = 0;
+            lastGather->depth = 0;
+            lastGather->postShader = cAttributes->exterior;
+            lastGather->numMisses = 0;
+            traceEx(lastGather);
+            numActive -= lastGather->numMisses;
+            numPassive += lastGather->numMisses;
+        }
+
+        if (numActive == 0) {
+            shouldJump = true;
+        }
+    }
+    return shouldJump;
+}
+
+bool CShadingContext::gatherElseFlip(int *&tags, int &numActive, int &numPassive) {
+    int numRealVertices = currentShadingState->numRealVertices;
+
+    for (; numRealVertices > 0; numRealVertices--, tags++) {
+        if (*tags <= 1) {
+            if (*tags == 1) {
+                *tags = 0;
+                numActive++;
+                numPassive--;
+            }
+            else {
+                *tags = 1;
+                numActive--;
+                numPassive++;
+            }
+        }
+    }
+
+    return numActive == 0;
+}
+
+bool CShadingContext::gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, int &numActive, int &numPassive) {
+    int numRealVertices = currentShadingState->numRealVertices;
+
+    for (; numRealVertices > 0; numRealVertices--, tags++) {
+        if (*tags) {
+            (*tags)--;
+            if (*tags == 0) {
+                numActive++;
+                numPassive--;
+            }
+        }
+    }
+
+    lastGather->numMisses = 0;
+    lastGather->remainingSamples--;
+    if (lastGather->remainingSamples > 0) {
+        return true;
+    }
+    else {
+        delete lastGather;
+        lastGather = nullptr;
+        return false;
+    }
 }
 
 #undef JIT_IDX

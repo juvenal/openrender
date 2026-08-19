@@ -843,6 +843,28 @@ int op_illuminance_next(int* tags, int n, int* numActive, int* numPassive) {
 }
 
 // =========================================================================
+// gather / gatherElse / gatherEnd (surface shader construct, JIT .slo path)
+// =========================================================================
+
+int op_gather_begin(int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return 0;
+    return ctx->jitGatherBegin(numActive, numPassive);
+}
+
+int op_gather_else(int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return 0;
+    return ctx->jitGatherElse(numActive, numPassive);
+}
+
+int op_gather_end(int* numActive, int* numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return 0;
+    return ctx->jitGatherEnd(numActive, numPassive);
+}
+
+// =========================================================================
 // illuminate / endilluminate (light shader construct, JIT .slo path)
 // =========================================================================
 

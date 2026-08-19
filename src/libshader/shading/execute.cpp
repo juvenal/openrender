@@ -524,7 +524,10 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 #define BREAK goto execEnd;
 
     // Uninitialized local variables
-    CGatherBundle *lastGather = nullptr;
+    // Aliases currentShadingState->currentGather (persisted across separate JIT
+    // op_gather_begin/op_gather_else/op_gather_end calls) so the interpreter and
+    // JIT share the same gather cursor, mirroring the currentLight precedent below.
+    CGatherBundle *&lastGather = currentShadingState->currentGather;
 
     // This is the current shader we're executing
     CShader *currentShader = cInstance->parent;

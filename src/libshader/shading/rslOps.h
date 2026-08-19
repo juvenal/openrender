@@ -216,6 +216,22 @@ int op_illuminance_begin(const float* P, int sp, const float* N, int sn,
 int op_illuminance_next(int* tags, int n, int* numActive, int* numPassive);
 
 /* -----------------------------------------------------------------------
+ * gather / gatherElse / gatherEnd (surface shader construct, JIT path)
+ * ----------------------------------------------------------------------- */
+/* op_gather_begin: mirror of GATHEREXPR_PRE. Requires the active gather
+ * bundle (set up by op_gatherHeader) to already be bound in the current
+ * shading state. Returns 1 if the caller should jmp (all samples resolved
+ * with no misses), 0 otherwise. */
+int op_gather_begin(int* numActive, int* numPassive);
+/* op_gather_else: mirror of GATHERELSEEXPR_PRE. Returns 1 if the caller
+ * should jmp (gatherElse block taken). */
+int op_gather_else(int* numActive, int* numPassive);
+/* op_gather_end: mirror of GATHERENDEXPR_PRE. Returns 1 if more samples
+ * remain (caller should jmp back to repeat the gather body); frees the
+ * active gather bundle on the last sample. */
+int op_gather_end(int* numActive, int* numPassive);
+
+/* -----------------------------------------------------------------------
  * illuminate / endilluminate (light shader construct, JIT path)
  * ----------------------------------------------------------------------- */
 /* op_illuminate_begin: mirror of ILLUMINATE1EXPR_PRE for LLVM .slo light shaders.

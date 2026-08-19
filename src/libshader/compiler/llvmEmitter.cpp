@@ -373,6 +373,21 @@ static void emitFunction(const IRFunction &irFn,
     };
     std::vector<ForScope> forStack;
 
+    // -----------------------------------------------------------------------
+    // Layer G: gather() loop scope tracking.
+    // Unlike illuminance/for, gatherEnd's backward jump targets the label
+    // right after `gather` itself (GATHERENDEXPR_PRE's jmp(argument(0))),
+    // so the header/back-edge is wired entirely inline at the gather/
+    // gatherEnd opcode sites — no outer block-boundary matching needed.
+    // gather/gatherElse's own jmp(argument(0)) targets are forward
+    // numActive==0 skips, handled for free by tag masking (same as if/else).
+    // -----------------------------------------------------------------------
+    struct GatherScope {
+        llvm::BasicBlock *headerBB;
+        llvm::BasicBlock *exitBB;
+    };
+    std::vector<GatherScope> gatherStack;
+
     auto *i32Ty  = llvm::Type::getInt32Ty(ctx);
     auto *f32Ty  = llvm::Type::getFloatTy(ctx);
     auto *ptrTy  = llvm::PointerType::getUnqual(ctx);
@@ -454,6 +469,9 @@ static void emitFunction(const IRFunction &irFn,
         {ptrTy,i32Ty, ptrTy, i32Ty, ptrTy, ptrTy}, false);
     // op_else_update / op_endif_update(tags, n, numActive*, numPassive*)
     auto *elseUpdTy = llvm::FunctionType::get(voidTy,
+        {ptrTy, i32Ty, ptrTy, ptrTy}, false);
+    // op_gather_end(tags, n, numActive*, numPassive*) -> i32 (remainingSamples>0)
+    auto *gatherEndTy = llvm::FunctionType::get(i32Ty,
         {ptrTy, i32Ty, ptrTy, ptrTy}, false);
 
     // -----------------------------------------------------------------------
@@ -605,6 +623,49 @@ static void emitFunction(const IRFunction &irFn,
             if (op == "endif") {
                 auto *fn = declareOp(mod, "op_endif_update", elseUpdTy);
                 B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                continue;
+            }
+
+            // ================================================================
+            // Layer G: gather() / gatherElse / gatherEnd
+            // gather/gatherElse are tag-mask-only (like if/else — their own
+            // jmp(argument(0)) forward-skip targets are subsumed by masking).
+            // gatherEnd is the one genuine backward branch (GI sample loop),
+            // wired inline via headerBB/exitBB — see GatherScope above.
+            // ================================================================
+            if (op == "gather") {
+                // headerBB must contain the op_gather_begin call itself, since
+                // gatherEnd's backward branch re-enters here — GATHERENDEXPR_PRE's
+                // jmp(argument(0)) re-runs the interpreter's GATHEREXPR_PRE (fresh
+                // sampling + traceEx) on every remaining-sample iteration, not just
+                // the tag-mask body that follows.
+                auto *headerBB = llvm::BasicBlock::Create(ctx, "gather.header", func);
+                auto *exitBB   = llvm::BasicBlock::Create(ctx, "gather.exit", func);
+                B.CreateBr(headerBB);
+                B.SetInsertPoint(headerBB);
+
+                auto *fn = declareOp(mod, "op_gather_begin", elseUpdTy);
+                B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+
+                gatherStack.push_back({headerBB, exitBB});
+                continue;
+            }
+            if (op == "gatherElse") {
+                auto *fn = declareOp(mod, "op_gather_else", elseUpdTy);
+                B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                continue;
+            }
+            if (op == "gatherEnd") {
+                if (gatherStack.empty()) continue;
+                GatherScope sc = gatherStack.back();
+                gatherStack.pop_back();
+
+                auto *fn  = declareOp(mod, "op_gather_end", gatherEndTy);
+                auto *res = B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                auto *more = B.CreateICmpNE(res, B.getInt32(0));
+                B.CreateCondBr(more, sc.headerBB, sc.exitBB);
+
+                B.SetInsertPoint(sc.exitBB);
                 continue;
             }
 

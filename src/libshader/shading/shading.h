@@ -41,6 +41,7 @@ class CAttributes;
 class CXform;
 class CShaderInstance;
 class CRay;
+class CGatherBundle;
 class CObject;
 class CRemoteChannel;
 class CSurface;
@@ -194,6 +195,7 @@ class CShadingState {
         CShadedLight *lights;           // Lights for grid
         CShadedLight *alights;          // Ambient lights for grid
         CShadedLight *currentLight;     // Within an illumination statement, this points to the current light being iterated
+        CGatherBundle *currentGather;   // Within a gather statement, this points to the active gather bundle (JIT gather/gatherElse/gatherEnd cursor)
         CShadedLight *freeLights;       // Unused lights
         int *lightingTags;              // The tags active when the lighting was executed
         int lightsExecuted;             // FALSE if the lights have not been executed yet
@@ -283,6 +285,14 @@ class CShadingContext {
         void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
         void trace(CRay *);         // Trace a ray (no shading)
         void traceAny(CRay *);      // Trace any ray (no shading)
+
+        // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
+        // interpreter (giOpcodes.h) and the LLVM JIT op_gather_* wrappers (rslOps.cpp).
+        // Each returns true iff the caller should take its bytecode jmp/branch.
+        bool gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive,
+                           const float *normalN, const float *time);
+        bool gatherElseFlip(int *&tags, int &numActive, int &numPassive);
+        bool gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, int &numActive, int &numPassive);
 
         // Shading state management functions
         void updateState();                // Add a variable into the shading state
@@ -426,6 +436,22 @@ class CShadingContext {
         // jitIlluminanceNext: exit current light's cond, advance to next, enter it.
         //   Returns 1 if the next light exists and has active vertices, else 0.
         int jitIlluminanceNext(int* tags, int n, int* numActive, int* numPassive);
+
+        // ---> JIT gather loop (surface shaders with LLVM .slo path)
+        // Delegate to gatherSample/gatherElseFlip/gatherEndAdvance (shared with
+        // the .rslo interpreter's giOpcodes.h gather/gatherElse/gatherEnd
+        // handling). tags/numActive/numPassive/N/time are read from
+        // currentShadingState, matching how the interpreter's execute() loop
+        // holds them, so the JIT wrappers need no cross-call pointer plumbing.
+        // jitGatherBegin: requires currentShadingState->currentGather to already
+        //   be populated by op_gatherHeader (returns 0 if null, since gatherSample
+        //   dereferences it unconditionally).  Returns 1 if the caller should jmp.
+        int jitGatherBegin(int* numActive, int* numPassive);
+        // jitGatherElse: returns 1 if the caller should jmp (gatherElse taken).
+        int jitGatherElse(int* numActive, int* numPassive);
+        // jitGatherEnd: returns 1 if more samples remain (caller should jmp back
+        //   to repeat the body); frees and nulls currentGather on the last sample.
+        int jitGatherEnd(int* numActive, int* numPassive);
 
         // ---> JIT wrappers for derivative and geometric built-ins (Layer G)
         // These call CShadingContext::duFloat/dvFloat/duVector/dvVector which

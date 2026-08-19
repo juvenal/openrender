@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "reyes"
+Display "sphere-gather-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "distantlight" 1 "intensity" [1] "from" [2 4 -2] "to" [0 0 0]
+  TransformBegin
+    Translate 0 -1.5 0
+    Attribute "visibility" "int specular" [1]
+    Color 0.8 0.8 0.8
+    Surface "constant"
+    Polygon "P" [-5 0 -5  5 0 -5  5 0 5  -5 0 5]
+  TransformEnd
+  Attribute "visibility" "int specular" [1]
+  Surface "gather_named_probe"
+  Sphere 1 -1 1 360
+WorldEnd
