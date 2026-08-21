@@ -15,6 +15,10 @@
 - Q: Should the coverage guard (FR-006/Story 4) keep working automatically if someone adds a brand-new RSL construct after this feature ships, or is it only required to catch the specific constructs this feature's inventory (FR-004) already found? → A: Dynamic (re-derives the reachable-opcode set each run and fails on any future gap too), executed as part of the test suite, not the build.
 - Q: Does the JIT backend need to keep its performance advantage over the interpreter for the constructs this feature fixes, or is matching correctness the only requirement even if a fix makes the JIT slower for that construct? → A: Yes — for every fixed construct, JIT rendering time for a given shader MUST be at least 10% faster than the interpreter's rendering time for the same shader (JIT time ≤ 90% of interpreter time).
 
+### Session 2026-08-21
+
+- Q: During Phase 7 (US3b, `gather()`) verification, the JIT-side fix required threading strides through `op_gatherHeader` so a `CUniformLiftingPass`-promoted single-element uniform operand isn't walked past across a multi-vertex batch. Since `.rslo` is a separate implementation of the same opcode family, is it in scope to investigate whether the interpreter shares this defect class, given FR-009 currently forbids any interpreter change? → A: Amend FR-009. The interpreter remains the reference implementation and its behavior MUST NOT change except for a confirmed defect (empirically reproduced, not inferred), fixed under an explicit, user-approved scope decision, with the narrowest possible change and full regression coverage. See Phase 7a in `tasks.md` for the investigation this authorizes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Explicit-colorspace color/matrix constructors render correctly under JIT (Priority: P1)
@@ -260,9 +264,15 @@ implementation of the underlying math remains.
   normal, depth, and the `Du()`/`Dv()` surface derivatives MUST be
   converged onto the interpreter's existing implementations, eliminating
   the current independent, duplicate JIT-side implementations.
-- **FR-009**: The interpreter (`.rslo`) backend's behavior MUST NOT change
-  as a result of this feature — it remains the reference implementation
-  throughout.
+- **FR-009**: The interpreter (`.rslo`) backend remains the reference
+  implementation throughout, and its behavior MUST NOT change as a result
+  of this feature *except* to fix a confirmed defect — one demonstrated by
+  an empirical repro, not inferred from code reading alone — under an
+  explicit, user-approved scope decision (see Clarifications, session
+  2026-08-21). Any such fix MUST be the narrowest change that corrects the
+  specific defect (no incidental refactoring) and MUST be verified against
+  the full existing test suite (`ctest -L libshader`, `ctest -L visual`) to
+  confirm zero unintended behavior change elsewhere in the interpreter.
 - **FR-010**: Existing project documentation that describes JIT opcode
   coverage MUST be corrected where it is currently inaccurate (e.g. claims
   of a warning mechanism for unhandled constructs, or claims about a

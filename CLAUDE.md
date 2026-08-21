@@ -43,6 +43,33 @@ expect their `-slo` visual ctest variants to already be stale/broken on
 `master` independent of your change — check `openrender/shaders/<name>.slo`
 timestamps before assuming you caused a regression.
 
+**This staleness is not limited to the deploy tree** — nothing in the build
+graph regenerates `.slo` bitcode in the *tracked* `shaders/` source tree
+either, in either direction: editing an `oshader --jit` emitter source
+(`src/libshader/compiler/*`) does not trigger a rebuild of `oshader` via
+`cmake --build --target orender`, and rebuilding `oshader` does not
+regenerate any `.slo` files that were compiled by an older `oshader` binary.
+A green `-slo` visual-test run after an emitter change is not evidence the
+change is correct unless every `.slo` the test suite depends on postdates
+both the emitter source edit and the `oshader` rebuild — check with `stat`
+first. To regenerate: `cmake --build build --target oshader`, then
+`build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`
+for each stale shader (add `SHADERS_INCLUDE=<path>` for shaders that
+`#include` `.slh` headers — see next gotcha), then refresh the deploy-tree
+copy too. An ABI/signature mismatch between stale bitcode and current
+runtime C++ (`op_*`/`rsl_*` functions) is not caught at build or link time;
+it reads garbage arguments at JIT call sites, typically surfacing as a
+crash with implausible values (e.g. a negative array stride) deep in a
+runtime function that itself has no bug.
+
+**`oshader -I <path>` CLI quirk:** combining `-I` with `-o` and a positional
+`.sl` input currently fails to parse (`Output file specified with multiple
+input files...`) even though there is exactly one input file — a known
+argument-parsing defect, not a real "multiple inputs" condition. Workaround:
+use the `SHADERS_INCLUDE` environment variable instead (documented in
+`oshader --help`), e.g. `SHADERS_INCLUDE="$(pwd)/shaders/includes"
+build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`.
+
 ## Repository layout
 
 ```
@@ -157,9 +184,17 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
    `dotvv(halfway,halfway) > 0` before normalizing.
 3. **macOS JIT symbol dead-stripping:** `op_*`/`rsl_*` functions in
    `libshader_shading.a` are only called from JIT-generated code, so `ld`
-   dead-strips them (no static call graph reaches them). Retained via
-   `jitSymbolRetain.cpp`'s `__attribute__((constructor))` registration with
-   `CLLVMJitEngine::addProcessSymbol()`, plus a `DynamicLibrarySearchGenerator`.
+   *could* dead-strip them (no static call graph reaches them) — but in
+   practice every current `.slo` test resolves its symbols at JIT bind time
+   via LLVM's `DynamicLibrarySearchGenerator::GetForCurrentProcess()` alone,
+   with no observed failures. `CLLVMJitEngine::addProcessSymbol()` exists as
+   an intended additional-retention mechanism but currently has zero
+   callers; the `jitSymbolRetain.cpp` file once cited here as wiring it up
+   via a `__attribute__((constructor))` does not exist in the repo
+   (corrected 2026-08-21 — see `DEVNOTES_DETAILS/OSHADER_UPDATES.md`). If a
+   newly-added `op_*` symbol ever fails to resolve at bind time, wire up
+   `addProcessSymbol()` for real then, rather than assuming it's already
+   wired.
 4. **LLVM LLJIT init:** requires `InitializeNativeTarget()` /
    `AsmPrinter`/`AsmParser` before `LLJITBuilder().create()` — failure is a
    silent `nullptr`, not a crash or exception.

@@ -231,6 +231,27 @@ int op_gather_else(int* numActive, int* numPassive);
  * active gather bundle on the last sample. */
 int op_gather_end(int* numActive, int* numPassive);
 
+/* op_gatherHeader: mirror of GATHERHEADEREXPR_PRE + the per-vertex
+ * GATHERHEADEREXPR/_UPDATE loop. names[i]/valuePtrs[i]/steps[i]/isVarying[i]
+ * (i in [0, numPairs)) describe the named-parameter/output pairs resolved at
+ * JIT compile time -- the 5 named overrides (bias/maxdist/samplebase/
+ * distribution/label) and any surface:/ray: output bindings. Populates
+ * currentShadingState->currentGather; must run before op_gather_begin.
+ *
+ * strideP/strideD/strideSampleCone are per-vertex float advances (3 for a
+ * varying vector, 1 for a varying float, 0 for a uniform source) -- P/D are
+ * effectively always varying in valid RSL, but sampleCone is commonly a
+ * compile-time-uniform expression (e.g. radians(30)); the JIT's
+ * CUniformLiftingPass can promote it to a single-element uniform slot, so
+ * the per-vertex walk below must not blindly advance a uniform source's
+ * pointer the way the raw P/D/sampleCone signature previously did. */
+void op_gatherHeader(const char* const* names, void* const* valuePtrs,
+                     const int* steps, const int* isVarying, int numPairs,
+                     const float* P, int strideP,
+                     const float* D, int strideD,
+                     const float* sampleCone, int strideSampleCone,
+                     float samples);
+
 /* -----------------------------------------------------------------------
  * illuminate / endilluminate (light shader construct, JIT path)
  * ----------------------------------------------------------------------- */

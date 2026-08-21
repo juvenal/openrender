@@ -20,22 +20,62 @@ This file tracks known defects and implementation gaps in openRender. Open items
       to the test scene, not by fixing the source) during `specs/010-full-subdivision-support` T047. Predates
       this feature; independent of hierarchical overrides.
 - [ ] Irradiance accuracy issues
-- [ ] LLVM JIT emitter silently drops `Ci`/`Oi` writes that use the explicit-colorspace RSL color
-      constructor (`color "space" (s, t, 0)`, opcode `cfrom`, `src/libshader/shading/shaderOpcodes.h`).
-      `src/libshader/compiler/llvmEmitter.cpp`'s `emitFunction()` opcode dispatch (~lines 700-1436) has no
-      case for `cfrom`; it falls through to a silent "unrecognised opcode — skip" branch, so no LLVM IR is
-      emitted and the assignment is dropped with no error/warning. Only affects the `.slo`/JIT backend — the
-      `.rslo` interpreter implements `cfrom` correctly (`src/libshader/compiler/opcodes.cpp:91` emits it
-      correctly in both backends' bytecode; only the JIT lowering is missing). Long-standing since the JIT
-      emitter's introduction (`ccc59e4`); never caught because no stock shader (`plastic.sl`, `constant.sl`,
-      etc.) uses that constructor syntax — only the `show_st.sl` diagnostic shader does. Reproduces on a bare
-      untextured sphere, no subdivision/facevarying/hider involvement (discovered and root-caused during
-      `specs/010-full-subdivision-support` T017 verification). Workaround: pin
-      `Option "shaderformat" "default" ["rslo"]` (or `Attribute "shade" "shaderformat" ["rslo"]`) on any scene
-      using this RSL syntax. Fix: add a `cfrom` case to `emitFunction()`'s dispatch chain.
 
 ## Resolved Bugs
 
+- [x] Bug: LLVM JIT emitter silently dropped `Ci`/`Oi` writes using the explicit-colorspace RSL color
+      constructor (`color "space" (s, t, 0)`, opcode `cfrom`), its matrix sibling (`mfrom`), and silently
+      computed the *wrong* result for `ctransform()` (FIXED — `specs/011-jit-opcode-parity`, branch
+      `011-jit-opcode-parity`. Three related but distinct defects in
+      `src/libshader/compiler/llvmEmitter.cpp`'s `emitFunction()` opcode dispatch: (1) `cfrom` had no
+      matching `if (op == "...")` case at all, and the dispatch chain has no final `else` — the assignment
+      was dropped with zero emitted IR and zero diagnostic, long-standing since the JIT emitter's
+      introduction (`ccc59e4`), never caught because no stock shader (`plastic.sl`, `constant.sl`, etc.)
+      uses that constructor syntax, only the `show_st.sl` diagnostic shader does; (2) `mfrom`
+      (`shaderOpcodes.h`'s `PFROMEXPR_PRE` family, matrix sibling of `cfrom`) had the identical silent-drop
+      bug, undocumented until this branch's triage found it; (3) `ctransform()` (RSL builtin,
+      `shaderFunctions.h`'s `CTRANSFORMEXPR` macro, backed by `convertColorTo()`) *did* match a dispatch
+      case, but was misrouted into the `pfrom` family and called `op_pfrom` — a homogeneous 4×4
+      point-matrix transform — instead of a colorspace conversion, silently producing a
+      geometrically-transformed color with no error and no crash. Only affected the `.slo`/JIT backend; the
+      `.rslo` interpreter implements all three correctly (`src/libshader/compiler/opcodes.cpp:91` emits the
+      opcodes correctly in both backends' bytecode; only the JIT lowering was missing/wrong). `cfrom`
+      originally discovered and root-caused during `specs/010-full-subdivision-support` T017 verification;
+      reproduces on a bare untextured sphere, no subdivision/facevarying/hider involvement. Fix, per FR-007
+      (delegate, don't reimplement): added `op_cfrom`/`op_mfrom`/`op_ctransform` wrappers in
+      `src/libshader/shading/rslOps.cpp` that resolve the target coordinate/colorspace via the same
+      `jitFindCoordinateSystem()` trie lookup the interpreter uses, then call the relocated-verbatim
+      `convertColorFrom()`/`convertColorTo()` (see next entry) — no new colorspace math was written. Added
+      matching `cfrom`/`mfrom` cases to `emitFunction()`'s dispatch chain (clones of the existing `pfrom`
+      case shape) and removed `ctransform` from the `pfrom`-family condition, giving it its own case. The
+      former workaround, pinning `Option "shaderformat" "default" ["rslo"]` on scenes using this syntax, is
+      no longer required. Verified via before/after JIT-vs-interpreter visual-parity renders and the full
+      visual/libshader regression suites.)
+- [x] Bug: `convertColorFrom`/`convertColorTo` were only reachable from `src/ri/init.cpp`, forcing the JIT
+      shading library (`libshader_shading`, which deliberately does not link `ri`) to reimplement colorspace
+      math independently to fix the `cfrom`/`mfrom`/`ctransform` bug above (FIXED —
+      `specs/011-jit-opcode-parity`. Relocated both functions **verbatim** (no logic changes) into
+      `src/common/colorSpace.h`/`.cpp`, a library already linked by both `ri` and `libshader_shading`, so the
+      new `op_cfrom`/`op_mfrom`/`op_ctransform` JIT wrappers call the exact same code the interpreter always
+      has, satisfying the project's delegate-don't-reimplement constraint for JIT fixes (FR-007) without
+      violating the one-way `ri` → `libshader_shading` layering documented in
+      `src/libshader/shading/CMakeLists.txt`.)
+- [x] Bug: `gather()`/`gatherElse`/`gatherEnd` had no LLVM JIT lowering at all — highest-severity item in the
+      opcode-coverage sweep, since it required new loop/CFG scaffolding, not just a missing dispatch case
+      (FIXED — `specs/011-jit-opcode-parity`, Phase 7/US3b. Added gather-scope tracking to
+      `llvmEmitter.cpp` mirroring the existing `illuminance`/`endilluminance` loop-lowering pattern; fixed
+      three separate name mismatches that had been masquerading as one case-fold bug (`gatherElse`/
+      `gatherEnd`, capital E, vs. `irBuilder.cpp`'s lowercase `gatherelse`/`gatherend`; and `gatherHeader`
+      vs. an unrelated token `gatherhdr`); added `numRealVertices`-bound wrapper functions for the gather
+      header/else/end triple rather than reusing the structurally-similar but batch-size-incompatible
+      `op_else_update`/`op_endif_update` wrappers, since the JIT's `numVerts` argument can be up to 3x
+      `currentShadingState->numRealVertices` under raytrace-derivative shading. During verification, found
+      and fixed a crash (`EXC_BAD_ACCESS` in `jitGatherHeaderBegin`, garbage stride arguments) caused not by
+      this logic but by a stale precompiled `.slo` test fixture generated before the fix landed — see
+      `CLAUDE.md`'s generalized `.slo`-staleness gotcha, and `specs/011-jit-opcode-parity/lessons-learned.md`
+      §1 for the full writeup. Whether the `.rslo` interpreter shares the underlying uniform-lifted-operand
+      stride mechanism that this crash's fix guards against is tracked separately — see Phase 7a in
+      `specs/011-jit-opcode-parity/tasks.md`.)
 - [x] Bug: `sloinfo`/`rsloinfo` printed shader parameters in reversed order for `.rslo` files, and `.slo` output gave no way to confirm the file was actually JIT-callable (FIXED — two independent defects in the shared inspector, `src/sloinfo/sloinfo.cpp`. (1) Parameter order: `.slo` metadata already listed params in source-declaration order, but `.rslo`'s text-format reader, `rsloGet()` in `src/libshader/runtime/rslo.y`, built its parameter list by prepending each newly-parsed entry to the head of the list (`rsloParameter` grammar action), reversing declaration order on read-back — verified empirically against `plastic.sl`'s 5-parameter signature (`Ka, Kd, Ks, roughness, specularcolor`), which printed correctly via `.slo` but backwards via `.rslo`/`rsloinfo`. Fix: reverse the list once at `rsloGet()`'s single exit point before returning; the interpreter's own separate `.rslo` grammar copy under `src/libshader/shading/` is untouched, so shading/rendering is unaffected — `rsloGet()` has exactly one caller path (the inspector). (2) JIT confirmation: `.slo` output trusted `openrender.shader.name` metadata presence alone as proof of JIT-callability, without checking that the bitcode module actually defines a callable entry function. Fix: `SLOShaderInfo::hasJitEntry` (`sloMetadata.h`) is now set in `extractMetadataFromModule()` (`llvmJitMetadata.cpp`) only if `mod.getFunction(info.name)` resolves to a *defined* (non-declaration) function with the exact JIT entry signature `void(i32, ptr, ptr)` that `llvmJit.cpp`'s bind-time `jit->lookup(shaderName)` expects; `sloinfo`'s `.slo` header line now appends `" (JIT version)"` when true, or emits a stderr warning instead of a false-positive marker when metadata exists but no matching entry function does. Verified via rebuilt `plastic.rslo`/`.slo` fixtures across `sloinfo`, `sloinfo --rslo`, `sloinfo --slo`, and a manually-symlinked `rsloinfo`, plus a clean `SloinfoGoldenOutput`/`ShaderCompilerImmutability`/`LibShader_Compiler` test pass. Branch `bugfix/sloinfo-order-output`.)
 - [x] Bug: `sloinfo`/`rsloinfo` crashed immediately on macOS — `dyld: symbol not found in flat namespace '_RiCatmullRomStepFilter'`, and after that was fixed, `'__ZN9CRenderer12globalMemoryE'` (FIXED — both dyld aborts had the same root cause: `sloinfo`/`rsloinfo` linked the *entire* `libshader_shading` .dylib just to reach one function, `CLLVMJitEngine::extractMetadataFromFile()`. macOS dyld eagerly binds all data/vtable/RTTI cross-library references in a loaded image at load time, regardless of whether that code path ever executes — so `-undefined dynamic_lookup` symbols meant to resolve only when `ri.dylib` loads `libshader_shading` (`RiCatmullRomStepFilter` and friends, then `CRenderer::globalMemory`, `stats`, RTTI for `CRefCounter`/`CFileResource`, vtables for `CTraceBundle`/`CTransmissionBundle` — the complete set, confirmed via `dyld_info -fixups`) aborted the process before `main()` ran, even though the metadata probe itself never touches `ri`/`CRenderer`. Fix, in two parts: (1) relocated the 5 `Ri*StepFilter` functions from `src/ri/ri.cpp` into `src/common/rslConstants.cpp`, built into `openrendercommon` (already linked by both tools); (2) extracted the genuinely self-contained `extractMetadataFromFile`/`extractMetadataFromModule` (pure LLVM bitcode metadata parsing, zero `ri` dependency) out of `llvmJit.cpp` into a new `llvmJitMetadata.cpp`, built into a new minimal static library `libshader_jitmeta` (LLVM `core`/`bitreader`/`support` only); `sloinfo`/`rsloinfo` now link `libshader_jitmeta` instead of the full `libshader_shading`. Verified via `dyld_info -fixups` showing zero eager `ri`-symbol binds in the rebuilt binary, plus real shader metadata output for both `.slo` and `.rslo` fixtures with no regression across the visual/libshader test suites. See [OSHADER_UPDATES.md](OSHADER_UPDATES.md#sloinfo)).
 - [x] Moving raytraced surface (FIXED — verified 2026-08, spec 008 Phase 8/US6: `CRaytracer`'s tessellation-path intersection kernels already interpolated geometry on the ray's shutter time; this was a verification gap, not an actual defect. Confirmed via 7 new cross-hider parity scenes against the standard hider — see [HIDER_PARITY.md](HIDER_PARITY.md)).

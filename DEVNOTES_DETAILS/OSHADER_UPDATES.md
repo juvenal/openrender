@@ -118,7 +118,7 @@ The runtime reads the metadata at load time (`parseSloShader()`) and populates t
 
 `stuff[0]` = constants, `stuff[1]` = globals, `stuff[2]` = locals (RSL variables).
 
-### CLLVMEmitter phases (`src/oshader/llvmEmitter.cpp`)
+### CLLVMEmitter phases (`src/libshader/compiler/llvmEmitter.cpp`, moved from `src/oshader/llvmEmitter.cpp` — see `libshader Phase A extraction` below)
 
 | Phase | Opcodes added |
 |-------|--------------|
@@ -127,8 +127,20 @@ The runtime reads the metadata at load time (`parseSloShader()`) and populates t
 | C | lighting model: diffuse, specular, ambient; illuminate/solar prologue/epilogue; 6 C-linkage light dispatch wrappers; faceforward, normalize, cross, dot, length, reflect, fresnel |
 | D | illuminance loop: illuminance_begin/next/end, lightsource; coordinate transforms (pfrom, ptransform, vtransform, ntransform); spline, area, calculatenormal, depth |
 | G | cellnoise: 8 batch variants (`rsl_cellnoise_f_f`, `_f_p`, `_v_f`, `_v_p`, `_f_ff`, `_f_pf`, `_v_ff`, `_v_pf`) |
+| H | `specs/011-jit-opcode-parity`: explicit-colorspace color/matrix constructors (`cfrom`, `mfrom`) and fixed `ctransform`'s misrouting into the point-transform (`pfrom`) family; matrix arithmetic/constructor opcodes; comparison/logic opcodes (`veql`, `vneql`, `meql`, `not`, `xor`, ...); array move opcodes; `gather()`/`gatherElse`/`gatherEnd` (new loop/CFG scaffolding, modeled on the Phase D `illuminance` loop lowering) |
 
-Unrecognised opcodes emit a once-per-shader-per-opcode warning; the instruction is skipped.
+**Correction (2026-08-21):** this section previously stated "Unrecognised
+opcodes emit a once-per-shader-per-opcode warning; the instruction is
+skipped." This is false — confirmed by direct inspection of
+`emitFunction()`'s dispatch chain, which has no final `else` and no warning
+mechanism of any kind. An opcode with no matching case is silently skipped
+with **zero** diagnostics: no emitted IR, no log line, no error. This was in
+fact the exact root cause of the `cfrom`/`mfrom` silent-drop bugs documented
+in `BUGS.md`'s Resolved Bugs — see `specs/011-jit-opcode-parity/` and
+`specs/011-jit-opcode-parity/lessons-learned.md` §7. Treat any future
+"opcode has no dispatch case" gap as silent by default; the coverage-guard
+test (`test_opcode_coverage.cpp`, `ctest -L libshader`) is what actually
+catches these now, not a runtime warning.
 
 ### Runtime fixes
 
@@ -144,11 +156,23 @@ by `CRendererContext::init()` before calling `jitInitEntry`, allowing `op_pfrom(
 to resolve the shader→world matrix for space-qualified parameter defaults (e.g.,
 `point "shader" (0,0,1)` in `somewood.sl`). Cleared to null after `jitInitEntry` returns.
 
-**macOS symbol retention** (`src/ri/jitSymbolRetain.cpp`): `op_*` and `rsl_*` functions
-in the static `libshader_shading.a` have no C++ call graph references and are dead-stripped
-by `ld` on macOS. A `__attribute__((constructor))` function calls
-`CLLVMJitEngine::addProcessSymbol()` for each function, retaining them and registering
-with LLVM's `DynamicLibrarySearchGenerator`.
+**macOS symbol retention:** `op_*` and `rsl_*` functions in the static
+`libshader_shading.a` have no C++ call graph references (they're only called
+from JIT-generated code), so `ld` is free to dead-strip them on macOS.
+`CLLVMJitEngine::addProcessSymbol()` exists as the intended retention
+mechanism, but as of `specs/011-jit-opcode-parity` it has zero callers — the
+`src/ri/jitSymbolRetain.cpp` file this section previously cited as wiring it
+up via a `__attribute__((constructor))` **does not exist** in the repository
+(correction, 2026-08-21). In practice, every existing `.slo` test currently
+resolves its `op_*`/`rsl_*` symbols at JIT bind time through LLVM's
+`DynamicLibrarySearchGenerator::GetForCurrentProcess()` alone, with no
+observed dead-stripping failures — CLAUDE.md's macOS JIT symbol
+dead-stripping gotcha describes this as the retained/working state, but the
+*mechanism* it names should be read as "verify each new `op_*` symbol
+resolves at bind time" rather than "a constructor-registration file exists."
+If a future `op_*` addition fails to resolve, wire up
+`addProcessSymbol()` for real at that point rather than assuming the
+described file already does it.
 
 ### sloinfo
 

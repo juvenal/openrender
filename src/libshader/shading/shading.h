@@ -42,6 +42,8 @@ class CXform;
 class CShaderInstance;
 class CRay;
 class CGatherBundle;
+class CGatherLookup;
+class CGatherRay;
 class CObject;
 class CRemoteChannel;
 class CSurface;
@@ -294,6 +296,23 @@ class CShadingContext {
         bool gatherElseFlip(int *&tags, int &numActive, int &numPassive);
         bool gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, int &numActive, int &numPassive);
 
+        // gatherHeader() shared setup, called from both the .rslo interpreter
+        // (giFunctions.h GATHERHEADEREXPR_PRE) and the LLVM JIT op_gatherHeader
+        // wrapper (rslOps.cpp). Byte-faithful transcription of the PRE macro's
+        // computation, excluding the operand()-based output-variable binding,
+        // which is bytecode-specific and stays in the interpreter macro. The
+        // caller fills in the returned bundle's outputs/nonShadeOutputs arrays.
+        CGatherBundle *gatherHeaderBegin(const CGatherLookup *lookup, const float *P,
+                                          float samplesCount, float *&dPduOut, float *&dPdvOut);
+
+        // gatherHeader() per-vertex ray setup, called from both the interpreter
+        // (giFunctions.h GATHERHEADEREXPR) and the LLVM JIT op_gatherHeader
+        // wrapper. Byte-faithful transcription of the EXPR macro body,
+        // excluding plReady() (PL-cache/bytecode-specific, stays in the caller).
+        void gatherHeaderRay(CGatherRay *ray, const float *P, const float *D,
+                              float sampleConeVal, float *dPdu, float *dPdv,
+                              float duVal, float dvVal);
+
         // Shading state management functions
         void updateState();                // Add a variable into the shading state
         CShadingState *newState();         // Allocate a new shading state
@@ -452,6 +471,37 @@ class CShadingContext {
         // jitGatherEnd: returns 1 if more samples remain (caller should jmp back
         //   to repeat the body); frees and nulls currentGather on the last sample.
         int jitGatherEnd(int* numActive, int* numPassive);
+
+        // jitGatherHeaderBegin: JIT equivalent of GATHERHEADEREXPR_PRE plus the
+        // per-vertex GATHERHEADEREXPR/_UPDATE loop (giFunctions.h), using a
+        // compile-time-fixed set of named-parameter/output pairs instead of
+        // interpreter bytecode operands. names[i]/valuePtrs[i]/steps[i]/
+        // isVarying[i] describe pair i (i in [0, numPairs)):
+        //   - the 5 named overrides (bias/maxdist/samplebase/distribution/label)
+        //     are resolved via the real CGatherLookup::bind(), then applied to
+        //     the shading scratch the same way plBegin does -- once, right after
+        //     lookup->init(), and again per-vertex if isVarying[i] is set;
+        //   - "surface:<var>"/"ray:origin"/"ray:direction"/"ray:length" tokens
+        //     are resolved via the real CGatherLookup::addOutput(); valuePtrs[i]
+        //     for these must already be the resolved destination variable
+        //     pointer (steps[i]/isVarying[i] are unused for output pairs).
+        // Loops currentShadingState->numVertices (not a JIT-supplied count) to
+        // match gatherHeaderBegin()'s own array sizing -- numVerts as seen by
+        // the JIT caller can exceed numVertices in raytrace-derivative shading.
+        // Stores the resulting bundle into currentShadingState->currentGather.
+        //
+        // strideP/strideD/strideSampleCone: per-vertex float advance for each
+        // source (3 for a varying vector, 1 for a varying float, 0 for a
+        // uniform/compile-time-constant source -- e.g. CUniformLiftingPass can
+        // promote a literal sampleCone expression to a single-element uniform
+        // slot). A blind fixed advance here would walk a uniform source's
+        // pointer past its one-element allocation.
+        void jitGatherHeaderBegin(const char* const* names, void* const* valuePtrs,
+                                  const int* steps, const int* isVarying, int numPairs,
+                                  const float* P, int strideP,
+                                  const float* D, int strideD,
+                                  const float* sampleCone, int strideSampleCone,
+                                  float samplesCount);
 
         // ---> JIT wrappers for derivative and geometric built-ins (Layer G)
         // These call CShadingContext::duFloat/dvFloat/duVector/dvVector which

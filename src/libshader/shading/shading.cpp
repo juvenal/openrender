@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
+#include <new>
 #include <stdarg.h>
 #include <string.h>
 
@@ -2653,6 +2654,197 @@ bool CShadingContext::gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, i
         lastGather = nullptr;
         return false;
     }
+}
+
+// gatherHeader() shared setup. Byte-faithful transcription of GATHERHEADEREXPR_PRE
+// (giFunctions.h), minus plBegin() and the two operand()-based loops that fill
+// lastGather->outputs/nonShadeOutputs -- those decode bytecode operands directly
+// and have no meaning outside the interpreter, so they stay in the caller. The
+// caller passes an already-bound CGatherLookup and fills the returned bundle's
+// outputs/nonShadeOutputs arrays (pre-allocated here) itself.
+CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, const float *P,
+                                                    float samplesCount, float *&dPduOut, float *&dPdvOut) {
+    const int numVertices = currentShadingState->numVertices;
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+
+    CGatherBundle *lastGather = new CGatherBundle;
+    lastGather->numOutputs = lookup->numOutputs;
+    lastGather->numNonShadeOutputs = lookup->numNonShadeOutputs;
+    lastGather->outputs = (float **)ralloc((lookup->numOutputs + lookup->numNonShadeOutputs) * sizeof(float *), threadMemory);
+    lastGather->nonShadeOutputs = lastGather->outputs + lookup->numOutputs;
+    lastGather->outputVars = lookup->outputs;
+    lastGather->nonShadeOutputVars = lookup->nonShadeOutputs;
+    lastGather->remainingSamples = (int)samplesCount;
+    lastGather->numMisses = 0;
+    lastGather->label = scratch->traceParams.label;
+    lastGather->numSamples = (int)samplesCount;
+    assert(lastGather->label != NULL);
+
+    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);
+    float *dPdv = dPdu + numVertices * 3;
+    duVector(dPdu, P);
+    dvVector(dPdv, P);
+
+    // Figure out the ray distribution
+    lastGather->uniformDist = FALSE;
+    if (scratch->gatherParams.distribution != NULL) {
+        if (strcmp(scratch->gatherParams.distribution, "uniform") == 0)
+            lastGather->uniformDist = TRUE;
+        else if (strcmp(scratch->gatherParams.distribution, "cosine") == 0)
+            lastGather->uniformDist = FALSE;
+    }
+
+    lastGather->rays = (CRay **)ralloc(numVertices * sizeof(CGatherRay *), threadMemory);
+    lastGather->raysStorage = lastGather->rays;
+    lastGather->raysBase = (CGatherRay *)ralloc(numVertices * sizeof(CGatherRay), threadMemory);
+
+    dPduOut = dPdu;
+    dPdvOut = dPdv;
+    return lastGather;
+}
+
+// gatherHeader() per-vertex ray setup. Byte-faithful transcription of the
+// GATHERHEADEREXPR body (giFunctions.h), minus plReady() (PL-cache/bytecode
+// output-variable rebind, meaningless outside the interpreter -- the caller
+// invokes plReady() itself, independently, since it has no effect on the ray
+// math computed here).
+void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const float *D,
+                                       float sampleConeVal, float *dPdu, float *dPdv,
+                                       float duVal, float dvVal) {
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+
+    mulvf(dPdu, duVal);
+    mulvf(dPdv, dvVal);
+    {
+        float tanCone = tanf(sampleConeVal);
+        float clampedTan;
+        if (0.0f > tanCone) {
+            clampedTan = 0.0f;
+        } else {
+            clampedTan = tanCone;
+        }
+        if (1.0f < clampedTan) {
+            ray->da = 1.0f;
+        } else {
+            ray->da = clampedTan;
+        }
+    }
+    ray->db = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f;
+    ray->sampleCone = sampleConeVal;
+    ray->sampleBase = scratch->traceParams.sampleBase;
+    ray->bias = scratch->traceParams.bias;
+    ray->maxDist = scratch->traceParams.maxDist;
+    movvv(ray->gatherDir, D);
+    movvv(ray->gatherP, P);
+    movvv(ray->dPdu, dPdu);
+    movvv(ray->dPdv, dPdv);
+}
+
+// JIT equivalent of GATHERHEADEREXPR_PRE + the per-vertex GATHERHEADEREXPR/
+// _UPDATE loop, minus plHash caching (each JIT call site builds its own
+// CGatherLookup) and the operand()-based decoding (replaced by the caller-
+// supplied names/valuePtrs/steps/isVarying arrays, compile-time-fixed at the
+// JIT call site). Delegates to the same CGatherLookup::bind()/addOutput() and
+// gatherHeaderBegin()/gatherHeaderRay() the interpreter uses; the bind-loop ->
+// init() -> apply-uniform-overrides ordering below mirrors plBegin() exactly
+// (execute.cpp).
+void CShadingContext::jitGatherHeaderBegin(const char* const* names, void* const* valuePtrs,
+                                           const int* steps, const int* isVarying, int numPairs,
+                                           const float* P, int strideP,
+                                           const float* D, int strideD,
+                                           const float* sampleCone, int strideSampleCone,
+                                           float samplesCount) {
+    CShadingState *ss = currentShadingState;
+    CShaderInstance *shader = ss->currentShaderInstance;
+    CShadingScratch *scratch = &(ss->scratch);
+
+    // Arena-allocated (not `new`): unlike the interpreter's CGatherLookup, which
+    // is cached in plHash forever, this one only needs to survive until
+    // jitGatherEnd() frees lastGather (same shading batch) -- ralloc's bulk
+    // reset at the next shading-batch boundary reclaims it, avoiding a true
+    // per-dispatch process-lifetime leak.
+    CGatherLookup *lookup = new (ralloc(sizeof(CGatherLookup), threadMemory)) CGatherLookup;
+    lookup->uniforms = (CPLLookup::TParamBinding *)ralloc(2 * numPairs * sizeof(CPLLookup::TParamBinding), threadMemory);
+    lookup->varyings = lookup->uniforms + numPairs;
+
+    struct COverride {
+        size_t dest;
+        const void *valuePtr;
+        int step;
+        bool varying;
+    };
+    COverride overrides[5];
+    int numOverrides = 0;
+
+    for (int i = 0; i < numPairs; i++) {
+        const int beforeU = lookup->numUniforms;
+        const int beforeV = lookup->numVaryings;
+        int opIndex = i;
+        // data != NULL is CPLLookup::add()'s sole uniform/varying discriminator;
+        // any stable non-null pointer works as the sentinel when isVarying[i] is
+        // false (the interpreter's own "data" is never dereferenced downstream).
+        void *data = isVarying[i] ? NULL : (void *)names[i];
+        lookup->bind(names[i], opIndex, steps[i], data, shader);
+
+        const bool grewU = lookup->numUniforms > beforeU;
+        const bool grewV = lookup->numVaryings > beforeV;
+        if (grewU || grewV) {
+            const CPLLookup::TParamBinding &b = grewU ? lookup->uniforms[lookup->numUniforms - 1]
+                                                        : lookup->varyings[lookup->numVaryings - 1];
+            overrides[numOverrides].dest = b.dest;
+            overrides[numOverrides].valuePtr = valuePtrs[i];
+            overrides[numOverrides].step = steps[i];
+            overrides[numOverrides].varying = isVarying[i] != 0;
+            numOverrides++;
+        }
+    }
+
+    lookup->init(scratch, ss->currentObject->attributes);
+    for (int i = 0; i < numOverrides; i++) {
+        memcpy((char *)scratch + overrides[i].dest, overrides[i].valuePtr, overrides[i].step);
+    }
+
+    float *dPdu, *dPdv;
+    CGatherBundle *lastGather = gatherHeaderBegin(lookup, P, samplesCount, dPdu, dPdv);
+
+    int cOutput = 0;
+    for (CGatherVariable *var = lookup->outputs; var != NULL; var = var->next, cOutput++) {
+        lastGather->outputs[cOutput] = (float *)valuePtrs[var->destIndex];
+    }
+    assert(cOutput == lookup->numOutputs);
+
+    int cNonShade = 0;
+    for (CGatherVariable *var = lookup->nonShadeOutputs; var != NULL; var = var->next, cNonShade++) {
+        lastGather->nonShadeOutputs[cNonShade] = (float *)valuePtrs[var->destIndex];
+    }
+
+    const float *du = ss->varying[VARIABLE_DU];
+    const float *dv = ss->varying[VARIABLE_DV];
+    CGatherRay *rays = lastGather->raysBase;
+
+    const int numVertices = ss->numVertices;
+    for (int i = 0; i < numVertices; i++) {
+        for (int k = 0; k < numOverrides; k++) {
+            const COverride &o = overrides[k];
+            const void *src = o.varying ? (const char *)o.valuePtr + (size_t)i * o.step : o.valuePtr;
+            memcpy((char *)scratch + o.dest, src, o.step);
+        }
+        gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv);
+        dPdu += 3;
+        dPdv += 3;
+        D += strideD;
+        P += strideP;
+        du++;
+        dv++;
+        sampleCone += strideSampleCone;
+        rays++;
+    }
+
+    // lookup is intentionally not deleted: lastGather->outputVars/nonShadeOutputVars
+    // alias lookup's CGatherVariable lists, which live until jitGatherEnd frees
+    // lastGather. This mirrors the interpreter's own lifetime model, where the
+    // equivalent CGatherLookup is cached in plHash and never freed during a render.
+    ss->currentGather = lastGather;
 }
 
 #undef JIT_IDX

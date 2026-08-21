@@ -60,13 +60,33 @@ bool CUniformLiftingPass::isUniformSafeOpcode(const std::string &opcode) {
 }
 
 // -------------------------------------------------------------------------
+// collectGatherOutputs
+// -------------------------------------------------------------------------
+
+// static
+void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
+                                               std::unordered_set<std::string> &out) {
+    for (const IRBlock &blk : fn.blocks) {
+        for (const IRInstr &instr : blk.instrs) {
+            if (instr.opcode != "gatherHeader") continue;
+            // operands = [category, P, N, sampleCone, samples,
+            //             name0, value0, name1, value1, ...]
+            for (size_t i = 6; i < instr.operands.size(); i += 2) {
+                out.insert(instr.operands[i].token);
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
 // liftFn: one forward sweep
 // -------------------------------------------------------------------------
 
 // static
 bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
                                  std::unordered_set<std::string> &uniformSet,
-                                 const std::unordered_map<std::string, int> &writeCounts) {
+                                 const std::unordered_map<std::string, int> &writeCounts,
+                                 const std::unordered_set<std::string> &gatherOutputs) {
     bool changed = false;
     for (IRBlock &blk : fn.blocks) {
         for (const IRInstr &instr : blk.instrs) {
@@ -84,6 +104,11 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
                 uniformSet.insert(instr.result);
                 continue;
             }
+
+            // gather() writes into its output-bound variables per loop
+            // iteration without that write appearing as an IRInstr result,
+            // so writeCounts below can't see it. Never promote these.
+            if (gatherOutputs.find(instr.result) != gatherOutputs.end()) continue;
 
             // Variables written more than once in the function cannot be safely
             // promoted: a later write might assign a varying value, making the
@@ -138,6 +163,12 @@ bool CUniformLiftingPass::run(IRModule &mod) {
     countWrites(mod.initFn, writeCounts);
     countWrites(mod.codeFn, writeCounts);
 
+    // Variables bound as gather() "name:X", value outputs: exempt from
+    // promotion regardless of writeCounts (see collectGatherOutputs).
+    std::unordered_set<std::string> gatherOutputs;
+    collectGatherOutputs(mod.initFn, gatherOutputs);
+    collectGatherOutputs(mod.codeFn, gatherOutputs);
+
     // Seed the uniform set with all known-UNIFORM variables.
     std::unordered_set<std::string> uniformSet;
     for (const IRVarInfo &v : mod.vars) {
@@ -149,8 +180,8 @@ bool CUniformLiftingPass::run(IRModule &mod) {
     bool changed;
     do {
         changed = false;
-        changed |= liftFn(mod.initFn, mod, uniformSet, writeCounts);
-        changed |= liftFn(mod.codeFn, mod, uniformSet, writeCounts);
+        changed |= liftFn(mod.initFn, mod, uniformSet, writeCounts, gatherOutputs);
+        changed |= liftFn(mod.codeFn, mod, uniformSet, writeCounts, gatherOutputs);
         anyChanged |= changed;
     } while (changed);
 

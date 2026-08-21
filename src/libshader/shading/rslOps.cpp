@@ -864,6 +864,19 @@ int op_gather_end(int* numActive, int* numPassive) {
     return ctx->jitGatherEnd(numActive, numPassive);
 }
 
+void op_gatherHeader(const char* const* names, void* const* valuePtrs,
+                     const int* steps, const int* isVarying, int numPairs,
+                     const float* P, int strideP,
+                     const float* D, int strideD,
+                     const float* sampleCone, int strideSampleCone,
+                     float samples) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx) return;
+    ctx->jitGatherHeaderBegin(names, valuePtrs, steps, isVarying, numPairs,
+                              P, strideP, D, strideD, sampleCone, strideSampleCone,
+                              samples);
+}
+
 // =========================================================================
 // illuminate / endilluminate (light shader construct, JIT .slo path)
 // =========================================================================

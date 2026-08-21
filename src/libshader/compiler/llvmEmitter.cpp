@@ -58,7 +58,7 @@
 // needs a matching entry here or it silently regresses to a no-op via the
 // gate a few lines below.
 // =========================================================================
-const char *const kHandledOpcodes[] = {
+extern const char *const kHandledOpcodes[] = {
     "abs", "acos", "addff", "addmm", "addvf", "addvf2", "addvv", "ambient",
     "and",
     "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
@@ -69,7 +69,8 @@ const char *const kHandledOpcodes[] = {
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
     "feq", "feql", "fegt", "fge", "fgt", "ffroma", "filterstep", "fle",
     "floor", "flt",
-    "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa", "if",
+    "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa",
+    "gather", "gatherElse", "gatherEnd", "gatherHeader", "if",
     "illuminance", "illuminate", "inversesqrt", "jmp", "length",
     "lightsource", "log", "max", "maxf", "mfrom", "mfromf", "mfromv",
     "mfroma", "mix", "mixf", "mixv",
@@ -470,9 +471,11 @@ static void emitFunction(const IRFunction &irFn,
     // op_else_update / op_endif_update(tags, n, numActive*, numPassive*)
     auto *elseUpdTy = llvm::FunctionType::get(voidTy,
         {ptrTy, i32Ty, ptrTy, ptrTy}, false);
-    // op_gather_end(tags, n, numActive*, numPassive*) -> i32 (remainingSamples>0)
-    auto *gatherEndTy = llvm::FunctionType::get(i32Ty,
-        {ptrTy, i32Ty, ptrTy, ptrTy}, false);
+    // op_gather_begin / op_gather_else / op_gather_end(numActive*, numPassive*) -> i32
+    // (real signatures in rslOps.h take no tags/n — gather state lives on
+    // currentShadingState, read internally by jitGatherBegin/Else/End).
+    auto *gatherOpTy = llvm::FunctionType::get(i32Ty,
+        {ptrTy, ptrTy}, false);
 
     // -----------------------------------------------------------------------
     // Emit helpers for common op patterns.
@@ -627,6 +630,121 @@ static void emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
+            // Layer G: gatherHeader — sets up the CGatherBundle consumed by
+            // gather/gatherElse/gatherEnd below. IR operand layout (see
+            // expression.cpp CGatherFunction::getCode, the sole producer of
+            // this opcode's text): operands[0]=category (a ray-trace category
+            // string; unread by the interpreter's own GATHERHEADEREXPR_PRE/
+            // GATHEREXPR_PRE — gather() category filtering isn't implemented
+            // there, so the JIT must match by ignoring it too, not add
+            // filtering the interpreter lacks), [1]=P, [2]=D, [3]=sampleCone,
+            // [4]=samples, [5..]=alternating name/value pairs (the 5 named
+            // overrides bias/maxdist/samplebase/distribution/label, and any
+            // surface:/ray: output bindings). Marshals those pairs into the
+            // names/valuePtrs/steps/isVarying arrays op_gatherHeader expects
+            // (rslOps.h) and delegates everything else to
+            // CShadingContext::jitGatherHeaderBegin via that trampoline —
+            // per-name dispatch (override vs. output) happens at runtime
+            // inside the real CGatherLookup::bind()/addOutput(), not here.
+            // ================================================================
+            if (op == "gatherHeader") {
+                if (ins.operands.size() < 5) continue;
+                auto [P, sP] = getVar(ins, 1);
+                auto [D, sD] = getVar(ins, 2);
+                auto [sampleCone, ssc] = getVar(ins, 3);
+                auto [samplesPtr, sSam] = getVar(ins, 4);
+                if (!P || !D || !sampleCone || !samplesPtr) continue;
+                llvm::Value *samplesVal = B.CreateLoad(f32Ty, samplesPtr);
+
+                const size_t numPairOperands = ins.operands.size() - 5;
+                if (numPairOperands % 2 != 0) continue;
+                const int numPairs = (int)(numPairOperands / 2);
+
+                llvm::Value *namesArr, *valuePtrsArr, *stepsArr, *isVaryingArr;
+                bool ok = true;
+                if (numPairs > 0) {
+                    auto *arrPtrTy = llvm::ArrayType::get(ptrTy, numPairs);
+                    auto *arrI32Ty = llvm::ArrayType::get(i32Ty, numPairs);
+                    namesArr      = B.CreateAlloca(arrPtrTy, nullptr, "gh_names");
+                    valuePtrsArr  = B.CreateAlloca(arrPtrTy, nullptr, "gh_values");
+                    stepsArr      = B.CreateAlloca(arrI32Ty, nullptr, "gh_steps");
+                    isVaryingArr  = B.CreateAlloca(arrI32Ty, nullptr, "gh_varying");
+
+                    for (int k = 0; k < numPairs && ok; k++) {
+                        const std::string &nameTok = ins.operands[5 + 2*k].token;
+                        if (nameTok.size() < 2 || nameTok.front() != '"') { ok = false; break; }
+                        std::string nameStr = nameTok.substr(1, nameTok.size() - 2);
+
+                        // Element size for the 5 fixed CShadingScratch override
+                        // fields (shading.h: bias/sampleBase/maxDist are float,
+                        // distribution/label are const char*) — known statically
+                        // from the name, not derived from the RSL value's own
+                        // type. Output-token pairs (anything else) leave these
+                        // unused: jitGatherHeaderBegin only consults step/
+                        // isVarying for pairs that actually grew CGatherLookup's
+                        // uniforms/varyings arrays via bind(), which addOutput()
+                        // never does.
+                        llvm::Value *valPtr = nullptr;
+                        int stepBytes = 0;
+                        bool isVarying = false;
+                        if (nameStr == "distribution" || nameStr == "label") {
+                            // String-valued override: the value token is a
+                            // quoted string literal (or, rarely, a string
+                            // variable) — getVar() only resolves numeric
+                            // literals/variables, so mirror the texture/
+                            // environment name-resolution pattern instead.
+                            const std::string &valTok = ins.operands[5 + 2*k + 1].token;
+                            VarDesc valDesc;
+                            if (resolveVar(valTok, valDesc)) {
+                                valPtr = loadVarPtr(valDesc);
+                            } else {
+                                std::string s = valTok;
+                                if (s.size() >= 2 && s.front() == '"') s = s.substr(1, s.size()-2);
+                                llvm::Value *sptr = B.CreateGlobalString(s, "gh_strval");
+                                llvm::Value *alloc = B.CreateAlloca(ptrTy, nullptr, "gh_strval_pp");
+                                B.CreateStore(sptr, alloc);
+                                valPtr = alloc;
+                            }
+                            stepBytes = (int)sizeof(const char *);
+                            isVarying = false; // RSL strings are always uniform
+                        } else {
+                            auto [vp, valStride] = getVar(ins, 5 + 2*k + 1);
+                            if (!vp) { ok = false; break; }
+                            valPtr = vp;
+                            if (nameStr == "bias" || nameStr == "maxdist" || nameStr == "samplebase") {
+                                stepBytes = (int)sizeof(float);
+                                isVarying = (valStride != 0);
+                            }
+                        }
+
+                        llvm::Value *namePtr = B.CreateGlobalString(nameStr, "gh_name");
+                        B.CreateStore(namePtr, B.CreateGEP(arrPtrTy, namesArr, {B.getInt32(0), B.getInt32(k)}));
+                        B.CreateStore(valPtr, B.CreateGEP(arrPtrTy, valuePtrsArr, {B.getInt32(0), B.getInt32(k)}));
+                        B.CreateStore(B.getInt32(stepBytes), B.CreateGEP(arrI32Ty, stepsArr, {B.getInt32(0), B.getInt32(k)}));
+                        B.CreateStore(B.getInt32(isVarying ? 1 : 0), B.CreateGEP(arrI32Ty, isVaryingArr, {B.getInt32(0), B.getInt32(k)}));
+                    }
+                } else {
+                    llvm::Value *nullPtr = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(ctx));
+                    namesArr = valuePtrsArr = stepsArr = isVaryingArr = nullPtr;
+                }
+                if (!ok) continue;
+
+                // strideP/sD/ssc come from getVar() above (0=uniform, 1=float,
+                // 3=vector) -- must be threaded through, not discarded, so
+                // op_gatherHeader's per-vertex walk doesn't advance a uniform
+                // source (e.g. a compile-time-constant sampleCone promoted by
+                // CUniformLiftingPass) past its single-element allocation.
+                auto *ghTy = llvm::FunctionType::get(voidTy,
+                    {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty,
+                     ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, f32Ty}, false);
+                auto *fn = declareOp(mod, "op_gatherHeader", ghTy);
+                B.CreateCall(fn, {namesArr, valuePtrsArr, stepsArr, isVaryingArr, B.getInt32(numPairs),
+                                  P, B.getInt32(sP), D, B.getInt32(sD), sampleCone, B.getInt32(ssc),
+                                  samplesVal});
+                continue;
+            }
+
+            // ================================================================
             // Layer G: gather() / gatherElse / gatherEnd
             // gather/gatherElse are tag-mask-only (like if/else — their own
             // jmp(argument(0)) forward-skip targets are subsumed by masking).
@@ -644,15 +762,15 @@ static void emitFunction(const IRFunction &irFn,
                 B.CreateBr(headerBB);
                 B.SetInsertPoint(headerBB);
 
-                auto *fn = declareOp(mod, "op_gather_begin", elseUpdTy);
-                B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                auto *fn = declareOp(mod, "op_gather_begin", gatherOpTy);
+                B.CreateCall(fn, {numActivePtr, numPassivePtr});
 
                 gatherStack.push_back({headerBB, exitBB});
                 continue;
             }
             if (op == "gatherElse") {
-                auto *fn = declareOp(mod, "op_gather_else", elseUpdTy);
-                B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                auto *fn = declareOp(mod, "op_gather_else", gatherOpTy);
+                B.CreateCall(fn, {numActivePtr, numPassivePtr});
                 continue;
             }
             if (op == "gatherEnd") {
@@ -660,8 +778,8 @@ static void emitFunction(const IRFunction &irFn,
                 GatherScope sc = gatherStack.back();
                 gatherStack.pop_back();
 
-                auto *fn  = declareOp(mod, "op_gather_end", gatherEndTy);
-                auto *res = B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                auto *fn  = declareOp(mod, "op_gather_end", gatherOpTy);
+                auto *res = B.CreateCall(fn, {numActivePtr, numPassivePtr});
                 auto *more = B.CreateICmpNE(res, B.getInt32(0));
                 B.CreateCondBr(more, sc.headerBB, sc.exitBB);
 

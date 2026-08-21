@@ -34,6 +34,7 @@
 #include "rendererc.h"
 #include "shading.h"
 #include "variable.h"
+#include <cstdio>
 #include <stddef.h>
 
 ///////////////////////////////////////////////////////////////////////

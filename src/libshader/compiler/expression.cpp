@@ -2035,6 +2035,26 @@ CGatherThenElse::CGatherThenElse(CList<CExpression *> *pl, CExpression *f, CExpr
     parameterList = pl;
     first = f;
     second = s;
+
+    // Each "name:X", value pair after the fixed operands binds an
+    // output written per-shading-point by the gather loop (surface:Ci,
+    // ray:origin, ...). The value operand's own declaration (e.g. a
+    // "color Csum = 0;" local) may have been inferred uniform, since
+    // nothing else in the shader visibly assigns to it. Clear SLC_UNIFORM
+    // here, at parse time and before CIRBuilder::build() snapshots the
+    // variable table, so the JIT backend allocates full per-shading-point
+    // storage for it instead of a single-element uniform slot. (SLC_VARYING
+    // is a parse-time-only marker consumed by rsloShaderParameter in
+    // rslo.y — it has no effect on an already-built CVariable, so it is
+    // not set here.)
+    CExpression **parameters = pl->array;
+    int numParameters = pl->numItems;
+    for (int i = 5; i < numParameters; i += 2) {
+        CVariable *v = parameters[i + 1]->getVariable();
+        if (v != nullptr) {
+            v->type &= ~SLC_UNIFORM;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

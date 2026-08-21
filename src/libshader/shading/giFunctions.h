@@ -368,87 +368,36 @@ DEFSHORTFUNC(Photonmap2, "photonmap", "c=Sp!", PHOTONMAP2EXPR_PRE, PHOTONMAP2EXP
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // gather	"o=spnff!"
 #ifndef INIT_SHADING
-#define GATHERHEADEREXPR_PRE                                                                                                   \
-    plBegin(CGatherLookup, 5);                                                                                                 \
-    const float *samples, *sampleCone;                                                                                         \
-    const float *P, *D;                                                                                                        \
-    operand(1, P, const float *);                                                                                              \
-    operand(2, D, const float *);                                                                                              \
-    operand(3, sampleCone, float *);                                                                                           \
-    operand(4, samples, float *);                                                                                              \
-                                                                                                                               \
-    lastGather = new CGatherBundle;                                                                                            \
-    lastGather->numOutputs = lookup->numOutputs;                                                                               \
-    lastGather->numNonShadeOutputs = lookup->numNonShadeOutputs;                                                               \
-    lastGather->outputs = (float **)ralloc((lookup->numOutputs + lookup->numNonShadeOutputs) * sizeof(float *), threadMemory); \
-    lastGather->nonShadeOutputs = lastGather->outputs + lookup->numOutputs;                                                    \
-    lastGather->outputVars = lookup->outputs;                                                                                  \
-    lastGather->nonShadeOutputVars = lookup->nonShadeOutputs;                                                                  \
-    lastGather->remainingSamples = (int)*samples;                                                                              \
-    lastGather->numMisses = 0;                                                                                                 \
-    lastGather->label = scratch->traceParams.label;                                                                            \
-    lastGather->numSamples = (int)*samples;                                                                                    \
-    assert(lastGather->label != NULL);                                                                                         \
-                                                                                                                               \
-    CGatherVariable *var;                                                                                                      \
-    int cOutput;                                                                                                               \
-    for (cOutput = 0, var = lookup->outputs; var != NULL; var = var->next, cOutput++) {                                        \
-        operand(var->destIndex, lastGather->outputs[cOutput], float *);                                                        \
-    }                                                                                                                          \
-    assert(cOutput == lookup->numOutputs);                                                                                     \
-                                                                                                                               \
-    for (cOutput = 0, var = lookup->nonShadeOutputs; var != NULL; var = var->next, cOutput++) {                                \
-        operand(var->destIndex, lastGather->nonShadeOutputs[cOutput], float *);                                                \
-    }                                                                                                                          \
-                                                                                                                               \
-    const float *du = varying[VARIABLE_DU];                                                                                    \
-    const float *dv = varying[VARIABLE_DV];                                                                                    \
-    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                              \
-    float *dPdv = dPdu + numVertices * 3;                                                                                      \
-    duVector(dPdu, P);                                                                                                         \
-    dvVector(dPdv, P);                                                                                                         \
-                                                                                                                               \
-    /* Figure out the ray distribution */                                                                                      \
-    lastGather->uniformDist = FALSE;                                                                                           \
-    if (scratch->gatherParams.distribution != NULL) {                                                                          \
-        if (strcmp(scratch->gatherParams.distribution, "uniform") == 0)                                                        \
-            lastGather->uniformDist = TRUE;                                                                                    \
-        else if (strcmp(scratch->gatherParams.distribution, "cosine") == 0)                                                    \
-            lastGather->uniformDist = FALSE;                                                                                   \
-    }                                                                                                                          \
-                                                                                                                               \
-    CGatherRay *rays;                                                                                                          \
-    lastGather->rays = (CRay **)ralloc(numVertices * sizeof(CGatherRay *), threadMemory);                                      \
-    lastGather->raysStorage = lastGather->rays;                                                                                \
-    lastGather->raysBase = rays = (CGatherRay *)ralloc(numVertices * sizeof(CGatherRay), threadMemory);
+#define GATHERHEADEREXPR_PRE                                                             \
+    plBegin(CGatherLookup, 5);                                                          \
+    const float *samples, *sampleCone;                                                  \
+    const float *P, *D;                                                                 \
+    operand(1, P, const float *);                                                       \
+    operand(2, D, const float *);                                                       \
+    operand(3, sampleCone, float *);                                                    \
+    operand(4, samples, float *);                                                       \
+                                                                                         \
+    float *dPdu, *dPdv;                                                                 \
+    lastGather = gatherHeaderBegin(lookup, P, *samples, dPdu, dPdv);                    \
+                                                                                         \
+    CGatherVariable *var;                                                               \
+    int cOutput;                                                                        \
+    for (cOutput = 0, var = lookup->outputs; var != NULL; var = var->next, cOutput++) { \
+        operand(var->destIndex, lastGather->outputs[cOutput], float *);                 \
+    }                                                                                   \
+    assert(cOutput == lookup->numOutputs);                                              \
+                                                                                         \
+    for (cOutput = 0, var = lookup->nonShadeOutputs; var != NULL; var = var->next, cOutput++) { \
+        operand(var->destIndex, lastGather->nonShadeOutputs[cOutput], float *);         \
+    }                                                                                   \
+                                                                                         \
+    const float *du = varying[VARIABLE_DU];                                             \
+    const float *dv = varying[VARIABLE_DV];                                             \
+    CGatherRay *rays = lastGather->raysBase;
 
-#define GATHERHEADEREXPR                                \
-    plReady();                                          \
-    mulvf(dPdu, *du);                                   \
-    mulvf(dPdv, *dv);                                   \
-    {                                                   \
-        float tanCone = tanf(*sampleCone);              \
-        float clampedTan;                               \
-        if (0.0f > tanCone) {                           \
-            clampedTan = 0.0f;                          \
-        } else {                                        \
-            clampedTan = tanCone;                       \
-        }                                               \
-        if (1.0f < clampedTan) {                        \
-            rays->da = 1.0f;                            \
-        } else {                                        \
-            rays->da = clampedTan;                      \
-        }                                               \
-    }                                                   \
-    rays->db = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f;  \
-    rays->sampleCone = *sampleCone;                     \
-    rays->sampleBase = scratch->traceParams.sampleBase; \
-    rays->bias = scratch->traceParams.bias;             \
-    rays->maxDist = scratch->traceParams.maxDist;       \
-    movvv(rays->gatherDir, D);                          \
-    movvv(rays->gatherP, P);                            \
-    movvv(rays->dPdu, dPdu);                            \
-    movvv(rays->dPdv, dPdv);
+#define GATHERHEADEREXPR \
+    plReady();           \
+    gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv);
 
 #define GATHERHEADEREXPR_UPDATE \
     dPdu += 3;                  \
