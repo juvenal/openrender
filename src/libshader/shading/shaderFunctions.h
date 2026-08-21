@@ -756,7 +756,13 @@ DEFFUNC(NTransform4, "ntransform", "n=Smn", NTRANSFORM4EXPR_PRE, NTRANSFORM4EXPR
 // depth "f=p"
 #ifndef INIT_SHADING
 #define DEPTH_PRE  FUN2EXPR_PRE
-#define DEPTH_EXPR *res = (op[2] - this->rendererClipMin()) / (this->rendererClipMax() - this->rendererClipMin());
+#define DEPTH_EXPR                                                                    \
+    {                                                                                 \
+        const float cmin = this->rendererClipMin();                                  \
+        const float cmax = this->rendererClipMax();                                  \
+        const float range = (cmax > cmin) ? (cmax - cmin) : 1.f;                     \
+        *res = (op[2] - cmin) / range;                                               \
+    }
 #else
 #define DEPTH_PRE
 #define DEPTH_EXPR

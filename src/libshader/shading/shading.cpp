@@ -2407,8 +2407,9 @@ void CShadingContext::jitArea(float* dst, int sd, const float* P, int n, const i
     const float *dv = (const float*)currentShadingState->varying[VARIABLE_DV];
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
-            float dpdu[3] = { dPdu_buf[3*i]*du[i], dPdu_buf[3*i+1]*du[i], dPdu_buf[3*i+2]*du[i] };
-            float dpdv[3] = { dPdv_buf[3*i]*dv[i], dPdv_buf[3*i+1]*dv[i], dPdv_buf[3*i+2]*dv[i] };
+            float dpdu[3], dpdv[3];
+            mulvf(dpdu, dPdu_buf + 3*i, du[i]);
+            mulvf(dpdv, dPdv_buf + 3*i, dv[i]);
             float tmp[3];
             crossvv(tmp, dpdu, dpdv);
             float len = lengthv(tmp);

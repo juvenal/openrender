@@ -320,3 +320,84 @@ without checking with the user first. Static and dynamic evidence answer
 different questions ("can this happen by construction" vs. "did this happen
 on this run"), and a careful-change discipline like this project's FR-009
 benefits from having both on record before closing a defect investigation.
+
+## Phase 9 (US5): converging JIT-only helpers onto delegation (2026-08-21)
+
+**Premise going in, and how it changed.** The plan-mode framing (and the
+Phase 9 goal text in `tasks.md`) described `jitArea`/`jitCalculateNormal`/
+`jitDepth`/`jitDuVector`/`jitDvVector` (`shading.cpp`) as "hand-reimplemented
+duplicates" of the interpreter's `AREAEXPR`/`CALCULATENORMALEXPR`/
+`DEPTH_EXPR`/`Du`/`Dv` macros — implying five refactors were needed. Direct
+tracing found the premise was only partially true:
+
+- `jitDuVector`/`jitDvVector` already called `CShadingContext::duVector`/
+  `dvVector` directly — the actual interpreter methods, not a duplicate.
+  Zero drift risk; no change needed.
+- `jitCalculateNormal` already called the shared `crossvv`/`mulvf`
+  primitives in the same order as `CALCULATENORMALEXPR`. No change needed.
+- `jitArea` was the one genuine case of hand-inlined math: three scalar
+  multiplies (`dpdu[3] = { dPdu_buf[3*i]*du[i], ... }`) doing exactly what
+  the shared `mulvf()` primitive does, just written out by hand instead of
+  calling it. Refactored to call `mulvf()`, matching `AREAEXPR`'s call
+  shape. Purely cosmetic/hygiene — not a behavior change.
+- `jitDepth` was structurally fine (delegates to the same clip-min/clip-max
+  reads as `DEPTH_EXPR`) but had a genuine **behavioral** divergence: it
+  guards its division (`range = (cmax > cmin) ? (cmax - cmin) : 1.f`) while
+  the interpreter's `DEPTH_EXPR` divided unguarded — a latent divide-by-
+  zero/inf if a shader ever ran with `rendererClipMin() == rendererClipMax()`.
+
+**Ruling out the gather()-style stride bug for this family.** Before trusting
+any of the above as "already correct," traced `numVerts` provenance through
+`execute.cpp:549,573`: `int numVertices = currentShadingState->numVertices;`
+then `cInstance->jitEntry(numVertices, stuff, tagStart)`. This is the same
+value the interpreter's `FUN2EXPR_PRE` reads via `currentShadingState->
+numVertices`. Unlike `gather()` (T037/T038, where the JIT's `numVerts`
+argument could be 3x `numRealVertices` under raytrace-derivative shading),
+there is no stride mismatch here — the two backends see literally the same
+count for `area`/`calculatenormal`/`depth`/`Du`/`Dv`. Worth restating as a
+general lesson: **"looks structurally similar to a known bug" is not the
+same as "has the same bug"** — the fix for the actual bug (gather) does not
+generalize to superficially-similar call sites without re-deriving the
+provenance chain for each one.
+
+**The `DEPTH_EXPR` divergence and the FR-009 exception.** Offered the user
+three options for `jitDepth`'s guard divergence (keep JIT's guard as a
+documented JIT-only improvement; strip the JIT's guard for strict parity
+with the interpreter; keep it now and flag a future FR-009-governed
+interpreter fix). The user chose none of the three and instead gave a
+fourth, more direct instruction: modify the interpreter's `DEPTH_EXPR`
+macro itself to gain the same guard, converging the interpreter UP to the
+JIT's more defensive behavior. This is a real, narrow, user-approved
+exception to FR-009's normal rule (interpreter changes require an empirical
+repro of a *confirmed defect*, not just a code-reading-derived guard gap) —
+recorded explicitly here rather than treated as an ordinary FR-009 fix,
+because the justification for changing the interpreter was direct user
+authorization of a specific parity decision, not an empirical crash/repro.
+The change itself (`src/libshader/shading/shaderFunctions.h`) is
+narrowly scoped: `DEPTH_EXPR` now computes `cmin`/`cmax`/
+`range = (cmax > cmin) ? (cmax - cmin) : 1.f` before dividing, textually
+mirroring `jitDepth`'s existing guard — no other interpreter behavior
+touched.
+
+**Verification methodology for a stochastic hider.** T048 needed a
+before/after comparison of JIT output across both edits. A naive raw
+byte-diff was initially misleading: the raytrace hider is inherently
+stochastic, and rendering the *same unedited binary* twice already produces
+a nonzero byte-diff (confirmed empirically: 12656/1228800 differing bytes
+between two runs of one binary — larger than the 11642/1228800 diff between
+before and after the edits). Byte-identity is therefore not the right bar
+for this hider. Pivoted to the project's own established 8×8 block-averaged
+diff metric (`CLAUDE.md`'s documented visual-test methodology) via a small
+numpy script, run against both the before/after pair and a same-binary
+noise-floor pair for calibration. Result: before/after (max block-avg 39.89,
+mean 0.0133) was statistically indistinguishable from — and by mean,
+smaller than — the same-binary noise floor (max 39.375, mean 0.0193),
+confirming no functional regression. **Lesson**: for any raytrace-hider
+comparison, always pair the before/after diff with a same-binary noise-floor
+diff computed the same way — a before/after diff alone has no way to
+distinguish "no change" from "small change smaller than render noise."
+
+**Full regression validation.** `ctest -L libshader`: 100% passed (2/2),
+confirming the Phase 8 opcode-coverage guard is unaffected by the
+`DEPTH_EXPR` change. `ctest -L visual` run **without** any `-E slow`
+exclusion (all 87 tests, including `motion-3-reyes`): 100% passed (87/87).
