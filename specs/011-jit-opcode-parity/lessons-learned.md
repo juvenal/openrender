@@ -401,3 +401,111 @@ distinguish "no change" from "small change smaller than render noise."
 confirming the Phase 8 opcode-coverage guard is unaffected by the
 `DEPTH_EXPR` change. `ctest -L visual` run **without** any `-E slow`
 exclusion (all 87 tests, including `motion-3-reyes`): 100% passed (87/87).
+
+## Phase 10: SC-006 not met — a pre-existing JIT uniform-dispatch gap, not a defect in this spec's fixes (2026-08-21)
+
+`ctest -L perf-manual` (6 scenes, one per construct family fixed by Phases
+1/3/5-7: `cfrom`, `mfrom`, `ctransform`, matrix arithmetic, comparison/
+logic, array move) failed 6/6 against FR-011/SC-006's "JIT ≤ 90% of
+interpreter wall-clock" bar — ratios ranged 1.048-1.464, i.e. the JIT was at
+best at parity and at worst ~46% slower.
+
+**First hypothesis, tested and disproven: fixed JIT-bind overhead.** The
+smallest perf-manual scenes render in well under a second, so a plausible
+explanation was that one-time LLVM module-compile/bind cost was dominating
+the measurement rather than genuine per-construct execution speed. Tested by
+scaling the two extreme scenes (`array_ops_probe`, ratio 1.464; the
+`ctransform` probe, ratio ~1.00) ~30x in shading workload (default →
+1600×1600 with `ShadingRate 0.25`, hundreds of ms and thousands of shaded
+points per run). A fixed one-time cost would make the ratio converge toward
+1.0-or-better as render time grows; instead it stayed pinned — arrayops at
+1.15-1.46 across all three scales tested, ctransform at ~1.00 exactly, not
+below it. This rules out startup/bind overhead and confirms a genuine
+steady-state per-construct execution-speed gap.
+
+**Root cause: the interpreter skips its per-vertex loop for uniform-
+classified instructions; the JIT never does.** `src/libshader/shading/
+execute.cpp`'s `DEFOPCODE`/`DEFSHORTOPCODE`/`DEFFUNC` macros all contain the
+same branch: `if (code->uniform) { expr; }` — a uniform-classified
+instruction's body runs exactly once, full stop, never entering the
+per-vertex `for` loop. This is baked into the macro pattern itself, so it
+applies uniformly (no pun intended) to every interpreter opcode, not a
+special-cased optimization for a few hot ones. `src/libshader/compiler/
+llvmEmitter.cpp`'s `emitBin`/`emitUn`/`emitTern` lambdas — the pattern nearly
+every JIT opcode dispatch uses, including every opcode this spec added — have
+no equivalent: every `B.CreateCall(fn, {..., numVerts, tags})` unconditionally
+passes the full `numVerts` as the wrapped `op_*` function's loop count. A
+uniform computation therefore pays a `numVerts`-fold tax under the JIT that
+the interpreter simply does not pay. The uniformity information *is* present
+in the emitter (stride is already computed as 0 for a uniform operand vs. a
+full varying stride, for pointer-advance purposes) — it is just never used to
+also collapse the iteration count to 1.
+
+**Confirmed by profiling, then confirmed a second way by construction.**
+Sampling (`sample`, macOS) a large `array_ops_probe` render (3200×3200,
+`ShadingRate 0.05`, JIT-only) found `op_mfroma`+`op_mtoa`+`op_mfromf16`+
+`op_movemm` — the wrappers touched by this shader's three `uniform matrix`
+array-literal declarations — consuming roughly 52% of shading-thread self
+time, dwarfing `CShadingContext::shade`/`CReyes::shadeGrid` combined. That
+alone was suggestive but not conclusive (it shows those functions are hot,
+not *why*). The decisive check: render `show_st_hsv.sl` (the `cfrom` probe —
+zero uniform locals, one `cfrom` call per shading point, i.e. a construct
+with near-zero uniform-computation density) at the same scaled-up 1600×1600/
+`ShadingRate 0.25` workload used for the bind-overhead test. Result: ratio
+~1.03 (rslo median 0.31s, slo median 0.32s across 3 runs) — near parity,
+matching `ctransform`'s ~1.00 and sharply distinct from `array_ops_probe`'s
+1.15-1.46 at the identical scale. This demonstrates the gap tracks *uniform-
+computation density in the shader*, not construct identity or scene scale —
+exactly what the `code->uniform` asymmetry predicts, and not what a
+per-construct-cost or fixed-overhead explanation would predict.
+
+**Why this stays out of spec 011's scope.** It is pre-existing — every
+`emitBin`/`emitUn`/`emitTern` call site in the file predates this spec; the
+opcodes this spec added just route through the same, already-existing
+convention. It is not fixable via FR-007-compliant delegation alone: the fix
+is a calling-convention change to the emitter itself (branch on the operand's
+uniform classification and call with `n=1` instead of `numVerts`), which has
+its own correctness surface — in particular around `tags`/active-count
+bookkeeping, echoing the same `DEFSHORTOPCODE`-uses-`numRealVertices`-vs-
+`DEFOPCODE`-uses-`numVertices` asymmetry that caused the `gather()` stride
+bug this spec fixed under T037/T038 (see lesson 8 above). And it has nothing
+to do with opcode *coverage*, which is this spec's actual charter. Recorded
+as a third high-priority follow-up alongside the existing `usfroma`/
+`illuminance` items (`project_jit_opcode_parity.md`), for its own controlled
+spec.
+
+**SC-006 recorded as not met**, with root cause identified, per explicit user
+direction ("investigate root cause now") rather than accepting the shortfall
+silently or relaxing the target after the fact.
+
+**FR-007 final sweep (T055).** Cross-referenced every `op_*` function added
+by this spec (30 functions across `rslOps.cpp`: `op_cfrom`/`op_mfrom`/
+`op_ctransform`; `op_veql`/`op_vneql`/`op_velt`/`op_vlt`/`op_vegt`/`op_vgt`/
+`op_not`/`op_movess`; `op_addmm`/`op_submm`/`op_mulmm`/`op_divmm`/`op_negm`/
+`op_movemm`/`op_mfromv`/`op_mfromf`/`op_mfromf16`; the `ffroma`/`vfroma`/
+`mfroma`/`sfroma`/`ftoa`/`vtoa`/`mtoa`/`stoa` array-move family; the
+`gather`/`gatherElse`/`gatherEnd`/`gatherHeader` scaffolding) against its
+interpreter-side macro. Two patterns, both compliant: (1) `op_mulmm`/
+`op_divmm` are near-verbatim clones of `MULMMEXPR`/`DIVMMEXPR`, calling the
+identical shared `mulmm()`/`movmm()`/`invertm()` primitives in the identical
+sequence. (2) Every comparison/logic op (`veql` family, `not`) and most
+matrix-arithmetic ops (`addmm`/`submm`/`negm`/`movemm`/`mfromv`/`mfromf`/
+`mfromf16`) mirror an interpreter macro (`VCMPEXPR`/`VNCMPEXPR`/`NOTEXPR`/
+`MARITMETICEXPR`/`MUNARYEXPR`/`MFROMVEXPR`/`MFROMFEXPR`/`MFROMF17EXPR`) that
+itself directly inlines the element-wise arithmetic rather than calling a
+named shared function — confirmed by reading each macro definition in
+`scriptOpcodes.h`. In these cases there is no separate "final function" to
+delegate to on *either* side; the JIT wrapper mirroring the interpreter's
+own inline element-wise logic **is** the correct FR-007-compliant form here
+(this is worth stating explicitly, since a literal reading of "delegate to
+the same final function" could be mistaken to require a function call where
+the interpreter itself has none — a subtlety not flagged in earlier phases
+because `cfrom`/`mfrom`/`ctransform`/`mulmm`/`divmm`, the first constructs
+fixed, all happened to have a genuine shared function to point at).
+Zero new FR-007 defects found. Array-move family and gather scaffolding were
+already verified compliant in Phases 3 and 7 respectively (see lesson 8 and
+`project_jit_gather_cfg_design.md`).
+
+Final regression sweep: `ctest -L visual` 87/87, `ctest -L libshader` 2/2,
+both 100% green, run after the T046a `DEPTH_EXPR` change and independent of
+the perf-manual finding above.

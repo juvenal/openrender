@@ -46,6 +46,12 @@ add_executable(test_hider_parity test_hider_parity.cpp)
 target_link_libraries(test_hider_parity PRIVATE TIFF::TIFF)
 target_compile_features(test_hider_parity PRIVATE cxx_std_20)
 
+# FR-011/SC-006 manual-only JIT-vs-interpreter performance comparison driver
+# (spec 011-jit-opcode-parity, research.md D4). No TIFF dependency — timing
+# only, no pixel comparison.
+add_executable(test_perf_compare test_perf_compare.cpp)
+target_compile_features(test_perf_compare PRIVATE cxx_std_20)
+
 # ---------------------------------------------------------------------------
 # Environment common to all visual tests
 # ---------------------------------------------------------------------------
@@ -201,6 +207,54 @@ macro(add_not_required_test SCENE_NAME RIB_FILE)
     set_tests_properties(NotRequired_${SCENE_NAME} PROPERTIES
         TIMEOUT        360
         LABELS         "not-required"
+        ENVIRONMENT    "${VISUAL_ENV}"
+        DEPENDS        orender
+    )
+endmacro()
+
+# ---------------------------------------------------------------------------
+# Helper macro: register one FR-011/SC-006 manual-only perf comparison
+# (spec 011-jit-opcode-parity, research.md D4)
+#
+# Renders RIB_RSLO and RIB_SLO (same scene/shader, pinned to each backend)
+# several times each via test_perf_compare and compares median wall-clock
+# time; fails if the JIT (slo) render exceeds MAX_RATIO of the interpreter
+# (rslo) render's time.
+#
+# Labelled "perf-manual" ONLY (no "visual"/"regression"/"libshader") so
+# `ctest -L visual` / `ctest -L libshader` / a bare CI `ctest` run never
+# selects it — timing assertions are sensitive to machine load and must be
+# run explicitly and by hand: `ctest --test-dir build -L perf-manual
+# --output-on-failure`.
+#
+# Arguments:
+#   SCENE_NAME   — test identifier (used as CTest name suffix and for scratch dir)
+#   RIB_RSLO     — path to the .rslo-pinned .rib scene (relative to CMAKE_SOURCE_DIR)
+#   RIB_SLO      — path to the .slo-pinned .rib scene (relative to CMAKE_SOURCE_DIR)
+#   MAX_RATIO    — (optional) max allowed slo/rslo time ratio; defaults to 0.90
+# ---------------------------------------------------------------------------
+macro(add_perf_manual_test SCENE_NAME RIB_RSLO RIB_SLO)
+    if(${ARGC} GREATER 3)
+        set(_maxratio ${ARGV3})
+    else()
+        set(_maxratio 0.90)
+    endif()
+
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/perf-${SCENE_NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+
+    add_test(NAME Perf_${SCENE_NAME}
+        COMMAND test_perf_compare
+            $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/${RIB_RSLO}
+            ${CMAKE_SOURCE_DIR}/${RIB_SLO}
+            ${_maxratio}
+        WORKING_DIRECTORY ${_scratch}
+    )
+
+    set_tests_properties(Perf_${SCENE_NAME} PROPERTIES
+        TIMEOUT        360
+        LABELS         "perf-manual"
         ENVIRONMENT    "${VISUAL_ENV}"
         DEPENDS        orender
     )
@@ -1066,8 +1120,45 @@ add_not_required_test(subdiv-loop-oshow
 add_not_required_test(motion-subdiv-translate-photon
     examples/rib/tests/parity/motion-subdiv-translate-photon.rib)
 
+# --- JIT opcode-coverage parity (spec 011-jit-opcode-parity), Phase 10/T050-T051:
+# FR-011/SC-006 manual-only JIT-vs-interpreter performance comparison, one
+# per US1/US3 opcode category fixed by this feature, reusing the same
+# .rib/.rslo-vs-.slo pairs already registered above under "visual". `mfrom`
+# has no entry here for the same reason it has no dedicated visual-parity
+# fixture (see T019a's evidence note): no shader can isolate an
+# `op_mfrom`-constructed matrix's value without also exercising matrix
+# arithmetic (`mulmm`/`transform()`), so its performance profile is exercised
+# indirectly via sphere-matrixops below rather than measured standalone.
+# `gather` is included since it landed (not descoped) in Phase 7.
+# Never selected by `ctest -L visual`/`-L libshader` or a bare `ctest` run —
+# run explicitly: `ctest --test-dir build -L perf-manual --output-on-failure`.
+add_perf_manual_test(sphere-cfrom
+    examples/rib/tests/sphere-cfrom-reyes.rib
+    examples/rib/tests/sphere-cfrom-reyes-slo.rib)
+
+add_perf_manual_test(sphere-ctransform
+    examples/rib/tests/sphere-ctransform-reyes.rib
+    examples/rib/tests/sphere-ctransform-reyes-slo.rib)
+
+add_perf_manual_test(sphere-matrixops
+    examples/rib/tests/sphere-matrixops-reyes.rib
+    examples/rib/tests/sphere-matrixops-reyes-slo.rib)
+
+add_perf_manual_test(sphere-comparisonlogic
+    examples/rib/tests/sphere-comparisonlogic-reyes.rib
+    examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib)
+
+add_perf_manual_test(sphere-arrayops
+    examples/rib/tests/sphere-arrayops-reyes.rib
+    examples/rib/tests/sphere-arrayops-reyes-slo.rib)
+
+add_perf_manual_test(sphere-gather
+    examples/rib/tests/sphere-gather-reyes.rib
+    examples/rib/tests/sphere-gather-reyes-slo.rib)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      83 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
+message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
