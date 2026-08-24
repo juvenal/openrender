@@ -20,6 +20,48 @@ This file tracks known defects and implementation gaps in openRender. Open items
       to the test scene, not by fixing the source) during `specs/010-full-subdivision-support` T047. Predates
       this feature; independent of hierarchical overrides.
 - [ ] Irradiance accuracy issues
+- [ ] JIT emitter pays a `numVerts`-fold execution tax on uniform-classified
+      instructions; the `.rslo` interpreter does not (`execute.cpp`'s
+      `DEFOPCODE`/`DEFSHORTOPCODE`/`DEFFUNC` macros skip their per-vertex loop
+      when `code->uniform` is set — `llvmEmitter.cpp`'s `emitBin`/`emitUn`/
+      `emitTern` dispatch lambdas, used by nearly every JIT opcode, have no
+      equivalent and always pass the full `numVerts` to the wrapped `op_*`
+      call). Root-caused during `specs/011-jit-opcode-parity` Phase 10 as the
+      reason `ctest -L perf-manual` failed 6/6 against FR-011/SC-006's "JIT
+      ≤ 90% of interpreter wall-clock" bar (ratios 1.05-1.46x); confirmed via
+      profiling and a targeted uniform-computation-density comparison (the
+      gap tracks uniform-density in the shader, not construct identity or
+      scene scale). Not fixable via FR-007-style delegation alone — it's a
+      calling-convention change to the emitter itself, with its own
+      correctness surface around `tags`/`numRealVertices` bookkeeping. See
+      `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10. Planned as a
+      follow-up spec.
+- [ ] `.rslo` interpreter crash on `usfroma` — a varying-index read of a
+      `uniform string` array (e.g. `usarr[findex] == "a"` with `findex`
+      varying) crashes inside `CShadingContext::execute`. Every sibling array
+      opcode (matched-uniformity numeric reads, mismatched-uniformity numeric
+      reads, uniform-index string reads) renders cleanly with the identical
+      sizing/index pattern — isolated to varying-indexed *string*-array
+      element resolution specifically. Discovered during
+      `specs/011-jit-opcode-parity` array-move-opcode testing; worked around
+      by removing the exercise from `shaders/array_ops_probe.sl` (still
+      nominally covered by the reachability-only `LibShader_OpcodeCoverage`
+      guard, not a correctness check). Left unfixed under FR-009 (interpreter
+      changes need their own controlled, regression-checked effort, not a
+      side-fix inside an unrelated spec) — planned as a follow-up spec.
+- [ ] JIT `illuminance` support is a hand-synced parallel reimplementation of
+      the interpreter's light-iteration logic, not genuine shared-function
+      delegation (`CShadingContext::jitIlluminanceBegin`/`jitIlluminanceNext`,
+      `shading.cpp:2056-2119`, call a method-form `runLights` that is NOT the
+      same code as the macro-form `runLights`/`runLightsTemplate` the
+      interpreter uses, `execute.cpp:417-479` — the macro is textually-inlined
+      interpreter-dispatch-loop code that a compiled method cannot literally
+      call). A longstanding, low-severity FR-007-style gap that predates
+      `specs/011-jit-opcode-parity` and was found as a side effect of that
+      spec's `gather()` research (by contrast, `gather()`'s own delegation
+      targets — `traceEx`, `sampleHemisphere`, `duVector`/`dvVector` — are
+      genuine shared functions). Planned as a follow-up spec (JIT-side-only
+      refactor, no interpreter changes).
 
 ## Resolved Bugs
 

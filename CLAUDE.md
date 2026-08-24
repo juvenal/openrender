@@ -143,7 +143,7 @@ un-projecting uses `/ dSampledx`, not `* dxdPixel`.
 ## Testing
 
 ```bash
-ctest --test-dir build -L visual --output-on-failure   # 33+ scene visual regression, 8x8 block-avg diff metric (thresholds 20-40/255)
+ctest --test-dir build -L visual --output-on-failure   # 87+ scene visual regression, 8x8 block-avg diff metric (thresholds 20-40/255)
 ctest --test-dir build -L visual -E slow                # skip slow tests (motion-3-reyes, ~3 min)
 ctest --test-dir build -L libshader                     # compiler unit tests
 ```
@@ -161,7 +161,11 @@ Larger features go through GitHub spec-kit (`speckit.*` skills): a spec
 lives in `specs/NNN-feature-name/` alongside a matching git branch. Existing
 feature branches: `001-hugo-docs-migration`, `002-wayland-display-driver`,
 `003-update-shader-extension`, `004-macos-framebuffer-output`,
-`005-imager-shader-support`, `006-scene-wireframe-viewer` (orender-wire).
+`005-imager-shader-support`, `006-scene-wireframe-viewer` (orender-wire),
+`007-dof-disk-sampling`, `008-hider-parity-convergence`,
+`009-nurbs-trim-curves`, `010-full-subdivision-support`,
+`011-jit-opcode-parity` (LLVM JIT opcode-coverage parity sweep, current
+branch).
 
 `DEVNOTES.md` is the living status/status-table doc — check it first for
 "what's done / in progress" and for planned future work. `DEVNOTES_DETAILS/*.md`

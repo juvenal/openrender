@@ -223,11 +223,25 @@ fallback when neither is specified.
 
 ### Visual regression tests
 
-43 scenes registered under the `visual` CTest label (threshold 20/255 block-average).
-Includes `.slo` JIT variants for all material shaders (matte, wood, blue_marble,
-brushedmetal, somewood, full-metal) compared against their `.rslo` reference images.
-New somewood reference TIFs: `examples/rib/tests/references/teapot-somewood-reyes.tif`,
+87 scenes registered under the `visual` CTest label (threshold 20/255 block-average;
+up from 43 following `specs/011-jit-opcode-parity`'s opcode-coverage sweep and
+`specs/010-full-subdivision-support`'s cross-hider parity suite). Includes `.slo` JIT
+variants for all material shaders (matte, wood, blue_marble, brushedmetal, somewood,
+full-metal) plus per-construct `.slo` probes added by spec 011 (array-ops, matrix-ops,
+comparison/logic, gather) compared against their `.rslo` reference images. New somewood
+reference TIFs: `examples/rib/tests/references/teapot-somewood-reyes.tif`,
 `teapot-somewood-raytrace.tif`.
+
+**Known performance gap (SC-006, spec 011 not met):** the JIT is at parity-or-slower
+than the `.rslo` interpreter (1.05-1.46x wall-clock) for every construct family fixed by
+spec 011, tracking uniform-computation density in the shader, not construct identity or
+scene scale. Root cause: `execute.cpp`'s opcode macros skip their per-vertex loop
+entirely for uniform-classified instructions (`if (code->uniform) { expr; }`, runs
+once); `emitFunction()`'s `emitBin`/`emitUn`/`emitTern` dispatch lambdas — the pattern
+nearly every JIT opcode uses — have no equivalent and always pass the full `numVerts` to
+the wrapped `op_*` call. See `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10
+for the full investigation; recorded as a documented residual, planned for its own
+follow-up spec.
 
 ---
 
