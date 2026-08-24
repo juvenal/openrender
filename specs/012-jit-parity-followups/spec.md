@@ -15,6 +15,11 @@
 - Q: How should the three issues be prioritized as User Stories? → A: Correctness first. P1 = the interpreter crash (the only issue that is an outright failure a shader author can hit today); P2 = the uniform-dispatch performance gap (closes spec 011's unmet SC-006, largest surface area); P3 = the `illuminance` delegation convergence (structural; nothing currently known to produce wrong output).
 - Q: What counts as success for the uniform-dispatch performance work — is spec 011's "JIT ≤ 90% of interpreter wall-clock" a hard gate again? → A: No. The gate is *measurable improvement on every measured scene with zero output regression*; spec 011's 90% bar is restated here as a **stretch goal** whose per-scene attainment must be measured and reported, not as a pass/fail criterion. Rationale: the uniform-collapse change is the confirmed dominant cause of the shortfall but is not guaranteed to be the only one, and a spec that fails on a bar this single change may not reach alone would mis-describe the outcome.
 - Q: How much process gating applies to the interpreter fix (the only interpreter-touching work in this feature)? → A: Pre-authorized in principle under the spec-011-amended FR-009 discipline, with a mandatory STOP: reproduction and root-cause investigation proceed freely, but the confirmed root cause and the proposed narrowest change MUST be presented to and approved by the maintainer before any interpreter source is modified.
+- Q: If the crash turns out to be caused by the shader compiler emitting the wrong instruction form rather than by the interpreter mishandling a correct instruction, what approval process governs that fix? → A: The same discipline applies either side. The confirmed root cause and the proposed narrowest change MUST be presented for approval before editing compiler *or* interpreter source, and the presentation MUST state the change's impact on already-compiled shader artifacts (a compiler change alters the meaning of shader files already produced by the previous compiler, affecting both backends at once).
+- Q: Does the mandatory STOP also apply to a behaviour-preserving restructuring of interpreter source made purely to let both backends share one light-iteration implementation? → A: No. Behaviour-preserving refactors are exempt from the approval gate and from the reproduction requirement — there is no defect and no behaviour change to approve. Full before/after regression verification (rendered output within the same-configuration noise floor per SC-007, clean `ctest -L libshader` and `ctest -L visual`) is still required, and the exemption lapses the moment observable behaviour would change.
+- Q: Should the uniform-work-once change cover every JIT dispatch site where the interpreter already short-circuits, or only the arithmetic dispatch identified as the root cause? → A: Every such site — scope is defined by parity with the interpreter, not by instruction family. Any site that cannot be converted safely must be listed explicitly with its reason; silent omission is not acceptable.
+- Q: How should the varying-index string-array read get an executing test — restored to the existing array-access diagnostic shader (regenerating its reference image), or as a separate new shader and scene? → A: A separate new shader and scene. No existing scene content or reference image is modified, so every pre-existing baseline stays an untouched control and the zero-output-difference criterion holds across the whole existing suite without exceptions.
+- Q: Should the criterion about the uniform-heavy vs uniform-light performance gap narrowing be a pass/fail gate, and with what threshold? → A: A directional pass/fail gate with no magnitude floor — the gap must narrow by more than the measured run-to-run variance of that comparison, the same evidence standard SC-004 applies per scene. Any variance-exceeding narrowing passes; a gap that does not narrow beyond variance fails and must be explained. The magnitude is reported either way.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -51,11 +56,11 @@ hand-computed expectation and the uniform-indexed equivalent.
 2. **Given** that same shader, **When** it is rendered with the JIT
    backend, **Then** its output matches the interpreter backend's output
    within the project's existing visual-regression tolerance.
-3. **Given** the project's diagnostic shader for array element access,
-   **When** the varying-index string-array read is restored to it and the
-   visual regression suite is run, **Then** the suite passes — the
-   construct is covered by an executing test, not only by the existing
-   reachability-only coverage guard.
+3. **Given** a newly added shader and scene dedicated to the varying-index
+   string-array read, **When** the regression suite is run, **Then** it
+   passes and the construct is covered by an executing test rather than
+   only by the existing reachability-only coverage guard — while every
+   pre-existing reference image remains untouched.
 4. **Given** every other array element access form already known to work
    (matched-uniformity numeric reads, mismatched-uniformity numeric reads,
    and the uniform-index string read), **When** the full test suite is run
@@ -92,8 +97,11 @@ unchanged.
 
 1. **Given** each measurement scene from spec 011's fixed set, **When**
    rendering time is measured before and after this change, **Then** the
-   JIT-to-interpreter wall-clock ratio improves for every scene, and
-   improves by no less than zero (no scene regresses).
+   JIT-to-interpreter wall-clock ratio improves by more than that scene's
+   measured run-to-run variance on every scene whose shader contains
+   meaningful uniform computation, and no scene regresses. A scene with
+   near-zero uniform computation showing no measurable change satisfies
+   this scenario.
 2. **Given** a shader whose work is dominated by uniform computation,
    **When** its JIT-to-interpreter ratio is compared against that of a
    shader with near-zero uniform computation, **Then** the gap between the
@@ -163,13 +171,13 @@ implementation of the light-iteration logic remains.
   broader than the narrowest possible correction (for example, a shared
   data-representation change affecting other array access forms)? The
   mandatory STOP checkpoint applies: the finding and the proposed scope are
-  presented for approval before any interpreter source is changed, and the
-  broader change is not made unilaterally.
+  presented for approval before any interpreter *or* compiler source is
+  changed, and the broader change is not made unilaterally.
 - What if the existing minimal reproduction shader is no longer present or
   no longer reproduces the crash? A reproduction MUST be re-established
   empirically before any fix is attempted; a root cause derived only from
-  reading code is explicitly insufficient to authorize an interpreter
-  change.
+  reading code is explicitly insufficient to authorize a change on either
+  the interpreter or the compiler side.
 - What if the uniform-dispatch change lands measurable improvement but
   still leaves some scenes short of the stretch bar? That is an accepted
   outcome (see Clarifications). The per-scene results MUST be recorded,
@@ -198,18 +206,35 @@ implementation of the light-iteration logic remains.
   string` array at a varying, in-range index MUST complete normally under
   the interpreter backend and produce the correct per-point element
   selection, rather than terminating abnormally.
-- **FR-002**: Before any interpreter source is changed under FR-001, the
-  defect MUST be demonstrated by an empirical, repeatable reproduction —
-  not inferred from code reading — and the confirmed root cause plus the
-  proposed change MUST be presented for explicit maintainer approval.
+- **FR-002**: Before any source is changed under FR-001 — whether the root
+  cause lies in the interpreter's handling of the instruction or in the
+  compiler's choice of which instruction to emit — the defect MUST be
+  demonstrated by an empirical, repeatable reproduction (not inferred from
+  code reading), and the confirmed root cause plus the proposed change MUST
+  be presented for explicit maintainer approval. Where the proposed change
+  is on the compiler side, the presentation MUST also state its effect on
+  shader artifacts already compiled by the previous compiler, since such a
+  change alters their meaning for both backends at once.
 - **FR-003**: Once FR-001 is satisfied, the varying-index string-array read
   MUST be exercised by an executing test in the project's regression suite,
-  not solely by the existing reachability-only coverage guard.
+  not solely by the existing reachability-only coverage guard. That coverage
+  MUST be added as a new, dedicated shader and scene; no existing scene's
+  content and no existing reference image may be modified to provide it, so
+  that every pre-existing baseline remains an untouched control for the
+  zero-output-difference criterion. The spec 011 workaround that removed the
+  construct from an existing diagnostic shader therefore stays in place; that
+  shader MUST carry a note recording that the omission is deliberate and that
+  coverage now lives in the new dedicated scene, so the removal is not later
+  mistaken for an oversight.
 - **FR-004**: For an instruction the compiler has classified as uniform
   (its result is identical for every shading point), the JIT backend MUST
   perform the underlying computation once rather than once per shading
   point, matching the interpreter's existing behavior for the same
-  instruction.
+  instruction. The scope is defined by parity, not by instruction family:
+  every place the JIT dispatches an instruction for which the interpreter
+  already short-circuits uniform work MUST be covered. Any such site that
+  cannot be converted safely MUST be listed explicitly with the reason it
+  was excluded; silent omission is not an acceptable outcome.
 - **FR-005**: The change made under FR-004 MUST NOT alter rendered output.
   For every measurement scene, images rendered before and after the change
   MUST agree within the same-configuration noise floor established with the
@@ -232,7 +257,12 @@ implementation of the light-iteration logic remains.
 - **FR-009**: Light iteration for the `illuminance` construct MUST have
   exactly one implementation, invoked by both backends, replacing the
   current pair of independently-written implementations — without changing
-  either backend's observable output.
+  either backend's observable output. Restructuring interpreter source to
+  make that single implementation reachable is permitted without a prior
+  approval checkpoint so long as observable behavior is unchanged; the
+  evidence for "unchanged" is rendered output agreeing within the
+  same-configuration noise floor (the SC-007 standard) plus a clean run of
+  the full existing regression suite before and after.
 - **FR-010**: Every change delivered by this feature that computes a
   rendering result MUST do so by invoking the same underlying
   implementation the interpreter backend already uses, rather than
@@ -244,7 +274,17 @@ implementation of the light-iteration logic remains.
   decision, using the narrowest change that corrects the specific defect
   (no incidental refactoring), and verified against the full existing test
   suite (`ctest -L libshader`, `ctest -L visual`) before and after to
-  confirm zero unintended behavior change elsewhere.
+  confirm zero unintended behavior change elsewhere. The same discipline
+  governs a fix that lands in the shader compiler instead: it is subject to
+  the identical reproduction requirement, approval gate, narrowest-change
+  rule, and before/after verification, because it changes the meaning of
+  compiled shaders for both backends simultaneously. A restructuring of
+  interpreter source that changes no observable behavior — such as making
+  existing light-iteration logic callable from elsewhere under FR-009 — is
+  exempt from the approval gate and from the reproduction requirement,
+  because there is no defect and no behavior change to approve. It remains
+  subject to the full before/after verification above, and its exemption
+  lapses the moment observable behavior would change.
 - **FR-012**: Project documentation recording these three items as open
   issues MUST be updated to reflect their resolved state, including the
   record of spec 011's unmet performance criterion and its outcome under
@@ -301,12 +341,18 @@ implementation of the light-iteration logic remains.
   where the bar is not met, the residual dominant cost is identified.
 - **SC-006**: The ratio gap between a uniform-computation-dominated shader
   and a near-zero-uniform-computation shader, measured at identical scene
-  scale, narrows by a stated, measured amount — establishing that the
-  uniform-density dependency itself was addressed.
+  scale, narrows by more than the measured run-to-run variance of that
+  comparison — establishing that the uniform-density dependency itself was
+  addressed. This is a pass/fail gate with no magnitude floor: any
+  variance-exceeding narrowing passes, and a gap that fails to narrow beyond
+  variance fails the criterion and must be explained. The measured magnitude
+  is reported either way.
 - **SC-007**: Across all three changes, zero rendered-output differences
   exceed the same-configuration noise floor, measured with the project's
   established image-comparison methodology using an unchanged-binary
-  baseline.
+  baseline. This criterion admits no exceptions: no pre-existing reference
+  image is regenerated during this feature, so every existing scene remains
+  a control. New coverage arrives as new scenes with new references.
 - **SC-008**: Exactly one implementation of light iteration for
   `illuminance` remains after this feature, reachable from both backends.
 
@@ -315,8 +361,9 @@ implementation of the light-iteration logic remains.
 - "The JIT backend" refers to openRender's `.slo` LLVM-JIT-compiled shader
   execution path, and "the interpreter" to its `.rslo` bytecode-interpreted
   path; both already ship. This feature changes JIT behavior and fixes one
-  confirmed interpreter defect; the interpreter otherwise remains the
-  reference.
+  confirmed defect affecting the interpreter path — whose root cause may lie
+  in the interpreter itself or in the compiler that produces the instruction
+  it mishandles; the interpreter otherwise remains the reference.
 - The three issues are independent: none blocks another, and each is
   separately deliverable and separately verifiable. They are combined into
   one feature because they share the same origin (spec 011), the same
