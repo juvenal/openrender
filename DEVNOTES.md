@@ -65,6 +65,98 @@
   parallel reimplementation rather than genuine shared-function delegation
   with the interpreter's macro-form `runLights`. See [BUGS.md](DEVNOTES_DETAILS/BUGS.md).
 
+### Review in next steps — shading interpreter and LLVM JIT
+
+Three findings surfaced during spec 012's Phase 0/1 design work (2026-08-24)
+while establishing the light-iteration and `op_*` calling-convention contracts.
+None is in spec 012's scope; each is recorded here so it is not re-derived from
+scratch. All three are **static findings from source reading** — none has an
+empirical reproduction yet, which is exactly what each needs before it becomes
+actionable under spec 012's FR-002 ("interpreter changes require a confirmed
+defect with an empirical repro, not a code-reading-derived one").
+
+- [ ] **`illuminance("category", P, axis, angle)` silently ignores its category
+  in the interpreter.** `DEFOPCODE(IlluminationCat2, "illuminance", 6, ...)`
+  (`src/libshader/shading/shaderOpcodes.h:146`) declares its category operand
+  through `ILLUMINATION2RUNLIGHT_PRE` — which sets up `lightCat` — and then
+  passes `ILLUMINATION_RUNLIGHTS`, the **non**-category run macro, where
+  `ILLUMINATION_RUNCATLIGHTS` is what the 4-operand sibling
+  (`IlluminationCat1`, line 92) correctly uses. Net effect: the 4-argument
+  `illuminance` form runs **all** lights rather than only the named category,
+  and does so without any diagnostic. The declared-then-discarded `lightCat`
+  is what makes this read as an oversight rather than a deliberate choice.
+  Both backends currently agree here (the JIT never reads operand 5 either —
+  see the next item), so no `-rslo`-vs-`-slo` visual test can catch it; it
+  needs a scene with two light categories and a category-filtered
+  `illuminance` to expose. **Next step**: author that scene, confirm the
+  wrong-category lights contribute, then fix under the interpreter-change
+  process (STOP + narrowest change + full regression). Spec-013 candidate.
+  Recorded in `specs/012-jit-parity-followups/research.md` D6 and
+  `contracts/light-iteration.md` §4.
+
+- [ ] **The JIT emitter never lowers the 3- and 4-operand `illuminance` forms
+  at all.** `llvmEmitter.cpp:861-906` reads operands as
+  `[P, N, angle, bodyLabel, exitLabel]` and gates the whole lowering on
+  `ins.operands.size() >= 5`; below that, `exitLabel` stays empty and the
+  emitter takes the `continue` at line 886. No loop scaffolding, no
+  diagnostic — the same silent-drop shape as spec 011's `cfrom` bug, in a
+  construct the coverage guard does not model per-arity. So `illuminance(P)`
+  and `illuminance("cat", P)` produce no lighting contribution under `.slo`
+  while working under `.rslo`. The operand counts are **verified**, not
+  inferred from the interpreter's `DEFOPCODE` arity:
+  `CIlluminationLoop::getCode()` (`src/libshader/compiler/expression.cpp:2354`)
+  emits the IR line as `illuminance [P] [N] [angle] begin end [category]` with
+  each optional operand printed only when non-null, and its constructor
+  (line 2290) fixes which are non-null from the RSL arity (1 core param → `P`;
+  2 → `category`+`P`; 3 → `P`,`N`,`angle`; 4 → all four). `illuminance` is
+  listed in `CIRBuilder`'s `noResultOpcodes`
+  (`src/libshader/compiler/irBuilder.cpp:254-266`), so no token is consumed as
+  a result and every post-mnemonic token lands in `operands`
+  (line 273-278) — giving 3 / 4 / 5 / 6 exactly. **Next step**: a `.sl` probe
+  using the bare `illuminance(P)` form on a lit sphere, rendered under both
+  `shaderformat` settings, should show the divergence immediately. Fix is
+  JIT-side only (arity-aware operand indexing plus the missing scaffolding),
+  so it carries no interpreter STOP. Recorded in `research.md` D6.
+
+- [ ] **The `op_*` callee guarantee for a collapsed uniform call is asserted
+  but not audited.** Spec 012's US2 plans to express uniform-classified
+  instructions as a single call with `n = 1, tags = nullptr`, relying on every
+  `op_*` honouring "execute once, read/write element 0, no tag test". Ops that
+  follow the `IDX`/`ACTIVE` idiom (`src/libshader/shading/rslOps.cpp:40-43`)
+  satisfy that for free, but a scan for uses of `n` outside a loop bound found
+  candidates that may not:
+  - `rslOps.cpp:1093`, `1102`, `1112` — `op_area` / `op_calculatenormal` /
+    `op_depth` forward `n` into `ctx->jitArea`/`jitCalculateNormal`/`jitDepth`.
+    These are derivative-dependent: a real grid width is semantically
+    required, so they are more likely to end up **excluded** from the collapse
+    than cleared.
+  - `rslOps.cpp:803` — `*numPassive = n;` in a conditional/state op; needs
+    confirming as outside the collapsible families.
+  - `rslOps.cpp:836`, `842`, `888`, `894`, `903`, `914`, `920` — light /
+    illuminate / solar ops forwarding `n` to context methods. These are
+    `DEFLIGHTFUNC`, already excluded (that family treats a uniform
+    classification as an error: `scripterror("Invalid uniform lighting call")`).
+  - `rslOps.cpp:555`, `584`, `1094`, `1103` — `if (n > 0 && ACTIVE(tags, 0))`
+    reads element 0 explicitly; verify correctness under `n == 1,
+    tags == nullptr`.
+  The failure mode if this is skipped is nasty and quiet: passing `n = 1` with
+  a **live** `tags` pointer compiles, links, and renders correctly on every
+  scene where vertex 0 happens to be active, diverging only inside
+  conditionals. Recorded as a discharge obligation in
+  `contracts/op-uniform-collapse.md` §2.2/§5 and as a Stream B prerequisite in
+  that spec's `plan.md`.
+
+- [ ] **Pre-existing `numVerts` vs `numRealVertices` asymmetry at SHORT-family
+  JIT call sites.** Distinct from the uniform-dispatch tax above and *not*
+  fixed by it. `llvmEmitter.cpp` passes `numVerts` at all 54 call sites;
+  `numRealVertices` appears nowhere in the file (`grep -c` in `rslOps.cpp` is
+  also 0). But the interpreter's `DEFSHORTOPCODE`/`DEFSHORTFUNC` families use
+  `numRealVertices`, so `environment` (`llvmEmitter.cpp:1640`, `1649`) and
+  `shadow` (line 1674) dispatch over up to 3× the points the interpreter does
+  in derivative-carrying shading contexts (`shading.cpp:771-927`). Correcting
+  it changes JIT output, so it needs its own controlled change with a STOP —
+  not a drive-by fix. Recorded in `research.md` D4.
+
 ## Todos
 
 - [ ] OpenEXR input for textures (output is supported; input/texture reading is missing)
@@ -72,7 +164,8 @@
 - [ ] Patch crack stitching (currently handled via displacement bounds)
 - [x] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md); D3/D4 and D9 remain permanent, documented residuals (not closable by refactor)
 - [ ] PBR path-tracing hider (`"pathtracer"`) + OSL `Bxdf` support — see [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md)
-- [ ] Follow-up JIT/interpreter parity spec (next after 011): `usfroma` interpreter crash, `illuminance`/`runLights` JIT duplication, JIT uniform-dispatch `numVerts` tax (SC-006) — see Open Issues above and `specs/011-jit-opcode-parity/lessons-learned.md`
+- [ ] Follow-up JIT/interpreter parity spec (next after 011): `usfroma` interpreter crash, `illuminance`/`runLights` JIT duplication, JIT uniform-dispatch `numVerts` tax (SC-006) — specified and planned as `specs/012-jit-parity-followups/` (branch `012-jit-parity-followups`); see Open Issues above and `specs/011-jit-opcode-parity/lessons-learned.md`
+- [ ] Spec-013 candidates deferred out of 012, all needing an empirical reproduction first: `illuminance` category ignored by the interpreter's 6-operand form, JIT non-lowering of the 3-/4-operand `illuminance` forms, and the SHORT-family `numVerts`/`numRealVertices` asymmetry — see "Review in next steps" under Open Issues
 
 ## See Also
 
