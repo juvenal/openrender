@@ -3,40 +3,70 @@ name: Deploy Documentation Site
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'docs/site/**'
+      - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+    working-directory: docs/site
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HUGO_VERSION: 0.152.2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v3
-        with:
-          hugo-version: 'latest'
-          extended: true
+      - name: Install Hugo CLI
+        working-directory: ${{ github.workspace }}
+        run: |
+          wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
+          && sudo dpkg -i ${{ runner.temp }}/hugo.deb
+
+      - name: Install Dart Sass
+        working-directory: ${{ github.workspace }}
+        run: sudo snap install dart-sass
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
       - name: Build with Hugo
+        env:
+          # For maximum backward compatibility with Hugo modules
+          HUGO_ENVIRONMENT: production
+          HUGO_ENV: production
         run: |
-          cd docs/site
-          hugo --minify
+          hugo \
+            --minify \
+            --baseURL "${{ steps.pages.outputs.base_url }}/"
+
+      - name: Validate links
+        run: ../tools/link-validator.sh public
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs/site/public
+          path: docs/site/public
 
   deploy:
     environment:
@@ -44,6 +74,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    # Admits: a direct push to master, and any workflow_call invocation (the
+    # release-tag deploy path from release.yml). Reusable-workflow callees
+    # report github.event_name as "workflow_call" (not the caller's original
+    # event), so the release path is gated on that rather than on ref/tag
+    # matching — release.yml's create-release job already confirmed the tag
+    # is on master before calling this workflow. workflow_dispatch from any
+    # branch is deliberately excluded to avoid an unguarded manual deploy.
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'workflow_call'
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

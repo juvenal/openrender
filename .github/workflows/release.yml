@@ -449,3 +449,11 @@ jobs:
           else
             echo "TAP_GITHUB_TOKEN secret not set. Skipping Homebrew tap update."
           fi
+
+  deploy-docs:
+    needs: create-release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-site.yml
