@@ -62,7 +62,7 @@ alongside the change it justifies. Narrative measurements go in
 | `us1-before-libshader.txt` / `us1-before-visual.txt` | T015a | T022 |
 | `us2-before-libshader.txt` / `us2-before-visual.txt` | T032a | T036 |
 | `us3-before-libshader.txt` / `us3-before-visual.txt` | T044a | T046 |
-| `perf-after.txt` | T037 | T037 |
+| `perf-after.txt` | T037 | T037's SC-004/SC-005/SC-006 reporting step, and T052 (whose performance sentence needs the measured figures) |
 
 **Expected test-set delta — state it, never absorb it.** This feature adds
 **exactly two** `add_visual_test` registrations, and each lands *after* some of
@@ -100,6 +100,10 @@ in task-level optimism:
 6. **The FR-006 active/inactive discrimination check** (T035) — it gates T036 and
    may itself have to author new coverage. "No scene covers it" is not a
    passing outcome.
+7. **T003e → T003e1 → T003f → T003g**, which all edit the single file
+   `.github/workflows/deploy-site.yml`. Same-file tasks are never `[P]` here
+   regardless of how independent their *concerns* are; T003h (`release.yml`)
+   is the only `[P]` task in Phase 1b.
 
 ---
 
@@ -118,14 +122,80 @@ until this phase completes.
 > once artifacts exist and an emitter edit can make them stale.
 
 - [ ] T001 Configure and build the unchanged binary in the worktree: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release`, per `COMPILING.txt`
+- [ ] T001a [P] Create the evidence scaffolding **before anything writes to it** — `specs/012-jit-parity-followups/baselines/` and the shared recording file `specs/012-jit-parity-followups/measurements.md`, with one section heading per phase. This task exists in Phase 1 rather than Phase 2 because five Phase 1 tasks (T002, T003, T003a, T003c, T003d) already record into `measurements.md`; creating it in Phase 2 would put its first write before its creation. **Every task that writes to `measurements.md`**, in order: T002, T003, T003a, T003c, T003d, T006, T006a, T007, T008, T008b, T012, T013, T018, T020a, T032, T034, T035, T037, T044, T047. (The before-pair captures T015a/T032a/T044a write to `baselines/`, not here; `measurements.md` records the *derived* comparisons. T053 fills [quickstart.md](./quickstart.md)'s Stage 4 table, not this file.) Independent of T001 — no build is required to create a directory and a Markdown file
 - [ ] T002 Inventory what exists before generating anything: `ls shaders/`, and record in `specs/012-jit-parity-followups/measurements.md` which `.sl` sources have no compiled counterpart. **Expected result in a fresh worktree: all of them** — there is nothing to audit for staleness yet, so the `stat` comparison in [quickstart.md](./quickstart.md) P1 is a no-op at this point and must not be mistaken for a clean bill of health
 - [ ] T003 [P] Generate the full artifact set from `shaders/*.sl` — for each source, `build/src/oshader/oshader -o shaders/<name>.rslo shaders/<name>.sl` and `build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`, using `SHADERS_INCLUDE="$(pwd)/shaders/includes"` for shaders that `#include` `.slh` headers (**not** `-I`, which mis-parses when combined with `-o` and a positional input). Record any source that fails to compile rather than skipping it silently
 - [ ] T003a [P] Reconcile the `perf-manual` harness with SC-005 **before** any timing run, in `tests/visual/CMakeLists.txt`: `add_perf_manual_test` (lines 218-261) defaults `MAX_RATIO` to `0.90` and `tests/visual/test_perf_compare.cpp:83` hard-fails above it. SC-005 states the 90% bar is *"a reported outcome, not a pass/fail gate"*, so as written the harness would fail every scene that has not yet met a stretch goal and would obscure the measurement this feature exists to take. Raise `MAX_RATIO` so the comparison reports rather than gates, and record the change and its justification in `specs/012-jit-parity-followups/measurements.md`. **This does not affect SC-003**: `perf-manual` is its own ctest label, outside both `-L libshader` and `-L visual`, so the regression baselines are untouched
 - [ ] T003b Provision the deploy tree the `<render command>` needs: run `cmake --install build --prefix "$(pwd)/openrender"` (see `INSTALL.md` for the non-sudo prefix workaround), then copy the T003 artifacts into `openrender/shaders/`. Confirm `openrender/{shaders,displays,geometry}` all exist — a direct `orender` invocation with any of them missing fails in a way that looks like a shader bug
 - [ ] T003c Smoke-test the provisioned tree by rendering one known-good existing scene with the `<render command>` and confirming normal exit, so that a later abnormal exit in T012 is attributable to the probe and not to a mis-provisioned environment
-- [ ] T003d Provide a working LLVM-IR dump path for `.slo` modules — the mechanism T008a, T034, and [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §5 all depend on, and which **does not exist today**. Verified 2026-08-25: `oshader` has no IR-dump flag, and `llvm-dis` is on neither `PATH` nor under `/opt/homebrew/opt/llvm/bin` (that prefix does not exist), so the usual "just run `llvm-dis`" fallback is unavailable on this machine. Resolve it in this order: (a) locate the LLVM installation the build actually links against — `grep -i LLVM_DIR build/CMakeCache.txt` — and check for `llvm-dis`/`llvm-bcanalyzer` in its `bin/`; if present, record the absolute path here and stop. (b) Otherwise add a debug flag to `src/oshader/` (e.g. `--emit-llvm` writing `Module::print()` textual IR alongside the bitcode), following the existing CLI conventions in `oshader --help`. Verify the mechanism end-to-end by dumping one existing shader and locating a literal `op_` call site in the output. **No collapse may be emitted and no emitted-form claim may be made until this task passes its own verification** — an unverifiable "expected: `i32 1` and `ptr null`" check is not evidence
+- [ ] T003d Provide a working LLVM-IR dump path for `.slo` modules — the mechanism T006a, T034, and [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §5 all depend on, and which **does not exist today**. Verified 2026-08-25: `oshader` has no IR-dump flag, and `llvm-dis` is on neither `PATH` nor under `/opt/homebrew/opt/llvm/bin` (that prefix does not exist), so the usual "just run `llvm-dis`" fallback is unavailable on this machine. Resolve it in this order: (a) locate the LLVM installation the build actually links against — `grep -i LLVM_DIR build/CMakeCache.txt` — and check for `llvm-dis`/`llvm-bcanalyzer` in its `bin/`; if present, record the absolute path here and stop. (b) Otherwise add a debug flag to `src/oshader/` (e.g. `--emit-llvm` writing `Module::print()` textual IR alongside the bitcode), following the existing CLI conventions in `oshader --help`. Verify the mechanism end-to-end by dumping one existing shader and locating a literal `op_` call site in the output. **No collapse may be emitted and no emitted-form claim may be made until this task passes its own verification** — an unverifiable "expected: `i32 1` and `ptr null`" check is not evidence
 
-**Checkpoint**: `build/src/orender/orender` and `build/src/oshader/oshader` exist; every `shaders/*.sl` has both a `.rslo` and a `.slo` postdating the `oshader` binary; `openrender/` is provisioned and the `<render command>` renders an existing scene successfully; `perf-manual` reports rather than gates.
+### Phase 1b: CI compliance with Constitution Principle VII (independent of the build chain)
+
+**Purpose**: Bring `.github/workflows/` into compliance with Principle VII's
+"Site deployment MUST occur automatically on pushes to \[the default branch\]
+and release tags", raised as `/speckit-analyze` finding **D1** and recorded as
+Gap A / Gap B in [.specify/memory/constitution-v1.1.1-draft.md](../../.specify/memory/constitution-v1.1.1-draft.md) §5.
+
+> **The bracketed substitution above is deliberate, and the amendment is
+> *not* applied.** Principle VII's live text (`constitution.md:46`) literally
+> reads "pushes to main branch"; the v1.1.1 draft that would correct it to the
+> default branch (`master`) is held for review at the maintainer's direction and
+> `constitution.md` remains at 1.1.0, unmodified. T003f therefore points the
+> trigger at `master` while the constitution still says `main` — **this is
+> intentional, not a violation.** No `main` branch has ever existed in this
+> repository (`refs/remotes/origin/HEAD` → `refs/remotes/origin/master`), so a
+> literal reading mandates deploying from a branch that cannot be pushed to.
+> A future `/speckit-analyze` will likely flag this as a Principle VII conflict
+> and score it CRITICAL, since constitution conflicts are auto-CRITICAL in that
+> workflow. The disposition is recorded here so the finding can be resolved by
+> ratifying the draft, not by repointing the trigger back at a nonexistent
+> branch.
+
+> **These tasks gate nothing.** They share no file, no binary, and no
+> measurement state with the JIT work. T004 and everything after it may start
+> before any of T003e-T003i is finished; they live in Phase 1 only because they
+> are setup-class work, not because Phase 2 depends on them. **None of them
+> writes to `measurements.md`**, so T001a's enumerated writer list is unaffected.
+
+> **Consolidation decision (deviation from the literal instruction, stated so it
+> is reviewable).** `docs-deploy.yml` already triggers on push to `master`
+> filtered to `docs/site/**`. Simply repointing `deploy-site.yml` from `main` to
+> `master` would make the two workflows *exact duplicate triggers* — both would
+> build and both would deploy to Pages on every docs push. `concurrency:
+> group: "pages"` serializes them but does **not** dedupe them, and
+> `deploy-site.yml`'s build is inferior on four counts (`hugo-version: 'latest'`
+> unpinned vs. pinned `0.152.2`, no Dart Sass, no `configure-pages`/baseURL, no
+> `fetch-depth: 0` for `.Lastmod`), so the worse build could land last and
+> clobber the good one. **Correction (2026-08-26):** an earlier revision of this
+> callout also cited "no link validation" as a fifth count. That was wrong —
+> `docs-deploy.yml`'s validator script has never existed and its step is a
+> masked no-op, so neither workflow validates links today (see T003e1). The
+> consolidation still holds on the four counts above.
+> T003e-T003i therefore make `deploy-site.yml` the **single** implementation,
+> carrying `docs-deploy.yml`'s build steps, and retire `docs-deploy.yml`. This
+> satisfies every stated requirement — trigger on `master`, concurrency guard
+> present, `release.yml` calls `deploy-site.yml` — without the duplicate deploy.
+
+> **T003e → T003e1 → T003f → T003g are a serial sequence on one file.** All four
+> edit `.github/workflows/deploy-site.yml` (51 lines), so none of them is `[P]` — the
+> `[P]` contract in this file is *different files, no dependencies on incomplete
+> tasks*, and three concurrent edits to one small YAML collide. They are kept as
+> four tasks rather than one so each carries a single reviewable concern; run
+> them in ID order (`T003e1` sorts between `T003e` and `T003f`). T003e1 also
+> creates a new file, `docs/tools/link-validator.sh`, which nothing else touches. **T003h is the only `[P]` task here**: it is the sole task
+> touching `release.yml`, and it may run concurrently with the whole
+> `deploy-site.yml` sequence — but it cannot be *verified* until T003f has added
+> the `workflow_call:` trigger it references.
+
+- [ ] T003e Port the superior build into `.github/workflows/deploy-site.yml`, replacing its current `build` job steps with `docs-deploy.yml`'s: pinned `env: HUGO_VERSION: 0.152.2` installed from the GitHub releases `.deb` (not `peaceiris/actions-hugo@v3` with `hugo-version: 'latest'`), `sudo snap install dart-sass`, `actions/configure-pages@v5` (id `pages`), `hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}/"` with `HUGO_ENVIRONMENT`/`HUGO_ENV: production`, then `actions/upload-pages-artifact@v3` on `docs/site/public`. **Do not port `docs-deploy.yml`'s `./link-validator.sh || true` step as-is — see T003e1**, which owns link validation. Also carry over `defaults: run: { shell: bash, working-directory: docs/site }` and the checkout's `fetch-depth: 0` (needed for Hugo's `.Lastmod` from git history). Do **not** change the trigger block in this task — T003f owns it
+- [ ] T003e1 **Author the link validator that does not exist, then wire it in.** Verified 2026-08-26: `docs-deploy.yml:66` runs `./link-validator.sh || true`, but **no such script exists anywhere** — absent from the worktree, from `master`, and from every commit on every branch (`git log --all -- '*link-validator*'` returns nothing). The `|| true` masks the resulting "no such file" failure, so this step has *always* been a silent no-op, and "link validation" was never a real capability of either workflow. Write `docs/tools/link-validator.sh` — placed outside `src/` and outside the Hugo tree at `docs/site/`, so Hugo never processes it and it cannot leak into `public/`. Requirements: (a) take the built-site directory as `$1`, defaulting to `docs/site/public`, so it is runnable locally against a plain `hugo` build; (b) walk the generated HTML and verify every **internal** `href`/`src` resolves to a file that exists in that directory, resolving `/foo/` to `foo/index.html`; (c) skip external `http(s)://`, `mailto:`, and bare-fragment links — validating outbound URLs makes the deploy depend on third-party uptime; (d) print each broken link as `<source-file>: <target>` and exit non-zero if any were found, exit 0 otherwise; (e) `set -euo pipefail`, `#!/usr/bin/env bash`, `chmod +x`. Wire it into `deploy-site.yml` after the Hugo build as `run: ../tools/link-validator.sh public` (the job's `working-directory` is `docs/site` per T003e) — **without `|| true`**, since suppressing the exit code is precisely what made the original meaningless. **Run it locally against a fresh `hugo --minify` build before wiring it in**: if the existing documentation already contains broken internal links the step will now fail the deploy, so fix them, or report the count back and get a decision. Do not neutralize the gate to make it pass
+- [ ] T003f Fix `.github/workflows/deploy-site.yml`'s trigger block: change `push: branches: [main]` to `[master]` (**no `main` branch has ever existed** in this repository — `refs/remotes/origin/HEAD` → `refs/remotes/origin/master`), keep the `paths: ['docs/site/**']` filter, add `.github/workflows/deploy-site.yml` to that path list so the workflow re-runs when it is itself edited, keep `workflow_dispatch:`, and **add `workflow_call:`** — without a `workflow_call` trigger, T003h's `uses:` reference from `release.yml` fails at workflow-parse time, not at run time
+- [ ] T003g Add the two missing safety guards to `.github/workflows/deploy-site.yml`. (a) A workflow-level `concurrency: { group: "pages", cancel-in-progress: false }` block — currently absent, so a manual dispatch concurrent with a `master` push is an unguarded double-deploy to production Pages. (b) An `if:` gate on the `deploy` job, which today has **none**, meaning any `workflow_dispatch` from any branch publishes to production. **Do not copy `docs-deploy.yml`'s gate verbatim** — its `github.event_name == 'push' && github.ref == 'refs/heads/master'` is *false for a tag push*, so a verbatim port would silently no-op the release-tag deployment T003h exists to add. The gate must admit three paths: a `master` push, a release-tag push, and the `workflow_call` invocation. **Inside a reusable workflow `github.event_name`/`github.ref` reflect the *caller's* event, not the callee's** — verify the final expression against an actual run (or `act`), not by reasoning about it
+- [ ] T003h [P] Add a site-deployment job to `.github/workflows/release.yml` that `uses: ./.github/workflows/deploy-site.yml`, satisfying Principle VII's release-tag clause (Gap A — verified by grep: `release.yml` currently contains **zero** occurrences of hugo, `docs/site`, or pages). The job **must declare `permissions: { contents: read, pages: write, id-token: write }` on itself**: `release.yml`'s workflow-level grant is `contents: write` and nothing else, a called workflow cannot exceed its caller's grant, and the resulting failure surfaces at `actions/deploy-pages` as a permissions error rather than at parse time. Place it `needs: create-release` so it runs only after the tag is confirmed to be on master (existing step, `release.yml:24`). **Note the interaction with T003g(a)**: the `pages` concurrency group is now shared between the docs-push path and the release path, and `cancel-in-progress: false` means a release cut during an in-flight docs deploy *queues* rather than cancelling — this is the intended behaviour, but it can look like a hung release job if it is not expected
+- [ ] T003i Delete `.github/workflows/docs-deploy.yml` **only after T003e-T003h are complete and verified**, since it is the live deployer and its build steps are the source T003e ports from. Removing it earlier leaves the repository with no working Pages deployment. Confirm before deleting that `deploy-site.yml` now carries every capability `docs-deploy.yml` had: pinned Hugo, Dart Sass, `configure-pages`/baseURL, `fetch-depth: 0`, the `pages` concurrency group, and a deploy gate that admits a `master` push. **Link validation is deliberately not on that list** — `docs-deploy.yml`'s `link-validator.sh` step never ran (the script does not exist; see T003e1), so there is no such capability to preserve. What must be confirmed instead is that T003e1's *replacement* validator is present and wired without `|| true`
+
+**Checkpoint**: `build/src/orender/orender` and `build/src/oshader/oshader` exist; every `shaders/*.sl` has both a `.rslo` and a `.slo` postdating the `oshader` binary; `openrender/` is provisioned and the `<render command>` renders an existing scene successfully; `perf-manual` reports rather than gates. Independently, `.github/workflows/` contains exactly one Pages deployer, triggered on `master` pushes to `docs/site/**` and callable from `release.yml`, with both the concurrency guard and the deploy gate in place.
 
 ---
 
@@ -140,15 +210,15 @@ evaluated.
 **No task in this phase is `[P]`** — T007 and T008 additionally require an
 exclusive, quiescent machine.
 
-- [ ] T004 Create `specs/012-jit-parity-followups/baselines/` and the shared recording file `specs/012-jit-parity-followups/measurements.md`, with one section heading per phase. **Every task that writes to `measurements.md`**, in order: T002, T003, T003a, T003c, T003d, T006, T007, T008, T008a, T012, T013, T018, T020a, T032, T034, T035, T037, T044, T047, T053. (The before-pair captures T015a/T032a/T044a write to `baselines/`, not here; `measurements.md` records the *derived* comparisons.) Then capture the pristine compiler/unit baseline: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/base-libshader.txt`, and record the exact pass/fail set (pre-existing failures belong in the baseline, not the blocker list)
+- [ ] T004 Capture the pristine compiler/unit baseline into the scaffolding T001a created: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/base-libshader.txt`, and record the exact pass/fail set (pre-existing failures belong in the baseline, not the blocker list)
 - [ ] T005 Capture the pristine visual baseline: `ctest --test-dir build -L visual --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/base-visual.txt`, recording the exact pass/fail set
 - [ ] T006 Record the same-configuration image noise floor into `specs/012-jit-parity-followups/measurements.md` — SC-007's "within noise" is undefined without it. Method, verbatim from `specs/011-jit-opcode-parity/tasks.md:222` (T048) and `lessons-learned.md:392-396`: render the *same unedited binary* twice for each stochastic raytrace scene, then compare the two runs with the project's 8×8 block-averaged diff metric (the same metric `tests/visual/CMakeLists.txt` uses); record per scene the **max block-avg** and **mean** of that same-binary pair. Spec 011's reference figure for the raytrace probe was max 39.375 / mean 0.0193 — expect the same order of magnitude, and treat any later before/after diff at or below the pair as noise
+- [ ] T006a Capture the **pre-change** emitted-form evidence that T008's bucket assignment depends on and that T034 later compares against: using the IR-dump mechanism from T003d, dump the `op_*` call sites of each of the six measurement shaders against the **unchanged** binary, and record per shader the count of uniform-classified sites in a collapsible family into `specs/012-jit-parity-followups/measurements.md`. Taking this before any emitter edit is what makes SC-004's classification auditable rather than retrofitted. **Sequenced here, ahead of T007/T008, for two reasons**: T008 cannot assign SC-004 buckets without this evidence, and dumping IR is machine load that would perturb the quiescent timing session T007–T008 must share
 - [ ] T007 Establish the run-to-run **variance** baseline (does not exist today; spec 011 reported single-run ratios only — [research.md D7](./research.md)) on a quiescent machine: `for i in 1 2 3 4 5; do ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-var-$i.txt; done`, then record per-scene min/max/spread of the JIT-to-interpreter ratio in `specs/012-jit-parity-followups/measurements.md`. **Use `-V`, not `--output-on-failure`**: `tests/visual/test_perf_compare.cpp` prints the ratio to stdout (lines 75 and 89), and `--output-on-failure` suppresses stdout for every test that *passes* — which, after T003a stops the harness gating on 0.90, is all of them. A variance baseline captured with `--output-on-failure` would be empty
-- [ ] T008 Capture pre-change per-scene ratios in the **same quiescent session** as T007: `ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-before.txt`, and fill the six-row density table from [quickstart.md](./quickstart.md) § 0.3 in `specs/012-jit-parity-followups/measurements.md`. **The "before" figure for each scene is the median of T007's five runs**, not this single run — this run exists to confirm the session is still quiescent and to catch drift between T007 and the density classification. Assign each scene to exactly one SC-004 bucket using the operational definition in spec.md SC-004 (count of uniform-classified dispatch sites in a collapsible family, from the T008a evidence): `sphere-cfrom`/`show_st_hsv`, `sphere-ctransform`/`show_ctransform`, `sphere-matrixops`/`matrix_ops_probe`, `sphere-comparisonlogic`/`comparison_logic_probe`, `sphere-arrayops`/`array_ops_probe`, `sphere-gather`/`gather_named_probe`. **`sphere-gather` was previously labelled "mixed"** — that is not a bucket; count its sites and place it in either "meaningful" or "near-zero control" here, before any after-measurement is taken
-- [ ] T008a Capture the **pre-change** emitted-form evidence that T008's bucket assignment depends on and that T034 later compares against: using the IR-dump mechanism from T003d, dump the `op_*` call sites of each of the six measurement shaders against the **unchanged** binary, and record per shader the count of uniform-classified sites in a collapsible family into `specs/012-jit-parity-followups/measurements.md`. Taking this before any emitter edit is what makes SC-004's classification auditable rather than retrofitted
+- [ ] T008 Capture pre-change per-scene ratios in the **same quiescent session** as T007: `ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-before.txt`, and fill the six-row density table from [quickstart.md](./quickstart.md) § 0.5 in `specs/012-jit-parity-followups/measurements.md`. **The "before" figure for each scene is the median of T007's five runs**, not this single run — this run exists to confirm the session is still quiescent and to catch drift between T007 and the density classification. Assign each scene to exactly one SC-004 bucket using the operational definition in spec.md SC-004 (count of uniform-classified dispatch sites in a collapsible family, from the T006a evidence): `sphere-cfrom`/`show_st_hsv`, `sphere-ctransform`/`show_ctransform`, `sphere-matrixops`/`matrix_ops_probe`, `sphere-comparisonlogic`/`comparison_logic_probe`, `sphere-arrayops`/`array_ops_probe`, `sphere-gather`/`gather_named_probe`. **`sphere-gather` was previously labelled "mixed"** — that is not a bucket; count its sites and place it in either "meaningful" or "near-zero control" here, before any after-measurement is taken
 - [ ] T008b Author the FR-006 discrimination coverage **against the unchanged binary** — this is US2's Red artifact for FR-006 and must exist before T025, not after. First check whether any existing visual-suite scene already exercises a uniform-classified instruction inside a conditional whose predicate is false for the *leading* shading points; **"no existing scene covers it" is not an acceptable stopping point.** If none does, author `shaders/uniform_in_conditional_probe.sl`, the scene pair `examples/rib/tests/sphere-uniform-conditional-reyes.rib` / `-reyes-slo.rib`, **one** new reference image under `tests/visual/reference/` generated from the unchanged binary, and an `add_visual_test` entry in `tests/visual/CMakeLists.txt`. Record the scene chosen or authored in `specs/012-jit-parity-followups/measurements.md`. Modify no existing reference image (SC-007). The reference generated here is the control T035 verifies against — generating it *after* the collapse would make the test unfalsifiable
 
-**Checkpoint**: Baselines exist for regression (T004, T005), image noise (T006), timing variance (T007), timing level (T008), pre-change emitted form (T008a), and FR-006 discrimination coverage (T008b). All three stories may now proceed in parallel.
+**Checkpoint**: Baselines exist for regression (T004, T005), image noise (T006), pre-change emitted form (T006a), timing variance (T007), timing level (T008), and FR-006 discrimination coverage (T008b). All three stories may now proceed in parallel.
 
 ---
 
@@ -231,7 +301,7 @@ collapsed at a family until its callee has been checked.
 
 - [ ] T032a [US2] **Capture US2's own "before" pair, before T033 rebuilds anything** — SC-003 requires an independent before/after pair per change, and by now US1 and/or US3 may have landed, making the Phase 2 `base-*.txt` files stale as US2's reference point: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/us2-before-libshader.txt` and `... -L visual ... | tee .../us2-before-visual.txt`. The emitter edits from T025-T032 are not yet in any built artifact at this point — T033 is what makes them live — so this run legitimately measures the pre-collapse tree
 - [ ] T033 [US2] **Rebuild and regenerate — not `[P]`.** `cmake --build build --target oshader && cmake --build build --config Release`, then regenerate **every** `shaders/*.slo` and its `openrender/shaders/` deploy-tree copy, then run the `stat` audit described in [quickstart.md](./quickstart.md) P1 to confirm all bitcode postdates both the emitter edit and the `oshader` rebuild. **This is the first point in the feature where that audit is meaningful** — T002 ran against an empty artifact set. **Coordination with T045**: T033 and T045 are the same physical operation. Whichever of US2/US3 reaches its rebuild step second **skips its own regeneration and instead re-runs both stories' verification tasks against the single combined regeneration** — do not regenerate twice, and do not treat a `.slo` produced before the other story's source edit as current. If US2 lands second, T045 has already regenerated: run the `stat` audit only, confirm the bitcode postdates *both* stories' edits, and proceed to T034
-- [ ] T034 [US2] Confirm the emitted form using the T003d IR-dump mechanism (**not** an unspecified "dump the call sites" step — no such capability existed before T003d): regenerate the module for a uniform-dense shader with `build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl`, dump its textual IR, and grep the `op_*` call sites. Confirm two things. **(a) FR-006 / contract §2.1**: every uniform-classified instruction calls with `i32 1` **and** `ptr null` — a call with `i32 1` and a live tag pointer is the forbidden combination of [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3, and it passes casual testing because it is only wrong inside conditionals. **(b) FR-010 / contract §3**: for each collapsed site, the callee named in the IR is the **same `op_*` symbol** the pre-change dump from T008a named at that site — only the `n` and `tags` arguments differ. A changed callee means the collapse re-routed the computation instead of narrowing its width, which is an FR-010 violation regardless of whether the image moves. Diff against T008a's dump and record both confirmations in `specs/012-jit-parity-followups/measurements.md`
+- [ ] T034 [US2] Confirm the emitted form using the T003d IR-dump mechanism (**not** an unspecified "dump the call sites" step — no such capability existed before T003d): regenerate the module for a uniform-dense shader with `build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl`, dump its textual IR, and grep the `op_*` call sites. Confirm two things. **(a) FR-006 / contract §2.1**: every uniform-classified instruction calls with `i32 1` **and** `ptr null` — a call with `i32 1` and a live tag pointer is the forbidden combination of [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3, and it passes casual testing because it is only wrong inside conditionals. **(b) FR-010 / contract §3**: for each collapsed site, the callee named in the IR is the **same `op_*` symbol** the pre-change dump from T006a named at that site — only the `n` and `tags` arguments differ. A changed callee means the collapse re-routed the computation instead of narrowing its width, which is an FR-010 violation regardless of whether the image moves. Diff against T006a's dump and record both confirmations in `specs/012-jit-parity-followups/measurements.md`
 - [ ] T035 [US2] Verify FR-006 per-point active/inactive semantics against the coverage T008b authored **before** the change: run the `sphere-uniform-conditional-*` pair (or the pre-identified existing scene) and confirm it still matches the reference image T008b generated from the unchanged binary. This is the single case that discriminates `tags = nullptr` from a live tag pointer, and the failure mode [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3 flags as "most likely to survive casual testing". Record the result in `specs/012-jit-parity-followups/measurements.md`. **Not `[P]`** — it gates T036. **The authoring half of this check has deliberately moved to Phase 2 (T008b)**: a discrimination reference generated after the collapse would be a photograph of whatever the collapse produced, and could not fail
 - [ ] T036 [US2] Run `ctest --test-dir build -L visual --output-on-failure` and confirm zero differences above the T006 noise floor versus **`baselines/us2-before-visual.txt`** (T032a's pair, not the shared `base-*.txt`) — FR-005, SC-007. **If a difference appears** it is most likely the known corner — for a uniform instruction inside an all-inactive block, today's JIT writes nothing while the interpreter writes once, so the change moves the JIT *onto* the reference. **Stop and present it for disposition**; never regenerate a reference image unilaterally. Also run `ctest --test-dir build -L libshader --output-on-failure` against `baselines/us2-before-libshader.txt` (SC-003's second before/after pair)
 
@@ -255,8 +325,14 @@ so the interpreter stays bit-unchanged (FR-009, FR-010, SC-008).
 before and after and confirm output does not move, while confirming by
 inspection that only one implementation remains.
 
-**Red**: the before/after render set — T004 and T005 already captured it against
-the unchanged binary; reuse those files.
+**Red**: the before/after render set, captured by **T044a** immediately before
+T045 makes US3's edits live. **Do not reuse T004/T005's `base-*.txt`** — by the
+time US3 rebuilds, US1 and/or US2 may already have landed, so the Phase 2
+baseline describes a different tree than the one US3 is changing, and diffing
+against it would attribute their deltas to this refactor. The Stage 0
+`base-*.txt` is the feature-level control, not any story's "before"
+([contracts/light-iteration.md](./contracts/light-iteration.md) §5,
+[quickstart.md](./quickstart.md) § 3.1).
 
 **Process note**: US3 proceeds under FR-009's refactor exemption — **no STOP**,
 because both backends discard the category on every form the JIT actually lowers
@@ -302,8 +378,9 @@ can be written.
 
 ### Phase dependencies
 
-- **Phase 1 (Setup)** → no dependencies; the worktree has no `build/` yet, so nothing precedes it
-- **Phase 2 (Foundational)** → depends on Phase 1. **BLOCKS Phases 3, 4, 5**
+- **Phase 1 (Setup, T001-T003d)** → no dependencies; the worktree has no `build/` yet, so nothing precedes it
+- **Phase 1b (CI compliance, T003e-T003i)** → no dependencies, and **blocks nothing**. It touches only `.github/workflows/` plus one new file under `docs/tools/`, shares no file or measurement state with the JIT work, and needs no *openRender* build (T003e1 does want a local `hugo --minify` run to trial its validator, which is unrelated to the C++ build and to any timing state). Internally: T003e → T003e1 → T003f → T003g are **serial** (one file, `deploy-site.yml`; T003e1 additionally creates `docs/tools/link-validator.sh`, which nothing else touches); T003h is `[P]` against that sequence (it edits `release.yml` only) but cannot be verified until T003f adds `workflow_call:`; T003i is last, since it deletes the live deployer whose steps T003e ports from. Run it whenever convenient — it is *not* a prerequisite for Phase 2
+- **Phase 2 (Foundational)** → depends on Phase 1 (T001-T003d) **only**, not on Phase 1b. **BLOCKS Phases 3, 4, 5**
 - **Phase 3 (US1, P1)** → depends on Phase 2; independent of Phases 4 and 5
 - **Phase 4 (US2, P2)** → depends on Phase 2; independent of Phases 3 and 5
 - **Phase 5 (US3, P3)** → depends on Phase 2; independent of Phases 3 and 4
@@ -353,6 +430,16 @@ live would measure the change against itself and make SC-003 unfalsifiable.
 
 ### Parallel opportunities
 
+- **Phase 1b (T003e–T003i), against literally anything**: the widest parallel
+  window in this file. It needs no openRender build, no render artifacts and no
+  quiescent machine, and writes only to `.github/workflows/` plus one new file
+  under `docs/tools/`, so it can run alongside Phase 1, the
+  Phase 2 baselines, or any story — including during the exclusive-machine
+  timing runs, which it cannot perturb. (T003e1 runs `hugo` locally to trial its
+  validator; a Hugo build is not a timing-sensitive workload and touches nothing
+  the measurements read.) Note this is parallelism *of the phase
+  against other phases*: internally T003e → T003e1 → T003f → T003g are serial on
+  one file, and only T003h carries `[P]`.
 - **Across stories, after Phase 2**: all of Phase 3, Phase 4's T023–T032, and
   Phase 5's T038–T043 may proceed concurrently — authoring and unit verification
   only. Their rebuild/regenerate/measure tails (T033, T037, T045) serialize, and
@@ -389,13 +476,18 @@ T030 [P] [US2] Collapse DEFSHORTOPCODE sites, or record zero real uses
 
 ### MVP first (User Story 1 only)
 
-1. Phase 1 (T001–T003) — make the worktree buildable and its artifacts trustworthy
-2. Phase 2 (T004–T008) — capture every "before"
+1. Phase 1 (T001–T003d, including T001a and T003a–T003d) — make the worktree buildable and its artifacts trustworthy
+2. Phase 2 (T004–T008b, including T006a) — capture every "before"
 3. Phase 3 (T009–T022) — reproduce, STOP, fix, cover
 4. **STOP and validate**: the crash is gone in 5/5 runs, a new executing test covers it, no existing reference image moved
 
 US1 alone is a shippable increment: it is the only one of the three that is an
 outright failure a shader author can hit today with no workaround.
+
+**Phase 1b (T003e–T003i) is deliberately absent from this sequence** and from
+the incremental-delivery sequence below. It is CI-compliance work that shares
+nothing with the JIT chain; it neither blocks nor is blocked by any step here.
+Slot it in wherever convenient — see § Phase dependencies.
 
 ### Incremental delivery
 
@@ -421,6 +513,12 @@ the exclusive-machine timing run (T037), and the US1 STOP (T015), which gates
 only Developer A. Note that A and C both touch `src/libshader/shading/execute.cpp`
 — A at the array-access opcode, C at the light-iteration macros — so their edits
 must be coordinated even though they are logically independent.
+
+Phase 1b is assignable to any of the three (or a fourth person) at any time,
+including before Phase 2 completes: it touches only `.github/workflows/` plus
+one new file under `docs/tools/`, and coordinates with nobody. Its own internal
+order is serial — T003e → T003e1 → T003f → T003g on `deploy-site.yml`, T003h on
+`release.yml` alongside them, T003i last.
 
 ---
 

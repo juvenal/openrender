@@ -315,7 +315,7 @@ implementation of the light-iteration logic remains.
 ### Measurable Outcomes
 
 - **SC-001**: The reproduction case for the varying-index string-array read
-  terminates abnormally in at least 5 of 5 repeated runs before the fix, and
+  terminates abnormally in all 5 of 5 repeated runs before the fix, and
   completes normally in 100% of runs (minimum 5) after it. If the pre-fix
   behaviour proves intermittent rather than deterministic, the observed
   reproduction rate is recorded and the criterion is met by any non-zero

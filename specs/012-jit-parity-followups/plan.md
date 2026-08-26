@@ -120,7 +120,7 @@ Principle III is flagged NON-NEGOTIABLE, so each story names its failing-test
 artifact explicitly rather than asserting compliance:
 
 - **US1 — Red is FR-002's empirical reproduction.** A minimal shader + scene
-  that terminates the interpreter abnormally in ≥5 of 5 runs (SC-001). This
+  that terminates the interpreter abnormally in all 5 of 5 runs (SC-001). This
   reproduction is simultaneously the Red test and the authorization for the
   fix; no source may be edited before it exists and has been presented at the
   STOP. Green is the same scene rendering normally and its new reference image
@@ -158,7 +158,8 @@ specs/012-jit-parity-followups/
 │   └── requirements.md            # Spec quality checklist (16/16, from /speckit-specify)
 ├── measurements.md                # Implementation output — the single evidence ledger:
 │                                  #   density classification, variance, before/after ratios,
-│                                  #   SC-001..SC-008 disposition (created T004)
+│                                  #   SC-001..SC-008 disposition (created T001a, ahead of
+│                                  #   its first writer in Phase 1)
 ├── baselines/                     # Implementation output — captured run logs, version-tracked
 │                                  #   so a "before" survives the session and is auditable.
 │                                  #   NOT /tmp: a /tmp baseline cannot be diffed after a reboot
@@ -226,8 +227,8 @@ honestly rather than optimistically.
 |---|---|
 | S0.1 Build the unchanged binary, then **generate** the full artifact set and **provision** the deploy tree — this worktree is fresh: `shaders/` holds only `.sl` sources (verified 2026-08-25: zero `.slo`, zero `.rslo`) and `openrender/` does not exist at all, so there is nothing yet to audit for staleness. Compile every `.rslo` and `.slo` (`SHADERS_INCLUDE` for header-including shaders, never `-I`), run `cmake --install build --prefix "$(pwd)/openrender"`, copy the artifacts in, and smoke-test one render. Establish a working LLVM-IR dump path in the same step — `oshader` has no IR-dump flag and `llvm-dis` is not installed anywhere reachable, so US2's emitted-form check has no tool until one is provided. The `stat` staleness audit becomes meaningful only from the first regeneration onward (US2/US3), where a stale `.slo` produces garbage at JIT call sites, silently | Everything downstream reads these artifacts; generating them mid-stream would make one stream's baseline describe a different tree than another's |
 | S0.2 Capture the pristine `ctest -L libshader` + `ctest -L visual` baseline | SC-003 demands before/after *per change*. If any stream lands first, its result becomes the next stream's "before" |
-| S0.3 Capture the run-to-run **variance** baseline across the six `perf-manual` scenes on a quiescent machine, and the same-binary **image** noise floor | SC-004 and SC-006 are defined relative to a timing variance that does not exist yet; SC-007's "within noise" is undefined without the image floor |
-| S0.4 Capture pre-change `perf-manual` ratios (same session as S0.3), the pre-change **emitted-form** evidence via S0.1's dump path, and the FR-006 uniform-in-conditional discrimination reference — all against the **unchanged** binary | Timing is only comparable within one quiescent measurement session; and a discrimination reference generated after the collapse would be a photograph of whatever the collapse produced, and so could never fail |
+| S0.3 Capture the same-binary **image** noise floor and, via S0.1's dump path, the pre-change **emitted-form** evidence — both *before* the timing session opens | SC-007's "within noise" is undefined without the image floor. The emitted-form evidence comes first for two reasons: S0.4's SC-004 bucket assignment consumes it, and dumping IR is machine load that would perturb the quiescent session S0.4 depends on |
+| S0.4 Capture the run-to-run **variance** baseline across the six `perf-manual` scenes and the pre-change ratios, both in one quiescent session, plus the FR-006 uniform-in-conditional discrimination reference — all against the **unchanged** binary | SC-004 and SC-006 are defined relative to a timing variance that does not exist yet, and timing is only comparable within one quiescent measurement session. A discrimination reference generated after the collapse would be a photograph of whatever the collapse produced, and so could never fail |
 
 ### Parallel streams (after Stream 0)
 
@@ -248,7 +249,8 @@ against the same predicate.
 
 1. **Stream 0 in full**, before anything lands.
 2. **Every `perf-manual` timing run** — exclusive, quiescent machine. Nothing
-   else compiles or renders during S0.3, S0.4, or US2's post-change run.
+   else compiles or renders during S0.4 or US2's post-change run — which is
+   also why S0.3's IR dump is taken before that session opens rather than inside it.
 3. **`.slo` regeneration after any emitter or shading-runtime change**, with a
    `stat` check before every `-slo` verification. B and C cannot independently
    regenerate; whichever lands second regenerates once for both and re-verifies.

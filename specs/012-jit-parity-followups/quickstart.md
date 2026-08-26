@@ -123,10 +123,41 @@ test can be distinguished later.
 in this guide are meant to be copy-pasted individually, and a shell that never
 ran block 0.1 would expand `$B` to the empty string and `tee` straight to `/`.
 
+**Block order matters.** 0.2 and 0.3 are deliberately taken *before* the timing
+session in 0.4–0.5: the density table in 0.5 consumes 0.3's site counts, and
+both rendering (0.2) and IR dumping (0.3) are machine load that would perturb
+a quiescent measurement. This is the same ordering `tasks.md` uses
+(T006 → T006a → T007 → T008).
+
+```bash
+# 0.2  Same-binary IMAGE NOISE FLOOR — SC-007's "within noise" is undefined
+#      without it. Render the SAME UNEDITED BINARY TWICE per stochastic
+#      raytrace scene and compare the two runs with the project's 8x8
+#      block-averaged diff metric (the same metric tests/visual uses).
+#      Record per scene the max block-avg and the mean.
+```
+
+**Expected**: the same order of magnitude as spec 011's reference figures for
+the raytrace probe — max 39.375, mean 0.0193
+(`specs/011-jit-opcode-parity/lessons-learned.md:392-396`). Any later
+before/after diff at or below this pair is noise, not a change.
+
+```bash
+# 0.3  Pre-change EMITTED-FORM evidence — against the UNCHANGED binary, and
+#      before the timing session opens.
+```
+
+Using the P3 dump path, record the `op_*` call sites emitted today for each of
+the six measurement shaders: the callee symbol name and the `n`/`tags`
+arguments at each site, plus the per-shader count of uniform-classified sites
+in a collapsible family. Two later steps depend on this and neither can run
+without it: 0.5's density table is built from these counts, and Stage 2.3's
+check is a *diff* against these call sites.
+
 ```bash
 B=specs/012-jit-parity-followups/baselines
 
-# 0.2  Run-to-run VARIANCE baseline — quiescent machine, nothing else running.
+# 0.4  Run-to-run VARIANCE baseline — quiescent machine, nothing else running.
 #      Repeat and record the spread. This does not exist yet; spec 011
 #      reported single-run ratios only.
 #      -V, NOT --output-on-failure: test_perf_compare.cpp prints the ratio to
@@ -151,7 +182,7 @@ it is reconciled, SC-003's regression evidence is unaffected.
 ```bash
 B=specs/012-jit-parity-followups/baselines
 
-# 0.3  Pre-change ratios — same quiescent session as 0.2
+# 0.5  Pre-change ratios — same quiescent session as 0.4
 ctest --test-dir build -L perf-manual -V 2>&1 | tee $B/perf-before.txt
 ```
 
@@ -160,11 +191,12 @@ requires the density recorded alongside, so classification is auditable rather
 than retrofitted). Density is **not** an impression: it is the count of
 uniform-classified dispatch sites in a collapsible family, per
 [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §4,
-taken from pre-change evidence. SC-004 admits **exactly two** buckets — "has
-meaningful uniform computation" or "does not" — and **no third 'mixed' bucket
-exists**. Every scene lands in one of the two before any timing is compared.
+taken from 0.3's pre-change evidence. SC-004 admits **exactly two** buckets —
+"has meaningful uniform computation" or "does not" — and **no third 'mixed'
+bucket exists**. Every scene lands in one of the two before any timing is
+compared.
 
-| Scene | Shader | Uniform-site count | Bucket | Ratio (before, median of 0.2) | Variance |
+| Scene | Shader | Uniform-site count (from 0.3) | Bucket | Ratio (before, median of 0.4) | Variance |
 |---|---|---|---|---|---|
 | `sphere-cfrom` | `show_st_hsv` | | expected: *not* meaningful — the control | | |
 | `sphere-ctransform` | `show_ctransform` | | | | |
@@ -174,36 +206,18 @@ exists**. Every scene lands in one of the two before any timing is compared.
 | `sphere-gather` | `gather_named_probe` | | **count it and assign one bucket** — do not record "mixed" | | |
 
 ```bash
-# 0.4  Same-binary IMAGE NOISE FLOOR — SC-007's "within noise" is undefined
-#      without it. Render the SAME UNEDITED BINARY TWICE per stochastic
-#      raytrace scene and compare the two runs with the project's 8x8
-#      block-averaged diff metric (the same metric tests/visual uses).
-#      Record per scene the max block-avg and the mean.
+# 0.6  FR-006 discrimination check — authored against the UNCHANGED binary.
 ```
 
-**Expected**: the same order of magnitude as spec 011's reference figures for
-the raytrace probe — max 39.375, mean 0.0193
-(`specs/011-jit-opcode-parity/lessons-learned.md:392-396`). Any later
-before/after diff at or below this pair is noise, not a change.
-
-```bash
-# 0.5  Pre-change EMITTED-FORM evidence and the FR-006 discrimination check —
-#      both must exist against the UNCHANGED binary.
-```
-
-- Using the P3 dump path, record the `op_*` call sites emitted today for a
-  uniform-dense shader: the callee symbol name and the `n`/`tags` arguments at
-  each site. Stage 2.3's check is a *diff* against this, and cannot be run
-  without it.
-- Author the FR-006 discrimination probe now: a shader with a uniform
-  instruction inside a conditional whose early points are inactive
-  (`shaders/uniform_in_conditional_probe.sl`), its scene pair
-  (`examples/rib/tests/sphere-uniform-conditional-reyes.rib` and
-  `-reyes-slo.rib`), its reference image, and its `add_visual_test` entry.
-  **Generated now, before the collapse exists.** A reference generated
-  afterwards is a photograph of whatever the collapse produced and could never
-  fail — including for the forbidden `n = 1` with live `tags` form this check
-  exists to catch.
+Author the FR-006 discrimination probe now: a shader with a uniform
+instruction inside a conditional whose early points are inactive
+(`shaders/uniform_in_conditional_probe.sl`), its scene pair
+(`examples/rib/tests/sphere-uniform-conditional-reyes.rib` and
+`-reyes-slo.rib`), its reference image, and its `add_visual_test` entry.
+**Generated now, before the collapse exists.** A reference generated
+afterwards is a photograph of whatever the collapse produced and could never
+fail — including for the forbidden `n = 1` with live `tags` form this check
+exists to catch.
 
 ---
 
@@ -232,7 +246,7 @@ for i in 1 2 3 4 5; do
 done
 ```
 
-**Expected (before the fix)**: abnormal termination in at least 5 of 5 runs.
+**Expected (before the fix)**: abnormal termination in all 5 of 5 runs.
 If it proves intermittent, record the observed rate — SC-001 admits any
 non-zero pre-fix failure rate paired with a 100% post-fix pass rate.
 
@@ -318,7 +332,7 @@ existing scene stays a control (SC-007).
 
 ### 2.1 Red
 
-Already captured as Stage 0.2 + 0.3. That *is* the failing evidence: the
+Already captured as Stage 0.4 + 0.5. That *is* the failing evidence: the
 JIT-to-interpreter ratio exceeds 1.0 on uniform-dense scenes.
 
 ### 2.2 Discharge the callee audit — before emitting any collapse
@@ -346,7 +360,7 @@ build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl
 # then dump the module's op_* call sites via the P3 / T003d mechanism
 ```
 
-**Expected — two independent checks against the Stage 0.5 pre-change dump:**
+**Expected — two independent checks against the Stage 0.3 pre-change dump:**
 
 1. **Collapse form.** Uniform-classified instructions call with `i32 1` **and**
    `ptr null`. A call with `i32 1` and a live tag pointer is a contract
@@ -355,7 +369,7 @@ build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl
    It produces correct output wherever vertex 0 is active and diverges only
    inside conditionals, so it will pass casual testing.
 2. **Delegation (FR-010).** At each collapsed site, the callee named in the IR
-   is the **same `op_*` symbol** the Stage 0.5 dump named at that site. Only the
+   is the **same `op_*` symbol** the Stage 0.3 dump named at that site. Only the
    `n` and `tags` arguments differ. A changed callee means the collapse
    re-routed the computation rather than short-circuiting it, which is the
    reimplementation FR-010 forbids — and no image test would catch it as long
@@ -377,7 +391,7 @@ interpreter writes once. The change moves the JIT *onto* the reference, so the
 difference is a JIT correction. **Stop and present it** for disposition. Never
 regenerate a reference image unilaterally (SC-007 admits no exceptions).
 
-Additionally **run** the FR-006 discrimination scene authored in Stage 0.5 — a
+Additionally **run** the FR-006 discrimination scene authored in Stage 0.6 — a
 uniform instruction inside a conditional with early points inactive, the case
 that discriminates `tags = nullptr` from a live tag pointer. US2 only runs it;
 it must not be authored or re-referenced here, or it stops being a check.
@@ -388,11 +402,11 @@ it must not be authored or re-referenced here, or it stops being a check.
 B=specs/012-jit-parity-followups/baselines
 
 # Exclusive, quiescent machine. Nothing else compiles or renders.
-# -V again, for the same reason as 0.2: the ratio is printed on the PASS path.
+# -V again, for the same reason as 0.4: the ratio is printed on the PASS path.
 ctest --test-dir build -L perf-manual -V 2>&1 | tee $B/perf-after.txt
 ```
 
-**Expected** (all comparisons against the **median** of the 0.2 runs, not
+**Expected** (all comparisons against the **median** of the 0.4 runs, not
 against `perf-before.txt` as a single sample):
 - SC-004: ratio improves by more than that scene's variance on 100% of scenes
   with meaningful uniform computation; zero scenes regress. `sphere-cfrom`
@@ -464,7 +478,7 @@ accepted from `/tmp`.
 | SC-002 | `ctest -R <probe>` passes **and** the temporary-revert run in Stage 1.3 shows it failing without the fix |
 | SC-003 | Three independent before/after pairs — `baselines/us1-before-*.txt`, `baselines/us2-before-*.txt`, `baselines/us3-before-*.txt`, each captured immediately before its own story's change goes live — which for US1 is right after the STOP (mid-stage), and for US2/US3 is just before their end-of-stage rebuild. One per change, not one for the feature; the Stage 0 `base-*.txt` is the feature-level control, not any story's "before" |
 | SC-004 / SC-005 / SC-006 | `baselines/perf-var-1..5.txt` (median = the "before" figure), `baselines/perf-before.txt`, `baselines/perf-after.txt` + the filled density table with every scene in one of exactly two buckets. SC-005 reported, not gated |
-| SC-007 | Full visual suite after each change, compared against the Stage 0.4 noise floor; `git status` shows **zero modified** files under `tests/visual/reference/` and **exactly two added** — the US1 probe image and the FR-006 discrimination image |
+| SC-007 | Full visual suite after each change, compared against the Stage 0.2 noise floor; `git status` shows **zero modified** files under `tests/visual/reference/` and **exactly two added** — the US1 probe image and the FR-006 discrimination image |
 | SC-008 | The specific-symbol grep from Stage 3.2, its output recorded verbatim in `measurements.md` |
 | FR-012 | `DEVNOTES_DETAILS/BUGS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, `DEVNOTES.md`, and spec 011's records updated — **and** `docs/site/content/development/releases.md` gains an entry covering the crash fix and the measured performance change. Constitution Principle VII is satisfied by that edit; **no exemption is claimed** |
 
