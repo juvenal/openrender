@@ -349,7 +349,10 @@ ratio ~1.03)**.
 `sphere-comparisonlogic` (1147), `sphere-arrayops` (1151), `sphere-gather`
 (1155) — carrying **only** the `perf-manual` label (comment at 224-227), so
 they never run in a default or CI `ctest` invocation. Run via
-`ctest --test-dir build -L perf-manual --output-on-failure`.
+`ctest --test-dir build -L perf-manual -V` — **`-V`, not `--output-on-failure`**:
+`tests/visual/test_perf_compare.cpp` prints the ratio to stdout on the PASS path
+(lines 75 and 89), and `--output-on-failure` discards stdout for passing tests,
+throwing away the only number these scenes exist to produce.
 
 Scene→shader mapping, which fixes each scene's uniform-computation density
 for SC-004's auditability requirement:
@@ -361,7 +364,7 @@ for SC-004's auditability requirement:
 | `sphere-matrixops` | `matrix_ops_probe` | high |
 | `sphere-comparisonlogic` | `comparison_logic_probe` | high |
 | `sphere-arrayops` | `array_ops_probe` | highest (1.15–1.46) |
-| `sphere-gather` | `gather_named_probe` | mixed (gather-dominated) |
+| `sphere-gather` | `gather_named_probe` | gather-dominated — **unclassified**; "mixed" is not one of SC-004's two buckets, so this scene must be counted and assigned before any after-measurement (`tasks.md` T008) |
 
 **Gap in the apparatus that this feature must close**: SC-004 and SC-006 both
 key on "measured run-to-run variance", and **no variance baseline exists** —

@@ -112,7 +112,7 @@ Evaluated against `.specify/memory/constitution.md` v1.1.0.
 | IV. CLI Interface | **PASS** | No CLI surface changes. `oshader`/`orender` flags and behaviour are untouched |
 | V. Minimal Dependencies | **PASS** | Zero new dependencies |
 | VI. Platform Targeting (Linux/macOS only) | **PASS** | No platform-specific code. macOS JIT symbol resolution is unchanged — no new `op_*` symbol is introduced by US2 or US3 |
-| VII. Documentation and Site Management (Hugo `site/`) | **EXEMPT** | Cited directly from the spec's Assumptions: *"This feature does not update the Hugo `site/` documentation (Constitution Principle VII) — it is internal engine defect-fix and performance work, not new user-facing functionality that the site's content model tracks."* FR-012's applicable updates are `DEVNOTES_DETAILS/BUGS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, and spec 011's records |
+| VII. Documentation and Site Management (Hugo `site/`) | **PASS** | FR-012 updates the Hugo site at `docs/site/content/development/releases.md` (T052) alongside the internal notes `DEVNOTES_DETAILS/BUGS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, and spec 011's records. The site entry is proportionate: the US1 crash is reachable from ordinary RSL source and the US2 work changes user-observable JIT performance. No exemption is claimed. The existing `.github/workflows` deployment automation is unchanged by this feature and requires no task |
 
 ### Principle III mapping (Red before Green, per story)
 
@@ -156,6 +156,13 @@ specs/012-jit-parity-followups/
 │   └── light-iteration.md         #   single shared light-iteration entry point (SC-008)
 ├── checklists/
 │   └── requirements.md            # Spec quality checklist (16/16, from /speckit-specify)
+├── measurements.md                # Implementation output — the single evidence ledger:
+│                                  #   density classification, variance, before/after ratios,
+│                                  #   SC-001..SC-008 disposition (created T004)
+├── baselines/                     # Implementation output — captured run logs, version-tracked
+│                                  #   so a "before" survives the session and is auditable.
+│                                  #   NOT /tmp: a /tmp baseline cannot be diffed after a reboot
+│                                  #   and cannot be reviewed alongside the change it justifies
 └── tasks.md                       # Phase 2 output (/speckit-tasks — NOT created here)
 ```
 
@@ -217,10 +224,10 @@ honestly rather than optimistically.
 
 | Step | Why it cannot be parallelised |
 |---|---|
-| S0.1 Build the unchanged binary; `stat` every `.slo` in `shaders/` and the deploy tree against the `oshader` binary and emitter sources; regenerate any stale artifact | A stale `.slo` produces garbage at JIT call sites, silently. Every downstream comparison inherits this |
+| S0.1 Build the unchanged binary, then **generate** the full artifact set and **provision** the deploy tree — this worktree is fresh: `shaders/` holds only `.sl` sources (verified 2026-08-25: zero `.slo`, zero `.rslo`) and `openrender/` does not exist at all, so there is nothing yet to audit for staleness. Compile every `.rslo` and `.slo` (`SHADERS_INCLUDE` for header-including shaders, never `-I`), run `cmake --install build --prefix "$(pwd)/openrender"`, copy the artifacts in, and smoke-test one render. Establish a working LLVM-IR dump path in the same step — `oshader` has no IR-dump flag and `llvm-dis` is not installed anywhere reachable, so US2's emitted-form check has no tool until one is provided. The `stat` staleness audit becomes meaningful only from the first regeneration onward (US2/US3), where a stale `.slo` produces garbage at JIT call sites, silently | Everything downstream reads these artifacts; generating them mid-stream would make one stream's baseline describe a different tree than another's |
 | S0.2 Capture the pristine `ctest -L libshader` + `ctest -L visual` baseline | SC-003 demands before/after *per change*. If any stream lands first, its result becomes the next stream's "before" |
-| S0.3 Capture the run-to-run **variance** baseline across the six `perf-manual` scenes on a quiescent machine | SC-004 and SC-006 are both defined relative to a variance that does not exist yet |
-| S0.4 Capture pre-change `perf-manual` ratios (same session as S0.3) | Timing is only comparable within one quiescent measurement session |
+| S0.3 Capture the run-to-run **variance** baseline across the six `perf-manual` scenes on a quiescent machine, and the same-binary **image** noise floor | SC-004 and SC-006 are defined relative to a timing variance that does not exist yet; SC-007's "within noise" is undefined without the image floor |
+| S0.4 Capture pre-change `perf-manual` ratios (same session as S0.3), the pre-change **emitted-form** evidence via S0.1's dump path, and the FR-006 uniform-in-conditional discrimination reference — all against the **unchanged** binary | Timing is only comparable within one quiescent measurement session; and a discrimination reference generated after the collapse would be a photograph of whatever the collapse produced, and so could never fail |
 
 ### Parallel streams (after Stream 0)
 
@@ -252,15 +259,22 @@ against the same predicate.
    point cannot preserve both backends' observable behaviour ([D6](./research.md)
    names the trigger). Absent that trigger, US3 proceeds under the FR-009
    refactor exemption.
+6. **The FR-006 discrimination check must be authored before the collapse
+   exists.** Its probe shader, scene pair, and reference image are produced in
+   S0.4 against the unchanged binary; US2 only *runs* it. Authoring it after the
+   collapse would bake the collapse's own output into the reference, leaving a
+   check that passes unconditionally — including for the `n = 1` with live
+   `tags` form that `contracts/op-uniform-collapse.md` §2.3 specifically
+   forbids, which is exactly the failure this check exists to catch.
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-No violations. The Constitution Check passes on all seven principles (VII by
-the spec's own explicit exemption), and this feature adds no project, no
-dependency, no build target, and no abstraction layer. Table intentionally
-empty.
+No violations. The Constitution Check passes on all seven principles — VII by
+actually updating `docs/site/content/development/releases.md` under FR-012
+(T052), not by exemption — and this feature adds no project, no dependency, no
+build target, and no abstraction layer. Table intentionally empty.
 
 ## Post-Design Constitution Re-check
 
@@ -277,7 +291,10 @@ Re-evaluated after Phase 1 (`data-model.md`, `contracts/`, `quickstart.md`).
   rather than an afterthought.
 - **IV / V / VI** — unaffected by the design; no CLI surface, no dependency, no
   platform-specific path introduced.
-- **VII** — exemption unchanged and still sourced from the spec's Assumptions.
+- **VII** — still PASS, and now discharged by a concrete artifact rather than
+  by argument: T052 writes the `docs/site/content/development/releases.md`
+  entry and T053 verifies it landed. No exemption is claimed anywhere in this
+  feature's artifacts.
 
 **Result: PASS.** No new violations introduced by the design; Complexity
 Tracking remains empty.

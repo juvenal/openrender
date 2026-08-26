@@ -30,6 +30,60 @@ Every story's Red artifact is a task in this file and precedes its Green tasks.
   exceptions). New coverage arrives only as new scenes with new references.
 - **`ri` depends on `libshader_shading`, never the reverse.**
 
+### `<render command>` — the literal expansion used by every task below
+
+Tasks that render a scene directly (rather than through `ctest`) write
+`<render command>`. It expands to exactly this, run from the worktree root:
+
+```bash
+SHADERS="$(pwd)/openrender/shaders" \
+ORENDERHOME="$(pwd)/openrender" \
+DISPLAYS="$(pwd)/openrender/displays" \
+GEOMETRIES="$(pwd)/openrender/geometry" \
+build/src/orender/orender <rib>
+```
+
+The `openrender/` deploy tree it points at **does not exist in a fresh
+worktree** — it is gitignored and only produced by `cmake --install`. T003b
+provisions it; no direct-render task can run before that.
+
+### Baseline and evidence locations
+
+Captured run logs go under `specs/012-jit-parity-followups/baselines/`, **not
+`/tmp`**: a `/tmp` file cannot be diffed after a reboot and cannot be reviewed
+alongside the change it justifies. Narrative measurements go in
+`specs/012-jit-parity-followups/measurements.md`. The filenames used below are:
+
+| File under `baselines/` | Captured by | Consumed by |
+|---|---|---|
+| `base-libshader.txt` / `base-visual.txt` | T004 / T005 | the per-stream "before" tasks T015a, T032a, T044a |
+| `perf-var-1..5.txt` | T007 | T008, T037 |
+| `perf-before.txt` | T008 | T037 |
+| `us1-before-libshader.txt` / `us1-before-visual.txt` | T015a | T022 |
+| `us2-before-libshader.txt` / `us2-before-visual.txt` | T032a | T036 |
+| `us3-before-libshader.txt` / `us3-before-visual.txt` | T044a | T046 |
+| `perf-after.txt` | T037 | T037 |
+
+**Expected test-set delta — state it, never absorb it.** This feature adds
+**exactly two** `add_visual_test` registrations, and each lands *after* some of
+the baselines above are already captured. A `-L visual` diff against a baseline
+taken before a registration therefore shows an added test entry, which is
+expected; **any other** test-set difference — a third addition, a removal, a
+rename — is a finding, not bookkeeping. Every reported comparison must name its
+expected delta explicitly:
+
+| Baseline | Registrations it predates | Expected added entries in a later run |
+|---|---|---|
+| `base-visual.txt` (T005) | T008b, T020 | 2 — the FR-006 discrimination scene and the `usfroma` probe scene |
+| `us1-before-visual.txt` (T015a) | T020 only | 1 — the `usfroma` probe scene |
+| `us2-before-visual.txt` (T032a) | none | 0 — diffs clean |
+| `us3-before-visual.txt` (T044a) | none | 0 — diffs clean |
+
+US1's before-pair unavoidably predates its own test registration: the probe
+scene's reference image (T020) can only be generated from a build where the
+crash is fixed, so the test cannot exist while the defect does. That is why
+US1's expected delta is 1 and not 0.
+
 ## Hard serialization points — never mark these `[P]`
 
 Reproduced from [plan.md](./plan.md) § Execution Model so they cannot be lost
@@ -55,11 +109,23 @@ in task-level optimism:
 The worktree has no `build/` directory yet — nothing can be compiled or measured
 until this phase completes.
 
-- [ ] T001 Configure and build the unchanged binary in the worktree: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release`, per `COMPILING.txt`
-- [ ] T002 Run the `.slo` staleness audit from [quickstart.md](./quickstart.md) P1: `stat -f '%Sm %N' -t '%F %T' shaders/*.slo build/src/oshader/oshader src/libshader/compiler/llvmEmitter.cpp src/libshader/shading/rslOps.cpp | sort`, and record which `shaders/*.slo` predate `oshader` or the emitter/runtime sources
-- [ ] T003 Regenerate every stale artifact found in T002 with `build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl` (using `SHADERS_INCLUDE="$(pwd)/shaders/includes"` for shaders that `#include` `.slh` headers — **not** `-I`, which mis-parses with `-o`), then refresh the matching copies under `openrender/shaders/`
+> **Worktree reality check (verified 2026-08-25).** This worktree contains
+> **zero** `.slo` and **zero** `.rslo` files — `shaders/` holds only `.sl`
+> sources — and the gitignored `openrender/` deploy tree **does not exist**.
+> Phase 1 therefore *generates* the artifact set and *provisions* the deploy
+> tree. It is not the staleness audit the quickstart's P1 describes for a
+> populated tree; that audit becomes meaningful only from T033/T045 onward,
+> once artifacts exist and an emitter edit can make them stale.
 
-**Checkpoint**: `build/src/orender/orender` and `build/src/oshader/oshader` exist; no `.slo` predates its inputs.
+- [ ] T001 Configure and build the unchanged binary in the worktree: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release`, per `COMPILING.txt`
+- [ ] T002 Inventory what exists before generating anything: `ls shaders/`, and record in `specs/012-jit-parity-followups/measurements.md` which `.sl` sources have no compiled counterpart. **Expected result in a fresh worktree: all of them** — there is nothing to audit for staleness yet, so the `stat` comparison in [quickstart.md](./quickstart.md) P1 is a no-op at this point and must not be mistaken for a clean bill of health
+- [ ] T003 [P] Generate the full artifact set from `shaders/*.sl` — for each source, `build/src/oshader/oshader -o shaders/<name>.rslo shaders/<name>.sl` and `build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`, using `SHADERS_INCLUDE="$(pwd)/shaders/includes"` for shaders that `#include` `.slh` headers (**not** `-I`, which mis-parses when combined with `-o` and a positional input). Record any source that fails to compile rather than skipping it silently
+- [ ] T003a [P] Reconcile the `perf-manual` harness with SC-005 **before** any timing run, in `tests/visual/CMakeLists.txt`: `add_perf_manual_test` (lines 218-261) defaults `MAX_RATIO` to `0.90` and `tests/visual/test_perf_compare.cpp:83` hard-fails above it. SC-005 states the 90% bar is *"a reported outcome, not a pass/fail gate"*, so as written the harness would fail every scene that has not yet met a stretch goal and would obscure the measurement this feature exists to take. Raise `MAX_RATIO` so the comparison reports rather than gates, and record the change and its justification in `specs/012-jit-parity-followups/measurements.md`. **This does not affect SC-003**: `perf-manual` is its own ctest label, outside both `-L libshader` and `-L visual`, so the regression baselines are untouched
+- [ ] T003b Provision the deploy tree the `<render command>` needs: run `cmake --install build --prefix "$(pwd)/openrender"` (see `INSTALL.md` for the non-sudo prefix workaround), then copy the T003 artifacts into `openrender/shaders/`. Confirm `openrender/{shaders,displays,geometry}` all exist — a direct `orender` invocation with any of them missing fails in a way that looks like a shader bug
+- [ ] T003c Smoke-test the provisioned tree by rendering one known-good existing scene with the `<render command>` and confirming normal exit, so that a later abnormal exit in T012 is attributable to the probe and not to a mis-provisioned environment
+- [ ] T003d Provide a working LLVM-IR dump path for `.slo` modules — the mechanism T008a, T034, and [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §5 all depend on, and which **does not exist today**. Verified 2026-08-25: `oshader` has no IR-dump flag, and `llvm-dis` is on neither `PATH` nor under `/opt/homebrew/opt/llvm/bin` (that prefix does not exist), so the usual "just run `llvm-dis`" fallback is unavailable on this machine. Resolve it in this order: (a) locate the LLVM installation the build actually links against — `grep -i LLVM_DIR build/CMakeCache.txt` — and check for `llvm-dis`/`llvm-bcanalyzer` in its `bin/`; if present, record the absolute path here and stop. (b) Otherwise add a debug flag to `src/oshader/` (e.g. `--emit-llvm` writing `Module::print()` textual IR alongside the bitcode), following the existing CLI conventions in `oshader --help`. Verify the mechanism end-to-end by dumping one existing shader and locating a literal `op_` call site in the output. **No collapse may be emitted and no emitted-form claim may be made until this task passes its own verification** — an unverifiable "expected: `i32 1` and `ptr null`" check is not evidence
+
+**Checkpoint**: `build/src/orender/orender` and `build/src/oshader/oshader` exist; every `shaders/*.sl` has both a `.rslo` and a `.slo` postdating the `oshader` binary; `openrender/` is provisioned and the `<render command>` renders an existing scene successfully; `perf-manual` reports rather than gates.
 
 ---
 
@@ -74,13 +140,15 @@ evaluated.
 **No task in this phase is `[P]`** — T007 and T008 additionally require an
 exclusive, quiescent machine.
 
-- [ ] T004 Create the shared recording file `specs/012-jit-parity-followups/measurements.md` (every later measurement task appends to it: T006, T007, T008, T012, T013, T034, T037, T044, T046, T053) with one section heading per phase, then capture the pristine compiler/unit baseline: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee /tmp/base-libshader.txt`, and record the exact pass/fail set there (pre-existing failures belong in the baseline, not the blocker list)
-- [ ] T005 Capture the pristine visual baseline: `ctest --test-dir build -L visual --output-on-failure 2>&1 | tee /tmp/base-visual.txt`, recording the exact pass/fail set
+- [ ] T004 Create `specs/012-jit-parity-followups/baselines/` and the shared recording file `specs/012-jit-parity-followups/measurements.md`, with one section heading per phase. **Every task that writes to `measurements.md`**, in order: T002, T003, T003a, T003c, T003d, T006, T007, T008, T008a, T012, T013, T018, T020a, T032, T034, T035, T037, T044, T047, T053. (The before-pair captures T015a/T032a/T044a write to `baselines/`, not here; `measurements.md` records the *derived* comparisons.) Then capture the pristine compiler/unit baseline: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/base-libshader.txt`, and record the exact pass/fail set (pre-existing failures belong in the baseline, not the blocker list)
+- [ ] T005 Capture the pristine visual baseline: `ctest --test-dir build -L visual --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/base-visual.txt`, recording the exact pass/fail set
 - [ ] T006 Record the same-configuration image noise floor into `specs/012-jit-parity-followups/measurements.md` — SC-007's "within noise" is undefined without it. Method, verbatim from `specs/011-jit-opcode-parity/tasks.md:222` (T048) and `lessons-learned.md:392-396`: render the *same unedited binary* twice for each stochastic raytrace scene, then compare the two runs with the project's 8×8 block-averaged diff metric (the same metric `tests/visual/CMakeLists.txt` uses); record per scene the **max block-avg** and **mean** of that same-binary pair. Spec 011's reference figure for the raytrace probe was max 39.375 / mean 0.0193 — expect the same order of magnitude, and treat any later before/after diff at or below the pair as noise
-- [ ] T007 Establish the run-to-run **variance** baseline (does not exist today; spec 011 reported single-run ratios only — [research.md D7](./research.md)) on a quiescent machine: `for i in 1 2 3 4 5; do ctest --test-dir build -L perf-manual --output-on-failure 2>&1 | tee /tmp/perf-var-$i.txt; done`, then record per-scene min/max/spread of the JIT-to-interpreter ratio in `specs/012-jit-parity-followups/measurements.md`
-- [ ] T008 Capture pre-change per-scene ratios in the **same quiescent session** as T007: `ctest --test-dir build -L perf-manual --output-on-failure 2>&1 | tee /tmp/perf-before.txt`, and fill the six-row density table from [quickstart.md](./quickstart.md) § 0.3 (`sphere-cfrom`/`show_st_hsv` = near-zero control, `sphere-ctransform`/`show_ctransform` = low, `sphere-matrixops`/`matrix_ops_probe` = high, `sphere-comparisonlogic`/`comparison_logic_probe` = high, `sphere-arrayops`/`array_ops_probe` = highest, `sphere-gather`/`gather_named_probe` = mixed) in `specs/012-jit-parity-followups/measurements.md`, recording each scene's uniform-computation density alongside its ratio so SC-004's classification is auditable rather than retrofitted
+- [ ] T007 Establish the run-to-run **variance** baseline (does not exist today; spec 011 reported single-run ratios only — [research.md D7](./research.md)) on a quiescent machine: `for i in 1 2 3 4 5; do ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-var-$i.txt; done`, then record per-scene min/max/spread of the JIT-to-interpreter ratio in `specs/012-jit-parity-followups/measurements.md`. **Use `-V`, not `--output-on-failure`**: `tests/visual/test_perf_compare.cpp` prints the ratio to stdout (lines 75 and 89), and `--output-on-failure` suppresses stdout for every test that *passes* — which, after T003a stops the harness gating on 0.90, is all of them. A variance baseline captured with `--output-on-failure` would be empty
+- [ ] T008 Capture pre-change per-scene ratios in the **same quiescent session** as T007: `ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-before.txt`, and fill the six-row density table from [quickstart.md](./quickstart.md) § 0.3 in `specs/012-jit-parity-followups/measurements.md`. **The "before" figure for each scene is the median of T007's five runs**, not this single run — this run exists to confirm the session is still quiescent and to catch drift between T007 and the density classification. Assign each scene to exactly one SC-004 bucket using the operational definition in spec.md SC-004 (count of uniform-classified dispatch sites in a collapsible family, from the T008a evidence): `sphere-cfrom`/`show_st_hsv`, `sphere-ctransform`/`show_ctransform`, `sphere-matrixops`/`matrix_ops_probe`, `sphere-comparisonlogic`/`comparison_logic_probe`, `sphere-arrayops`/`array_ops_probe`, `sphere-gather`/`gather_named_probe`. **`sphere-gather` was previously labelled "mixed"** — that is not a bucket; count its sites and place it in either "meaningful" or "near-zero control" here, before any after-measurement is taken
+- [ ] T008a Capture the **pre-change** emitted-form evidence that T008's bucket assignment depends on and that T034 later compares against: using the IR-dump mechanism from T003d, dump the `op_*` call sites of each of the six measurement shaders against the **unchanged** binary, and record per shader the count of uniform-classified sites in a collapsible family into `specs/012-jit-parity-followups/measurements.md`. Taking this before any emitter edit is what makes SC-004's classification auditable rather than retrofitted
+- [ ] T008b Author the FR-006 discrimination coverage **against the unchanged binary** — this is US2's Red artifact for FR-006 and must exist before T025, not after. First check whether any existing visual-suite scene already exercises a uniform-classified instruction inside a conditional whose predicate is false for the *leading* shading points; **"no existing scene covers it" is not an acceptable stopping point.** If none does, author `shaders/uniform_in_conditional_probe.sl`, the scene pair `examples/rib/tests/sphere-uniform-conditional-reyes.rib` / `-reyes-slo.rib`, **one** new reference image under `tests/visual/reference/` generated from the unchanged binary, and an `add_visual_test` entry in `tests/visual/CMakeLists.txt`. Record the scene chosen or authored in `specs/012-jit-parity-followups/measurements.md`. Modify no existing reference image (SC-007). The reference generated here is the control T035 verifies against — generating it *after* the collapse would make the test unfalsifiable
 
-**Checkpoint**: Baselines exist for regression (T004, T005), image noise (T006), timing variance (T007), and timing level (T008). All three stories may now proceed in parallel.
+**Checkpoint**: Baselines exist for regression (T004, T005), image noise (T006), timing variance (T007), timing level (T008), pre-change emitted form (T008a), and FR-006 discrimination coverage (T008b). All three stories may now proceed in parallel.
 
 ---
 
@@ -102,23 +170,25 @@ test while every pre-existing reference image stays untouched.
 - [ ] T009 [P] [US1] Write the minimal probe shader `shaders/usfroma_probe.sl` performing a varying-index read of a fixed-length `uniform string` array consumed **inline** in an expression — the shape recorded at `specs/011-jit-opcode-parity/triage-results.md:85`, `if (usarr[findex] == "a")`. The read must be inline because `rsloStringSpecifier` (`src/libshader/compiler/rslo.y:342-347`) forces `SLC_UNIFORM` onto a bare `string`, so no RSL string *variable* can hold a varying value
 - [ ] T010 [P] [US1] Author the scene pair `examples/rib/tests/sphere-usfroma-reyes.rib` (pins `Option "shaderformat" "rslo"`) and `examples/rib/tests/sphere-usfroma-reyes-slo.rib` (pins `"slo"`), modelled on the existing `sphere-arrayops-*` scenes
 - [ ] T011 [US1] Compile the probe to bytecode: `build/src/oshader/oshader -o shaders/usfroma_probe.rslo shaders/usfroma_probe.sl`
-- [ ] T012 [US1] Reproduce the crash 5×: `for i in 1 2 3 4 5; do <render command> examples/rib/tests/sphere-usfroma-reyes.rib; echo "run $i exit=$?"; done`, recording the exit status of each run in `specs/012-jit-parity-followups/measurements.md`
+- [ ] T012 [US1] Reproduce the crash 5× using the `<render command>` expansion defined in Standing rules above (requires T003b's provisioned `openrender/` tree): `for i in 1 2 3 4 5; do SHADERS="$(pwd)/openrender/shaders" ORENDERHOME="$(pwd)/openrender" DISPLAYS="$(pwd)/openrender/displays" GEOMETRIES="$(pwd)/openrender/geometry" build/src/orender/orender examples/rib/tests/sphere-usfroma-reyes.rib; echo "run $i exit=$?"; done`, recording the exit status of each run in `specs/012-jit-parity-followups/measurements.md`
 - [ ] T013 [US1] Record the observed reproduction rate against SC-001 in `specs/012-jit-parity-followups/measurements.md` — 5/5 abnormal termination is the expected result; if intermittent, record the rate (SC-001 admits any non-zero pre-fix failure rate paired with a 100% post-fix pass rate)
 
 ### Root cause and approval gate
 
 - [ ] T014 [US1] Diagnose the root cause read-only across `src/libshader/shading/execute.cpp` (interpreter handling of the `usfroma` instruction) and `src/libshader/compiler/rslo.y` + `src/libshader/compiler/expression.cpp` (which instruction form the compiler chooses), and determine which side is at fault. **Change no source in this task**
 - [ ] T015 [US1] **🛑 MANDATORY STOP — maintainer approval required.** Present: the T012/T013 reproduction evidence recorded in `specs/012-jit-parity-followups/measurements.md`, the confirmed root cause, which side it lies on (interpreter — `src/libshader/shading/execute.cpp` — or compiler — `src/libshader/compiler/rslo.y` / `expression.cpp`), and the narrowest proposed change naming the exact file and line range. If the fix is compiler-side, the presentation MUST additionally state that it alters the meaning of shader artifacts already compiled by the previous compiler, for **both** backends at once (FR-002, FR-011). Wait for explicit confirmation. **Not `[P]` under any circumstance**
+- [ ] T015a [US1] **Capture US1's own "before" pair — after the STOP, before T016 makes the fix live.** SC-003 requires three *independent* before/after pairs, one per change, and Phase 2's pristine files are only valid as the "before" for whichever stream lands first. The tree here still contains the defect and none of US1's fix, so this is a genuine pre-change capture requiring no revert: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/us1-before-libshader.txt` and `ctest --test-dir build -L visual --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/us1-before-visual.txt`. **This task must not be moved after T016 or T017.** A capture taken once the fix is live photographs the post-change state, so T022 would diff the fixed tree against itself and could never fail — the same defect FR-006's discrimination reference exists to avoid. If US1 is the first stream to land, these files will be identical to `base-*.txt` apart from T008b's added entry, and that identity is itself worth recording
 
 ### Green — fix and permanent coverage
 
-- [ ] T016 [US1] Apply the approved narrowest change in the approved file (`src/libshader/shading/execute.cpp` if interpreter-side, `src/libshader/compiler/rslo.y` or `src/libshader/compiler/expression.cpp` if compiler-side). No incidental refactoring (FR-011)
+- [ ] T016 [US1] Apply the approved narrowest change in the approved file (`src/libshader/shading/execute.cpp` if interpreter-side, `src/libshader/compiler/rslo.y` or `src/libshader/compiler/expression.cpp` if compiler-side). No incidental refactoring (FR-011). **FR-010 applies here too**: if the fix routes the varying-index read through an existing array-access path, it must *call* that path, not restate its indexing arithmetic at the crash site — a second copy of the stride math is exactly the drift FR-010 exists to prevent
 - [ ] T017 [US1] Rebuild (`cmake --build build --config Release`) and regenerate **both** probe artifacts: `build/src/oshader/oshader -o shaders/usfroma_probe.rslo shaders/usfroma_probe.sl` and `build/src/oshader/oshader --jit -o shaders/usfroma_probe.slo shaders/usfroma_probe.sl`; if the fix was compiler-side, regenerate **every** `shaders/*.slo` and `shaders/*.rslo` plus the deploy-tree copies, because the compiler change altered their meaning
-- [ ] T018 [US1] Re-run the reproduction 5× against `examples/rib/tests/sphere-usfroma-reyes.rib` and confirm 5/5 normal completion (SC-001), recording results in `specs/012-jit-parity-followups/measurements.md`
+- [ ] T018 [US1] Re-run the reproduction 5× against `examples/rib/tests/sphere-usfroma-reyes.rib` with the same `<render command>` expansion as T012 and confirm 5/5 normal completion (SC-001), recording results in `specs/012-jit-parity-followups/measurements.md`
 - [ ] T019 [US1] Verify the per-point element selection in `shaders/usfroma_probe.sl` matches a hand-computed expectation and the uniform-indexed equivalent, and that `examples/rib/tests/sphere-usfroma-reyes-slo.rib`'s output matches `examples/rib/tests/sphere-usfroma-reyes.rib`'s within the visual-regression tolerance (spec Acceptance Scenarios 1 and 2)
 - [ ] T020 [US1] Generate **one new** reference image for the probe scene under `tests/visual/reference/` and register the scene pair via `add_visual_test` in `tests/visual/CMakeLists.txt`, following the existing `sphere-arrayops-*` entries. Modify no existing reference image (FR-003, SC-007)
+- [ ] T020a [US1] Produce SC-002's **negative** evidence — the half that distinguishes "a test exists" from "a test that would fail if the defect returned". Stash the T016 fix (a temporary local revert of the approved change only, never `git stash` — the stash stack is shared across worktrees), rebuild, regenerate the probe artifacts, and confirm `ctest --test-dir build -R usfroma --output-on-failure` **fails**. Restore the fix, rebuild, and confirm it passes again. Record both outcomes in `specs/012-jit-parity-followups/measurements.md`. Without this, SC-002's "would fail if the defect returned" clause is asserted, not demonstrated. **This revert is not a baseline capture and must not be used as one** — US1's before-pair is T015a's, taken before T016, and the revert here is a transient state that ends with the fix restored
 - [ ] T021 [US1] Add the FR-003 deliberate-omission note to the spec 011 diagnostic shader that had the construct removed (`shaders/array_ops_probe.sl`), recording that the omission is intentional and that coverage now lives in `shaders/usfroma_probe.sl` / `examples/rib/tests/sphere-usfroma-reyes.rib`, so the removal is not later mistaken for an oversight
-- [ ] T022 [US1] Run the full regression and diff against the Phase 2 baseline: `ctest --test-dir build -R usfroma --output-on-failure`, `ctest --test-dir build -L libshader --output-on-failure`, `ctest --test-dir build -L visual --output-on-failure`; confirm the new test passes (SC-002) and zero tests newly fail versus `/tmp/base-libshader.txt` and `/tmp/base-visual.txt` (SC-003), and confirm `git status` shows no modified file under `tests/visual/reference/` other than the one new image (SC-007)
+- [ ] T022 [US1] Run the full regression and diff against **US1's own before-pair** (`baselines/us1-before-libshader.txt`, `baselines/us1-before-visual.txt` from T015a — not the shared `base-*.txt`, which may already reflect another stream's landed change): `ctest --test-dir build -R usfroma --output-on-failure`, `ctest --test-dir build -L libshader --output-on-failure`, `ctest --test-dir build -L visual --output-on-failure`; confirm the new test passes (SC-002) and zero tests newly fail (SC-003), and confirm `git status` shows no modified file under `tests/visual/reference/` — only added ones (SC-007). Apply the expected-delta rule from Standing rules: `-L visual` gains exactly **one** entry (T020's probe scene) relative to `us1-before-visual.txt`, and `-L libshader` gains none
 
 **Checkpoint**: US1 is complete and independently deliverable — SC-001, SC-002, and SC-003's first before/after pair are satisfied. **This is the MVP.**
 
@@ -159,14 +229,15 @@ collapsed at a family until its callee has been checked.
 
 ### Green — output must not move
 
-- [ ] T033 [US2] **Rebuild and regenerate — not `[P]`.** `cmake --build build --target oshader && cmake --build build --config Release`, then regenerate **every** `shaders/*.slo` and its deploy-tree copy, then re-run the T002 `stat` audit to confirm all bitcode postdates both the emitter edit and the `oshader` rebuild
-- [ ] T034 [US2] Inspect the emitted IR for a uniform-dense shader — `build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl`, then dump the module's `op_*` call sites — and confirm uniform-classified instructions call with `i32 1` **and** `ptr null` ([quickstart.md](./quickstart.md) § 2.3)
-- [ ] T035 [US2] Verify per-point active/inactive semantics (FR-006) on a scene exercising a uniform instruction inside a conditional where **early points are inactive** — the single case that discriminates `tags = nullptr` from a live tag pointer, and the failure mode [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3 flags as "most likely to survive casual testing". First identify by name a visual-suite scene that already covers it. **"No existing scene covers it" is not an acceptable outcome** — if none does, author the coverage the same way US1 does: a new `shaders/uniform_in_conditional_probe.sl` (uniform-classified instruction inside an `if` whose predicate is false for the leading shading points), a new `examples/rib/tests/sphere-uniform-conditional-reyes.rib` / `-reyes-slo.rib` pair, ONE new reference image, and an `add_visual_test` entry in `tests/visual/CMakeLists.txt` — under the same SC-007 discipline (no existing reference image modified). Record the scene chosen or authored in `specs/012-jit-parity-followups/measurements.md`. **Not `[P]`** — it gates T036
-- [ ] T036 [US2] Run `ctest --test-dir build -L visual --output-on-failure` and confirm zero differences above the T006 noise floor versus `/tmp/base-visual.txt` (FR-005, SC-007). **If a difference appears** it is most likely the known corner — for a uniform instruction inside an all-inactive block, today's JIT writes nothing while the interpreter writes once, so the change moves the JIT *onto* the reference. **Stop and present it for disposition**; never regenerate a reference image unilaterally. Also run `ctest --test-dir build -L libshader --output-on-failure` against `/tmp/base-libshader.txt` (SC-003's second before/after pair)
+- [ ] T032a [US2] **Capture US2's own "before" pair, before T033 rebuilds anything** — SC-003 requires an independent before/after pair per change, and by now US1 and/or US3 may have landed, making the Phase 2 `base-*.txt` files stale as US2's reference point: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/us2-before-libshader.txt` and `... -L visual ... | tee .../us2-before-visual.txt`. The emitter edits from T025-T032 are not yet in any built artifact at this point — T033 is what makes them live — so this run legitimately measures the pre-collapse tree
+- [ ] T033 [US2] **Rebuild and regenerate — not `[P]`.** `cmake --build build --target oshader && cmake --build build --config Release`, then regenerate **every** `shaders/*.slo` and its `openrender/shaders/` deploy-tree copy, then run the `stat` audit described in [quickstart.md](./quickstart.md) P1 to confirm all bitcode postdates both the emitter edit and the `oshader` rebuild. **This is the first point in the feature where that audit is meaningful** — T002 ran against an empty artifact set. **Coordination with T045**: T033 and T045 are the same physical operation. Whichever of US2/US3 reaches its rebuild step second **skips its own regeneration and instead re-runs both stories' verification tasks against the single combined regeneration** — do not regenerate twice, and do not treat a `.slo` produced before the other story's source edit as current. If US2 lands second, T045 has already regenerated: run the `stat` audit only, confirm the bitcode postdates *both* stories' edits, and proceed to T034
+- [ ] T034 [US2] Confirm the emitted form using the T003d IR-dump mechanism (**not** an unspecified "dump the call sites" step — no such capability existed before T003d): regenerate the module for a uniform-dense shader with `build/src/oshader/oshader --jit -o /tmp/probe.slo shaders/array_ops_probe.sl`, dump its textual IR, and grep the `op_*` call sites. Confirm two things. **(a) FR-006 / contract §2.1**: every uniform-classified instruction calls with `i32 1` **and** `ptr null` — a call with `i32 1` and a live tag pointer is the forbidden combination of [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3, and it passes casual testing because it is only wrong inside conditionals. **(b) FR-010 / contract §3**: for each collapsed site, the callee named in the IR is the **same `op_*` symbol** the pre-change dump from T008a named at that site — only the `n` and `tags` arguments differ. A changed callee means the collapse re-routed the computation instead of narrowing its width, which is an FR-010 violation regardless of whether the image moves. Diff against T008a's dump and record both confirmations in `specs/012-jit-parity-followups/measurements.md`
+- [ ] T035 [US2] Verify FR-006 per-point active/inactive semantics against the coverage T008b authored **before** the change: run the `sphere-uniform-conditional-*` pair (or the pre-identified existing scene) and confirm it still matches the reference image T008b generated from the unchanged binary. This is the single case that discriminates `tags = nullptr` from a live tag pointer, and the failure mode [contracts/op-uniform-collapse.md](./contracts/op-uniform-collapse.md) §2.3 flags as "most likely to survive casual testing". Record the result in `specs/012-jit-parity-followups/measurements.md`. **Not `[P]`** — it gates T036. **The authoring half of this check has deliberately moved to Phase 2 (T008b)**: a discrimination reference generated after the collapse would be a photograph of whatever the collapse produced, and could not fail
+- [ ] T036 [US2] Run `ctest --test-dir build -L visual --output-on-failure` and confirm zero differences above the T006 noise floor versus **`baselines/us2-before-visual.txt`** (T032a's pair, not the shared `base-*.txt`) — FR-005, SC-007. **If a difference appears** it is most likely the known corner — for a uniform instruction inside an all-inactive block, today's JIT writes nothing while the interpreter writes once, so the change moves the JIT *onto* the reference. **Stop and present it for disposition**; never regenerate a reference image unilaterally. Also run `ctest --test-dir build -L libshader --output-on-failure` against `baselines/us2-before-libshader.txt` (SC-003's second before/after pair)
 
 ### Green — performance (exclusive machine)
 
-- [ ] T037 [US2] **Exclusive, quiescent machine — not `[P]`; nothing else compiles or renders.** Run `ctest --test-dir build -L perf-manual --output-on-failure 2>&1 | tee /tmp/perf-after.txt`, then record in `specs/012-jit-parity-followups/measurements.md`: **SC-004** — ratio improves by more than that scene's T007 variance on 100% of scenes with meaningful uniform computation and zero scenes regress (`sphere-cfrom` showing no measurable change is a **conforming** outcome, not a failure); **SC-006** — the `sphere-arrayops` vs `sphere-cfrom` gap at identical scale narrows by more than the variance of that comparison (pass/fail, no magnitude floor; report the magnitude either way); **SC-005** — per scene, whether the JIT reached ≤90% of the interpreter, and where unmet, the residual dominant cost
+- [ ] T037 [US2] **Exclusive, quiescent machine — not `[P]`; nothing else compiles or renders.** Run `ctest --test-dir build -L perf-manual -V 2>&1 | tee specs/012-jit-parity-followups/baselines/perf-after.txt` (**`-V`, not `--output-on-failure`** — see T007: the ratio is printed to stdout and suppressed for passing tests), then record in `specs/012-jit-parity-followups/measurements.md`, comparing against the **median** of T007's runs: **SC-004** — ratio improves by more than that scene's T007 variance on 100% of scenes T008 placed in the "meaningful uniform computation" bucket, and zero scenes regress (`sphere-cfrom` showing no measurable change is a **conforming** outcome, not a failure); **SC-006** — the `sphere-arrayops` vs `sphere-cfrom` gap at identical scale narrows by more than the variance of that comparison (pass/fail, no magnitude floor; report the magnitude either way); **SC-005** — per scene, whether the JIT reached ≤90% of the interpreter, reported and not gated (T003a removed the harness's gate), and where unmet, the residual dominant cost
 
 **Checkpoint**: US2 is complete and independently deliverable — FR-004 … FR-008, SC-004, SC-005, SC-006, and SC-003's second before/after pair are satisfied.
 
@@ -193,16 +264,17 @@ because both backends discard the category on every form the JIT actually lowers
 convergence changes no observable behaviour. Full before/after verification is
 still required.
 
-- [ ] T038 [US3] Design the converged entry point in `src/libshader/shading/shading.cpp`, retaining a **category parameter** — the interpreter's 4-operand `illuminance` path (`IlluminationCat1`, `src/libshader/shading/shaderOpcodes.h:92`) genuinely uses it via `ILLUMINATION_RUNCATLIGHTS`; the no-category call passes the no-category value `0`, exactly as `NORMALLIGHT_PRE` already does ([contracts/light-iteration.md](./contracts/light-iteration.md) §2.3)
+- [ ] T038 [US3] Design the converged entry point in `src/libshader/shading/shading.cpp`, retaining a **category parameter** — the interpreter's 4-operand `illuminance` path (`IlluminationCat1`, `src/libshader/shading/shaderOpcodes.h:92`) genuinely uses it via `ILLUMINATION_RUNCATLIGHTS`; the no-category call passes the no-category value `0`, exactly as `NORMALLIGHT_PRE` already does ([contracts/light-iteration.md](./contracts/light-iteration.md) §2.3). **Give the converged function a name distinct from `runLights` / `runCategoryLights`** (e.g. `iterateLights`). Those two names survive T040 as the interpreter's macro *wrappers* in `src/libshader/shading/execute.cpp:422-517` — only the `CShadingContext` *methods* are retired — so reusing either name would make T047's SC-008 grep return live code and destroy the evidence that exactly one implementation remains. Record the chosen name here so T047 can grep for the retired symbols precisely
 - [ ] T039 [US3] Implement the single light-iteration function in `src/libshader/shading/shading.cpp` reproducing the **macro form's** semantics: the macro's cache-validity predicate `!*aTag & !*lTag` (not the method's `tags[i] != 0 || lightingTags[i] == 0`) and the macro's category rule that a light with `categories == NULL` **is** included under `invertCatMatch`. The method's better cache predicate is deliberately **not** adopted here — it may be proposed afterwards as an interpreter change with its own STOP, once a single implementation exists to change ([contracts/light-iteration.md](./contracts/light-iteration.md) §2.2)
 - [ ] T040 [US3] Route the interpreter's opcode bodies through the converged function by rewriting the `runLights` / `runCategoryLights` macro wrappers in `src/libshader/shading/execute.cpp:422-517` to call it, leaving `enterLight`/`exitLight` sequencing, the `currentLight` walk, `numActive`/`numPassive` bookkeeping, and `SHADERFLAGS_NONAMBIENT` handling unchanged ([contracts/light-iteration.md](./contracts/light-iteration.md) §2.4)
 - [ ] T041 [US3] Route the JIT through the same function by rewriting `jitIlluminanceBegin` (`src/libshader/shading/shading.cpp:2059-2122`) to call it, keeping its `costheta` construction and uniform-P/N stride-3 broadcast where they are — those are JIT-side argument preparation, not light iteration
 - [ ] T042 [US3] Delete the retired duplicate implementation from `src/libshader/shading/shading.cpp` (the `runLights`/`runCategoryLights` method pair at 1502-1558), leaving no copy, no re-deriving wrapper, and no "kept in sync" comment (SC-008)
 - [ ] T043 [US3] Verify no shading math was re-derived (FR-010) by diffing the converged entry point in `src/libshader/shading/shading.cpp` against the retired macro body in `src/libshader/shading/execute.cpp` (git history for lines 422-517): the converged function must be the same computation both backends already performed, reached from one place
 - [ ] T044 [US3] **🛑 CONDITIONAL STOP — only if triggered.** If T039–T042 show the single entry point cannot preserve both backends' observable behaviour simultaneously, stop: the spec's edge case routes US3 out of the refactor exemption and into the FR-011 process (empirical reproduction, maintainer approval, narrowest change). The affected sources are `src/libshader/shading/shading.cpp` and `src/libshader/shading/execute.cpp`. Absent the trigger, this task is a no-op — record that it did not fire in `specs/012-jit-parity-followups/measurements.md`. **Not `[P]`**
-- [ ] T045 [US3] **Rebuild and regenerate — not `[P]`, and shared with T033.** `cmake --build build --config Release`, then regenerate every `shaders/*.slo` and the deploy-tree copies (this change touches the shading runtime), then re-run the T002 `stat` audit. If US2's T033 has already landed, whichever of the two lands second regenerates once for both
-- [ ] T046 [US3] Verify the interpreter is **bit-unchanged** — zero differences, not "within noise" — across the `-rslo` visual scenes versus `/tmp/base-visual.txt`, and the JIT within the T006 noise floor across the `-slo` scenes: `ctest --test-dir build -L visual --output-on-failure` plus `ctest --test-dir build -L libshader --output-on-failure` against `/tmp/base-libshader.txt` (SC-003's third before/after pair, FR-009, FR-011)
-- [ ] T047 [US3] Produce the SC-008 evidence: grep for the retired form's name across `src/` and confirm it has no remaining definition and no remaining call site, and confirm an `illuminance`-using shader renders correctly under both `shaderformat` settings. Record the grep output in `specs/012-jit-parity-followups/measurements.md`
+- [ ] T044a [US3] **Capture US3's own "before" pair, before T045 rebuilds anything** — SC-003's third independent pair. By this point US1 and/or US2 may have landed, so the Phase 2 `base-*.txt` files no longer describe the tree US3 is changing: `ctest --test-dir build -L libshader --output-on-failure 2>&1 | tee specs/012-jit-parity-followups/baselines/us3-before-libshader.txt` and `... -L visual ... | tee .../us3-before-visual.txt`. T038-T043's source edits are not yet in any built artifact — T045 is what makes them live — so this run legitimately measures the pre-convergence tree
+- [ ] T045 [US3] **Rebuild and regenerate — not `[P]`, and the same physical operation as T033.** `cmake --build build --config Release`, then regenerate every `shaders/*.slo` and its `openrender/shaders/` deploy-tree copy (this change touches the shading runtime, so every `.slo`'s ABI assumptions are in question), then run the [quickstart.md](./quickstart.md) P1 `stat` audit. **Coordination rule, stated once and identically in T033**: T033 and T045 must never both run. Whichever story reaches its rebuild step **first** performs the regeneration; the one that reaches it **second** skips regeneration entirely and instead (a) runs the `stat` audit to confirm every `.slo` postdates *both* stories' source edits — if it does not, the first story regenerated too early and the regeneration must be redone once, now — and (b) re-runs **both** stories' verification tasks (T034/T035/T036 *and* T046/T047) against that single combined artifact set. Neither story's `-slo` evidence is valid against bitcode that predates the other story's edit
+- [ ] T046 [US3] Verify the interpreter is **bit-unchanged** — zero differences, not "within noise" — across the `-rslo` visual scenes versus **`baselines/us3-before-visual.txt`** (T044a's pair, not the shared `base-*.txt`), and the JIT within the T006 noise floor across the `-slo` scenes: `ctest --test-dir build -L visual --output-on-failure` plus `ctest --test-dir build -L libshader --output-on-failure` against `baselines/us3-before-libshader.txt` (SC-003's third before/after pair, FR-009, FR-011)
+- [ ] T047 [US3] Produce the SC-008 evidence with a grep precise enough to mean something: search `src/` for the **retired method symbols specifically** — `grep -rn "CShadingContext::runLights\|CShadingContext::runCategoryLights\|::runCategoryLights" src/` — and confirm no remaining definition and no remaining call site, then confirm the method declarations are gone from `src/libshader/shading/shading.h`. **A bare `grep -rn runLights src/` is not valid evidence**: T040 deliberately keeps `runLights`/`runCategoryLights` as the interpreter's macro wrappers in `execute.cpp:422-517`, so a bare grep returns live code by design and would read as a failed removal. Also confirm the converged entry point named in T038 has exactly one definition. Then confirm an `illuminance`-using shader renders correctly under both `shaderformat` settings. Record the exact grep commands and their output in `specs/012-jit-parity-followups/measurements.md`
 
 **Checkpoint**: US3 is complete and independently deliverable — FR-009, FR-010, SC-008, and SC-003's third before/after pair are satisfied.
 
@@ -211,16 +283,18 @@ still required.
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 **Purpose**: FR-012 documentation reconciliation and feature-level acceptance.
-T048–T051 are `[P]` against each other (distinct files) and may be drafted
-concurrently with Phases 3–5, but are finalized only once their stories land.
+T048–T052 are `[P]` against each other (five distinct files) and may be drafted
+concurrently with Phases 3–5, but are finalized only once their stories land —
+T052 in particular needs T037's measured figures before its performance sentence
+can be written.
 
 - [ ] T048 [P] Update `DEVNOTES_DETAILS/BUGS.md` — move the `usfroma` interpreter-crash entry to Resolved with its root cause, the side it landed on, and the new probe scene that now covers it (FR-012)
 - [ ] T049 [P] Update `DEVNOTES_DETAILS/OSHADER_UPDATES.md` — record the uniform-dispatch collapse (predicate, the `n=1`/`tags=nullptr` convention, the exclusion list from T032) and the light-iteration convergence (FR-012)
 - [ ] T050 [P] Update `specs/011-jit-opcode-parity/lessons-learned.md` and its records to reflect SC-006's outcome under this feature — spec 011's unmet performance criterion and what this feature measured against it (FR-012)
 - [ ] T051 [P] Update `DEVNOTES.md` — mark the three follow-up items resolved in `## Todos`, and reconcile the "Review in next steps — shading interpreter and LLVM JIT" subsection under `## Open Issues`, striking any item this feature closed and leaving the spec-013 candidates ([contracts/light-iteration.md](./contracts/light-iteration.md) §4) in place
-- [ ] T052 Confirm the Hugo `site/` documentation tree is **not** updated — verify with `git status --short site/` returning no entries. Constitution Principle VII is exempted for this feature by the spec's Assumptions (internal engine defect-fix and performance work, not user-facing functionality the site's content model tracks)
-- [ ] T053 Fill the Stage 4 feature-level acceptance table in [quickstart.md](./quickstart.md) with the evidence produced by Phases 2–5, mapping SC-001 … SC-008 and FR-012 to their recorded artifacts
-- [ ] T054 Final verification sweep: `ctest --test-dir build -L libshader --output-on-failure` and `ctest --test-dir build -L visual --output-on-failure` clean versus the Phase 2 baseline, and `git status` shows exactly one added file under `tests/visual/reference/` and **zero modified** files there (SC-007, which admits no exceptions)
+- [ ] T052 [P] **Satisfy Constitution Principle VII with an actual site edit** — add an entry to `docs/site/content/development/releases.md` (the correct path; the tree is `docs/site/`, not `site/`) covering the two user-observable outcomes of this feature: (a) the `usfroma` crash a shader author can trigger from RSL source is fixed, with the RSL shape that used to crash, and (b) JIT shader execution performance changed, with the measured direction and magnitude from T037. Keep it proportionate — a release-note entry, not a design document; internal mechanics (the collapse predicate, the light-iteration convergence) stay in `DEVNOTES_DETAILS/`. **No Principle VII exemption is claimed by this feature** — the plan's Constitution Check records VII as PASS discharged by this task. The existing `.github/workflows` site-deployment automation is unchanged and needs no task
+- [ ] T053 Fill the Stage 4 feature-level acceptance table in [quickstart.md](./quickstart.md) with the evidence produced by Phases 2–5, mapping SC-001 … SC-008 and FR-012 to their recorded artifacts. Verify T052 landed: `git status --short docs/site/content/development/releases.md` must show the file **modified** (the inverse of the old, incorrect check), and the entry must name both the crash fix and the performance change
+- [ ] T054 Final verification sweep: `ctest --test-dir build -L libshader --output-on-failure` and `ctest --test-dir build -L visual --output-on-failure` clean versus the Phase 2 baseline **allowing for exactly the two added test entries the Standing-rules delta table predicts for `base-visual.txt`** (T008b's discrimination scene and T020's `usfroma` probe scene) and nothing else, and `git status` shows **zero modified** files under `tests/visual/reference/` (SC-007, which admits no exceptions). Added files there are expected and permitted: **exactly two** — one for US1's probe scene (generated at T020) and one for the FR-006 uniform-in-conditional discrimination scene (T008b). Any third addition, any removal, or any modification fails this task
 
 ---
 
@@ -241,33 +315,56 @@ None. The spec's Assumptions state it outright: *"none blocks another, and each
 is separately deliverable and separately verifiable."* The couplings that exist
 are environmental, not logical:
 
-- **T033 ↔ T045**: US2 and US3 both invalidate every `.slo`. Whichever lands
-  second regenerates once for both and re-verifies — they must not regenerate
-  concurrently.
+- **T033 ↔ T045**: US2 and US3 both invalidate every `.slo`. They are the same
+  physical operation and must never both run: the story that reaches its
+  rebuild step **first** regenerates; the one that reaches it **second** skips
+  regeneration, runs the `stat` audit, and re-runs **both** stories'
+  verification tails (T034/T035/T036 and T046/T047) against the single combined
+  artifact set. The full rule is stated identically in T033 and T045.
 - **T007/T008/T037**: every `perf-manual` run needs the machine idle, so no
   other story may build or render during them.
-- **US1 landing before US2/US3 finish**: each stream verifies against its own
-  captured "before" (`/tmp/base-*.txt` from Phase 2), so a landed US1 fix does
-  not invalidate them — but a **compiler-side** US1 fix (T016) forces the
-  full-tree artifact regeneration in T017, which every later `-slo` check must
-  postdate.
+- **US1 landing before US2/US3 finish**: each stream verifies against its **own**
+  before-pair — T015a for US1, T032a for US2, T044a for US3, all under
+  `specs/012-jit-parity-followups/baselines/` — not against the shared Phase 2
+  `base-*.txt`. That is what makes a landed US1 fix harmless to the other two.
+  But a **compiler-side** US1 fix (T016) forces the full-tree artifact
+  regeneration in T017, which every later `-slo` check must postdate. T015a is
+  by construction captured before T017, so in the compiler-side case its
+  `-slo` rows describe artifacts the fix has since invalidated. Resolution: if
+  and only if T015 approves a compiler-side fix, **re-capture** `us1-before-*`
+  immediately after T017 *with the fix reverted* and the artifacts regenerated
+  from the reverted compiler — the same transient revert T020a performs, done
+  once and used for both. In the interpreter-side case (the expected one) no
+  re-capture is needed and T015a's files stand.
 
 ### Within each user story
 
-- **US1**: T009/T010 in parallel → T011 → T012 → T013 → T014 → **T015 STOP** → T016 → T017 → T018 → T019 → T020 → T021 → T022
-- **US2**: T023 → T024 → T025 → T026 → T027/T028/T029/T030 in parallel → T031 → T032 → T033 → T034 → T035 → T036 → T037
-- **US3**: T038 → T039 → T040 → T041 → T042 → T043 → T044 → T045 → T046 → T047
+- **US1**: T009/T010 in parallel → T011 → T012 → T013 → T014 → **T015 STOP** → **T015a** (capture US1's before-pair — the tree still carries the defect and none of the fix) → T016 → T017 → T018 → T019 → T020 → **T020a** (negative evidence, transient local revert; not a baseline) → T021 → T022
+- **US2**: T023 → T024 → T025 → T026 → T027/T028/T029/T030 in parallel → T031 → T032 → **T032a** (capture US2's before-pair, while the tree is still pre-collapse) → T033 → T034 → T035 → T036 → T037
+- **US3**: T038 → T039 → T040 → T041 → T042 → T043 → T044 → **T044a** (capture US3's before-pair, while the tree is still pre-convergence) → T045 → T046 → T047
+
+Each story's before-pair capture (T015a / T032a / T044a) is the last step
+**before that story's own change becomes live** — which is a different position
+in each sequence, so read them individually rather than by analogy. US2 and US3
+carry their rebuild at the tail (T033, T045), so their captures sit immediately
+ahead of it. US1's fix goes live mid-sequence at T016/T017, so T015a sits
+immediately after the STOP, **not** near T022. Capturing after the change is
+live would measure the change against itself and make SC-003 unfalsifiable.
 
 ### Parallel opportunities
 
 - **Across stories, after Phase 2**: all of Phase 3, Phase 4's T023–T032, and
   Phase 5's T038–T043 may proceed concurrently — authoring and unit verification
-  only. Their rebuild/regenerate/measure tails (T033, T037, T045) serialize.
+  only. Their rebuild/regenerate/measure tails (T033, T037, T045) serialize, and
+  so do the three before-pair captures (T015a, T032a, T044a): each is a full
+  `ctest` sweep, so running two at once corrupts both and would also disturb any
+  concurrent `perf-manual` timing.
 - **Within US1**: T009 (probe shader) and T010 (scene pair) touch different files.
 - **Within US2**: T027, T028, T029, T030 are one independent edit per instruction
   family against the same predicate.
-- **Within Polish**: T048, T049, T050, T051 touch four different documentation
-  files and may be drafted concurrently, alongside any phase.
+- **Within Polish**: T048, T049, T050, T051, T052 touch five different
+  documentation files — four internal, one under `docs/site/` — and may be
+  drafted concurrently, alongside any phase.
 
 ---
 

@@ -206,15 +206,14 @@ implementation of the light-iteration logic remains.
   string` array at a varying, in-range index MUST complete normally under
   the interpreter backend and produce the correct per-point element
   selection, rather than terminating abnormally.
-- **FR-002**: Before any source is changed under FR-001 — whether the root
-  cause lies in the interpreter's handling of the instruction or in the
-  compiler's choice of which instruction to emit — the defect MUST be
-  demonstrated by an empirical, repeatable reproduction (not inferred from
-  code reading), and the confirmed root cause plus the proposed change MUST
-  be presented for explicit maintainer approval. Where the proposed change
-  is on the compiler side, the presentation MUST also state its effect on
-  shader artifacts already compiled by the previous compiler, since such a
-  change alters their meaning for both backends at once.
+- **FR-002**: The FR-001 fix is subject to the reference-implementation
+  discipline defined in **FR-011** (empirical reproduction, maintainer
+  approval gate, narrowest change, before/after suite verification, and the
+  compiled-artifact-impact disclosure for compiler-side fixes). FR-011 is
+  the single normative statement of that discipline; this requirement exists
+  only to bind it to User Story 1, which is the one place in this feature
+  where a defect fix — as opposed to a behaviour-preserving refactor — is
+  expected.
 - **FR-003**: Once FR-001 is satisfied, the varying-index string-array read
   MUST be exercised by an executing test in the project's regression suite,
   not solely by the existing reachability-only coverage guard. That coverage
@@ -335,6 +334,19 @@ implementation of the light-iteration logic remains.
   expected to show no measurable change; that outcome is conforming, and
   each scene's uniform-computation density is recorded alongside its ratio
   so the classification is auditable rather than retrofitted.
+  **"Meaningful uniform computation" is defined operationally**, so a scene
+  cannot be reclassified after its result is known: for each measurement
+  scene, count the instruction dispatch sites the compiler classifies as
+  uniform *and* that fall inside a collapsible family (per
+  `contracts/op-uniform-collapse.md` §4), obtained from the emitted-form
+  evidence captured before any change lands. A scene with **zero** such
+  sites has near-zero uniform computation and is a control; a scene with one
+  or more is a "meaningful uniform computation" scene and is subject to the
+  improvement requirement. Every scene in the measurement set is assigned to
+  exactly one of these two buckets before the after-measurements are taken;
+  no third "mixed" bucket exists.
+  The pre-change "before" figure for each scene is the **median** of the
+  variance-baseline runs, not a single run.
 - **SC-005**: The number of measurement scenes meeting spec 011's stretch
   bar (JIT wall-clock at most 90% of the interpreter's) is measured and
   reported per scene. This is a reported outcome, not a pass/fail gate;
@@ -389,11 +401,13 @@ implementation of the light-iteration logic remains.
 - Work proceeds under checkpoint discipline consistent with spec 011:
   explicit maintainer confirmation between phases, and no automatic
   commits.
-- This feature does not update the Hugo `site/` documentation (Constitution
-  Principle VII) — it is internal engine defect-fix and performance work,
-  not new user-facing functionality that the site's content model tracks.
-  The applicable documentation updates under FR-012 are the project's
-  internal notes (`DEVNOTES_DETAILS/BUGS.md`,
-  `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, and spec 011's records).
+- FR-012's documentation scope spans both the project's internal notes
+  (`DEVNOTES_DETAILS/BUGS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, and
+  spec 011's records) **and** the Hugo site under `docs/site/`
+  (Constitution Principle VII). The site entry is proportionate to the
+  change: this feature fixes a crash a shader author can hit from RSL source
+  and changes JIT performance characteristics, both of which are
+  user-observable, so `docs/site/content/development/releases.md` records
+  them. No exemption from Principle VII is claimed.
 - This feature adds no new RSL language surface and changes no scene or
   shader validity rules.

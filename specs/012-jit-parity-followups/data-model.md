@@ -188,7 +188,8 @@ new scene here and retires none.
 | Scenes | `sphere-cfrom`, `sphere-ctransform`, `sphere-matrixops`, `sphere-comparisonlogic`, `sphere-arrayops`, `sphere-gather` |
 | Registration | `add_perf_manual_test` (`tests/visual/CMakeLists.txt:236`), scenes at 1135–1157 |
 | Label | `perf-manual` **only** — never runs in a default or CI `ctest` |
-| Invocation | `ctest --test-dir build -L perf-manual --output-on-failure` |
+| Invocation | `ctest --test-dir build -L perf-manual -V` (**`-V`**, not `--output-on-failure` — `test_perf_compare.cpp:75,89` prints the ratio to stdout on the PASS path, which `--output-on-failure` discards) |
+| Gate vs. report | `add_perf_manual_test` hard-fails any scene above `MAX_RATIO` (default `0.90`, `test_perf_compare.cpp:83`), while SC-005 specifies the 90% target as *reported, not gated*. Reconcile before relying on these runs (`tasks.md` T003a); either way the label sits outside `-L libshader` and `-L visual`, so SC-003's evidence is unaffected |
 | Per-scene attributes | RIB pair (`-reyes.rib` / `-reyes-slo.rib`), surface shader, uniform-computation density, JIT/interpreter ratio, run-to-run variance |
 | SC-006 comparison pair | `sphere-arrayops` (uniform-dominated) vs `sphere-cfrom` (near-zero uniform density), at identical scene scale |
 

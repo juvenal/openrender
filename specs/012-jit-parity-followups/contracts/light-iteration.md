@@ -127,9 +127,9 @@ this feature; each is a spec-013 candidate and would need its own STOP.
 
 | Obligation | How it is checked |
 |---|---|
-| Exactly one implementation remains (SC-008) | The removed form has no remaining definition or call site; a grep for the retired name returns nothing outside history |
-| Interpreter bit-unchanged | Full `-rslo` visual suite against the unchanged-binary baseline: zero differences, not "within noise" |
-| JIT unchanged | Full `-slo` visual suite against the same baseline, differences within the noise floor (SC-007) |
+| Exactly one implementation remains (SC-008) | Grep for the **retired symbols specifically** — `grep -rn "CShadingContext::runLights\|CShadingContext::runCategoryLights\|::runCategoryLights" src/` — and confirm no definition and no call site, plus their removal from `shading.h`. A bare `grep -rn runLights src/` is **not** valid evidence: §3 deliberately keeps `runLights`/`runCategoryLights` as the interpreter's macro *wrappers* in `execute.cpp:422-517`, so a bare grep returns live code by design. For the same reason the converged entry point must take a **different** name (e.g. `iterateLights`) — reusing either retired name makes this check unrunnable |
+| Interpreter bit-unchanged | Full `-rslo` visual suite against **US3's own** before-pair (`baselines/us3-before-visual.txt`, captured immediately before the convergence rebuild — not the feature-level Stage 0 baseline, which by then may describe a tree US1/US2 have already changed): zero differences, not "within noise" |
+| JIT unchanged | Full `-slo` visual suite against the same US3 before-pair, differences within the noise floor (SC-007) |
 | Both backends reach it | An `illuminance`-using shader (the lit visual scenes) renders correctly under both `shaderformat` settings |
 
 **Flip trigger.** If implementation shows the single entry point cannot
