@@ -8,6 +8,15 @@
 
 **Input**: User description: "The RenderMan Spec 3.2 at @docs/references/RISpec3_2.pdf defines "Solids and Spatial Sets Operations" in chapter 5.9, it sets the ground layer for Constructive Solid Geometry. openRender should implement support for the complete set of SolidBegin/SolidEnd definitions with all possible operations "primitive", "union", "intersection", and "difference", as well as Interior and Exterior shaders support."
 
+## Clarifications
+
+### Session 2026-08-26
+
+- Q: When a composite solid combines operands that each carry their own Interior/Exterior shader assignment, which shader governs each resulting boundary face? → A: Face keeps its operand's shader — each boundary face inherits the Interior/Exterior shader from whichever operand originally contributed it.
+- Q: Should Interior/Exterior shaders take effect only inside SolidBegin/SolidEnd blocks, or also on ordinary non-CSG geometry that has them assigned? → A: Solids only — assigning Interior/Exterior outside a solid block remains a no-op exactly as it behaves today.
+- Q: Should a SolidBegin "primitive" block be allowed to contain a nested SolidBegin/SolidEnd block, or should that be rejected? → A: Reject with a clear diagnostic — "primitive" is a true leaf marker.
+- Q: What performance expectation should guide the CSG boundary-resolution algorithm's design? → A: Correctness-first, no explicit target for v1.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Compose shapes with boolean solid operations (Priority: P1)
@@ -68,6 +77,7 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - An operand primitive is not a closed, manifold surface (for example, a single open patch used directly as a CSG leaf): the resolved boundary in that region is best-effort rather than rejected outright, since all primitive types are valid operands.
 - The same composite solid is rendered with the raytrace, REYES, and Z-buffer hiders: all three produce the same resolved shape, with no hider-specific difference in the boundary.
 - A solid block is declared inside an object definition used for instancing: each instance resolves its own copy of the solid tree the same way any other instanced geometry is resolved, with no special-casing.
+- A "primitive" solid block contains a nested SolidBegin/SolidEnd block instead of raw geometry: the scene is rejected with a clear diagnostic, since "primitive" is a CSG leaf and cannot itself hold a sub-tree.
 
 ## Requirements *(mandatory)*
 
@@ -81,7 +91,7 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - **FR-006**: System MUST support solid blocks nested to arbitrary depth, resolving the composite boundary of the full nested tree as a single coherent shape.
 - **FR-007**: System MUST resolve a solid tree's composite boundary once, as ordinary renderable geometry, independent of which hider will render the frame — visibility and shading for the result MUST use the same code paths as any other primitive, with no hider-specific or shading-stage-specific CSG logic.
 - **FR-008**: System MUST render the resolved composite solid boundary identically regardless of whether the raytrace, REYES, or Z-buffer hider renders the frame.
-- **FR-009**: System MUST allow scene authors to assign an Interior shader and/or an Exterior shader to the attribute state associated with a solid block, inherited the same way other shader attributes are inherited by nested scope.
+- **FR-009**: System MUST allow scene authors to assign an Interior shader and/or an Exterior shader to the attribute state associated with a solid block, inherited the same way other shader attributes are inherited by nested scope. When operands within a composite solid carry different Interior/Exterior assignments, each resulting boundary face MUST retain the Interior/Exterior shader inherited from the specific operand that contributed it, not a single shader forced across the whole composite.
 - **FR-010**: When a solid with an assigned Interior shader is viewed such that the camera or a traced ray is inside its resolved volume, System MUST apply the interior shader's visual effect instead of the default/exterior appearance.
 - **FR-011**: When a solid with an assigned Exterior shader is viewed from outside its resolved volume, System MUST apply the exterior shader's visual effect.
 - **FR-012**: If no Interior or Exterior shader is assigned to a solid, System MUST render it using ordinary surface/atmosphere shading exactly as it would render without this feature.
@@ -91,6 +101,8 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - **FR-016**: An empty solid block (no nested geometry or solid blocks) MUST resolve to no geometry rather than causing an error or crash.
 - **FR-017**: A boolean solid block ("union"/"intersection"/"difference") containing only a single nested operand MUST resolve to that operand's boundary unchanged.
 - **FR-018**: System MUST NOT change the rendered output of existing scenes that do not use SolidBegin/SolidEnd.
+- **FR-019**: System MUST reject a "primitive" solid block that contains a nested SolidBegin/SolidEnd block with a clear, actionable error, since a "primitive" block is a CSG leaf and cannot itself contain a sub-tree.
+- **FR-020**: Interior/Exterior shader assignments MUST govern rendered appearance only for solids resolved from a SolidBegin/SolidEnd block; assigning Interior/Exterior to attribute state outside any solid block MUST remain a no-op, unchanged from current behavior.
 
 ### Key Entities
 
@@ -118,3 +130,4 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - A "difference" block with more than two operands subtracts every operand after the first, in declaration order (first − second − third − ...).
 - Solid blocks declared inside an object definition used for instancing are resolved per instance the same way any other instanced geometry is, with no special-casing.
 - Interior/Exterior shaders extend the existing inheritable, atmosphere-class shader attribute mechanism already used for other shader assignments, rather than introducing a new shader class or attribute layer.
+- No explicit performance or scale target is set for CSG boundary resolution in this feature; the implementation prioritizes correctness over speed for v1, to be revisited later if profiling shows a real problem on representative scenes.
