@@ -407,13 +407,14 @@ class CShadingContext {
         void callDiffuse(float *result, const float *Nf);
         void callSpecular(float *result, const float *Nf, const float *V, float roughness);
 
-        // ---> Internal lighting helpers (used by call* above and interpreter illuminate loop)
-        void runLights(const float *lP, const float *lN, const float *lT,
-                       int numVertices, int *tags, int &numActive, int &numPassive,
-                       int inShadow, float **varying, CShaderInstance *cInstance);
-        void runCategoryLights(const float *lP, const float *lN, const float *lT,
-                               int numVertices, int *tags, int &numActive, int &numPassive,
-                               int saveCat, int inShadow, float **varying, CShaderInstance *cInstance);
+        // ---> Converged light-iteration entry point (used by call* above and by the
+        // interpreter's runLights/runCategoryLights macro wrappers in execute.cpp)
+        void iterateLights(const float *lP, const float *lN, const float *lT,
+                            int numVertices, int *tags, int &numActive, int &numPassive,
+                            int inShadow, float **varying, CShaderInstance *cInstance);
+        void iterateLights(const float *lP, const float *lN, const float *lT,
+                            int numVertices, int *tags, int &numActive, int &numPassive,
+                            int saveCat, int inShadow, float **varying, CShaderInstance *cInstance);
 
         // ---> JIT per-vertex prepare helpers (called from rslBuiltins C wrappers)
         void prepareAmbient();

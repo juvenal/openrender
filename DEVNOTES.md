@@ -58,12 +58,20 @@
   lambdas have no equivalent and always pass the full `numVerts`. Confirmed
   via profiling and a targeted uniform-density comparison; not fixable via
   delegation alone (it's a calling-convention change to the emitter) — see
-  `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10. Planned as a
-  follow-up spec alongside two related findings: a reproducible `.rslo`
-  interpreter crash on varying-index reads of `uniform string` arrays
-  (`usfroma`), and the JIT's `illuminance` support being a hand-synced
-  parallel reimplementation rather than genuine shared-function delegation
-  with the interpreter's macro-form `runLights`. See [BUGS.md](DEVNOTES_DETAILS/BUGS.md).
+  `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10.
+  `specs/012-jit-parity-followups` (US2) implemented and verified this exact
+  fix — a `collapseArgs` calling-convention change in `llvmEmitter.cpp`
+  passing `n=1, tags=nullptr` at uniform-classified call sites (23/84 sites
+  qualified), confirmed correct at both the IR level and the rendered-output
+  level (zero regressions across 91 visual scenes) — but it did **not** close
+  the measured wall-clock gap: `ctest -L perf-manual` still shows 1.06-1.45x
+  ratios, so SC-004/SC-005/SC-006 remain unmet. Still open. The two related
+  findings originally cited alongside this entry (a reproducible `.rslo`
+  interpreter crash on varying-index reads of `uniform string` arrays,
+  `usfroma`; and the JIT's `illuminance` support being a hand-synced parallel
+  reimplementation rather than genuine shared-function delegation with the
+  interpreter's macro-form `runLights`) were both fixed by that same spec
+  (US1, US3) and moved to [BUGS.md](DEVNOTES_DETAILS/BUGS.md)'s Resolved Bugs.
 
 ### Review in next steps — shading interpreter and LLVM JIT
 
@@ -118,13 +126,13 @@ defect with an empirical repro, not a code-reading-derived one").
   JIT-side only (arity-aware operand indexing plus the missing scaffolding),
   so it carries no interpreter STOP. Recorded in `research.md` D6.
 
-- [ ] **The `op_*` callee guarantee for a collapsed uniform call is asserted
-  but not audited.** Spec 012's US2 plans to express uniform-classified
+- [x] **The `op_*` callee guarantee for a collapsed uniform call was asserted
+  but not audited — now discharged.** Spec 012's US2 expressed uniform-classified
   instructions as a single call with `n = 1, tags = nullptr`, relying on every
   `op_*` honouring "execute once, read/write element 0, no tag test". Ops that
   follow the `IDX`/`ACTIVE` idiom (`src/libshader/shading/rslOps.cpp:40-43`)
   satisfy that for free, but a scan for uses of `n` outside a loop bound found
-  candidates that may not:
+  candidates that needed individual confirmation:
   - `rslOps.cpp:1093`, `1102`, `1112` — `op_area` / `op_calculatenormal` /
     `op_depth` forward `n` into `ctx->jitArea`/`jitCalculateNormal`/`jitDepth`.
     These are derivative-dependent: a real grid width is semantically
@@ -142,9 +150,17 @@ defect with an empirical repro, not a code-reading-derived one").
   The failure mode if this is skipped is nasty and quiet: passing `n = 1` with
   a **live** `tags` pointer compiles, links, and renders correctly on every
   scene where vertex 0 happens to be active, diverging only inside
-  conditionals. Recorded as a discharge obligation in
-  `contracts/op-uniform-collapse.md` §2.2/§5 and as a Stream B prerequisite in
-  that spec's `plan.md`.
+  conditionals. The discharge obligation recorded in
+  `contracts/op-uniform-collapse.md` §2.2/§5 (Stream B of that spec's
+  `plan.md`) is complete: the area/calculatenormal/depth family and the
+  `DEFLIGHTFUNC` light/illuminate/solar family were confirmed excluded from
+  the collapse (not cleared), and the `ACTIVE(tags,0)` read sites were
+  confirmed correct under `n == 1, tags == nullptr`. Verified at the IR level
+  (23/84 call sites collapsed, zero forbidden `n=1`-with-live-`tags`
+  combinations) and the rendered-output level (zero regressions across 91
+  visual scenes, plus a purpose-built discrimination scene that specifically
+  exercises this failure mode). See `specs/012-jit-parity-followups/measurements.md`
+  (US2/T023-T037).
 
 - [ ] **Pre-existing `numVerts` vs `numRealVertices` asymmetry at SHORT-family
   JIT call sites.** Distinct from the uniform-dispatch tax above and *not*
@@ -164,7 +180,7 @@ defect with an empirical repro, not a code-reading-derived one").
 - [ ] Patch crack stitching (currently handled via displacement bounds)
 - [x] Hider parity completion — see [HIDER_PARITY.md](DEVNOTES_DETAILS/HIDER_PARITY.md); D3/D4 and D9 remain permanent, documented residuals (not closable by refactor)
 - [ ] PBR path-tracing hider (`"pathtracer"`) + OSL `Bxdf` support — see [PATH-TRACING_HIDER.md](DEVNOTES_DETAILS/PATH-TRACING_HIDER.md)
-- [ ] Follow-up JIT/interpreter parity spec (next after 011): `usfroma` interpreter crash, `illuminance`/`runLights` JIT duplication, JIT uniform-dispatch `numVerts` tax (SC-006) — specified and planned as `specs/012-jit-parity-followups/` (branch `012-jit-parity-followups`); see Open Issues above and `specs/011-jit-opcode-parity/lessons-learned.md`
+- [x] Follow-up JIT/interpreter parity spec (next after 011): `usfroma` interpreter crash, `illuminance`/`runLights` JIT duplication, JIT uniform-dispatch `numVerts` tax (SC-006) — completed as `specs/012-jit-parity-followups/` (branch `012-jit-parity-followups`). Two of three closed: the `usfroma` crash (US1) and the `illuminance`/`runLights` duplication (US3, converged onto `CShadingContext::iterateLights`) are both fixed and verified. The third, the `numVerts` uniform-dispatch tax (US2), was correctly implemented and independently verified (`collapseArgs`, 23/84 sites, zero regressions) but did **not** close the measured wall-clock gap — SC-004/SC-005/SC-006 remain unmet; see Open Issues above, [BUGS.md](DEVNOTES_DETAILS/BUGS.md), and `specs/011-jit-opcode-parity/lessons-learned.md`'s Phase 10 addendum
 - [ ] Spec-013 candidates deferred out of 012, all needing an empirical reproduction first: `illuminance` category ignored by the interpreter's 6-operand form, JIT non-lowering of the 3-/4-operand `illuminance` forms, and the SHORT-family `numVerts`/`numRealVertices` asymmetry — see "Review in next steps" under Open Issues
 
 ## See Also

@@ -1,0 +1,102 @@
+UpdateCTestConfiguration  from :/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/DartConfiguration.tcl
+Test project /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 142
+    Start 142: Perf_sphere-cfrom
+
+142: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-cfrom-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-cfrom-reyes-slo.rib" "1000.0"
+142: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-cfrom
+142: Environment variables: 
+142:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+142:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+142:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+142:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+142: Test timeout computed to be: 360
+142:   rslo median: 0.0520s  slo median: 0.0530s  ratio: 1.018  (max allowed: 1000.000)
+142:   PASS: JIT (slo) render time ratio 1.018 <= max allowed 1000.000
+1/6 Test #142: Perf_sphere-cfrom ................   Passed    0.48 sec
+test 143
+    Start 143: Perf_sphere-ctransform
+
+143: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-ctransform-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-ctransform-reyes-slo.rib" "1000.0"
+143: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-ctransform
+143: Environment variables: 
+143:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+143:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+143:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+143:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+143: Test timeout computed to be: 360
+143:   rslo median: 0.0485s  slo median: 0.0509s  ratio: 1.050  (max allowed: 1000.000)
+143:   NOTE: rslo median render time is very small (0.0485s) -- process-startup overhead may dominate; treat this result as a weak signal only.
+143:   PASS: JIT (slo) render time ratio 1.050 <= max allowed 1000.000
+2/6 Test #143: Perf_sphere-ctransform ...........   Passed    0.30 sec
+test 144
+    Start 144: Perf_sphere-matrixops
+
+144: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-matrixops-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-matrixops-reyes-slo.rib" "1000.0"
+144: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-matrixops
+144: Environment variables: 
+144:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+144:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+144:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+144:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+144: Test timeout computed to be: 360
+144:   rslo median: 0.0512s  slo median: 0.0618s  ratio: 1.206  (max allowed: 1000.000)
+144:   PASS: JIT (slo) render time ratio 1.206 <= max allowed 1000.000
+3/6 Test #144: Perf_sphere-matrixops ............   Passed    0.34 sec
+test 145
+    Start 145: Perf_sphere-comparisonlogic
+
+145: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-comparisonlogic-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib" "1000.0"
+145: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-comparisonlogic
+145: Environment variables: 
+145:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+145:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+145:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+145:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+145: Test timeout computed to be: 360
+145:   rslo median: 0.0495s  slo median: 0.0587s  ratio: 1.186  (max allowed: 1000.000)
+145:   NOTE: rslo median render time is very small (0.0495s) -- process-startup overhead may dominate; treat this result as a weak signal only.
+145:   PASS: JIT (slo) render time ratio 1.186 <= max allowed 1000.000
+4/6 Test #145: Perf_sphere-comparisonlogic ......   Passed    0.33 sec
+test 146
+    Start 146: Perf_sphere-arrayops
+
+146: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-arrayops-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-arrayops-reyes-slo.rib" "1000.0"
+146: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-arrayops
+146: Environment variables: 
+146:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+146:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+146:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+146:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+146: Test timeout computed to be: 360
+146:   rslo median: 0.0498s  slo median: 0.0655s  ratio: 1.317  (max allowed: 1000.000)
+146:   NOTE: rslo median render time is very small (0.0498s) -- process-startup overhead may dominate; treat this result as a weak signal only.
+146:   PASS: JIT (slo) render time ratio 1.317 <= max allowed 1000.000
+5/6 Test #146: Perf_sphere-arrayops .............   Passed    0.35 sec
+test 147
+    Start 147: Perf_sphere-gather
+
+147: Test command: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/test_perf_compare "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-gather-reyes.rib" "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/sphere-gather-reyes-slo.rib" "1000.0"
+147: Working Directory: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/tests/visual/perf-sphere-gather
+147: Environment variables: 
+147:  SHADERS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/shaders
+147:  ORENDERHOME=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender
+147:  DISPLAYS=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/displays
+147:  GEOMETRIES=/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/openrender/geometry
+147: Test timeout computed to be: 360
+147:   rslo median: 0.0769s  slo median: 0.0835s  ratio: 1.085  (max allowed: 1000.000)
+147:   PASS: JIT (slo) render time ratio 1.085 <= max allowed 1000.000
+6/6 Test #147: Perf_sphere-gather ...............   Passed    0.49 sec
+
+100% tests passed out of 6
+
+Label Time Summary:
+perf-manual    =   2.30 sec*proc (6 tests)
+
+Total Test time (real) =   2.32 sec

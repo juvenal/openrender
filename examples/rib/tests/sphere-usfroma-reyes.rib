@@ -1,0 +1,12 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sphere-usfroma-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "usfroma_probe"
+  Sphere 1 -1 1 360
+WorldEnd

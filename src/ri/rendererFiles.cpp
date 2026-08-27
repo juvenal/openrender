@@ -77,13 +77,21 @@ static unsigned int sloShaderType(const std::string &n) {
     return SL_SURFACE;
 }
 
-// Float count per type element (for varyingSizes computation).
+// Float count per type element (for CVariable::numFloats — a component count,
+// not a byte size; string components are still counted as 1 "slot" here).
 static int sloFloatCount(const std::string &t) {
     if (t == "vector" || t == "normal" || t == "point" || t == "color")
         return 3;
     if (t == "matrix")
         return 16;
-    return 1; // float, string (string uses char* but we keep 1 for sizing)
+    return 1; // float, string
+}
+
+// Per-element byte width for varyingSizes[] slot allocation. Strings store a
+// char* per element (matches rslo.y's TYPE_STRING branch, which sizes with
+// sizeof(char*) instead of sizeof(float)); everything else is float-sized.
+static size_t sloElemByteSize(const std::string &t) {
+    return (t == "string") ? sizeof(char *) : sizeof(float);
 }
 
 // Map SLOParamInfo typeName → EVariableType.
@@ -125,7 +133,7 @@ static CShader *parseSloShader(const char * /*shaderName*/, const char *sloPath)
         sh->varyingSizes = (int *)malloc(numTotal * sizeof(int));
         int idx = 0;
         auto fillSize = [&](const SLOParamInfo &p) {
-            int sz = p.arraySize * sloFloatCount(p.typeName) * (int)sizeof(float);
+            int sz = p.arraySize * sloFloatCount(p.typeName) * (int)sloElemByteSize(p.typeName);
             sh->varyingSizes[idx++] = (p.storage == "uniform") ? -sz : sz;
         };
         for (const auto &p : info.params)

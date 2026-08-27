@@ -69,21 +69,52 @@ Ops that follow the `IDX`/`ACTIVE` idiom satisfy this without modification.
 Any op that dereferences `tags` outside `ACTIVE`, or that assumes `n` equals a
 grid width, violates the contract.
 
-**Audit status: NOT YET DISCHARGED.** This guarantee is asserted, not verified;
-producing the exception list is an implementation task, and no instruction may
-be collapsed at a family until its callee has been checked. A scan of
-`rslOps.cpp` for uses of `n` outside a loop bound already names the candidates
-that must be resolved:
+**Audit status: DISCHARGED (T023/T024, 2026-08-26).** Every candidate
+surfaced by `grep -nE "\bn\b" src/libshader/shading/rslOps.cpp | grep -vE
+"i < n|i<n|int n|\* n|n \*|n\)|numVerts"` has been read in context and
+resolved below. Line numbers are current-file line numbers (they have
+drifted a few lines from the numbers first cited when this contract was
+authored, due to unrelated earlier edits in this same feature branch —
+content, not position, is the identity of each candidate).
 
-| Site | Use of `n` | Disposition to establish |
+| Site | Use of `n` | Disposition |
 |---|---|---|
-| `rslOps.cpp:803` | `*numPassive = n;` | conditional/state op, not an arithmetic op — confirm it is outside FR-004's families |
-| `rslOps.cpp:1093`, `1102`, `1112` | `op_area` / `op_calculatenormal` / `op_depth` forward `n` into a `ctx->jit*` method | derivative-dependent: a grid width is semantically required, so collapsing is likely **invalid** even if the operands classify uniform |
-| `rslOps.cpp:836`, `842`, `888`, `894`, `903`, `914`, `920` | light/illuminate/solar ops forward `n` to context methods | `DEFLIGHTFUNC` family, already excluded by §4 — confirm none reaches a collapsible family |
-| `rslOps.cpp:555`, `584`, `1094`, `1103` | `if (n > 0 && ACTIVE(tags, 0))` | reads element 0 explicitly; verify it is correct under `n == 1, tags == nullptr` |
+| `rslOps.cpp:461` (`op_endif_update`) | `if (n > 0)` | **Cleared.** Guards a `log_debug(...)` diagnostic only; the functional loop above it is unaffected. Safe under `n==1, tags==nullptr`. |
+| `rslOps.cpp:477,484,494` (`op_ambient_batch`/`op_diffuse_batch`/`op_specular_batch`) | `(void)n; (void)tags;` | **Excluded.** These are `DEFLIGHTFUNC`-adjacent batch wrappers — they ignore `n`/`tags` entirely and delegate straight to `ctx->callAmbient`/`callDiffuse`/`callSpecular`. Not a collapse-eligible dispatch site (already outside §4's applicable families). |
+| `rslOps.cpp:~500` (`op_lightsource_f`) | `(void)n; (void)tags;` | **Excluded.** Lighting-query builtin; ignores `n`/`tags` entirely and always writes index 0. `DEFLIGHTFUNC`-adjacent, same reasoning as the batch wrappers above. |
+| `rslOps.cpp:557` (`op_pfrom`), `586` (`op_ptransform`) | `if (n > 0 && ACTIVE(tags, 0))` | **Cleared.** Guards a `log_debug(...)` diagnostic printing element 0 only; the per-vertex transform loop below both sites already uses the `ACTIVE(tags,i)` idiom correctly and is unaffected. `ACTIVE(nullptr,0)` is `true` (§1), so the guard still fires exactly once under the collapsed form — cosmetic difference only (logs vertex 0 instead of being suppressed), no correctness impact. |
+| `rslOps.cpp:805` (`op_forend`) | `*numPassive = n;` | **Excluded.** `op_forend`/`op_for_check`/`op_for_break` are `for`/`while` loop-scope-management opcodes (`FOR3EXPR_PRE`/`FOREND3EXPR_PRE` mirrors), not `DEFOPCODE`/`DEFFUNC`/`DEFSHORTOPCODE`/`DEFSHORTFUNC` arithmetic/builtin dispatch sites. They always operate over the full grid width to track per-vertex loop-tag state and are outside §4's applicable-families table entirely — never a target of the collapse regardless of any instruction's uniform classification. |
+| `rslOps.cpp:837,844,890,896,905,916,922` (`op_illuminance_begin/next`, `op_gather_begin/else/end`, `op_illuminate_begin/end`, `op_illuminate3_begin`, `op_solar_begin/end`) | forward `n`/`tags` to `ctx->jit*` scope methods | **Excluded.** `DEFLIGHTFUNC`/loop-scaffolding constructs (illuminance/gather/illuminate/solar), already excluded by §4 — the interpreter treats a uniform classification here as `scripterror("Invalid uniform lighting call")`, so there is no run-once semantics to mirror. None reaches a collapsible family. |
+| `rslOps.cpp:1101` (`op_area`), `1110` (`op_calculatenormal`), `1120` (`op_depth`) | forward `n` into `ctx->jitArea`/`jitCalculateNormal`/`jitDepth` | **Excluded — derivative-dependent.** These compute finite differences (`Du`/`Dv`) across neighboring grid points; `n` is a real grid-width requirement, not merely an iteration count. Collapsing to `n=1` would be semantically invalid even where every operand classifies uniform (in practice `P` is always varying, so these are never uniform-classified in the first place — the exclusion is defense-in-depth, not a live gap). |
+| `rslOps.cpp:1102`, `1111` (`op_area`, `op_calculatenormal`) | `if (n > 0 && ACTIVE(tags, 0))` | **Cleared** (same reasoning as `op_pfrom`/`op_ptransform` above) — debug-log-only, moot anyway since these sites are already excluded above. |
 
 An op that cannot honour the guarantee is not a blocker: it is simply excluded
-from the collapse and recorded, the same way `DEFLIGHTFUNC` is in §4.
+from the collapse and recorded, the same way `DEFLIGHTFUNC` is in §4. No
+candidate above requires an `rslOps.cpp` code change — every exclusion is
+because the site is outside §4's applicable families (loop scaffolding,
+`DEFLIGHTFUNC`, or genuinely derivative-dependent), not because it violates
+the `IDX`/`ACTIVE` idiom.
+
+**Extension to `shading.cpp` (2026-08-26, closing a gap in the initial
+audit):** §4 names `environment`×2, `shadow`×2, `bake3d` as the
+`DEFSHORTFUNC` family the collapse reaches. Their `op_*` wrappers
+(`op_texture_f/c`, `op_environment_f/c`, `op_shadow_f`, `rslOps.cpp:1128-1163`)
+are thin forwarders to `CShadingContext::jitTextureF/C`, `jitEnvironmentF/C`,
+`jitShadowF` in `src/libshader/shading/shading.cpp:2451-2520` — a *different
+translation unit* from `rslOps.cpp`, so `ACTIVE` (a `#define`d,
+translation-unit-local macro) does not apply there and had to be checked
+independently rather than inferred. Read in full:
+
+| Site | Tag test | Disposition |
+|---|---|---|
+| `shading.cpp:2451` `jitTextureF`, `2466` `jitTextureC` | `if (!tags \|\| !tags[i])` | **Cleared.** Same null-tolerant idiom as `ACTIVE` — `tags==nullptr` skips the filter, safe under `n==1`. |
+| `shading.cpp:2479` `jitEnvironmentF`, `2494` `jitEnvironmentC` | `if (!tags \|\| !tags[i])` | **Cleared.** Same idiom. |
+| `shading.cpp:2507` `jitShadowF` | `if (!tags \|\| !tags[i])` | **Cleared.** Same idiom. |
+| `shading.cpp:2440` `jitDepth` (already excluded above as derivative-dependent, listed here only because it uses the same idiom) | `if (!tags \|\| !tags[i])` | Idiom is safe; exclusion above stands for the independent derivative-dependence reason. |
+| `bake3d` | — | **Moot.** No `jit*`/`op_*` JIT wrapper exists for `bake3d` anywhere in `rslOps.{h,cpp}` or `shading.{h,cpp}` — grepped, zero matches. §4 names it as collapse-eligible on paper, but there is currently nothing to collapse; not a live gap, and not something this feature needs to add (out of scope — FR-004 covers the collapse of existing dispatch, not authoring new JIT builtins). |
+
+Audit is now complete across both translation units the DEFSHORTFUNC
+collapse touches. No code change required in either file.
 
 ### 2.3 The prohibition
 

@@ -423,15 +423,27 @@ static void emitFunction(const IRFunction &irFn,
     };
 
     // -----------------------------------------------------------------------
-    // Layer A: allocLiteral — allocate a stack float for a numeric literal.
+    // Layer A: allocLiteral — materialize a bare literal token that isn't a
+    // declared variable. Handles numeric literals (stack float) and quoted
+    // string literals (global string + a ptrTy alloca, matching how string
+    // locals are represented as char** so callers can treat both uniformly).
     // Returns {alloca_ptr, 0} on success or {nullptr, 0} if not a literal.
     // -----------------------------------------------------------------------
     auto allocLiteral = [&](const std::string &tok) -> std::pair<llvm::Value*, int> {
         float v = 0.f;
-        if (!parseLiteralFloat(tok, &v)) return {nullptr, 0};
-        auto *alloca = B.CreateAlloca(f32Ty, nullptr, "lit");
-        B.CreateStore(llvm::ConstantFP::get(f32Ty, v), alloca);
-        return {alloca, 0};
+        if (parseLiteralFloat(tok, &v)) {
+            auto *alloca = B.CreateAlloca(f32Ty, nullptr, "lit");
+            B.CreateStore(llvm::ConstantFP::get(f32Ty, v), alloca);
+            return {alloca, 0};
+        }
+        if (tok.size() >= 2 && tok.front() == '"' && tok.back() == '"') {
+            std::string s = tok.substr(1, tok.size() - 2);
+            llvm::Value *sptr = B.CreateGlobalString(s, "strlit");
+            auto *alloca = B.CreateAlloca(ptrTy, nullptr, "strlit_pp");
+            B.CreateStore(sptr, alloca);
+            return {alloca, 0};
+        }
+        return {nullptr, 0};
     };
 
     // -----------------------------------------------------------------------
@@ -446,7 +458,7 @@ static void emitFunction(const IRFunction &irFn,
         VarDesc d;
         if (resolveVar(tok, d)) return {loadVarPtr(d), d.stride};
 
-        // Layer A: numeric literal
+        // Layer A: literal (numeric or string)
         auto lit = allocLiteral(tok);
         if (lit.first) return lit;
 
@@ -480,32 +492,51 @@ static void emitFunction(const IRFunction &irFn,
     // -----------------------------------------------------------------------
     // Emit helpers for common op patterns.
     // -----------------------------------------------------------------------
+    // T025/T026 (contracts/op-uniform-collapse.md): an instruction is
+    // uniform-classified iff its destination stride and every operand
+    // stride are 0. When it is, the emitted call MUST pass n=1 and
+    // tags=null TOGETHER (§2.3 forbids n=1 with a live tag pointer) —
+    // this helper is the single place that pairing is enforced, so no
+    // call site can emit one half without the other.
+    auto collapseArgs = [&](int dstStrideVal,
+                             std::initializer_list<int> operandStrides)
+            -> std::pair<llvm::Value*, llvm::Value*> {
+        bool uniform = (dstStrideVal == 0);
+        for (int s : operandStrides) uniform = uniform && (s == 0);
+        if (uniform)
+            return {B.getInt32(1), llvm::ConstantPointerNull::get(ptrTy)};
+        return {numVerts, tags};
+    };
+
     auto emitBin = [&](const IRInstr &ins, const char *name,
-                        llvm::Value *dst, llvm::Value *dstStride) {
+                        llvm::Value *dst, llvm::Value *dstStride, int dstStrideVal) {
         auto [a, sa] = getVar(ins, 0);
         auto [b, sb] = getVar(ins, 1);
         if (!dst || !a || !b) return;
         auto *fn = declareOp(mod, name, binOpTy);
-        B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), b, B.getInt32(sb), numVerts, tags});
+        auto [n, tg] = collapseArgs(dstStrideVal, {sa, sb});
+        B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), b, B.getInt32(sb), n, tg});
     };
 
     auto emitUn = [&](const IRInstr &ins, const char *name,
-                       llvm::Value *dst, llvm::Value *dstStride) {
+                       llvm::Value *dst, llvm::Value *dstStride, int dstStrideVal) {
         auto [a, sa] = getVar(ins, 0);
         if (!dst || !a) return;
         auto *fn = declareOp(mod, name, unOpTy);
-        B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), numVerts, tags});
+        auto [n, tg] = collapseArgs(dstStrideVal, {sa});
+        B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), n, tg});
     };
 
     auto emitTern = [&](const IRInstr &ins, const char *name,
-                         llvm::Value *dst, llvm::Value *dstStride) {
+                         llvm::Value *dst, llvm::Value *dstStride, int dstStrideVal) {
         auto [a, sa] = getVar(ins, 0);
         auto [b, sb] = getVar(ins, 1);
         auto [c, sc] = getVar(ins, 2);
         if (!dst || !a || !b || !c) return;
         auto *fn = declareOp(mod, name, ternOpTy);
+        auto [n, tg] = collapseArgs(dstStrideVal, {sa, sb, sc});
         B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa),
-                          b, B.getInt32(sb), c, B.getInt32(sc), numVerts, tags});
+                          b, B.getInt32(sb), c, B.getInt32(sc), n, tg});
     };
 
     // -----------------------------------------------------------------------
@@ -595,7 +626,8 @@ static void emitFunction(const IRFunction &irFn,
             VarDesc dstDesc{};
             bool    hasDst = !ins.result.empty() && resolveVar(ins.result, dstDesc);
             llvm::Value *dst      = hasDst ? loadVarPtr(dstDesc) : nullptr;
-            llvm::Value *dstStride = B.getInt32(hasDst ? dstDesc.stride : 3);
+            int dstStrideVal = hasDst ? dstDesc.stride : 3;
+            llvm::Value *dstStride = B.getInt32(dstStrideVal);
 
             // Coverage gate: kHandledOpcodes is the single source of truth
             // the libshader coverage-guard ctest also reads (research.md
@@ -987,99 +1019,99 @@ static void emitFunction(const IRFunction &irFn,
             // ================================================================
             // Binary arithmetic
             // ================================================================
-            if      (op == "addvv")             emitBin(ins, "op_addvv", dst, dstStride);
-            else if (op == "subvv")             emitBin(ins, "op_subvv", dst, dstStride);
-            else if (op == "mulvv")             emitBin(ins, "op_mulvv", dst, dstStride);
-            else if (op == "divvv")             emitBin(ins, "op_divvv", dst, dstStride);
-            else if (op == "addff")             emitBin(ins, "op_addff", dst, dstStride);
-            else if (op == "subff")             emitBin(ins, "op_subff", dst, dstStride);
-            else if (op == "mulff")             emitBin(ins, "op_mulff", dst, dstStride);
-            else if (op == "divff")             emitBin(ins, "op_divff", dst, dstStride);
-            else if (op == "addvf" || op == "addvf2") emitBin(ins, "op_addvf", dst, dstStride);
-            else if (op == "subvf")             emitBin(ins, "op_subvf", dst, dstStride);
-            else if (op == "mulvf" || op == "mulvf2") emitBin(ins, "op_mulvf", dst, dstStride);
-            else if (op == "divvf")             emitBin(ins, "op_divvf", dst, dstStride);
-            else if (op == "dot")               emitBin(ins, "op_dot",   dst, dstStride);
-            else if (op == "cross")             emitBin(ins, "op_cross", dst, dstStride);
-            else if (op == "pow")               emitBin(ins, "op_pow",   dst, dstStride);
-            else if (op == "mod")               emitBin(ins, "op_mod",   dst, dstStride);
-            else if (op == "atan2")             emitBin(ins, "op_atan2", dst, dstStride);
-            else if (op == "flt")               emitBin(ins, "op_flt",   dst, dstStride);
-            else if (op == "fle")               emitBin(ins, "op_fle",   dst, dstStride);
-            else if (op == "fgt")               emitBin(ins, "op_fgt",   dst, dstStride);
-            else if (op == "fge")               emitBin(ins, "op_fge",   dst, dstStride);
-            else if (op == "feq")               emitBin(ins, "op_feq",   dst, dstStride);
-            else if (op == "fne")               emitBin(ins, "op_fne",   dst, dstStride);
+            if      (op == "addvv")             emitBin(ins, "op_addvv", dst, dstStride, dstStrideVal);
+            else if (op == "subvv")             emitBin(ins, "op_subvv", dst, dstStride, dstStrideVal);
+            else if (op == "mulvv")             emitBin(ins, "op_mulvv", dst, dstStride, dstStrideVal);
+            else if (op == "divvv")             emitBin(ins, "op_divvv", dst, dstStride, dstStrideVal);
+            else if (op == "addff")             emitBin(ins, "op_addff", dst, dstStride, dstStrideVal);
+            else if (op == "subff")             emitBin(ins, "op_subff", dst, dstStride, dstStrideVal);
+            else if (op == "mulff")             emitBin(ins, "op_mulff", dst, dstStride, dstStrideVal);
+            else if (op == "divff")             emitBin(ins, "op_divff", dst, dstStride, dstStrideVal);
+            else if (op == "addvf" || op == "addvf2") emitBin(ins, "op_addvf", dst, dstStride, dstStrideVal);
+            else if (op == "subvf")             emitBin(ins, "op_subvf", dst, dstStride, dstStrideVal);
+            else if (op == "mulvf" || op == "mulvf2") emitBin(ins, "op_mulvf", dst, dstStride, dstStrideVal);
+            else if (op == "divvf")             emitBin(ins, "op_divvf", dst, dstStride, dstStrideVal);
+            else if (op == "dot")               emitBin(ins, "op_dot",   dst, dstStride, dstStrideVal);
+            else if (op == "cross")             emitBin(ins, "op_cross", dst, dstStride, dstStrideVal);
+            else if (op == "pow")               emitBin(ins, "op_pow",   dst, dstStride, dstStrideVal);
+            else if (op == "mod")               emitBin(ins, "op_mod",   dst, dstStride, dstStrideVal);
+            else if (op == "atan2")             emitBin(ins, "op_atan2", dst, dstStride, dstStrideVal);
+            else if (op == "flt")               emitBin(ins, "op_flt",   dst, dstStride, dstStrideVal);
+            else if (op == "fle")               emitBin(ins, "op_fle",   dst, dstStride, dstStrideVal);
+            else if (op == "fgt")               emitBin(ins, "op_fgt",   dst, dstStride, dstStrideVal);
+            else if (op == "fge")               emitBin(ins, "op_fge",   dst, dstStride, dstStrideVal);
+            else if (op == "feq")               emitBin(ins, "op_feq",   dst, dstStride, dstStrideVal);
+            else if (op == "fne")               emitBin(ins, "op_fne",   dst, dstStride, dstStrideVal);
             // "fegt" (float >=) has no dedicated op_* — the interpreter's
             // >= and op_fge share the same comparison, so delegate there.
-            else if (op == "fegt")              emitBin(ins, "op_fge",   dst, dstStride);
+            else if (op == "fegt")              emitBin(ins, "op_fge",   dst, dstStride, dstStrideVal);
 
             // ================================================================
             // Vector comparison / logic
             // ================================================================
-            else if (op == "veql")              emitBin(ins, "op_veql",  dst, dstStride);
-            else if (op == "vneql")             emitBin(ins, "op_vneql", dst, dstStride);
-            else if (op == "velt")              emitBin(ins, "op_velt",  dst, dstStride);
-            else if (op == "vlt")               emitBin(ins, "op_vlt",   dst, dstStride);
-            else if (op == "vegt")              emitBin(ins, "op_vegt",  dst, dstStride);
-            else if (op == "vgt")               emitBin(ins, "op_vgt",   dst, dstStride);
+            else if (op == "veql")              emitBin(ins, "op_veql",  dst, dstStride, dstStrideVal);
+            else if (op == "vneql")             emitBin(ins, "op_vneql", dst, dstStride, dstStrideVal);
+            else if (op == "velt")              emitBin(ins, "op_velt",  dst, dstStride, dstStrideVal);
+            else if (op == "vlt")               emitBin(ins, "op_vlt",   dst, dstStride, dstStrideVal);
+            else if (op == "vegt")              emitBin(ins, "op_vegt",  dst, dstStride, dstStrideVal);
+            else if (op == "vgt")               emitBin(ins, "op_vgt",   dst, dstStride, dstStrideVal);
 
             // ================================================================
             // Matrix arithmetic
             // ================================================================
-            else if (op == "mulmm")             emitBin(ins, "op_mulmm", dst, dstStride);
-            else if (op == "addmm")             emitBin(ins, "op_addmm", dst, dstStride);
-            else if (op == "submm")             emitBin(ins, "op_submm", dst, dstStride);
-            else if (op == "divmm")             emitBin(ins, "op_divmm", dst, dstStride);
+            else if (op == "mulmm")             emitBin(ins, "op_mulmm", dst, dstStride, dstStrideVal);
+            else if (op == "addmm")             emitBin(ins, "op_addmm", dst, dstStride, dstStrideVal);
+            else if (op == "submm")             emitBin(ins, "op_submm", dst, dstStride, dstStrideVal);
+            else if (op == "divmm")             emitBin(ins, "op_divmm", dst, dstStride, dstStrideVal);
 
             // ================================================================
             // Unary arithmetic / math
             // ================================================================
-            else if (op == "movevv")         emitUn(ins, "op_movevv",      dst, dstStride);
-            else if (op == "moveff")         emitUn(ins, "op_moveff",      dst, dstStride);
-            else if (op == "movess")         emitUn(ins, "op_movess",      dst, dstStride);
-            else if (op == "not")            emitUn(ins, "op_not",         dst, dstStride);
-            else if (op == "negm")           emitUn(ins, "op_negm",        dst, dstStride);
-            else if (op == "movemm")         emitUn(ins, "op_movemm",      dst, dstStride);
-            else if (op == "mfromv")         emitUn(ins, "op_mfromv",      dst, dstStride);
-            else if (op == "negv")           emitUn(ins, "op_negv",        dst, dstStride);
-            else if (op == "negf")           emitUn(ins, "op_negf",        dst, dstStride);
-            else if (op == "normalize")      emitUn(ins, "op_normalize",   dst, dstStride);
-            else if (op == "length")         emitUn(ins, "op_length",      dst, dstStride);
-            else if (op == "sqrt")           emitUn(ins, "op_sqrt",        dst, dstStride);
-            else if (op == "inversesqrt")    emitUn(ins, "op_inversesqrt", dst, dstStride);
-            else if (op == "abs")            emitUn(ins, "op_abs",         dst, dstStride);
-            else if (op == "sign")           emitUn(ins, "op_sign",        dst, dstStride);
-            else if (op == "floor")          emitUn(ins, "op_floor",       dst, dstStride);
-            else if (op == "ceil")           emitUn(ins, "op_ceil",        dst, dstStride);
-            else if (op == "exp")            emitUn(ins, "op_exp",         dst, dstStride);
-            else if (op == "log")            emitUn(ins, "op_log",         dst, dstStride);
-            else if (op == "sin")            emitUn(ins, "op_sin",         dst, dstStride);
-            else if (op == "cos")            emitUn(ins, "op_cos",         dst, dstStride);
-            else if (op == "tan")            emitUn(ins, "op_tan",         dst, dstStride);
-            else if (op == "asin")           emitUn(ins, "op_asin",        dst, dstStride);
-            else if (op == "acos")           emitUn(ins, "op_acos",        dst, dstStride);
-            else if (op == "atan")           emitUn(ins, "op_atan",        dst, dstStride);
-            else if (op == "xcomp")          emitUn(ins, "op_xcomp",       dst, dstStride);
-            else if (op == "ycomp")          emitUn(ins, "op_ycomp",       dst, dstStride);
-            else if (op == "zcomp")          emitUn(ins, "op_zcomp",       dst, dstStride);
+            else if (op == "movevv")         emitUn(ins, "op_movevv",      dst, dstStride, dstStrideVal);
+            else if (op == "moveff")         emitUn(ins, "op_moveff",      dst, dstStride, dstStrideVal);
+            else if (op == "movess")         emitUn(ins, "op_movess",      dst, dstStride, dstStrideVal);
+            else if (op == "not")            emitUn(ins, "op_not",         dst, dstStride, dstStrideVal);
+            else if (op == "negm")           emitUn(ins, "op_negm",        dst, dstStride, dstStrideVal);
+            else if (op == "movemm")         emitUn(ins, "op_movemm",      dst, dstStride, dstStrideVal);
+            else if (op == "mfromv")         emitUn(ins, "op_mfromv",      dst, dstStride, dstStrideVal);
+            else if (op == "negv")           emitUn(ins, "op_negv",        dst, dstStride, dstStrideVal);
+            else if (op == "negf")           emitUn(ins, "op_negf",        dst, dstStride, dstStrideVal);
+            else if (op == "normalize")      emitUn(ins, "op_normalize",   dst, dstStride, dstStrideVal);
+            else if (op == "length")         emitUn(ins, "op_length",      dst, dstStride, dstStrideVal);
+            else if (op == "sqrt")           emitUn(ins, "op_sqrt",        dst, dstStride, dstStrideVal);
+            else if (op == "inversesqrt")    emitUn(ins, "op_inversesqrt", dst, dstStride, dstStrideVal);
+            else if (op == "abs")            emitUn(ins, "op_abs",         dst, dstStride, dstStrideVal);
+            else if (op == "sign")           emitUn(ins, "op_sign",        dst, dstStride, dstStrideVal);
+            else if (op == "floor")          emitUn(ins, "op_floor",       dst, dstStride, dstStrideVal);
+            else if (op == "ceil")           emitUn(ins, "op_ceil",        dst, dstStride, dstStrideVal);
+            else if (op == "exp")            emitUn(ins, "op_exp",         dst, dstStride, dstStrideVal);
+            else if (op == "log")            emitUn(ins, "op_log",         dst, dstStride, dstStrideVal);
+            else if (op == "sin")            emitUn(ins, "op_sin",         dst, dstStride, dstStrideVal);
+            else if (op == "cos")            emitUn(ins, "op_cos",         dst, dstStride, dstStrideVal);
+            else if (op == "tan")            emitUn(ins, "op_tan",         dst, dstStride, dstStrideVal);
+            else if (op == "asin")           emitUn(ins, "op_asin",        dst, dstStride, dstStrideVal);
+            else if (op == "acos")           emitUn(ins, "op_acos",        dst, dstStride, dstStrideVal);
+            else if (op == "atan")           emitUn(ins, "op_atan",        dst, dstStride, dstStrideVal);
+            else if (op == "xcomp")          emitUn(ins, "op_xcomp",       dst, dstStride, dstStrideVal);
+            else if (op == "ycomp")          emitUn(ins, "op_ycomp",       dst, dstStride, dstStrideVal);
+            else if (op == "zcomp")          emitUn(ins, "op_zcomp",       dst, dstStride, dstStrideVal);
 
             // ================================================================
             // Ternary (clamp, mix)
             // ================================================================
-            else if (op == "clampf")         emitTern(ins, "op_clampf", dst, dstStride);
-            else if (op == "clampv")         emitTern(ins, "op_clampv", dst, dstStride);
+            else if (op == "clampf")         emitTern(ins, "op_clampf", dst, dstStride, dstStrideVal);
+            else if (op == "clampv")         emitTern(ins, "op_clampv", dst, dstStride, dstStrideVal);
             // Generic clamp: dispatch by proto (f=fff → clampf, else → clampv)
             else if (op == "clamp") {
                 bool isFloat = !ins.proto.empty() && ins.proto[0] == 'f';
-                emitTern(ins, isFloat ? "op_clampf" : "op_clampv", dst, dstStride);
+                emitTern(ins, isFloat ? "op_clampf" : "op_clampv", dst, dstStride, dstStrideVal);
             }
-            else if (op == "mixf")           emitTern(ins, "op_mixf",   dst, dstStride);
-            else if (op == "mixv")           emitTern(ins, "op_mixv",   dst, dstStride);
+            else if (op == "mixf")           emitTern(ins, "op_mixf",   dst, dstStride, dstStrideVal);
+            else if (op == "mixv")           emitTern(ins, "op_mixv",   dst, dstStride, dstStrideVal);
             // Generic mix: dispatch by proto (f=fff → mixf, else → mixv)
             else if (op == "mix") {
                 bool isFloat = !ins.proto.empty() && ins.proto[0] == 'f';
-                emitTern(ins, isFloat ? "op_mixf" : "op_mixv", dst, dstStride);
+                emitTern(ins, isFloat ? "op_mixf" : "op_mixv", dst, dstStride, dstStrideVal);
             }
 
             // ================================================================
@@ -1090,25 +1122,29 @@ static void emitFunction(const IRFunction &irFn,
                 auto [a, sa] = getVar(ins, 0);
                 if (!dst || !a) continue;
                 auto *fn = declareOp(mod, "op_movevv", unOpTy);
-                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {0});
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), n, tg});
             }
             else if (op == "vufloat") {
                 auto [a, sa] = getVar(ins, 0);
                 if (!dst || !a) continue;
                 auto *fn = declareOp(mod, "op_moveff", unOpTy);
-                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {0});
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), n, tg});
             }
             else if (op == "vumatrix") {
                 auto [a, sa] = getVar(ins, 0);
                 if (!dst || !a) continue;
                 auto *fn = declareOp(mod, "op_movemm", unOpTy);
-                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {0});
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), n, tg});
             }
             else if (op == "vustring") {
                 auto [a, sa] = getVar(ins, 0);
                 if (!dst || !a) continue;
                 auto *fn = declareOp(mod, "op_movess", unOpTy);
-                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {0});
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(0), n, tg});
             }
 
             // ================================================================
@@ -1122,9 +1158,11 @@ static void emitFunction(const IRFunction &irFn,
                     llvm::Value *seArr = B.CreateAlloca(
                         llvm::ArrayType::get(i32Ty, 16), nullptr, "mfromf16_se");
                     bool ok = true;
+                    bool uniform = (dstStrideVal == 0);
                     for (int i = 0; i < 16; ++i) {
                         auto [ei, sei] = getVar(ins, i);
                         if (!ei) { ok = false; break; }
+                        uniform = uniform && (sei == 0);
                         llvm::Value *ePtr = B.CreateGEP(
                             llvm::ArrayType::get(ptrTy, 16), eArr,
                             {B.getInt32(0), B.getInt32(i)});
@@ -1138,9 +1176,11 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy,ptrTy, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_mfromf16", ty);
-                    B.CreateCall(fn, {dst, dstStride, eArr, seArr, numVerts, tags});
+                    llvm::Value *n16 = uniform ? B.getInt32(1) : numVerts;
+                    llvm::Value *tg16 = uniform ? llvm::ConstantPointerNull::get(ptrTy) : tags;
+                    B.CreateCall(fn, {dst, dstStride, eArr, seArr, n16, tg16});
                 } else {
-                    emitUn(ins, "op_mfromf", dst, dstStride);
+                    emitUn(ins, "op_mfromf", dst, dstStride, dstStrideVal);
                 }
             }
 
@@ -1156,12 +1196,13 @@ static void emitFunction(const IRFunction &irFn,
                     auto [f2,s2] = getVar(ins, 2);
                     if (!dst || !f0 || !f1 || !f2) continue;
                     auto *fn = declareOp(mod, "op_vfromfff", ternOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {s0, s1, s2});
                     B.CreateCall(fn, {dst, dstStride,
                                       f0, B.getInt32(s0), f1, B.getInt32(s1),
-                                      f2, B.getInt32(s2), numVerts, tags});
+                                      f2, B.getInt32(s2), n, tg});
                 } else {
                     // 1-operand form: broadcast single float
-                    emitUn(ins, "op_vfromf", dst, dstStride);
+                    emitUn(ins, "op_vfromf", dst, dstStride, dstStrideVal);
                 }
             }
             else if (op == "vfromvff") {
@@ -1172,8 +1213,9 @@ static void emitFunction(const IRFunction &irFn,
                 auto *fn = declareOp(mod, "op_vfromvff",
                     llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false));
+                auto [n, tg] = collapseArgs(dstStrideVal, {sv, s1, s2});
                 B.CreateCall(fn, {dst, dstStride, v, B.getInt32(sv),
-                                  f1, B.getInt32(s1), f2, B.getInt32(s2), numVerts, tags});
+                                  f1, B.getInt32(s1), f2, B.getInt32(s2), n, tg});
             }
             else if (op == "vfromfff") {
                 auto [f0,s0] = getVar(ins, 0);
@@ -1181,9 +1223,10 @@ static void emitFunction(const IRFunction &irFn,
                 auto [f2,s2] = getVar(ins, 2);
                 if (!dst || !f0 || !f1 || !f2) continue;
                 auto *fn = declareOp(mod, "op_vfromfff", ternOpTy);
+                auto [n, tg] = collapseArgs(dstStrideVal, {s0, s1, s2});
                 B.CreateCall(fn, {dst, dstStride,
                                   f0, B.getInt32(s0), f1, B.getInt32(s1),
-                                  f2, B.getInt32(s2), numVerts, tags});
+                                  f2, B.getInt32(s2), n, tg});
             }
 
             // ================================================================
@@ -1195,7 +1238,8 @@ static void emitFunction(const IRFunction &irFn,
                 const char *fnName = (op == "setxcomp") ? "op_setxcomp" :
                                      (op == "setycomp") ? "op_setycomp" : "op_setzcomp";
                 auto *fn = declareOp(mod, fnName, unOpTy);
-                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {sa});
+                B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), n, tg});
             }
 
             // ================================================================
@@ -1220,11 +1264,12 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_faceforward", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sn, si, sng});
                 B.CreateCall(fn, {dst, dstStride,
                                   nIn,  B.getInt32(sn),
                                   iIn,  B.getInt32(si),
                                   ngIn, B.getInt32(sng),
-                                  numVerts, tags});
+                                  n, tg});
             }
             else if (op == "smoothstep") {
                 auto [e0,s0] = getVar(ins, 0);
@@ -1232,9 +1277,10 @@ static void emitFunction(const IRFunction &irFn,
                 auto [x, sx] = getVar(ins, 2);
                 if (!dst || !e0 || !e1 || !x) continue;
                 auto *fn = declareOp(mod, "rsl_smoothstep", ternOpTy);
+                auto [n, tg] = collapseArgs(dstStrideVal, {s0, s1, sx});
                 B.CreateCall(fn, {dst, dstStride,
                                   e0, B.getInt32(s0), e1, B.getInt32(s1),
-                                  x,  B.getInt32(sx), numVerts, tags});
+                                  x,  B.getInt32(sx), n, tg});
             }
 
             // ================================================================
@@ -1277,7 +1323,8 @@ static void emitFunction(const IRFunction &irFn,
                     fnName = "op_pfrom";
                 }
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
             }
 
             // ================================================================
@@ -1309,7 +1356,8 @@ static void emitFunction(const IRFunction &irFn,
                                     : (op == "mfrom")      ? "op_mfrom"
                                     :                         "op_ctransform";
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
             }
 
             // ================================================================
@@ -1347,29 +1395,29 @@ static void emitFunction(const IRFunction &irFn,
             // Layer G — extra math / comparison opcodes
             // ================================================================
             else if (op == "max" || op == "maxf") {
-                emitBin(ins, "op_maxf", dst, dstStride);
+                emitBin(ins, "op_maxf", dst, dstStride, dstStrideVal);
             }
             else if (op == "and" || op == "andf") {
-                emitBin(ins, "op_andf", dst, dstStride);
+                emitBin(ins, "op_andf", dst, dstStride, dstStrideVal);
             }
             else if (op == "or" || op == "orf") {
-                emitBin(ins, "op_orf", dst, dstStride);
+                emitBin(ins, "op_orf", dst, dstStride, dstStrideVal);
             }
             // Comparison aliases used by some shader compilers
             else if (op == "feql") {
-                emitBin(ins, "op_feq", dst, dstStride);
+                emitBin(ins, "op_feq", dst, dstStride, dstStrideVal);
             }
             else if (op == "felt") {
-                emitBin(ins, "op_fle", dst, dstStride);
+                emitBin(ins, "op_fle", dst, dstStride, dstStrideVal);
             }
             else if (op == "fneql") {
-                emitBin(ins, "op_fne", dst, dstStride);
+                emitBin(ins, "op_fne", dst, dstStride, dstStrideVal);
             }
             else if (op == "radians") {
-                emitUn(ins, "op_radians", dst, dstStride);
+                emitUn(ins, "op_radians", dst, dstStride, dstStrideVal);
             }
             else if (op == "filterstep") {
-                emitBin(ins, "op_filterstep", dst, dstStride);
+                emitBin(ins, "op_filterstep", dst, dstStride, dstStrideVal);
             }
 
             // ================================================================
@@ -1382,9 +1430,10 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_reflect", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {si, sn});
                 B.CreateCall(fn, {dst, dstStride,
                                   I, B.getInt32(si), N, B.getInt32(sn),
-                                  numVerts, tags});
+                                  n, tg});
             }
 
             // ================================================================
@@ -1414,6 +1463,7 @@ static void emitFunction(const IRFunction &irFn,
                      ptrTy,i32Ty, ptrTy,i32Ty,
                      i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_fresnel", ty);
+                auto [n, tg] = collapseArgs(0, {si, sn, se, skr, skt, sr, st});
                 B.CreateCall(fn, {I,  B.getInt32(si),
                                   N,  B.getInt32(sn),
                                   eta,B.getInt32(se),
@@ -1421,7 +1471,7 @@ static void emitFunction(const IRFunction &irFn,
                                   Kt, B.getInt32(skt),
                                   R,  B.getInt32(sr),
                                   T,  B.getInt32(st),
-                                  numVerts, tags});
+                                  n, tg});
             }
 
             // ================================================================
@@ -1440,7 +1490,8 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {sx});
+                B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), n, tg});
             }
 
             // ================================================================
@@ -1462,9 +1513,10 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, fnName, ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sx, sy});
                     B.CreateCall(fn, {dst, dstStride,
                                       x, B.getInt32(sx), y, B.getInt32(sy),
-                                      numVerts, tags});
+                                      n, tg});
                 } else {
                     const char *fnName = dstIsVec
                         ? (srcIsVec ? "op_cellnoise_vp" : "op_cellnoise_vf")
@@ -1472,7 +1524,8 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, fnName, ty);
-                    B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), numVerts, tags});
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sx});
+                    B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), n, tg});
                 }
             }
 
@@ -1485,13 +1538,18 @@ static void emitFunction(const IRFunction &irFn,
                 const std::string &tokA = ins.operands[0].token;
                 const std::string &tokB = ins.operands[1].token;
 
-                // Look up variables; they resolve to char** locals.
+                // Look up variables; they resolve to char** locals. Track each
+                // operand's stride (0=uniform, 1=varying) so op_seql/op_sneql
+                // can advance per-vertex instead of always reading slot 0 —
+                // needed when an operand is a varying string (e.g. the result
+                // of a usfroma extraction), not just a uniform.
                 VarDesc descA, descB;
                 llvm::Value *ptrA = nullptr, *ptrB = nullptr;
-                if (resolveVar(tokA, descA)) ptrA = loadVarPtr(descA);
-                if (resolveVar(tokB, descB)) ptrB = loadVarPtr(descB);
+                int strideA = 0, strideB = 0;
+                if (resolveVar(tokA, descA)) { ptrA = loadVarPtr(descA); strideA = descA.stride; }
+                if (resolveVar(tokB, descB)) { ptrB = loadVarPtr(descB); strideB = descB.stride; }
 
-                // If not found, embed as a string literal constant.
+                // If not found, embed as a string literal constant (uniform).
                 auto makeStrLit = [&](const std::string &tok) -> llvm::Value* {
                     std::string s = tok;
                     if (s.size() >= 2 && s.front() == '"')
@@ -1502,15 +1560,16 @@ static void emitFunction(const IRFunction &irFn,
                     B.CreateStore(sptr, alloca);
                     return alloca;
                 };
-                if (!ptrA) ptrA = makeStrLit(tokA);
-                if (!ptrB) ptrB = makeStrLit(tokB);
+                if (!ptrA) { ptrA = makeStrLit(tokA); strideA = 0; }
+                if (!ptrB) { ptrB = makeStrLit(tokB); strideB = 0; }
 
                 const char *fnName = (op == "seql") ? "op_seql" : "op_sneql";
-                // (float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags)
+                // (float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags)
                 auto *ty = llvm::FunctionType::get(voidTy,
-                    {ptrTy,i32Ty, ptrTy,ptrTy, i32Ty, ptrTy}, false);
+                    {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, ptrA, ptrB, numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {strideA, strideB});
+                B.CreateCall(fn, {dst, dstStride, ptrA, B.getInt32(strideA), ptrB, B.getInt32(strideB), n, tg});
             }
 
             // ================================================================
@@ -1526,7 +1585,8 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, src, B.getInt32(ss), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                B.CreateCall(fn, {dst, dstStride, src, B.getInt32(ss), n, tg});
             }
 
             // ================================================================
@@ -1593,8 +1653,9 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy, ptrTy, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_texture_f", ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
                     B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      s, B.getInt32(ss), t, B.getInt32(st), numVerts, tags});
+                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg});
                 } else {
                     // Color form: texture name s t
                     auto [s, ss] = getVar(ins, 1);
@@ -1604,8 +1665,9 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_texture_c", ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
                     B.CreateCall(fn, {dst, dstStride, namePP,
-                                      s, B.getInt32(ss), t, B.getInt32(st), numVerts, tags});
+                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg});
                 }
             }
 
@@ -1636,8 +1698,9 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy, ptrTy, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_environment_f", ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sD});
                     B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      D, B.getInt32(sD), numVerts, tags});
+                                      D, B.getInt32(sD), n, tg});
                 } else {
                     // Color form: environment name D
                     auto [D, sD] = getVar(ins, 1);
@@ -1645,8 +1708,9 @@ static void emitFunction(const IRFunction &irFn,
                     auto *ty = llvm::FunctionType::get(voidTy,
                         {ptrTy,i32Ty, ptrTy, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_environment_c", ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sD});
                     B.CreateCall(fn, {dst, dstStride, namePP,
-                                      D, B.getInt32(sD), numVerts, tags});
+                                      D, B.getInt32(sD), n, tg});
                 }
             }
             else if (op == "shadow") {
@@ -1670,8 +1734,9 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy, ptrTy,i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_shadow_f", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sPs});
                 B.CreateCall(fn, {dst, dstStride, namePP,
-                                  Ps, B.getInt32(sPs), numVerts, tags});
+                                  Ps, B.getInt32(sPs), n, tg});
             }
 
             // ================================================================
@@ -1691,7 +1756,8 @@ static void emitFunction(const IRFunction &irFn,
                     {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
                 const char *fnName = (op == "nfrom") ? "op_ntransform" : "op_vtransform";
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), numVerts, tags});
+                auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
             }
 
             // ================================================================
@@ -1750,9 +1816,10 @@ static void emitFunction(const IRFunction &irFn,
                                 {ptrTy, i32Ty, ptrTy, i32Ty,
                                  i32Ty, ptrTy, i32Ty, ptrTy}, false);
                             auto *fn = declareOp(mod, fnName, ty);
+                            auto [n, tg] = collapseArgs(dstStrideVal, {st});
                             B.CreateCall(fn, {dst, dstStride, t, B.getInt32(st),
                                               B.getInt32(numKnots), arr,
-                                              numVerts, tags});
+                                              n, tg});
                         }
                     }
                 }
@@ -1761,15 +1828,23 @@ static void emitFunction(const IRFunction &irFn,
             // ================================================================
             // Array move ops
             // ================================================================
-            else if (op == "ffroma")            emitBin(ins, "op_ffroma", dst, dstStride);
-            else if (op == "vfroma")            emitBin(ins, "op_vfroma", dst, dstStride);
-            else if (op == "mfroma")            emitBin(ins, "op_mfroma", dst, dstStride);
-            else if (op == "sfroma")            emitBin(ins, "op_sfroma", dst, dstStride);
+            else if (op == "ffroma")            emitBin(ins, "op_ffroma", dst, dstStride, dstStrideVal);
+            else if (op == "vfroma")            emitBin(ins, "op_vfroma", dst, dstStride, dstStrideVal);
+            else if (op == "mfroma")            emitBin(ins, "op_mfroma", dst, dstStride, dstStrideVal);
+            else if (op == "sfroma")            emitBin(ins, "op_sfroma", dst, dstStride, dstStrideVal);
             else if (op == "uffroma" || op == "uvfroma" ||
                      op == "umfroma" || op == "usfroma") {
-                // Uniform-array + varying-index read: arr/idx strides forced
-                // to 0, mirroring the vufloat/vuvector uniform-broadcast
-                // pattern above — the 4 read wrappers are reused as-is.
+                // Uniform-array read: only the array operand (arr) is
+                // uniform for this opcode family — that's what the "u"
+                // prefix means, per the interpreter's UARRAY_UPDATE macro
+                // (scriptOpcodes.h), which never advances op1 (the array)
+                // but does advance op2 (the index) every iteration. The
+                // index is a normal expression result and is commonly
+                // varying (e.g. `arr[(int)mod(u*3,3)]`). Forcing idx's
+                // stride to 0 here (as an earlier version of this code did)
+                // read only slot 0 of the index for every vertex, producing
+                // coherent-block misclassification instead of a per-vertex
+                // lookup — confirmed via sphere-usfroma-reyes-slo mismatch.
                 auto [arr, sa]   = getVar(ins, 0);
                 auto [idx, sidx] = getVar(ins, 1);
                 if (!dst || !arr || !idx) continue;
@@ -1778,8 +1853,9 @@ static void emitFunction(const IRFunction &irFn,
                                     : (op == "umfroma") ? "op_mfroma"
                                                          : "op_sfroma";
                 auto *fn = declareOp(mod, fnName, binOpTy);
+                auto [n, tg] = collapseArgs(dstStrideVal, {0, sidx});
                 B.CreateCall(fn, {dst, dstStride, arr, B.getInt32(0),
-                                  idx, B.getInt32(0), numVerts, tags});
+                                  idx, B.getInt32(sidx), n, tg});
             }
             else if (op == "ftoa" || op == "vtoa" || op == "mtoa") {
                 // Array element write: `ins.result` resolves to the array
@@ -1800,8 +1876,9 @@ static void emitFunction(const IRFunction &irFn,
                                     : (op == "vtoa") ? "op_vtoa"
                                                       : "op_mtoa";
                 auto *fn = declareOp(mod, fnName, ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sidx, sval});
                 B.CreateCall(fn, {dst, dstStride, idx, B.getInt32(sidx),
-                                  val, B.getInt32(sval), numVerts, tags});
+                                  val, B.getInt32(sval), n, tg});
             }
             else if (op == "stoa") {
                 // String array element write: val is char* const* (a
@@ -1832,8 +1909,9 @@ static void emitFunction(const IRFunction &irFn,
                 auto *ty = llvm::FunctionType::get(voidTy,
                     {ptrTy,i32Ty, ptrTy,i32Ty, ptrTy,i32Ty, i32Ty,ptrTy}, false);
                 auto *fn = declareOp(mod, "op_stoa", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sidx, sval});
                 B.CreateCall(fn, {dst, dstStride, idx, B.getInt32(sidx),
-                                  val, B.getInt32(sval), numVerts, tags});
+                                  val, B.getInt32(sval), n, tg});
             }
 
             // ================================================================

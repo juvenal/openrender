@@ -478,6 +478,37 @@ spec.
 direction ("investigate root cause now") rather than accepting the shortfall
 silently or relaxing the target after the fact.
 
+**Addendum (2026-08-27): the follow-up spec landed, the fix did not close the
+gap.** `specs/012-jit-parity-followups` (US2/T023-T037) implemented exactly
+the calling-convention change identified above: a `collapseArgs` helper in
+`llvmEmitter.cpp` that branches on an operand's uniform classification and
+calls its wrapped `op_*` with `n=1, tags=nullptr` instead of the full
+`numVerts`/live tag pointer, applied across the arithmetic (`emitBin`/
+`emitUn`/`emitTern`), `DEFFUNC`, and `DEFSHORTFUNC` dispatch sites (23 of 84
+call sites qualified; the rest — `ambient`/`diffuse`/`specular`/`lightsource`/
+`phong`/`area`/`calculatenormal`/`depth`/the zero-real-use `DEFSHORTOPCODE`
+family — were excluded for documented, per-site reasons). The fix was
+verified correct at the IR level (23/84 sites collapsed, zero forbidden
+`n=1`-with-live-`tags` combinations, zero delegation-target mismatches) and
+at the rendered-output level (a purpose-built FR-006 discrimination scene
+flipped from a 32.80 block-avg failure to a 4.92 pass; the full 91-scene
+visual suite and 2-test libshader suite showed zero regressions). **It did
+not close the measured wall-clock gap.** Re-running `ctest -L perf-manual`
+against the same six scenes showed ratios of 1.06-1.45x — statistically
+indistinguishable from this section's original 1.048-1.464x, i.e. SC-004,
+SC-005, and SC-006 all remain unmet. Diagnosed cause: the collapse only
+touches uniform-classified *array-declaration prologue* sites, which are a
+small, mostly one-time fraction of a shader's instruction stream; the
+per-vertex *varying-body* cost that actually dominates shading wall-clock
+time was never uniform-classified to begin with, so the collapse has nothing
+to act on there. This does not mean the collapse is broken or pointless — it
+is a real, independently-verified correctness fix for a real bug class — it
+means the calling-convention gap identified in this section explains only
+part of the measured slowdown, and the dominant remainder is still
+unattributed. See `specs/012-jit-parity-followups/measurements.md`'s US2
+section (T023-T037) for the full data, and `DEVNOTES_DETAILS/BUGS.md`'s
+`numVerts`-tax Open Issue entry (left open, not resolved, by that spec).
+
 **FR-007 final sweep (T055).** Cross-referenced every `op_*` function added
 by this spec (30 functions across `rslOps.cpp`: `op_cfrom`/`op_mfrom`/
 `op_ctransform`; `op_veql`/`op_vneql`/`op_velt`/`op_vlt`/`op_vegt`/`op_vgt`/

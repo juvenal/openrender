@@ -12,8 +12,18 @@ both `execute.cpp` (interpreter) and `shading.cpp` (JIT)
 | | Macro form | Method form |
 |---|---|---|
 | Location | `execute.cpp:422-517`, `runLightsTemplate` + `CATEGORYLIGHT_PRE` / `CATEGORYLIGHT_CHECK` | `shading.cpp:1502-1558`, `CShadingContext::runLights` / `runCategoryLights` |
-| Reached by | interpreter opcode bodies, via the `runLights` / `runCategoryLights` macro wrappers | JIT, via `jitIlluminanceBegin` (`shading.cpp:2059-2122`) |
-| Category argument | yes (`runCategoryLights`) | **no** — `jitIlluminanceBegin` calls the no-category entry |
+| Reached by | interpreter opcode bodies, via the `runLights` / `runCategoryLights` macro wrappers | JIT, via **five** live call sites, all through the no-category `runLights(...)` entry: `callDiffuse` (1615), `callSpecular` (1655), `prepareDiffuse` (1741), `setupIlluminance` (1754), `jitIlluminanceBegin` (2059-2122) |
+| Category argument | yes (`runCategoryLights`) | **no** — every JIT call site passes `saveCat = 0` via the no-category entry |
+
+**Correction (2026-08-26):** the original table above listed `jitIlluminanceBegin`
+as the method form's only JIT caller. A call-site trace found four more —
+`callDiffuse`, `callSpecular`, `prepareDiffuse`, `setupIlluminance` — all
+reached from the `diffuse()`/`specular()`/`ambient()` builtin path, not the
+`illuminance` construct. All five pass `saveCat = 0` (the plain `runLights`
+wrapper, not `runCategoryLights`), so this does not add a new code path to
+converge — it means §2.1's "exactly one implementation" / §5's retirement
+grep cannot pass without repointing all five, not just one. T038/T041 are
+scoped to cover all five call sites accordingly.
 
 They are hand-synced copies and have drifted in exactly two places
 ([research.md D6](../research.md)):

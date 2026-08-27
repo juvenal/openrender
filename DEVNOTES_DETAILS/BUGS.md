@@ -34,37 +34,90 @@ This file tracks known defects and implementation gaps in openRender. Open items
       scene scale). Not fixable via FR-007-style delegation alone — it's a
       calling-convention change to the emitter itself, with its own
       correctness surface around `tags`/`numRealVertices` bookkeeping. See
-      `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10. Planned as a
-      follow-up spec.
-- [ ] `.rslo` interpreter crash on `usfroma` — a varying-index read of a
-      `uniform string` array (e.g. `usarr[findex] == "a"` with `findex`
-      varying) crashes inside `CShadingContext::execute`. Every sibling array
-      opcode (matched-uniformity numeric reads, mismatched-uniformity numeric
-      reads, uniform-index string reads) renders cleanly with the identical
-      sizing/index pattern — isolated to varying-indexed *string*-array
-      element resolution specifically. Discovered during
-      `specs/011-jit-opcode-parity` array-move-opcode testing; worked around
-      by removing the exercise from `shaders/array_ops_probe.sl` (still
-      nominally covered by the reachability-only `LibShader_OpcodeCoverage`
-      guard, not a correctness check). Left unfixed under FR-009 (interpreter
-      changes need their own controlled, regression-checked effort, not a
-      side-fix inside an unrelated spec) — planned as a follow-up spec.
-- [ ] JIT `illuminance` support is a hand-synced parallel reimplementation of
-      the interpreter's light-iteration logic, not genuine shared-function
-      delegation (`CShadingContext::jitIlluminanceBegin`/`jitIlluminanceNext`,
-      `shading.cpp:2056-2119`, call a method-form `runLights` that is NOT the
-      same code as the macro-form `runLights`/`runLightsTemplate` the
-      interpreter uses, `execute.cpp:417-479` — the macro is textually-inlined
-      interpreter-dispatch-loop code that a compiled method cannot literally
-      call). A longstanding, low-severity FR-007-style gap that predates
-      `specs/011-jit-opcode-parity` and was found as a side effect of that
-      spec's `gather()` research (by contrast, `gather()`'s own delegation
-      targets — `traceEx`, `sampleHemisphere`, `duVector`/`dvVector` — are
-      genuine shared functions). Planned as a follow-up spec (JIT-side-only
-      refactor, no interpreter changes).
+      `specs/011-jit-opcode-parity/lessons-learned.md` Phase 10.
+      `specs/012-jit-parity-followups` (US2/T023-T037) implemented exactly
+      this calling-convention change — a `collapseArgs` uniform-dispatch
+      collapse passing `n=1, tags=nullptr` at uniform-classified call sites —
+      and verified it correct at both the IR level (23/84 sites correctly
+      collapsed, zero forbidden combinations) and the rendered-output level
+      (zero visual regressions across 91 scenes; the FR-006 discrimination
+      scene flipped from failing to passing). **It did not close the measured
+      wall-clock gap**: `ctest -L perf-manual` still fails 6/6 against
+      SC-004/SC-005/SC-006 (ratios 1.06-1.45x, JIT still slower, gap within
+      noise of the pre-fix numbers). Root cause of the residual gap: the
+      collapse only touches uniform-classified array-declaration prologue
+      sites, not the varying-body per-vertex cost that actually dominates
+      shading time. Still open; correctly implemented but unresolved.
+- [ ] Intermittent SIGSEGV in `CPhotonHider` photon-map construction,
+      surfaced as a flaky `Visual_subdiv-loop-photon` ctest failure
+      (`examples/rib/tests/subdiv-loop-photon.rib`, `ctest -L visual`).
+      Genuinely intermittent — does not reproduce every run and does not
+      reproduce under `lldb` (classic race-condition signature: debugger
+      overhead perturbs scheduling). Discovered during
+      `specs/012-jit-parity-followups` T036/T046 mandated post-fix
+      re-verification. Root-cause isolation: built and ran the identical
+      scene 30x against a clean binary from commit `0fb9f80` (the last
+      commit before any of spec 012's changes, in an isolated worktree) —
+      3/30 runs (10%) segfaulted, the same failure rate seen on the spec
+      012 branch. **Confirmed pre-existing — not a regression introduced by
+      spec 012's `iterateLights` convergence work.** Left uninvestigated
+      further under FR-011-style discipline (interpreter/hider changes need
+      their own controlled, regression-checked effort). Likely the same
+      failure class as the `CStochastic::rasterBegin` `nullBucket`
+      early-out bug (see Resolved Bugs below and CLAUDE.md gotcha #6) —
+      i.e., a multi-threaded raster/hider early-out or shared-state race —
+      but in `CPhotonHider` rather than `CStochastic`; unconfirmed without
+      further investigation. Planned as a follow-up spec.
 
 ## Resolved Bugs
 
+- [x] Bug: `.rslo` interpreter crashed on `usfroma` — a varying-index read of a `uniform string` array (e.g.
+      `usarr[findex] == "a"` with `findex` varying) crashed inside `CShadingContext::execute`, while every
+      sibling array opcode (matched-uniformity numeric reads, mismatched-uniformity numeric reads,
+      uniform-index string reads) rendered cleanly with the identical sizing/index pattern (FIXED —
+      `specs/012-jit-parity-followups`, branch `012-jit-parity-followups`, US1/T016. Root cause, isolated to
+      varying-indexed *string*-array element resolution specifically: `src/libshader/shading/scriptOpcodes.h`'s
+      `Movess`/`VUString` opcode bodies were mistyped, computing array-element addresses with the wrong stride
+      once indexing left the uniform-only path, and the `UARRAY_UPDATE` macro was missing its `op2++` advance —
+      together these read/advanced the wrong bytes on the varying-index path while the uniform-index path
+      happened to still line up by coincidence. Fixed on the interpreter side (retyped `Movess`/`VUString` to
+      `char**`, added the missing `op2++`), per FR-010 with JIT-consistency companion changes so the JIT
+      continues to match: `op_movess` retyped in `rslOps.cpp`/`.h`, `op_seql`/`op_sneql` extended to take
+      explicit stride parameters, and `llvmEmitter.cpp`'s `allocLiteral` extended to materialize string
+      literals via `B.CreateGlobalString` (with `seql`/`sneql` emission now passing `VarDesc::stride` as an
+      extra `i32` argument). A related latent bug surfaced by the same repro and fixed alongside it:
+      `rendererFiles.cpp`'s `parseSloShader` `fillSize` lambda under-sized `string`-typed `.slo` parameter
+      buffers — added `sloElemByteSize(t)`. Originally discovered during `specs/011-jit-opcode-parity`
+      array-move-opcode testing and worked around by removing the exercise from `shaders/array_ops_probe.sl`;
+      this spec applied the real fix under FR-009's controlled-effort discipline. Verified via new
+      `Visual_sphere-usfroma-reyes`/`Visual_sphere-usfroma-reyes-slo` regression scenes
+      (`tests/visual/CMakeLists.txt`) exercising the exact crashing pattern under both backends, plus the full
+      visual/libshader regression suites.)
+- [x] Bug: JIT `illuminance` support was a hand-synced parallel reimplementation of the interpreter's
+      light-iteration logic, not genuine shared-function delegation (`CShadingContext::jitIlluminanceBegin`/
+      `jitIlluminanceNext` called a method-form `runLights` that was NOT the same code as the macro-form
+      `runLights`/`runLightsTemplate` the interpreter used) (FIXED — `specs/012-jit-parity-followups`, branch
+      `012-jit-parity-followups`, US3/T038-T047. Converged `execute.cpp`'s macro-form `runLightsTemplate` and
+      `shading.cpp`'s method-form `CShadingContext::runLights`/`runCategoryLights` into one implementation,
+      `CShadingContext::iterateLights` (`shading.h`), reached by both the interpreter's macro wrappers
+      (`execute.cpp:422-517`, now two-line delegations) and the JIT's five light-iteration call sites
+      (`callDiffuse`, `callSpecular`, `prepareDiffuse`, `setupIlluminance`, `jitIlluminanceBegin`) — a
+      call-site trace during this work found four of those five call sites that the original bug report had
+      missed, all reached from the `diffuse()`/`specular()`/`ambient()` builtin path rather than just
+      `illuminance`. Two semantic divergences between the old macro/method copies were resolved by adopting
+      the interpreter's stricter semantics per FR-011 (the interpreter is the reference): the cache-validity
+      predicate, and whether an uncategorised light is included under `invertCatMatch`. Landed as a refactor
+      under FR-009's exemption — `contracts/light-iteration.md`'s flip trigger did not fire, since the
+      converged function reproduces the interpreter's semantics exactly — not as an FR-011-gated interpreter
+      change. Verified via a dedicated before/after baseline
+      (`specs/012-jit-parity-followups/baselines/us3-before-*`), a
+      `grep -rn "CShadingContext::runLights\|CShadingContext::runCategoryLights\|::runCategoryLights" src/`
+      returning zero matches (confirming no remaining copy of either retired method), and a `matte.sl` render
+      succeeding under both `rslo` and `slo` shaderformats. Two related defects were found and deliberately
+      left unfixed as spec-013 candidates, each needing its own empirical repro first: the interpreter's
+      6-operand `illuminance` form silently discarding its category operand, and the JIT emitter never
+      lowering the 3-/4-operand `illuminance` forms at all — see `contracts/light-iteration.md` §4 and
+      `DEVNOTES.md`'s "Review in next steps" section.)
 - [x] Bug: LLVM JIT emitter silently dropped `Ci`/`Oi` writes using the explicit-colorspace RSL color
       constructor (`color "space" (s, t, 0)`, opcode `cfrom`), its matrix sibling (`mfrom`), and silently
       computed the *wrong* result for `ctransform()` (FIXED — `specs/011-jit-opcode-parity`, branch

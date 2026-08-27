@@ -243,6 +243,57 @@ the wrapped `op_*` call. See `specs/011-jit-opcode-parity/lessons-learned.md` Ph
 for the full investigation; recorded as a documented residual, planned for its own
 follow-up spec.
 
+**Update (`specs/012-jit-parity-followups`, US2): the identified fix was implemented
+and verified correct, but did not close the gap.** A `collapseArgs` helper was added to
+`llvmEmitter.cpp` that inspects an operand's uniform classification at emission time and,
+when uniform, calls the wrapped `op_*` with `n=1, tags=nullptr` instead of the live
+`numVerts`/tag pointer — applied across the `emitBin`/`emitUn`/`emitTern` arithmetic
+sites plus the `DEFFUNC`/`DEFSHORTFUNC` builtin dispatch sites (23 of 84 call sites
+qualified as uniform-classified and were collapsed; the remainder — `ambient`/
+`diffuse`/`specular`/`lightsource`/`phong`/`area`/`calculatenormal`/`depth`/a
+zero-real-use `DEFSHORTOPCODE` family — were deliberately excluded, each for a
+documented reason). Correctness was verified at both the IR level (23/84 sites
+correctly collapsed, zero forbidden `n=1`-with-live-`tags` combinations) and the
+rendered-output level (a purpose-built discrimination scene flipped from a 32.80
+block-avg failure to a 4.92 pass; the full 91-scene visual suite showed zero
+regressions). **`ctest -L perf-manual` re-run after the fix still shows 1.06-1.45x
+ratios** — statistically indistinguishable from the original 1.048-1.464x above — so
+SC-004/SC-005/SC-006 remain unmet. The collapse only reaches uniform-classified
+*array-declaration prologue* call sites; the per-vertex *varying-body* cost that
+actually dominates shading wall-clock time was never uniform-classified to begin with,
+so the collapse has nothing to act on there. See
+`specs/012-jit-parity-followups/measurements.md` (US2/T023-T037) for the full data and
+`specs/011-jit-opcode-parity/lessons-learned.md`'s Phase 10 addendum for the mirrored
+writeup.
+
+### Light-iteration convergence (`specs/012-jit-parity-followups`, US3)
+
+Prior to this spec, `illuminance`'s light-iteration logic existed as two independent
+copies: a macro form (`runLightsTemplate` in `execute.cpp`, used by the `.rslo`
+interpreter) and a method form (`CShadingContext::runLights`/`runCategoryLights` in
+`shading.cpp`, used by five JIT call sites — `callDiffuse`, `callSpecular`,
+`prepareDiffuse`, `setupIlluminance`, `jitIlluminanceBegin` — reached from the
+`diffuse()`/`specular()`/`ambient()`/`illuminance()` builtin paths, not just
+`illuminance()` alone). These were hand-synced rather than genuinely shared, which is
+exactly the delegation gap this project's parity constraint (FR-010) exists to close.
+
+Both copies were converged into a single implementation, `CShadingContext::iterateLights`
+(`shading.h`, two overloads), reached by both the interpreter's macro wrappers
+(`execute.cpp`, now two-line delegations) and all five JIT call sites. Two semantic
+divergences between the old copies were resolved by adopting the interpreter's (stricter)
+semantics, per FR-011's "interpreter is the reference" rule: the cache-validity predicate,
+and whether an uncategorised light is included under `invertCatMatch`. Both divergences
+are output-neutral for every JIT-lowered `illuminance` opcode form in current use, since
+none of them reach the category operand on the JIT side to begin with (`IlluminationCat2`,
+the only form that carries one, discards it in the interpreter too — a separate, deferred
+defect, not fixed here).
+
+Two related gaps were found and deliberately left open as spec-013 candidates (each needs
+its own empirical repro before a fix): the interpreter's 6-operand `illuminance` form
+silently discarding its category argument, and the JIT emitter never lowering the
+3-/4-operand `illuminance` forms at all. See
+`specs/012-jit-parity-followups/contracts/light-iteration.md` §4.
+
 ---
 
 ## Imager Shader Support

@@ -23,17 +23,22 @@
  * local.
  *
  * usfroma (varying-index read of a uniform string array) is DELIBERATELY
- * NOT exercised here. Bisected in a standalone repro
- * (scratchpad bisect4/6.sl, this session) down to a 4-line minimal case:
- * `if (usarr[findex] == "a") ...` with a correctly-sized 3-element
- * uniform string array and a varying index provably bounded to {0,1,2}
- * segfaults CShadingContext::execute — the .rslo INTERPRETER's own
- * bytecode dispatch loop, not the JIT emitter (reproduces identically on
- * a plain, non-`-slo` render). Since no valid rslo ground-truth reference
- * can be produced, usfroma cannot be covered by this rslo-vs-slo parity
- * visual test; the interpreter itself is out of scope to fix (ground-truth
- * non-goal). See DEVNOTES_DETAILS/BUGS.md. usfroma's JIT-emitter coverage
- * is still verified separately via LibShader_OpcodeCoverage.
+ * NOT exercised here — not because it remains unfixable, but because its
+ * coverage has since moved to a dedicated probe. At the time this file was
+ * written (spec 011), `if (usarr[findex] == "a") ...` with a correctly-sized
+ * 3-element uniform string array and a varying index provably bounded to
+ * {0,1,2} segfaulted CShadingContext::execute — the .rslo INTERPRETER's own
+ * bytecode dispatch loop, not the JIT emitter — so no valid rslo
+ * ground-truth reference could be produced and this scene's rslo-vs-slo
+ * parity check couldn't include it. Spec 012 (US1) fixed that interpreter
+ * crash under FR-011's controlled-defect-fix gate (see
+ * `specs/012-jit-parity-followups/measurements.md`, T012-T018) and,
+ * separately, found and fixed a real JIT-emitter parity bug in the same
+ * opcode (T019: `usfroma`'s index-stride argument was wrongly hardcoded to
+ * uniform in `llvmEmitter.cpp`). Coverage now lives in
+ * `shaders/usfroma_probe.sl` / `examples/rib/tests/sphere-usfroma-reyes.rib`
+ * and `sphere-usfroma-reyes-slo.rib`, not here — this omission is
+ * intentional, not an oversight. See DEVNOTES_DETAILS/BUGS.md.
  *
  * Candidates exercised here: ffroma, vfroma, mfroma, sfroma, uffroma,
  * uvfroma, umfroma, ftoa, vtoa, mtoa, stoa.

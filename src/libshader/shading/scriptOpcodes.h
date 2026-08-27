@@ -723,11 +723,11 @@ DEFOPCODE(Negm, "negm", 2, OPERANDS2EXPR_PRE(float *, const float *), MUNARYEXPR
 DEFOPCODE(Moveff, "moveff", 2, OPERANDS2EXPR_PRE(float *, const float *), FUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 DEFOPCODE(Movevv, "movevv", 2, OPERANDS2EXPR_PRE(float *, const float *), VUNARYEXPR, OPERANDS2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
 DEFOPCODE(Movemm, "movemm", 2, OPERANDS2EXPR_PRE(float *, const float *), MUNARYEXPR, OPERANDS2EXPR_UPDATE(16, 16), NULL_EXPR, 0)
-DEFOPCODE(Movess, "movess", 2, OPERANDS2EXPR_PRE(float *, const float *), SUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFOPCODE(Movess, "movess", 2, OPERANDS2EXPR_PRE(char **, char **), SUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 DEFOPCODE(VUFloat, "vufloat", 2, OPERANDS2EXPR_PRE(float *, const float *), FUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 0), NULL_EXPR, 0)
 DEFOPCODE(VUVector, "vuvector", 2, OPERANDS2EXPR_PRE(float *, const float *), VUNARYEXPR, OPERANDS2EXPR_UPDATE(3, 0), NULL_EXPR, 0)
 DEFOPCODE(VUMatrix, "vumatrix", 2, OPERANDS2EXPR_PRE(float *, const float *), MUNARYEXPR, OPERANDS2EXPR_UPDATE(16, 0), NULL_EXPR, 0)
-DEFOPCODE(VUString, "vustring", 2, OPERANDS2EXPR_PRE(float *, const float *), SUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 0), NULL_EXPR, 0)
+DEFOPCODE(VUString, "vustring", 2, OPERANDS2EXPR_PRE(char **, char **), SUNARYEXPR, OPERANDS2EXPR_UPDATE(1, 0), NULL_EXPR, 0)
 #undef OPERATION
 
 /////////////////////////////////////////////////////////////////
@@ -751,7 +751,8 @@ DEFOPCODE(VUString, "vustring", 2, OPERANDS2EXPR_PRE(float *, const float *), SU
     op2++;
 
 #define UARRAY_UPDATE(__rs) \
-    res += __rs;
+    res += __rs;            \
+    op2++;
 
 #define FFROMAEXPR *res = op1[(int)(*op2)];
 #define VFROMAEXPR movvv(res, &op1[((int)(*op2)) * 3]);

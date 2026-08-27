@@ -1495,15 +1495,21 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CShadingContext lighting helpers — used by illuminate loop (interpreter)
-// and by the JIT batch call* methods below.
+// CShadingContext::iterateLights — converged light-iteration entry point.
+// Reached by the JIT batch call*/prepare*/setupIlluminance/jitIlluminanceBegin
+// call sites below, and by the interpreter's runLights/runCategoryLights
+// macro wrappers in execute.cpp (see specs/012-jit-parity-followups
+// contracts/light-iteration.md). Semantics are the interpreter macro's,
+// verbatim — not the pre-convergence method's (which used a looser
+// cache-validity predicate and excluded NULL-category lights under
+// invertCatMatch; see the contract's divergence table).
 ///////////////////////////////////////////////////////////////////////
 
-void CShadingContext::runLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance) {
-    runCategoryLights(lP, lN, lT, numVertices, tags, numActive, numPassive, 0, inShadow, varying, cInstance);
+void CShadingContext::iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance) {
+    iterateLights(lP, lN, lT, numVertices, tags, numActive, numPassive, 0, inShadow, varying, cInstance);
 }
 
-void CShadingContext::runCategoryLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int saveCat, int inShadow, float **varying, CShaderInstance *cInstance) {
+void CShadingContext::iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int saveCat, int inShadow, float **varying, CShaderInstance *cInstance) {
     CShadingState *ss = currentShadingState;
     int curLightingValid = ss->lightsExecuted;
     int runCat = abs(saveCat);
@@ -1515,7 +1521,7 @@ void CShadingContext::runCategoryLights(const float *lP, const float *lN, const 
         curLightingValid = curLightingValid && !memcmp(lP, varying[VARIABLE_PS], sizeof(float) * 3 * numVertices);
         curLightingValid = curLightingValid && !memcmp(lT, ss->costheta, sizeof(float) * numVertices);
         for (int i = 0; curLightingValid && i < numVertices; ++i)
-            curLightingValid = curLightingValid && (tags[i] != 0 || ss->lightingTags[i] == 0);
+            curLightingValid = curLightingValid && (!tags[i] && !ss->lightingTags[i]);
     }
 
     if (!curLightingValid) {
@@ -1537,11 +1543,15 @@ void CShadingContext::runCategoryLights(const float *lP, const float *lN, const 
                 CProgrammableShaderInstance *light = cLight->light;
 
                 int validLight = (saveCat == 0);
-                if (!validLight && light->categories != NULL) {
-                    for (const int *cCat = light->categories; (*cCat != 0); cCat++) {
-                        if (*cCat == runCat) { validLight = TRUE; break; }
+                if (!validLight) {
+                    if (light->categories != NULL) {
+                        for (const int *cCat = light->categories; (*cCat != 0); cCat++) {
+                            if (*cCat == runCat) { validLight = TRUE; break; }
+                        }
+                        if (invertCatMatch) validLight = !validLight;
+                    } else {
+                        validLight = invertCatMatch;
                     }
-                    if (invertCatMatch) validLight = !validLight;
                 }
 
                 if (validLight && (light->flags & SHADERFLAGS_NONAMBIENT)) {
@@ -1621,7 +1631,7 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
-    runLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
+    iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
               ss->numActive, ss->numPassive, inShadow, varying, cInst);
     log_debug("[JIT-DBG] callDiffuse: lights={} n={}", (void *)ss->lights, n);
 
@@ -1661,7 +1671,7 @@ void CShadingContext::callSpecular(float *result, const float *Nf, const float *
 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
-    runLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
+    iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
               ss->numActive, ss->numPassive, inShadow, varying, cInst);
 
     // Zero ALL vertices unconditionally (original behavior)
@@ -1744,7 +1754,7 @@ void CShadingContext::prepareDiffuse() {
         ss->diffuseReady = TRUE;
         float *costheta = (float *)ralloc(ss->numVertices * sizeof(float), threadMemory);
         memset(costheta, 0, ss->numVertices * sizeof(float));
-        runLights(ss->varying[VARIABLE_P], ss->varying[VARIABLE_N],
+        iterateLights(ss->varying[VARIABLE_P], ss->varying[VARIABLE_N],
                   costheta, ss->numVertices, ss->tags,
                   ss->numActive, ss->numPassive, inShadow,
                   ss->varying, ss->currentShaderInstance);
@@ -1756,7 +1766,7 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
     float *costheta = (float *)ralloc(numVertices * sizeof(float), threadMemory);
     const float cosAngle = cosf(angle);
     for (int i = 0; i < numVertices; ++i) costheta[i] = cosAngle;
-    runLights(P, N, costheta, numVertices, tags,
+    iterateLights(P, N, costheta, numVertices, tags,
               ss->numActive, ss->numPassive, inShadow,
               ss->varying, ss->currentShaderInstance);
 }
@@ -2082,7 +2092,7 @@ int CShadingContext::jitIlluminanceBegin(
         lN = bN;
     }
 
-    runLights(lP, lN, costheta, n, tags, *numActive, *numPassive,
+    iterateLights(lP, lN, costheta, n, tags, *numActive, *numPassive,
               inShadow, ss->varying, ss->currentShaderInstance);
 
     // Advance through lights until one has active vertices.

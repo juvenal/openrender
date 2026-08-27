@@ -418,65 +418,13 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         currentShadingState->currentShaderInstance = cInstance;                                                                  \
     }
 
-//	Run the light source shaders for the lP
-#define runLightsTemplate(lP, lN, lT, lightCategoryPre, lightCategoryCheck)                                                      \
-    int curLightingValid = currentShadingState->lightsExecuted;                                                                  \
-    lightCategoryPre;                                                                                                            \
-    if (curLightingValid) {                                                                                                      \
-        const int *aTag = tagStart;                                                                                              \
-        const int *lTag = currentShadingState->lightingTags;                                                                     \
-        curLightingValid = curLightingValid &&                                                                                   \
-                           (currentShadingState->lightCategory == saveCat);                                                      \
-        /* memcmp is faster than a T32/xor/compare loop here */                                                                  \
-        /* note: we should really only need to compare active */                                                                 \
-        /*  shading points, but it's faster to compare all */                                                                    \
-        curLightingValid = curLightingValid &&                                                                                   \
-                           !memcmp(lN, currentShadingState->Ns, sizeof(float) * 3 * numVertices) &&                              \
-                           !memcmp(lP, varying[VARIABLE_PS], sizeof(float) * 3 * numVertices) &&                                 \
-                           !memcmp(lT, currentShadingState->costheta, sizeof(float) * numVertices);                              \
-        /* we must still compare active tags, note this isn't */                                                                 \
-        /* the same as tags being numerically equal */                                                                           \
-        for (int i = numVertices; curLightingValid && (i > 0); --i) {                                                            \
-            curLightingValid = curLightingValid && (!*aTag++ & !*lTag++);                                                        \
-        }                                                                                                                        \
-    }                                                                                                                            \
-    if (!curLightingValid) {                                                                                                     \
-        const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;                                   \
-        assert((numActive + numPassive) == numVertices);                                                                         \
-        assert(numVertices == currentShadingState->numVertices);                                                                 \
-        currentShadingState->numActive = numActive;                                                                              \
-        currentShadingState->numPassive = numPassive;                                                                            \
-        currentShadingState->lightsExecuted = TRUE;                                                                              \
-        currentShadingState->costheta = lT;                                                                                      \
-        currentShadingState->lightCategory = saveCat;                                                                            \
-        /* memcpy is faster than a loop here */                                                                                  \
-        memcpy(varying[VARIABLE_PS], lP, numVertices * 3 * sizeof(float));                                                       \
-        memcpy(currentShadingState->Ns, lN, numVertices * 3 * sizeof(float));                                                    \
-        memcpy(currentShadingState->lightingTags, tagStart, numVertices * sizeof(int));                                          \
-                                                                                                                                 \
-        /* clear all lights */                                                                                                   \
-        *freeLights = *lights;                                                                                                   \
-        *lights = NULL;                                                                                                          \
-                                                                                                                                 \
-        if (inShadow == FALSE) {                                                                                                 \
-                                                                                                                                 \
-            for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {                \
-                CProgrammableShaderInstance *light = cLight->light;                                                              \
-                lightCategoryCheck;                                                                                              \
-                if (light->flags & SHADERFLAGS_NONAMBIENT) {                                                                     \
-                    memBegin(shaderStateMemory);                                                                                 \
-                    currentShadingState->currentLightInstance = light;                                                           \
-                    currentShadingState->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, numVertices); \
-                    light->illuminate(this, currentShadingState->locals[ACCESSOR_LIGHTSOURCE]);                                  \
-                    memEnd(shaderStateMemory);                                                                                   \
-                }                                                                                                                \
-            }                                                                                                                    \
-        }                                                                                                                        \
-        assert(currentShadingState->numActive == numActive);                                                                     \
-        assert(currentShadingState->numPassive == numPassive);                                                                   \
-                                                                                                                                 \
-        currentShadingState->currentShaderInstance = cInstance;                                                                  \
-    }
+//	Run the light source shaders for the lP — delegates to the converged
+//	CShadingContext::iterateLights (shading.cpp), shared with the JIT's
+//	call*/prepare*/setupIlluminance/jitIlluminanceBegin call sites. See
+//	specs/012-jit-parity-followups contracts/light-iteration.md.
+#define runLightsTemplate(lP, lN, lT, lightCategoryPre)                                                    \
+    lightCategoryPre;                                                                                      \
+    iterateLights(lP, lN, lT, numVertices, tagStart, numActive, numPassive, saveCat, inShadow, varying, cInstance)
 
 #define CATEGORYLIGHT_PRE(lC)                                      \
     int runCat = 0, saveCat = 0;                                   \
@@ -490,31 +438,11 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         }                                                          \
     }
 
-#define CATEGORYLIGHT_CHECK                                               \
-    if (light->categories != NULL) {                                      \
-        int validLight = FALSE;                                           \
-        for (const int *cCat = light->categories; (*cCat != 0); cCat++) { \
-            if (*cCat == runCat) {                                        \
-                validLight = TRUE;                                        \
-                break;                                                    \
-            }                                                             \
-        }                                                                 \
-        if (invertCatMatch) {                                             \
-            if (validLight)                                               \
-                continue;                                                 \
-        } else {                                                          \
-            if (!validLight)                                              \
-                continue;                                                 \
-        }                                                                 \
-    } else if (!invertCatMatch) {                                         \
-        continue;                                                         \
-    }
-
-#define runCategoryLights(lP, lN, lT, lC) runLightsTemplate(lP, lN, lT, CATEGORYLIGHT_PRE(lC), CATEGORYLIGHT_CHECK)
+#define runCategoryLights(lP, lN, lT, lC) runLightsTemplate(lP, lN, lT, CATEGORYLIGHT_PRE(lC))
 
 #define NORMALLIGHT_PRE int saveCat = 0;
 
-#define runLights(lP, lN, lT) runLightsTemplate(lP, lN, lT, NORMALLIGHT_PRE, NULL_EXPR)
+#define runLights(lP, lN, lT) runLightsTemplate(lP, lN, lT, NORMALLIGHT_PRE)
 
 // The misc macros
 #define DEFLINKOPCODE(name, text, nargs) case OPCODE_##name:
@@ -771,7 +699,6 @@ execEnd:
 #undef runAmbientLights
 #undef runLightsTemplate
 #undef CATEGORYLIGHT_PRE
-#undef CATEGORYLIGHT_CHECK
 #undef runCategoryLights
 #undef NORMALLIGHT_PRE
 #undef runLights

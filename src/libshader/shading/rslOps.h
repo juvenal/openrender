@@ -137,12 +137,11 @@ void op_vfromfff(float* dst, int sd, const float* f0, int s0, const float* f1, i
  * ----------------------------------------------------------------------- */
 void op_moveff(float* dst, int sd, const float* src, int ss, int n, const int* tags);
 void op_movevv(float* dst, int sd, const float* src, int ss, int n, const int* tags);
-/* movess: mirror of Movess (SUNARYEXPR, empty OPERATION). The interpreter
- * declares Movess's operands as float pointers (not char** like the genuine
- * string-compare opcodes Seql2/Sneql2) - mirrored here faithfully rather
- * than "corrected", per non-goal: never alter interpreter behavior, even
- * where its own operand typing looks unusual. */
-void op_movess(float* dst, int sd, const float* src, int ss, int n, const int* tags);
+/* movess: mirror of Movess (SUNARYEXPR, empty OPERATION). scriptOpcodes.h:726
+ * declares Movess's operands via OPERANDS2EXPR_PRE(char **, char **), and
+ * SUNARYEXPR expands to `*res = *op;` - a genuine char* pointer copy, same
+ * shape as op_seql/op_sneql's char** operands. */
+void op_movess(char** dst, int sd, const char* const* src, int ss, int n, const int* tags);
 /* Uniform-to-uniform copies (no loop, no tags) */
 void op_vufloat (float* dst, float val);               /* dst[0] = val */
 void op_vuvector(float* dst, const float* src);        /* dst[0..2] = src[0..2] */
@@ -329,8 +328,8 @@ void op_orf (float* dst, int sd, const float* a, int sa, const float* b, int sb,
 /* degrees → radians */
 void op_radians(float* dst, int sd, const float* a, int sa, int n, const int* tags);
 /* string equality */
-void op_seql (float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags);
-void op_sneql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags);
+void op_seql (float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags);
+void op_sneql(float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags);
 /* filterstep (simplified: no antialiasing) */
 void op_filterstep(float* dst, int sd, const float* edge, int se, const float* x, int sx, int n, const int* tags);
 /* reflect / fresnel */

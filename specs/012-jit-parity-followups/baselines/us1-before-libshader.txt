@@ -1,0 +1,14 @@
+Test project /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build
+    Start 150: LibShader_Compiler
+1/2 Test #150: LibShader_Compiler ...............   Passed    0.45 sec
+    Start 151: LibShader_OpcodeCoverage
+2/2 Test #151: LibShader_OpcodeCoverage .........   Passed    0.30 sec
+
+100% tests passed out of 2
+
+Label Time Summary:
+compiler     =   0.74 sec*proc (2 tests)
+libshader    =   0.74 sec*proc (2 tests)
+unit         =   0.74 sec*proc (2 tests)
+
+Total Test time (real) =   0.76 sec

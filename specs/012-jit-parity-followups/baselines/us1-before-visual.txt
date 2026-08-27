@@ -1,0 +1,191 @@
+Test project /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build
+      Start  23: Visual_teapot-matte-reyes
+ 1/87 Test  #23: Visual_teapot-matte-reyes .....................................   Passed    0.51 sec
+      Start  24: Visual_teapot-matte-raytrace
+ 2/87 Test  #24: Visual_teapot-matte-raytrace ..................................   Passed    0.91 sec
+      Start  25: Visual_teapot-blue_marble-reyes
+ 3/87 Test  #25: Visual_teapot-blue_marble-reyes ...............................   Passed    0.15 sec
+      Start  26: Visual_teapot-blue_marble-raytrace
+ 4/87 Test  #26: Visual_teapot-blue_marble-raytrace ............................   Passed    0.76 sec
+      Start  27: Visual_teapot-brushedmetal-reyes
+ 5/87 Test  #27: Visual_teapot-brushedmetal-reyes ..............................   Passed    0.10 sec
+      Start  28: Visual_teapot-brushedmetal-raytrace
+ 6/87 Test  #28: Visual_teapot-brushedmetal-raytrace ...........................   Passed    0.60 sec
+      Start  29: Visual_teapot-wood-reyes
+ 7/87 Test  #29: Visual_teapot-wood-reyes ......................................   Passed    0.11 sec
+      Start  30: Visual_teapot-wood-raytrace
+ 8/87 Test  #30: Visual_teapot-wood-raytrace ...................................   Passed    0.60 sec
+      Start  31: Visual_teapot-wood-reyes-slo
+ 9/87 Test  #31: Visual_teapot-wood-reyes-slo ..................................   Passed    0.26 sec
+      Start  32: Visual_teapot-wood-raytrace-slo
+10/87 Test  #32: Visual_teapot-wood-raytrace-slo ...............................   Passed    0.69 sec
+      Start  33: Visual_teapot-blue_marble-reyes-slo
+11/87 Test  #33: Visual_teapot-blue_marble-reyes-slo ...........................   Passed    0.18 sec
+      Start  34: Visual_teapot-blue_marble-raytrace-slo
+12/87 Test  #34: Visual_teapot-blue_marble-raytrace-slo ........................   Passed    0.84 sec
+      Start  35: Visual_teapot-brushedmetal-reyes-slo
+13/87 Test  #35: Visual_teapot-brushedmetal-reyes-slo ..........................   Passed    0.13 sec
+      Start  36: Visual_teapot-brushedmetal-raytrace-slo
+14/87 Test  #36: Visual_teapot-brushedmetal-raytrace-slo .......................   Passed    0.71 sec
+      Start  37: Visual_teapot-somewood-reyes
+15/87 Test  #37: Visual_teapot-somewood-reyes ..................................   Passed    0.32 sec
+      Start  38: Visual_teapot-somewood-raytrace
+16/87 Test  #38: Visual_teapot-somewood-raytrace ...............................   Passed    0.67 sec
+      Start  39: Visual_teapot-somewood-reyes-slo
+17/87 Test  #39: Visual_teapot-somewood-reyes-slo ..............................   Passed    0.15 sec
+      Start  40: Visual_teapot-somewood-raytrace-slo
+18/87 Test  #40: Visual_teapot-somewood-raytrace-slo ...........................   Passed    0.75 sec
+      Start  41: Visual_teapot-somewood-aliasing
+19/87 Test  #41: Visual_teapot-somewood-aliasing ...............................   Passed    0.11 sec
+      Start  42: Visual_sphere-cfrom-reyes
+20/87 Test  #42: Visual_sphere-cfrom-reyes .....................................   Passed    0.07 sec
+      Start  43: Visual_sphere-cfrom-reyes-slo
+21/87 Test  #43: Visual_sphere-cfrom-reyes-slo .................................   Passed    0.07 sec
+      Start  44: Visual_sphere-ctransform-reyes
+22/87 Test  #44: Visual_sphere-ctransform-reyes ................................   Passed    0.06 sec
+      Start  45: Visual_sphere-ctransform-reyes-slo
+23/87 Test  #45: Visual_sphere-ctransform-reyes-slo ............................   Passed    0.07 sec
+      Start  46: Visual_sphere-arrayops-reyes
+24/87 Test  #46: Visual_sphere-arrayops-reyes ..................................   Passed    0.06 sec
+      Start  47: Visual_sphere-arrayops-reyes-slo
+25/87 Test  #47: Visual_sphere-arrayops-reyes-slo ..............................   Passed    0.08 sec
+      Start  48: Visual_sphere-matrixops-reyes
+26/87 Test  #48: Visual_sphere-matrixops-reyes .................................   Passed    0.06 sec
+      Start  49: Visual_sphere-matrixops-reyes-slo
+27/87 Test  #49: Visual_sphere-matrixops-reyes-slo .............................   Passed    0.08 sec
+      Start  50: Visual_sphere-comparisonlogic-reyes
+28/87 Test  #50: Visual_sphere-comparisonlogic-reyes ...........................   Passed    0.06 sec
+      Start  51: Visual_sphere-comparisonlogic-reyes-slo
+29/87 Test  #51: Visual_sphere-comparisonlogic-reyes-slo .......................   Passed    0.07 sec
+      Start  52: Visual_sphere-gather-reyes
+30/87 Test  #52: Visual_sphere-gather-reyes ....................................   Passed    0.10 sec
+      Start  53: Visual_sphere-gather-reyes-slo
+31/87 Test  #53: Visual_sphere-gather-reyes-slo ................................   Passed    0.10 sec
+      Start  54: Visual_teapot-full-metal-reyes
+32/87 Test  #54: Visual_teapot-full-metal-reyes ................................   Passed    0.09 sec
+      Start  55: Visual_teapot-full-metal-raytrace
+33/87 Test  #55: Visual_teapot-full-metal-raytrace .............................   Passed    0.55 sec
+      Start  56: Visual_killeroo-reyes
+34/87 Test  #56: Visual_killeroo-reyes .........................................   Passed    0.26 sec
+      Start  57: Visual_killeroo-raytrace
+35/87 Test  #57: Visual_killeroo-raytrace ......................................   Passed    1.46 sec
+      Start  58: Visual_bunny-reyes
+36/87 Test  #58: Visual_bunny-reyes ............................................   Passed    0.17 sec
+      Start  59: Visual_bunny-raytrace
+37/87 Test  #59: Visual_bunny-raytrace .........................................   Passed    0.25 sec
+      Start  60: Visual_cubes-reyes
+38/87 Test  #60: Visual_cubes-reyes ............................................   Passed    0.10 sec
+      Start  61: Visual_cubes-raytrace
+39/87 Test  #61: Visual_cubes-raytrace .........................................   Passed    0.16 sec
+      Start  62: Visual_spotlight-reyes
+40/87 Test  #62: Visual_spotlight-reyes ........................................   Passed    0.07 sec
+      Start  63: Visual_spotlight-raytrace
+41/87 Test  #63: Visual_spotlight-raytrace .....................................   Passed    0.13 sec
+      Start  64: Visual_motion-1-reyes
+42/87 Test  #64: Visual_motion-1-reyes .........................................   Passed    0.42 sec
+      Start  65: Visual_motion-1-raytrace
+43/87 Test  #65: Visual_motion-1-raytrace ......................................   Passed    0.39 sec
+      Start  66: Visual_motion-2-reyes
+44/87 Test  #66: Visual_motion-2-reyes .........................................   Passed    0.85 sec
+      Start  67: Visual_motion-2-raytrace
+45/87 Test  #67: Visual_motion-2-raytrace ......................................   Passed    0.44 sec
+      Start  68: Visual_motion-3-reyes
+46/87 Test  #68: Visual_motion-3-reyes .........................................   Passed    1.27 sec
+      Start  69: Visual_motion-3-raytrace
+47/87 Test  #69: Visual_motion-3-raytrace ......................................   Passed    0.64 sec
+      Start  70: Visual_teapot-motion-reyes
+48/87 Test  #70: Visual_teapot-motion-reyes ....................................   Passed    0.71 sec
+      Start  71: Visual_teapot-motion-raytrace
+49/87 Test  #71: Visual_teapot-motion-raytrace .................................   Passed   24.12 sec
+      Start  72: Visual_camera-dof-reyes
+50/87 Test  #72: Visual_camera-dof-reyes .......................................   Passed    1.05 sec
+      Start  73: Visual_camera-dof-raytrace
+51/87 Test  #73: Visual_camera-dof-raytrace ....................................   Passed    0.37 sec
+      Start  74: Visual_camera-motion-small-reyes
+52/87 Test  #74: Visual_camera-motion-small-reyes ..............................   Passed    0.26 sec
+      Start  75: Visual_camera-motion-small-raytrace
+53/87 Test  #75: Visual_camera-motion-small-raytrace ...........................   Passed    0.17 sec
+      Start  76: Visual_camera-motion-small-dof-reyes
+54/87 Test  #76: Visual_camera-motion-small-dof-reyes ..........................   Passed    0.66 sec
+      Start  77: Visual_camera-motion-small-dof-raytrace
+55/87 Test  #77: Visual_camera-motion-small-dof-raytrace .......................   Passed    0.20 sec
+      Start  78: Visual_camera-motion-huge-reyes
+56/87 Test  #78: Visual_camera-motion-huge-reyes ...............................   Passed    1.66 sec
+      Start  79: Visual_nupatch-vase-untrimmed
+57/87 Test  #79: Visual_nupatch-vase-untrimmed .................................   Passed    0.09 sec
+      Start  80: Visual_nupatch-vase-trimmed-hole
+58/87 Test  #80: Visual_nupatch-vase-trimmed-hole ..............................   Passed    0.09 sec
+      Start  81: Visual_nupatch-vase-trimmed-hole-raytrace
+59/87 Test  #81: Visual_nupatch-vase-trimmed-hole-raytrace .....................   Passed    0.27 sec
+      Start  82: Visual_nupatch-vase-trimmed-scoping
+60/87 Test  #82: Visual_nupatch-vase-trimmed-scoping ...........................   Passed    0.22 sec
+      Start  83: Visual_nupatch-vase-trimmed-sense
+61/87 Test  #83: Visual_nupatch-vase-trimmed-sense .............................   Passed    0.17 sec
+      Start  84: Visual_nupatch-vase-trimmed-multiloop
+62/87 Test  #84: Visual_nupatch-vase-trimmed-multiloop .........................   Passed    0.16 sec
+      Start  85: Visual_nupatch-vase-trimmed-malformed-unclosed
+63/87 Test  #85: Visual_nupatch-vase-trimmed-malformed-unclosed ................   Passed    0.09 sec
+      Start  86: Visual_nupatch-vase-trimmed-malformed-badweight
+64/87 Test  #86: Visual_nupatch-vase-trimmed-malformed-badweight ...............   Passed    0.07 sec
+      Start  87: Visual_nupatch-vase-trimmed-malformed-instanced
+65/87 Test  #87: Visual_nupatch-vase-trimmed-malformed-instanced ...............   Passed    0.13 sec
+      Start 111: Visual_subdiv-facevarying-seam-raytrace
+66/87 Test #111: Visual_subdiv-facevarying-seam-raytrace .......................   Passed    0.13 sec
+      Start 112: Visual_subdiv-facevarying-seam-reyes
+67/87 Test #112: Visual_subdiv-facevarying-seam-reyes ..........................   Passed    0.04 sec
+      Start 114: Visual_subdiv-new-tags-raytrace
+68/87 Test #114: Visual_subdiv-new-tags-raytrace ...............................   Passed    0.13 sec
+      Start 115: Visual_subdiv-tag-facevaryinginterpolateboundary-raytrace
+69/87 Test #115: Visual_subdiv-tag-facevaryinginterpolateboundary-raytrace .....   Passed    0.14 sec
+      Start 116: Visual_subdiv-tag-facevaryingpropagatecorners-raytrace
+70/87 Test #116: Visual_subdiv-tag-facevaryingpropagatecorners-raytrace ........   Passed    0.13 sec
+      Start 117: Visual_subdiv-tag-creasemethod-raytrace
+71/87 Test #117: Visual_subdiv-tag-creasemethod-raytrace .......................   Passed    0.12 sec
+      Start 118: Visual_subdiv-new-tags-badvalue-raytrace
+72/87 Test #118: Visual_subdiv-new-tags-badvalue-raytrace ......................   Passed    0.14 sec
+      Start 119: Visual_subdiv-new-tags-with-hole-raytrace
+73/87 Test #119: Visual_subdiv-new-tags-with-hole-raytrace .....................   Passed    0.13 sec
+      Start 120: Visual_subdiv-crease-convergence-control-raytrace
+74/87 Test #120: Visual_subdiv-crease-convergence-control-raytrace .............   Passed    0.11 sec
+      Start 121: Visual_subdiv-crease-shallow-convergence-raytrace
+75/87 Test #121: Visual_subdiv-crease-shallow-convergence-raytrace .............   Passed    0.11 sec
+      Start 122: Visual_subdiv-crease-deep-single-raytrace
+76/87 Test #122: Visual_subdiv-crease-deep-single-raytrace .....................   Passed    0.11 sec
+      Start 123: Visual_subdiv-crease-convergence-raytrace
+77/87 Test #123: Visual_subdiv-crease-convergence-raytrace .....................   Passed    0.11 sec
+      Start 124: Visual_subdiv-hierarchical-override-raytrace
+78/87 Test #124: Visual_subdiv-hierarchical-override-raytrace ..................   Passed    0.10 sec
+      Start 125: Visual_subdiv-hierarchical-override-invalid-raytrace
+79/87 Test #125: Visual_subdiv-hierarchical-override-invalid-raytrace ..........   Passed    0.13 sec
+      Start 126: Visual_subdiv-hierarchical-tag-override-precedence-raytrace
+80/87 Test #126: Visual_subdiv-hierarchical-tag-override-precedence-raytrace ...   Passed    0.14 sec
+      Start 128: Visual_subdiv-loop-reyes
+81/87 Test #128: Visual_subdiv-loop-reyes ......................................   Passed    0.03 sec
+      Start 129: Visual_subdiv-loop-raytrace
+82/87 Test #129: Visual_subdiv-loop-raytrace ...................................   Passed    0.08 sec
+      Start 130: Visual_subdiv-loop-mixed-invalid-raytrace
+83/87 Test #130: Visual_subdiv-loop-mixed-invalid-raytrace .....................   Passed    0.06 sec
+      Start 131: Visual_subdiv-facevarying-seam-photon
+84/87 Test #131: Visual_subdiv-facevarying-seam-photon .........................   Passed    0.14 sec
+      Start 132: Visual_subdiv-new-tags-photon
+85/87 Test #132: Visual_subdiv-new-tags-photon .................................   Passed    0.14 sec
+      Start 133: Visual_subdiv-hierarchical-override-photon
+86/87 Test #133: Visual_subdiv-hierarchical-override-photon ....................   Passed    0.11 sec
+      Start 134: Visual_subdiv-loop-photon
+87/87 Test #134: Visual_subdiv-loop-photon .....................................***Failed    0.02 sec
+  orender failed with exit code 11
+Running: /Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/build/src/orender/orender "/Volumes/Projects/Development/CLI/openrender-worktrees/012-jit-parity-followups/examples/rib/tests/subdiv-loop-photon.rib"
+
+
+99% tests passed, 1 tests failed out of 87
+
+Label Time Summary:
+regression    =  49.52 sec*proc (87 tests)
+slow          =   1.27 sec*proc (1 test)
+visual        =  49.52 sec*proc (87 tests)
+
+Total Test time (real) =  49.60 sec
+
+The following tests FAILED:
+	134 - Visual_subdiv-loop-photon (Failed)                regression visual
+Errors while running CTest

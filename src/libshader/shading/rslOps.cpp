@@ -354,11 +354,13 @@ void op_movevv(float* dst, int sd, const float* src, int ss, int n, const int* t
     }
 }
 
-// Mirrors Movess (SUNARYEXPR): same shape as op_moveff — the interpreter's
-// own operand declaration for Movess is float*/const float*, not char**.
-void op_movess(float* dst, int sd, const float* src, int ss, int n, const int* tags) {
+// Mirrors Movess (SUNARYEXPR): scriptOpcodes.h:726 declares Movess's operands
+// via OPERANDS2EXPR_PRE(char **, char **), and SUNARYEXPR expands to
+// `*res = *op;` — a genuine 8-byte pointer copy, same shape as op_seql/
+// op_sneql's char** operands, not a float copy.
+void op_movess(char** dst, int sd, const char* const* src, int ss, int n, const int* tags) {
     for (int i = 0; i < n; i++) if (ACTIVE(tags,i))
-        IDX(dst,sd,i)[0] = IDX(src,ss,i)[0];
+        IDX(dst,sd,i)[0] = const_cast<char*>(IDX(src,ss,i)[0]);
 }
 
 void op_vufloat(float* dst, float val) {
@@ -945,14 +947,20 @@ void op_radians(float* dst, int sd, const float* a, int sa, int n, const int* ta
         IDX(dst,sd,i)[0] = IDX(a,sa,i)[0] * kDegToRad;
 }
 
-void op_seql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags) {
-    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
-        IDX(dst,sd,i)[0] = (a[0] && b[0] && strcmp(a[0], b[0]) == 0) ? 1.f : 0.f;
+void op_seql(float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+        const char* ai = IDX(a,sa,i)[0];
+        const char* bi = IDX(b,sb,i)[0];
+        IDX(dst,sd,i)[0] = (ai && bi && strcmp(ai, bi) == 0) ? 1.f : 0.f;
+    }
 }
 
-void op_sneql(float* dst, int sd, const char* const* a, const char* const* b, int n, const int* tags) {
-    for (int i=0;i<n;i++) if(ACTIVE(tags,i))
-        IDX(dst,sd,i)[0] = (a[0] && b[0] && strcmp(a[0], b[0]) != 0) ? 1.f : 0.f;
+void op_sneql(float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags) {
+    for (int i=0;i<n;i++) if(ACTIVE(tags,i)) {
+        const char* ai = IDX(a,sa,i)[0];
+        const char* bi = IDX(b,sb,i)[0];
+        IDX(dst,sd,i)[0] = (ai && bi && strcmp(ai, bi) != 0) ? 1.f : 0.f;
+    }
 }
 
 void op_filterstep(float* dst, int sd, const float* edge, int se, const float* x, int sx, int n, const int* tags) {

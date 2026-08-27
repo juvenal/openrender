@@ -231,13 +231,21 @@ endmacro()
 #   SCENE_NAME   — test identifier (used as CTest name suffix and for scratch dir)
 #   RIB_RSLO     — path to the .rslo-pinned .rib scene (relative to CMAKE_SOURCE_DIR)
 #   RIB_SLO      — path to the .slo-pinned .rib scene (relative to CMAKE_SOURCE_DIR)
-#   MAX_RATIO    — (optional) max allowed slo/rslo time ratio; defaults to 0.90
+#   MAX_RATIO    — (optional) max allowed slo/rslo time ratio; defaults to 1000.0
+#                  (spec 012-jit-parity-followups, T003a: SC-005 states the
+#                  90% bar is "a reported outcome, not a pass/fail gate", so
+#                  the default is set high enough that no plausible ratio
+#                  trips it — test_perf_compare.cpp still prints the actual
+#                  ratio and a PASS/FAIL line either way, it just no longer
+#                  fails the ctest run over a scene that hasn't yet met the
+#                  stretch goal. Does not affect SC-003: perf-manual is its
+#                  own label, outside -L libshader and -L visual.)
 # ---------------------------------------------------------------------------
 macro(add_perf_manual_test SCENE_NAME RIB_RSLO RIB_SLO)
     if(${ARGC} GREATER 3)
         set(_maxratio ${ARGV3})
     else()
-        set(_maxratio 0.90)
+        set(_maxratio 1000.0)
     endif()
 
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/perf-${SCENE_NAME})
@@ -400,6 +408,40 @@ add_visual_test(sphere-comparisonlogic-reyes
 add_visual_test(sphere-comparisonlogic-reyes-slo
     examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib
     sphere-comparisonlogic-reyes-slo.tif  sphere-comparisonlogic-reyes.tif)
+
+# --- usfroma coverage (spec 012-jit-parity-followups, T019/T020): a varying
+# float index (`mod(u*3,3)`) read against a *uniform* string array
+# (`usarr[findex]`, opcode `usfroma`). The JIT emitter's uffroma/uvfroma/
+# umfroma/usfroma dispatch case previously forced BOTH the array operand's
+# stride AND the index operand's stride to 0 — correct for the array (that's
+# what the "u" prefix means) but wrong for the index, which is a normal,
+# usually-varying expression result. Every vertex read idx[0] instead of its
+# own index, producing coherent-block misclassification across a large
+# fraction of the sphere (MaxBlockAvgDiff 116.81 pre-fix). Fixed by threading
+# the index's actual stride through to op_sfroma, which already supported it.
+# Measured MaxBlockAvgDiff post-fix: 8.0 (in line with the sibling probes
+# above; remaining diff is ordinary silhouette-edge AA noise).
+add_visual_test(sphere-usfroma-reyes
+    examples/rib/tests/sphere-usfroma-reyes.rib
+    sphere-usfroma-reyes.tif  sphere-usfroma-reyes.tif)
+
+add_visual_test(sphere-usfroma-reyes-slo
+    examples/rib/tests/sphere-usfroma-reyes-slo.rib
+    sphere-usfroma-reyes-slo.tif  sphere-usfroma-reyes.tif)
+
+# --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
+# a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
+# a varying conditional (`if (u > 0.05)`) that is false at the sphere's
+# leading (low-u) shading points. Reference generated from the unchanged
+# (pre-collapse) binary — see uniform_in_conditional_probe.sl for the full
+# rationale and the op_addff IR evidence this test targets.
+add_visual_test(sphere-uniform-conditional-reyes
+    examples/rib/tests/sphere-uniform-conditional-reyes.rib
+    sphere-uniform-conditional-reyes.tif  sphere-uniform-conditional-reyes.tif)
+
+add_visual_test(sphere-uniform-conditional-reyes-slo
+    examples/rib/tests/sphere-uniform-conditional-reyes-slo.rib
+    sphere-uniform-conditional-reyes-slo.tif  sphere-uniform-conditional-reyes.tif)
 
 # --- JIT opcode-coverage parity (spec 011-jit-opcode-parity), Phase 7/US3b:
 # gather()/gatherElse/gatherEnd/gatherHeader. .rslo reference vs. .slo JIT

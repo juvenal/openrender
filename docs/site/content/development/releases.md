@@ -5,6 +5,24 @@ date: 2025-12-08
 
 # Previous Releases
 
+## Development build (2026-08-27)
+
+- Fixed a `.rslo` interpreter crash triggered by comparing a varying-indexed
+  element of a `uniform string` array against a string, e.g. `usarr[findex]
+  == "a"` where `findex` is a varying value (such as a loop counter or a
+  per-point computed index). Shaders using this pattern used to crash; they
+  now render correctly under both the interpreter (`.rslo`) and JIT (`.slo`)
+  backends.
+- Investigated the LLVM JIT (`.slo`) shading backend's per-instruction call
+  overhead for computations that only need to run once per shader invocation
+  rather than once per shading point. A targeted fix was implemented and
+  independently verified as functioning correctly, but controlled
+  measurement found it produced no measurable wall-clock improvement on any
+  tested shader — JIT-rendered shaders continue to run at roughly the same
+  speed relative to the interpreter as before (about 1.05x-1.4x depending on
+  the shader, unchanged within measurement noise). JIT shading correctness
+  is unaffected either way.
+
 **openRender 2.1.1 is out**!  New features include:
 
 - [Conditional RIB](/openrender/manual/reference/conditional-rib/) - allowing a single RIB file to be reused with optional sections
