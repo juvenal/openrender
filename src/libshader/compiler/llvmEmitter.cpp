@@ -137,6 +137,91 @@ extern const OpcodeParamEntry kOpcodeParamTable[] = {
 #undef DEFSHORTFUNC
 
 // =========================================================================
+// computeUsedParameters — the openrender.shader.usedparameters bitmask
+// (spec 014-jit-shading-parity, FR-001–FR-005).
+//
+// Global-variable half (this function's current scope, T011/US1): scans
+// every IRInstr's `result` *and* `operands` for a name match against
+// kParamBits, instead of trusting `v.slcType & SLC_GLOBAL` on the
+// pre-seeded ir.vars list (rslo.cpp's CScriptContext constructor
+// unconditionally seeds all 26 RSL built-in globals into that list before
+// any shader source is parsed, so the old gate was true for virtually
+// every shader regardless of content). `result` is included so a
+// write-only reference (e.g. `Ci = ...` with Ci never read) still sets its
+// bit, matching the interpreter's rslo.y:487-490 semantics, which fire on
+// any reference regardless of read/write position.
+//
+// Opcode/function half (kOpcodeParamTable, T013/US2) and the
+// PARAMETER_NONAMBIENT illuminance/illuminate distinction (T016/US2) are
+// intentionally NOT wired in yet — this function currently reproduces only
+// the pre-existing hasNonAmbientOp behavior verbatim, name-match gating
+// fixed, nothing else changed.
+// =========================================================================
+unsigned int computeUsedParameters(const IRModule &ir) {
+    static const struct { const char *name; unsigned int bit; } kParamBits[] = {
+        {"s",        1u},
+        {"t",        1u << 1},
+        {"u",        1u << 2},
+        {"v",        1u << 3},
+        {"du",       (1u << 4) | (1u << 14)},
+        {"dv",       (1u << 5) | (1u << 14)},
+        {"time",     1u << 6},
+        {"dtime",    1u << 7},
+        {"ncomps",   1u << 8},
+        {"alpha",    1u << 9},
+        {"P",        1u << 10},
+        {"Ps",       1u << 11},
+        {"Pw",       1u << 10},
+        {"dPdu",     1u << 12},
+        {"dPdv",     1u << 13},
+        {"dPdtime",  1u << 15},
+        {"Ng",       1u << 16},
+        {"N",        (1u << 17) | (1u << 16)},
+        {"Ci",       1u << 18},
+        {"Oi",       1u << 19},
+        {"Cl",       1u << 20},
+        {"Ol",       1u << 21},
+        {"Cs",       1u << 22},
+        {"Os",       1u << 23},
+        {"E",        1u << 24},
+        {"I",        1u << 25},
+        {"L",        1u << 26},
+    };
+
+    unsigned int usedParams = 0;
+    bool hasNonAmbientOp = false;
+
+    auto scanToken = [&](const std::string &tok) {
+        for (const auto &e : kParamBits) {
+            if (tok == e.name) { usedParams |= e.bit; break; }
+        }
+    };
+
+    for (const IRFunction *fn : {&ir.initFn, &ir.codeFn}) {
+        for (const IRBlock &blk : fn->blocks) {
+            for (const IRInstr &ins : blk.instrs) {
+                if (ins.hasResult()) scanToken(ins.result);
+                for (const IROperand &op : ins.operands) {
+                    if (op.isLiteral() || op.isQuoted() || op.isLabel()) continue;
+                    scanToken(op.token);
+                }
+                // PARAMETER_NONAMBIENT (bit 30): set only when the shader uses
+                // illuminate/solar/illuminance. An ambient light shader does
+                // NOT use these opcodes and must NOT have this bit set.
+                if (ins.opcode == "illuminate" || ins.opcode == "solar" ||
+                    ins.opcode == "illuminance")
+                    hasNonAmbientOp = true;
+            }
+        }
+    }
+
+    if (hasNonAmbientOp)
+        usedParams |= (1u << 30); // PARAMETER_NONAMBIENT
+
+    return usedParams;
+}
+
+// =========================================================================
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 // =========================================================================
 static const std::unordered_map<std::string, int> s_rslGlobals = {
@@ -245,58 +330,11 @@ static void embedMetadata(llvm::Module &mod,
             ->addOperand(mkMD(mkStr("1")));
     }
 
-    // Compute usedParameters bitmask from RSL globals used in the shader.
+    // usedParameters bitmask (spec 014-jit-shading-parity) — single source
+    // of truth in computeUsedParameters(), shared with the gating-condition
+    // ctest (llvmEmitter.h).
     {
-        static const struct { const char *name; unsigned int bit; } kParamBits[] = {
-            {"s",        1u},
-            {"t",        1u << 1},
-            {"u",        1u << 2},
-            {"v",        1u << 3},
-            {"du",       (1u << 4) | (1u << 14)},
-            {"dv",       (1u << 5) | (1u << 14)},
-            {"time",     1u << 6},
-            {"dtime",    1u << 7},
-            {"ncomps",   1u << 8},
-            {"alpha",    1u << 9},
-            {"P",        1u << 10},
-            {"Ps",       1u << 11},
-            {"Pw",       1u << 10},
-            {"dPdu",     1u << 12},
-            {"dPdv",     1u << 13},
-            {"dPdtime",  1u << 15},
-            {"Ng",       1u << 16},
-            {"N",        (1u << 17) | (1u << 16)},
-            {"Ci",       1u << 18},
-            {"Oi",       1u << 19},
-            {"Cl",       1u << 20},
-            {"Ol",       1u << 21},
-            {"Cs",       1u << 22},
-            {"Os",       1u << 23},
-            {"E",        1u << 24},
-            {"I",        1u << 25},
-            {"L",        1u << 26},
-        };
-        unsigned int usedParams = 0;
-        for (const IRVarInfo &v : ir.vars) {
-            if (!(v.slcType & SLC_GLOBAL)) continue;
-            for (const auto &e : kParamBits) {
-                if (v.symbolName == e.name) { usedParams |= e.bit; break; }
-            }
-        }
-        // PARAMETER_NONAMBIENT (bit 30): set only when the shader uses illuminate/solar/illuminance.
-        // An ambient light shader does NOT use these opcodes and must NOT have this bit set.
-        bool hasNonAmbientOp = false;
-        for (const IRFunction *fn : {&ir.initFn, &ir.codeFn}) {
-            for (const IRBlock &blk : fn->blocks) {
-                for (const IRInstr &ins : blk.instrs) {
-                    if (ins.opcode == "illuminate" || ins.opcode == "solar" ||
-                        ins.opcode == "illuminance")
-                        hasNonAmbientOp = true;
-                }
-            }
-        }
-        if (hasNonAmbientOp)
-            usedParams |= (1u << 30); // PARAMETER_NONAMBIENT
+        unsigned int usedParams = computeUsedParameters(ir);
         mod.getOrInsertNamedMetadata("openrender.shader.usedparameters")
             ->addOperand(mkMD(mkStr(std::to_string(usedParams))));
     }

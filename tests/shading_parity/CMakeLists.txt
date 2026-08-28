@@ -8,3 +8,23 @@
 #
 # add_executable() blocks are added per-user-story below as their oracle
 # tests are written (T010, T019, T024) — intentionally empty at Setup time.
+
+# Differential oracle: usedParameters bit-for-bit identical between a .slo
+# and a .rslo load of the same never-writes-Ci/Oi fixture (T010, US1).
+# Shells out to the real `oshader` CLI to produce both bitcode files, so it
+# only needs to link the runtime-loading side (ri + libshader_shading), not
+# libshader_compiler -- avoids linking compiler+shading together (research.md
+# risk noted in plan.md Phase 4).
+add_executable(test_shading_parity_used_parameters_oracle test_used_parameters_oracle.cpp)
+target_link_libraries(test_shading_parity_used_parameters_oracle PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_used_parameters_oracle PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_used_parameters_oracle PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_UsedParametersOracle COMMAND test_shading_parity_used_parameters_oracle)
+set_tests_properties(ShadingParity_UsedParametersOracle PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)

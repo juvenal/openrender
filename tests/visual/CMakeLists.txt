@@ -948,6 +948,25 @@ add_parity_test(subdiv-facevarying-seam
     examples/rib/tests/subdiv-facevarying-seam-raytrace.rib
     subdiv-facevarying-seam-raytrace.tif  20)
 
+# --- JIT/interpreter usedParameters parity (spec 014-jit-shading-parity,
+# T032, SC-001's durable regression guard) --- a sphere shaded by
+# parity_never_ci_oi.sl, which deliberately never assigns Ci or Oi, with
+# explicit Color/Opacity attributes bound so CShadingContext::complete()'s
+# default-fill fallback has a distinctive (red, opaque) value to interpolate
+# into Ci/Oi. Before the T011 fix, the JIT backend's usedParameters always
+# had PARAMETER_CI/PARAMETER_OI set regardless of shader content, so the
+# fallback never ran under .slo and the render read uninitialized varying
+# storage instead of the bound red color. Reference image is the .rslo
+# render (the interpreter's default-fill path was already correct); the
+# .slo variant is diffed against that same reference.
+add_visual_test(sphere-parity-ci-oi-reyes
+    examples/rib/tests/sphere-parity-ci-oi-reyes.rib
+    sphere-parity-ci-oi-reyes.tif  sphere-parity-ci-oi-reyes.tif)
+
+add_visual_test(sphere-parity-ci-oi-reyes-slo
+    examples/rib/tests/sphere-parity-ci-oi-reyes-slo.rib
+    sphere-parity-ci-oi-reyes-slo.tif  sphere-parity-ci-oi-reyes.tif)
+
 # --- Subdivision surfaces: new tags (spec 010-full-subdivision-support,
 # US3/T021-T028) — facevaryinginterpolateboundary, facevaryingpropagatecorners,
 # and creasemethod, previously unsupported (any unrecognized tag hit

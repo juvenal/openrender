@@ -76,4 +76,15 @@ struct OpcodeParamEntry {
  */
 extern const OpcodeParamEntry kOpcodeParamTable[];
 
+/**
+ * @brief Computes the openrender.shader.usedparameters bitmask for a
+ *        compiled IRModule — the single source of truth embedMetadata()
+ *        embeds into the .slo, and what the libshader gating-condition
+ *        ctest calls directly (in-process, no .slo round-trip) to assert
+ *        on specific PARAMETER_* bits for small fixture sources compiled
+ *        via CScriptContext{emitJIT=true} (spec 014-jit-shading-parity,
+ *        gating-condition-contract.md).
+ */
+unsigned int computeUsedParameters(const IRModule &ir);
+
 #endif // OSHADER_LLVM_EMITTER_H

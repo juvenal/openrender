@@ -98,19 +98,19 @@ within the project's existing visual-regression tolerance.
 
 ### Tests for User Story 1 (write first, confirm Red before T012)
 
-- [ ] T008 [P] [US1] In
+- [X] T008 [P] [US1] In
   `src/libshader/tests/test_used_parameters_gating.cpp`, add a fixture +
   assertion: a `.sl` shader that never assigns `Ci` or `Oi` and references
   no other RSL globals compiles (via the real `oshader --jit` emission path,
   in-process) to a `usedParameters` bitmask with `PARAMETER_CI`/
   `PARAMETER_OI` clear (gating-condition-contract.md row 1). Must fail
   (Red) against current `llvmEmitter.cpp`.
-- [ ] T009 [P] [US1] Same file, add the no-regression companion fixture: a
+- [X] T009 [P] [US1] Same file, add the no-regression companion fixture: a
   shader that explicitly assigns both `Ci` and `Oi` compiles to
   `PARAMETER_CI`/`PARAMETER_OI` set (gating-condition-contract.md row 2).
   Confirm this one already passes pre-fix (it exercises the always-on
   behavior, not the bug).
-- [ ] T010 [P] [US1] Create
+- [X] T010 [P] [US1] Create
   `tests/shading_parity/test_used_parameters_oracle.cpp` (new executable +
   `add_test` block added to T001's `tests/shading_parity/CMakeLists.txt`,
   ctest name `ShadingParity_UsedParametersOracle`, label `shading_parity`):
@@ -124,7 +124,7 @@ within the project's existing visual-regression tolerance.
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] In `src/libshader/compiler/llvmEmitter.cpp`, replace the
+- [X] T011 [US1] In `src/libshader/compiler/llvmEmitter.cpp`, replace the
   current `kParamBits` global-variable scan (lines ~208-245) to scan every
   `IRInstr`'s `result` *and* `operands` for name matches against
   `kParamBits`, instead of trusting `v.slcType & SLC_GLOBAL` on the
@@ -132,10 +132,10 @@ within the project's existing visual-regression tolerance.
   still set the bit (matches interpreter semantics at `rslo.y:487-490`).
   This is half of the single `computeUsedParameters` mechanism; do not wire
   in the opcode/function half yet (see T013). (depends on T006)
-- [ ] T012 [US1] Run T008-T010; confirm they now pass (Green). If T010
+- [X] T012 [US1] Run T008-T010; confirm they now pass (Green). If T010
   still fails, the failure must be isolated to a construct T013
   (opcode/function half, User Story 2) is responsible for — not Ci/Oi.
-- [ ] T032 [US1] Add a new `-L visual` fixture (RIB scene + surface shader
+- [X] T032 [US1] Add a new `-L visual` fixture (RIB scene + surface shader
   that never writes `Ci`/`Oi`, pinned to `shaderformat` `"slo"`, with a
   sibling scene pinned to `"rslo"`, and a checked-in reference image) under
   the existing `tests/visual/` convention. This is SC-001's durable
