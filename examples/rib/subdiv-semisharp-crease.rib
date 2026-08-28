@@ -1,0 +1,26 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+#Hider "raytrace"
+PixelSamples 4 4
+Display "subdiv-semisharp-crease.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+#Format 320 240 1
+Translate 0 0 130
+Rotate 74 1 0 0
+Rotate 10 0 1 0
+
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.15]
+  LightSource "distantlight" 2 "intensity" [0.9] "lightcolor" [1 .95 .9] "from" [20 30 25] "to" [0 0 0]
+  LightSource "distantlight" 3 "intensity" [0.35] "lightcolor" [.7 .8 1] "from" [-25 10 -20] "to" [0 0 0]
+
+  Sides 2
+  Color [0.7 0.7 0.8]
+  Surface "matte"
+  SubdivisionMesh "catmull-clark"
+        [4 4 4 4 4 4]
+        [0 2 3 1 4 6 7 5 5 1 3 4 2 0 7 6 6 4 3 2 1 5 7 0]
+        ["crease" "crease"] [5 1 5 1] [1 5 7 0 1 3 4 6 2 3] [2 2]
+    "P" [ 25 -25 -25 25 25 -25 25 -25 25 25 25 25 -25 25 25 -25 25 -25 -25 -25 25 -25 -25 -25]
+WorldEnd
+
