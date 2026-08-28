@@ -84,9 +84,9 @@ phase unchanged.
 - [ ] T007 [P] Add `"primitive"`-leaf validation in `src/ri/csgTree.cpp`:
       reject a nested `SolidBegin`/`SolidEnd` inside a `"primitive"` block
       (FR-019) and reject an `RiProcedural` captured directly inside a
-      `"primitive"` block (`research.md` "Delayed/procedural primitives...
-      resolved as rejected"), both via `error(CODE_BADTOKEN, ...)`
-      (depends on T004).
+      `"primitive"` block (FR-021, `research.md` "Delayed/procedural
+      primitives... resolved as rejected"), both via
+      `error(CODE_BADTOKEN, ...)` (depends on T004).
 - [ ] T008 Create the `CSolidObject : CObject` Resolved Solid Boundary
       container in `src/ri/solidObject.h` / `src/ri/solidObject.cpp`
       (`data-model.md`): owns a `children`/`sibling` list of `CPolygonMesh`
@@ -143,30 +143,38 @@ geometrically expected boundary with no seams, gaps, or duplicate surfaces
       overlap sub-volume — assert expected face count and enclosed volume
       for union, intersection, and difference in
       `tests/unit/csg/test_boolean_boxes.cpp`.
-- [ ] T014 [P] [US1] Unit test: a sphere combined with a box — validates
+- [ ] T014 [P] [US1] Unit test: a `"primitive"` block containing two raw
+      primitives (e.g. two overlapping boxes declared directly, with no
+      nested `SolidBegin`) — assert they are captured and tessellated as a
+      single opaque CSG leaf (one `leafObjects` set, one combined BSP tree),
+      consistent with `spec.md`'s Edge Cases, in
+      `tests/unit/csg/test_multi_primitive_leaf.cpp`.
+- [ ] T015 [P] [US1] Unit test: a sphere combined with a box — validates
       curved-vs-flat boundary handling and that
       `Attribute "solid" "float tessellationtolerance"` changes output
       triangle density as expected, in
       `tests/unit/csg/test_boolean_sphere_box.cpp`.
-- [ ] T015 [P] [US1] Unit test: an explicit coplanar-face pair — validates
+- [ ] T016 [P] [US1] Unit test: an explicit coplanar-face pair — validates
       `C_EPSILON`-consistent classification (`common/algebra.h`, `1e-6`,
       `research.md` Decision 3 risk) in
       `tests/unit/csg/test_boolean_coplanar.cpp`.
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Build a BSP tree over a tessellated operand mesh in
+- [ ] T017 [US1] Build a BSP tree over a tessellated operand mesh in
       `src/ri/csgBoolean.h` / `src/ri/csgBoolean.cpp` (`research.md`
-      Decision 3) (depends on T013-T015 failing red, T008).
-- [ ] T017 [US1] Implement classify/clip/merge boolean combination
+      Decision 3) (depends on T013, T014, T015, T016 failing red, T008,
+      T020, T021 — T015/T016's curved- and coplanar-operand cases cannot go
+      Green until tessellation lands too; see the ordering note below).
+- [ ] T018 [US1] Implement classify/clip/merge boolean combination
       (union/intersection/difference) over two BSP trees, using the
       `C_EPSILON` classification epsilon, in `src/ri/csgBoolean.cpp`
-      (depends on T016).
-- [ ] T018 [US1] Implement `difference` as intersection with the second
+      (depends on T017).
+- [ ] T019 [US1] Implement `difference` as intersection with the second
       operand's complement — reverse winding/normals on faces retained from
       the subtracted operand, since the visible cut surface is its
-      inward-facing side — in `src/ri/csgBoolean.cpp` (depends on T017).
-- [ ] T019 [US1] Extract the flatness/chordal-deviation adaptive stopping
+      inward-facing side — in `src/ri/csgBoolean.cpp` (depends on T018).
+- [ ] T020 [US1] Extract the flatness/chordal-deviation adaptive stopping
       criterion out of `CTesselationPatch::tesselate`
       (`src/ri/surface.cpp:1858-1897`) into a form callable without a
       traced ray: strip out the ray-footprint half of the stopping
@@ -174,42 +182,43 @@ geometrically expected boundary with no seams, gaps, or duplicate surfaces
       vAvg` chordal-deviation test driven from a tolerance value alone, in
       `src/ri/surface.h` / `src/ri/surface.cpp` (`research.md` Decision 4)
       (depends on T011).
-- [ ] T020 [P] [US1] Add mesh tessellation for quadric leaf operands (never
+- [ ] T021 [P] [US1] Add mesh tessellation for quadric leaf operands (never
       tessellated before this feature — `CSphere::intersect` etc. currently
       raytrace via pure algebraic root-solving,
       `src/ri/quadrics.cpp:200-`) using the extracted flatness criterion, in
-      `src/ri/surface.cpp` (depends on T019).
-- [ ] T021 [US1] Wire `src/ri/csgTree.cpp` leaf tessellation to call the
+      `src/ri/surface.cpp` (depends on T020).
+- [ ] T022 [US1] Wire `src/ri/csgTree.cpp` leaf tessellation to call the
       extracted flatness criterion for NURBS/Bézier/quadric operands,
       reading the tolerance from `Attribute "solid"
       "tessellationtolerance"` when set, defaulting to the primitive's own
-      object-space bound diagonal otherwise (depends on T019, T020, T011).
-- [ ] T022 [US1] Compute an analytic per-vertex shading normal
+      object-space bound diagonal otherwise (depends on T020, T021, T011).
+- [ ] T023 [US1] Compute an analytic per-vertex shading normal
       (`crossvv(dPdu, dPdv)` at each sample vertex's exact parametric
       coordinates) for NURBS- and quadric-sourced fragments, and store it as
       the `"N"` `CONTAINER_VERTEX` primvar on the resulting `CPolygonMesh`
       (`CPolygonTriangle::sample`/`interpolate` already interpolates any
       supplied `"N"` generically, `polygons.cpp:280-314,379-405`) in
       `src/ri/surface.cpp` and `src/ri/solidObject.cpp` (`research.md`
-      Decision 4b) (depends on T019, T008).
-- [ ] T023 [US1] Construct Boundary Fragments so each BSP output fragment
+      Decision 4b) (depends on T020, T008).
+- [ ] T024 [US1] Construct Boundary Fragments so each BSP output fragment
       carries its *originating leaf's* `CAttributes*` (`research.md`
       Decision 2, `data-model.md`) in `src/ri/csgBoolean.cpp` /
-      `src/ri/solidObject.cpp` (depends on T017, T008).
-- [ ] T024 [US1] At the outermost `RiSolidEnd`, resolve the CSG tree via
+      `src/ri/solidObject.cpp` (depends on T018, T008).
+- [ ] T025 [US1] At the outermost `RiSolidEnd`, resolve the CSG tree via
       `csgBoolean` into a `CSolidObject` and re-enter `addObject()` exactly
       like any other primitive, in `src/ri/rendererContext.cpp` (depends on
-      T017, T023, T006).
-- [ ] T025 [P] [US1] Add a visual-regression scene combining a sphere and a
+      T018, T024, T006).
+- [ ] T026 [P] [US1] Add a visual-regression scene combining a sphere and a
       box with `"union"`, `"intersection"`, and `"difference"`, rendered
       with the raytrace, REYES, and `hidden` (z-buffer) hiders, in
       `examples/rib/` (`quickstart.md` §2-3, SC-001/SC-002).
-- [ ] T026 [P] [US1] Add a visual-regression scene validating boundary
+- [ ] T027 [P] [US1] Add a visual-regression scene validating boundary
       smoothness on curved operands: tight vs. loose
       `tessellationtolerance` on a sphere/sphere union, a NURBS-operand
       variant, and a subdivision-surface-operand variant showing the
       accepted normal-quality asymmetry, in `examples/rib/`
-      (`quickstart.md` §7, `research.md` Decision 4/4b) (depends on T022).
+      (`quickstart.md` §7, `research.md` Decision 4/4b, FR-022, SC-007)
+      (depends on T023).
 
 **Checkpoint**: User Story 1 is fully functional and independently
 testable — boolean composition of two primitives is correct and
@@ -232,7 +241,7 @@ silhouette against the manually reasoned expected shape (`quickstart.md`
 
 > **Write these first — approve them failing (Red) before the implementation task below.**
 
-- [ ] T027 [P] [US2] Unit test: a nested tree resolves inner operands before
+- [ ] T028 [P] [US2] Unit test: a nested tree resolves inner operands before
       the outer operation combines them (bottom-up), and a `"difference"`
       block with three or more operands subtracts every operand after the
       first in declaration order (FR-005), in
@@ -240,20 +249,20 @@ silhouette against the manually reasoned expected shape (`quickstart.md`
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Implement bottom-up recursive resolution over nested
+- [ ] T029 [US2] Implement bottom-up recursive resolution over nested
       `CSGTreeNode` operands — each boolean node resolves its children
       (themselves possibly boolean nodes) before combining — in
-      `src/ri/csgTree.cpp` (depends on T017, T027).
-- [ ] T029 [P] [US2] Add a visual-regression scene with a solid tree at
+      `src/ri/csgTree.cpp` (depends on T018, T028).
+- [ ] T030 [P] [US2] Add a visual-regression scene with a solid tree at
       least four operation levels deep mixing union/intersection/difference,
       in `examples/rib/` (`quickstart.md` §5, SC-003).
-- [ ] T030 [US2] Verify a `SolidBegin`/`SolidEnd` block declared inside
+- [ ] T031 [US2] Verify a `SolidBegin`/`SolidEnd` block declared inside
       `RiObjectBegin`/`RiObjectEnd` resolves once at object-definition time
       and each `RiObjectInstance` replay reuses that resolved result under
       its own transform (`research.md` Decision 1, `addObject()` gate
       precedence) — add a regression scene exercising this in
       `examples/rib/` and confirm no special-casing was needed in
-      `src/ri/rendererContext.cpp` (depends on T006, T024).
+      `src/ri/rendererContext.cpp` (depends on T006, T025).
 
 **Checkpoint**: User Stories 1 and 2 both work independently — nesting of
 arbitrary depth and mixed operations resolves correctly.
@@ -271,28 +280,35 @@ centered sphere) with an Interior shader assigned, viewed so the cut-away
 interior is visible; the interior-facing surface visibly differs from the
 exterior-facing surface (`quickstart.md` §4).
 
+### Tests for User Story 3 ⚠️
+
+> **Write this first — approve it failing (Red) before the implementation tasks below.**
+
+- [ ] T032 [P] [US3] Unit test: given a point classified as inside vs.
+      outside a Boundary Fragment's resolved volume, and `CAttributes`
+      with/without `interior`/`exterior` set, assert the correct shader
+      pointer is selected (interior, exterior, or fallback to ordinary
+      shading) — pure selection logic requiring no ray trace or render, in
+      `tests/unit/csg/test_interior_exterior_selection.cpp` (Constitution
+      Principle III).
+
 ### Implementation for User Story 3
 
-> No dedicated unit test: Interior/Exterior consumption is a shading-pipeline
-> behavior that requires ray/camera traversal to exercise meaningfully, so it
-> is validated via the visual-regression scene below (SC-004), consistent
-> with `research.md` Decision 6 scoping unit tests to the boolean kernel
-> only.
-
-- [ ] T031 [P] [US3] Consult `attributes->interior` and apply its shading
+- [ ] T033 [P] [US3] Consult `attributes->interior` and apply its shading
       effect when a camera or traced ray is inside a Boundary Fragment's
       resolved volume (FR-010), in `src/ri/shading.cpp` /
-      `src/ri/shaderFunctions.h`.
-- [ ] T032 [P] [US3] Consult `attributes->exterior` when viewed from outside
+      `src/ri/shaderFunctions.h` (depends on T032 failing red).
+- [ ] T034 [P] [US3] Consult `attributes->exterior` when viewed from outside
       a Boundary Fragment's resolved volume (FR-011), falling back to
       ordinary surface/atmosphere shading when neither Interior nor
-      Exterior is set (FR-012), in `src/ri/shading.cpp`.
-- [ ] T033 [US3] Restrict this Interior/Exterior consumption to Boundary
+      Exterior is set (FR-012), in `src/ri/shading.cpp` (depends on T032
+      failing red).
+- [ ] T035 [US3] Restrict this Interior/Exterior consumption to Boundary
       Fragments of a `CSolidObject` only — Interior/Exterior assigned to
       attribute state that never enters a `SolidBegin`/`SolidEnd` block
       MUST remain a no-op exactly as today (FR-020) — in
-      `src/ri/shading.cpp` (depends on T031, T032).
-- [ ] T034 [P] [US3] Add a visual-regression scene: a `"difference"` solid
+      `src/ri/shading.cpp` (depends on T033, T034).
+- [ ] T036 [P] [US3] Add a visual-regression scene: a `"difference"` solid
       (sphere minus sphere) with an Interior shader assigned, viewed from an
       angle revealing the cut-away interior, confirming visibly distinct
       interior vs. exterior appearance, in `examples/rib/`
@@ -307,24 +323,24 @@ exterior-facing surface (`quickstart.md` §4).
 **Purpose**: Diagnostics, non-regression, and documentation that span all
 three user stories.
 
-- [ ] T035 [P] Add error/diagnostic scenes confirming a clear
+- [ ] T037 [P] Add error/diagnostic scenes confirming a clear
       `CODE_BADTOKEN` diagnostic (not a crash, not a silently wrong image)
       for: `SolidBegin "bogus"`, an unmatched `SolidEnd`, a
       `SolidBegin "primitive"` block containing a nested
       `SolidBegin`/`SolidEnd`, and an `RiProcedural` directly inside a
       `SolidBegin "primitive"` block, in `examples/rib/` (`quickstart.md`
       §8, SC-006).
-- [ ] T036 Run the full existing visual-regression suite
+- [ ] T038 Run the full existing visual-regression suite
       (`ctest --test-dir build -L visual --output-on-failure`) and confirm
       every pre-existing scene (none of which uses
       `SolidBegin`/`SolidEnd`) renders unchanged relative to the T001
       baseline (FR-018/SC-005).
-- [ ] T037 [P] Add a new Hugo page under `site/` documenting
+- [ ] T039 [P] Add a new Hugo page under `site/` documenting
       `SolidBegin`/`SolidEnd`, `Attribute "solid"`, and Interior/Exterior
-      usage, using the scenes from T025/T026/T029/T034/T035 as worked
+      usage, using the scenes from T026/T027/T030/T036/T037 as worked
       examples, following the existing `site/` content structure
       (Constitution Principle VII).
-- [ ] T038 Run the full `quickstart.md` validation sequence end-to-end (all
+- [ ] T040 Run the full `quickstart.md` validation sequence end-to-end (all
       8 sections) and record the results.
 
 ---
@@ -340,24 +356,26 @@ three user stories.
   MVP — this is the feature's entire reason to exist per `spec.md`'s
   priority ordering.
 - **User Story 2 (Phase 4)**: Depends on Foundational; its resolution driver
-  (T028) also depends on User Story 1's boolean-combination code (T017)
+  (T029) also depends on User Story 1's boolean-combination code (T018)
   being in place, since nesting recursively calls the same combination step.
 - **User Story 3 (Phase 5)**: Depends on Foundational only for its own
-  tasks (T031-T034 touch shading, not CSG resolution) but is only
-  meaningfully testable once a composite boundary exists from US1/US2 —
-  sequence it after US1 in practice even though it has no hard code
-  dependency on US1/US2 files.
+  tasks (T032-T036 touch shading and shader selection, not CSG resolution)
+  but is only meaningfully testable end-to-end once a composite boundary
+  exists from US1/US2 — sequence it after US1 in practice even though it
+  has no hard code dependency on US1/US2 files.
 - **Polish (Phase 6)**: Depends on all three user stories being complete.
 
 ### Within Each User Story
 
 - Tests are written and approved failing (Red) before implementation tasks
   in the same phase.
-- Boolean-kernel core (BSP build → classify/clip/merge → difference
-  winding) before tessellation-quality work (flatness extraction, analytic
-  normals), since the kernel needs *some* tessellated mesh to operate on
-  first; tessellation quality is then layered on before the boundary is
-  handed to `addObject()`.
+- Boolean-kernel logic (BSP build → classify/clip/merge → difference
+  winding, T017-T019) and tessellation (flatness extraction T020, quadric
+  tessellation T021) land together before any curved- or coplanar-operand
+  test (T015, T016) can go Green — T013 (box/box) and T014 (multi-primitive
+  leaf, also flat-faceted) are the only US1 tests that can go Green from
+  T017-T019 alone. T022's tolerance-wiring and T023's analytic normals then
+  layer on top before the boundary is handed to `addObject()`.
 - Visual-regression scenes come last in each story, once the underlying
   mechanism they exercise exists.
 
@@ -365,15 +383,19 @@ three user stories.
 
 - T003, T007, T011, T012 (Foundational) touch disjoint files and can run in
   parallel once T002/T004 land.
-- T013, T014, T015 (US1 tests) are independent files — write in parallel.
-- T020 (US1) is independent of T016-T018 (different concern: quadric
-  tessellation vs. boolean kernel) and can run in parallel once T019 lands.
-- T025, T026 (US1 visual scenes) can run in parallel with each other once
-  their respective dependencies (T024, T022) land.
-- T031, T032 (US3) touch the same two files but distinct, independent
+- T013, T014, T015, T016 (US1 tests) are independent files — write in
+  parallel.
+- T021 (US1, quadric tessellation) is independent of T018-T019
+  (classify/clip/merge, difference winding) and can be developed in
+  parallel with them once T020 lands — but T017 (BSP build) and T020/T021
+  must be co-designed (the "tessellated operand mesh" contract they share),
+  not strictly sequential, since T015/T016 need both sides to be Green.
+- T026, T027 (US1 visual scenes) can run in parallel with each other once
+  their respective dependencies (T025, T023) land.
+- T033, T034 (US3) touch the same two files but distinct, independent
   branches (interior vs. exterior) — treat as parallel-safe for review
   purposes, serialize the actual edit if working solo.
-- T035, T037 (Polish) are independent of each other and of T036.
+- T037, T039 (Polish) are independent of each other and of T038.
 
 ---
 
@@ -382,13 +404,15 @@ three user stories.
 ```bash
 # Tests first, in parallel (different files):
 Task: "Unit test: box/box union/intersection/difference in tests/unit/csg/test_boolean_boxes.cpp"
+Task: "Unit test: multi-primitive '\"primitive\"' leaf in tests/unit/csg/test_multi_primitive_leaf.cpp"
 Task: "Unit test: sphere/box + tessellationtolerance in tests/unit/csg/test_boolean_sphere_box.cpp"
 Task: "Unit test: coplanar-face epsilon handling in tests/unit/csg/test_boolean_coplanar.cpp"
 
-# After the boolean kernel (T016-T018) and flatness extraction (T019) land:
-Task: "Quadric leaf tessellation in src/ri/surface.cpp"          # T020, parallel with T021 prep
-Task: "Visual scene: sphere/box union/intersection/difference across hiders"   # T025
-Task: "Visual scene: curved-operand boundary smoothness"                        # T026
+# BSP build (T017) and tessellation (T020/T021) are co-designed together;
+# once the boolean kernel (T017-T019) and flatness extraction (T020) land:
+Task: "Quadric leaf tessellation in src/ri/surface.cpp"          # T021, parallel with T022 prep
+Task: "Visual scene: sphere/box union/intersection/difference across hiders"   # T026
+Task: "Visual scene: curved-operand boundary smoothness"                        # T027
 ```
 
 ---

@@ -78,6 +78,7 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - The same composite solid is rendered with the raytrace, REYES, and Z-buffer hiders: all three produce the same resolved shape, with no hider-specific difference in the boundary.
 - A solid block is declared inside an object definition used for instancing: each instance resolves its own copy of the solid tree the same way any other instanced geometry is resolved, with no special-casing.
 - A "primitive" solid block contains a nested SolidBegin/SolidEnd block instead of raw geometry: the scene is rejected with a clear diagnostic, since "primitive" is a CSG leaf and cannot itself hold a sub-tree.
+- An RiProcedural (delayed-generator) primitive is declared directly inside a "primitive" solid block: the scene is rejected with a clear diagnostic, since procedural geometry does not exist yet at SolidEnd time and cannot be tessellated for CSG boundary resolution.
 
 ## Requirements *(mandatory)*
 
@@ -97,12 +98,14 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - **FR-012**: If no Interior or Exterior shader is assigned to a solid, System MUST render it using ordinary surface/atmosphere shading exactly as it would render without this feature.
 - **FR-013**: System MUST reject a SolidBegin call whose operation type is not one of "primitive", "union", "intersection", or "difference" with a clear, actionable error.
 - **FR-014**: System MUST reject an unmatched or improperly nested SolidBegin/SolidEnd pair with a clear diagnostic.
-- **FR-015**: System MUST accept any RenderMan geometric primitive type as an operand inside a "primitive" solid block.
+- **FR-015**: System MUST accept any RenderMan geometric primitive type as an operand inside a "primitive" solid block, with the exception of RiProcedural (or other delayed-generator) primitives — see FR-021.
 - **FR-016**: An empty solid block (no nested geometry or solid blocks) MUST resolve to no geometry rather than causing an error or crash.
 - **FR-017**: A boolean solid block ("union"/"intersection"/"difference") containing only a single nested operand MUST resolve to that operand's boundary unchanged.
 - **FR-018**: System MUST NOT change the rendered output of existing scenes that do not use SolidBegin/SolidEnd.
 - **FR-019**: System MUST reject a "primitive" solid block that contains a nested SolidBegin/SolidEnd block with a clear, actionable error, since a "primitive" block is a CSG leaf and cannot itself contain a sub-tree.
 - **FR-020**: Interior/Exterior shader assignments MUST govern rendered appearance only for solids resolved from a SolidBegin/SolidEnd block; assigning Interior/Exterior to attribute state outside any solid block MUST remain a no-op, unchanged from current behavior.
+- **FR-021**: System MUST reject an RiProcedural (or other delayed/procedural primitive) declared directly inside a SolidBegin "primitive" block with a clear, actionable error, since procedural geometry does not exist yet at SolidEnd time and cannot be tessellated for CSG boundary resolution.
+- **FR-022**: When a CSG operand is a curved primitive (NURBS/Bézier patch or quadric), System MUST tessellate it for boundary resolution using a curvature-adaptive density — concentrating polygon density where surface curvature is highest — rather than a fixed uniform density, so the resolved boundary does not exhibit visible faceting disproportionate to the operand's original smooth surface. Scene authors MUST be able to override the default tessellation density via a per-primitive tolerance setting.
 
 ### Key Entities
 
@@ -121,6 +124,7 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - **SC-004**: Scenes using Interior and/or Exterior shaders show visibly distinct appearance between the inside and outside of a solid.
 - **SC-005**: Every existing scene that does not use SolidBegin/SolidEnd renders identically before and after this feature, with zero regressions in the existing visual regression test suite.
 - **SC-006**: A scene that misuses solid blocks (invalid operation type, unmatched SolidEnd) produces a clear error message identifying the problem, rather than an unexplained crash or silently wrong image.
+- **SC-007**: A composite solid combining NURBS-patch or quadric operands renders with no visible faceting along its silhouette or in its specular shading at the default tessellation setting, and visibly changes polygon density in response to a scene-author-supplied tessellation tolerance override.
 
 ## Assumptions
 
@@ -131,3 +135,4 @@ A scene author assigns an Interior shader and/or an Exterior shader to a solid (
 - Solid blocks declared inside an object definition used for instancing are resolved per instance the same way any other instanced geometry is, with no special-casing.
 - Interior/Exterior shaders extend the existing inheritable, atmosphere-class shader attribute mechanism already used for other shader assignments, rather than introducing a new shader class or attribute layer.
 - No explicit performance or scale target is set for CSG boundary resolution in this feature; the implementation prioritizes correctness over speed for v1, to be revisited later if profiling shows a real problem on representative scenes.
+- Subdivision-surface CSG operands mitigate visible faceting via denser subdivision alone; they are not required to carry analytic per-vertex shading normals in v1 (see research.md Decision 4b) — FR-022 applies only to NURBS/Bézier and quadric operands.
