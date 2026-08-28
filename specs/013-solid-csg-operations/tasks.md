@@ -39,7 +39,7 @@ unit tests under `tests/unit/csg/`; new visual-regression scenes under
 FR-018/SC-005 ("zero regression on existing scenes") has something concrete
 to be measured against.
 
-- [ ] T001 Build the unmodified `013-solid-csg-operations` worktree
+- [X] T001 Build the unmodified `013-solid-csg-operations` worktree
       (`cmake --build build --config Release`) and run
       `ctest --test-dir build -L visual --output-on-failure` and
       `ctest --test-dir build -L libshader --output-on-failure` to record a
@@ -57,61 +57,61 @@ phase unchanged.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add the missing `RENDERMAN_SOLID_PRIMITIVE_BLOCK` push/pop to
+- [X] T002 Add the missing `RENDERMAN_SOLID_PRIMITIVE_BLOCK` push/pop to
       `RiSolidBegin`/`RiSolidEnd` in `src/ri/ri.cpp` (currently only call
       `check()`, unlike `RiObjectBegin`'s `blocks.push(currentBlock);
       currentBlock = RENDERMAN_OBJECT_BLOCK;` at the same site,
       `research.md` "RIB block-state enforcement gap") — this is what lets
       `check()`'s existing scope-mask machinery enforce FR-014 later.
-- [ ] T003 [P] Add `currentSolid` / `savedSolids` state to
+- [X] T003 [P] Add `currentSolid` / `savedSolids` state to
       `src/ri/rendererContext.h`, mirroring the existing `instance` /
       `instanceStack` members (~line 225-236).
-- [ ] T004 Create the CSG Tree node type (`operation`, `operands`,
+- [X] T004 Create the CSG Tree node type (`operation`, `operands`,
       `leafObjects`, `outerXform`, `parent` fields per `data-model.md`) in
       `src/ri/csgTree.h` / `src/ri/csgTree.cpp` (depends on T003).
-- [ ] T005 Implement `RiSolidBegin`/`RiSolidEnd` capture/open/close in
+- [X] T005 Implement `RiSolidBegin`/`RiSolidEnd` capture/open/close in
       `src/ri/rendererContext.cpp` (replacing the unimplemented stub at
       lines 5502-5513): validate the operation-type string against
       `"primitive"`/`"union"`/`"intersection"`/`"difference"` (FR-001,
       reject invalid values per FR-013), push/pop `currentSolid` against
       `savedSolids`, and reject an unmatched or scope-mismatched
       `SolidEnd` (FR-014) (depends on T002, T003, T004).
-- [ ] T006 Add the third `addObject()` capture gate — while `currentSolid`
+- [X] T006 Add the third `addObject()` capture gate — while `currentSolid`
       is open, divert each captured primitive's `CObject*` into the active
       CSG tree node instead of calling `CRenderer::render()`, alongside the
       existing instance/delayed gates — in `src/ri/rendererContext.cpp`
       (`addObject()`, line 457) (depends on T005).
-- [ ] T007 [P] Add `"primitive"`-leaf validation in `src/ri/csgTree.cpp`:
+- [X] T007 [P] Add `"primitive"`-leaf validation in `src/ri/csgTree.cpp`:
       reject a nested `SolidBegin`/`SolidEnd` inside a `"primitive"` block
       (FR-019) and reject an `RiProcedural` captured directly inside a
       `"primitive"` block (FR-021, `research.md` "Delayed/procedural
       primitives... resolved as rejected"), both via
       `error(CODE_BADTOKEN, ...)` (depends on T004).
-- [ ] T008 Create the `CSolidObject : CObject` Resolved Solid Boundary
+- [X] T008 Create the `CSolidObject : CObject` Resolved Solid Boundary
       container in `src/ri/solidObject.h` / `src/ri/solidObject.cpp`
       (`data-model.md`): owns a `children`/`sibling` list of `CPolygonMesh`
       Boundary Fragments, computes `bmin`/`bmax` as the union of fragment
       bounds, and presents them to every hider through the existing generic
       `CObject` dispatch — no new virtual methods (depends on T004).
-- [ ] T009 Implement the outer-block coordinate-space transform (`research.md`
+- [X] T009 Implement the outer-block coordinate-space transform (`research.md`
       Decision 5) in `src/ri/csgTree.cpp`: compose each captured leaf's
       `from` with the inverse of the outermost `SolidBegin`'s `from` to
       bring it into that block's local frame before resolution; give the
       resolved `CSolidObject` that same outer-block `CXform*` (depends on
       T004, T008).
-- [ ] T010 Implement the two trivial tree-resolution shortcuts in
+- [X] T010 Implement the two trivial tree-resolution shortcuts in
       `src/ri/csgTree.cpp`: an empty solid block (no captured leaves/
       operands) resolves to no geometry, not an error (FR-016), and a
       boolean block with exactly one operand resolves to that operand's
       boundary unchanged, skipping BSP combination entirely (FR-017)
       (depends on T004, T008).
-- [ ] T011 [P] Add `Attribute "solid" "float tessellationtolerance"` via the
+- [X] T011 [P] Add `Attribute "solid" "float tessellationtolerance"` via the
       existing four-layer attribute pattern (`CLAUDE.md`): token constant in
       `src/ri/ri.h`, RIB parsing in `RiAttributeV()`
       (`src/ri/rendererContext.cpp`), storage in `src/ri/attributes.h` /
       `src/ri/attributes.cpp`, pre-declaration in
       `src/ri/rendererDeclarations.cpp` (`contracts/solid-rib-interface.md`).
-- [ ] T012 [P] Create the `tests/unit/csg/` directory and wire a new ctest
+- [X] T012 [P] Create the `tests/unit/csg/` directory and wire a new ctest
       label (extending the existing `-L libshader`-style unit-test pattern,
       `research.md` Decision 6 / `quickstart.md` §1) so
       `ctest --test-dir build -L csg` runs boolean-kernel unit tests once
@@ -139,11 +139,11 @@ geometrically expected boundary with no seams, gaps, or duplicate surfaces
 
 > **Write these first — approve them failing (Red) before any implementation task below.**
 
-- [ ] T013 [P] [US1] Unit test: two axis-aligned unit boxes with a known
+- [X] T013 [P] [US1] Unit test: two axis-aligned unit boxes with a known
       overlap sub-volume — assert expected face count and enclosed volume
       for union, intersection, and difference in
       `tests/unit/csg/test_boolean_boxes.cpp`.
-- [ ] T014 [P] [US1] Unit test: a `"primitive"` block containing two raw
+- [X] T014 [P] [US1] Unit test: a `"primitive"` block containing two raw
       primitives (e.g. two overlapping boxes declared directly, with no
       nested `SolidBegin`) — assert they are captured and tessellated as a
       single opaque CSG leaf (one `leafObjects` set, one combined BSP tree),
@@ -154,39 +154,117 @@ geometrically expected boundary with no seams, gaps, or duplicate surfaces
       `Attribute "solid" "float tessellationtolerance"` changes output
       triangle density as expected, in
       `tests/unit/csg/test_boolean_sphere_box.cpp`.
-- [ ] T016 [P] [US1] Unit test: an explicit coplanar-face pair — validates
+      PARTIALLY DONE: the kernel-level assertions (union/intersection
+      volume conservation on curved operands, spanning-triangle clipping,
+      and tessellation-density-in/density-out via a test-local `slices`/
+      `stacks` helper) are written and green. The task's actual acceptance
+      criterion — that the real `Attribute "solid" "float
+      tessellationtolerance"` RIB attribute drives output density — is not
+      yet testable because that attribute isn't wired to anything (that's
+      T022's job). Left unchecked on purpose so this doesn't get lost;
+      extend this test with a tessellationtolerance-attribute-driven
+      density assertion once T022 lands, then check this off.
+- [X] T016 [P] [US1] Unit test: an explicit coplanar-face pair — validates
       `C_EPSILON`-consistent classification (`common/algebra.h`, `1e-6`,
       `research.md` Decision 3 risk) in
       `tests/unit/csg/test_boolean_coplanar.cpp`.
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Build a BSP tree over a tessellated operand mesh in
+- [X] T017 [US1] Build a BSP tree over a tessellated operand mesh in
       `src/ri/csgBoolean.h` / `src/ri/csgBoolean.cpp` (`research.md`
       Decision 3) (depends on T013, T014, T015, T016 failing red, T008,
       T020, T021 — T015/T016's curved- and coplanar-operand cases cannot go
       Green until tessellation lands too; see the ordering note below).
-- [ ] T018 [US1] Implement classify/clip/merge boolean combination
+      Done as the pure BSP kernel (`CCSGBSPNode::build`/`csgSplitPolygon`)
+      driven directly by hand-built polygon soup in the T013-T016 unit
+      tests, ahead of and independent from the real tessellation pipeline
+      (T020-T022) that will feed it in production; a real coplanar-routing
+      bug (`clipPolygons` sending both coplanar-front and coplanar-back
+      polygons into `frontList` instead of routing coplanar-back into
+      `backList`) was caught and fixed by T016.
+- [X] T018 [US1] Implement classify/clip/merge boolean combination
       (union/intersection/difference) over two BSP trees, using the
       `C_EPSILON` classification epsilon, in `src/ri/csgBoolean.cpp`
       (depends on T017).
-- [ ] T019 [US1] Implement `difference` as intersection with the second
+- [X] T019 [US1] Implement `difference` as intersection with the second
       operand's complement — reverse winding/normals on faces retained from
       the subtracted operand, since the visible cut surface is its
       inward-facing side — in `src/ri/csgBoolean.cpp` (depends on T018).
-- [ ] T020 [US1] Extract the flatness/chordal-deviation adaptive stopping
+- [X] T020 [US1] Extract the flatness/chordal-deviation adaptive stopping
       criterion out of `CTesselationPatch::tesselate`
       (`src/ri/surface.cpp:1858-1897`) into a form callable without a
-      traced ray: strip out the ray-footprint half of the stopping
-      criterion (`surface.cpp:724-759`), keep the `uFlat < uAvg && vFlat <
-      vAvg` chordal-deviation test driven from a tolerance value alone, in
-      `src/ri/surface.h` / `src/ri/surface.cpp` (`research.md` Decision 4)
-      (depends on T011).
-- [ ] T021 [P] [US1] Add mesh tessellation for quadric leaf operands (never
+      traced ray, in `src/ri/surface.h` / `src/ri/surface.cpp`
+      (`research.md` Decision 4). **Implementation note**: standalone
+      prototyping (documented in research.md Decision 4) showed the
+      existing `uFlat < uAvg && vFlat < vAvg` formula does not converge
+      toward zero with refinement over a fixed domain and has no tolerance
+      value that makes it terminate correctly for curved input, so it was
+      not reused as-is. Replaced with a new function,
+      `tesselationSagittaWithinTolerance()`, using a per-cell
+      midpoint-sagitta test (empirically confirmed O(1/div²) convergence)
+      driven from an absolute tolerance alone; the ray-footprint half of
+      the original stopping criterion (`surface.cpp:724-759`) plays no
+      part in it. Unit-tested in
+      `tests/unit/csg/test_tesselation_flatness.cpp` (flat plane, coarse
+      vs. refined sphere octant, monotonic convergence) (depends on T011).
+- [X] T021 [P] [US1] Add mesh tessellation for quadric leaf operands (never
       tessellated before this feature — `CSphere::intersect` etc. currently
       raytrace via pure algebraic root-solving,
       `src/ri/quadrics.cpp:200-`) using the extracted flatness criterion, in
       `src/ri/surface.cpp` (depends on T020).
+      **Implementation note**: implemented as `tesselateQuadricAdaptive()`
+      (`src/ri/surface.h`/`.cpp`), calling `CSurface::sample()` directly
+      through a minimal standalone `varying[]` harness (no
+      `CShadingContext` exists at `RiSolidEnd` time — allocates a
+      `VARIABLE_CONSTANTWIDTH+1`-slot array, populates `VARIABLE_U`/
+      `VARIABLE_V` over the confirmed normalized `[0,1]×[0,1]` full-domain
+      convention, `VARIABLE_TIME=0.0f` unconditionally since motion-path
+      code in e.g. `CSphere::sample` reads it regardless of whether the
+      object actually moves). `up = PARAMETER_P` optionally OR'd with
+      `PARAMETER_DPDU|PARAMETER_DPDV` via a `computeDerivatives` flag.
+      `CTesselatedGrid.P/dPdu/dPdv` are **world-space**, not object-space —
+      `CSurface::sample()` applies `xform->from` unconditionally
+      (`transformPoints()` macro, `quadrics.cpp:504` and siblings), which is
+      the correct contract for CSG: operands under one solid block can carry
+      different transforms, so a common space is required before boolean
+      combination, and this comes for free with no extra transform step in
+      T022/T025.
+      Probes resolutions doubling from 4 to a 128 cap; at each probe
+      resolution `tesselationSagittaWithinTolerance()` validates the
+      *coarser* `probeDiv/2` candidate mesh already embedded (per its own
+      documented contract) at the probe's even-indexed rows/columns — so on
+      pass, that `probeDiv/2` candidate is extracted via a lossless strided
+      subgrid copy (`extractEvenSubgrid()`, no re-sampling: the embedded
+      even-indexed samples were evaluated at exactly the candidate's own
+      parametric coordinates) and shipped, not the finer probe itself. This
+      keeps the external candidate-resolution range at `[2, 64]`, matching
+      the original design, while avoiding shipping up to 4x more triangles
+      than the tolerance actually required into the downstream BSP. Returns
+      a `CTesselatedGrid { div, P, dPdu, dPdv }` (caller-owned `new[]`
+      arrays). Unit-tested in
+      `tests/unit/csg/test_quadric_tesselation.cpp` against a real
+      `CSphere` captured via a test-only `CRendererContext::addObject`
+      interceptor (same precedent as T014's test): resolution bounds,
+      every sampled position lying on the analytic unit sphere to float
+      precision (independent of tessellation resolution), derivatives
+      omitted/present per the flag and radially tangent when present,
+      monotonically non-decreasing resolution under a tighter tolerance,
+      and a translated sphere's sampled centroid shifting with it
+      (confirms the world-space contract empirically, not just by code
+      inspection).
+      **Known follow-up for T022/T025** (not fixed here — out of scope for
+      a grid-producing function): a full sphere's parametric grid has
+      genuinely degenerate cells — the `v=0`/`v=1` pole rows collapse to a
+      single point, and the `u=0`/`u=360°` seam column duplicates the same
+      world position (visible in this task's own world-space test as a
+      ~0.7% centroid bias from double-counting the seam point at a coarse
+      resolution). Naive `(div+1)²` → `2·div²` triangulation of this grid
+      emits zero-area triangles at the poles and along the seam, which will
+      feed degenerate/NaN plane data into `csgCombine()`'s BSP splitter.
+      Whoever writes the triangulation (T022 or T025) must drop cells with
+      coincident corners rather than assume every grid cell is a valid
+      quad.
 - [ ] T022 [US1] Wire `src/ri/csgTree.cpp` leaf tessellation to call the
       extracted flatness criterion for NURBS/Bézier/quadric operands,
       reading the tolerance from `Attribute "solid"

@@ -52,6 +52,7 @@ add_subdirectory(imager)
 add_subdirectory(preview)
 add_subdirectory(visual)
 add_subdirectory(shaders)
+add_subdirectory(unit/csg)
 
 # Print test information
 message(STATUS "Configured tests:")

@@ -131,14 +131,49 @@ suite (Decision 6) rather than discovering them via visual-test flakiness.
 ## Decision 4: Operand tessellation density — reuse flatness-based adaptive refinement, not a fixed uniform density
 
 **Decision**: At `RiSolidEnd` time, each leaf operand is tessellated into a
-triangle mesh by extracting and reusing the chordal-deviation ("flatness")
-adaptive stopping criterion that `CTesselationPatch::tesselate` already uses
-to drive raytrace grid-splitting (`surface.cpp:1858-1897`: refinement stops
-once `uFlat < uAvg && vFlat < vAvg`, i.e. once sampled points deviate from
-their chord by less than a tolerance). CSG operand tessellation drives the
-same flatness test from a tolerance value alone — with the ray-footprint
-half of that function's stopping criterion (`surface.cpp:724-759`), which
-has no meaning outside of a traced ray, stripped out. This applies uniformly
+triangle mesh by a new, standalone flatness/chordal-deviation adaptive
+stopping test, `tesselationSagittaWithinTolerance()`
+(`src/ri/surface.h`/`.cpp`), driven from a tolerance value alone — with no
+dependency on a traced ray.
+
+This is a **per-cell midpoint-sagitta test**, not a literal reuse of
+`CTesselationPatch::tesselate`'s existing `uFlat < uAvg && vFlat < vAvg`
+formula (`surface.cpp:1858-1897`). That formula was prototyped standalone
+against a synthetic sphere octant before writing any production code (div =
+2..64): `uFlat`, normalized the same way the shipped code normalizes it
+(`/div²`), converges to a **nonzero constant** (~0.124-0.125) as div
+increases, rather than shrinking toward zero. That formula measures
+whole-patch chordal deviation over a *fixed* domain — a property of the
+domain's curvature, not of tessellation density — so no fixed normalization
+of it converges with `div`, and it has no tolerance value that makes an
+adaptive-refinement loop built on it terminate correctly for curved input.
+It is fine for its original purpose (a self-relative, per-level "is this
+grid flatter than average for itself" comparison feeding ray-footprint
+subsampling) but is not usable against an externally supplied absolute
+tolerance.
+
+The replacement metric instead compares, per grid cell, the analytic surface
+point at the cell's parametric midpoint against the bilinear average of that
+cell's four sampled corners (the "sagitta" of the cell). The same standalone
+prototyping (div = 2..128 on the same synthetic sphere octant) confirmed
+`maxSagitta` shrinks as O(1/div²) — the correct, expected convergence order
+for a quadratic surface approximation error — with `maxSagitta * div²`
+settling to a stable constant (~0.617). This is what makes the test usable
+against a fixed absolute tolerance: refinement doubles `div` until the
+worst-case per-cell sagitta drops below `tolerance`. A corner-only test
+(no probe point outside the candidate mesh's own vertex set) cannot detect
+this error at all — four corners sampled exactly on the surface are always
+"flat" by any corner-based measure even when the true surface bulges between
+them — so the implementation samples one grid at `2*div` per iteration: the
+even-indexed samples are the candidate mesh at resolution `div`, and the
+odd-indexed samples are exactly the cell midpoints needed as sagitta probes,
+avoiding a second `CSurface::sample()` call per iteration. On pass, the
+finer `2*div` grid (already paid for) is emitted as the final mesh rather
+than being discarded in favor of the coarser candidate.
+
+The ray-footprint half of the original function's stopping criterion
+(`surface.cpp:724-759`), which has no meaning outside of a traced ray, plays
+no part in the new function — there is no ray at `RiSolidEnd` time. This applies uniformly
 to any primitive with a parametric (u,v) surface evaluation, which already
 covers NURBS/Bézier patches (`CNURBSPatchMesh`/`CBezierPatch`,
 `patches.cpp:2132-2205`) and, newly for CSG purposes, quadrics — which are

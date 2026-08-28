@@ -34,8 +34,31 @@
 #include "memory.h"
 #include "object.h"
 #include "pl.h"
+#include "surface.h" // CTesselatedGrid, used by tesselatePatchMeshAdaptive (T022)
 
 class CTrimTest; // Forward declaration; full definition below (after CPatchMesh)
+
+///////////////////////////////////////////////////////////////////////
+// Struct				:	CTesselatedPatchMeshOperand
+// Description			:	The result of tesselatePatchMeshAdaptive(): every
+//							bilinear/bicubic sub-patch of a CPatchMesh,
+//							tessellated to a single shared resolution (T022's
+//							seam-welding requirement -- adjacent sub-patches
+//							at different resolutions would leave T-junction
+//							cracks along their shared edge, the same
+//							watertightness failure a trimmed NURBS patch has).
+// Comments				:	grids is row-major over the mesh's own
+//							(vPatches x uPatches) sub-patch grid: sub-patch
+//							(i,j) is grids[i * uPatches + j], matching
+//							CPatchMesh::create()'s own k = i*upatches+j
+//							sub-patch numbering. Caller owns grids and every
+//							grid's P/dPdu/dPdv (delete[] each, then
+//							delete[] grids).
+struct CTesselatedPatchMeshOperand {
+        int div;               // Shared grid resolution: every grid is (div+1) x (div+1)
+        int uPatches, vPatches; // Sub-patch counts along u and v
+        CTesselatedGrid *grids; // Row-major uPatches*vPatches grids (caller owns)
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBilinearPatch
@@ -165,7 +188,36 @@ class CPatchMesh : public CObject {
         TMutex mutex;
 
         friend class CPreviewContext;
+        friend CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float tolerance, int computeDerivatives);
 };
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	tesselatePatchMeshAdaptive
+// Description			:	Tessellates every bilinear/bicubic sub-patch of a
+//							CPatchMesh into a single seam-welded grid mosaic,
+//							for use as a CSG leaf operand at RiSolidEnd time
+//							(no CShadingContext exists there). Reuses
+//							create()'s own sub-patch decomposition span loop
+//							(gatherData + CBilinearPatch/CBicubicPatch
+//							construction), but replaces create()'s
+//							context->threadMemory scratch arena with a
+//							standalone CMemPage owned entirely by this call --
+//							create()'s use of CShadingContext is incidental
+//							(a memory pool), not a real dependency, so no
+//							CShadingContext is constructed here.
+// Return Value			:	Every sub-patch's grid, uniformly re-tessellated
+//							at the coarsest resolution that still satisfies
+//							every sub-patch's own tolerance test (the max
+//							div across sub-patches) so adjacent sub-patches
+//							share identical edge sample counts and welding
+//							cracks do not appear.
+// Comments				:	Trimmed NURBS operands (CNURBSPatchMesh) are not
+//							supported by this function -- see T022's "Known
+//							follow-up" note in tasks.md. mesh's pl is
+//							consumed (deleted and NULLed) exactly as
+//							create() does; mesh must not be tessellated (via
+//							this function or create()) more than once.
+CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float tolerance, int computeDerivatives);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTrimPolyline

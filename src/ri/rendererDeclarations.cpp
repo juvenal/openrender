@@ -147,6 +147,8 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_DISPLACEMENT, "float");
     declareVariable(RI_COORDINATESYSYTEM, "string");
 
+    declareVariable(RI_TESSELLATIONTOLERANCE, "float");
+
     declareVariable(RI_DISPLACEMENTS, "int");
     declareVariable(RI_BIAS, "float");
     declareVariable(RI_MAXDIFFUSEDEPTH, "int");

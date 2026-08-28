@@ -108,6 +108,8 @@ CAttributes::CAttributes() {
     rasterExpand = 0.5f; // This could be significantly lowered for many primitives
     bias = 0.01f;
 
+    tessellationTolerance = 0; // 0 = unset; CSG resolution derives a default from the operand's own object-space bound diagonal (research.md Decision 4)
+
     transmissionHitMode = 'p';
     diffuseHitMode = 'p';
     cameraHitMode = 's';
@@ -616,6 +618,14 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
         else if (strcmp(name, RI_COORDINATESYSYTEM) == 0) {
             type = TYPE_STRING;
             value = maxDisplacementSpace;
+            return TRUE;
+        }
+    }
+
+    if ((category == NULL) || (strcmp(category, RI_SOLID) == 0)) {
+        if (strcmp(name, RI_TESSELLATIONTOLERANCE) == 0) {
+            type = TYPE_FLOAT;
+            value = &tessellationTolerance;
             return TRUE;
         }
     }

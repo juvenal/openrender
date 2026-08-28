@@ -1722,6 +1722,183 @@ void CPatchMesh::create(CShadingContext *context) {
     osUnlock(mutex);
 }
 
+///////////////////////////////////////////////////////////////////////
+// Function				:	tesselatePatchMeshAdaptive
+// Description			:	See patches.h. Mirrors CPatchMesh::create()'s
+//							own sub-patch decomposition span loop, but with
+//							two differences: (1) the transient per-sub-patch
+//							scratch buffer comes from a standalone CMemPage
+//							owned by this call (create()'s context->
+//							threadMemory is a memory pool, not a real
+//							CShadingContext dependency -- there is none at
+//							RiSolidEnd time), and (2) each sub-patch is
+//							tessellated immediately via
+//							tesselateQuadricAdaptive (CBilinearPatch and
+//							CBicubicPatch are CSurface subclasses, so T021's
+//							driver applies to them unchanged) instead of
+//							being linked into a lazy children list.
+// Comments				:	A local struct standing in for CShadingContext
+//							satisfies gatherData's __context->threadMemory
+//							access without pulling in any real shading
+//							state.
+CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float tolerance, int computeDerivatives) {
+    struct CMemPageContext {
+            CMemPage *threadMemory;
+    };
+
+    assert(mesh->pl != NULL);
+
+    int i, j, k;
+    int uvaryings, vvaryings;
+    int uvertices, vvertices;
+    CPl *parameterList;
+    CVertexData *vertexData;
+    float *vertices;
+    int vertexSize;
+
+    int upatches, vpatches;
+    CSurface **subPatches;
+    CTesselatedGrid *grids;
+    int maxDiv = 0;
+
+    CMemPage *localMemory = NULL;
+    memoryInit(localMemory);
+
+    memBegin(localMemory);
+
+    CMemPageContext memCtx;
+    memCtx.threadMemory = localMemory;
+    CMemPageContext *memCtxPtr = &memCtx;
+
+    uvertices = mesh->uVertices;
+    vvertices = mesh->vVertices;
+
+    vertices = NULL;
+    mesh->pl->transform(mesh->xform);
+    mesh->pl->collect(vertexSize, vertices, CONTAINER_VERTEX, localMemory);
+    parameterList = mesh->pl;
+    vertexData = mesh->pl->vertexData();
+    vertexData->attach();
+
+    if (mesh->degree == 1) {
+        float uMult;
+        float vMult;
+        float *vertex = NULL;
+        CParameter *parameters;
+
+        if (mesh->uWrap)
+            upatches = uvertices;
+        else
+            upatches = uvertices - 1;
+
+        if (mesh->vWrap)
+            vpatches = vvertices;
+        else
+            vpatches = vvertices - 1;
+
+        uMult = 1 / (float)upatches;
+        vMult = 1 / (float)vpatches;
+
+        uvaryings = uvertices;
+        vvaryings = vvertices;
+
+        subPatches = new CSurface *[upatches * vpatches];
+        grids      = new CTesselatedGrid[upatches * vpatches];
+
+        for (k = 0, i = 0; i < vpatches; i++) {
+            for (j = 0; j < upatches; j++, k++) {
+                float uOrg = j * uMult;
+                float vOrg = i * vMult;
+
+                gatherData(memCtxPtr, j, i, 2, 2, j, i, k, vertex, parameters);
+
+                CBilinearPatch *sub = new CBilinearPatch(mesh->attributes, mesh->xform, vertexData, parameters, uOrg, vOrg, uMult, vMult, vertex);
+                sub->attach();
+                subPatches[k] = sub;
+
+                grids[k] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
+                if (grids[k].div > maxDiv) maxDiv = grids[k].div;
+            }
+        }
+    } else {
+        float uMult;
+        float vMult;
+        float *vertex = NULL;
+        CParameter *parameters;
+        const int us = mesh->attributes->uStep;
+        const int vs = mesh->attributes->vStep;
+
+        assert(mesh->degree == 3);
+
+        if (mesh->uWrap)
+            upatches = (uvertices) / us;
+        else
+            upatches = ((uvertices - 4) / us) + 1;
+
+        if (mesh->vWrap)
+            vpatches = (vvertices) / vs;
+        else
+            vpatches = ((vvertices - 4) / vs) + 1;
+
+        uMult = 1 / (float)upatches;
+        vMult = 1 / (float)vpatches;
+
+        uvaryings = (upatches + 1 - mesh->uWrap);
+        vvaryings = (vpatches + 1 - mesh->vWrap);
+
+        subPatches = new CSurface *[upatches * vpatches];
+        grids      = new CTesselatedGrid[upatches * vpatches];
+
+        for (k = 0, i = 0; i < vpatches; i++) {
+            for (j = 0; j < upatches; j++, k++) {
+                float uOrg = j * uMult;
+                float vOrg = i * vMult;
+
+                gatherData(memCtxPtr, j * us, i * vs, 4, 4, j, i, k, vertex, parameters);
+
+                CBicubicPatch *sub = new CBicubicPatch(mesh->attributes, mesh->xform, vertexData, parameters, uOrg, vOrg, uMult, vMult, vertex);
+                sub->attach();
+                subPatches[k] = sub;
+
+                grids[k] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
+                if (grids[k].div > maxDiv) maxDiv = grids[k].div;
+            }
+        }
+    }
+
+    vertexData->detach();
+
+    memEnd(localMemory);
+    memoryTini(localMemory);
+
+    // Weld seams: re-sample any sub-patch whose own adaptive resolution
+    // landed below the mesh-wide max so every sub-patch shares one
+    // resolution -- otherwise adjacent sub-patches diced at different
+    // resolutions leave T-junction cracks along their shared edge.
+    const int total = upatches * vpatches;
+    for (k = 0; k < total; k++) {
+        if (grids[k].div != maxDiv) {
+            delete[] grids[k].P;
+            delete[] grids[k].dPdu;
+            delete[] grids[k].dPdv;
+            grids[k] = tesselateSurfaceGrid(subPatches[k], maxDiv, computeDerivatives);
+        }
+        subPatches[k]->detach();
+    }
+    delete[] subPatches;
+
+    // We're done with the parameter list
+    delete mesh->pl;
+    mesh->pl = NULL;
+
+    CTesselatedPatchMeshOperand result;
+    result.div      = maxDiv;
+    result.uPatches = upatches;
+    result.vPatches = vpatches;
+    result.grids    = grids;
+    return result;
+}
+
 // Validates and flattens any RiTrimCurve loops pending on the given
 // attributes into a Shared Trim Test (FR-004: absent pending state yields
 // NULL, leaving callers on the untrimmed path). Defined below, after the
