@@ -97,6 +97,46 @@ static bool isHandledOpcode(const std::string &op) {
 }
 
 // =========================================================================
+// kOpcodeParamTable — re-expansion of the interpreter's own opcode/function
+// tables into (text, params) rows (spec 014-jit-shading-parity, research.md
+// D3). Mirrors the enum-only precedent at rslo_code.h:31-49 (same
+// DEFOPCODE/DEFFUNC-family macros, same scriptFunctions.h/scriptOpcodes.h
+// #includes), except the macro bodies capture `params` instead of
+// discarding it — that's what lets computeUsedParameters() OR in
+// PARAMETER_RAYTRACE/MESSAGEPASSING/NONAMBIENT/derivative bits by
+// opcode/function name, not just by declared-global-variable name.
+//
+// `params` arguments are literal expressions referencing PARAMETER_* (e.g.
+// "PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV"
+// on giFunctions.h's TraceF/TraceV rows), so rendererc.h must be visible
+// here — unlike rslo_code.h, which never references `params` and so never
+// needed it.
+// =========================================================================
+#include "rendererc.h"
+
+#define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
+#define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
+#define DEFLINKOPCODE(name, text, nargs) {text, 0u},
+#define DEFLINKFUNC(name, text, prototype, par) {text, static_cast<unsigned int>(par)},
+#define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
+#define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
+#define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
+
+extern const OpcodeParamEntry kOpcodeParamTable[] = {
+#include "scriptFunctions.h"
+#include "scriptOpcodes.h"
+    {nullptr, 0u}
+};
+
+#undef DEFOPCODE
+#undef DEFSHORTOPCODE
+#undef DEFLINKOPCODE
+#undef DEFLINKFUNC
+#undef DEFFUNC
+#undef DEFLIGHTFUNC
+#undef DEFSHORTFUNC
+
+// =========================================================================
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 // =========================================================================
 static const std::unordered_map<std::string, int> s_rslGlobals = {

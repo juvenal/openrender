@@ -24,7 +24,7 @@ phase is independently implementable.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `tests/shading_parity/` directory with a `CMakeLists.txt`
+- [X] T001 Create `tests/shading_parity/` directory with a `CMakeLists.txt`
   mirroring `tests/imager/CMakeLists.txt`'s pattern exactly: executables
   link `openrender_common_flags ri libshader_shading openrendercommon`,
   include dirs `${CMAKE_SOURCE_DIR}/src` + `${CMAKE_BINARY_DIR}`,
@@ -32,17 +32,17 @@ phase is independently implementable.
   and register `add_test` entries under a new `shading_parity` ctest label
   (contracts/differential-oracle-contract.md). Leave it with no
   `add_executable` yet — those are added per-story below.
-- [ ] T002 Add `add_subdirectory(shading_parity)` to `tests/CMakeLists.txt`
+- [X] T002 Add `add_subdirectory(shading_parity)` to `tests/CMakeLists.txt`
   (alongside the existing `framebuffer`/`imager`/`preview`/`visual`/`shaders`
   entries at lines 50-54).
-- [ ] T003 [P] Add a new executable + `add_test` block to the existing
+- [X] T003 [P] Add a new executable + `add_test` block to the existing
   `src/libshader/tests/CMakeLists.txt` for
   `test_libshader_used_parameters_table` (tier 1), linking
   `libshader_compiler_obj`/`libshader_compiler` + `openrendercommon` only
   (no `ri`, matching `test_libshader_compiler`'s existing linkage pattern),
   registered as ctest `LibShader_UsedParametersTable` with
   `LABELS "libshader;compiler;unit"`.
-- [ ] T004 [P] Add a second executable + `add_test` block to
+- [X] T004 [P] Add a second executable + `add_test` block to
   `src/libshader/tests/CMakeLists.txt` for
   `test_libshader_used_parameters_gating` (tier 2), same linkage as T003,
   registered as ctest `LibShader_UsedParametersGating` with
@@ -58,11 +58,11 @@ test source files exist yet.
 **Purpose**: Infrastructure every user story's fix depends on. No user story
 work can start until this phase is complete.
 
-- [ ] T005 In `src/libshader/compiler/CMakeLists.txt`, add
+- [X] T005 In `src/libshader/compiler/CMakeLists.txt`, add
   `target_include_directories(libshader_compiler_obj PRIVATE ${CMAKE_SOURCE_DIR}/src/libshader/shading)`
   (header-only; the two libraries have zero link dependency in either
   direction today — confirm this stays true after the addition).
-- [ ] T006 In `src/libshader/compiler/llvmEmitter.cpp`, add a local X-macro
+- [X] T006 In `src/libshader/compiler/llvmEmitter.cpp`, add a local X-macro
   re-expansion (mirroring the precedent at
   `src/libshader/shading/rslo_code.h:31-49`) that `#include`s
   `shaderFunctions.h`/`shaderOpcodes.h`/`giFunctions.h`/`giOpcodes.h` with
@@ -70,7 +70,7 @@ work can start until this phase is complete.
   `(text, params)` pairs into a new static table (data-model.md "Opcode/
   Function Bit Table"). Do not wire it into `usedParameters` computation
   yet — this task only builds and exposes the table.
-- [ ] T007 [P] Write `src/libshader/tests/test_used_parameters_table.cpp`
+- [X] T007 [P] Write `src/libshader/tests/test_used_parameters_table.cpp`
   (tier 1, contracts/table-parity-contract.md): assert every `(text, params)`
   pair in T006's new table matches the corresponding interpreter header
   entry exactly, re-derived at test-run time. Confirm it builds against the

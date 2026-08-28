@@ -70,6 +70,13 @@ target_include_directories(libshader_compiler_obj
         ${CMAKE_SOURCE_DIR}/src/ri          # dso.h, shadeop.h
 )
 
+# Header-only: llvmEmitter.cpp re-expands the interpreter's own opcode/function
+# tables (shaderOpcodes.h/shaderFunctions.h/giOpcodes.h/giFunctions.h) via
+# local X-macro redefinition (spec 014-jit-shading-parity, mirrors the
+# rslo_code.h precedent). No link dependency is introduced by this — the two
+# libraries remain unlinked to each other in either direction.
+target_include_directories(libshader_compiler_obj PRIVATE ${CMAKE_SOURCE_DIR}/src/libshader/shading)
+
 target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
     # Include dirs and defines only — no link dep on the OBJECT library.

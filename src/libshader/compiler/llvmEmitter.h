@@ -52,4 +52,28 @@ bool emitLLVMBitcode(const IRModule &mod,
  */
 extern const char *const kHandledOpcodes[];
 
+/**
+ * @brief One (mnemonic-or-function-name, PARAMETER_* bits) row, re-expanded
+ *        verbatim from the interpreter's own opcode/function tables
+ *        (shaderOpcodes.h/shaderFunctions.h/giOpcodes.h/giFunctions.h via
+ *        scriptOpcodes.h/scriptFunctions.h) by llvmEmitter.cpp's local
+ *        DEFOPCODE/DEFFUNC-family X-macro redefinition — the same mechanism
+ *        rslo_code.h:31-49 uses to build TRSLObjectCode, but capturing
+ *        `params` instead of discarding it (spec 014-jit-shading-parity,
+ *        data-model.md "Opcode/Function Bit Table").
+ */
+struct OpcodeParamEntry {
+    const char *text;
+    unsigned int params;
+};
+
+/**
+ * @brief Single source of truth for which PARAMETER_* bits each opcode or
+ *        built-in function name carries, mirroring the interpreter's tables
+ *        by construction (re-#include, not hand-transcription). Terminated
+ *        by a {nullptr, 0} sentinel. External linkage so the libshader
+ *        table-parity ctest can read it directly (table-parity-contract.md).
+ */
+extern const OpcodeParamEntry kOpcodeParamTable[];
+
 #endif // OSHADER_LLVM_EMITTER_H
