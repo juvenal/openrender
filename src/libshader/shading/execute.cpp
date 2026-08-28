@@ -426,13 +426,14 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     lightCategoryPre;                                                                                      \
     iterateLights(lP, lN, lT, numVertices, tagStart, numActive, numPassive, saveCat, inShadow, varying, cInstance)
 
+// The sign of saveCat carries the invert-match flag through to
+// CShadingContext::iterateLights (shading.cpp), which re-derives
+// invertCatMatch itself via `saveCat < 0` — no local copy needed here.
 #define CATEGORYLIGHT_PRE(lC)                                      \
     int runCat = 0, saveCat = 0;                                   \
-    int invertCatMatch = FALSE;                                    \
     if (*(*lC) != '\0') {                                          \
         if (*(*lC) == '-') {                                       \
             saveCat = -(runCat = rendererGetGlobalID(*lC + 1)); \
-            invertCatMatch = TRUE;                                 \
         } else {                                                   \
             saveCat = runCat = rendererGetGlobalID(*lC);        \
         }                                                          \
