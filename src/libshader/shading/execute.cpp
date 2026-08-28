@@ -670,7 +670,7 @@ execEnd:
 
     // Make sure we save the ambient contribution if there has been no illuminate/solar executed
     if (currentShader->type == SL_LIGHTSOURCE) {
-        if (!(currentShader->usedParameters & PARAMETER_NONAMBIENT)) {
+        if (!(currentShader->usedParameters & PARAMETER_NONAMBIENT) && *alights != nullptr) {
             const float *Cl = varying[VARIABLE_CL];
             float *Clsave;
 

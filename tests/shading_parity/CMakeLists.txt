@@ -28,3 +28,20 @@ set_tests_properties(ShadingParity_UsedParametersOracle PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
+
+# Ambient-Cl accumulation regressions (T019/T020, US3): crash-safety when
+# alights is nullptr (RSLShading::shade() entry point) and the
+# prepareAmbient() double-count fix. Interpreter (.rslo) backend only.
+add_executable(test_shading_parity_ambient_accumulation test_ambient_accumulation.cpp)
+target_link_libraries(test_shading_parity_ambient_accumulation PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_ambient_accumulation PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_ambient_accumulation PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_AmbientAccumulation COMMAND test_shading_parity_ambient_accumulation)
+set_tests_properties(ShadingParity_AmbientAccumulation PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)

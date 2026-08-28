@@ -1726,7 +1726,6 @@ void CShadingContext::prepareAmbient() {
         }
         if (!inShadow) {
             CShaderInstance *cInst = ss->currentShaderInstance;
-            float *saveCl = ss->alights->savedState[1];
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
                 CProgrammableShaderInstance *light = cLight->light;
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
@@ -1735,12 +1734,8 @@ void CShadingContext::prepareAmbient() {
                     ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, ss->varying, ss->numVertices);
                     light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
                     memEnd(shaderStateMemory);
-                    const float *lightCl = ss->varying[VARIABLE_CL];
-                    for (int i = 0; i < ss->numVertices; ++i) {
-                        saveCl[3*i]   += lightCl[3*i];
-                        saveCl[3*i+1] += lightCl[3*i+1];
-                        saveCl[3*i+2] += lightCl[3*i+2];
-                    }
+                    // execute()'s execEnd already accumulates Cl into
+                    // alights->savedState[1]; do NOT accumulate here again.
                 }
             }
             ss->currentShaderInstance = cInst;

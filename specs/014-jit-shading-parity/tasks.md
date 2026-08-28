@@ -229,13 +229,13 @@ light.
 
 ### Tests for User Story 3 (write first, confirm Red)
 
-- [ ] T019 [P] [US3] Create `tests/shading_parity/test_ambient_accumulation.cpp`
+- [X] T019 [P] [US3] Create `tests/shading_parity/test_ambient_accumulation.cpp`
   (new executable + `add_test` in `tests/shading_parity/CMakeLists.txt`,
   ctest name `ShadingParity_AmbientAccumulation`): call
   `RSLShading::shade()` (`src/libshader/shading/RSLShading.cpp:37-42`) on
   the interpreter (`.rslo`) backend with `alights == nullptr`; assert no
   crash (must reproduce the crash pre-fix, per SC-004).
-- [ ] T020 [P] [US3] Same file, add a double-count regression test: drive a
+- [X] T020 [P] [US3] Same file, add a double-count regression test: drive a
   scene through the manual `prepareAmbient()` call site
   (`src/libshader/shading/shading.cpp:1711-1749`) with a single ambient
   light and assert the accumulated `varying[VARIABLE_CL]`/`[VARIABLE_OL]`
@@ -244,18 +244,18 @@ light.
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] In `src/libshader/shading/execute.cpp`, add the missing
+- [X] T021 [US3] In `src/libshader/shading/execute.cpp`, add the missing
   `*alights != nullptr` guard to the interpreter's `execEnd:` block (lines
   ~669-686), copied verbatim from the already-correct JIT-mirror guard on
   the same file's lines ~507-517 (FR-007).
-- [ ] T022 [US3] In `src/libshader/shading/shading.cpp`, remove
+- [X] T022 [US3] In `src/libshader/shading/shading.cpp`, remove
   `prepareAmbient()`'s duplicate manual re-accumulation loop (lines
   ~1738-1743) — `execute()`'s own accumulation already fires for every
   light `prepareAmbient()` processes (both gated by the same
   `SHADERFLAGS_NONAMBIENT`/`PARAMETER_NONAMBIENT` condition via
   `shader.cpp:153-154`). Mirror `callAmbient()`'s already-correct pattern
   (delete, don't add a `tags[i]==0` gate) (FR-008).
-- [ ] T023 [US3] Run T019-T020; confirm both pass (Green).
+- [X] T023 [US3] Run T019-T020; confirm both pass (Green).
 
 **Checkpoint**: User Story 3 independently functional — crash-safety and
 double-count both fixed, verifiable without US1/US2/US4 present.
