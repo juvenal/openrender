@@ -87,7 +87,7 @@ void csgValidateNestedSolidBegin(CSGTreeNode *parent) {
 // Description			:	FR-021
 // Return Value			:
 // Comments				:
-int csgValidateProceduralCapture(CSGTreeNode *node) {
+int csgValidateProceduralCapture([[maybe_unused]] CSGTreeNode *node) {
     assert(node != NULL);
 
     error(CODE_BADTOKEN, "RiProcedural cannot be declared inside a SolidBegin block\n");
