@@ -35,11 +35,14 @@
 //							outermost block's local frame). A pure
 //							container: REYES dicing and raytrace traversal
 //							both use the generic CObject children/cluster()
-//							machinery (OBJECT_DUMMY), so no CSG resolution
-//							happens in any hider. Mirrors CDelayedInstance's
-//							lazy per-instance replay so a solid captured
-//							inside RiObjectBegin/RiObjectEnd can be placed
-//							by RiObjectInstance more than once.
+//							machinery, so no CSG resolution happens in any
+//							hider. NOT an OBJECT_DUMMY object -- intersect()
+//							must actually run under raytrace to trigger the
+//							lazy fragment instantiation (see solidObject.cpp).
+//							Mirrors CDelayedInstance's lazy per-instance
+//							replay so a solid captured inside
+//							RiObjectBegin/RiObjectEnd can be placed by
+//							RiObjectInstance more than once.
 // Comments				:
 class CSolidObject : public CObject {
     public:

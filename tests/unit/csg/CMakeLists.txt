@@ -26,6 +26,13 @@ target_link_libraries(test_csg_boolean_sphere_box PRIVATE ri openrendercommon)
 add_test(NAME CSG_BooleanSphereBox COMMAND test_csg_boolean_sphere_box)
 set_tests_properties(CSG_BooleanSphereBox PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
+add_executable(test_csg_boolean_sphere_sphere test_boolean_sphere_sphere.cpp)
+target_compile_features(test_csg_boolean_sphere_sphere PRIVATE cxx_std_20)
+target_include_directories(test_csg_boolean_sphere_sphere PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_csg_boolean_sphere_sphere PRIVATE ri openrendercommon)
+add_test(NAME CSG_BooleanSphereSphere COMMAND test_csg_boolean_sphere_sphere)
+set_tests_properties(CSG_BooleanSphereSphere PROPERTIES TIMEOUT 30 LABELS "csg;unit")
+
 add_executable(test_csg_boolean_coplanar test_boolean_coplanar.cpp)
 target_compile_features(test_csg_boolean_coplanar PRIVATE cxx_std_20)
 target_include_directories(test_csg_boolean_coplanar PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src)
@@ -55,3 +62,18 @@ target_link_libraries(test_csg_patchmesh_tesselation PRIVATE ri openrendercommon
 add_test(NAME CSG_PatchMeshTesselation COMMAND test_csg_patchmesh_tesselation)
 set_tests_properties(CSG_PatchMeshTesselation PROPERTIES TIMEOUT 30 LABELS "csg;unit"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+
+add_executable(test_csg_nested_tree test_nested_tree.cpp)
+target_compile_features(test_csg_nested_tree PRIVATE cxx_std_20)
+target_include_directories(test_csg_nested_tree PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_csg_nested_tree PRIVATE ri openrendercommon)
+add_test(NAME CSG_NestedTree COMMAND test_csg_nested_tree)
+set_tests_properties(CSG_NestedTree PROPERTIES TIMEOUT 30 LABELS "csg;unit"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+
+add_executable(test_csg_interior_exterior_selection test_interior_exterior_selection.cpp)
+target_compile_features(test_csg_interior_exterior_selection PRIVATE cxx_std_20)
+target_include_directories(test_csg_interior_exterior_selection PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_csg_interior_exterior_selection PRIVATE ri openrendercommon)
+add_test(NAME CSG_InteriorExteriorSelection COMMAND test_csg_interior_exterior_selection)
+set_tests_properties(CSG_InteriorExteriorSelection PROPERTIES TIMEOUT 30 LABELS "csg;unit")

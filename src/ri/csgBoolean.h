@@ -103,13 +103,17 @@ class CCSGPolygon {
 class CCSGBSPNode {
     public:
         CCSGBSPNode();
-        explicit CCSGBSPNode(CArray<CCSGPolygon *> *polygons); // Consumes `polygons`' pointers (redistributes/splits/deletes as needed); the CArray container itself is left with dangling entries and must not be reused by the caller.
+        CCSGBSPNode(CArray<CCSGPolygon *> *polygons, float epsilon); // Consumes `polygons`' pointers (redistributes/splits/deletes as needed); the CArray container itself is left with dangling entries and must not be reused by the caller. `epsilon` is the plane-classification tolerance (see csgComputeEpsilon in csgBoolean.cpp) and is inherited by every descendant node created during build().
         ~CCSGBSPNode();
 
         // Redistributes `polygons` into this node's own coplanar list and
         // its front/back children, splitting spanning polygons as needed.
-        // Consumes `polygons`' pointers as described above.
-        void build(CArray<CCSGPolygon *> *polygons);
+        // Consumes `polygons`' pointers as described above. `depth` tracks
+        // recursion depth from the tree root (internal use -- callers should
+        // not pass it) and bounds worst-case tree depth to guarantee this
+        // never overflows the native call stack, regardless of how
+        // unbalanced the splitting-plane pivot choice turns out to be.
+        void build(CArray<CCSGPolygon *> *polygons, int depth = 0);
 
         // Converts this tree to represent the complement solid.
         void invert();
@@ -133,6 +137,7 @@ class CCSGBSPNode {
         int hasPlane;
         float planeNormal[3];
         float planeD;
+        float planeEpsilon; // Plane-classification tolerance, set at construction and inherited by front/back children (see csgComputeEpsilon)
         CArray<CCSGPolygon *> polygons; // Coplanar with this node's splitting plane
         CCSGBSPNode *front, *back;
 };

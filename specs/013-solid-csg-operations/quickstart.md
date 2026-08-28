@@ -153,12 +153,17 @@ Render with the raytrace hider at a moderate image resolution and confirm:
 
 ## 8. Error/diagnostic scenes (SC-006)
 
-Confirm each of these produces a clear `CODE_BADTOKEN` diagnostic (not a
-crash, not a silently wrong image — `contracts/solid-rib-interface.md`):
-- `SolidBegin "bogus"` ... `SolidEnd`
-- An unmatched `SolidEnd` with no open `SolidBegin`
-- A `SolidBegin "primitive"` block containing a nested `SolidBegin`/`SolidEnd`
-- An `RiProcedural` call directly inside a `SolidBegin "primitive"` block
+Confirm each of these produces a clear diagnostic (not a crash, not a
+silently wrong image — `contracts/solid-rib-interface.md`):
+- `SolidBegin "bogus"` ... `SolidEnd` → `CODE_BADTOKEN`
+- An unmatched `SolidEnd` with no open `SolidBegin` → `CODE_NESTING`, the
+  same scope-mismatch code every other `*Begin`/`*End` pair in the renderer
+  emits via `check()`'s "Matching RiSolidBegin not found" path
+  (`src/ri/ri.cpp`) — not `CODE_BADTOKEN` as earlier drafts of this doc
+  assumed; deliberately kept consistent with `AttributeEnd`, `TransformEnd`,
+  `WorldEnd`, `ObjectEnd`, etc. rather than special-cased
+- A `SolidBegin "primitive"` block containing a nested `SolidBegin`/`SolidEnd` → `CODE_BADTOKEN`
+- An `RiProcedural` call directly inside a `SolidBegin "primitive"` block → `CODE_BADTOKEN`
 
 ## Site documentation (Principle VII)
 

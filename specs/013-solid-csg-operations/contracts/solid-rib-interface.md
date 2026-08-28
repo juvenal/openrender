@@ -18,7 +18,7 @@ SolidEnd
 | Element | Contract |
 |---|---|
 | `RiSolidBegin(RtToken operation)` | `operation` MUST be exactly one of `"primitive"`, `"union"`, `"intersection"`, `"difference"` (case-sensitive, matching existing RIB token conventions). Any other value → `error(CODE_BADTOKEN, ...)`, block treated as unrecognized and its contents skipped for CSG purposes (does not crash; matches FR-013). |
-| `RiSolidEnd(void)` | Closes the most recently opened, still-open `SolidBegin`. An `RiSolidEnd` with no matching open block, or one that closes out of order relative to interleaved `AttributeBegin`/`TransformBegin`/etc., → `error(CODE_BADTOKEN, ...)` via the `check()` scope-mask machinery (requires closing the block-state push/pop gap identified in `research.md`), matching FR-014. |
+| `RiSolidEnd(void)` | Closes the most recently opened, still-open `SolidBegin`. An `RiSolidEnd` with no matching open block, or one that closes out of order relative to interleaved `AttributeBegin`/`TransformBegin`/etc., → `error(CODE_NESTING, ...)` via the `check()` scope-mask machinery (the block-state push/pop gap identified in `research.md` is closed), matching FR-014. `CODE_NESTING`, not `CODE_BADTOKEN`, because `check()`'s "Matching RiXBegin not found" path is shared verbatim with every other RIB block pair (`AttributeEnd`, `TransformEnd`, `WorldEnd`, `ObjectEnd`, `ResourceEnd`, `FrameEnd`, `RiEnd` — `src/ri/ri.cpp`); `SolidEnd` deliberately reuses that existing convention rather than being special-cased to a different code. |
 | Nesting | `SolidBegin`/`SolidEnd` blocks MAY nest to arbitrary depth (FR-006), **except**: a `"primitive"` block MUST NOT contain a nested `SolidBegin` (FR-019) — rejected with `error(CODE_BADTOKEN, ...)` identifying the "primitive is a CSG leaf" reason. |
 | Content of a `"primitive"` block | Any RenderMan geometric primitive (`Sphere`, `Cone`, `PolygonMesh`, `PointsGeneralPolygons`, subdivision surfaces, patches, etc. — FR-015) MAY appear. `RiProcedural`/delayed-generator primitives MUST NOT appear directly inside a `"primitive"` block — rejected with `error(CODE_BADTOKEN, ...)` (research.md, resolved open question). |
 | Content of a boolean block (`"union"`/`"intersection"`/`"difference"`) | MUST contain only nested `SolidBegin`/`SolidEnd` blocks as its immediate children (each an operand). Zero operands → resolves to no geometry (FR-016, not an error). One operand → resolves to that operand unchanged (FR-017). Two or more → resolved per FR-003/FR-004/FR-005, in declaration order (order is significant for `"difference"`). |
@@ -56,12 +56,17 @@ This feature's contract obligation is *consumption*, not introduction:
 ## Error/diagnostic contract
 
 All rejection cases in this feature use the existing `error()`/`warning()`
-machinery with `CODE_BADTOKEN` (the established convention for invalid RIB
-enum tokens and malformed block usage elsewhere in `src/ri/*.cpp` — see
-e.g. `rendererContext.cpp:927,1120` for precedent), producing a message that
-identifies *which* rule was violated (invalid operation string, unmatched
-`SolidEnd`, nested block inside a `"primitive"` leaf, procedural inside a
-solid block) rather than a generic failure — required by SC-006.
+machinery, producing a message that identifies *which* rule was violated —
+required by SC-006. Three of the four use `CODE_BADTOKEN` (the established
+convention for invalid RIB enum tokens and malformed block usage elsewhere
+in `src/ri/*.cpp` — see e.g. `rendererContext.cpp:927,1120` for precedent):
+invalid operation string, nested `SolidBegin`/`SolidEnd` inside a
+`"primitive"` leaf, and `RiProcedural` inside a solid block. The fourth —
+unmatched `SolidEnd` — uses `CODE_NESTING` instead, matching every other
+`*Begin`/`*End` scope-mismatch diagnostic in the renderer (see the
+`RiSolidEnd(void)` row above); this is a correction to this contract's
+original text, which incorrectly assumed `CODE_BADTOKEN` here before the
+`check()` machinery's actual codebase-wide convention was verified.
 
 ## Non-goals of this contract
 

@@ -983,6 +983,24 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     // Do we need to run the surface shader?
     if (displaceOnly == FALSE) {
 
+        // Interior/Exterior shader selection for this hit (spec
+        // 013-solid-csg-operations, FR-010/FR-011/FR-020). Classified once
+        // per shade() call from vertex 0's I/N: I points along the ray, so a
+        // hit on the true exterior surface has I opposing N (dot < 0), while
+        // a hit seen from inside a CSG cutaway has I aligned with the
+        // (still outward-facing) N (dot >= 0). This is exact except at
+        // silhouette micropolygons where I.N crosses zero within the same
+        // grid -- an accepted per-call approximation, negligible there.
+        // postShader is a persistent field on currentShadingState (the only
+        // other writer is traceEx(), for secondary-ray bundles), so it must
+        // be assigned unconditionally -- NULL included -- or a prior ray's
+        // interior/exterior shader could leak onto this hit.
+        {
+            const bool isSolidFragment = (currentAttributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) != 0;
+            const bool isExterior      = dotvv(varying[VARIABLE_I], varying[VARIABLE_N]) < 0;
+            currentShadingState->postShader = selectVolumeShader(currentAttributes, isSolidFragment, isExterior);
+        }
+
         // Is there a surface shader ?
         if (surface != NULL) {
             numShaded += numVertices;

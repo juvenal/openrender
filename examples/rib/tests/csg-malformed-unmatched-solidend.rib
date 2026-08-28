@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# T037 (Polish, SC-006): a SolidEnd with no open SolidBegin.
+# Expected: exactly one CODE_NESTING diagnostic ("Bad scope for
+# \"RiSolidEnd\"") from check()'s scope-mask machinery in src/ri/ri.cpp --
+# the same code every other *Begin/*End pair in the renderer emits for this
+# kind of mistake (AttributeEnd, TransformEnd, WorldEnd, ObjectEnd, ...),
+# not CODE_BADTOKEN. The stray SolidEnd is ignored (no state change) and
+# rendering continues normally, producing an ordinary sphere.
+Hider "raytrace"
+Display "csg-malformed-unmatched-solidend.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -20 1 0 0
+Rotate 25 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidEnd
+    Sphere 1 -1 1 360
+WorldEnd

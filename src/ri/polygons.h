@@ -61,7 +61,26 @@ class CPolygonMesh : public CObject {
         friend class CPolygonTriangle;
         friend class CPolygonQuad;
         friend class CPreviewContext;
+        friend CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh);
 };
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	csgTessellatePolygonMeshOperand
+// Description			:	Triangulates a CPolygonMesh into a sibling chain
+//							of CPolygonTriangle/CPolygonQuad objects, for use
+//							as a CSG leaf operand at RiSolidEnd time (no
+//							CShadingContext exists there). Reuses create()'s
+//							own triangulatePolygon() decomposition (including
+//							its polygon-with-holes handling) against a
+//							function-local scratch CMemPage instead of
+//							context->threadMemory.
+// Comments				:	Returned objects form a chain via ->sibling and
+//							are NOT attach()'d to anything (setChildren() is
+//							never called) -- caller owns them and must delete
+//							each one directly (not detach()) once consumed.
+//							Does not delete mesh->pl: the original mesh's own
+//							destructor still owns it.
+CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPolygonTriangle

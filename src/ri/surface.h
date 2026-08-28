@@ -117,7 +117,8 @@ class CTesselationPatch : public CObject {
 //							stopping test for adaptive tessellation, driven
 //							from an absolute tolerance alone. P is a
 //							row-major (div+1)x(div+1) grid of sampled
-//							object-space positions (3 floats each), where
+//							world-space positions (3 floats each) -- see
+//							CTesselatedGrid below for why -- where
 //							div is even: the even-indexed rows/columns are
 //							a candidate mesh at resolution div/2, and the
 //							odd-indexed samples are exactly that mesh's

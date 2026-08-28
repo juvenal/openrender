@@ -28,12 +28,66 @@
 //							the complement of the subtrahend.
 //
 ////////////////////////////////////////////////////////////////////////
+#include <float.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "common/algebra.h"
 #include "csgBoolean.h"
 
-const float	kCsgPlaneEpsilon	=	C_EPSILON;
+///////////////////////////////////////////////////////////////////////
+// Plane-classification epsilon
+//
+// A fixed absolute epsilon (e.g. C_EPSILON = 1e-6, borrowed from an
+// unrelated part of the codebase -- see normalFix()) is too tight once a
+// curved operand is tessellated finely: as tessellation density grows, the
+// polyhedral dihedral angle between neighboring faces on the same smooth
+// surface shrinks toward zero (finer facets better approximate the true
+// curvature), so a splitting plane picked from one polygon starts
+// misclassifying its near-parallel neighbors as exactly "coplanar" rather
+// than routing them to a front/back child for proper deep clipping. That
+// silently degrades boolean accuracy, and the degradation gets *worse* as
+// density grows -- confirmed empirically on two independent tessellation
+// sources (adaptive quadric dicing and a hand-rolled UV-sphere generator)
+// at matching polygon counts, ruling out a tessellation-algorithm-specific
+// cause. The fix is a classification epsilon that scales with the combined
+// operands' extent instead of a fixed absolute value, matching standard
+// BSP-CSG robustness practice (Naylor et al.).
+///////////////////////////////////////////////////////////////////////
+
+static const float kCsgMinPlaneEpsilon            =	1e-6f;
+static const float kCsgRelativePlaneEpsilonFactor	=	5e-3f;
+
+static float csgComputeEpsilon(CArray<CCSGPolygon *> *a,CArray<CCSGPolygon *> *b) {
+	CArray<CCSGPolygon *>	*soups[2]	=	{ a,b };
+	vector					bboxMin		=	{  FLT_MAX,  FLT_MAX,  FLT_MAX };
+	vector					bboxMax		=	{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	int						i,j,k,c;
+
+	for (k=0;k<2;k++) {
+		for (i=0;i<soups[k]->numItems;i++) {
+			CCSGPolygon	*poly	=	(*soups[k])[i];
+
+			for (j=0;j<poly->vertices.numItems;j++) {
+				const float	*p	=	poly->vertices[j].p;
+
+				for (c=0;c<3;c++) {
+					if (p[c] < bboxMin[c])	bboxMin[c]	=	p[c];
+					if (p[c] > bboxMax[c])	bboxMax[c]	=	p[c];
+				}
+			}
+		}
+	}
+
+	vector	diag;
+	subvv(diag,bboxMax,bboxMin);
+
+	float	extent	=	sqrtf(dotvv(diag,diag));
+	float	epsilon	=	extent*kCsgRelativePlaneEpsilonFactor;
+
+	return (epsilon > kCsgMinPlaneEpsilon) ? epsilon : kCsgMinPlaneEpsilon;
+}
 
 enum ECSGPointClass {
 	CSG_COPLANAR	=	0,
@@ -141,7 +195,7 @@ void CCSGPolygon::flip() {
 // classification, standard BSP-CSG polygon clip)
 ///////////////////////////////////////////////////////////////////////
 
-static void csgSplitPolygon(CCSGPolygon *poly,const float planeNormal[3],float planeD,
+static void csgSplitPolygon(CCSGPolygon *poly,const float planeNormal[3],float planeD,float epsilon,
 							CArray<CCSGPolygon *> *coplanarFront,CArray<CCSGPolygon *> *coplanarBack,
 							CArray<CCSGPolygon *> *front,CArray<CCSGPolygon *> *back) {
 	int		i,numVerts;
@@ -157,9 +211,9 @@ static void csgSplitPolygon(CCSGPolygon *poly,const float planeNormal[3],float p
 		float	t	=	dotvv(planeNormal,poly->vertices[i].p) - planeD;
 		int		type;
 
-		if (t < -kCsgPlaneEpsilon)			type	=	CSG_BACK;
-		else if (t > kCsgPlaneEpsilon)		type	=	CSG_FRONT;
-		else								type	=	CSG_COPLANAR;
+		if (t < -epsilon)			type	=	CSG_BACK;
+		else if (t > epsilon)		type	=	CSG_FRONT;
+		else						type	=	CSG_COPLANAR;
 
 		types[i]	=	type;
 
@@ -253,6 +307,76 @@ static void csgSplitPolygon(CCSGPolygon *poly,const float planeNormal[3],float p
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Splitting-plane pivot selection
+//
+// Picking (*polys)[0] unconditionally (the original implementation) produces
+// a well-balanced tree for well-distributed inputs, but a soup made of many
+// near-coplanar polygons -- exactly what a prior csgCombine() call emits
+// when its output is fed into a second csgCombine() as an operand of a
+// nested CSG tree -- can drive it to a tree ~N levels deep, overflowing the
+// native call stack (observed on a two-level SolidBegin "difference" over a
+// "union" of two tessellated spheres). Sample a handful of candidate planes
+// and keep the one that best balances front/back counts and minimizes
+// spanning splits; kCsgMaxBspDepth below is the hard backstop in case the
+// heuristic still can't find a good split.
+///////////////////////////////////////////////////////////////////////
+
+static const int kCsgPivotCandidates = 7;
+static const int kCsgMaxBspDepth     = 1024;
+
+static ECSGPointClass csgClassifyPolygon(const CCSGPolygon *poly,const float planeNormal[3],float planeD,float epsilon) {
+	int	i,numFront,numBack;
+
+	numFront	=	numBack	=	0;
+
+	for (i=0;i<poly->vertices.numItems;i++) {
+		float	t	=	dotvv(planeNormal,poly->vertices.array[i].p) - planeD;
+
+		if (t < -epsilon)			numBack++;
+		else if (t > epsilon)		numFront++;
+	}
+
+	if (numFront == 0 && numBack == 0)	return CSG_COPLANAR;
+	if (numBack == 0)					return CSG_FRONT;
+	if (numFront == 0)					return CSG_BACK;
+	return CSG_SPANNING;
+}
+
+static CCSGPolygon *csgPickPivot(CArray<CCSGPolygon *> *polys,float epsilon) {
+	int			n		=	polys->numItems;
+	int			step	=	(n > kCsgPivotCandidates) ? n / kCsgPivotCandidates : 1;
+	CCSGPolygon	*best	=	(*polys)[0];
+	long		bestCost	=	-1;
+	int			i,c;
+
+	for (c=0,i=0;i<n && c<kCsgPivotCandidates;i+=step,c++) {
+		CCSGPolygon	*candidate	=	(*polys)[i];
+		int			numFront,numBack,numSpanning,j;
+		long		cost;
+
+		numFront	=	numBack	=	numSpanning	=	0;
+
+		for (j=0;j<n;j++) {
+			switch (csgClassifyPolygon((*polys)[j],candidate->planeNormal,candidate->planeD,epsilon)) {
+				case CSG_FRONT:		numFront++;		break;
+				case CSG_BACK:		numBack++;			break;
+				case CSG_SPANNING:	numSpanning++;		break;
+				default:												break;
+			}
+		}
+
+		cost	=	labs((long) numFront - (long) numBack) + numSpanning*3L;
+
+		if (bestCost < 0 || cost < bestCost) {
+			bestCost	=	cost;
+			best		=	candidate;
+		}
+	}
+
+	return best;
+}
+
+///////////////////////////////////////////////////////////////////////
 // CCSGBSPNode
 ///////////////////////////////////////////////////////////////////////
 
@@ -260,14 +384,16 @@ CCSGBSPNode::CCSGBSPNode() {
 	hasPlane		=	FALSE;
 	planeNormal[0]	=	planeNormal[1]	=	planeNormal[2]	=	0;
 	planeD			=	0;
+	planeEpsilon	=	kCsgMinPlaneEpsilon;
 	front			=	NULL;
 	back			=	NULL;
 }
 
-CCSGBSPNode::CCSGBSPNode(CArray<CCSGPolygon *> *polygons) {
+CCSGBSPNode::CCSGBSPNode(CArray<CCSGPolygon *> *polygons,float epsilon) {
 	hasPlane		=	FALSE;
 	planeNormal[0]	=	planeNormal[1]	=	planeNormal[2]	=	0;
 	planeD			=	0;
+	planeEpsilon	=	epsilon;
 	front			=	NULL;
 	back			=	NULL;
 
@@ -283,34 +409,44 @@ CCSGBSPNode::~CCSGBSPNode() {
 	if (back)	delete back;
 }
 
-void CCSGBSPNode::build(CArray<CCSGPolygon *> *polys) {
+void CCSGBSPNode::build(CArray<CCSGPolygon *> *polys, int depth) {
 	int					i;
 	CArray<CCSGPolygon *>	frontList,backList;
 
 	if (polys->numItems == 0)	return;
 
-	if (!hasPlane) {
-		CCSGPolygon	*first	=	(*polys)[0];
+	if (depth >= kCsgMaxBspDepth) {
+		// Backstop: further recursion risks a native stack overflow. Absorb
+		// the remainder into this node instead of splitting further -- a
+		// (pathological-input-only) loss of exact BSP classification, never
+		// a crash. csgPickPivot() keeps real-world trees far shallower than
+		// this, so this branch is not expected to fire in practice.
+		for (i=0;i<polys->numItems;i++)	polygons.push((*polys)[i]);
+		return;
+	}
 
-		planeNormal[0]	=	first->planeNormal[0];
-		planeNormal[1]	=	first->planeNormal[1];
-		planeNormal[2]	=	first->planeNormal[2];
-		planeD			=	first->planeD;
+	if (!hasPlane) {
+		CCSGPolygon	*pivot	=	csgPickPivot(polys,planeEpsilon);
+
+		planeNormal[0]	=	pivot->planeNormal[0];
+		planeNormal[1]	=	pivot->planeNormal[1];
+		planeNormal[2]	=	pivot->planeNormal[2];
+		planeD			=	pivot->planeD;
 		hasPlane		=	TRUE;
 	}
 
 	for (i=0;i<polys->numItems;i++) {
-		csgSplitPolygon((*polys)[i],planeNormal,planeD,&polygons,&polygons,&frontList,&backList);
+		csgSplitPolygon((*polys)[i],planeNormal,planeD,planeEpsilon,&polygons,&polygons,&frontList,&backList);
 	}
 
 	if (frontList.numItems > 0) {
-		if (!front)	front	=	new CCSGBSPNode;
-		front->build(&frontList);
+		if (!front)	{ front	=	new CCSGBSPNode; front->planeEpsilon = planeEpsilon; }
+		front->build(&frontList,depth+1);
 	}
 
 	if (backList.numItems > 0) {
-		if (!back)	back	=	new CCSGBSPNode;
-		back->build(&backList);
+		if (!back)	{ back	=	new CCSGBSPNode; back->planeEpsilon = planeEpsilon; }
+		back->build(&backList,depth+1);
 	}
 }
 
@@ -351,7 +487,7 @@ CArray<CCSGPolygon *> *CCSGBSPNode::clipPolygons(CArray<CCSGPolygon *> *polys) c
 	CArray<CCSGPolygon *>	frontList,backList,coplanarFront,coplanarBack;
 
 	for (i=0;i<polys->numItems;i++) {
-		csgSplitPolygon(polys->array[i],planeNormal,planeD,&coplanarFront,&coplanarBack,&frontList,&backList);
+		csgSplitPolygon(polys->array[i],planeNormal,planeD,planeEpsilon,&coplanarFront,&coplanarBack,&frontList,&backList);
 	}
 
 	// Coplanar polygons: for clipping purposes (not tree construction) a
@@ -431,7 +567,6 @@ void CCSGBSPNode::allPolygons(CArray<CCSGPolygon *> *out) const {
 
 static CArray<CCSGPolygon *> *csgUnion(CCSGBSPNode *a,CCSGBSPNode *b) {
 	CArray<CCSGPolygon *>	*result;
-	int						i;
 
 	a->clipTo(b);
 	b->clipTo(a);
@@ -451,8 +586,11 @@ CArray<CCSGPolygon *> *csgCombine(ECSGOperation operation,CArray<CCSGPolygon *> 
 	int						i;
 	CCSGBSPNode				*treeA,*treeB;
 	CArray<CCSGPolygon *>	*result;
+	float					epsilon;
 
 	assert(operation == CSG_UNION || operation == CSG_INTERSECTION || operation == CSG_DIFFERENCE);
+
+	epsilon	=	csgComputeEpsilon(a,b);
 
 	aCopy.reserve(a->numItems);
 	for (i=0;i<a->numItems;i++)	aCopy.push((*a)[i]->clone());
@@ -460,8 +598,8 @@ CArray<CCSGPolygon *> *csgCombine(ECSGOperation operation,CArray<CCSGPolygon *> 
 	bCopy.reserve(b->numItems);
 	for (i=0;i<b->numItems;i++)	bCopy.push((*b)[i]->clone());
 
-	treeA	=	new CCSGBSPNode(&aCopy);
-	treeB	=	new CCSGBSPNode(&bCopy);
+	treeA	=	new CCSGBSPNode(&aCopy,epsilon);
+	treeB	=	new CCSGBSPNode(&bCopy,epsilon);
 
 	switch(operation) {
 		case CSG_UNION:

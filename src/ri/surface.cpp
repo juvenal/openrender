@@ -1443,6 +1443,18 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
     float *dPdu = new float[numVertices * 3];
     float *dPdv = new float[numVertices * 3];
     float *ng   = new float[numVertices * 3];
+    // Also scratch-only, and also unconditional: CSubdivision::sample()
+    // writes dPdtime for every vertex regardless of moving()/up, so this
+    // buffer must exist whenever sample() might be a subdivision patch
+    // (reachable via the CSG subdivision-mesh leaf dispatch).
+    float *dPdtime = new float[numVertices * 3];
+    // Also scratch-only, and also unconditional: CNURBSPatch::sample()
+    // computes P in homogeneous form and unconditionally reads/writes
+    // varying[VARIABLE_PW] (4 floats/vertex) to convert it to P, regardless
+    // of the up flags above, so this buffer must exist whenever sample()
+    // might be a NURBS patch (reachable via the CSG NURBS-patch-mesh leaf
+    // dispatch).
+    float *pw = new float[numVertices * 4];
 
     for (int i = 0; i <= div; i++) {
         for (int j = 0; j <= div; j++) {
@@ -1453,13 +1465,15 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
         }
     }
 
-    varying[VARIABLE_U]    = u;
-    varying[VARIABLE_V]    = v;
-    varying[VARIABLE_TIME] = time;
-    varying[VARIABLE_P]    = P;
-    varying[VARIABLE_DPDU] = dPdu;
-    varying[VARIABLE_DPDV] = dPdv;
-    varying[VARIABLE_NG]   = ng;
+    varying[VARIABLE_U]       = u;
+    varying[VARIABLE_V]       = v;
+    varying[VARIABLE_TIME]    = time;
+    varying[VARIABLE_P]       = P;
+    varying[VARIABLE_DPDU]    = dPdu;
+    varying[VARIABLE_DPDV]    = dPdv;
+    varying[VARIABLE_NG]      = ng;
+    varying[VARIABLE_DPDTIME] = dPdtime;
+    varying[VARIABLE_PW]      = pw;
 
     object->sample(0, numVertices, varying, NULL, up);
 
@@ -1467,6 +1481,8 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
     delete[] v;
     delete[] time;
     delete[] ng;
+    delete[] dPdtime;
+    delete[] pw;
 
     CTesselatedGrid grid;
     grid.div  = div;

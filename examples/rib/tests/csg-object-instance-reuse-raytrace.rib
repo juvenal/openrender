@@ -1,0 +1,55 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-object-instance-reuse-raytrace.tif" "file" "rgba"
+Format 600 220 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4.2
+Rotate -18 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "distantlight" 2 "intensity" [1.1] "from" [3 4 -1] "to" [0 0 0]
+    Color [0.85 0.75 0.6]
+    Surface "plastic"
+
+    # T031 (US2): a SolidBegin/SolidEnd CSG block declared inside
+    # ObjectBegin/ObjectEnd must resolve exactly once, at ObjectEnd time
+    # (rendererContext.cpp addObject() checks `currentSolid` before
+    # `instance`, so resolveCSGTree()'s single addObject(CSolidObject*)
+    # call naturally chains into the still-open instance->objects list --
+    # no special-casing required). Each ObjectInstance below reuses that
+    # one resolved boolean result under its own transform.
+    ObjectBegin "csgWidget"
+        SolidBegin "difference"
+            SolidBegin "primitive"
+                Sphere 0.6 -0.6 0.6 360
+            SolidEnd
+            SolidBegin "primitive"
+                TransformBegin
+                    Translate 0.5 0 0
+                    Sphere 0.4 -0.4 0.4 360
+                TransformEnd
+            SolidEnd
+        SolidEnd
+    ObjectEnd
+
+    # Three instances: two plain translations (identical notch orientation,
+    # proving the shared resolved geometry replays correctly at different
+    # positions) and one additionally rotated 90 degrees (proving each
+    # instance applies its own transform independently, not a cached image).
+    TransformBegin
+        Translate -1.5 0 0
+        ObjectInstance "csgWidget"
+    TransformEnd
+    TransformBegin
+        Translate 0 0 0
+        ObjectInstance "csgWidget"
+    TransformEnd
+    TransformBegin
+        Translate 1.5 0 0
+        Rotate 90 0 1 0
+        ObjectInstance "csgWidget"
+    TransformEnd
+WorldEnd

@@ -2380,3 +2380,120 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
     // Release the lock
     osUnlock(mutex);
 }
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	tesselateNURBSPatchMeshAdaptive
+// Description			:	See patches.h. Mirrors CNURBSPatchMesh::create()'s
+//							own sub-patch decomposition span loop (including
+//							its degenerate-knot-span skip and trimTest
+//							pass-through), but with the same two differences
+//							tesselatePatchMeshAdaptive applies for CPatchMesh:
+//							(1) the transient per-sub-patch scratch buffer
+//							comes from a standalone CMemPage owned by this
+//							call instead of a real CShadingContext (there is
+//							none at RiSolidEnd time), and (2) each sub-patch
+//							is tessellated immediately via
+//							tesselateQuadricAdaptive (CNURBSPatch is a
+//							CSurface subclass, so T021's driver applies to it
+//							unchanged) instead of being linked into a lazy
+//							children list.
+CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh *mesh, float tolerance, int computeDerivatives) {
+    struct CMemPageContext {
+            CMemPage *threadMemory;
+    };
+
+    assert(mesh->pl != NULL);
+
+    const int uPatches = mesh->uVertices - mesh->uOrder + 1;
+    const int vPatches = mesh->vVertices - mesh->vOrder + 1;
+    int i, j, k;
+    float *vertex = NULL;
+    CParameter *parameters;
+    CPl *parameterList;
+    CVertexData *vertexData;
+    float *vertices;
+    int vertexSize;
+
+    const int uvertices = mesh->uVertices;
+    const int vvertices = mesh->vVertices;
+    const int uvaryings  = mesh->uVertices - mesh->uOrder + 2;
+    const int vvaryings  = mesh->vVertices - mesh->vOrder + 2;
+
+    CSurface **subPatches = new CSurface *[uPatches * vPatches];
+    CTesselatedGrid *grids = new CTesselatedGrid[uPatches * vPatches];
+    int maxDiv = 0;
+    int count  = 0;
+
+    CMemPage *localMemory = NULL;
+    memoryInit(localMemory);
+
+    memBegin(localMemory);
+
+    CMemPageContext memCtx;
+    memCtx.threadMemory = localMemory;
+    CMemPageContext *memCtxPtr = &memCtx;
+
+    // Transform the core into the camera coordinate system
+    vertices = NULL;
+    mesh->pl->transform(mesh->xform);
+    mesh->pl->collect(vertexSize, vertices, CONTAINER_VERTEX, localMemory);
+    parameterList = mesh->pl;
+    vertexData = mesh->pl->vertexData();
+    vertexData->attach();
+
+    for (k = 0, j = 0; j < vPatches; j++) {
+        for (i = 0; i < uPatches; i++, k++) {
+            float umin = mesh->uKnots[i + mesh->uOrder - 1];
+            float umax = mesh->uKnots[i + mesh->uOrder];
+            float vmin = mesh->vKnots[j + mesh->vOrder - 1];
+            float vmax = mesh->vKnots[j + mesh->vOrder];
+            float uint = umax - umin;
+            float vint = vmax - vmin;
+
+            if ((uint == 0) || (vint == 0)) {
+                // The patch does not have a valid parametric space, so just skip it
+            } else {
+                gatherData(memCtxPtr, i, j, mesh->uOrder, mesh->vOrder, i, j, k, vertex, parameters);
+
+                CNURBSPatch *sub = new CNURBSPatch(mesh->attributes, mesh->xform, vertexData, parameters, mesh->uOrder, mesh->vOrder, mesh->uKnots + i, mesh->vKnots + j, vertex, mesh->trimTest);
+                sub->attach();
+                subPatches[count] = sub;
+
+                grids[count] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
+                if (grids[count].div > maxDiv) maxDiv = grids[count].div;
+
+                count++;
+            }
+        }
+    }
+
+    vertexData->detach();
+
+    memEnd(localMemory);
+    memoryTini(localMemory);
+
+    // Weld seams: re-sample any sub-patch whose own adaptive resolution
+    // landed below the mesh-wide max so every sub-patch shares one
+    // resolution -- otherwise adjacent sub-patches diced at different
+    // resolutions leave T-junction cracks along their shared edge.
+    for (k = 0; k < count; k++) {
+        if (grids[k].div != maxDiv) {
+            delete[] grids[k].P;
+            delete[] grids[k].dPdu;
+            delete[] grids[k].dPdv;
+            grids[k] = tesselateSurfaceGrid(subPatches[k], maxDiv, computeDerivatives);
+        }
+        subPatches[k]->detach();
+    }
+    delete[] subPatches;
+
+    // We're done with the parameter list
+    delete mesh->pl;
+    mesh->pl = NULL;
+
+    CTesselatedNURBSPatchMeshOperand result;
+    result.count = count;
+    result.div   = maxDiv;
+    result.grids = grids;
+    return result;
+}

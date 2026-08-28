@@ -37,18 +37,33 @@ CSolidObject::CSolidObject(CAttributes *a, CXform *x, CObject *in) : CObject(a, 
     fragments = in;
     processed = FALSE;
 
-    flags |= OBJECT_DUMMY;
+    // Deliberately NOT OBJECT_DUMMY: trace.cpp's raytracer traversal skips
+    // calling intersect() on OBJECT_DUMMY objects entirely (it assumes their
+    // children are already populated), which would starve the lazy
+    // processDelayedSolid() call below of its only trigger under the
+    // raytrace hider. intersect() itself never registers a hit, so leaving
+    // this object "real" is still a no-op for ray intersection purposes --
+    // it only unlocks the children/cluster() traversal that follows.
 
     initv(bmin, C_INFINITY);
     initv(bmax, -C_INFINITY);
 
+    // Fragment bmin/bmax are already world-space (every CObject subclass
+    // transforms its own bound with its own xform at construction time --
+    // see e.g. CSphere::CSphere, CPolygonMesh::CPolygonMesh). Applying our
+    // own `xform` (the outer solid's placement transform) on top would
+    // double-transform an already-transformed box: harmless for a pure
+    // translation (it just lands on a still-overlapping, offset box) but
+    // for a rotated `xform` it relocates/scrambles the box into a region
+    // that no longer contains the actual geometry, so BVH traversal skips
+    // this object -- the near-total CSG geometry loss under a rotated
+    // camera. Just union the already-correct fragment boxes as-is.
     CObject *cObject;
     for (cObject = fragments; cObject != NULL; cObject = cObject->sibling) {
         addBox(bmin, bmax, cObject->bmin);
         addBox(bmin, bmax, cObject->bmax);
     }
 
-    xform->transformBound(this->bmin, this->bmax);
     makeBound(this->bmin, this->bmax);
 }
 
@@ -64,12 +79,12 @@ CSolidObject::~CSolidObject() {
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSolidObject
 // Method				:	intersect
-// Description			:	See object.h. A no-op: OBJECT_DUMMY tells the
-//							raytracer traversal (trace.cpp) to skip calling
-//							this and descend directly into children instead.
-//							Still triggers the lazy fragment instantiation,
-//							since raytracing is the first consumer that
-//							needs `children` populated.
+// Description			:	See object.h. Never registers a hit on `ray` --
+//							its only job is to trigger the lazy fragment
+//							instantiation on first visit, since raytracing
+//							is the first consumer that needs `children`
+//							populated. trace.cpp then descends into the
+//							now-populated children on this same visit.
 // Return Value			:	-
 // Comments				:
 void CSolidObject::intersect(CShadingContext *context, CRay *) {

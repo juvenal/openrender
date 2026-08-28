@@ -1,0 +1,52 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-nested-tree-4-level-raytrace.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "plastic"
+    # Four operation levels deep: difference( union( intersection(A,B), C ), D )
+    #   Level 1: difference
+    #   Level 2: union
+    #   Level 3: intersection
+    #   Level 4: primitive
+    SolidBegin "difference"
+        SolidBegin "union"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    TransformBegin
+                        Translate -0.25 0 0
+                        Sphere 0.6 -0.6 0.6 360
+                    TransformEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    TransformBegin
+                        Translate 0.25 0 0
+                        Sphere 0.6 -0.6 0.6 360
+                    TransformEnd
+                SolidEnd
+            SolidEnd
+            SolidBegin "primitive"
+                TransformBegin
+                    Translate 0 0.5 0
+                    Sphere 0.4 -0.4 0.4 360
+                TransformEnd
+            SolidEnd
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0 0 0.4
+                Sphere 0.3 -0.3 0.3 360
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

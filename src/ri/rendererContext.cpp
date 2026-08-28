@@ -472,15 +472,16 @@ void CRendererContext::processDelayedSolid(CShadingContext *context, CSolidObjec
     // Set the delayed object
     delayed = cSolid;
 
-    CAttributes *cAttributes = cSolid->attributes;
-    if (currentOptions->flags & OPTIONS_FLAGS_INHERIT_ATTRIBUTES) {
-        cAttributes = getAttributes(FALSE);
-    }
-
-    // Instantiate the fragments
+    // Unlike processDelayedInstance(), fragments are not object templates
+    // awaiting attribute assignment: each fragment already carries its own
+    // resolved CAttributes (cloned per boundary-region provenance in
+    // csgBuildMeshForAttributeGroup(), tagged ATTRIBUTES_FLAGS_SOLID_FRAGMENT).
+    // Passing a non-NULL attributes here would make every instantiate()
+    // override (a == NULL ? attributes : a) discard that per-fragment state,
+    // so pass NULL and let each fragment fall back to its own attributes.
     CObject *cObject;
     for (cObject = cSolid->fragments; cObject != NULL; cObject = cObject->sibling)
-        cObject->instantiate(cAttributes, cSolid->xform, this);
+        cObject->instantiate(NULL, cSolid->xform, this);
 
     // We're not processing a delayed object anymore
     delayed = NULL;
