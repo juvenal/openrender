@@ -1217,9 +1217,139 @@ add_perf_manual_test(sphere-gather
     examples/rib/tests/sphere-gather-reyes.rib
     examples/rib/tests/sphere-gather-reyes-slo.rib)
 
+# --- Solid CSG operations (spec 013-solid-csg-operations, US1, T026): a
+# sphere/cube boolean combination ("union"/"intersection"/"difference")
+# across all three geometry-domain-resolved hiders (raytrace, reyes,
+# zbuffer), exercising SC-001/SC-002 hider-identical CSG resolution. The box
+# operand is built from 6 raw "Patch \"bilinear\"" statements rather than
+# Polygon/Geometry "cube" -- CPolygonMesh leaf operands are an explicitly
+# deferred follow-up outside this feature's scope (csgTree.cpp's
+# csgTessellateOperand diagnostic), while CBilinearPatch is a CSurface
+# subclass and tessellates through the same supported quadric-operand path.
+# The camera is deliberately rotated in every scene (matching the rotated
+# bounding-box regression discovered during this feature's own
+# implementation) so this suite doubles as permanent coverage for that bug
+# class, not just a fresh-feature smoke test.
+add_visual_test(csg-sphere-cube-union-raytrace
+    examples/rib/tests/csg-sphere-cube-union-raytrace.rib
+    csg-sphere-cube-union-raytrace.tif
+    csg-sphere-cube-union-raytrace.tif)
+
+add_visual_test(csg-sphere-cube-union-reyes
+    examples/rib/tests/csg-sphere-cube-union-reyes.rib
+    csg-sphere-cube-union-reyes.tif
+    csg-sphere-cube-union-reyes.tif)
+
+add_visual_test(csg-sphere-cube-union-zbuffer
+    examples/rib/tests/csg-sphere-cube-union-zbuffer.rib
+    csg-sphere-cube-union-zbuffer.tif
+    csg-sphere-cube-union-zbuffer.tif)
+
+add_visual_test(csg-sphere-cube-intersection-raytrace
+    examples/rib/tests/csg-sphere-cube-intersection-raytrace.rib
+    csg-sphere-cube-intersection-raytrace.tif
+    csg-sphere-cube-intersection-raytrace.tif)
+
+add_visual_test(csg-sphere-cube-intersection-reyes
+    examples/rib/tests/csg-sphere-cube-intersection-reyes.rib
+    csg-sphere-cube-intersection-reyes.tif
+    csg-sphere-cube-intersection-reyes.tif)
+
+add_visual_test(csg-sphere-cube-intersection-zbuffer
+    examples/rib/tests/csg-sphere-cube-intersection-zbuffer.rib
+    csg-sphere-cube-intersection-zbuffer.tif
+    csg-sphere-cube-intersection-zbuffer.tif)
+
+add_visual_test(csg-sphere-cube-difference-raytrace
+    examples/rib/tests/csg-sphere-cube-difference-raytrace.rib
+    csg-sphere-cube-difference-raytrace.tif
+    csg-sphere-cube-difference-raytrace.tif)
+
+add_visual_test(csg-sphere-cube-difference-reyes
+    examples/rib/tests/csg-sphere-cube-difference-reyes.rib
+    csg-sphere-cube-difference-reyes.tif
+    csg-sphere-cube-difference-reyes.tif)
+
+add_visual_test(csg-sphere-cube-difference-zbuffer
+    examples/rib/tests/csg-sphere-cube-difference-zbuffer.rib
+    csg-sphere-cube-difference-zbuffer.tif
+    csg-sphere-cube-difference-zbuffer.tif)
+
+# T027: adaptive-tesselation tolerance coverage (two spheres unioned with a
+# tight vs. loose "solid" "tessellationtolerance" attribute) plus coverage
+# for the two remaining FR-015 leaf-dispatch gaps fixed during this feature's
+# implementation -- CNURBSPatchMesh (RiNuPatch) via
+# tesselateNURBSPatchMeshAdaptive() and CSubdivMesh (Catmull-Clark) via
+# tessellateToSurfaces() -- each unioned with a sphere primitive.
+add_visual_test(csg-sphere-sphere-tight-tolerance-raytrace
+    examples/rib/tests/csg-sphere-sphere-tight-tolerance-raytrace.rib
+    csg-sphere-sphere-tight-tolerance-raytrace.tif
+    csg-sphere-sphere-tight-tolerance-raytrace.tif)
+
+add_visual_test(csg-sphere-sphere-loose-tolerance-raytrace
+    examples/rib/tests/csg-sphere-sphere-loose-tolerance-raytrace.rib
+    csg-sphere-sphere-loose-tolerance-raytrace.tif
+    csg-sphere-sphere-loose-tolerance-raytrace.tif)
+
+add_visual_test(csg-nurbs-sphere-union-raytrace
+    examples/rib/tests/csg-nurbs-sphere-union-raytrace.rib
+    csg-nurbs-sphere-union-raytrace.tif
+    csg-nurbs-sphere-union-raytrace.tif)
+
+add_visual_test(csg-subdivision-sphere-union-raytrace
+    examples/rib/tests/csg-subdivision-sphere-union-raytrace.rib
+    csg-subdivision-sphere-union-raytrace.tif
+    csg-subdivision-sphere-union-raytrace.tif)
+
+# T030 (US2, SC-003): a solid tree four operation levels deep --
+# difference(union(intersection(sphereA, sphereB), sphereC), sphereD) --
+# exercising bottom-up nested resolution (csgResolveNode) with all three
+# operation types mixed in one tree, not just two-operand single-op trees.
+add_visual_test(csg-nested-tree-4-level-raytrace
+    examples/rib/tests/csg-nested-tree-4-level-raytrace.rib
+    csg-nested-tree-4-level-raytrace.tif
+    csg-nested-tree-4-level-raytrace.tif)
+
+# T031 (US2): a SolidBegin/SolidEnd CSG block declared inside
+# ObjectBegin/ObjectEnd resolves exactly once at ObjectEnd time; each of the
+# three ObjectInstance replays below reuses that one resolved boolean result
+# under its own transform (two plain translations show the same notch
+# orientation; the third, additionally rotated 90 degrees, shows the notch
+# reoriented -- proving per-instance transforms apply independently, not a
+# cached image).
+add_visual_test(csg-object-instance-reuse-raytrace
+    examples/rib/tests/csg-object-instance-reuse-raytrace.rib
+    csg-object-instance-reuse-raytrace.tif
+    csg-object-instance-reuse-raytrace.tif)
+
+# T036 (US3, SC-004): a "difference" solid (sphere minus sphere) with both
+# Interior and Exterior fog shaders assigned. A correctly-oriented CSG
+# difference has outward normals everywhere, so a camera in empty space
+# sees the Exterior shader almost exclusively (dot(I,N) < 0 at essentially
+# every front-facing hit) -- the Interior shader only turns up as
+# silhouette-edge tessellation noise from this vantage point. This scene
+# is viewed from an angle that also reveals the cut-away notch silhouette
+# (blue Exterior tint, cutaway visible as a crescent).
+add_visual_test(csg-sphere-sphere-difference-interior-raytrace
+    examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib
+    csg-sphere-sphere-difference-interior-raytrace.tif
+    csg-sphere-sphere-difference-interior-raytrace.tif)
+
+# T036 companion (US3, SC-004): same solid, but the camera sits inside the
+# solid's own material (world origin -- inside the outer sphere, radius 1,
+# and outside the subtracted bite sphere at distance 0.9 > its radius 0.6),
+# so nearly every primary ray hits a front-facing wall from inside the
+# solid and the Interior shader dominates (red tint throughout). Paired
+# with csg-sphere-sphere-difference-interior-raytrace, this demonstrates
+# the visibly distinct inside/outside appearance SC-004 requires.
+add_visual_test(csg-sphere-sphere-difference-interior-raytrace-inside
+    examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace-inside.rib
+    csg-sphere-sphere-difference-interior-raytrace-inside.tif
+    csg-sphere-sphere-difference-interior-raytrace-inside.tif)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      83 scenes registered under label 'visual'")
+message(STATUS "      104 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

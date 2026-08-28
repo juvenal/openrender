@@ -57,6 +57,7 @@ const unsigned int ATTRIBUTES_FLAGS_SHADE_HIDDEN = 1 << 22;          // Shade ev
 const unsigned int ATTRIBUTES_FLAGS_SHADE_BACKFACE = 1 << 23;        // Shade even if backfacing
 const unsigned int ATTRIBUTES_FLAGS_DOUBLE_SIDED = 1 << 24;          // The surface is double sided
 const unsigned int ATTRIBUTES_FLAGS_SAMPLEMOTION = 1 << 25;          // Sample the time in tracing rays
+const unsigned int ATTRIBUTES_FLAGS_SOLID_FRAGMENT = 1 << 26;        // Attribute clone belongs to a resolved CSG Boundary Fragment (spec 013)
 
 // The minimum shading rate
 const float ATTRIBUTES_MIN_SHADINGRATE = C_EPSILON;
@@ -161,6 +162,8 @@ class CAttributes : public CRefCounter {
         float rasterExpand;          // The expansion coefficient during the sampling
         float bias;                  // The bias amount expressed in the camera coordinates
 
+        float tessellationTolerance; // Tessellation tolerance for solid (CSG) boundary resolution
+
         char transmissionHitMode;    // Either: 'p' = Look at the primitive   or   's' = Execute the shader
         char specularHitMode;        // Either: 'p' = Look at the primitive   or   's' = Execute the shader
         char diffuseHitMode;         // Either: 'p' = Look at the primitive   or   's' = Execute the shader
@@ -203,5 +206,19 @@ class CAttributes : public CRefCounter {
         static const char *findShadingModel(EShadingModel model);
         static char *setShaderFormat(const char *format);
 };
+
+// Interior/Exterior shader selection for a primary camera-ray hit (spec
+// 013-solid-csg-operations, FR-010/FR-011/FR-020). Returns NULL when the
+// feature does not apply -- either the hit object is not a Boundary
+// Fragment of a resolved CSG solid, or no shader was assigned for the hit
+// side -- in which case ordinary surface/atmosphere shading proceeds
+// untouched (FR-012). Inline: called from both the `ri` and
+// `libshader_shading` link targets.
+inline CShaderInstance *selectVolumeShader(const CAttributes *attr, bool isSolidFragment, bool isExterior) {
+    if (!isSolidFragment)
+        return NULL;
+
+    return isExterior ? attr->exterior : attr->interior;
+}
 
 #endif

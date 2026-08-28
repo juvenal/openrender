@@ -331,6 +331,11 @@ EXTERN(RtToken)
     RI_SPHERE,
     RI_COORDINATESYSYTEM;
 
+// Solid (CSG) attributes
+EXTERN(RtToken)
+    RI_SOLID,
+    RI_TESSELLATIONTOLERANCE;
+
 // Visibility attributes
 EXTERN(RtToken)
     RI_PHOTON,

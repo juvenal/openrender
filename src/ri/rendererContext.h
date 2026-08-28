@@ -46,6 +46,8 @@ class CParticipatingMedium;
 class CDelayedObject;
 class CDelayedInstance;
 class CNetFileMapping;
+class CSGTreeNode;
+class CSolidObject;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
@@ -206,6 +208,7 @@ class CRendererContext : public CRiInterface {
         // Delayed object junk
         void processDelayedObject(CShadingContext *context, CDelayedObject *, void (*subdivisionFunction)(void *, float), void *, const float *, const float *);
         void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
+        void processDelayedSolid(CShadingContext *context, CSolidObject *solid);
 
         virtual void addObject(CObject *); // Add an object into the scene
         void addInstance(const void *); // Add an instance into the scene
@@ -230,6 +233,8 @@ class CRendererContext : public CRiInterface {
         CObject *delayed;                        // The current delayed object
         CArray<CInstance *> *instanceStack;      // The stack of object lists
         CArray<CInstance *> *allocatedInstances; // The list of allocated object instances
+        CSGTreeNode *currentSolid;                // The current CSG tree node (SolidBegin/SolidEnd capture)
+        CArray<CSGTreeNode *> *savedSolids;      // The stack of enclosing CSG tree nodes
         CXform *currentXform;                    // The current graphics state
         CAttributes *currentAttributes;
         COptions *currentOptions;

@@ -29,6 +29,7 @@
 
 #include "attributes.h"
 #include "common/global.h" // The global header file
+#include "memory.h"
 #include "subdivisionHierarchical.h"
 #include "xform.h"
 
@@ -47,8 +48,22 @@ class CSubdivMesh : public CObject {
 
         int moving() const { return pl->data1 != NULL; }
 
+        // Tessellates this mesh into a sibling chain of CSurface patches
+        // (CSubdivision / CBicubicPatch / CPatchGrid / CBSplinePatchGrid)
+        // using a standalone memory pool instead of a CShadingContext's
+        // threadMemory -- for CSG leaf dispatch, which resolves entirely
+        // in the geometry domain, outside any hider. The returned
+        // patches hold raw pointers into `mem` (their vertex data is
+        // ralloc'd from it, never copied), so `mem` must stay alive for
+        // as long as the caller uses the patches; the caller owns both
+        // the returned chain and `mem` (pass an initially-NULL pointer
+        // in, and memoryTini() it only after the last patch is done
+        // being read/deleted).
+        CObject *tessellateToSurfaces(CMemPage *&mem);
+
     private:
         void create(CShadingContext *context);
+        CObject *buildSurfaces(CMemPage *&mem);
 
         CPl *pl;
         int numFaces;

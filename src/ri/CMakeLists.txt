@@ -12,6 +12,8 @@ set(ri_sources
 	compositor.cpp
 	curves.cpp
 	bsplinePatchgrid.cpp
+	csgBoolean.cpp
+	csgTree.cpp
 	debug.cpp
 	delayed.cpp
 	displayChannel.cpp
@@ -64,6 +66,7 @@ set(ri_sources
 	ribOut.cpp
 	show.cpp
 #	sl.cpp
+	solidObject.cpp
 	stats.cpp
 	stochastic.cpp
 	subdivision.cpp

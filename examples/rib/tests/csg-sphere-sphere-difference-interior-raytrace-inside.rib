@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Companion to csg-sphere-sphere-difference-interior-raytrace.rib (T036,
+# SC-004): a correctly-oriented CSG difference has outward normals
+# everywhere, so a camera in empty space only ever sees the Exterior
+# atmosphere shader (dot(I,N) < 0 at every front-facing hit), with the
+# Interior shader reachable only in silhouette-edge tessellation noise.
+# The Interior shader is reachable in bulk only when the camera itself sits
+# inside the remaining solid material -- this scene places the camera at
+# the world origin, which lies inside the outer sphere (radius 1) but
+# outside the subtracted bite sphere (center (0,0,-0.9), radius 0.6,
+# distance 0.9 from origin), i.e. inside the solid's own material.
+Hider "raytrace"
+Display "csg-sphere-sphere-difference-interior-raytrace-inside.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 90
+Clipping 0.01 1000
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.75 0.75 0.8]
+    Surface "matte"
+    Interior "fog" "distance" 4 "background" [0.9 0.1 0.1]
+    Exterior "fog" "distance" 4 "background" [0.1 0.1 0.9]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1 -1 1 360
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0 0 -0.9
+                Sphere 0.6 -0.6 0.6 360
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

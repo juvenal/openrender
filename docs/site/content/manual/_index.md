@@ -35,6 +35,7 @@ Detailed documentation about openRender's features:
 - [Display Drivers](reference/display-drivers/)
 - [Options](reference/options/)
 - [Attributes](reference/attributes/)
+- [Solid CSG Operations](reference/solid-csg-operations/)
 - [Occlusion Culling](reference/occlusion-culling/)
 - [Baking 3D Textures](reference/baking-3d-textures/)
 - [Global Illumination](reference/global-illumination/)

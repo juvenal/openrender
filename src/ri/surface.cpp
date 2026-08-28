@@ -1370,6 +1370,210 @@ static inline float measureLength(const float *P, int step, int num) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	tesselationSagittaWithinTolerance
+// Description			:	Ray-free flatness/chordal-deviation stopping test
+//							for adaptive tessellation, driven from an
+//							absolute tolerance alone. See surface.h and
+//							specs/013-solid-csg-operations/research.md
+//							Decision 4 for why this is not a reuse of
+//							CTesselationPatch::tesselate's uFlat/vFlat test.
+// Return Value			:	TRUE if every cell's midpoint sagitta is below
+//							tolerance
+// Comments				:	P is a row-major (div+1)x(div+1) grid (3 floats
+//							per sample); div must be even. Even rows/columns
+//							are the candidate mesh at resolution div/2; odd
+//							samples are that mesh's per-cell parametric
+//							midpoints, used as sagitta probes.
+int tesselationSagittaWithinTolerance(const float *P, int div, float tolerance) {
+    assert((div & 1) == 0);
+
+    const int n      = div + 1;
+    const float tol2 = tolerance * tolerance;
+
+    for (int i = 0; i < div; i += 2) {
+        for (int j = 0; j < div; j += 2) {
+            const float *c00 = P + ((i + 0) * n + (j + 0)) * 3;
+            const float *c10 = P + ((i + 2) * n + (j + 0)) * 3;
+            const float *c01 = P + ((i + 0) * n + (j + 2)) * 3;
+            const float *c11 = P + ((i + 2) * n + (j + 2)) * 3;
+            const float *mid = P + ((i + 1) * n + (j + 1)) * 3;
+
+            vector bilinear;
+            addvv(bilinear, c00, c10);
+            addvv(bilinear, c01);
+            addvv(bilinear, c11);
+            mulvf(bilinear, 0.25f);
+
+            vector sagitta;
+            subvv(sagitta, mid, bilinear);
+
+            if (dotvv(sagitta, sagitta) > tol2) return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	tesselateSurfaceGrid
+// Description			:	See surface.h
+// Comments				:	Formerly a tesselateQuadricAdaptive-local static
+//							helper (tesselateQuadricGrid); exposed and
+//							renamed for T022's patch-mesh driver, which needs
+//							to re-sample a CBilinearPatch/CBicubicPatch
+//							sub-patch (also a CSurface) at an exact
+//							resolution, not an adaptively-chosen one.
+CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDerivatives) {
+    const int n            = div + 1;
+    const int numVertices  = n * n;
+    unsigned int up        = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG;
+
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++) varying[k] = NULL;
+
+    float *u    = new float[numVertices];
+    float *v    = new float[numVertices];
+    float *time = new float[numVertices];
+    float *P    = new float[numVertices * 3];
+    // Always allocated, regardless of computeDerivatives: some CSurface::sample()
+    // implementations (e.g. CBicubicPatch) write dPdu/dPdv/Ng unconditionally, not
+    // gated on the up flags above, so these scratch buffers must exist whenever
+    // sample() might be a bicubic patch. Ng is scratch-only here (never surfaced to
+    // the caller); T023 derives shading normals independently via crossvv(dPdu,dPdv).
+    float *dPdu = new float[numVertices * 3];
+    float *dPdv = new float[numVertices * 3];
+    float *ng   = new float[numVertices * 3];
+    // Also scratch-only, and also unconditional: CSubdivision::sample()
+    // writes dPdtime for every vertex regardless of moving()/up, so this
+    // buffer must exist whenever sample() might be a subdivision patch
+    // (reachable via the CSG subdivision-mesh leaf dispatch).
+    float *dPdtime = new float[numVertices * 3];
+    // Also scratch-only, and also unconditional: CNURBSPatch::sample()
+    // computes P in homogeneous form and unconditionally reads/writes
+    // varying[VARIABLE_PW] (4 floats/vertex) to convert it to P, regardless
+    // of the up flags above, so this buffer must exist whenever sample()
+    // might be a NURBS patch (reachable via the CSG NURBS-patch-mesh leaf
+    // dispatch).
+    float *pw = new float[numVertices * 4];
+
+    for (int i = 0; i <= div; i++) {
+        for (int j = 0; j <= div; j++) {
+            const int k = i * n + j;
+            u[k]        = (float)i / (float)div;
+            v[k]        = (float)j / (float)div;
+            time[k]     = 0.0f;
+        }
+    }
+
+    varying[VARIABLE_U]       = u;
+    varying[VARIABLE_V]       = v;
+    varying[VARIABLE_TIME]    = time;
+    varying[VARIABLE_P]       = P;
+    varying[VARIABLE_DPDU]    = dPdu;
+    varying[VARIABLE_DPDV]    = dPdv;
+    varying[VARIABLE_NG]      = ng;
+    varying[VARIABLE_DPDTIME] = dPdtime;
+    varying[VARIABLE_PW]      = pw;
+
+    object->sample(0, numVertices, varying, NULL, up);
+
+    delete[] u;
+    delete[] v;
+    delete[] time;
+    delete[] ng;
+    delete[] dPdtime;
+    delete[] pw;
+
+    CTesselatedGrid grid;
+    grid.div  = div;
+    grid.P    = P;
+    if (computeDerivatives) {
+        grid.dPdu = dPdu;
+        grid.dPdv = dPdv;
+    } else {
+        delete[] dPdu;
+        delete[] dPdv;
+        grid.dPdu = NULL;
+        grid.dPdv = NULL;
+    }
+    return grid;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	extractEvenSubgrid (static helper)
+// Description			:	Strided-copies the (div+1)x(div+1) candidate mesh
+//							embedded at the even rows/columns of a probe grid
+//							sampled at resolution 2*div into a standalone
+//							(div+1)x(div+1) grid. The probe's even-indexed
+//							samples were evaluated at exactly the candidate's
+//							own parametric u/v values (tesselateQuadricGrid's
+//							u[k]=i/div is identical whether i is the direct
+//							loop index at resolution div or the even index
+//							2*i at resolution 2*div), so this is lossless --
+//							no resampling, just a subset of already-computed
+//							positions/derivatives.
+static void extractEvenSubgrid(const CTesselatedGrid &probe, int div, CTesselatedGrid &out) {
+    const int probeN = probe.div + 1;
+    const int n       = div + 1;
+
+    out.div  = div;
+    out.P    = new float[n * n * 3];
+    out.dPdu = probe.dPdu ? new float[n * n * 3] : NULL;
+    out.dPdv = probe.dPdv ? new float[n * n * 3] : NULL;
+
+    for (int i = 0; i <= div; i++) {
+        for (int j = 0; j <= div; j++) {
+            const int src = (2 * i) * probeN + (2 * j);
+            const int dst = i * n + j;
+
+            for (int c = 0; c < 3; c++) {
+                out.P[dst * 3 + c] = probe.P[src * 3 + c];
+                if (out.dPdu) out.dPdu[dst * 3 + c] = probe.dPdu[src * 3 + c];
+                if (out.dPdv) out.dPdv[dst * 3 + c] = probe.dPdv[src * 3 + c];
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	tesselateQuadricAdaptive
+// Description			:	See surface.h
+// Comments				:	tesselationSagittaWithinTolerance validates the
+//							div/2-resolution candidate mesh embedded in a
+//							div-resolution probe grid (see its own doc
+//							comment) -- so once it passes (or the cap is
+//							hit), the *coarser* div/2 candidate is extracted
+//							and shipped, not the finer div probe itself.
+//							Loop bounds are offset by one doubling level
+//							(probe starts at 4, caps at 128) so the shipped
+//							candidate resolution range matches the original
+//							[2, 64] contract.
+CTesselatedGrid tesselateQuadricAdaptive(CSurface *object, float tolerance, int computeDerivatives) {
+    const int kMinProbeDiv = 4;
+    const int kMaxProbeDiv = 128;
+
+    CTesselatedGrid grid = {};
+
+    for (int probeDiv = kMinProbeDiv; probeDiv <= kMaxProbeDiv; probeDiv *= 2) {
+        CTesselatedGrid probe = tesselateSurfaceGrid(object, probeDiv, computeDerivatives);
+
+        if (tesselationSagittaWithinTolerance(probe.P, probeDiv, tolerance) || (probeDiv == kMaxProbeDiv)) {
+            extractEvenSubgrid(probe, probeDiv / 2, grid);
+            delete[] probe.P;
+            delete[] probe.dPdu;
+            delete[] probe.dPdv;
+            break;
+        }
+
+        delete[] probe.P;
+        delete[] probe.dPdu;
+        delete[] probe.dPdv;
+    }
+
+    return grid;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CTesselationPatch
 // Method				:	initTesselation
 // Description			:	Make an estimate about required tesselation sizes

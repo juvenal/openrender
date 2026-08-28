@@ -36,6 +36,7 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/os.h"
+#include "csgTree.h"
 #include "curves.h"
 #include "delayed.h"
 #include "displayChannel.h"
@@ -66,6 +67,7 @@
 #include "shadeop.h"
 #include "shader.h"
 #include "show.h"
+#include "solidObject.h"
 #include "stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
@@ -115,6 +117,10 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
 
     // Init the object instance junk
     allocatedInstances = new CArray<CInstance *>;
+
+    // Init the CSG solid stack
+    currentSolid = NULL;
+    savedSolids = new CArray<CSGTreeNode *>;
 
     // Allocate the initial graphics state
     currentResource = NULL;
@@ -170,6 +176,11 @@ CRendererContext::~CRendererContext() {
     assert(instanceStack != NULL);
     assert(instanceStack->numItems == 0);
     delete instanceStack;
+
+    // Delete the CSG solid stack
+    assert(savedSolids != NULL);
+    assert(savedSolids->numItems == 0);
+    delete savedSolids;
 
     // Ditch the current graphics state
     assert(currentOptions != NULL);
@@ -450,6 +461,37 @@ void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayed
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
+// Method				:	processDelayedSolid
+// Description			:	Instantiate a Resolved Solid Boundary's template
+//							fragments into its own children, once per
+//							CSolidObject (mirrors processDelayedInstance)
+// Return Value			:
+// Comments				:
+void CRendererContext::processDelayedSolid(CShadingContext *context, CSolidObject *cSolid) {
+
+    // Set the delayed object
+    delayed = cSolid;
+
+    // Unlike processDelayedInstance(), fragments are not object templates
+    // awaiting attribute assignment: each fragment already carries its own
+    // resolved CAttributes (cloned per boundary-region provenance in
+    // csgBuildMeshForAttributeGroup(), tagged ATTRIBUTES_FLAGS_SOLID_FRAGMENT).
+    // Passing a non-NULL attributes here would make every instantiate()
+    // override (a == NULL ? attributes : a) discard that per-fragment state,
+    // so pass NULL and let each fragment fall back to its own attributes.
+    CObject *cObject;
+    for (cObject = cSolid->fragments; cObject != NULL; cObject = cObject->sibling)
+        cObject->instantiate(NULL, cSolid->xform, this);
+
+    // We're not processing a delayed object anymore
+    delayed = NULL;
+
+    // Create the hierarchy
+    cSolid->setChildren(context, cSolid->children);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
 // Method				:	addObject
 // Description			:	Add an object into the scene
 // Return Value			:
@@ -457,6 +499,13 @@ void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayed
 void CRendererContext::addObject(CObject *o) {
     assert(currentAttributes != NULL);
     assert(o != NULL);
+
+    // Are we inside an open SolidBegin/SolidEnd block ?
+    if (currentSolid != NULL) {
+        o->sibling = currentSolid->leafObjects;
+        currentSolid->leafObjects = o;
+        return;
+    }
 
     // Are we inside objectBegin/objectEnd ?
     if (instance != NULL) {
@@ -3120,6 +3169,29 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 }
             }
         }
+        else if (strcmp(name, RI_SOLID) == 0) {
+            for (i = 0; i < n; i++) {
+                if (strcmp(tokens[i], RI_TESSELLATIONTOLERANCE) == 0) {
+                    const float *val = (const float *)params[i];
+
+                    if (val[0] < 0) {
+                        error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_TESSELLATIONTOLERANCE);
+                    }
+                    else {
+                        attributes->tessellationTolerance = val[0];
+                    }
+                }
+                else {
+                    CVariable var;
+                    if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                        RiAttribute(name, var.name, params[i], RI_NULL);
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
+                    }
+                }
+            }
+        }
         else if (strcmp(name, RI_TRACE) == 0) {
             for (i = 0; i < n; i++) {
                 if (strcmp(tokens[i], RI_DISPLACEMENTS) == 0) {
@@ -5029,6 +5101,11 @@ void CRendererContext::RiProcedural(void *data, float *bound, void (*subdivfunc)
 
     checkGeometryOrDiscard();
 
+    if (currentSolid != NULL) {
+        csgValidateProceduralCapture(currentSolid);
+        return;
+    }
+
     if ((xform != NULL) && (attributes != NULL)) {
         bmin[COMP_X] = bound[0];
         bmax[COMP_X] = bound[1];
@@ -5499,17 +5576,57 @@ void CRendererContext::RiBlobbyV(int, int, int[], int, float[], int, const char 
     error(CODE_INCAPABLE, "Blobby primitives are not currently supported\n");
 }
 
-void CRendererContext::RiSolidBegin(const char *) {
-    // Unimplemented: CSG (constructive solid geometry) is not supported.
+void CRendererContext::RiSolidBegin(const char *type) {
     if (CRenderer::netNumServers > 0)
         return;
 
-    error(CODE_OPTIONAL, "CSG is not currently supported\n");
+    ECSGOperation operation;
+
+    // FR-001 / FR-013: only these four operation-type strings are recognized
+    if (strcmp(type, "primitive") == 0) {
+        operation = CSG_PRIMITIVE;
+    } else if (strcmp(type, "union") == 0) {
+        operation = CSG_UNION;
+    } else if (strcmp(type, "intersection") == 0) {
+        operation = CSG_INTERSECTION;
+    } else if (strcmp(type, "difference") == 0) {
+        operation = CSG_DIFFERENCE;
+    } else {
+        error(CODE_BADTOKEN, "Unknown solid operation: %s\n", type);
+        operation = CSG_UNION; // Recover permissively; the error was already reported
+    }
+
+    if (currentSolid != NULL)
+        csgValidateNestedSolidBegin(currentSolid);
+
+    savedSolids->push(currentSolid);
+    currentSolid = new CSGTreeNode(operation, currentSolid);
+
+    if (currentSolid->parent == NULL) {
+        // Outermost SolidBegin: snapshot the local frame every captured
+        // leaf will later be resolved into (research.md Decision 5)
+        currentSolid->outerXform = getXform(FALSE);
+        currentSolid->outerXform->attach();
+    }
 }
 
 void CRendererContext::RiSolidEnd(void) {
     if (CRenderer::netNumServers > 0)
         return;
+
+    assert(currentSolid != NULL);
+
+    CSGTreeNode *closedNode = currentSolid;
+    currentSolid            = savedSolids->pop();
+
+    if (closedNode->parent != NULL) {
+        // Nested boolean node: hand it to its still-open parent as an operand
+        closedNode->parent->operands->push(closedNode);
+    } else {
+        // Root node: resolve the finished CSG tree into a Resolved Solid
+        // Boundary and re-enter addObject() (research.md Decision 1)
+        resolveCSGTree(this, closedNode);
+    }
 }
 
 void *CRendererContext::RiObjectBegin(void) {

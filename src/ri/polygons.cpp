@@ -67,7 +67,7 @@ class CMeshData {
         int meshUniformNumber;        // The current uniform number
         int meshFacevaryingNumber;    // The current facevarying number
         CPolygonMesh *mesh;           // The mesh we're allocating the triangle for
-        CShadingContext *meshContext; // The shading context
+        CMemPage *meshMemory;         // Scratch memory pool for triangulation
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -1533,7 +1533,7 @@ static inline int orientationCheck(CTriVertex *loop, int cw, CMeshData &data) {
 
     // Do we need to reverse the loop
     if (reverse == TRUE) {
-        CTriVertex **vertices = (CTriVertex **)ralloc(numVertices * sizeof(CTriVertex *), data.meshContext->threadMemory);
+        CTriVertex **vertices = (CTriVertex **)ralloc(numVertices * sizeof(CTriVertex *), data.meshMemory);
         int i;
 
         vertices[0] = loop;
@@ -1663,9 +1663,9 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
     }
 
     // Allocate the intial memory
-    xy = (float *)ralloc(numVertices * 2 * sizeof(float), data.meshContext->threadMemory);
-    loops = (CTriVertex **)ralloc(nloops * sizeof(CTriVertex *), data.meshContext->threadMemory);
-    vertices = (CTriVertex *)ralloc(numVertices * sizeof(CTriVertex), data.meshContext->threadMemory);
+    xy = (float *)ralloc(numVertices * 2 * sizeof(float), data.meshMemory);
+    loops = (CTriVertex **)ralloc(nloops * sizeof(CTriVertex *), data.meshMemory);
+    vertices = (CTriVertex *)ralloc(numVertices * sizeof(CTriVertex), data.meshMemory);
 
     // Collect the vertex data
     for (i = 0; i < numVertices; i++) {
@@ -1763,7 +1763,7 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
 
                     if (k) {
                         // Connect these two vertices
-                        CTriVertex *snVertex = (CTriVertex *)ralloc(2 * sizeof(CTriVertex), data.meshContext->threadMemory);
+                        CTriVertex *snVertex = (CTriVertex *)ralloc(2 * sizeof(CTriVertex), data.meshMemory);
                         CTriVertex *dnVertex = snVertex + 1;
 
                         snVertex->xy = sVertex->xy;
@@ -1946,7 +1946,7 @@ void CPolygonMesh::create(CShadingContext *context) {
     data.meshUniformNumber = 0;
     data.meshFacevaryingNumber = 0;
     data.mesh = this;
-    data.meshContext = context;
+    data.meshMemory = context->threadMemory;
 
     memBegin(context->threadMemory);
 
@@ -1969,4 +1969,123 @@ void CPolygonMesh::create(CShadingContext *context) {
     setChildren(context, data.meshChildren);
 
     osUnlock(mutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	csgTessellatePolygonMeshOperand
+// Description			:	See polygons.h. Mirrors CPolygonMesh::create()'s
+//							own triangulatePolygon() decomposition loop, but
+//							with two differences: (1) the transient scratch
+//							buffer comes from a standalone CMemPage owned by
+//							this call (create()'s context->threadMemory is a
+//							memory pool, not a real CShadingContext
+//							dependency -- there is none at RiSolidEnd time),
+//							and (2) the resulting CPolygonTriangle/CPolygonQuad
+//							chain is returned directly instead of being
+//							installed via setChildren() -- the caller (the CSG
+//							dispatcher) tessellates and deletes each one
+//							itself.
+// Comments				:	Does not delete mesh->pl: the original mesh's
+//							own destructor still owns it, and the returned
+//							CPolygonTriangle/CPolygonQuad objects hold a live
+//							back-pointer to it.
+CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh) {
+    assert(mesh->pl != NULL);
+
+    int i, j, k, numVertices;
+    int *cnholes, *cvertices, *cnvertices;
+    CPlParameter *normal;
+    const float *normalData0;
+    const float *normalData1;
+    int triangleType;
+
+    // Transform the parameter list
+    mesh->pl->transform(mesh->xform);
+
+    // Find the type of the polygon mesh
+    //	0	-	Flat polygons
+    //	1	-	Smooth polygons
+    //	2	-	Facevarying normal polygons
+    normal = mesh->pl->find(VARIABLE_N, normalData0, normalData1);
+    if (normal == NULL) {
+        // No normal data is present
+        triangleType = 0;
+        normalData0 = NULL;
+        normalData1 = NULL;
+    } else {
+        switch (normal->container) {
+        case CONTAINER_UNIFORM:
+            triangleType = 0;
+            break;
+        case CONTAINER_VERTEX:
+            triangleType = 1;
+            break;
+        case CONTAINER_VARYING:
+            triangleType = 1;
+            break;
+        case CONTAINER_FACEVARYING:
+            triangleType = 2;
+            break;
+        case CONTAINER_CONSTANT:
+            triangleType = 0;
+            break;
+        default:
+            error(CODE_BUG, "Unknown container type in polygon mesh\n");
+            triangleType = 0;
+            break;
+        }
+    }
+
+    // Count the number of vertices there is in the mesh
+    for (j = 0, i = 0; i < mesh->npoly; i++)
+        j += mesh->nholes[i];
+    for (k = 0, i = 0; i < j; i++)
+        k += mesh->nvertices[i];
+
+    for (numVertices = 0, i = 0; i < k; i++) {
+        if (mesh->vertices[i] > numVertices)
+            numVertices = mesh->vertices[i];
+    }
+    numVertices++;
+
+    mesh->parameters = mesh->pl->parameterUsage();
+
+    // Fill in the data structure
+    CMemPage *localMemory = NULL;
+    memoryInit(localMemory);
+
+    CMeshData data;
+    data.meshAttributes = mesh->attributes;
+    data.meshXform = mesh->xform;
+    data.meshPl = mesh->pl;
+    data.meshChildren = NULL;
+    data.meshP = mesh->pl->data0;
+    data.meshNormal = normal;
+    data.meshNormalData0 = normalData0;
+    data.meshNormalData1 = normalData1;
+    data.meshTriangleType = triangleType;
+    data.meshUniformNumber = 0;
+    data.meshFacevaryingNumber = 0;
+    data.mesh = mesh;
+    data.meshMemory = localMemory;
+
+    memBegin(localMemory);
+
+    // Triangulate the individual polygons
+    for (cnholes = mesh->nholes, cvertices = mesh->vertices, cnvertices = mesh->nvertices, i = 0; i < mesh->npoly; i++) {
+        // Triangulate the current polygon
+        triangulatePolygon(cnholes[0], cnvertices, cvertices, data);
+
+        // Advance the holes
+        for (j = 0; j < cnholes[0]; j++) {
+            cvertices += cnvertices[j];
+        }
+        cnvertices += cnholes[0];
+        cnholes++;
+    }
+
+    memEnd(localMemory);
+    memoryTini(localMemory);
+
+    return data.meshChildren;
 }

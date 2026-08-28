@@ -249,6 +249,10 @@ RtToken RI_RASTERORIENT = "rasterorient";
 RtToken RI_SPHERE = "sphere";
 RtToken RI_COORDINATESYSYTEM = "coordinatesystem";
 
+// Solid (CSG) attributes
+RtToken RI_SOLID = "solid";
+RtToken RI_TESSELLATIONTOLERANCE = "tessellationtolerance";
+
 // Visibility attributes
 RtToken RI_PHOTON = "photon";
 RtToken RI_ENVIRONMENT = "environment";
@@ -2062,18 +2066,28 @@ RiProcFree(void *data) {
 
 EXTERN(RtVoid)
 RiSolidBegin(RtToken type) {
-    if (check("RiSolidBegin", RENDERMAN_WORLD_BLOCK | RENDERMAN_ATTRIBUTE_BLOCK | RENDERMAN_XFORM_BLOCK | RENDERMAN_SOLID_PRIMITIVE_BLOCK | RENDERMAN_RESOURCE_BLOCK | RENDERMAN_ARCHIVE_BLOCK))
+    if (check("RiSolidBegin", RENDERMAN_WORLD_BLOCK | RENDERMAN_ATTRIBUTE_BLOCK | RENDERMAN_XFORM_BLOCK | RENDERMAN_SOLID_PRIMITIVE_BLOCK | RENDERMAN_OBJECT_BLOCK | RENDERMAN_RESOURCE_BLOCK | RENDERMAN_ARCHIVE_BLOCK))
         return;
+
+    blocks.push(currentBlock);
+    currentBlock = RENDERMAN_SOLID_PRIMITIVE_BLOCK;
 
     renderMan->RiSolidBegin(type);
 }
 
 EXTERN(RtVoid)
 RiSolidEnd(void) {
-    if (check("RiSolidEnd", RENDERMAN_WORLD_BLOCK | RENDERMAN_ATTRIBUTE_BLOCK | RENDERMAN_XFORM_BLOCK | RENDERMAN_SOLID_PRIMITIVE_BLOCK | RENDERMAN_RESOURCE_BLOCK | RENDERMAN_ARCHIVE_BLOCK))
+    if (check("RiSolidEnd", RENDERMAN_SOLID_PRIMITIVE_BLOCK))
         return;
 
+    if (currentBlock != RENDERMAN_SOLID_PRIMITIVE_BLOCK) {
+        error(CODE_NESTING, "Matching RiSolidBegin not found\n");
+        return;
+    }
+
     renderMan->RiSolidEnd();
+
+    currentBlock = blocks.pop();
 }
 
 EXTERN(RtObjectHandle)

@@ -1,0 +1,49 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-subdivision-sphere-union-raytrace.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "plastic"
+    Sides 2
+    SolidBegin "union"
+        SolidBegin "primitive"
+            Sphere 0.7 -0.7 0.7 360
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0.55 0 0
+                SubdivisionMesh "catmull-clark"
+                [ 4 4 4 4 4 4 ]
+                [
+                    0 3 2 1
+                    4 5 6 7
+                    0 1 5 4
+                    2 3 7 6
+                    1 2 6 5
+                    0 4 7 3
+                ]
+                [] [] [] []
+                "P" [
+                    -0.6 -0.6 -0.6
+                     0.6 -0.6 -0.6
+                     0.6  0.6 -0.6
+                    -0.6  0.6 -0.6
+                    -0.6 -0.6  0.6
+                     0.6 -0.6  0.6
+                     0.6  0.6  0.6
+                    -0.6  0.6  0.6
+                ]
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

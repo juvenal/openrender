@@ -370,25 +370,17 @@ void CLoopSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) co
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CLoopSubdivMesh
-// Method				:	create
-// Description			:	Create the refined triangle mesh, wrapped in a
-//							plain CPolygonMesh child
-// Return Value			:	-
+// Method				:	buildPolygonMesh
+// Description			:	Refine the mesh and wrap the result in a plain
+//							CPolygonMesh child
+// Return Value			:	The new CPolygonMesh (or an empty fallback)
 // Comments				:
-void CLoopSubdivMesh::create(CShadingContext *context) {
-
-    osLock(mutex);
-    if (children != NULL) {
-        osUnlock(mutex);
-        return;
-    }
+CObject *CLoopSubdivMesh::buildPolygonMesh() {
 
     for (int i = 0; i < numFaces; i++) {
         if (numVerticesPerFace[i] != 3) {
             warning(CODE_RANGE, "Loop subdivision requires an all-triangle mesh; face %d has %d vertices\n", i, numVerticesPerFace[i]);
-            setChildren(context, loopMakeEmptyFallback(attributes, xform, pl));
-            osUnlock(mutex);
-            return;
+            return loopMakeEmptyFallback(attributes, xform, pl);
         }
     }
 
@@ -405,9 +397,7 @@ void CLoopSubdivMesh::create(CShadingContext *context) {
 
     if (vertexParams.empty()) {
         warning(CODE_RANGE, "Loop subdivision mesh has no vertex-class parameters\n");
-        setChildren(context, loopMakeEmptyFallback(attributes, xform, pl));
-        osUnlock(mutex);
-        return;
+        return loopMakeEmptyFallback(attributes, xform, pl);
     }
 
     const bool moving = (pl->data1 != NULL);
@@ -467,7 +457,26 @@ void CLoopSubdivMesh::create(CShadingContext *context) {
 
     CObject *poly = new CPolygonMesh(attributes, xform, newPl, finalNumFaces, nholes.data(), nvertices.data(), triVerts.data());
 
-    setChildren(context, poly);
+    return poly;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CLoopSubdivMesh
+// Method				:	create
+// Description			:	Create the refined triangle mesh, wrapped in a
+//							plain CPolygonMesh child, caching the result on
+//							this object via setChildren()
+// Return Value			:	-
+// Comments				:
+void CLoopSubdivMesh::create(CShadingContext *context) {
+
+    osLock(mutex);
+    if (children != NULL) {
+        osUnlock(mutex);
+        return;
+    }
+
+    setChildren(context, buildPolygonMesh());
 
     osUnlock(mutex);
 }

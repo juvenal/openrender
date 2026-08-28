@@ -1,0 +1,29 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# T037 (Polish, SC-006): an RiProcedural call directly inside a
+# SolidBegin "primitive" block. Procedural/delayed-generator primitives
+# cannot participate in CSG boolean combination (there is no ray at
+# RiSolidEnd time to expand them against -- research.md), so this is
+# rejected. Expected: exactly one CODE_BADTOKEN diagnostic ("RiProcedural
+# cannot be declared inside a SolidBegin block") from
+# csgValidateProceduralCapture() (src/ri/csgTree.cpp) -- the renderer
+# must not crash. The Procedural call is skipped but the primitive
+# block's other (ordinary) geometry still renders.
+Hider "raytrace"
+Display "csg-malformed-procedural-in-primitive.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -20 1 0 0
+Rotate 25 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidBegin "primitive"
+        Sphere 1 -1 1 360
+        Procedural "DelayedReadArchive" ["nonexistent.rib"] [-1 1 -1 1 -1 1]
+    SolidEnd
+WorldEnd

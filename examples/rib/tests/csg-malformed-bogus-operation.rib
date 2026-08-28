@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# T037 (Polish, SC-006): SolidBegin given an unrecognized operation string.
+# Expected: exactly one CODE_BADTOKEN diagnostic ("Unknown solid operation:
+# bogus") from src/ri/rendererContext.cpp; the renderer must not crash. The
+# implementation recovers permissively by treating the block as CSG_UNION,
+# so this scene still renders a visible sphere rather than dropping the
+# geometry silently.
+Hider "raytrace"
+Display "csg-malformed-bogus-operation.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -20 1 0 0
+Rotate 25 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidBegin "bogus"
+        SolidBegin "primitive"
+            Sphere 1 -1 1 360
+        SolidEnd
+    SolidEnd
+WorldEnd
