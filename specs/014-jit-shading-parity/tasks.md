@@ -311,22 +311,22 @@ same `Ol` value/behavior whether JIT- or interpreter-compiled.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T028 [P] Run `cmake --build build --config Release` then
+- [X] T028 [P] Run `cmake --build build --config Release` then
   `cmake --install build --prefix <local-prefix>` (regenerates every
   `.rslo`/`.slo` in the deploy tree automatically — root `CMakeLists.txt`'s
   existing `install(CODE ...)` blocks, no bespoke regeneration mechanism
   needed).
-- [ ] T029 Run the full regression gate per quickstart.md Step 7:
+- [X] T029 Run the full regression gate per quickstart.md Step 7:
   `ctest --test-dir build -L libshader --output-on-failure`,
   `ctest --test-dir build -L shading_parity --output-on-failure`,
   `ctest --test-dir build -L visual --output-on-failure` — all three must
   pass clean with no new failures (SC-005). Check `.slo` timestamps against
   source/oshader mtimes first per CLAUDE.md's deploy-tree staleness gotcha
   before attributing any `-slo` visual failure to this feature.
-- [ ] T030 [P] Add a one-line entry for `014-jit-shading-parity` to
+- [X] T030 [P] Add a one-line entry for `014-jit-shading-parity` to
   `DEVNOTES.md`'s spec-branch list, matching the existing convention (e.g.
   the `011-jit-opcode-parity` entry) (Constitution Principle VII).
-- [ ] T031 Walk through `quickstart.md` steps 1-6 end-to-end (Step 7 is
+- [X] T031 Walk through `quickstart.md` steps 1-6 end-to-end (Step 7 is
   T029) and confirm each documented before/after outcome actually holds.
 
 ---
