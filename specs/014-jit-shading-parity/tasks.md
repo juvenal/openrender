@@ -275,7 +275,7 @@ same `Ol` value/behavior whether JIT- or interpreter-compiled.
 
 ### Tests for User Story 4 (write first, confirm Red or write pending T025's determination)
 
-- [ ] T024 [P] [US4] Create `tests/shading_parity/test_ol_wiring.cpp` (new
+- [X] T024 [P] [US4] Create `tests/shading_parity/test_ol_wiring.cpp` (new
   executable + `add_test` in `tests/shading_parity/CMakeLists.txt`, ctest
   name `ShadingParity_OlWiring`): a light shader assigning `Ol`, loaded on
   both backends, asserts consistent `Ol` set/read behavior at the same
@@ -287,20 +287,20 @@ same `Ol` value/behavior whether JIT- or interpreter-compiled.
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Investigate `s_rslGlobals`
+- [X] T025 [US4] Investigate `s_rslGlobals`
   (`src/libshader/compiler/llvmEmitter.cpp:102-181`) against
   `CScriptContext`'s `addGlobalVariable()` list
   (`src/libshader/compiler/rslo.cpp:1120-1146`). Record a written
   determination — genuinely redundant (two hand-maintained lists of the
   same ~26 RSL globals) vs. distinct-purpose (carries type/scope info the
   seeding list doesn't) — as a new subsection in research.md (FR-009).
-- [ ] T026 [US4] If T025 determines `s_rslGlobals` is redundant, collapse
+- [X] T026 [US4] If T025 determines `s_rslGlobals` is redundant, collapse
   it to one source of truth (derive its union-relevant data from the same
   seeding path, or vice versa) in
   `src/libshader/compiler/llvmEmitter.cpp`. If T025 determines it serves a
   distinct purpose, this task is a no-op — record that outcome in the same
   research.md subsection. (depends on T025)
-- [ ] T027 [US4] Audit `Ol` consumers in `src/libshader/shading/shading.cpp`
+- [X] T027 [US4] Audit `Ol` consumers in `src/libshader/shading/shading.cpp`
   for consistency with how `Cl` is handled at the same call sites (the two
   are treated as a pair everywhere else in the ambient-accumulation code);
   fix any inconsistency found (FR-010). (depends on T024)

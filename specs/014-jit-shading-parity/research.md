@@ -236,3 +236,109 @@ wording plus SC-001/SC-002.
   directly in a test binary is a supported, working pattern in this
   codebase's build graph — reinventing a lighter-weight substitute would add
   risk for no real benefit.
+
+## D7: User Story 4 determinations — `s_rslGlobals` redundancy and `Ol` wiring (T025/T027)
+
+**D7a — `s_rslGlobals` (`llvmEmitter.cpp:235-243`) determination: genuinely
+redundant, in two distinct ways, against two distinct authoritative
+sources.**
+
+`s_rslGlobals` is a hand-maintained `name -> int` map (RSL global name to its
+slot-1/`VARIABLE_*` index) feeding `buildVarTable()`'s RSL-globals loop
+(`llvmEmitter.cpp:305-310`), which builds `VarDesc{slot=1, idx, stride}`
+entries the emitter uses to address the runtime `varying[][]` array in
+generated code. It is compared against two different candidate sources, with
+two different verdicts:
+
+- **NOT redundant with `CScriptContext::addGlobalVariable()`**
+  (`rslo.cpp:1120-1146`) — that list seeds `(name, SLC_* type, SLC_* scope)`
+  triples into the compiler's *compile-time symbol table*, used for
+  expression type-checking and scope validation (is `P` visible inside a
+  `light` shader body, etc.). It carries no runtime array index or stride —
+  a fundamentally different kind of information for a fundamentally
+  different consumer (parser vs. codegen). Collapsing the two would conflate
+  compile-time semantics with runtime layout for no benefit.
+- **Genuinely redundant with `VARIABLE_*` constants in `src/ri/rendererc.h`**
+  (lines 142-170: `VARIABLE_P = 0`, `VARIABLE_PS = 1`, … `VARIABLE_OL = 10`,
+  …) — the interpreter's own authoritative name→index table, whose values
+  are asserted against `declareVariable()`'s call-order-assigned `entry`
+  field at runtime (`rendererDeclarations.cpp:196-259`, e.g. `assert(tmp->entry
+  == VARIABLE_P)`). `s_rslGlobals`'s literal integers (`{"P", 0}, {"Ps", 1},
+  …`) are a byte-for-byte hand transcription of these same 26+ constants —
+  and `rendererc.h` is **already `#include`d by `llvmEmitter.cpp` itself**
+  (line 115, for the `params` macro expansions in `kOpcodeParamTable`), so
+  the authoritative values were already in scope with no new dependency
+  required. This is the same disease Phase 1 (D1) fixed for `kParamBits`'s
+  gating condition: a second hand-kept copy of interpreter ground truth,
+  drift-prone by construction, sitting one `#include` away from not needing
+  to exist.
+- **`s_rslGlobalStrides` (`llvmEmitter.cpp:246-254`) is separately
+  redundant**, against a third source: `buildVarTable()`'s own parameter/local
+  loops (`llvmEmitter.cpp:280-303`) already derive `stride` from
+  `IRVarInfo::slcType`'s `SLC_VECTOR`/`SLC_MATRIX`/`SLC_UNIFORM` bits via
+  `elemSize = matrix?16:vector?3:1; stride = uniform?0:elemSize*numItems`.
+  `irBuilder.cpp:163` (`addVar()`) copies `v.slcType = cvar->type` verbatim
+  for every `CVariable`, including RSL globals — so `mod.vars` already
+  carries correct type/uniform flags for every global (e.g. `dtime` is
+  seeded `SLC_FLOAT | SLC_UNIFORM` at `rslo.cpp:1144`, matching
+  `s_rslGlobalStrides`'s hand-written `{"dtime", 0}`). Those entries are
+  simply skipped by both loops' `if (v.slcType & SLC_GLOBAL) continue;`
+  guard and re-derived by hand in a separate table instead of being run
+  through the same formula already sitting a few lines above.
+
+**D7b — `Ol` wiring: no interpreter/JIT inconsistency exists, because
+neither backend consumes `Ol` at all.**
+
+Full-tree grep for `VARIABLE_OL`/`PARAMETER_OL` (`git grep -n
+'VARIABLE_OL\|PARAMETER_OL'`) returns exactly three hits, all three in
+`src/ri/rendererc.h`/`rendererDeclarations.cpp` — the *declaration* of `Ol`
+as a valid RSL global (index 10, parameter bit `1u<<21`) so shader source
+may reference it without a compile error. Zero occurrences exist anywhere in
+`src/libshader/shading/` (`execute.cpp`, `shading.cpp`, `rslBuiltins.cpp`) or
+`src/ri/`'s runtime consumers. Concretely: `CShadedLight::savedState`
+(`shading.h:105-113`) has exactly two slots (`[0]` = `L`, `[1]` = `Cl`,
+allocated as `ralloc((2 + numGlobals) * sizeof(float*), ...)` at
+`rslBuiltins.cpp:532`/`:672` and `execute.cpp:61`) — there is no third slot
+for `Ol`, and every ambient/illuminance/solar save-restore site that handles
+`Cl` (`execute.cpp:507-517,669-686`; `shading.cpp:1711-1749,1576-1623`;
+`rslBuiltins.cpp:241-257,334-396,526-553,666-693`) has no `Ol` counterpart.
+A light shader assigning `Ol = ...` is accepted by the compiler (Phase 1
+correctly sets its `PARAMETER_OL` bit in `usedParameters` per `kParamBits`)
+but the assignment is a pure no-op at runtime in **both** backends —
+identically, not divergently.
+
+**Determination**: not a JIT/interpreter parity bug (this spec's scope, per
+`spec.md`), because there is no divergence to fix — both backends are
+equally silent about `Ol`. This is a pre-existing gap in RSL-spec coverage
+(light opacity attenuation was never implemented, in either backend, at any
+point in this codebase's history) and is explicitly **out of scope** for
+spec 014, whose acceptance criteria (User Story 4) is "confirm `Ol` is
+wired consistently" / "determined not redundant, documented why" — consistency
+is confirmed (trivially: both sides do nothing), and implementing net-new
+`Ol` attenuation behavior is a feature addition, not a parity fix. Logged as
+a candidate for a future spec.
+
+**T024's test therefore targets the one piece of `Ol` behavior that *is*
+in scope and *is* backend-comparable**: `usedParameters`' `PARAMETER_OL` bit
+itself (added to `kParamBits` by Phase 1/D1's fix, gated the same way as
+every other global-reference bit) for a shader that references `Ol`, via the
+existing differential-oracle harness (D6 tier 3) — not a saved-state/
+accumulation test, since no such runtime path exists on either side to
+compare.
+
+**Alternatives considered (T026 fix approach)**:
+- Derive `s_rslGlobals`'s index values from `rendererc.h`'s `VARIABLE_*`
+  constants directly (`{"P", VARIABLE_P}, {"Ps", VARIABLE_PS}, …`) rather
+  than literal integers — chosen over runtime derivation (e.g. reflection
+  over `declareVariable()`'s call order) because the interpreter's own
+  values are already compile-time constants sitting in an already-`#include`d
+  header; referencing them by name makes a future addition/removal in
+  `rendererc.h` either compile-error or silently correct, instead of
+  silently wrong.
+- Eliminate `s_rslGlobalStrides` by extending `buildVarTable()`'s existing
+  `elemSize`/`stride` derivation to run over `mod.vars`' `SLC_GLOBAL`
+  entries too (using `s_rslGlobals` only for the index, no longer for a
+  second parallel stride table) — chosen over keeping a hand-written stride
+  table "for clarity," since the exact same formula is already correct and
+  already present two loops above for parameters/locals; the RSL globals
+  loop is the only one skipping it.

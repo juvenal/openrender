@@ -45,3 +45,21 @@ set_tests_properties(ShadingParity_AmbientAccumulation PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
+
+# Ol wiring (T024, US4): PARAMETER_OL usedParameters bit identical between
+# .slo and .rslo loads of a light shader that assigns Ol. research.md D7b:
+# Ol has no runtime consumer in either backend, so this is the one
+# Ol-related property that is actually backend-comparable.
+add_executable(test_shading_parity_ol_wiring test_ol_wiring.cpp)
+target_link_libraries(test_shading_parity_ol_wiring PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_ol_wiring PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_ol_wiring PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_OlWiring COMMAND test_shading_parity_ol_wiring)
+set_tests_properties(ShadingParity_OlWiring PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)

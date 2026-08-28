@@ -231,26 +231,26 @@ unsigned int computeUsedParameters(const IRModule &ir) {
 
 // =========================================================================
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
+//
+// Indices reference the interpreter's own VARIABLE_* constants
+// (src/ri/rendererc.h, already #include'd above at line 115 for
+// kOpcodeParamTable's `params` macro expansions) instead of hand-transcribed
+// literals (spec 014-jit-shading-parity, research.md D7a) -- a future
+// addition/removal in rendererc.h now either compiles or fails to compile
+// here, instead of silently drifting the way a parallel literal table could.
 // =========================================================================
 static const std::unordered_map<std::string, int> s_rslGlobals = {
-    {"P", 0}, {"Ps", 1}, {"N", 2}, {"Ng", 3}, {"dPdu", 4}, {"dPdv", 5},
-    {"L", 6}, {"Cs", 7}, {"Os", 8}, {"Cl", 9}, {"Ol", 10},
-    {"Ci", 11}, {"Oi", 12},
-    {"s", 13}, {"t", 14}, {"du", 15}, {"dv", 16}, {"u", 17}, {"v", 18},
-    {"I", 19}, {"E", 20}, {"alpha", 21}, {"time", 22}, {"Pw", 23},
-    {"ncomps", 24}, {"dtime", 25}, {"dPdtime", 26},
-    {"width", 27}, {"constantwidth", 28},
-};
-
-// RSL global strides: 0=uniform-scalar, 1=varying-float, 3=varying-vector, 16=matrix
-static const std::unordered_map<std::string, int> s_rslGlobalStrides = {
-    {"P", 3}, {"Ps", 3}, {"N", 3}, {"Ng", 3}, {"dPdu", 3}, {"dPdv", 3},
-    {"L", 3}, {"Cs", 3}, {"Os", 3}, {"Cl", 3}, {"Ol", 3},
-    {"Ci", 3}, {"Oi", 3},
-    {"s", 1}, {"t", 1}, {"du", 1}, {"dv", 1}, {"u", 1}, {"v", 1},
-    {"I", 3}, {"E", 3}, {"alpha", 1}, {"time", 0}, {"Pw", 3},
-    {"ncomps", 0}, {"dtime", 0}, {"dPdtime", 3},
-    {"width", 1}, {"constantwidth", 0},
+    {"P", VARIABLE_P}, {"Ps", VARIABLE_PS}, {"N", VARIABLE_N}, {"Ng", VARIABLE_NG},
+    {"dPdu", VARIABLE_DPDU}, {"dPdv", VARIABLE_DPDV},
+    {"L", VARIABLE_L}, {"Cs", VARIABLE_CS}, {"Os", VARIABLE_OS},
+    {"Cl", VARIABLE_CL}, {"Ol", VARIABLE_OL},
+    {"Ci", VARIABLE_CI}, {"Oi", VARIABLE_OI},
+    {"s", VARIABLE_S}, {"t", VARIABLE_T}, {"du", VARIABLE_DU}, {"dv", VARIABLE_DV},
+    {"u", VARIABLE_U}, {"v", VARIABLE_V},
+    {"I", VARIABLE_I}, {"E", VARIABLE_E}, {"alpha", VARIABLE_ALPHA},
+    {"time", VARIABLE_TIME}, {"Pw", VARIABLE_PW},
+    {"ncomps", VARIABLE_NCOMPS}, {"dtime", VARIABLE_DTIME}, {"dPdtime", VARIABLE_DPDTIME},
+    {"width", VARIABLE_WIDTH}, {"constantwidth", VARIABLE_CONSTANTWIDTH},
 };
 
 // =========================================================================
@@ -303,10 +303,26 @@ buildVarTable(const IRModule &mod) {
         ++slot2Idx;
     }
 
-    // RSL globals in slot 1
+    // RSL globals in slot 1. Index comes from s_rslGlobals (VARIABLE_*
+    // constants); stride is derived from mod.vars' own SLC_GLOBAL entries via
+    // the same elemSize/stride formula used for parameters/locals above,
+    // since CIRBuilder::addVar() already copies each global CVariable's
+    // SLC_* type flags into IRVarInfo verbatim (research.md D7a) -- no
+    // separate hand-maintained stride table needed.
+    std::unordered_map<std::string, int> globalStrides;
+    for (const IRVarInfo &v : mod.vars) {
+        if (!(v.slcType & SLC_GLOBAL)) continue;
+
+        int elemSize = (v.slcType & SLC_MATRIX) ? 16
+                     : (v.slcType & SLC_VECTOR) ? 3
+                                                 : 1;
+        int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
+        globalStrides[v.symbolName] = stride;
+    }
+
     for (const auto &[name, idx] : s_rslGlobals) {
-        auto strideIt = s_rslGlobalStrides.find(name);
-        int  stride   = (strideIt != s_rslGlobalStrides.end()) ? strideIt->second : 3;
+        auto strideIt = globalStrides.find(name);
+        int  stride   = (strideIt != globalStrides.end()) ? strideIt->second : 3;
         tbl[name] = {1, idx, stride};
     }
 
