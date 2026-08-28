@@ -175,7 +175,7 @@ oracle tests are expected to stay Green.
 
 ### Tests for User Story 2 (write first, confirm Red)
 
-- [ ] T013 [P] [US2] In `src/libshader/tests/test_used_parameters_gating.cpp`,
+- [X] T013 [P] [US2] In `src/libshader/tests/test_used_parameters_gating.cpp`,
   add: (a) a shader calling `trace()` (or `gather`/`occlusion`/
   `visibility`/`transmission`/`indirectdiffuse`) → `PARAMETER_RAYTRACE` set;
   (b) a displacement shader calling `surface()` (or `displacement`/
@@ -183,30 +183,30 @@ oracle tests are expected to stay Green.
   (c) a shader calling only `illuminance()` → `PARAMETER_NONAMBIENT` clear;
   (d) a shader calling `illuminate()`/`solar()` → `PARAMETER_NONAMBIENT`
   set (gating-condition-contract.md rows 3-6). Must fail (Red).
-- [ ] T014 [P] [US2] Same file, add the regression-sensitive case: a shader
+- [X] T014 [P] [US2] Same file, add the regression-sensitive case: a shader
   calling `texture()` with no literal `du`/`dv` token anywhere in source →
   derivative-family bits (`PARAMETER_DERIVATIVE`/`DU`/`DV`/`DPDU`/`DPDV`)
   still set (gating-condition-contract.md row 7, Story 2 AS4). This is the
   case a variable-name-only fix would incorrectly clear.
-- [ ] T015 [P] [US2] In `tests/shading_parity/test_used_parameters_oracle.cpp`,
+- [X] T015 [P] [US2] In `tests/shading_parity/test_used_parameters_oracle.cpp`,
   add fixtures for raytrace, message-passing, non-ambient, and
   derivative-via-builtin, each compiled to both backends and compared
   bit-for-bit (differential-oracle-contract.md; satisfies SC-002 directly).
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] In `src/libshader/compiler/llvmEmitter.cpp`, wire T006's
+- [X] T016 [US2] In `src/libshader/compiler/llvmEmitter.cpp`, wire T006's
   opcode/function table into the same `computeUsedParameters` scan T011
   started: for each `IRInstr` whose opcode/callee name matches the table,
   OR in the corresponding bit(s). This single mechanism must produce
   `PARAMETER_RAYTRACE`/`PARAMETER_MESSAGEPASSING`/correct
   `PARAMETER_NONAMBIENT`/derivative-family bits, subsuming FR-002 through
   FR-005. (depends on T006, T011)
-- [ ] T017 [US2] Delete the now-superseded hand-written `hasNonAmbientOp`
+- [X] T017 [US2] Delete the now-superseded hand-written `hasNonAmbientOp`
   block (current lines ~248-259) — T016's general opcode-table scan
   naturally excludes `illuminance`/`endilluminance` (they carry `params=0`
   in `shaderOpcodes.h`), making the narrow 3-opcode special case dead code.
-- [ ] T018 [US2] Run T013-T015 and T008-T010 together; confirm all pass
+- [X] T018 [US2] Run T013-T015 and T008-T010 together; confirm all pass
   (Green). Confirm no fixture from either story regressed the other.
 
 **Checkpoint**: User Stories 1 AND 2 both pass. `ctest -L libshader` and

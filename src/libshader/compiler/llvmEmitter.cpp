@@ -151,11 +151,19 @@ extern const OpcodeParamEntry kOpcodeParamTable[] = {
 // bit, matching the interpreter's rslo.y:487-490 semantics, which fire on
 // any reference regardless of read/write position.
 //
-// Opcode/function half (kOpcodeParamTable, T013/US2) and the
-// PARAMETER_NONAMBIENT illuminance/illuminate distinction (T016/US2) are
-// intentionally NOT wired in yet — this function currently reproduces only
-// the pre-existing hasNonAmbientOp behavior verbatim, name-match gating
-// fixed, nothing else changed.
+// Opcode/function half (kOpcodeParamTable, T016/US2): for every IRInstr,
+// OR in the bits from EVERY kOpcodeParamTable row whose `text` matches
+// ins.opcode -- not first-match-wins. Multiple DEFFUNC rows can share the
+// same opcode text with different `params` (e.g. texture's 4 overloads in
+// shaderFunctions.h: two carry the derivative-family bits, two don't,
+// distinguished only by argument-count/signature, which the emitter's IR
+// doesn't retain at this point). ORing every matching row is conservative
+// (over-inclusive, never under-inclusive) and needs no signature
+// disambiguation -- this table also naturally supersedes the old
+// hand-written hasNonAmbientOp scan: illuminance/endilluminance carry
+// params=0 in the interpreter's own shaderOpcodes.h, so they're correctly
+// excluded from PARAMETER_NONAMBIENT by construction, while
+// illuminate/solar/endilluminate/endsolar correctly set it.
 // =========================================================================
 unsigned int computeUsedParameters(const IRModule &ir) {
     static const struct { const char *name; unsigned int bit; } kParamBits[] = {
@@ -189,11 +197,19 @@ unsigned int computeUsedParameters(const IRModule &ir) {
     };
 
     unsigned int usedParams = 0;
-    bool hasNonAmbientOp = false;
 
     auto scanToken = [&](const std::string &tok) {
         for (const auto &e : kParamBits) {
             if (tok == e.name) { usedParams |= e.bit; break; }
+        }
+    };
+
+    // OR in bits from every kOpcodeParamTable row whose text matches
+    // ins.opcode -- not first-match-wins, since multiple DEFFUNC rows can
+    // share opcode text with different params (e.g. texture()'s overloads).
+    auto scanOpcode = [&](const std::string &opcode) {
+        for (const OpcodeParamEntry *e = kOpcodeParamTable; e->text != nullptr; ++e) {
+            if (opcode == e->text) usedParams |= e->params;
         }
     };
 
@@ -205,18 +221,10 @@ unsigned int computeUsedParameters(const IRModule &ir) {
                     if (op.isLiteral() || op.isQuoted() || op.isLabel()) continue;
                     scanToken(op.token);
                 }
-                // PARAMETER_NONAMBIENT (bit 30): set only when the shader uses
-                // illuminate/solar/illuminance. An ambient light shader does
-                // NOT use these opcodes and must NOT have this bit set.
-                if (ins.opcode == "illuminate" || ins.opcode == "solar" ||
-                    ins.opcode == "illuminance")
-                    hasNonAmbientOp = true;
+                scanOpcode(ins.opcode);
             }
         }
     }
-
-    if (hasNonAmbientOp)
-        usedParams |= (1u << 30); // PARAMETER_NONAMBIENT
 
     return usedParams;
 }

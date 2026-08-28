@@ -33,11 +33,19 @@ static int g_failed = 0;
     else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
 } while (0)
 
-// PARAMETER_CI/PARAMETER_OI bit values, re-stated verbatim from
-// src/ri/rendererc.h:191-192 (not included here -- this target is
-// compiler-only per gating-condition-contract.md, no src/ri dependency).
+// PARAMETER_* bit values, re-stated verbatim from src/ri/rendererc.h
+// (not included here -- this target is compiler-only per
+// gating-condition-contract.md, no src/ri dependency).
 static const unsigned int PARAMETER_CI = 1u << 18;
 static const unsigned int PARAMETER_OI = 1u << 19;
+static const unsigned int PARAMETER_DERIVATIVE = 1u << 14;
+static const unsigned int PARAMETER_DU = (1u << 4) | PARAMETER_DERIVATIVE;
+static const unsigned int PARAMETER_DV = (1u << 5) | PARAMETER_DERIVATIVE;
+static const unsigned int PARAMETER_DPDU = 1u << 12;
+static const unsigned int PARAMETER_DPDV = 1u << 13;
+static const unsigned int PARAMETER_RAYTRACE = 1u << 29;
+static const unsigned int PARAMETER_NONAMBIENT = 1u << 30;
+static const unsigned int PARAMETER_MESSAGEPASSING = 1u << 31;
 
 // ---------------------------------------------------------------------------
 // Helper: compile RSL source via the real oshader --jit front-end/IR-building
@@ -125,10 +133,176 @@ static void test_explicit_ci_oi_assignment_sets_bits() {
     EXPECT_TRUE((params & PARAMETER_OI) != 0);
 }
 
+// ---------------------------------------------------------------------------
+// T013(a): a shader calling trace() must set PARAMETER_RAYTRACE
+// (gating-condition-contract.md row 3).
+// ---------------------------------------------------------------------------
+static void test_raytrace_call_sets_bit() {
+    printf("T013a: shader calling trace() -> PARAMETER_RAYTRACE set\n");
+
+    const char *src =
+        "surface test_raytrace(\n"
+        "    float dummy = 1.0\n"
+        ") {\n"
+        "    color C = trace(P, I);\n"
+        "    Ci = C * dummy;\n"
+        "    Oi = Os;\n"
+        "}\n";
+
+    const char *out = "/tmp/test_raytrace.slo";
+    remove(out);
+
+    std::unique_ptr<IRModule> ir = compileToIR(src, out);
+    remove(out);
+
+    EXPECT_TRUE(ir != nullptr);
+    if (!ir) return;
+
+    unsigned int params = computeUsedParameters(*ir);
+    EXPECT_TRUE((params & PARAMETER_RAYTRACE) != 0);
+}
+
+// ---------------------------------------------------------------------------
+// T013(b): a displacement shader calling surface() (message passing) must
+// set PARAMETER_MESSAGEPASSING (gating-condition-contract.md row 4).
+// ---------------------------------------------------------------------------
+static void test_messagepassing_call_sets_bit() {
+    printf("T013b: displacement calling surface() -> PARAMETER_MESSAGEPASSING set\n");
+
+    const char *src =
+        "displacement test_msgpass(\n"
+        "    float dummy = 1.0\n"
+        ") {\n"
+        "    float val = 0;\n"
+        "    float found = surface(\"Kd\", val);\n"
+        "    P += N * (dummy * 0 * found);\n"
+        "}\n";
+
+    const char *out = "/tmp/test_msgpass.slo";
+    remove(out);
+
+    std::unique_ptr<IRModule> ir = compileToIR(src, out);
+    remove(out);
+
+    EXPECT_TRUE(ir != nullptr);
+    if (!ir) return;
+
+    unsigned int params = computeUsedParameters(*ir);
+    EXPECT_TRUE((params & PARAMETER_MESSAGEPASSING) != 0);
+}
+
+// ---------------------------------------------------------------------------
+// T013(c): a shader calling only illuminance() (ambient light-loop query,
+// no illuminate()/solar()) must leave PARAMETER_NONAMBIENT clear
+// (gating-condition-contract.md row 5).
+// ---------------------------------------------------------------------------
+static void test_illuminance_only_clears_nonambient() {
+    printf("T013c: surface calling only illuminance() -> PARAMETER_NONAMBIENT clear\n");
+
+    const char *src =
+        "surface test_illuminance_only(\n"
+        "    float dummy = 1.0\n"
+        ") {\n"
+        "    color C = 0;\n"
+        "    illuminance(P, N, PI/2) {\n"
+        "        C += Cl;\n"
+        "    }\n"
+        "    Ci = C * dummy;\n"
+        "    Oi = Os;\n"
+        "}\n";
+
+    const char *out = "/tmp/test_illuminance_only.slo";
+    remove(out);
+
+    std::unique_ptr<IRModule> ir = compileToIR(src, out);
+    remove(out);
+
+    EXPECT_TRUE(ir != nullptr);
+    if (!ir) return;
+
+    unsigned int params = computeUsedParameters(*ir);
+    EXPECT_TRUE((params & PARAMETER_NONAMBIENT) == 0);
+}
+
+// ---------------------------------------------------------------------------
+// T013(d): a light shader calling illuminate() must set PARAMETER_NONAMBIENT
+// (gating-condition-contract.md row 6).
+// ---------------------------------------------------------------------------
+static void test_illuminate_sets_nonambient() {
+    printf("T013d: light calling illuminate() -> PARAMETER_NONAMBIENT set\n");
+
+    const char *src =
+        "light test_illuminate_nonambient(\n"
+        "    float intensity = 1.0\n"
+        ") {\n"
+        "    illuminate(P) {\n"
+        "        Cl = intensity;\n"
+        "    }\n"
+        "}\n";
+
+    const char *out = "/tmp/test_illuminate_nonambient.slo";
+    remove(out);
+
+    std::unique_ptr<IRModule> ir = compileToIR(src, out);
+    remove(out);
+
+    EXPECT_TRUE(ir != nullptr);
+    if (!ir) return;
+
+    unsigned int params = computeUsedParameters(*ir);
+    EXPECT_TRUE((params & PARAMETER_NONAMBIENT) != 0);
+}
+
+// ---------------------------------------------------------------------------
+// T014: regression-sensitive case -- a shader calling texture() with no
+// literal du/dv token anywhere in source must still set the derivative-
+// family bits (gating-condition-contract.md row 7, Story 2 AS4). This is
+// the case a variable-name-only fix would incorrectly clear: texture()
+// carries the derivative bits by virtue of the *opcode*, not because the
+// source text mentions "du"/"dv".
+// ---------------------------------------------------------------------------
+static void test_derivative_via_builtin_no_literal_tokens() {
+    printf("T014: texture() with no literal du/dv token -> derivative bits still set\n");
+
+    const char *src =
+        "surface test_derivative_via_texture(\n"
+        "    string texturename = \"\";\n"
+        "    float scale = 1.0\n"
+        ") {\n"
+        "    color C = texture(texturename);\n"
+        "    Ci = C * scale;\n"
+        "    Oi = Os;\n"
+        "}\n";
+
+    EXPECT_TRUE(strstr(src, "du") == nullptr);
+    EXPECT_TRUE(strstr(src, "dv") == nullptr);
+
+    const char *out = "/tmp/test_derivative_via_texture.slo";
+    remove(out);
+
+    std::unique_ptr<IRModule> ir = compileToIR(src, out);
+    remove(out);
+
+    EXPECT_TRUE(ir != nullptr);
+    if (!ir) return;
+
+    unsigned int params = computeUsedParameters(*ir);
+    EXPECT_TRUE((params & PARAMETER_DERIVATIVE) != 0);
+    EXPECT_TRUE((params & PARAMETER_DU) != 0);
+    EXPECT_TRUE((params & PARAMETER_DV) != 0);
+    EXPECT_TRUE((params & PARAMETER_DPDU) != 0);
+    EXPECT_TRUE((params & PARAMETER_DPDV) != 0);
+}
+
 int main() {
     LOG_SET_LEVEL(LOG_LEVEL_NONE);
     test_no_ci_oi_assignment_clears_bits();
     test_explicit_ci_oi_assignment_sets_bits();
+    test_raytrace_call_sets_bit();
+    test_messagepassing_call_sets_bit();
+    test_illuminance_only_clears_nonambient();
+    test_illuminate_sets_nonambient();
+    test_derivative_via_builtin_no_literal_tokens();
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;
 }
