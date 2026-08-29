@@ -121,7 +121,7 @@ CAttributes::CAttributes() {
     shadingModel = SM_MATTE;
 
     shaderFormat = nullptr; // No per-object override; falls through to option/compile-time default
-    blobbyTolerance = 0;    // Unset: derive the cell size from the field extent (FR-025)
+    blobbyTolerance = -1;   // Unset: derive the cell size from the field extent (FR-025)
 
     globalMapName = NULL;
     causticMapName = NULL;

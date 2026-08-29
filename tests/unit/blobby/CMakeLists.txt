@@ -20,3 +20,16 @@ endmacro()
 
 add_blobby_test(test_blobby_code_validation      test_code_validation.cpp      Blobby_CodeValidation)
 add_blobby_test(test_blobby_extent               test_extent.cpp               Blobby_Extent)
+add_blobby_test(test_blobby_field_primitives      test_field_primitives.cpp     Blobby_FieldPrimitives)
+add_blobby_test(test_blobby_field_combining      test_field_combining.cpp      Blobby_FieldCombining)
+add_blobby_test(test_blobby_threshold            test_threshold_calibration.cpp Blobby_ThresholdCalibration)
+add_blobby_test(test_blobby_polygonize_analytic  test_polygonize_analytic.cpp  Blobby_PolygonizeAnalytic)
+add_blobby_test(test_blobby_polygonize_watertight test_polygonize_watertight.cpp Blobby_PolygonizeWatertight)
+add_blobby_test(test_blobby_determinism          test_determinism.cpp          Blobby_Determinism)
+
+# Emission tests drive the real RI entry points, so they need the shader and
+# home paths the renderer resolves at RiBegin, exactly as tests/unit/csg's
+# context-driven tests do.
+add_blobby_test(test_blobby_surface_params       test_surface_params.cpp       Blobby_SurfaceParams)
+set_tests_properties(Blobby_SurfaceParams PROPERTIES
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")

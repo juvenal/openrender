@@ -217,6 +217,12 @@ class CBlobbyProgram {
         // TRUE when at least one primitive field bounds the extent.
         int hasBoundedExtent() const { return extentValid; }
 
+        // The smallest half-extent of any single bounded primitive field,
+        // or zero when there is none. A bounding box says nothing about how
+        // thin the surface inside it is, so this is what the default cell
+        // size uses to avoid under-resolving a long thin shape (FR-025).
+        float getSmallestFieldSize() const { return smallestField; }
+
         // Object-space centre of primitive field `leaf`, used to seed the
         // extraction walk. Returns FALSE for fields with no natural centre
         // (constant, repeller), which contribute no seed.
@@ -244,6 +250,7 @@ class CBlobbyProgram {
         int extentValid;
         float extentMin[3];
         float extentMax[3];
+        float smallestField;
 
         // One per opcode-1003 instruction, indexed by instruction number
         // (NULL for every other instruction).

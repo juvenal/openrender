@@ -176,10 +176,13 @@ class CAttributes : public CRefCounter {
 
         char *shaderFormat;            // "slo" or "rslo" shader format preference
 
-        // Blobby implicit-surface fidelity (spec 015, FR-025). Zero or
-        // negative means "unset", in which case the cell size is derived
-        // from the primitive's own field extent -- so a scene that never
-        // sets it still renders smoothly at typical framing.
+        // Blobby implicit-surface fidelity (spec 015, FR-025). Negative
+        // means "never set", in which case the cell size is derived from
+        // the primitive's own field extent, so a scene that never sets it
+        // still renders smoothly at typical framing. Zero is deliberately
+        // *not* the unset marker: an author who writes 0 explicitly gets a
+        // diagnostic, which a zero default would make impossible to tell
+        // apart from silence.
         float blobbyTolerance;
 
         char *globalMapName;              // The name of the global photon map

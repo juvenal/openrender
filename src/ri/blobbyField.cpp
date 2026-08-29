@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "blobbyRepeller.h"
+#include "atomic.h"
 #include "error.h"
 #include "stats.h"
 
@@ -40,6 +41,11 @@
 #define BLOBBY_WIDTH_ELLIPSOID 16
 #define BLOBBY_WIDTH_SEGMENT 23
 #define BLOBBY_WIDTH_REPELLER 4
+
+// Below this magnitude a divisor counts as zero. A blobby field is exactly
+// zero outside its own support, so this guard has to hold over regions, not
+// merely at isolated points.
+#define BLOBBY_DIVIDE_EPSILON 1e-6f
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	blobbyBump
@@ -116,6 +122,7 @@ CBlobbyProgram::CBlobbyProgram(int nleaf, int ncode, const int *code, int nf, co
     valid = TRUE;
     unbounded = FALSE;
     extentValid = FALSE;
+    smallestField = 0;
     repellers = NULL;
     inverses = NULL;
     singular = NULL;
@@ -439,6 +446,7 @@ void CBlobbyProgram::resolveOpcodeOrder() {
 void CBlobbyProgram::computeExtent() {
     extentValid = FALSE;
     unbounded = FALSE;
+    smallestField = 0;
 
     for (int i = 0; i < numInstructions; i++) {
         const CBlobbyInstruction *instruction = instructions + i;
@@ -499,6 +507,22 @@ void CBlobbyProgram::computeExtent() {
             addBox(extentMin, extentMax, bmin);
             addBox(extentMin, extentMax, bmax);
         }
+
+        // The thinnest direction of this field's own box: for a segment
+        // that is its radius, for a squashed ellipsoid its shortest
+        // semi-axis. Taking the minimum over fields gives the finest
+        // feature the surface can have.
+        float thinnest = (bmax[0] - bmin[0]) * 0.5f;
+
+        for (int k = 1; k < 3; k++) {
+            const float half = (bmax[k] - bmin[k]) * 0.5f;
+
+            if (half < thinnest)
+                thinnest = half;
+        }
+
+        if (thinnest > 0 && (smallestField <= 0 || thinnest < smallestField))
+            smallestField = thinnest;
     }
 }
 
@@ -580,14 +604,510 @@ float CBlobbyProgram::evaluateWeights(const float *P, float *gradient, float *le
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CBlobbyProgram
-// Method				:	evaluateInternal
-// Description			:	One walk of the code array (T029-T030, T044-T046,
-//							T052-T053, T059)
+// Primitive-field evaluation
 ///////////////////////////////////////////////////////////////////////
-float CBlobbyProgram::evaluateInternal(const float *, float *gradient, float *) const {
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	evaluateEllipsoid
+// Description			:	Opcode 1001: the spherical bump taken in the
+//							space the instruction's 4x4 carries the unit
+//							sphere out of.
+// Comments				:	The point is carried back through the inverse
+//							and the gradient chains forward through that
+//							same inverse's transpose. A singular matrix has
+//							no inverse, so the field simply contributes
+//							nothing rather than being an error.
+///////////////////////////////////////////////////////////////////////
+static float evaluateEllipsoid(const float *Minv, const float *P, float *gradient) {
+    vector q;
+
+    mulmp(q, Minv, P);
+
+    const float r2 = dotvv(q, q);
+    const float value = blobbyBump(r2);
+
+    if (gradient != NULL) {
+        const float scale = 2 * blobbyBumpDerivative(r2);
+        vector dq;
+
+        initv(dq, scale * q[0], scale * q[1], scale * q[2]);
+        chainGradient(Minv, dq, gradient);
+    }
+
+    return value;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	evaluateSegment
+// Description			:	Opcode 1002: the convolution of a segment
+//							impulse with the same spherical bump.
+// Comments				:	A convolution rather than a bump of the
+//							distance to the segment, and that is not a
+//							stylistic choice. Segments laid end to end and
+//							*summed* must reconstruct exactly the field of
+//							the single longer segment, or every joint
+//							bulges -- and AppNote #31's own 480-segment
+//							spiral does precisely that, sharing endpoints
+//							and combining them with opcode 0. A distance
+//							bump would give roughly double the field at a
+//							joint.
+//
+//							In the segment's own space, with the point at
+//							axial coordinate s and perpendicular distance
+//							h, substituting u = (t - s)/r turns the
+//							integral into a polynomial in u over the
+//							intersection of the segment and the kernel:
+//
+//							  F = [G(u)]/N, G(u) = k^6 u - k^4 u^3
+//							                     + 3/5 k^2 u^5 - u^7/7
+//							  k^2 = 1 - (h/r)^2
+//
+//							Differentiating under the integral with the
+//							*t* limits held fixed -- they are 0 and L,
+//							independent of the point -- avoids any boundary
+//							term and gives the gradient in closed form too.
+///////////////////////////////////////////////////////////////////////
+static float evaluateSegment(const float *Minv, const float *base, const float *P, float *gradient) {
+    const float *a = base;
+    const float *b = base + 3;
+    const float radius = base[6];
+    vector q;
+
     if (gradient != NULL)
         initv(gradient, 0);
 
-    return 0;
+    if (radius <= 0)
+        return 0;
+
+    mulmp(q, Minv, P);
+
+    vector axis;
+    subvv(axis, b, a);
+
+    const float length = sqrtf(dotvv(axis, axis));
+    vector w;
+
+    subvv(w, q, a);
+
+    // A zero-length segment is a deliberate special case, not a limit: the
+    // convolution integral vanishes with the length, so the limit would be
+    // an empty field, while the useful behaviour -- and the one the spec
+    // asks for -- is a sphere of the declared radius (US3 scenario 3). The
+    // field is therefore discontinuous in length at exactly zero.
+    if (length < C_EPSILON) {
+        const float inv2 = 1 / (radius * radius);
+        const float r2 = dotvv(w, w) * inv2;
+        const float value = blobbyBump(r2);
+
+        if (gradient != NULL) {
+            const float scale = 2 * inv2 * blobbyBumpDerivative(r2);
+            vector dq;
+
+            initv(dq, scale * w[0], scale * w[1], scale * w[2]);
+            chainGradient(Minv, dq, gradient);
+        }
+
+        return value;
+    }
+
+    vector e;
+    const float invLength = 1 / length;
+
+    initv(e, axis[0] * invLength, axis[1] * invLength, axis[2] * invLength);
+
+    const float s = dotvv(w, e);
+    float h2 = dotvv(w, w) - s * s;
+
+    if (h2 < 0)
+        h2 = 0;
+
+    const float k2 = 1 - h2 / (radius * radius);
+
+    if (k2 <= 0)
+        return 0;
+
+    const float k = sqrtf(k2);
+    const float invRadius = 1 / radius;
+    float u0 = -s * invRadius;
+    float u1 = (length - s) * invRadius;
+
+    if (u0 < -k)
+        u0 = -k;
+    if (u1 > k)
+        u1 = k;
+
+    if (u1 <= u0)
+        return 0;
+
+    const float k4 = k2 * k2;
+    const float k6 = k4 * k2;
+
+#define BLOBBY_SEGMENT_G(__u) (k6 * (__u) - k4 * (__u) * (__u) * (__u) + 0.6f * k2 * powf(__u, 5) - powf(__u, 7) / 7)
+#define BLOBBY_SEGMENT_A(__u) (k4 * (__u) - (2.0f / 3.0f) * k2 * (__u) * (__u) * (__u) + powf(__u, 5) / 5)
+#define BLOBBY_SEGMENT_B(__u) (-(k2 - (__u) * (__u)) * (k2 - (__u) * (__u)) * (k2 - (__u) * (__u)) / 6)
+
+    const float value = (BLOBBY_SEGMENT_G(u1) - BLOBBY_SEGMENT_G(u0)) / BLOBBY_SEGMENT_NORM;
+
+    if (gradient != NULL) {
+        const float dA = BLOBBY_SEGMENT_A(u1) - BLOBBY_SEGMENT_A(u0);
+        const float dB = BLOBBY_SEGMENT_B(u1) - BLOBBY_SEGMENT_B(u0);
+        const float scale = -6 / (BLOBBY_SEGMENT_NORM * radius * radius);
+        vector dq;
+
+        for (int i = 0; i < 3; i++) {
+            const float perpendicular = w[i] - s * e[i];
+
+            dq[i] = scale * (perpendicular * dA - radius * e[i] * dB);
+        }
+
+        chainGradient(Minv, dq, gradient);
+    }
+
+#undef BLOBBY_SEGMENT_G
+#undef BLOBBY_SEGMENT_A
+#undef BLOBBY_SEGMENT_B
+
+    return value;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Value blending
+//
+// Weights propagate up the code array alongside the field, in the same
+// walk, because that is the only reading under which value blending and
+// shape blending agree everywhere. A flat average weighted by field
+// strength would bleed one finger's colour onto its neighbour in the
+// reference hand, where two fingers overlap in *field* while the max that
+// combines them means they do not overlap in *surface* (research
+// Decision 6, US4 scenario 4).
+//
+// The contribution measure is max(value, 0) rather than the raw value: a
+// negated or subtracted operand can be negative, and a raw-value
+// apportionment would then produce weights outside [0,1] or blow up where
+// the operands cancel. Clamping keeps the weights a partition of unity and
+// stays continuous, since max(v,0) is.
+///////////////////////////////////////////////////////////////////////
+#define BLOBBY_WEIGHT_EPSILON 1e-12f
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBlobbyProgram
+// Method				:	evaluateInternal
+// Description			:	One walk of the code array
+// Comments				:	Not re-entrant: the per-instruction scratch
+//							buffers are members, sized once at
+//							construction, so evaluation allocates nothing
+//							per call. Extraction is single-threaded by
+//							design (research Decision 3), which is what
+//							makes that safe -- and the same decision is
+//							what makes extraction deterministic, so the two
+//							are not independent choices.
+///////////////////////////////////////////////////////////////////////
+float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *leafWeights) const {
+    if (gradient != NULL)
+        initv(gradient, 0);
+
+    if (!valid || numInstructions == 0) {
+        if (leafWeights != NULL) {
+            for (int i = 0; i < numLeaves; i++)
+                leafWeights[i] = 0;
+        }
+        return 0;
+    }
+
+    atomicIncrement(&stats.numBlobbyFieldEvals);
+
+    if (leafWeights != NULL && scratchWeights == NULL && numLeaves > 0)
+        scratchWeights = new float[numInstructions * numLeaves];
+
+    const int wantWeights = (leafWeights != NULL) && (scratchWeights != NULL) && (numLeaves > 0);
+
+#define BLOBBY_VALUE(__i) scratchValue[__i]
+#define BLOBBY_GRADIENT(__i) (scratchGradient + 3 * (__i))
+#define BLOBBY_WEIGHTS(__i) (scratchWeights + numLeaves * (__i))
+
+    for (int i = 0; i < numInstructions; i++) {
+        const CBlobbyInstruction *instruction = instructions + i;
+        float *value = scratchValue + i;
+        float *grad = BLOBBY_GRADIENT(i);
+        float *weights = wantWeights ? BLOBBY_WEIGHTS(i) : NULL;
+
+        if (weights != NULL) {
+            for (int k = 0; k < numLeaves; k++)
+                weights[k] = 0;
+        }
+
+        if (instruction->opcode >= 1000) {
+            switch (instruction->opcode) {
+                case BLOBBY_OP_CONSTANT:
+                    *value = floats[instruction->operands[0]];
+                    initv(grad, 0);
+                    break;
+
+                case BLOBBY_OP_ELLIPSOID:
+                    if (singular[i]) {
+                        *value = 0;
+                        initv(grad, 0);
+                    }
+                    else {
+                        *value = evaluateEllipsoid(inverses + 16 * i, P, grad);
+                    }
+                    break;
+
+                case BLOBBY_OP_SEGMENT:
+                    if (singular[i]) {
+                        *value = 0;
+                        initv(grad, 0);
+                    }
+                    else {
+                        *value = evaluateSegment(inverses + 16 * i, floats + instruction->operands[0], P, grad);
+                    }
+                    break;
+
+                default: // BLOBBY_OP_REPELLER
+                    if (repellers[i] != NULL) {
+                        *value = repellers[i]->evaluate(P, grad);
+                    }
+                    else {
+                        *value = 0;
+                        initv(grad, 0);
+                    }
+                    break;
+            }
+
+            if (weights != NULL && instruction->leafIndex >= 0)
+                weights[instruction->leafIndex] = 1;
+
+            continue;
+        }
+
+        const int *operands = instruction->operands;
+        const int count = instruction->numOperands;
+
+        switch (instruction->resolvedOp) {
+            case BLOBBY_OP_ADD:
+            case BLOBBY_OP_MULTIPLY: {
+                const int isAdd = (instruction->resolvedOp == BLOBBY_OP_ADD);
+                float total = isAdd ? 0.0f : 1.0f;
+
+                initv(grad, 0);
+
+                if (isAdd) {
+                    for (int k = 0; k < count; k++) {
+                        const float *g = BLOBBY_GRADIENT(operands[k]);
+
+                        total += BLOBBY_VALUE(operands[k]);
+
+                        for (int c = 0; c < 3; c++)
+                            grad[c] += g[c];
+                    }
+                }
+                else {
+                    // Product rule: the k-th term is that operand's own
+                    // gradient scaled by the product of all the others.
+                    for (int k = 0; k < count; k++)
+                        total *= BLOBBY_VALUE(operands[k]);
+
+                    for (int k = 0; k < count; k++) {
+                        const float *g = BLOBBY_GRADIENT(operands[k]);
+                        float others = 1;
+
+                        for (int j = 0; j < count; j++) {
+                            if (j != k)
+                                others *= BLOBBY_VALUE(operands[j]);
+                        }
+
+                        for (int c = 0; c < 3; c++)
+                            grad[c] += others * g[c];
+                    }
+                }
+
+                *value = total;
+
+                if (weights != NULL) {
+                    float denominator = 0;
+
+                    for (int k = 0; k < count; k++) {
+                        const float contribution = BLOBBY_VALUE(operands[k]);
+
+                        if (contribution > 0)
+                            denominator += contribution;
+                    }
+
+                    if (denominator > BLOBBY_WEIGHT_EPSILON) {
+                        for (int k = 0; k < count; k++) {
+                            const float contribution = BLOBBY_VALUE(operands[k]);
+
+                            if (contribution <= 0)
+                                continue;
+
+                            const float share = contribution / denominator;
+                            const float *source = BLOBBY_WEIGHTS(operands[k]);
+
+                            for (int c = 0; c < numLeaves; c++)
+                                weights[c] += share * source[c];
+                        }
+                    }
+                    else {
+                        // FR-019a: where every contributing operand
+                        // evaluates to zero there is no meaningful
+                        // proportion, so split equally. Continuous, because
+                        // it is only reached as every contribution goes to
+                        // zero together.
+                        const float share = 1.0f / (float)count;
+
+                        for (int k = 0; k < count; k++) {
+                            const float *source = BLOBBY_WEIGHTS(operands[k]);
+
+                            for (int c = 0; c < numLeaves; c++)
+                                weights[c] += share * source[c];
+                        }
+                    }
+                }
+                break;
+            }
+
+            case BLOBBY_OP_MAXIMUM:
+            case BLOBBY_OP_MINIMUM: {
+                const int wantMax = (instruction->resolvedOp == BLOBBY_OP_MAXIMUM);
+                int winner = operands[0];
+
+                // Strict comparison, so the first operand wins a tie. The
+                // gradient is genuinely discontinuous along the seam where
+                // two operands are equal -- that crease is what makes an
+                // unblended union look unblended -- so what matters is not
+                // smoothness but that the value and the gradient come from
+                // the *same* operand (research Decision 4).
+                for (int k = 1; k < count; k++) {
+                    const float candidate = BLOBBY_VALUE(operands[k]);
+                    const float current = BLOBBY_VALUE(winner);
+
+                    if (wantMax ? (candidate > current) : (candidate < current))
+                        winner = operands[k];
+                }
+
+                *value = BLOBBY_VALUE(winner);
+                movvv(grad, BLOBBY_GRADIENT(winner));
+
+                if (weights != NULL) {
+                    const float *source = BLOBBY_WEIGHTS(winner);
+
+                    for (int c = 0; c < numLeaves; c++)
+                        weights[c] = source[c];
+                }
+                break;
+            }
+
+            case BLOBBY_RESOLVED_SUBTRACT: {
+                // operand0 - operand1. Both primary sources name these
+                // "subtrahend, minuend", which reads the other way round;
+                // AppNote #31's own dent.rib subtracts a small blob
+                // (operand 1) from a large one (operand 0) and its figure
+                // shows the large blob cratered, so the naming is a shared
+                // documentation slip (blobbyField.h).
+                const float *ga = BLOBBY_GRADIENT(operands[0]);
+                const float *gb = BLOBBY_GRADIENT(operands[1]);
+
+                *value = BLOBBY_VALUE(operands[0]) - BLOBBY_VALUE(operands[1]);
+
+                for (int c = 0; c < 3; c++)
+                    grad[c] = ga[c] - gb[c];
+
+                // The subtrahend carves the surface away; it contributes no
+                // shading values to what remains (US4 scenario 5).
+                if (weights != NULL) {
+                    const float *source = BLOBBY_WEIGHTS(operands[0]);
+
+                    for (int c = 0; c < numLeaves; c++)
+                        weights[c] = source[c];
+                }
+                break;
+            }
+
+            case BLOBBY_RESOLVED_DIVIDE: {
+                const float numerator = BLOBBY_VALUE(operands[0]);
+                const float divisor = BLOBBY_VALUE(operands[1]);
+
+                if (divisor > -BLOBBY_DIVIDE_EPSILON && divisor < BLOBBY_DIVIDE_EPSILON) {
+                    // A blobby field is exactly zero outside its own
+                    // support, so a divisor vanishes over whole regions
+                    // rather than at isolated points. Returning zero there
+                    // keeps the result defined and finite (FR-029); it is a
+                    // discontinuity, but the alternative is an infinity
+                    // that would propagate into every vertex position
+                    // downstream of it.
+                    *value = 0;
+                    initv(grad, 0);
+                }
+                else {
+                    const float *ga = BLOBBY_GRADIENT(operands[0]);
+                    const float *gb = BLOBBY_GRADIENT(operands[1]);
+                    const float inv = 1 / divisor;
+
+                    *value = numerator * inv;
+
+                    for (int c = 0; c < 3; c++)
+                        grad[c] = (ga[c] * divisor - numerator * gb[c]) * inv * inv;
+                }
+
+                if (weights != NULL) {
+                    const float *source = BLOBBY_WEIGHTS(operands[0]);
+
+                    for (int c = 0; c < numLeaves; c++)
+                        weights[c] = source[c];
+                }
+                break;
+            }
+
+            case BLOBBY_OP_NEGATE: {
+                const float *ga = BLOBBY_GRADIENT(operands[0]);
+
+                *value = -BLOBBY_VALUE(operands[0]);
+
+                for (int c = 0; c < 3; c++)
+                    grad[c] = -ga[c];
+
+                // A negated operand contributes no values: it exists to
+                // remove field, not to colour what is left.
+                break;
+            }
+
+            default: { // BLOBBY_OP_IDENTITY
+                *value = BLOBBY_VALUE(operands[0]);
+                movvv(grad, BLOBBY_GRADIENT(operands[0]));
+
+                if (weights != NULL) {
+                    const float *source = BLOBBY_WEIGHTS(operands[0]);
+
+                    for (int c = 0; c < numLeaves; c++)
+                        weights[c] = source[c];
+                }
+                break;
+            }
+        }
+    }
+
+    // The last instruction's result is the primitive's field.
+    const int last = numInstructions - 1;
+
+    if (gradient != NULL)
+        movvv(gradient, BLOBBY_GRADIENT(last));
+
+    if (leafWeights != NULL) {
+        if (wantWeights) {
+            const float *source = BLOBBY_WEIGHTS(last);
+
+            for (int c = 0; c < numLeaves; c++)
+                leafWeights[c] = source[c];
+        }
+        else {
+            for (int c = 0; c < numLeaves; c++)
+                leafWeights[c] = 0;
+        }
+    }
+
+    return BLOBBY_VALUE(last);
+
+#undef BLOBBY_VALUE
+#undef BLOBBY_GRADIENT
+#undef BLOBBY_WEIGHTS
 }
