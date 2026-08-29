@@ -1,10 +1,13 @@
 ##RenderMan RIB-Structure 1.0
-# A blobby entirely outside the frustum. It is built and handed to addObject() like any other primitive and discarded by the renderer's ordinary bounding-box culling -- no error, no visible geometry, and nothing blobby-specific in the culling path. US1 scenario 5, FR-028.
+# A blobby entirely outside the frustum. It is built and handed to
+# addObject() like any other primitive and discarded by the renderer's
+# ordinary bounding-box culling -- no error, no visible geometry, and
+# nothing blobby-specific in the culling path. US1 scenario 5, FR-028.
 #
-# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider;
-# the same three files serve both the visual registrations (each hider
-# against its own frozen reference) and the parity registrations (the
-# hiders against each other).
+# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider; the
+# same three files serve both the visual registrations (each hider against
+# its own frozen reference) and the parity registrations (the hiders against
+# each other).
 version 3.03
 Hider "zbuffer"
 Display "blobby-offscreen-zbuffer.tif" "file" "rgba"

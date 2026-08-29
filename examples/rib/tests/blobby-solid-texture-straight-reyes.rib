@@ -1,8 +1,11 @@
 ##RenderMan RIB-Structure 1.0
-# Three blobs in a straight chain under a solid stripe pattern read in a per-blob reference space (`vertex mpoint Pref`). Each blob's reference matrix places it at its rest position in a space the three share, so the stripes run continuously along the chain.
+# Three blobs in a straight chain under a solid stripe pattern read in a
+# per-blob reference space (`vertex mpoint Pref`). Each blob's reference
+# matrix places it at its rest position in a space the three share, so the
+# stripes run continuously along the chain.
 #
-# Spec 015-blobby-implicit-surfaces, T071. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T071. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-solid-texture-straight-reyes.tif" "file" "rgba"

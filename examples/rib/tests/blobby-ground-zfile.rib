@@ -6,8 +6,7 @@
 # regenerated from something readable rather than being a binary blob with
 # no provenance:
 #
-#   cd examples/rib/tests
-#   orender blobby-ground-zfile.rib
+#   cd examples/rib/tests   orender blobby-ground-zfile.rib
 #
 # The ground is a ridged surface built from bilinear patches -- irregular
 # enough that the repeller has something to follow, and coarse enough that

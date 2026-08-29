@@ -1,10 +1,15 @@
 ##RenderMan RIB-Structure 1.0
-# The 0.8-apart pair -- identical geometry to blobby-blend-merged -- combined by maximum instead of add, which is exactly the contrast AppNote #31's blend.rib draws. max(a,b) <= a+b, so the surface is the union of the two spheres at their lone-blob radius: they intersect and touch, but neither swells into the other, and the intersection circle is a visible crease. US1 scenario 3.
+# The 0.8-apart pair -- identical geometry to blobby-blend-merged --
+# combined by maximum instead of add, which is exactly the contrast AppNote
+# #31's blend.rib draws. max(a,b) <= a+b, so the surface is the union of the
+# two spheres at their lone-blob radius: they intersect and touch, but
+# neither swells into the other, and the intersection circle is a visible
+# crease. US1 scenario 3.
 #
-# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider;
-# the same three files serve both the visual registrations (each hider
-# against its own frozen reference) and the parity registrations (the
-# hiders against each other).
+# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider; the
+# same three files serve both the visual registrations (each hider against
+# its own frozen reference) and the parity registrations (the hiders against
+# each other).
 version 3.03
 Hider "raytrace"
 Display "blobby-max-union-raytrace.tif" "file" "rgba"

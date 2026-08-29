@@ -1,0 +1,48 @@
+##RenderMan RIB-Structure 1.0
+# One blobby declaration inside ObjectBegin/ObjectEnd, instantiated twice at
+# different transforms and scales. This is what the retained CXform in
+# blobbyCreate exists to make work: the mesh keeps its vertices in the
+# primitive's own object space rather than baking them to world, so each
+# instance resolves at its own transform like any other geometry, with no
+# special-casing (Edge Case 13).
+#
+# Spec 015-blobby-implicit-surfaces, T095. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "reyes"
+Display "blobby-object-instance-reyes.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.2]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.72 0.74 0.85]
+    Surface "matte"
+    ShadingInterpolation "smooth"
+    ObjectBegin 1
+        Attribute "blobby" "float tolerance" [ 0.04 ]
+        Blobby 2 [
+            1001 0
+            1001 16
+            0 2 0 1
+        ] [
+            1 0 0 0  0 1 0 0  0 0 1 0  -0.35 0 0 1
+            1 0 0 0  0 1 0 0  0 0 1 0   0.35 0 0 1
+        ] [ "" ]
+    ObjectEnd
+
+    TransformBegin
+        Translate -1.1 0.35 0
+        Rotate 25 0 0 1
+        ObjectInstance 1
+    TransformEnd
+
+    TransformBegin
+        Translate 1.2 -0.35 0
+        Rotate -40 0 0 1
+        Scale 0.6 0.6 0.6
+        ObjectInstance 1
+    TransformEnd
+WorldEnd

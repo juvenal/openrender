@@ -1,0 +1,45 @@
+##RenderMan RIB-Structure 1.0
+# A blobby used as a CSG operand: a blended pair with a sphere subtracted
+# from it. This needed no integration code at all -- addObject() already
+# chains into currentSolid->leafObjects when a solid block is open, and
+# csgTessellateOperand already handles a CPolygonMesh leaf. What it really
+# tests is that the extracted mesh is watertight, because BSP boolean
+# resolution over a leaky mesh produces a subtly wrong solid rather than an
+# error (FR-027, SC-008).
+#
+# Spec 015-blobby-implicit-surfaces, T095. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "zbuffer"
+Display "blobby-csg-difference-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -20 1 0 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.2]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.72 0.74 0.85]
+    Surface "matte"
+    ShadingInterpolation "smooth"
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Attribute "blobby" "float tolerance" [ 0.04 ]
+            Blobby 2 [
+                1001 0
+                1001 16
+                0 2 0 1
+            ] [
+                1 0 0 0  0 1 0 0  0 0 1 0  -0.35 0 0 1
+                1 0 0 0  0 1 0 0  0 0 1 0   0.35 0 0 1
+            ] [ "" ]
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0 0.55 0
+                Sphere 0.55 -0.55 0.55 360
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

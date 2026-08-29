@@ -104,6 +104,7 @@ class CStats {
         int numBlobbyWeightedEvals;// Of those, the ones that also produced per-leaf weights
         int numBlobbyCellsVisited;// Cells the continuation walk examined
         int numBlobbySurfaceCells;// Cells that actually straddled the surface
+        int numBlobbyLatticeCells;// Cells a dense grid over the extent would have had
         int numBlobbyTriangles;   // Triangles emitted
 
         int numTextureMisses;                   // The number of texture misses

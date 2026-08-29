@@ -1,8 +1,15 @@
 ##RenderMan RIB-Structure 1.0
-# AppNote #31's figures.31/dent.rib, four objects built from the same two ellipsoid fields. The lower pair combine them with maximum: a sphere with a bump, and a sphere with a spike. The upper pair use opcode 4, which under the default RISpec order is subtract: a sphere with a crater, and a sphere bored through by the long thin field (US2 scenario 2). This scene is the evidence that opcode 4 is subtract in the shipping renderer -- the note's own table says divide, and division produces nothing like these shapes.
+# AppNote #31's figures.31/dent.rib, four objects built from the same two
+# ellipsoid fields. The lower pair combine them with maximum: a sphere with
+# a bump, and a sphere with a spike. The upper pair use opcode 4, which
+# under the default RISpec order is subtract: a sphere with a crater, and a
+# sphere bored through by the long thin field (US2 scenario 2). This scene
+# is the evidence that opcode 4 is subtract in the shipping renderer -- the
+# note's own table says divide, and division produces nothing like these
+# shapes.
 #
-# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-dent-zbuffer.tif" "file" "rgba"

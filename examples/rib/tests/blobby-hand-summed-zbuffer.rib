@@ -1,8 +1,11 @@
 ##RenderMan RIB-Structure 1.0
-# The same 22 fields with every one of them added together instead. Everything merges: the fingers web into a mitten and the shape loses its structure. The contrast with blobby-hand-selective is the whole point of the full operation set (US2 scenario 1).
+# The same 22 fields with every one of them added together instead.
+# Everything merges: the fingers web into a mitten and the shape loses its
+# structure. The contrast with blobby-hand-selective is the whole point of
+# the full operation set (US2 scenario 1).
 #
-# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-hand-summed-zbuffer.tif" "file" "rgba"

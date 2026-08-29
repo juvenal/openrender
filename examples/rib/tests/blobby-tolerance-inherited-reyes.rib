@@ -1,8 +1,14 @@
 ##RenderMan RIB-Structure 1.0
-# Three identical blobbies under one scene-level tolerance of 0.5. The middle one sits inside an AttributeBegin/AttributeEnd that tightens it to 0.05; the third comes after the AttributeEnd. Measured on the render, the outer two have silhouettes that deviate from a circle by 2.1% and 1.8% of their radius against the middle one's 1.1%, and they are visibly polygonal where it is round. A tolerance that leaked out of its scope would make the third smooth too (US6 scenario 3).
+# Three identical blobbies under one scene-level tolerance of 0.5. The
+# middle one sits inside an AttributeBegin/AttributeEnd that tightens it to
+# 0.05; the third comes after the AttributeEnd. Measured on the render, the
+# outer two have silhouettes that deviate from a circle by 2.1% and 1.8% of
+# their radius against the middle one's 1.1%, and they are visibly polygonal
+# where it is round. A tolerance that leaked out of its scope would make the
+# third smooth too (US6 scenario 3).
 #
-# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-tolerance-inherited-reyes.tif" "file" "rgba"

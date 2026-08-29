@@ -1,8 +1,14 @@
 ##RenderMan RIB-Structure 1.0
-# PRMan Application Note #31's hand model in the configuration the note itself publishes: five overlapping groups of fields, each summed, combined by one maximum. The groups are what stop adjacent fingers webbing together while still letting each finger blend smoothly into the palm (US2 scenario 1). The declaration keeps the note's own nleaf of 21 against 22 emitted primitive fields, so this scene is also permanent coverage for FR-017's recovery -- it renders with a diagnostic, not a failure.
+# PRMan Application Note #31's hand model in the configuration the note
+# itself publishes: five overlapping groups of fields, each summed, combined
+# by one maximum. The groups are what stop adjacent fingers webbing together
+# while still letting each finger blend smoothly into the palm (US2 scenario
+# 1). The declaration keeps the note's own nleaf of 21 against 22 emitted
+# primitive fields, so this scene is also permanent coverage for FR-017's
+# recovery -- it renders with a diagnostic, not a failure.
 #
-# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "raytrace"
 Display "blobby-hand-selective-raytrace.tif" "file" "rgba"

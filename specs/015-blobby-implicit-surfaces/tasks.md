@@ -348,15 +348,15 @@ documentation.
 
 ### Integration and scale
 
-- [ ] T095 [P] Author the two **integration** scenes as one variant per camera hider in `examples/rib/tests/`, commit their references, and register them in `tests/visual/CMakeLists.txt`: **(a)** a blobby inside a `SolidBegin`/`SolidEnd` boolean block, verifying FR-027 and SC-008 — this needs no implementation, since `addObject()` already chains into `currentSolid->leafObjects` (`src/ri/rendererContext.cpp:504`) and `csgTessellateOperand` already handles a `CPolygonMesh` leaf (`src/ri/csgTree.cpp:316`), and the procedural-capture guard is never on this path; the real risk it covers is mesh watertightness, which fails silently rather than erroring. **(b)** a blobby inside an `ObjectBegin`/`ObjectEnd` definition instantiated twice at different transforms, confirming each instance resolves like any other instanced geometry with no special-casing (Edge Case 13) — this is what T035's retained `CXform` exists to make work, and nothing else verifies it
-- [ ] T096 Add the ~500-segment toroidal spiral scene to `examples/rib/tests/`, commit its reference, and register it in `tests/visual/CMakeLists.txt`, confirming it completes and that the surface-cell ratio from T006 demonstrates cost tracking the surface rather than the bounding volume (SC-012)
-- [ ] T097 Verify the RIB round-trip and distributed paths produce the same image with no seam where different servers' geometry meets, per `quickstart.md` §7 (SC-009)
-- [ ] T098 [P] Verify the Python (`src/python/prman.py:469`) and Lua (`src/lua/prman.lua:588`) `Blobby` emitters round-trip end to end (FR-005)
+- [X] T095 [P] Author the two **integration** scenes as one variant per camera hider in `examples/rib/tests/`, commit their references, and register them in `tests/visual/CMakeLists.txt`: **(a)** a blobby inside a `SolidBegin`/`SolidEnd` boolean block, verifying FR-027 and SC-008 — this needs no implementation, since `addObject()` already chains into `currentSolid->leafObjects` (`src/ri/rendererContext.cpp:504`) and `csgTessellateOperand` already handles a `CPolygonMesh` leaf (`src/ri/csgTree.cpp:316`), and the procedural-capture guard is never on this path; the real risk it covers is mesh watertightness, which fails silently rather than erroring. **(b)** a blobby inside an `ObjectBegin`/`ObjectEnd` definition instantiated twice at different transforms, confirming each instance resolves like any other instanced geometry with no special-casing (Edge Case 13) — this is what T035's retained `CXform` exists to make work, and nothing else verifies it
+- [X] T096 Add the ~500-segment toroidal spiral scene to `examples/rib/tests/`, commit its reference, and register it in `tests/visual/CMakeLists.txt`, confirming it completes and that the surface-cell ratio from T006 demonstrates cost tracking the surface rather than the bounding volume (SC-012)
+- [X] T097 Verify the RIB round-trip and distributed paths produce the same image with no seam where different servers' geometry meets, per `quickstart.md` §7 (SC-009)
+- [X] T098 [P] Verify the Python (`src/python/prman.py:469`) and Lua (`src/lua/prman.lua:588`) `Blobby` emitters round-trip end to end (FR-005)
 
 ### Non-regression
 
-- [ ] T099 Run the full existing visual regression suite and confirm no scene without a blobby changed (SC-007)
-- [ ] T100 Confirm every new unit test is picked up by `ctest -L blobby` and that the count is non-zero — a mislabelled suite reports success against zero tests — and that every new scene appears under both `ctest -R Visual_blobby` and `ctest -R Parity_blobby`
+- [X] T099 Run the full existing visual regression suite and confirm no scene without a blobby changed (SC-007)
+- [X] T100 Confirm every new unit test is picked up by `ctest -L blobby` and that the count is non-zero — a mislabelled suite reports success against zero tests — and that every new scene appears under both `ctest -R Visual_blobby` and `ctest -R Parity_blobby`
 
 ### Documentation
 

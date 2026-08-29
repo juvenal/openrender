@@ -1,10 +1,20 @@
 ##RenderMan RIB-Structure 1.0
-# The same blobby as a full-frame close-up, with the tolerance tightened to 0.008. SC-006's second half: at a framing where the default's facets would begin to matter, tightening keeps the silhouette smooth.
+# The same blobby as a full-frame close-up, with the tolerance tightened to
+# 0.008. SC-006's second half: at a framing where the default's facets would
+# begin to matter, tightening keeps the silhouette smooth.
 #
-# Deliberately *not* paired against the same close-up at the default. The default turns out to be good enough at this framing that the two images differ by 36 pixels out of 22,000 -- below what the visual comparison's 8x8 block averaging can see -- so such a pair would read as coverage while asserting nothing. The measurable improvement is asserted instead where a sharper instrument is available: tests/unit/blobby/test_tolerance.cpp compares the extracted mesh against the analytic sphere and requires the error to more than halve, and blobby-tolerance-inherited below shows the same contrast in an image, at a tolerance coarse enough to see.
+# Deliberately *not* paired against the same close-up at the default. The
+# default turns out to be good enough at this framing that the two images
+# differ by 36 pixels out of 22,000 -- below what the visual comparison's
+# 8x8 block averaging can see -- so such a pair would read as coverage while
+# asserting nothing. The measurable improvement is asserted instead where a
+# sharper instrument is available: tests/unit/blobby/test_tolerance.cpp
+# compares the extracted mesh against the analytic sphere and requires the
+# error to more than halve, and blobby-tolerance-inherited below shows the
+# same contrast in an image, at a tolerance coarse enough to see.
 #
-# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-tolerance-tight-reyes.tif" "file" "rgba"

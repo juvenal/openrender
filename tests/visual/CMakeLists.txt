@@ -2074,8 +2074,117 @@ add_parity_test(blobby-motion-grow-reyes-raytrace
     examples/rib/tests/blobby-motion-grow-raytrace.rib  blobby-motion-grow-raytrace.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, integration and scale (T095/T096)
+# ---------------------------------------------------------------------------
+# A blobby as a CSG operand. This needed no integration code at all --
+# addObject() already chains into currentSolid->leafObjects when a solid
+# block is open, and csgTessellateOperand already handles a CPolygonMesh
+# leaf. What the scene really tests is that the extracted mesh is
+# watertight, because BSP boolean resolution over a leaky mesh produces a
+# subtly wrong solid rather than an error (FR-027, SC-008).
+add_visual_test(blobby-csg-difference-reyes
+    examples/rib/tests/blobby-csg-difference-reyes.rib
+    blobby-csg-difference-reyes.tif
+    blobby-csg-difference-reyes.tif)
+
+add_visual_test(blobby-csg-difference-raytrace
+    examples/rib/tests/blobby-csg-difference-raytrace.rib
+    blobby-csg-difference-raytrace.tif
+    blobby-csg-difference-raytrace.tif)
+
+add_visual_test(blobby-csg-difference-zbuffer
+    examples/rib/tests/blobby-csg-difference-zbuffer.rib
+    blobby-csg-difference-zbuffer.tif
+    blobby-csg-difference-zbuffer.tif)
+
+add_parity_test(blobby-csg-difference-reyes-raytrace
+    examples/rib/tests/blobby-csg-difference-reyes.rib     blobby-csg-difference-reyes.tif
+    examples/rib/tests/blobby-csg-difference-raytrace.rib  blobby-csg-difference-raytrace.tif)
+
+add_parity_test(blobby-csg-difference-reyes-zbuffer
+    examples/rib/tests/blobby-csg-difference-reyes.rib     blobby-csg-difference-reyes.tif
+    examples/rib/tests/blobby-csg-difference-zbuffer.rib   blobby-csg-difference-zbuffer.tif)
+
+# One declaration inside ObjectBegin/ObjectEnd, instantiated twice at
+# different transforms and scales. This is what blobbyCreate's retained
+# CXform exists to make work: vertices stay in the primitive's own object
+# space rather than being baked to world, so each instance resolves at its
+# own transform with no special-casing (Edge Case 13).
+add_visual_test(blobby-object-instance-reyes
+    examples/rib/tests/blobby-object-instance-reyes.rib
+    blobby-object-instance-reyes.tif
+    blobby-object-instance-reyes.tif)
+
+add_visual_test(blobby-object-instance-raytrace
+    examples/rib/tests/blobby-object-instance-raytrace.rib
+    blobby-object-instance-raytrace.tif
+    blobby-object-instance-raytrace.tif)
+
+add_visual_test(blobby-object-instance-zbuffer
+    examples/rib/tests/blobby-object-instance-zbuffer.rib
+    blobby-object-instance-zbuffer.tif
+    blobby-object-instance-zbuffer.tif)
+
+add_parity_test(blobby-object-instance-reyes-raytrace
+    examples/rib/tests/blobby-object-instance-reyes.rib     blobby-object-instance-reyes.tif
+    examples/rib/tests/blobby-object-instance-raytrace.rib  blobby-object-instance-raytrace.tif)
+
+add_parity_test(blobby-object-instance-reyes-zbuffer
+    examples/rib/tests/blobby-object-instance-reyes.rib     blobby-object-instance-reyes.tif
+    examples/rib/tests/blobby-object-instance-zbuffer.rib   blobby-object-instance-zbuffer.tif)
+
+# A 480-segment toroidal spiral, the scene SC-012 exists for. Rendered
+# here the walk visits 2.77% of the cells a dense grid over the same
+# extent would have had, while emitting 278,024 triangles from 480
+# fields -- extraction cost tracking the surface rather than the volume,
+# measured rather than asserted. The blobby statistics print that
+# percentage, so a walk that had degenerated into sweeping shows up as a
+# number climbing towards 100 rather than as an unexplained slow test.
+add_visual_test(blobby-spiral-reyes
+    examples/rib/tests/blobby-spiral-reyes.rib
+    blobby-spiral-reyes.tif
+    blobby-spiral-reyes.tif)
+
+add_visual_test(blobby-spiral-raytrace
+    examples/rib/tests/blobby-spiral-raytrace.rib
+    blobby-spiral-raytrace.tif
+    blobby-spiral-raytrace.tif)
+
+add_visual_test(blobby-spiral-zbuffer
+    examples/rib/tests/blobby-spiral-zbuffer.rib
+    blobby-spiral-zbuffer.tif
+    blobby-spiral-zbuffer.tif)
+
+add_parity_test(blobby-spiral-reyes-raytrace
+    examples/rib/tests/blobby-spiral-reyes.rib     blobby-spiral-reyes.tif
+    examples/rib/tests/blobby-spiral-raytrace.rib  blobby-spiral-raytrace.tif)
+
+add_parity_test(blobby-spiral-reyes-zbuffer
+    examples/rib/tests/blobby-spiral-reyes.rib     blobby-spiral-reyes.tif
+    examples/rib/tests/blobby-spiral-zbuffer.rib   blobby-spiral-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
+# Blobby implicit surfaces, RIB round trip (T097)
+#
+# blobby-roundtrip-reyes.rib declares the same blended pair as
+# blobby-blend-influencing-reyes.rib but routes it through
+# ArchiveBegin/ArchiveEnd and back -- through the very RIB writer a
+# distributed render uses to hand geometry to its servers -- so the two must
+# render identically. Measured, they do: 5508 against 5507 lit pixels and a
+# mean absolute difference of 0.19 out of 255.
+#
+# This is a parity pairing in the mechanical sense (two renders compared
+# directly, no frozen reference) but not a cross-hider one: the round trip
+# is a property of the writer, which sits upstream of every hider, so
+# repeating it per hider would assert the same thing three times.
+add_parity_test(blobby-roundtrip-vs-direct
+    examples/rib/tests/blobby-blend-influencing-reyes.rib  blobby-blend-influencing-reyes.tif
+    examples/rib/tests/blobby-roundtrip-reyes.rib          blobby-roundtrip-reyes.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      176 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 69 scene pairs registered under label 'parity'")
+message(STATUS "      185 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 75 scene pairs registered under label 'parity'")
+message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

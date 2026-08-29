@@ -1,8 +1,11 @@
 ##RenderMan RIB-Structure 1.0
-# One blobby at typical framing with no tolerance set at all: the cell size comes from the primitive's own extent and its smallest field. This is FR-025's promise -- a scene that never mentions the attribute renders smoothly -- and the first half of SC-006.
+# One blobby at typical framing with no tolerance set at all: the cell size
+# comes from the primitive's own extent and its smallest field. This is
+# FR-025's promise -- a scene that never mentions the attribute renders
+# smoothly -- and the first half of SC-006.
 #
-# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "raytrace"
 Display "blobby-tolerance-default-raytrace.tif" "file" "rgba"

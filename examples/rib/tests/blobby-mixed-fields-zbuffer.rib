@@ -1,8 +1,13 @@
 ##RenderMan RIB-Structure 1.0
-# One blobby mixing all three positional primitive field types plus a constant: a segment through the middle, an ellipsoid at each end, and a small constant added to everything. The constant has no position and so contributes nothing to the field extent, yet it lifts the whole field and thickens the surface -- which is why the extent rule for it had to be decided once rather than improvised (US3 scenario 4, FR-028).
+# One blobby mixing all three positional primitive field types plus a
+# constant: a segment through the middle, an ellipsoid at each end, and a
+# small constant added to everything. The constant has no position and so
+# contributes nothing to the field extent, yet it lifts the whole field and
+# thickens the surface -- which is why the extent rule for it had to be
+# decided once rather than improvised (US3 scenario 4, FR-028).
 #
-# Spec 015-blobby-implicit-surfaces, T054. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T054. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-mixed-fields-zbuffer.tif" "file" "rgba"

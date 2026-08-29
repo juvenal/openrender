@@ -1,8 +1,14 @@
 ##RenderMan RIB-Structure 1.0
-# The same three blobs with the middle one displaced -- far enough to bend the chain visibly, and not so far that it comes apart -- and the *same* reference matrices. Because the mpoint carries each surface point back through its own blob's inverse before mapping it into the shared space, the stripes ride the chain as it bends instead of the surface sliding through a fixed solid texture -- which is what a shader-space or object-space pattern would do (US5, FR-020).
+# The same three blobs with the middle one displaced -- far enough to bend
+# the chain visibly, and not so far that it comes apart -- and the *same*
+# reference matrices. Because the mpoint carries each surface point back
+# through its own blob's inverse before mapping it into the shared space,
+# the stripes ride the chain as it bends instead of the surface sliding
+# through a fixed solid texture -- which is what a shader-space or object-
+# space pattern would do (US5, FR-020).
 #
-# Spec 015-blobby-implicit-surfaces, T071. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T071. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "raytrace"
 Display "blobby-solid-texture-bent-raytrace.tif" "file" "rgba"

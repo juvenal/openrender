@@ -1,8 +1,13 @@
 ##RenderMan RIB-Structure 1.0
-# AppNote #31's coloured octahedron, reproduced verbatim: six unit-sphere fields at +-0.89 on each axis, summed, each carrying its own Cs. It must resolve to one connected surface with the colours blending across every join -- which is also one of the two published constraints that calibrate the surface threshold, so this scene is the visual counterpart of that derivation (US4 scenario 1, FR-015).
+# AppNote #31's coloured octahedron, reproduced verbatim: six unit-sphere
+# fields at +-0.89 on each axis, summed, each carrying its own Cs. It must
+# resolve to one connected surface with the colours blending across every
+# join -- which is also one of the two published constraints that calibrate
+# the surface threshold, so this scene is the visual counterpart of that
+# derivation (US4 scenario 1, FR-015).
 #
-# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-coloured-octahedron-zbuffer.tif" "file" "rgba"

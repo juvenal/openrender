@@ -98,6 +98,7 @@ void CStats::reset() {
     numBlobbyWeightedEvals = 0;
     numBlobbyCellsVisited = 0;
     numBlobbySurfaceCells = 0;
+    numBlobbyLatticeCells = 0;
     numBlobbyTriangles = 0;
     numTextureMisses = 0;
     transferredTextureData = 0;
@@ -173,12 +174,28 @@ void CStats::printStats(int level) {
             info(CODE_STATS, "     Surface cells: %d\n", numBlobbySurfaceCells);
             info(CODE_STATS, "         Triangles: %d\n", numBlobbyTriangles);
 
-            // The measurement instrument for SC-012: a continuation walk
-            // that has degenerated into sweeping the bounding volume shows
-            // up here as a collapsed percentage rather than only as a slow
-            // test.
+            // Two ratios, because they catch different failures.
+            //
+            // Surface cells against cells visited is near 100% for a
+            // healthy walk, since the frontier only crosses faces the
+            // surface passes through. It falls if the propagation rule is
+            // ever loosened -- pushing all six neighbours unconditionally
+            // is the plausible "safer" change -- so it is a guard on the
+            // traversal rule rather than a measure of scale.
+            //
+            // Cells visited against the cells a dense grid over the same
+            // extent would have had is the figure SC-012 is actually
+            // about: it says directly whether extraction cost tracked the
+            // surface or the volume. A continuation walk that had
+            // degenerated into sweeping shows up here as a percentage
+            // climbing towards 100, which no wall-clock reading would
+            // attribute correctly.
             if (numBlobbyCellsVisited > 0) {
                 info(CODE_STATS, "     Surface cells: %4.2f %% (of visited)\n", 100 * numBlobbySurfaceCells / (float)numBlobbyCellsVisited);
+            }
+
+            if (numBlobbyLatticeCells > 0) {
+                info(CODE_STATS, "     Cells visited: %4.2f %% (of a dense grid over the extent)\n", 100 * numBlobbyCellsVisited / (float)numBlobbyLatticeCells);
             }
         }
 

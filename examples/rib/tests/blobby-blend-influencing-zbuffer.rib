@@ -1,10 +1,12 @@
 ##RenderMan RIB-Structure 1.0
-# The same pair at 1.2 apart. Summed, the field at the midpoint is 2*(1-0.36)^3 = 0.524, just over the threshold, so the two lobes join through a narrow waist. US1 scenario 2.
+# The same pair at 1.2 apart. Summed, the field at the midpoint is
+# 2*(1-0.36)^3 = 0.524, just over the threshold, so the two lobes join
+# through a narrow waist. US1 scenario 2.
 #
-# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider;
-# the same three files serve both the visual registrations (each hider
-# against its own frozen reference) and the parity registrations (the
-# hiders against each other).
+# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider; the
+# same three files serve both the visual registrations (each hider against
+# its own frozen reference) and the parity registrations (the hiders against
+# each other).
 version 3.03
 Hider "zbuffer"
 Display "blobby-blend-influencing-zbuffer.tif" "file" "rgba"

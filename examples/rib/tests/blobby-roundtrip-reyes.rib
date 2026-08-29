@@ -1,0 +1,48 @@
+##RenderMan RIB-Structure 1.0
+# The same blended pair as blobby-blend-influencing, but routed through
+# CRibOut and back: ArchiveBegin/ArchiveEnd writes the enclosed statements
+# to a RIB with the very writer a distributed render uses to hand geometry
+# to its servers, and ReadArchive parses them back through the ordinary
+# parser.
+#
+# This is the scene form of FR-004, and the reason it is a correctness
+# requirement rather than a convenience: each server derives its own
+# surface from the *re-emitted* declaration, so a writer that dropped the
+# statement would lose the primitive across servers -- which is exactly
+# what CRibOut::RiBlobbyV's RIE_UNIMPLEMENT stub did before this feature.
+# Its reference is the same image blobby-blend-influencing-reyes.tif holds,
+# so a round trip that changed the geometry would show as a visual failure
+# rather than as a silently different render.
+#
+# Spec 015-blobby-implicit-surfaces, T097. Registered for the reyes hider
+# only: the round trip is a property of the RIB writer, which is upstream
+# of every hider, so repeating it three times would assert the same thing
+# three times.
+version 3.03
+Hider "reyes"
+Display "blobby-roundtrip-reyes.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+
+    ArchiveBegin "blobby-roundtrip-archive"
+        Blobby 2 [
+            1001 0
+            1001 16
+            0 2 0 1
+        ] [
+            1 0 0 0  0 1 0 0  0 0 1 0  -0.6 0 0 1
+            1 0 0 0  0 1 0 0  0 0 1 0  0.6 0 0 1
+        ] [ "" ]
+    ArchiveEnd
+
+    ReadArchive "blobby-roundtrip-archive"
+WorldEnd

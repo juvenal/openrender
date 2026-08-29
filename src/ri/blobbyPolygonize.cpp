@@ -248,6 +248,21 @@ CBlobbyWalk::CBlobbyWalk(const CBlobbyProgram *p, float size, int weightsWanted)
     }
 
     upperBound = CBlobbyLattice(extentCells[0], extentCells[1], extentCells[2]);
+
+    // What a dense grid over the same region would have cost. Recorded so
+    // the statistics can say directly whether extraction tracked the
+    // surface or the volume, which is what SC-012 asserts. Saturating
+    // arithmetic, because the product of three lattice dimensions
+    // overflows an int long before the walk itself would notice.
+    double dense = 1;
+
+    for (int i = 0; i < 3; i++)
+        dense *= (double)(extentCells[i] - lowerBound.i + 1);
+
+    if (dense > 2000000000.0)
+        dense = 2000000000.0;
+
+    stats.numBlobbyLatticeCells += (int)dense;
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -1,8 +1,14 @@
 ##RenderMan RIB-Structure 1.0
-# A blobby and an ordinary sphere of the same rendered radius under *identical* motion in one shutter. They must blur alike: the blobby reaches the hiders as a CPolygonMesh whose CPl carries two vertex samples, which is the same representation every other primitive blurs through, so there is no blobby-specific motion code anywhere (SC-010, FR-026). The sphere's radius is the blobby's own rendered radius, sqrt(1 - T^(1/3)) = 0.513, or the comparison would be between two different sizes.
+# A blobby and an ordinary sphere of the same rendered radius under
+# *identical* motion in one shutter. They must blur alike: the blobby
+# reaches the hiders as a CPolygonMesh whose CPl carries two vertex samples,
+# which is the same representation every other primitive blurs through, so
+# there is no blobby-specific motion code anywhere (SC-010, FR-026). The
+# sphere's radius is the blobby's own rendered radius, sqrt(1 - T^(1/3)) =
+# 0.513, or the comparison would be between two different sizes.
 #
-# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-motion-translate-reyes.tif" "file" "rgba"

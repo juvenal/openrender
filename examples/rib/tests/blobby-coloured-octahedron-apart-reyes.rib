@@ -1,8 +1,11 @@
 ##RenderMan RIB-Structure 1.0
-# The same six coloured fields pulled out to +-1.4, beyond each other's support. Six separate surfaces, each a flat single colour, with no blending anywhere -- the control that shows the blending in blobby-coloured-octahedron is real and not just smooth shading (US4 scenario 2).
+# The same six coloured fields pulled out to +-1.4, beyond each other's
+# support. Six separate surfaces, each a flat single colour, with no
+# blending anywhere -- the control that shows the blending in blobby-
+# coloured-octahedron is real and not just smooth shading (US4 scenario 2).
 #
-# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-coloured-octahedron-apart-reyes.tif" "file" "rgba"

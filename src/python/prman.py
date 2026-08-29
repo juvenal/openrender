@@ -142,7 +142,13 @@ class Ri:
         if isinstance(arg, (int, float)):
             return str(arg)
         if isinstance(arg, (list, tuple)):
-            return "[" + " ".join(str(x) for x in arg) + "]"
+            # String elements have to keep their quotes. RIB has no
+            # unquoted string token, so an array of names -- a blobby's
+            # depth files, a subdivision mesh's tags -- is a parse error
+            # without them, and an *empty* string simply vanished into the
+            # separator (spec 015, FR-005).
+            return "[" + " ".join(
+                '"%s"' % x if isinstance(x, str) else str(x) for x in arg) + "]"
         if isinstance(arg, dict):
             res = []
             for k, v in arg.items():

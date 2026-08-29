@@ -1,8 +1,15 @@
 ##RenderMan RIB-Structure 1.0
-# A ten-segment tube along a curved path, the segments sharing endpoints and combined by add exactly as AppNote #31's 480-segment spiral does. The joints must be invisible: opcode 1002 is the convolution of the segment with the spherical bump, so abutting segments sum to the field of the single longer path and there is no bulge at a joint and no seam along the length (US3 scenario 2). A distance-to-segment bump would double the field at every joint and this scene would be a string of beads. The radius tapers along the path so the shape reads as a tube rather than a cylinder.
+# A ten-segment tube along a curved path, the segments sharing endpoints and
+# combined by add exactly as AppNote #31's 480-segment spiral does. The
+# joints must be invisible: opcode 1002 is the convolution of the segment
+# with the spherical bump, so abutting segments sum to the field of the
+# single longer path and there is no bulge at a joint and no seam along the
+# length (US3 scenario 2). A distance-to-segment bump would double the field
+# at every joint and this scene would be a string of beads. The radius
+# tapers along the path so the shape reads as a tube rather than a cylinder.
 #
-# Spec 015-blobby-implicit-surfaces, T054. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T054. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-tube-reyes.tif" "file" "rgba"

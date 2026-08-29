@@ -1,8 +1,12 @@
 ##RenderMan RIB-Structure 1.0
-# A blue blob with a red one subtracted from it. The subtrahend carves the surface away but contributes no colour to what is left, so the crater walls stay blue: the red never appears anywhere in the image. A flat field-strength average over all leaves would tint them (US4 scenario 5, FR-019).
+# A blue blob with a red one subtracted from it. The subtrahend carves the
+# surface away but contributes no colour to what is left, so the crater
+# walls stay blue: the red never appears anywhere in the image. A flat
+# field-strength average over all leaves would tint them (US4 scenario 5,
+# FR-019).
 #
-# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-carved-colour-zbuffer.tif" "file" "rgba"

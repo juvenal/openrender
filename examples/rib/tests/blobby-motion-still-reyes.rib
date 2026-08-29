@@ -1,8 +1,10 @@
 ##RenderMan RIB-Structure 1.0
-# The same scene with the motion block removed. The control: it fixes what the pair looks like unblurred, so the blur in blobby-motion-translate is measured against something rather than merely present.
+# The same scene with the motion block removed. The control: it fixes what
+# the pair looks like unblurred, so the blur in blobby-motion-translate is
+# measured against something rather than merely present.
 #
-# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "reyes"
 Display "blobby-motion-still-reyes.tif" "file" "rgba"

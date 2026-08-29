@@ -158,9 +158,18 @@ function Ri:_to_rib(arg)
     end
     if type(arg) == "table" then
         if is_array(arg) then
+            -- String elements have to keep their quotes. RIB has no
+            -- unquoted string token, so an array of names -- a blobby's
+            -- depth files, a subdivision mesh's tags -- is a parse error
+            -- without them, and an *empty* string simply vanished into the
+            -- separator (spec 015, FR-005).
             local res = {}
             for _, v in ipairs(arg) do
-                table.insert(res, tostring(v))
+                if type(v) == "string" then
+                    table.insert(res, '"' .. v .. '"')
+                else
+                    table.insert(res, tostring(v))
+                end
             end
             return "[" .. table.concat(res, " ") .. "]"
         else

@@ -1,8 +1,12 @@
 ##RenderMan RIB-Structure 1.0
-# A blobby whose *field parameters* change across the shutter -- the blob grows rather than moving. No transform is animated, so this is motion a transform-only path could not express at all: each vertex is advected onto the shutter-close level set along the gradient, so it ends up where that part of the surface actually went (US8 scenario 3).
+# A blobby whose *field parameters* change across the shutter -- the blob
+# grows rather than moving. No transform is animated, so this is motion a
+# transform-only path could not express at all: each vertex is advected onto
+# the shutter-close level set along the gradient, so it ends up where that
+# part of the surface actually went (US8 scenario 3).
 #
-# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider;
-# the same three files serve both the visual and the parity registrations.
+# Spec 015-blobby-implicit-surfaces, T093. One variant per camera hider; the
+# same three files serve both the visual and the parity registrations.
 version 3.03
 Hider "zbuffer"
 Display "blobby-motion-grow-zbuffer.tif" "file" "rgba"

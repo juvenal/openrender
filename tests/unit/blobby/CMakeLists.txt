@@ -31,6 +31,13 @@ add_blobby_test(test_blobby_value_blending       test_value_blending.cpp       B
 add_blobby_test(test_blobby_mpoint               test_mpoint.cpp               Blobby_MPoint)
 add_blobby_test(test_blobby_tolerance            test_tolerance.cpp            Blobby_Tolerance)
 
+# The round-trip test writes a RIB and reads it back, so it needs a
+# writable working directory of its own and the renderer's search paths.
+add_blobby_test(test_blobby_ribout_roundtrip     test_ribout_roundtrip.cpp     Blobby_RibOutRoundTrip)
+set_tests_properties(Blobby_RibOutRoundTrip PROPERTIES
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/unit/blobby)
+
 # The repeller reads a depth file through CRenderer::locateFile, so it needs
 # the same search paths the renderer resolves at startup.
 add_blobby_test(test_blobby_motion               test_motion.cpp               Blobby_Motion)
