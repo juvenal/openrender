@@ -1,23 +1,46 @@
 ---
 title: "openRender Documentation"
-date: 2025-12-08
+date: 2026-08-29
 weight: 1
 ---
 
 # Welcome to openRender Documentation
 
-The documentation here has been prepared on the online wiki [openRender Wiki](http://george-graphics.co.uk/openrenderwiki/). You can add to it by heading over there.
+openRender is an open-source, RenderMan-compliant photorealistic renderer
+written in C++20 and released under the LGPL 2.1. It reads RIB scene files,
+renders them with either a REYES micropolygon hider or a ray tracer, and
+shades them with its own RenderMan Shading Language implementation — either
+through a bytecode interpreter or an LLVM JIT backend.
+
+The project lives on GitHub at
+[github.com/juvenal/openrender](https://github.com/juvenal/openrender). It
+evolved from Pixie, originally written by Okan Arikan, and remains LGPL 2.1.
+
+## Getting openRender
+
+There is no binary download. Build from source:
+
+```bash
+git clone https://github.com/juvenal/openrender.git
+cd openrender
+cmake -S . -B build
+cmake --build build --config Release
+```
+
+Full prerequisites and platform notes are in `COMPILING.txt` and `INSTALL.md`
+in the repository, and in
+[Installing / running openRender](/openrender/manual/reference/installing-and-running/).
 
 ## Main Sections
 
 - [Documentation](/openrender/manual/) - Documentation and reference on openRender's features
-- [Tutorials](/openrender/manual/tutorials/) - Tutorial-style / How-To guides for openRender
+- [Tutorials](/openrender/manual/#tutorials) - Tutorial-style / How-To guides for openRender
 - [FAQ](/openrender/development/faq/) - Frequently Asked Questions
 
-You may also find these links useful:
-
-- [openRender homepage](http://openrender.sourceforge.net/)
-- [openRender on sourceforge](http://sourceforge.net/projects/openrender/)
+Corrections and additions are welcome as pull requests against the
+repository — see
+[Contributing](/openrender/development/contributing/). The documentation
+sources live under `docs/site/content/`.
 
 ## Documentation
 
@@ -54,6 +77,9 @@ How openRender relates to the RiSpec, and documentation on openRender's non-stan
 - [User Attributes And Options](/openrender/manual/reference/user-attributes-and-options/)
 - [SL Functions](/openrender/manual/reference/sl-functions/)
 
+For what is and is not implemented against the specification, see
+[openRender and the RiSpec](/openrender/references/renderman-rispec/).
+
 ## Examples / Tutorials
 
 Tutorial-style guides to various features in openRender.
@@ -65,14 +91,40 @@ Tutorial-style guides to various features in openRender.
 - [Dispersion](/openrender/manual/tutorials/dispersion/)
 - [Baking To Textures](/openrender/manual/tutorials/baketotexture/)
 
-## News
+## What is in openRender 1.0.0
 
-**openRender 2.2.1 is out**! New features include:
+Version 1.0.0 is in development; there is no tagged release yet. What the
+tree currently carries, beyond what it inherited:
 
-- [Point Based occlusion and color bleeding](/openrender/manual/reference/point-based-gi/) - Get occlusion and color bleeding without raytracing
-- Improved AOV support (color AOVs are alpha composited like rgba)
-- Improved non-raster-orient dicing
-- Raytracing improvements - more robust, faster raytracing, with PRMan-compatible visibility and shade attributes
-- Shading language compiler `oshader` is more robust and supports some syntax it previously didn't
+**Shading.** An LLVM JIT backend for the shading language: `oshader --jit`
+compiles RSL to bitcode that runs through the same `op_*` ABI the bytecode
+interpreter uses, selectable per-primitive, scene-wide, or at build time.
+Imager shaders are implemented with all seven specification variables, in the
+specification's pipeline order (render, exposure, imager, quantize).
 
-Download: [SourceForge Files](http://sourceforge.net/project/showfiles.php?group_id=59462&package_id=55537&release_id=522312), Release Notes: [SourceForge Notes](http://sourceforge.net/project/shownotes.php?release_id=522312&group_id=59462)
+**Geometry.** Four capabilities that were previously stubs or partial
+implementations:
+
+- [Solid CSG operations](/openrender/manual/reference/solid-csg-operations/) —
+  all three set operations, arbitrarily nested, with any primitive as an
+  operand
+- [Subdivision surfaces](/openrender/manual/reference/subdivision-surfaces/) —
+  Catmull-Clark and Loop schemes, the full tag set, hierarchical per-face
+  overrides, and cross-hider motion blur
+- [NURBS trim curves](/openrender/manual/reference/nurbs-trim-curves/) — with
+  one classification test shared between the REYES and ray-trace paths
+- [Blobby implicit surfaces](/openrender/manual/reference/blobby-implicit-surfaces/)
+  — all four primitive-field and all eight combining opcodes
+
+**Hiders.** The REYES and ray-trace hiders now share their sampling,
+compositing and pixel-filter kernels, so they converge on motion blur,
+transparency, matte objects, displacement and depth-filter modes rather than
+each implementing them separately. See
+[Hiders](/openrender/manual/reference/hiders/).
+
+**Tools.** `orender-wire`, an interactive wireframe scene previewer (Metal on
+macOS, GTK 4 on Linux); a platform-neutral IPC framebuffer display; and
+Python and Lua bindings for driving the interface from a script.
+
+Earlier release notes, from before the project moved to GitHub, are kept in
+[Releases](/openrender/development/releases/).
