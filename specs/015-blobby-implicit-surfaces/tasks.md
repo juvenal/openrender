@@ -199,8 +199,8 @@ free ends.
 
 - [X] T052 [US3] Implement opcode 1002 as the convolution of a segment impulse with the same spherical bump the ellipsoid uses, reading 23 floats (two endpoints, radius, 4×4), with its analytic gradient, in `src/ri/blobbyField.cpp` (passes T049, T051). The shared bump is what makes end-to-end segments join without bulges
 - [X] T053 [US3] Implement opcode 1000 constant and the zero-length-segment degeneracy in `src/ri/blobbyField.cpp` (passes T049, T050), and extend the T016 extent rule to cover both
-- [ ] T054 [P] [US3] Author the US3 scenes — a multi-segment tube along a curved path, and one blobby mixing segment, ellipsoid, and constant fields — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T055 [US3] Render, verify, and commit the US3 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
+- [X] T054 [P] [US3] Author the US3 scenes — a multi-segment tube along a curved path, and one blobby mixing segment, ellipsoid, and constant fields — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T055 [US3] Render, verify, and commit the US3 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
 
 **Checkpoint**: All four primitive-field types except the repeller are implemented.
 

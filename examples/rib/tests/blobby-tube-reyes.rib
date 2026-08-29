@@ -1,0 +1,43 @@
+##RenderMan RIB-Structure 1.0
+# A ten-segment tube along a curved path, the segments sharing endpoints and combined by add exactly as AppNote #31's 480-segment spiral does. The joints must be invisible: opcode 1002 is the convolution of the segment with the spherical bump, so abutting segments sum to the field of the single longer path and there is no bulge at a joint and no seam along the length (US3 scenario 2). A distance-to-segment bump would double the field at every joint and this scene would be a string of beads. The radius tapers along the path so the shape reads as a tube rather than a cylinder.
+#
+# Spec 015-blobby-implicit-surfaces, T054. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "reyes"
+Display "blobby-tube-reyes.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 6
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    Attribute "blobby" "float tolerance" [ 0.035 ]
+    Blobby 10 [
+        1002 0
+        1002 23
+        1002 46
+        1002 69
+        1002 92
+        1002 115
+        1002 138
+        1002 161
+        1002 184
+        1002 207
+        0 10 0 1 2 3 4 5 6 7 8 9
+    ] [
+        -1.8475 -1.10017 0.272394  -1.88502 -0.562 -0.149214  0.55  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        -1.88502 -0.562 -0.149214  -1.67915 -0.0481053 -0.496248  0.522222  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        -1.67915 -0.0481053 -0.496248  -1.25649 0.375167 -0.595269  0.494444  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        -1.25649 0.375167 -0.595269  -0.671602 0.653166 -0.396787  0.466667  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        -0.671602 0.653166 -0.396787  0 0.75 0  0.438889  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        0 0.75 0  0.671602 0.653166 0.396787  0.411111  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        0.671602 0.653166 0.396787  1.25649 0.375167 0.595269  0.383333  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        1.25649 0.375167 0.595269  1.67915 -0.0481053 0.496248  0.355556  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        1.67915 -0.0481053 0.496248  1.88502 -0.562 0.149214  0.327778  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        1.88502 -0.562 0.149214  1.8475 -1.10017 -0.272394  0.3  1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+    ] [ "" ]
+WorldEnd

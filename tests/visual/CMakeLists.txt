@@ -1626,8 +1626,68 @@ add_parity_test(blobby-dent-reyes-zbuffer
     examples/rib/tests/blobby-dent-zbuffer.rib   blobby-dent-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US3 -- segment fields (T054/T055)
+# ---------------------------------------------------------------------------
+# A ten-segment tube along a curved path, the segments sharing endpoints
+# and combined by add, exactly as AppNote #31's 480-segment spiral does.
+# The joints must be invisible: opcode 1002 is the convolution of the
+# segment with the spherical bump, so abutting segments sum to the field
+# of the single longer path. A distance-to-segment bump would double the
+# field at every joint and this scene would render as a string of beads
+# (US3 scenario 2).
+add_visual_test(blobby-tube-reyes
+    examples/rib/tests/blobby-tube-reyes.rib
+    blobby-tube-reyes.tif
+    blobby-tube-reyes.tif)
+
+add_visual_test(blobby-tube-raytrace
+    examples/rib/tests/blobby-tube-raytrace.rib
+    blobby-tube-raytrace.tif
+    blobby-tube-raytrace.tif)
+
+add_visual_test(blobby-tube-zbuffer
+    examples/rib/tests/blobby-tube-zbuffer.rib
+    blobby-tube-zbuffer.tif
+    blobby-tube-zbuffer.tif)
+
+add_parity_test(blobby-tube-reyes-raytrace
+    examples/rib/tests/blobby-tube-reyes.rib     blobby-tube-reyes.tif
+    examples/rib/tests/blobby-tube-raytrace.rib  blobby-tube-raytrace.tif)
+
+add_parity_test(blobby-tube-reyes-zbuffer
+    examples/rib/tests/blobby-tube-reyes.rib     blobby-tube-reyes.tif
+    examples/rib/tests/blobby-tube-zbuffer.rib   blobby-tube-zbuffer.tif)
+
+# One blobby mixing a segment, two ellipsoids and a constant. The constant
+# has no position and contributes nothing to the field extent, yet it
+# lifts the whole field and thickens the surface -- which is why the
+# extent rule for it had to be decided in one place (US3 scenario 4).
+add_visual_test(blobby-mixed-fields-reyes
+    examples/rib/tests/blobby-mixed-fields-reyes.rib
+    blobby-mixed-fields-reyes.tif
+    blobby-mixed-fields-reyes.tif)
+
+add_visual_test(blobby-mixed-fields-raytrace
+    examples/rib/tests/blobby-mixed-fields-raytrace.rib
+    blobby-mixed-fields-raytrace.tif
+    blobby-mixed-fields-raytrace.tif)
+
+add_visual_test(blobby-mixed-fields-zbuffer
+    examples/rib/tests/blobby-mixed-fields-zbuffer.rib
+    blobby-mixed-fields-zbuffer.tif
+    blobby-mixed-fields-zbuffer.tif)
+
+add_parity_test(blobby-mixed-fields-reyes-raytrace
+    examples/rib/tests/blobby-mixed-fields-reyes.rib     blobby-mixed-fields-reyes.tif
+    examples/rib/tests/blobby-mixed-fields-raytrace.rib  blobby-mixed-fields-raytrace.tif)
+
+add_parity_test(blobby-mixed-fields-reyes-zbuffer
+    examples/rib/tests/blobby-mixed-fields-reyes.rib     blobby-mixed-fields-reyes.tif
+    examples/rib/tests/blobby-mixed-fields-zbuffer.rib   blobby-mixed-fields-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      131 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 41 scene pairs registered under label 'parity'")
+message(STATUS "      137 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 45 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
