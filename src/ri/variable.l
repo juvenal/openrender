@@ -39,6 +39,7 @@ color												return	VAR_COLOR;
 normal												return	VAR_NORMAL;
 point												return	VAR_POINT;
 matrix												return	VAR_MATRIX;
+mpoint												return	VAR_MPOINT;
 htpoint												return	VAR_HTPOINT;
 hpoint												return	VAR_HTPOINT;
 double												return	VAR_DOUBLE;

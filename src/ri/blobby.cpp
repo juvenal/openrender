@@ -35,6 +35,7 @@
 #include "pl.h"
 #include "polygons.h"
 #include "renderer.h"
+#include "variable.h"
 #include "stats.h"
 #include "xform.h"
 
@@ -162,6 +163,33 @@ float blobbyCellSizeFromTolerance(const CBlobbyProgram *program, float tolerance
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CBlobbyReference
+// Description			:	One author-declared mpoint parameter, held aside
+//							while the ordinary parameter list is parsed.
+///////////////////////////////////////////////////////////////////////
+class CBlobbyReference {
+    public:
+        CVariable *variable;    // The shader parameter it binds to
+        const float *matrices;  // 16 floats per primitive field
+};
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	blobbyComposeReference
+// Description			:	Blob inverse composed with the mpoint matrix
+///////////////////////////////////////////////////////////////////////
+void blobbyComposeReference(float *composed, const float *blobMatrix, const float *referenceMatrix) {
+    matrix inverse;
+
+    // invertm() returns TRUE when the matrix is singular.
+    if (invertm(inverse, blobMatrix)) {
+        movmm(composed, referenceMatrix);
+        return;
+    }
+
+    mulmm(composed, referenceMatrix, inverse);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	blobbyIsPerLeaf
 // Description			:	TRUE for the two storage classes RISpec gives
 //							one value per primitive field.
@@ -235,13 +263,71 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
 
     CPl *source = NULL;
 
+    // mpoint parameters are separated out before the ordinary parameter
+    // list is parsed, because parseParameterList would reject them: it
+    // binds a declaration to a shader parameter only when the two agree on
+    // type and width, and the whole point of an mpoint is that they do not
+    // -- sixteen floats in the scene description, a point in the shader.
+    // Splitting them here keeps that exception in one place instead of
+    // threading a special case through the general parameter machinery.
+    const char **plainTokens = NULL;
+    const void **plainValues = NULL;
+    int numPlain = 0;
+
+    CBlobbyReference *references = NULL;
+    int numReferences = 0;
+
     if (numParameters > 0 && attributes != NULL) {
-        source = parseParameterList(1, availableLeaves, availableLeaves, availableLeaves,
-                                    numParameters, tokens, parameters, NULL, 0, attributes);
+        plainTokens = new const char *[numParameters];
+        plainValues = new const void *[numParameters];
+        references = new CBlobbyReference[numParameters];
+
+        for (int i = 0; i < numParameters; i++) {
+            CVariable declared;
+            const char *name = NULL;
+            CVariable *global = CRenderer::retrieveVariable(tokens[i]);
+
+            if (global != NULL && global->type == TYPE_MPOINT)
+                name = global->name;
+            else if (global == NULL && parseVariable(&declared, NULL, tokens[i]) && declared.type == TYPE_MPOINT)
+                name = declared.name;
+
+            if (name == NULL) {
+                plainTokens[numPlain] = tokens[i];
+                plainValues[numPlain] = parameters[i];
+                numPlain++;
+                continue;
+            }
+
+            // The shader's own declaration is what the value binds to, and
+            // it is where the point-ness of the type actually lives. With
+            // no shader asking for it there is nothing to compute and
+            // nothing to warn about -- an unused primvar is ordinary.
+            CVariable *bound = attributes->findParameter(name);
+
+            if (bound == NULL)
+                continue;
+
+            if (bound->numFloats != 3) {
+                error(CODE_BADTOKEN, "Blobby: \"%s\" is declared mpoint but the bound shader parameter is not a point; ignoring it\n", name);
+                continue;
+            }
+
+            references[numReferences].variable = bound;
+            references[numReferences].matrices = (const float *)parameters[i];
+            numReferences++;
+        }
+
+        source = NULL;
+
+        if (numPlain > 0) {
+            source = parseParameterList(1, availableLeaves, availableLeaves, availableLeaves,
+                                        numPlain, plainTokens, plainValues, NULL, 0, attributes);
+        }
     }
 
     // Weights are only worth their cost if something actually consumes them.
-    int wantWeights = FALSE;
+    int wantWeights = (numReferences > 0) && (availableLeaves > 0);
 
     if (source != NULL && availableLeaves > 0) {
         for (int i = 0; i < source->numParameters; i++) {
@@ -252,16 +338,17 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
 
     CBlobbyMesh *extracted = blobbyPolygonize(program, cellSize, wantWeights);
 
-    if (extracted == NULL) {
+    if (extracted == NULL || extracted->numVertices == 0 || extracted->numTriangles == 0) {
+        if (extracted != NULL)
+            delete extracted;
         if (source != NULL)
             delete source;
-        return NULL;
-    }
-
-    if (extracted->numVertices == 0 || extracted->numTriangles == 0) {
-        delete extracted;
-        if (source != NULL)
-            delete source;
+        if (plainTokens != NULL)
+            delete[] plainTokens;
+        if (plainValues != NULL)
+            delete[] plainValues;
+        if (references != NULL)
+            delete[] references;
         return NULL;
     }
 
@@ -274,6 +361,14 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     // (FR-018).
     int numOutParameters = 2;
     int dataSize = numVertices * 3 * 2;
+
+    if (extracted->weights != NULL) {
+        for (int i = 0; i < numReferences; i++) {
+            dataSize += numVertices * 3;
+            dataSize += dataSize & 1;
+            numOutParameters++;
+        }
+    }
 
     if (source != NULL) {
         for (int i = 0; i < source->numParameters; i++) {
@@ -411,6 +506,84 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
 
         delete source;
     }
+
+    // mpoint: the surface point carried back into each blob's own space and
+    // forward through that blob's reference matrix, then blended between
+    // blobs by the same weights every other per-blob value uses. Each
+    // blob's composition is built once here, so the per-vertex cost is one
+    // matrix-vector multiply per contributing blob (FR-020).
+    if (extracted->weights != NULL && numReferences > 0) {
+        matrix *composed = new matrix[availableLeaves > 0 ? availableLeaves : 1];
+        int *usable = new int[availableLeaves > 0 ? availableLeaves : 1];
+
+        for (int i = 0; i < numReferences; i++) {
+            for (int leaf = 0; leaf < availableLeaves; leaf++) {
+                matrix blobMatrix;
+
+                usable[leaf] = program->getLeafMatrix(leaf, blobMatrix);
+
+                if (usable[leaf])
+                    blobbyComposeReference(composed[leaf], blobMatrix, references[i].matrices + leaf * 16);
+            }
+
+            for (int v = 0; v < numVertices; v++) {
+                const float *weights = extracted->weights + v * extracted->numLeaves;
+                float *destination = data0 + cursor + v * 3;
+                float total = 0;
+
+                initv(destination, 0);
+
+                for (int leaf = 0; leaf < availableLeaves; leaf++) {
+                    const float weight = weights[leaf];
+
+                    if (weight == 0 || !usable[leaf])
+                        continue;
+
+                    vector referencePoint;
+
+                    mulmp(referencePoint, composed[leaf], extracted->P + v * 3);
+
+                    total += weight;
+
+                    for (int c = 0; c < 3; c++)
+                        destination[c] += weight * referencePoint[c];
+                }
+
+                if (total > 0 && total < 1) {
+                    const float inverse = 1 / total;
+
+                    for (int c = 0; c < 3; c++)
+                        destination[c] *= inverse;
+                }
+                else if (total == 0) {
+                    // No blob with a space of its own has any weight here --
+                    // a point governed entirely by a constant field, say. The
+                    // surface point itself is the only defensible answer, and
+                    // it is at least continuous with its neighbours.
+                    movvv(destination, extracted->P + v * 3);
+                }
+            }
+
+            plParameters[outIndex].variable = references[i].variable;
+            plParameters[outIndex].numItems = numVertices;
+            plParameters[outIndex].index = cursor;
+            plParameters[outIndex].container = CONTAINER_VERTEX;
+
+            cursor += numVertices * 3;
+            cursor += cursor & 1;
+            outIndex++;
+        }
+
+        delete[] composed;
+        delete[] usable;
+    }
+
+    if (plainTokens != NULL)
+        delete[] plainTokens;
+    if (plainValues != NULL)
+        delete[] plainValues;
+    if (references != NULL)
+        delete[] references;
 
     CPl *pl = new CPl(dataSize, outIndex, plParameters, data0);
 

@@ -1,0 +1,33 @@
+##RenderMan RIB-Structure 1.0
+# Three blobs in a straight chain under a solid stripe pattern read in a per-blob reference space (`vertex mpoint Pref`). Each blob's reference matrix places it at its rest position in a space the three share, so the stripes run continuously along the chain.
+#
+# Spec 015-blobby-implicit-surfaces, T071. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "zbuffer"
+Display "blobby-solid-texture-straight-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 7
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+    Surface "blobbyref" "frequency" [0.9]
+    Attribute "blobby" "float tolerance" [ 0.03 ]
+    Blobby 3 [
+        1001 0
+        1001 16
+        1001 32
+        0 3 0 1 2
+    ] [
+        0.95 0 0 0  0 0.95 0 0  0 0 0.95 0  -1.1 0 0 1
+        0.95 0 0 0  0 0.95 0 0  0 0 0.95 0  0 0 0 1
+        0.95 0 0 0  0 0.95 0 0  0 0 0.95 0  1.1 0 0 1
+    ] [ "" ]
+    "vertex mpoint Pref" [
+        1 0 0 0  0 1 0 0  0 0 1 0  -1.1 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  1.1 0 0 1
+    ]
+WorldEnd

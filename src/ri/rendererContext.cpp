@@ -1274,7 +1274,9 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                         memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 16);
                         break;
                     case TYPE_QUAD:
+                    case TYPE_MPOINT:
                     case TYPE_DOUBLE:
+                        // No display driver consumes any of these.
                         break;
                     case TYPE_STRING:
                         cDisplay->parameters[j].type = STRING_PARAMETER;

@@ -716,6 +716,9 @@ void CPl::transform(CXform *x, float *data) {
                 }
                 break;
             case TYPE_MATRIX:
+            case TYPE_MPOINT:
+                // Both are matrices in their own right; a transform of the
+                // primitive does not reinterpret them.
                 break;
             case TYPE_QUAD:
                 // Vector transform

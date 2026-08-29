@@ -235,6 +235,12 @@ class CBlobbyProgram {
         // (constant, repeller), which contribute no seed.
         int getLeafSeed(int leaf, float *P) const;
 
+        // The 4x4 that carries primitive field `leaf` out of its own space
+        // into the primitive's. Returns FALSE for fields that have none --
+        // a constant has no space of its own, and a repeller's is the depth
+        // file's. This is what an `mpoint` composes against (FR-020).
+        int getLeafMatrix(int leaf, float *m) const;
+
     private:
         void decode(int ncode, const int *code);
         void resolveOpcodeOrder();

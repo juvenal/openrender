@@ -28,6 +28,7 @@ add_blobby_test(test_blobby_polygonize_analytic  test_polygonize_analytic.cpp  B
 add_blobby_test(test_blobby_polygonize_watertight test_polygonize_watertight.cpp Blobby_PolygonizeWatertight)
 add_blobby_test(test_blobby_determinism          test_determinism.cpp          Blobby_Determinism)
 add_blobby_test(test_blobby_value_blending       test_value_blending.cpp       Blobby_ValueBlending)
+add_blobby_test(test_blobby_mpoint               test_mpoint.cpp               Blobby_MPoint)
 
 # Emission tests drive the real RI entry points, so they need the shader and
 # home paths the renderer resolves at RiBegin, exactly as tests/unit/csg's

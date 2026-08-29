@@ -1,0 +1,64 @@
+#!version 1.0.0
+#!name "blobbyref"
+surface
+#!parameters:
+uniform	float	Ka	=	0.35
+uniform	float	Kd	=	0.75
+uniform	float	frequency	=	1.4
+uniform	color	lightband	=	 [ 0.93 0.86 0.55 ]
+uniform	color	darkband	=	 [ 0.32 0.11 0.05 ]
+varying	point	Pref	=	 [ 0 0 0 ]
+#!variables:
+varying	vector	NN
+varying	float	band
+varying	vector	Ct
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+uniform	float	temporary_7
+uniform	float	temporary_8
+varying	float	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+varying	vector	temporary_12
+uniform	vector	temporary_13
+varying	vector	temporary_14
+varying	vector	temporary_15
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  NN temporary_0 I
+	vufloat  temporary_1 0.5
+	moveff  temporary_3 temporary_1
+	mulff  temporary_8 frequency 2
+	mulff  temporary_7 temporary_8 3.141592654
+	vufloat  temporary_6 temporary_7
+	xcomp	("f=p")  temporary_9 Pref
+	mulff  temporary_5 temporary_6 temporary_9
+	sin	("f=f")  temporary_4 temporary_5
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  band temporary_1 temporary_2
+	vuvector  temporary_0 darkband
+	vuvector  temporary_10 lightband
+	vufloat  temporary_2 0.35
+	vufloat  temporary_3 0.65
+	smoothstep	("f=fff")  temporary_1 temporary_2 temporary_3 band
+	mix	("v=vvf")  Ct temporary_0 temporary_10 temporary_1
+	movevv  Oi Os
+	mulvv  temporary_0 Os Ct
+	vfromf  temporary_13 Ka
+	vuvector  temporary_12 temporary_13
+	ambient	("c=")  temporary_14
+	mulvv  temporary_11 temporary_12 temporary_14
+	vfromf  temporary_13 Kd
+	vuvector  temporary_14 temporary_13
+	diffuse	("c=n")  temporary_15 NN
+	mulvv  temporary_12 temporary_14 temporary_15
+	addvv  temporary_10 temporary_11 temporary_12
+	mulvv  Ci temporary_0 temporary_10
+	return

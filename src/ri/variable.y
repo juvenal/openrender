@@ -58,6 +58,7 @@
 %token	VAR_POINT
 %token	VAR_HTPOINT
 %token	VAR_MATRIX
+%token	VAR_MPOINT
 %token	VAR_DOUBLE
 %token	VAR_STRING
 %token	VAR_OPEN
@@ -159,6 +160,16 @@ varType:	VAR_INTEGER
 			VAR_MATRIX
 			{
 				currentVariable->type			=	TYPE_MATRIX;
+				currentVariable->numFloats		=	16;
+			}
+			|
+			VAR_MPOINT
+			{
+				// Sixteen floats per item in the scene description; what a
+				// shader bound to it receives is a point (spec 015,
+				// FR-020). Declaring it as three floats here would read a
+				// per-blob matrix array as if it were points.
+				currentVariable->type			=	TYPE_MPOINT;
 				currentVariable->numFloats		=	16;
 			}
 			|

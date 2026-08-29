@@ -54,6 +54,27 @@ class CXform;
 CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgram *program, const CBlobbyProgram *programClose, int numParameters, const char **tokens, const void **parameters);
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	blobbyComposeReference
+// Description			:	Build the 4x4 that takes an object-space point
+//							into one blob's reference space (FR-020).
+// Comments				:	The value of an `mpoint` at a surface point is
+//							that point carried *back* into the blob's own
+//							space, through the inverse of the blob's own
+//							matrix, and then *forward* through the mpoint
+//							matrix. Composing the two once, at build time,
+//							makes the per-evaluation cost a single
+//							matrix-vector multiply.
+//
+//							A singular blob matrix contributes no field and
+//							so never wins any weight, but the composition
+//							still has to produce something finite: a NaN
+//							here would propagate into every blended value
+//							downstream. It falls back to the mpoint matrix
+//							alone.
+///////////////////////////////////////////////////////////////////////
+void blobbyComposeReference(float *composed, const float *blobMatrix, const float *referenceMatrix);
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	blobbyDefaultCellSize
 // Description			:	Cell size to use when the scene sets no
 //							tolerance, derived from the program's own field

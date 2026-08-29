@@ -1644,6 +1644,13 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                                                                                 out("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ", f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
                                                                             }
                                                                             break;
+                                                                        case TYPE_MPOINT:
+
+                                                                            f = (float *)vals[i];
+                                                                            for (j = variable->numItems; j > 0; j--, f += 16) {
+                                                                                out("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ", f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
+                                                                            }
+                                                                            break;
                                                                         case TYPE_QUAD:
 
                                                                             f = (float *)vals[i];
@@ -1750,6 +1757,14 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                                                                             }
                                                                             break;
                                                                         case TYPE_MATRIX:
+
+                                                                            f = (float *)vals[i];
+                                                                            numItems(j, variable);
+                                                                            for (; j > 0; j--, f += 16) {
+                                                                                out("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ", f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
+                                                                            }
+                                                                            break;
+                                                                        case TYPE_MPOINT:
 
                                                                             f = (float *)vals[i];
                                                                             numItems(j, variable);

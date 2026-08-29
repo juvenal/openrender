@@ -238,6 +238,9 @@ static	TRSLObjectFunction		functions[]	=	{
 										case TYPE_QUAD:
 											return	4;
 											break;
+										case TYPE_MPOINT:
+											return	16;
+											break;
 										case TYPE_DOUBLE:
 											return	2;
 											break;

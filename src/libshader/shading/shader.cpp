@@ -398,7 +398,8 @@ int CProgrammableShaderInstance::setParameter(const char *param, const void *val
                     mulmp(dest, xform->from, src);
                 }
             } break;
-            case TYPE_MATRIX: {
+            case TYPE_MATRIX:
+            case TYPE_MPOINT: {
                 const float *src = (const float *)val;
                 float *dest = (float *)cParameter->defaultValue;
                 memcpy(dest, src, cParameter->numItems * sizeof(matrix));
@@ -531,6 +532,7 @@ int CProgrammableShaderInstance::getParameter(const char *name, void *dest, CVar
                     movvv(destFloat, srcFloat);
                 break;
             case TYPE_MATRIX:
+            case TYPE_MPOINT:
                 destFloat = (float *)dest;
                 srcFloat = (const float *)cParameter->defaultValue;
                 for (j = cParameter->numItems; j > 0; j--, destFloat += 16, srcFloat += 16)

@@ -1770,8 +1770,67 @@ add_parity_test(blobby-carved-colour-reyes-zbuffer
     examples/rib/tests/blobby-carved-colour-zbuffer.rib   blobby-carved-colour-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US5 -- per-blob reference space (T071/T072)
+# ---------------------------------------------------------------------------
+# Three blobs in a straight chain under a solid stripe pattern read in a
+# per-blob reference space (`vertex mpoint Pref`, shaders/blobbyref.sl).
+# Each blob's reference matrix places it at its rest position in a space
+# the three share.
+add_visual_test(blobby-solid-texture-straight-reyes
+    examples/rib/tests/blobby-solid-texture-straight-reyes.rib
+    blobby-solid-texture-straight-reyes.tif
+    blobby-solid-texture-straight-reyes.tif)
+
+add_visual_test(blobby-solid-texture-straight-raytrace
+    examples/rib/tests/blobby-solid-texture-straight-raytrace.rib
+    blobby-solid-texture-straight-raytrace.tif
+    blobby-solid-texture-straight-raytrace.tif)
+
+add_visual_test(blobby-solid-texture-straight-zbuffer
+    examples/rib/tests/blobby-solid-texture-straight-zbuffer.rib
+    blobby-solid-texture-straight-zbuffer.tif
+    blobby-solid-texture-straight-zbuffer.tif)
+
+add_parity_test(blobby-solid-texture-straight-reyes-raytrace
+    examples/rib/tests/blobby-solid-texture-straight-reyes.rib     blobby-solid-texture-straight-reyes.tif
+    examples/rib/tests/blobby-solid-texture-straight-raytrace.rib  blobby-solid-texture-straight-raytrace.tif)
+
+add_parity_test(blobby-solid-texture-straight-reyes-zbuffer
+    examples/rib/tests/blobby-solid-texture-straight-reyes.rib     blobby-solid-texture-straight-reyes.tif
+    examples/rib/tests/blobby-solid-texture-straight-zbuffer.rib   blobby-solid-texture-straight-zbuffer.tif)
+
+# The same three blobs with the middle one displaced and the *same*
+# reference matrices. The stripes ride the chain as it bends, because an
+# mpoint carries each surface point back through its own blob's inverse
+# before mapping it into the shared space. A shader-space or
+# object-space pattern would stay put and let the surface slide through
+# it -- the failure this pair is here to catch (US5, FR-020).
+add_visual_test(blobby-solid-texture-bent-reyes
+    examples/rib/tests/blobby-solid-texture-bent-reyes.rib
+    blobby-solid-texture-bent-reyes.tif
+    blobby-solid-texture-bent-reyes.tif)
+
+add_visual_test(blobby-solid-texture-bent-raytrace
+    examples/rib/tests/blobby-solid-texture-bent-raytrace.rib
+    blobby-solid-texture-bent-raytrace.tif
+    blobby-solid-texture-bent-raytrace.tif)
+
+add_visual_test(blobby-solid-texture-bent-zbuffer
+    examples/rib/tests/blobby-solid-texture-bent-zbuffer.rib
+    blobby-solid-texture-bent-zbuffer.tif
+    blobby-solid-texture-bent-zbuffer.tif)
+
+add_parity_test(blobby-solid-texture-bent-reyes-raytrace
+    examples/rib/tests/blobby-solid-texture-bent-reyes.rib     blobby-solid-texture-bent-reyes.tif
+    examples/rib/tests/blobby-solid-texture-bent-raytrace.rib  blobby-solid-texture-bent-raytrace.tif)
+
+add_parity_test(blobby-solid-texture-bent-reyes-zbuffer
+    examples/rib/tests/blobby-solid-texture-bent-reyes.rib     blobby-solid-texture-bent-reyes.tif
+    examples/rib/tests/blobby-solid-texture-bent-zbuffer.rib   blobby-solid-texture-bent-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      146 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 51 scene pairs registered under label 'parity'")
+message(STATUS "      152 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 55 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

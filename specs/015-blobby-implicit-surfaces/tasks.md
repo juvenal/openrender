@@ -244,18 +244,18 @@ anchored.
 
 ### Tests for User Story 5 ⚠️ Write first, confirm they FAIL, then obtain approval
 
-- [ ] T064 [P] [US5] Write failing tests in `tests/unit/blobby/test_mpoint.cpp` that an `mpoint` value at a surface point equals the point carried back through the blob's own inverse matrix and forward through the `mpoint` matrix, and that it is delivered to shaders as a `point` rather than a matrix
+- [X] T064 [P] [US5] Write failing tests in `tests/unit/blobby/test_mpoint.cpp` that an `mpoint` value at a surface point equals the point carried back through the blob's own inverse matrix and forward through the `mpoint` matrix, and that it is delivered to shaders as a `point` rather than a matrix
 
 ### Implementation for User Story 5
 
-- [ ] T065 [US5] Add `TYPE_MPOINT` to `EVariableType` in `src/ri/rendererc.h`, following the `TYPE_QUAD` (`// For "Pw"`) precedent of a type whose RIB form differs from its shader form
-- [ ] T066 [US5] Add the `TYPE_MPOINT` case in `src/ri/pl.cpp` (near line 720)
-- [ ] T067 [US5] Add the `TYPE_MPOINT` cases in `src/ri/ribOut.cpp` (near lines 1609 and 1722)
-- [ ] T068 [US5] Add the `TYPE_MPOINT` case in `src/ri/rendererContext.cpp` (near line 1274). T065–T068 must land together — a partially-cased enum breaks exhaustiveness warnings under the project's warnings-as-errors policy and half-wires the type
-- [ ] T069 [US5] Register the `mpoint` type in `initDeclarations()` in `src/ri/rendererDeclarations.cpp`
-- [ ] T070 [US5] Implement per-blob `mpoint` evaluation in `src/ri/blobby.cpp` — invert each blob's matrix once at build time and compose with the `mpoint` matrix so per-evaluation cost is one matrix-vector multiply — and blend the result through the US4 weight mechanism (passes T064)
-- [ ] T071 [P] [US5] Author the US5 scenes — a three-blob chain with `vertex mpoint Pref` under a solid texture, straight and with the middle blob displaced — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T072 [US5] Render, verify, and commit the US5 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
+- [X] T065 [US5] Add `TYPE_MPOINT` to `EVariableType` in `src/ri/rendererc.h`, following the `TYPE_QUAD` (`// For "Pw"`) precedent of a type whose RIB form differs from its shader form
+- [X] T066 [US5] Add the `TYPE_MPOINT` case in `src/ri/pl.cpp` (near line 720)
+- [X] T067 [US5] Add the `TYPE_MPOINT` cases in `src/ri/ribOut.cpp` (near lines 1609 and 1722)
+- [X] T068 [US5] Add the `TYPE_MPOINT` case in `src/ri/rendererContext.cpp` (near line 1274). T065–T068 must land together — a partially-cased enum breaks exhaustiveness warnings under the project's warnings-as-errors policy and half-wires the type
+- [X] T069 [US5] Register the `mpoint` type in `initDeclarations()` in `src/ri/rendererDeclarations.cpp`
+- [X] T070 [US5] Implement per-blob `mpoint` evaluation in `src/ri/blobby.cpp` — invert each blob's matrix once at build time and compose with the `mpoint` matrix so per-evaluation cost is one matrix-vector multiply — and blend the result through the US4 weight mechanism (passes T064)
+- [X] T071 [P] [US5] Author the US5 scenes — a three-blob chain with `vertex mpoint Pref` under a solid texture, straight and with the middle blob displaced — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T072 [US5] Render, verify, and commit the US5 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
 
 **Checkpoint**: Solid textures adhere to bending blob chains.
 

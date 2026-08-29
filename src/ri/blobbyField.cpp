@@ -587,6 +587,36 @@ int CBlobbyProgram::getLeafSeed(int leaf, float *P) const {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBlobbyProgram
+// Method				:	getLeafMatrix
+// Description			:	The 4x4 a primitive field carries, if it has one
+// Return Value			:	FALSE for constant and repeller fields
+///////////////////////////////////////////////////////////////////////
+int CBlobbyProgram::getLeafMatrix(int leaf, float *m) const {
+    for (int i = 0; i < numInstructions; i++) {
+        const CBlobbyInstruction *instruction = instructions + i;
+
+        if (instruction->leafIndex != leaf)
+            continue;
+
+        if (instruction->opcode == BLOBBY_OP_ELLIPSOID) {
+            movmm(m, floats + instruction->operands[0]);
+            return TRUE;
+        }
+
+        if (instruction->opcode == BLOBBY_OP_SEGMENT) {
+            // The segment's own 4x4 follows its two endpoints and radius.
+            movmm(m, floats + instruction->operands[0] + 7);
+            return TRUE;
+        }
+
+        return FALSE;
+    }
+
+    return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBlobbyProgram
 // Method				:	evaluate
 // Description			:	Field value and analytic gradient
 ///////////////////////////////////////////////////////////////////////

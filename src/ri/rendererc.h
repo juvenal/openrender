@@ -46,7 +46,12 @@ typedef enum {
     TYPE_NORMAL,
     TYPE_POINT,
     TYPE_MATRIX,
-    TYPE_QUAD, // For "Pw"
+    TYPE_QUAD,   // For "Pw"
+    TYPE_MPOINT, // For a blobby's per-blob reference-space matrices: 16
+                 // floats in RIB, delivered to shaders as a point. Follows
+                 // TYPE_QUAD, which is the same shape of problem -- a type
+                 // whose scene-description form differs from what the
+                 // shader consumes (spec 015, FR-020).
     TYPE_DOUBLE,
     TYPE_STRING,
     TYPE_INTEGER
