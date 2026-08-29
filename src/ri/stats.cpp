@@ -92,6 +92,12 @@ void CStats::reset() {
     numVsplits = 0;
     numUsplits = 0;
     numUVsplits = 0;
+    numBlobbies = 0;
+    numBlobbyLeaves = 0;
+    numBlobbyFieldEvals = 0;
+    numBlobbyCellsVisited = 0;
+    numBlobbySurfaceCells = 0;
+    numBlobbyTriangles = 0;
     numTextureMisses = 0;
     transferredTextureData = 0;
     textureSize = 0;
@@ -154,6 +160,24 @@ void CStats::printStats(int level) {
             info(CODE_STATS, "          U splits: %4.2f %%\n", 100 * numUsplits / (float)numSplits);
             info(CODE_STATS, "          V splits: %4.2f %%\n", 100 * numVsplits / (float)numSplits);
             info(CODE_STATS, "         UV splits: %4.2f %%\n", 100 * numUVsplits / (float)numSplits);
+        }
+
+        if (numBlobbies > 0) {
+            info(CODE_STATS, "->Blobby\n");
+            info(CODE_STATS, "        Primitives: %d\n", numBlobbies);
+            info(CODE_STATS, "   Primitive fields: %d\n", numBlobbyLeaves);
+            info(CODE_STATS, "       Field evals: %d\n", numBlobbyFieldEvals);
+            info(CODE_STATS, "     Cells visited: %d\n", numBlobbyCellsVisited);
+            info(CODE_STATS, "     Surface cells: %d\n", numBlobbySurfaceCells);
+            info(CODE_STATS, "         Triangles: %d\n", numBlobbyTriangles);
+
+            // The measurement instrument for SC-012: a continuation walk
+            // that has degenerated into sweeping the bounding volume shows
+            // up here as a collapsed percentage rather than only as a slow
+            // test.
+            if (numBlobbyCellsVisited > 0) {
+                info(CODE_STATS, "     Surface cells: %4.2f %% (of visited)\n", 100 * numBlobbySurfaceCells / (float)numBlobbyCellsVisited);
+            }
         }
 
         info(CODE_STATS, "->Raytracer\n");

@@ -347,6 +347,12 @@ EXTERN(RtToken)
     RI_TRANSMISSION,
     RI_CAUSTICS;
 
+// Blobby implicit surface attribute and option (spec 015)
+EXTERN(RtToken)
+    RI_BLOBBY,
+    RI_BLOBBYTOLERANCE,
+    RI_BLOBBYOPCODEORDER;
+
 // Shade attributes
 EXTERN(RtToken)
     RI_SHADERFORMAT,

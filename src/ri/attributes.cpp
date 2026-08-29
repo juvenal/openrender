@@ -121,6 +121,7 @@ CAttributes::CAttributes() {
     shadingModel = SM_MATTE;
 
     shaderFormat = nullptr; // No per-object override; falls through to option/compile-time default
+    blobbyTolerance = 0;    // Unset: derive the cell size from the field extent (FR-025)
 
     globalMapName = NULL;
     causticMapName = NULL;
@@ -266,6 +267,7 @@ CAttributes::CAttributes(const CAttributes *a) {
     name = (a->name != NULL ? strdup(a->name) : NULL);
 
     shaderFormat = (a->shaderFormat != NULL ? strdup(a->shaderFormat) : nullptr);
+    blobbyTolerance = a->blobbyTolerance;
 
     if (numPendingTrimLoops > 0) {
         pendingTrimLoops = new CTrimLoop[numPendingTrimLoops];
@@ -529,6 +531,7 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
         if (shaderFormat != NULL)
             free(shaderFormat);
         shaderFormat = (other->shaderFormat != NULL ? strdup(other->shaderFormat) : nullptr);
+        blobbyTolerance = other->blobbyTolerance;
 
         // Copy the user attributes
         userAttributes = other->userAttributes;
@@ -563,7 +566,7 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
 // Description			:	Find a particular attribute
 // Return Value			:	-
 // Comments				:
-int CAttributes::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float & /*floatValue*/) const {
+int CAttributes::find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &floatValue) const {
 
     // Make the common case fast
     if ((category == NULL) || (strcmp(category, RI_USER) == 0)) {
@@ -729,6 +732,15 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
         else if (strcmp(name, RI_SHADERFORMAT) == 0) {
             type = TYPE_STRING;
             value = (shaderFormat != NULL) ? shaderFormat : "slo";
+            return TRUE;
+        }
+    }
+
+    if ((category == NULL) || (strcmp(category, RI_BLOBBY) == 0)) {
+        if (strcmp(name, RI_BLOBBYTOLERANCE) == 0) {
+            type = TYPE_FLOAT;
+            value = NULL;
+            floatValue = blobbyTolerance;
             return TRUE;
         }
     }

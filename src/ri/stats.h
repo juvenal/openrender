@@ -98,6 +98,13 @@ class CStats {
         int numSplits; // The stats that come from CPatch
         int numVsplits, numUsplits, numUVsplits;
 
+        int numBlobbies;          // The stats that come from RiBlobby (spec 015)
+        int numBlobbyLeaves;      // Total primitive fields across all blobbies
+        int numBlobbyFieldEvals;  // Field evaluations performed
+        int numBlobbyCellsVisited;// Cells the continuation walk examined
+        int numBlobbySurfaceCells;// Cells that actually straddled the surface
+        int numBlobbyTriangles;   // Triangles emitted
+
         int numTextureMisses;                   // The number of texture misses
         int transferredTextureData;             // The amount the texture data transmitted
         int textureSize;                        // The current amount of textures in the memory

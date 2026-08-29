@@ -179,6 +179,12 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_TRANSMISSIONHITMODE, "string");
     declareVariable(RI_CAMERAHITMODE, "string");
     declareVariable(RI_SHADERFORMAT, "string");
+
+    // Blobby implicit surfaces (spec 015). Both must be pre-declared here
+    // or the RIB parser rejects them with "Parameter not declared" before
+    // RiAttributeV/RiOptionV ever sees them.
+    declareVariable(RI_BLOBBYTOLERANCE, "float");
+    declareVariable(RI_BLOBBYOPCODEORDER, "string");
     declareVariable(RI_DEFAULT, "string"); // Option "shaderformat" "default" token
 
     declareVariable(RI_NAME, "string");

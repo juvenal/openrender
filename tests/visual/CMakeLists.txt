@@ -1348,6 +1348,27 @@ add_visual_test(csg-sphere-sphere-difference-interior-raytrace-inside
     csg-sphere-sphere-difference-interior-raytrace-inside.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)
+# ---------------------------------------------------------------------------
+
+# T013: parse smoke test. Asserts only that both RIB forms of the Blobby
+# statement -- with and without the strings array -- plus the fidelity
+# attribute and the opcode-order option reach the renderer without a
+# diagnostic (FR-001, FR-002, FR-003). Registered as a plain orender run
+# rather than through add_not_required_test: that macro's "not-required"
+# label is selected by neither `ctest -L visual` nor `-L parity`, so the
+# test would never run in a normal suite.
+add_test(NAME Visual_blobby-parse-smoke
+    COMMAND $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests/blobby-parse-smoke.rib
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/blobby-parse-smoke)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/blobby-parse-smoke)
+set_tests_properties(Visual_blobby-parse-smoke PROPERTIES
+    TIMEOUT     360
+    LABELS      "blobby;regression"
+    ENVIRONMENT "${VISUAL_ENV}"
+    DEPENDS     orender)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      104 scenes registered under label 'visual'")
 message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")

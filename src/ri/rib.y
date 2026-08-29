@@ -2620,7 +2620,16 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				ribFloatArray
 				ribPL
 				{
-					// FIXME: Not implemented
+					// Blobby nleaf [ code ] [ floats ] ...parameterlist...
+					// The three-array form is the four-array form with an
+					// empty strings array (contracts/rib-binding.md 1).
+					if (parameterListCheck()) {
+						const int	nleaf	=	(int) $2;
+
+						if (sizeCheck(nleaf,nleaf,nleaf,1)) {
+							RiBlobbyV(nleaf,$3,getInt(0),$4,getFloat(0),0,NULL,numParameters,tokens,vals);
+						}
+					}
 				}
 				|
 				RIB_BLOBBY
@@ -2630,7 +2639,14 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				ribTextArray
 				ribPL
 				{
-					// FIXME: Not implemented
+					// Blobby nleaf [ code ] [ floats ] [ strings ] ...parameterlist...
+					if (parameterListCheck()) {
+						const int	nleaf	=	(int) $2;
+
+						if (sizeCheck(nleaf,nleaf,nleaf,1)) {
+							RiBlobbyV(nleaf,$3,getInt(0),$4,getFloat(0),$5,(const char **) getString(0),numParameters,tokens,vals);
+						}
+					}
 				}
 				|
 				RIB_GEOMETRY

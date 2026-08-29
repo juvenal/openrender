@@ -121,10 +121,38 @@ Resolves the verified contradiction between the two primary sources
 | `"rispec"` *(default)* | subtract | divide | RISpec 3.2 Table 5.3 |
 | `"appnote"` | divide | subtract | Pixar AppNote #31 |
 
-Set `"appnote"` when rendering RIB authored against PhotoRealistic RenderMan,
-so it renders correctly without being edited. Scene-wide; pre-declared;
+**Which order PhotoRealistic RenderMan actually implements** was settled
+during implementation by AppNote #31's own example scene, against the
+note's own table. `figures.31/dent.rib` combines the same two ellipsoid
+fields with opcode 2 in two of its four blobbies and opcode 4 in the other
+two; `dent.jpg` shows the opcode-2 pair as a sphere with a bump and a
+sphere with a spike (the unblended union `max` gives) and the opcode-4 pair
+as a sphere with a crater and a sphere with a tunnel bored through it.
+Only subtraction produces those. So opcode 4 is **subtract** in the
+shipping renderer.
+
+That inverts the obvious advice: RIB authored against PhotoRealistic
+RenderMan renders correctly under `"rispec"`, the default, and needs no
+edit. `"appnote"` exists for the narrower case of RIB generated from the
+note's *table* rather than from its examples. Scene-wide; pre-declared;
 resolved once per primitive at construction, never branched per evaluation
 point. An unrecognised value produces a diagnostic and keeps the default.
+
+### Operand order for subtract and divide
+
+Both sources name subtract's operands "subtrahend, minuend", which reads as
+though the second operand were the one subtracted *from*. `dent.rib`
+refutes that too: it subtracts a small sphere (operand 1) from a large one
+(operand 0), and the figure shows the large sphere cratered. Read
+literally, the documented naming would evaluate "small minus large", which
+barely crosses the threshold anywhere and could not produce that image.
+
+    subtract:  operand0 - operand1
+    divide:    operand0 / operand1
+
+The reversed naming is a shared documentation slip, not a behavioural
+difference between the sources, and it is unaffected by the opcode-order
+option.
 
 ---
 

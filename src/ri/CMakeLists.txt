@@ -7,6 +7,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 
 set(ri_sources
 	attributes.cpp
+	blobby.cpp
+	blobbyField.cpp
+	blobbyPolygonize.cpp
+	blobbyRepeller.cpp
 	brickmap.cpp
 	bundles.cpp
 	compositor.cpp

@@ -262,6 +262,7 @@ COptions::COptions() {
 
     hider = strdup("reyes");
     defaultShaderFormat = nullptr;
+    blobbyOpcodeOrder = BLOBBY_ORDER_RISPEC;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -442,6 +443,7 @@ COptions::COptions(const COptions *o) {
     globalOut = (o->globalOut != NULL ? strdup(o->globalOut) : NULL);
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
     defaultShaderFormat = (o->defaultShaderFormat != nullptr ? strdup(o->defaultShaderFormat) : nullptr);
+    blobbyOpcodeOrder = o->blobbyOpcodeOrder;
 
     if (imager != nullptr)
         imager->attach();

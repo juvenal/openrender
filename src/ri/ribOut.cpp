@@ -1415,8 +1415,46 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                                                                 writePL(numVertices, numVertices, numFacevaryings, nfaces, n, tokens, params);
                                                             }
 
-                                                            void CRibOut::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
-                                                                errorHandler(RIE_UNIMPLEMENT, RIE_ERROR, "Blobby primitive is not implemented\n");
+                                                            ///////////////////////////////////////////////////////////////////////
+                                                            // Class				:	CRibOut
+                                                            // Method				:	RiBlobbyV
+                                                            // Description			:	Re-emit a Blobby statement (FR-004)
+                                                            // Comments				:	This is a correctness requirement, not a
+                                                            //							convenience. Each server in a distributed
+                                                            //							render re-derives its own surface from the
+                                                            //							re-emitted declaration, so a stub here means
+                                                            //							the primitive is silently lost across
+                                                            //							servers and on any RIB round trip.
+                                                            //
+                                                            //							Always emits the four-array form, including
+                                                            //							the strings array: it is the general one, and
+                                                            //							a scene that used the three-array form reads
+                                                            //							back identically from it.
+                                                            ///////////////////////////////////////////////////////////////////////
+                                                            void CRibOut::RiBlobbyV(int nleaf, int ncode, int code[], int nfloats, float floats[], int nstrings, const char *strings[], int n, const char *tokens[], const void *params[]) {
+                                                                int i;
+
+                                                                out("Blobby %d [ ", nleaf);
+                                                                for (i = 0; i < ncode; i++) {
+                                                                    out("%d ", code[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < nfloats; i++) {
+                                                                    out("%g ", floats[i]);
+                                                                }
+
+                                                                out("] [ ");
+                                                                for (i = 0; i < nstrings; i++) {
+                                                                    out("\"%s\" ", strings[i] == NULL ? "" : strings[i]);
+                                                                }
+                                                                out("] ");
+
+                                                                // Per-blob parameters are varying/vertex over the primitive
+                                                                // fields, so the vertex, varying and facevarying counts are all
+                                                                // the leaf count, and there is one uniform value for the whole
+                                                                // primitive (contracts/rib-binding.md 1).
+                                                                writePL(nleaf, nleaf, nleaf, 1, n, tokens, params);
                                                             }
 
                                                             void CRibOut::RiProcDelayedReadArchive(const char *, float) {

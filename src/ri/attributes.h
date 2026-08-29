@@ -123,7 +123,7 @@ class CAttributes : public CRefCounter {
         void checkParameters();                 // Re-compute the required shader parameters
         CVariable *findParameter(const char *); // Find a shader parameter
         void restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/);
-        int find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float & /*floatValue*/) const;
+        int find(const char *name, const char *category, EVariableType &type, const void *&value, int &intValue, float &floatValue) const;
 
         CAttributes *next;           // points to the next attribute if there's motion blur
 
@@ -175,6 +175,12 @@ class CAttributes : public CRefCounter {
         EShadingModel shadingModel;  // The surface shading model
 
         char *shaderFormat;            // "slo" or "rslo" shader format preference
+
+        // Blobby implicit-surface fidelity (spec 015, FR-025). Zero or
+        // negative means "unset", in which case the cell size is derived
+        // from the primitive's own field extent -- so a scene that never
+        // sets it still renders smoothly at typical framing.
+        float blobbyTolerance;
 
         char *globalMapName;              // The name of the global photon map
         char *causticMapName;             // The name of the caustic photon map

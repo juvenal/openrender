@@ -27,6 +27,7 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#include "blobbyField.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
@@ -162,6 +163,11 @@ class COptions {
 
         char *hider;               // Hider name
         const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
+
+        // Which primary source's assignment of blobby opcodes 4 and 5 is in
+        // force (spec 015, FR-013). Scene-wide, resolved once per primitive
+        // at construction rather than branched per evaluation point.
+        int blobbyOpcodeOrder;
 
         TSearchpath *archivePath;    // RIB search path
         TSearchpath *proceduralPath; // Procedural primitive search path

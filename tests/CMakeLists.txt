@@ -54,6 +54,7 @@ add_subdirectory(visual)
 add_subdirectory(shaders)
 add_subdirectory(shading_parity)
 add_subdirectory(unit/csg)
+add_subdirectory(unit/blobby)
 
 # Print test information
 message(STATUS "Configured tests:")

@@ -63,6 +63,8 @@
 #include "ri.h"
 #include "ri_config.h"
 #include "rib.h"
+#include "blobby.h"
+#include "blobbyField.h"
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
@@ -1794,6 +1796,40 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_BLOBBY) == 0) {
+        // FR-013. RISpec 3.2 Table 5.3 and PRMan Application Note #31
+        // assign opcodes 4 and 5 to subtract/divide in opposite orders;
+        // both were read verbatim, so the contradiction is real. RISpec is
+        // the default, and it is also what the note's own dent.rib example
+        // demonstrates the shipping renderer doing -- see blobbyField.h.
+        for (i = 0; i < n; i++) {
+            CVariable var;
+            const char *tokenName = tokens[i];
+
+            // As above: accept the pre-declared bare name and the inline
+            // declaration form alike.
+            if (parseVariable(&var, NULL, tokens[i]) == TRUE)
+                tokenName = var.name;
+
+            if (strcmp(tokenName, RI_BLOBBYOPCODEORDER) == 0) {
+                const char *val = ((const char **)params[i])[0];
+
+                if (strcmp(val, "rispec") == 0) {
+                    options->blobbyOpcodeOrder = BLOBBY_ORDER_RISPEC;
+                }
+                else if (strcmp(val, "appnote") == 0) {
+                    options->blobbyOpcodeOrder = BLOBBY_ORDER_APPNOTE;
+                }
+                else {
+                    error(CODE_RANGE, "Unknown blobby opcodeorder: \"%s\" (expected \"rispec\" or \"appnote\"); keeping \"rispec\"\n", val);
+                    options->blobbyOpcodeOrder = BLOBBY_ORDER_RISPEC;
+                }
+            }
+            else {
+                error(CODE_BADTOKEN, "Unknown blobby option: \"%s\"\n", tokens[i]);
+            }
+        }
+    }
     else if (strcmp(name, RI_SHADERFORMAT) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_DEFAULT) == 0) {
@@ -3432,6 +3468,30 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                     else {
                         error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                     }
+                }
+            }
+        }
+        else if (strcmp(name, RI_BLOBBY) == 0) {
+            // FR-025: the fidelity control for blobby implicit surfaces.
+            // Validation of the *value* lives with the primitive, in
+            // blobbyCellSizeFromTolerance(), so a scene that sets a silly
+            // tolerance far from any Blobby still gets its diagnostic where
+            // the geometry is actually built.
+            for (i = 0; i < n; i++) {
+                CVariable var;
+                const char *tokenName = tokens[i];
+
+                // The token may arrive either as the pre-declared bare name
+                // or as an inline declaration ("float tolerance"); both
+                // forms are legal RIB, so resolve to the bare name first.
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE)
+                    tokenName = var.name;
+
+                if (strcmp(tokenName, RI_BLOBBYTOLERANCE) == 0) {
+                    attributes->blobbyTolerance = ((const float *)params[i])[0];
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                 }
             }
         }
@@ -5568,12 +5628,87 @@ void CRendererContext::RiHierarchicalSubdivisionMeshV(const char *scheme, int nf
     deleteHierarchicalOverrides(overrides);
 }
 
-void CRendererContext::RiBlobbyV(int, int, int[], int, float[], int, const char *[], int, const char *[], const void *[]) {
-    // Unimplemented: blobby primitives are not supported.
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	RiBlobbyV
+// Description			:	Validate a blobby declaration, derive its
+//							surface, and hand the resulting mesh to
+//							addObject() (spec 015, research Decision 1).
+// Comments				:	The surface is derived here, once, in the
+//							geometry domain, before any hider runs.
+//							addObject() is the single chokepoint every
+//							other primitive already uses, so the result is
+//							hider-agnostic by construction (FR-022) and
+//							picks up solid-block capture and instancing for
+//							free.
+//
+//							The netNumServers guard is the same one every
+//							geometric primitive in this file carries: a
+//							client coordinating a distributed render builds
+//							no geometry locally, because each server parses
+//							the scene and derives its own copy. What used
+//							to lose a blobby across servers was not this
+//							guard but CRibOut::RiBlobbyV's RIE_UNIMPLEMENT
+//							stub, which dropped the statement from the
+//							re-emitted stream; that is fixed in ribOut.cpp.
+///////////////////////////////////////////////////////////////////////
+void CRendererContext::RiBlobbyV(int nleaf, int ncode, int code[], int nfloats, float floats[], int nstrings, const char *strings[], int n, const char *tokens[], const void *params[]) {
+    CXform *xform;
+    CAttributes *attributes;
+    float *p0, *p1;
+
     if (CRenderer::netNumServers > 0)
         return;
 
-    error(CODE_INCAPABLE, "Blobby primitives are not currently supported\n");
+    attributes = getAttributes(FALSE);
+    xform = getXform(FALSE);
+
+    checkGeometryOrDiscard();
+
+    // The code array is integer and cannot interpolate, so the only part of
+    // a blobby that can move within a motion block is its floats array --
+    // which is where every field's position, size and shape lives.
+    switch (addMotion(floats, nfloats, "CRendererContext::RiBlobby", p0, p1)) {
+        case 0:
+            return;
+        case 1:
+            p1 = NULL;
+            break;
+        case 2:
+            break;
+        default:
+            return;
+    }
+
+    const EBlobbyOpcodeOrder order = (EBlobbyOpcodeOrder)currentOptions->blobbyOpcodeOrder;
+    CBlobbyProgram *program = new CBlobbyProgram(nleaf, ncode, code, nfloats, p0, nstrings, strings, order);
+
+    if (!program->isValid()) {
+        // Every rejection has already produced a diagnostic naming the
+        // offending instruction (FR-029, FR-031).
+        delete program;
+        return;
+    }
+
+    CBlobbyProgram *programClose = NULL;
+
+    if (p1 != NULL) {
+        programClose = new CBlobbyProgram(nleaf, ncode, code, nfloats, p1, nstrings, strings, order);
+
+        if (!programClose->isValid()) {
+            delete programClose;
+            programClose = NULL;
+        }
+    }
+
+    CObject *object = blobbyCreate(attributes, xform, program, programClose, n, tokens, params);
+
+    if (object != NULL)
+        addObject(object);
+
+    if (programClose != NULL)
+        delete programClose;
+    delete program;
 }
 
 void CRendererContext::RiSolidBegin(const char *type) {
