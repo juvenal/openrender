@@ -41,7 +41,7 @@ first placed far apart, then close enough to influence one another, then close e
 to merge into a single component. Each render can be inspected on its own against the
 expected level surface — two separate rounded shapes, two shapes drawn toward one
 another, and one merged shape with a smooth waist. Repeat the merged case under each
-available hider and confirm the silhouettes agree.
+camera hider (REYES, z-buffer, ray-trace) and confirm the silhouettes agree.
 
 **Acceptance Scenarios**:
 
@@ -56,7 +56,7 @@ available hider and confirm the silhouettes agree.
 3. **Given** a Blobby whose fields are combined with the maximum operation instead of
    add, **When** the scene is rendered, **Then** the image shows the unblended union
    of the individual surfaces — the parts touch but do not swell into one another.
-4. **Given** any of the above scenes, **When** it is rendered once under each available
+4. **Given** any of the above scenes, **When** it is rendered once under each camera
    hider without changing anything else in the scene, **Then** every render shows the
    same resolved shape, within the tolerance the existing visual-regression comparison
    already applies to other primitives.
@@ -225,7 +225,7 @@ absorbed by the blend regions between them.
 ### User Story 6 - Trade surface fidelity against render cost (Priority: P3)
 
 A scene author who sees faceting on a blobby filling the frame in a close-up shot tightens
-a fidelity setting on that primitive and re-renders to get a smoother surface, and
+a tolerance setting on that primitive and re-renders to get a smoother surface, and
 loosens it on distant background blobbies to save time and memory. Authors who never
 touch the setting still get a surface that looks correct.
 
@@ -234,17 +234,17 @@ close-up has no remedy at all. It is P3 rather than higher because the default m
 already be good enough for the great majority of scenes; this is the escape hatch, not
 the primary path.
 
-**Independent Test**: Render one blobby filling the frame at the default fidelity, then
+**Independent Test**: Render one blobby filling the frame at the default tolerance, then
 at a tighter setting, and confirm the tighter render shows a visibly smoother silhouette.
 Render an existing scene with the setting absent and confirm it is unchanged from before
 the setting existed.
 
 **Acceptance Scenarios**:
 
-1. **Given** a scene that never mentions the fidelity setting, **When** it is rendered,
+1. **Given** a scene that never mentions the tolerance setting, **When** it is rendered,
    **Then** the blobby's surface appears smooth at typical framing without the author
    having configured anything.
-2. **Given** the fidelity setting tightened on one primitive, **When** the scene is
+2. **Given** the tolerance setting tightened on one primitive, **When** the scene is
    rendered, **Then** that primitive's silhouette is measurably smoother and no other
    primitive in the scene changes.
 3. **Given** the setting declared in an enclosing attribute scope, **When** a nested
@@ -506,21 +506,23 @@ removed and confirm the blobby is sharp.
   re-derived per hider, per bucket, per ray, or lazily during rendering. A distributed
   render is the one place the surface is derived more than once — once per participating
   server, each from the same re-emitted declaration — which FR-023a constrains.
+- **FR-023**: A blobby MUST render to the same resolved shape under every camera hider the
+  renderer offers, within the same comparison tolerance the visual regression suite
+  already applies to other primitives. Adding a future hider of **any** kind — camera or
+  otherwise — MUST require no blobby-specific work whatsoever; the agreement assertion is
+  scoped to camera hiders only because non-camera hiders produce no comparable image, not
+  because they are exempt from consuming the same geometry.
 - **FR-023a**: Deriving the surface MUST be deterministic: the same declaration rendered
-  with the same fidelity setting MUST produce identical geometry every time, on every
+  with the same tolerance setting MUST produce identical geometry every time, on every
   machine, regardless of thread count or bucket order. Without this, a distributed render
   in which each server derives its own copy would show seams where geometry from
   different servers meets.
-- **FR-023**: A blobby MUST render to the same resolved shape under every hider the
-  renderer offers, within the same comparison tolerance the visual regression suite
-  already applies to other primitives, and adding a future hider MUST require no
-  blobby-specific work whatsoever.
 - **FR-024**: Shading normals on the resolved surface MUST be derived from the field's
   own gradient rather than from the faceting of the generated geometry, so that shading
-  and silhouettes stay smooth at moderate fidelity settings instead of revealing the
+  and silhouettes stay smooth at moderate tolerance settings instead of revealing the
   generated facet structure.
 - **FR-025**: The renderer MUST provide an author-facing attribute controlling the
-  fidelity of the generated surface, inheritable through attribute scope like every other
+  tolerance of the generated surface, inheritable through attribute scope like every other
   attribute, with a default derived from the primitive's own extent so that scenes which
   never set it still render a smooth-looking surface. The attribute MUST be usable from
   RIB without the author declaring it first.
@@ -553,7 +555,7 @@ removed and confirm the blobby is sharp.
 #### Documentation
 
 - **FR-032**: The project documentation site MUST document the primitive and the new
-  fidelity attribute alongside the feature — the code array format, every opcode and its
+  tolerance attribute alongside the feature — the code array format, every opcode and its
   operands, per-blob parameters, the opcode 4/5 erratum and the option that selects
   between the two readings, and worked examples — delivered with the feature rather than
   afterwards.
@@ -583,8 +585,17 @@ removed and confirm the blobby is sharp.
   rendering begins, carrying its own gradient-derived shading normals, its blended
   per-blob values, and its motion samples — the single representation every hider
   consumes.
-- **Fidelity attribute**: The inheritable author-facing control over how finely the
+- **Tolerance attribute**: The inheritable author-facing control over how finely the
   resolved surface approximates the true level set.
+- **Camera hider**: A hider that resolves visibility for camera rays and produces the
+  rendered image — currently the REYES, z-buffer, and ray-trace hiders. Cross-hider
+  agreement is asserted over camera hiders **only**. The photon-map pass and the
+  debug visualiser are **not** camera hiders: they do not produce a comparable
+  rendered image, so comparing their output against a camera hider's is meaningless
+  and MUST NOT be required. This distinction bounds every "under every hider" claim
+  about *verification* below; it does not narrow the architectural requirement in
+  FR-022, where the resolved geometry really is consumed by every hider without
+  exception, camera or not.
 
 ## Success Criteria *(mandatory)*
 
@@ -604,19 +615,19 @@ removed and confirm the blobby is sharp.
   normal. A frozen reference image is never accepted as the sole evidence that a surface
   is correct.
 - **SC-003a**: With that analytic base in place, every published reference model from the
-  specification and the application note renders and is committed as an ordinary frozen
-  regression scene: the six-blob coloured octahedron with colours blending, the
-  selectively blended hand with fingers joining the palm and no webs between fingers, a
-  multi-segment tube, a blob dented and then pierced by a subtracted blob, and a blob
-  deflected by a repelling ground plane.
-- **SC-004**: A blobby scene rendered under every available hider produces images that
+  specification and the application note renders without error under each camera hider and is
+  committed as a frozen regression reference: the six-blob coloured octahedron with
+  colours blending, the selectively blended hand with fingers joining the palm and no
+  webs between fingers, a multi-segment tube, a blob dented and then pierced by a
+  subtracted blob, and a blob deflected by a repelling ground plane.
+- **SC-004**: A blobby scene rendered under every camera hider produces images that
   agree within the same difference threshold the existing visual regression suite already
   applies, with no hider requiring a scene change to render the primitive.
 - **SC-005**: A corpus of at least fifteen deliberately malformed blobby declarations —
   covering every malformed case in the Edge Cases section — produces a clear diagnostic in
   every case and zero crashes, hangs, or invalid numeric outputs.
 - **SC-006**: A blobby at typical framing renders with no facet edges visible on its
-  silhouette or in its shading at the default fidelity setting; a blobby filling the
+  silhouette or in its shading at the default tolerance setting; a blobby filling the
   frame reaches the same standard once the setting is tightened, and tightening the
   setting measurably reduces silhouette deviation from the true level set.
 - **SC-007**: The full existing visual regression suite passes unchanged, confirming no
@@ -632,7 +643,7 @@ removed and confirm the blobby is sharp.
 - **SC-010**: A moving blobby and an ordinary primitive undergoing identical motion in the
   same scene blur over the same extent, and the same blobby outside a motion block renders
   sharp.
-- **SC-011**: Documentation for the primitive and the fidelity attribute is published on
+- **SC-011**: Documentation for the primitive and the tolerance attribute is published on
   the project site, covering every opcode, per-blob parameters, and the opcode 4/5
   erratum, with worked examples an author can copy and render.
 - **SC-012**: A blobby of approximately 500 segment fields — the published toroidal
@@ -662,7 +673,7 @@ removed and confirm the blobby is sharp.
 - **Coordinate systems**: The per-blob transformation matrices carry their shapes into the
   primitive's own coordinate system, and the primitive as a whole is then placed by the
   current transformation exactly like any other primitive.
-- **Fidelity default**: The default fidelity is derived from each primitive's own extent
+- **Tolerance default**: The default tolerance is derived from each primitive's own extent
   so that a scene which never mentions the attribute still renders a smooth surface at
   typical framing; the attribute is the escape hatch for close-ups and distant background
   geometry, not the normal path.
@@ -694,5 +705,5 @@ refinement specification:
   the scanline hiders, which is precisely the hider-coupled shape this feature's
   architectural constraint forbids; it is neither extended nor reused here.
 - Author control over the surface threshold.
-- Level-of-detail or view-dependent fidelity selection beyond the single inheritable
+- Level-of-detail or view-dependent tolerance selection beyond the single inheritable
   attribute described above.

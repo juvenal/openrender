@@ -100,3 +100,21 @@ RISpec 3.2 Table 5.3 and Application Note #31 assign opcodes 4 and 5 in opposite
 Both sources were read verbatim; this is a genuine contradiction, not a transcription
 error. FR-013 resolves it by supporting both readings with the RISpec order as the
 default, and requires the erratum be documented with citations.
+
+### Post-planning analysis rounds
+
+This checklist's items were last re-validated against the spec on 2026-08-29 and all 16
+still pass. Note that the Validation record above covers only the `/speckit-specify` and
+`/speckit-clarify` rounds. Three subsequent `/speckit-analyze` rounds changed the spec
+materially without changing any checkbox state:
+
+1. Terminology normalised from "fidelity" to "tolerance"; FR-023a reordered after
+   FR-023; SC-003a reworded from "renders recognisably" to checkable conditions.
+2. Cross-hider verification scoped to a new "Camera hider" Key Entity — parity is
+   asserted over REYES/z-buffer/ray-trace only, never over the photon pass or the debug
+   visualiser, which produce no comparable image.
+3. FR-018, FR-021, FR-030 and FR-031 gained explicit task coverage, closing the last
+   partial and uncovered requirements; Edge Cases 8, 10 and 13 gained tests.
+
+The checkboxes remain the authority on spec *quality*; `tasks.md` is the authority on
+coverage.

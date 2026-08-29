@@ -67,11 +67,31 @@ Decision 5).
 
 **Testing**: ctest. Unit tests follow the `tests/unit/csg/` precedent — a new
 `tests/unit/blobby/` directory with one file per concern and its own
-`CMakeLists.txt`, registered from `tests/CMakeLists.txt`. Visual and
-cross-hider-parity scenes register through the existing
-`tests/visual/CMakeLists.txt` macros, which already emit both `Visual_` and
-`Parity_` tests per scene — the latter is precisely SC-004's cross-hider
-agreement check and needs no new harness.
+`CMakeLists.txt`, registered from `tests/CMakeLists.txt`.
+
+Scene tests use two distinct existing macros in `tests/visual/CMakeLists.txt`,
+and both are needed: `add_visual_test` (one call per scene **per hider**,
+comparing that hider's render against a committed reference under
+`examples/rib/tests/references/`) and `add_parity_test` (one call **per hider
+pair**, comparing two renders directly, no reference required). The harness
+needs no new driver, but the distinction matters: `add_visual_test` only
+proves each hider still matches its own frozen image, while SC-004 requires
+the hiders to agree with *each other*.
+
+Both are scoped to **camera hiders** — REYES, z-buffer, ray-trace. The
+photon-map pass and the debug visualiser are not camera hiders and produce no
+comparable rendered image, so they are never parity subjects (spec Key
+Entities, "Camera hider"). This narrows *verification* only; the resolved
+geometry is still consumed by every hider without exception, which is FR-022's
+architectural claim and is unaffected.
+
+Spec 013's CSG scenes used the visual
+half of this pattern alone — nine `add_visual_test` calls across
+reyes/raytrace/zbuffer and zero parity tests
+(`tests/visual/CMakeLists.txt:1233-1276`) — so the parity half is added here
+rather than inherited. Concretely, each cross-hider blobby scene costs three
+RIB variants, three committed references, and two parity pairings
+(reyes↔raytrace, reyes↔zbuffer).
 
 **Target Platform**: Linux and macOS (Principle VI; no new platform surface)
 
@@ -113,7 +133,7 @@ spiral, SC-012).
 | IV. Command Line Interface | PASS | No new CLI surface. RIB scenes through `orender <rib>` remain the interface, as for every other primitive. New statistics print through the existing `CStats::printStats()` level-gated output. |
 | V. Minimal Dependencies | PASS | No new external dependency. Marching tetrahedra, the field functions, and the depth-file read are all small, well-understood, in-tree implementations (`research.md` Decisions 2 and 5, both weighed against library alternatives). |
 | VI. Platform Targeting | PASS | No platform-specific code. |
-| VII. Documentation and Site Management | PASS (planned) | FR-032 requires Hugo site documentation for the primitive, the fidelity attribute, and the opcode 4/5 erratum, delivered with the feature. `quickstart.md` carries it as a first-class task, not a follow-up. |
+| VII. Documentation and Site Management | PASS (planned) | FR-032 requires Hugo site documentation for the primitive, the tolerance attribute, and the opcode 4/5 erratum, delivered with the feature. `quickstart.md` carries it as a first-class task, not a follow-up. |
 
 No violations require Complexity Tracking justification. Two accepted
 tradeoffs are recorded under Complexity Tracking below — both are direct
@@ -189,14 +209,27 @@ tests/
 ├── unit/blobby/                       # NEW, mirroring tests/unit/csg/
 │   ├── CMakeLists.txt
 │   ├── blobbyTestUtils.h
-│   ├── test_field_primitives.cpp      # opcodes 1000-1003
-│   ├── test_field_combining.cpp       # opcodes 0-7, both 4/5 orders
 │   ├── test_code_validation.cpp       # malformed arrays (SC-005)
-│   ├── test_value_blending.cpp        # FR-019 propagation
+│   ├── test_extent.cpp                # field extent + mesh bound (FR-028)
+│   ├── test_field_primitives.cpp      # opcodes 1000-1003
+│   ├── test_field_combining.cpp       # opcodes 0-7
+│   ├── test_opcode_order.cpp          # both 4/5 orders (SC-002)
+│   ├── test_threshold_calibration.cpp # FR-015 field-value bracket
 │   ├── test_polygonize_analytic.cpp   # SC-003 closed-form ground truth
-│   └── test_determinism.cpp           # FR-023a
-├── visual/CMakeLists.txt              # Register new scenes (Visual_ + Parity_)
-└── RIB/ or examples/rib/              # New blobby scenes
+│   ├── test_polygonize_watertight.cpp # prerequisite for FR-027
+│   ├── test_determinism.cpp           # FR-023a
+│   ├── test_surface_params.cpp        # u/v/s/t (FR-021)
+│   ├── test_value_blending.cpp        # FR-019 propagation
+│   ├── test_mpoint.cpp                # FR-020
+│   ├── test_tolerance.cpp             # FR-025 default + validation
+│   ├── test_repeller.cpp              # FR-010 bump/ease/repulsion
+│   └── test_motion.cpp                # FR-026 advection
+├── visual/CMakeLists.txt              # Register new scenes:
+│                                      #   3 add_visual_test  (one per camera hider)
+│                                      # + 2 add_parity_test  (reyes↔raytrace,
+│                                      #                       reyes↔zbuffer)
+├── ../examples/rib/tests/             # Scene RIBs, <scene>-<hider>.rib
+└── ../examples/rib/tests/references/  # Committed reference TIFFs
 
 site/                                  # Hugo documentation (FR-032)
 ```

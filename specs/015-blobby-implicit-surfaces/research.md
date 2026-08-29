@@ -268,6 +268,16 @@ wall-clock timing* — rejected because the spec sets no wall-clock target and
 timing under a multi-threaded build is noisy enough that the number would be
 reported but never acted on.
 
+**Noted, not actioned**: constitution Principle IV states that CLI tools MUST
+support machine-parseable output, and these counters print only through
+`printStats()`'s human-readable report. This introduces no violation — the
+feature adds no CLI surface, and `printStats()` was already human-only long
+before it — but it does mean the figure that evidences SC-012 is currently
+greppable prose rather than structured data. If machine-readable statistics
+are ever added to `printStats()`, the blobby counters ride along for free;
+introducing a blobby-only JSON path would be inconsistent with every other
+counter in `CStats` and is deliberately not proposed here.
+
 ---
 
 ## Decision 8 — Motion blur representation

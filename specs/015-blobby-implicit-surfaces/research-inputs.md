@@ -114,7 +114,7 @@ requirement that a mismatch be recoverable rather than fatal.
    `RIE_UNIMPLEMENT` — combined with that early return, blobby is silently lost under
    network rendering today); the `CRiInterface` base no-op; `src/ri/CMakeLists.txt`; and
    round-trip verification of the existing `prman.py` / `prman.lua` `Blobby` emitters.
-6. **Four-layer attribute work** for FR-025's fidelity attribute and FR-013's option:
+6. **Four-layer attribute work** for FR-025's tolerance attribute and FR-013's option:
    token constant, `RiAttributeV`/`RiOptionV` parsing, `CAttributes`/options storage, and
    `initDeclarations()` — the last is mandatory or the RIB parser rejects the name before
    it reaches the parsing layer.
@@ -132,7 +132,7 @@ These four answers narrow the design space and should be treated as fixed inputs
    occupies a small fraction of it. A dense uniform sampling grid over the bound is
    therefore ruled out — the design needs sparse, seeded, or surface-following extraction.
    No wall-clock target is set.
-9. **Extraction must be deterministic** (FR-023a). Same declaration + same fidelity →
+9. **Extraction must be deterministic** (FR-023a). Same declaration + same tolerance →
    identical geometry, on any machine, at any thread count, in any bucket order. This
    follows from the decision that each render server re-derives the surface from the
    re-emitted `Blobby` declaration rather than receiving pre-derived geometry; without

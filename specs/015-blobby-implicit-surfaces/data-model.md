@@ -147,7 +147,7 @@ when extraction completes.
 
 | Field | Type | Notes |
 |---|---|---|
-| `cellSize` | `float` | From the fidelity attribute, defaulted from the primitive's extent (FR-025). |
+| `cellSize` | `float` | Internal value derived from the tolerance attribute (§6), defaulted from the primitive's field extent (FR-025). |
 | `visited` | ordered set keyed by `(i,j,k)` | **Ordered, not hashed** — iteration order is part of FR-023a's determinism guarantee (research Decision 3). |
 | `frontier` | FIFO queue of `(i,j,k)` | Seeded in code-array order. FIFO, not LIFO, so traversal order is reproducible. |
 | `vertices` | `CArray<vertex>` | Position, analytic normal, blended values. Emission order is a pure function of traversal order. |
@@ -196,7 +196,7 @@ invented.
 
 | Entity | Scope | Notes |
 |---|---|---|
-| Fidelity attribute | `CAttributes`, inheritable | FR-025. Requires all four layers: token constant (`ri.h`/`ri.cpp`), parsing (`RiAttributeV`), storage/query (`CAttributes::find`), **and pre-declaration** (`initDeclarations()`) — omitting the last makes the RIB parser reject it before parsing is reached. Zero, negative, or absurd values → diagnostic plus fallback (US6 scenario 4). |
+| Tolerance attribute | `CAttributes`, inheritable | FR-025. The author-facing name is **tolerance**, matching the RIB token `Attribute "blobby" "float tolerance"`; `cellSize` in §4 is the internal value derived from it, not a second knob. Requires all four layers: token constant (`ri.h`/`ri.cpp`), parsing (`RiAttributeV`), storage/query (`CAttributes::find`), **and pre-declaration** (`initDeclarations()`) — omitting the last makes the RIB parser reject it before parsing is reached. Zero, negative, or absurd values → diagnostic plus fallback (US6 scenario 4). |
 | Opcode-order option | `COptions`, scene-wide | FR-013. Same four layers. Resolved once into `CBlobbyProgram::opcodeOrder` at construction, never branched on per point. |
 
 ---

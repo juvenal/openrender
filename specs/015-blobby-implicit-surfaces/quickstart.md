@@ -39,14 +39,31 @@ The constitution requires tests written and failing before implementation.
 This feature makes that honest rather than nominal, because the evaluator is a
 pure function with hand-computable values. Work in this order:
 
-| Step | Write these tests first | Then implement |
-|---|---|---|
-| 1 | `test_code_validation.cpp` — every malformed case in the contract | `CBlobbyProgram` validation |
-| 2 | `test_field_primitives.cpp` — opcodes 1000–1003 at hand-computed points | Primitive field evaluation |
-| 3 | `test_field_combining.cpp` — opcodes 0–7, **both** 4/5 orders | Combining evaluation |
-| 4 | `test_value_blending.cpp` — propagation through max/subtract/negate | Weight propagation |
-| 5 | `test_polygonize_analytic.cpp` — closed-form surfaces | The polygonizer |
-| 6 | `test_determinism.cpp` — repeated extraction is bit-identical | (guards the polygonizer) |
+All fifteen unit-test files, in the order their subjects are built. Each block
+is written and confirmed failing, then approved, then implemented (Constitution
+Principle III).
+
+| Step | Write these tests first | Then implement | Phase |
+|---|---|---|---|
+| 1 | `test_code_validation.cpp` — every malformed case in the contract | `CBlobbyProgram` validation | Foundational |
+| 2 | `test_extent.cpp` — per-field support; constant has none, repeller is unbounded | Field extent | Foundational |
+| 3 | `test_field_primitives.cpp` — opcode 1001 at hand-computed points | Ellipsoid evaluation | US1 |
+| 4 | `test_field_combining.cpp` — opcodes 0 and 2 | Add / maximum | US1 |
+| 5 | `test_threshold_calibration.cpp` — the field-value bracket | The threshold constant | US1 |
+| 6 | `test_polygonize_analytic.cpp` — closed-form surfaces | The polygonizer | US1 |
+| 7 | `test_polygonize_watertight.cpp` — every edge shared by exactly two triangles | (guards the polygonizer) | US1 |
+| 8 | `test_determinism.cpp` — repeated extraction is bit-identical | (guards the polygonizer) | US1 |
+| 9 | `test_surface_params.cpp` — `u`/`v`/`s`/`t` are defined | Surface-parameter convention | US1 |
+| 10 | `test_opcode_order.cpp` — **both** 4/5 orders | Opcodes 4 and 5 | US2 |
+| 11 | `test_value_blending.cpp` — propagation through max/subtract/negate | Weight propagation | US4 |
+| 12 | `test_mpoint.cpp` — blob space → reference space | `TYPE_MPOINT` | US5 |
+| 13 | `test_tolerance.cpp` — default from extent; invalid values | Tolerance default + validation | US6 |
+| 14 | `test_repeller.cpp` — `bump`/`ease`/`repulsion` anchors | Repeller field | US7 |
+| 15 | `test_motion.cpp` — fixed-step advection, matching topology | Motion sample | US8 |
+
+Steps 3–4, 10, 14, and 15 extend files a later story also touches; within one
+phase, tasks sharing a file run in sequence (see `tasks.md` Parallel
+Opportunities).
 
 Unit tests go in `tests/unit/blobby/` with its own `CMakeLists.txt`, mirroring
 `tests/unit/csg/` exactly, registered from `tests/CMakeLists.txt`
@@ -147,10 +164,33 @@ that a moving blobby's `data1` is bit-identical across runs.
 
 ## 6. Visual and cross-hider parity
 
-Scenes register through the existing `tests/visual/CMakeLists.txt` macros,
-which already emit both a `Visual_` and a `Parity_` test per scene. The
-`Parity_` test **is** SC-004's cross-hider agreement check — no new harness is
-needed.
+Two distinct macros in `tests/visual/CMakeLists.txt`, and every cross-hider
+scene needs **both**:
+
+| Macro | Scene files | Calls per scene | Reference TIFF? | Proves |
+|---|---|---|---|---|
+| `add_visual_test` | `examples/rib/tests/<scene>-<hider>.rib` | 3 — one per camera hider | **Yes**, in `examples/rib/tests/references/` | Each hider still matches its own frozen image |
+| `add_parity_test` | **the same files** | 2 — reyes↔raytrace, reyes↔zbuffer | No | The hiders agree with **each other** |
+
+**One set of RIB files serves both.** Both macros take an arbitrary path
+relative to `CMAKE_SOURCE_DIR`, so the parity registrations point at the same
+three files the visual registrations use — no second copy. The existing
+`examples/rib/tests/parity/` directory is where *parity-only* scenes happen to
+live; it is a convention for scenes with no visual registration, not a
+requirement.
+
+Scope is **camera hiders** — REYES, z-buffer, ray-trace. The photon-map pass
+and the debug visualiser are not camera hiders and produce no comparable
+image, so they are never parity subjects.
+
+The distinction is the whole point of SC-004: `add_visual_test` alone would
+pass even if all three hiders drifted together, or if each was independently
+wrong in its own consistent way. Only the parity pairings assert agreement.
+Spec 013's CSG scenes used the visual half alone (nine calls, zero parity, at
+`tests/visual/CMakeLists.txt:1233-1276`), so the parity half is new work here.
+
+Budget accordingly: each scene below costs three RIB variants, three committed
+references, and two parity pairings.
 
 | Scene | Proves |
 |---|---|
@@ -244,7 +284,7 @@ Delivered **with** the feature, not after. On the Hugo site under `site/`:
 - [ ] Published example scenes render and are committed as references (SC-003a)
 - [ ] Cross-hider `Parity_` tests pass (SC-004)
 - [ ] 15+ malformed declarations: clear diagnostic each, zero crashes (SC-005)
-- [ ] Default fidelity smooth at typical framing; tightening measurably improves (SC-006)
+- [ ] Default tolerance smooth at typical framing; tightening measurably improves (SC-006)
 - [ ] Existing visual suite passes unchanged (SC-007)
 - [ ] Blobby works as a CSG operand; mesh verified watertight (SC-008, FR-027)
 - [ ] Direct, RIB round-trip, and distributed renders agree, no seams (SC-009)
