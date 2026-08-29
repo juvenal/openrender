@@ -30,6 +30,7 @@ How openRender relates to the RiSpec, and documentation on openRender's non-stan
 - [Options](/openrender/manual/reference/options/)
 - [Attributes](/openrender/manual/reference/attributes/)
 - [Solid CSG Operations](/openrender/manual/reference/solid-csg-operations/)
+- [Blobby Implicit Surfaces](/openrender/manual/reference/blobby-implicit-surfaces/)
 - [Occlusion culling](/openrender/manual/reference/occlusion-culling/)
 - [Baking 3D Textures](/openrender/manual/reference/baking-3d-textures/)
 - [Network parallel rendering](/openrender/manual/reference/network-parallel-rendering/)

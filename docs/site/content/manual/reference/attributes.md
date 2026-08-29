@@ -222,3 +222,24 @@ Attribute "photon" "int estimator" "100"
 ```
 
 This is the number of photons to use when estimating the irradiance. Bigger numbers will cause smoother but blurrier estimates. The smaller numbers will create sharper but noisier image.
+
+## Blobby attributes
+
+```
+Attribute "blobby" "float tolerance" [ 0.05 ]
+```
+
+The edge length of the extraction lattice a blobby implicit surface is
+polygonized on, in the primitive's own object space. The mesh's deviation from
+the true level set falls off roughly as its square, so halving the tolerance
+is a real improvement in fidelity and a fourfold cost in cells. Like every
+other attribute it is inherited by nested scopes.
+
+If it is never set, the default is derived from the primitive's own geometry:
+from its overall extent *and* from its smallest primitive field, because a
+bounding box says nothing about how thin the surface inside it is. Zero,
+negative, or absurdly small or large values produce a diagnostic and fall back
+to a usable value.
+
+See [Blobby Implicit Surfaces](../blobby-implicit-surfaces/) for the
+primitive itself.

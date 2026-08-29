@@ -360,10 +360,10 @@ documentation.
 
 ### Documentation
 
-- [ ] T101 [P] Document the `Blobby` statement in `site/` — both RIB forms, every opcode with its operands, per-blob parameters including `mpoint`, and worked examples an author can copy and render (FR-032)
-- [ ] T102 [P] Document `Attribute "blobby" "float tolerance"` and `Option "blobby" "string opcodeorder"` in `site/`, **including the opcode 4/5 erratum that motivates the option** with citations to both primary sources — an author whose subtraction renders wrong needs to be able to find this
-- [ ] T103 [P] Document the known limitations in `site/` — two motion samples (a renderer-wide format property, not a blobby one) and topology-changing motion being bounded but not faithful
-- [ ] T104 Update `DEVNOTES.md` with the feature's status and add any hard-won gotchas to the project's known-gotchas record
+- [X] T101 [P] Document the `Blobby` statement in `site/` — both RIB forms, every opcode with its operands, per-blob parameters including `mpoint`, and worked examples an author can copy and render (FR-032)
+- [X] T102 [P] Document `Attribute "blobby" "float tolerance"` and `Option "blobby" "string opcodeorder"` in `site/`, **including the opcode 4/5 erratum that motivates the option** with citations to both primary sources — an author whose subtraction renders wrong needs to be able to find this
+- [X] T103 [P] Document the known limitations in `site/` — two motion samples (a renderer-wide format property, not a blobby one) and topology-changing motion being bounded but not faithful
+- [X] T104 Update `DEVNOTES.md` with the feature's status and add any hard-won gotchas to the project's known-gotchas record
 
 ### Final validation
 
