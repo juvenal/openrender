@@ -165,7 +165,7 @@ large field with a subtracted small one, then elongate it to punch through.
 ### Tests for User Story 2 ⚠️ Write first, confirm they FAIL, then obtain approval
 
 - [X] T041 [P] [US2] Extend `tests/unit/blobby/test_field_combining.cpp` with failing tests for multiply, minimum, negate, and identity, including gradient composition (product rule for multiply, winner's gradient for minimum)
-- [ ] T042 [P] [US2] Write failing tests for **both** opcode 4/5 operand orders in `tests/unit/blobby/test_opcode_order.cpp` — the same code array evaluated under `"rispec"` (4=subtract, 5=divide) and `"appnote"` (4=divide, 5=subtract) — and assert the default is the RISpec order (SC-002)
+- [X] T042 [P] [US2] Write failing tests for **both** opcode 4/5 operand orders in `tests/unit/blobby/test_opcode_order.cpp` — the same code array evaluated under `"rispec"` (4=subtract, 5=divide) and `"appnote"` (4=divide, 5=subtract) — and assert the default is the RISpec order (SC-002)
 - [X] T043 [US2] Write failing tests for divide-by-zero and other degenerate combining inputs producing a defined, finite result in `tests/unit/blobby/test_field_combining.cpp`
 
 ### Implementation for User Story 2
@@ -173,8 +173,8 @@ large field with a subtracted small one, then elongate it to punch through.
 - [X] T044 [US2] Implement opcodes 1 (multiply), 3 (minimum), 6 (negate), and 7 (identity) with gradient composition in `src/ri/blobbyField.cpp` (passes T041)
 - [X] T045 [US2] Implement opcodes 4 and 5 with the operand mapping resolved **once at construction** from `CBlobbyProgram::opcodeOrder`, not branched per evaluation point, in `src/ri/blobbyField.cpp` (passes T042)
 - [X] T046 [US2] Add the degenerate-input guards for divide and the other combining operations in `src/ri/blobbyField.cpp` (passes T043)
-- [ ] T047 [P] [US2] Author the US2 scenes — the reference hand in its three blending configurations, and a blob dented then pierced by a subtracted blob — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T048 [US2] Render, verify, and commit the US2 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
+- [X] T047 [P] [US2] Author the US2 scenes — the reference hand in its three blending configurations, and a blob dented then pierced by a subtracted blob — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T048 [US2] Render, verify, and commit the US2 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
 
 **Checkpoint**: All eight combining operations work; both opcode 4/5 readings are selectable and tested.
 

@@ -1,0 +1,67 @@
+##RenderMan RIB-Structure 1.0
+# The same 22 fields with every one of them added together instead. Everything merges: the fingers web into a mitten and the shape loses its structure. The contrast with blobby-hand-selective is the whole point of the full operation set (US2 scenario 1).
+#
+# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "zbuffer"
+Display "blobby-hand-summed-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 -0.7 14
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    Attribute "blobby" "float tolerance" [ 0.05 ]
+    Blobby 22 [
+        1001 0
+        1001 16
+        1001 32
+        1001 48
+        1001 64
+        1001 80
+        1001 96
+        1001 112
+        1001 128
+        1001 144
+        1001 160
+        1001 176
+        1001 192
+        1001 208
+        1001 224
+        1001 240
+        1001 256
+        1001 272
+        1001 288
+        1001 304
+        1001 320
+        1001 336
+        0 22 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
+    ] [
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -1.50 -1.20 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -1.50 -0.60 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -1.50  0.00 0 1
+        .8 0 0 0  0 1.2 0 0  0 0 .8 0  -1.50  0.60 0 1
+        .8 0 0 0  0 1.6 0 0  0 0 .8 0  -1.50  1.60 0 1
+        .8 0 0 0  0 1.4 0 0  0 0 .8 0  -1.50  2.60 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -1.05 -1.80 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -0.60 -1.20 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -0.60 -0.60 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -0.60  0.00 0 1
+        .8 0 0 0  0 1.2 0 0  0 0 .8 0  -0.60  0.60 0 1
+        .8 0 0 0  0 1.6 0 0  0 0 .8 0  -0.60  1.70 0 1
+        .7 0 0 0  0 1.6 0 0  0 0 .8 0  -0.60  2.70 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0  -0.15 -1.80 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0   0.30 -1.20 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0   0.30 -0.60 0 1
+        1. 0 0 0  0 1. 0 0  0 0 1. 0   0.30  0.00 0 1
+        .8 0 0 0  0 1.2 0 0  0 0 .8 0   0.30  0.60 0 1
+        .8 0 0 0  0 1.6 0 0  0 0 .8 0   0.30  1.60 0 1
+        .8 0 0 0  0 1.4 0 0  0 0 .8 0   0.30  2.60 0 1
+        .8 0 0 0  0 .8 0 0  0 0 .8 0   0.90 -1.05 0 1
+        1.4 0 0 0  0 .8 0 0  0 0 .8 0   1.80 -0.85 0 1
+    ] [ "" ]
+WorldEnd

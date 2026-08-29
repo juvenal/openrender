@@ -22,6 +22,7 @@ add_blobby_test(test_blobby_code_validation      test_code_validation.cpp      B
 add_blobby_test(test_blobby_extent               test_extent.cpp               Blobby_Extent)
 add_blobby_test(test_blobby_field_primitives      test_field_primitives.cpp     Blobby_FieldPrimitives)
 add_blobby_test(test_blobby_field_combining      test_field_combining.cpp      Blobby_FieldCombining)
+add_blobby_test(test_blobby_opcode_order         test_opcode_order.cpp         Blobby_OpcodeOrder)
 add_blobby_test(test_blobby_threshold            test_threshold_calibration.cpp Blobby_ThresholdCalibration)
 add_blobby_test(test_blobby_polygonize_analytic  test_polygonize_analytic.cpp  Blobby_PolygonizeAnalytic)
 add_blobby_test(test_blobby_polygonize_watertight test_polygonize_watertight.cpp Blobby_PolygonizeWatertight)

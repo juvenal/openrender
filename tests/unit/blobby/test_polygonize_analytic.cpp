@@ -337,6 +337,55 @@ TEST(lone_segment_resolves_to_a_capsule_about_its_endpoints) {
 	delete p;
 }
 
+// ---------------------------------------------------------------------
+// Seeding: the surface must be found even when no field's own centre
+// leads to it
+// ---------------------------------------------------------------------
+TEST(a_blob_with_a_rod_subtracted_through_it_still_produces_geometry) {
+	beginCapture();
+
+	// AppNote #31's dent figure, upper right: a unit blob with a long thin
+	// ellipsoid subtracted through it. Both fields are centred at the
+	// origin, and along the *whole* x axis -- the rod's own long axis --
+	// the difference stays below the threshold, because that is exactly
+	// where the rod is subtracting. The surface is very much present off
+	// axis, so a seed search that walked only one direction from each
+	// field's centre would find nothing and the primitive would vanish
+	// without a diagnostic. It did, until the search was widened to all six
+	// axis directions.
+	float	rod[16]	=	{5,0,0,0,  0,0.4f,0,0,  0,0,0.4f,0,  0,0,0,1};
+
+	CBuilder	b;
+	const int	blob	=	b.sphere(0,0,0);
+	const int	bore	=	b.ellipsoid(rod);
+	b.binary(4, blob, bore);
+
+	CBlobbyProgram	*p	=	b.build();
+
+	// The field really is below the threshold all along +x ...
+	for (int i=0;i<=20;i++) {
+		const float	q[3]	=	{i*0.25f, 0, 0};
+
+		ASSERT(p->evaluate(q) < BLOBBY_THRESHOLD);
+	}
+
+	// ... and above it off axis, so there is a surface to find.
+	const float	offAxis[3]	=	{0, 0.45f, 0};
+	ASSERT(p->evaluate(offAxis) >= BLOBBY_THRESHOLD);
+
+	CBlobbyMesh	*mesh	=	blobbyPolygonize(p,0.04f,FALSE);
+
+	ASSERT(mesh != NULL);
+	ASSERT(mesh->numTriangles > 100);
+	ASSERT(countNonManifoldEdges(mesh) == 0);
+
+	// A sphere bored through by a rod is a torus, not a ball.
+	ASSERT(eulerCharacteristic(mesh) == 0);
+
+	delete mesh;
+	delete p;
+}
+
 int main() {
 	printf("=== Blobby Analytic Ground-Truth Tests (T024, T051) ===\n\n");
 
@@ -348,6 +397,7 @@ int main() {
 	run_test_fields_beyond_each_others_support_resolve_to_separate_components();
 	run_test_the_published_unblended_pair_resolves_as_a_maximum_not_a_sum();
 	run_test_lone_segment_resolves_to_a_capsule_about_its_endpoints();
+	run_test_a_blob_with_a_rod_subtracted_through_it_still_produces_geometry();
 
 	REPORT("Results");
 

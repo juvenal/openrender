@@ -1512,8 +1512,122 @@ add_visual_test(blobby-offscreen-zbuffer
     blobby-offscreen-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US2 -- the full operation set (T047/T048)
+# ---------------------------------------------------------------------------
+# AppNote #31's hand model as the note itself declares it: five
+# overlapping groups of fields, each summed, combined by one maximum.
+# Adjacent fingers do not web together, yet each blends into the palm
+# (US2 scenario 1). The declaration keeps the note's own nleaf of 21
+# against 22 emitted fields, so this is also permanent coverage for
+# FR-017: it renders with a diagnostic rather than failing.
+add_visual_test(blobby-hand-selective-reyes
+    examples/rib/tests/blobby-hand-selective-reyes.rib
+    blobby-hand-selective-reyes.tif
+    blobby-hand-selective-reyes.tif)
+
+add_visual_test(blobby-hand-selective-raytrace
+    examples/rib/tests/blobby-hand-selective-raytrace.rib
+    blobby-hand-selective-raytrace.tif
+    blobby-hand-selective-raytrace.tif)
+
+add_visual_test(blobby-hand-selective-zbuffer
+    examples/rib/tests/blobby-hand-selective-zbuffer.rib
+    blobby-hand-selective-zbuffer.tif
+    blobby-hand-selective-zbuffer.tif)
+
+add_parity_test(blobby-hand-selective-reyes-raytrace
+    examples/rib/tests/blobby-hand-selective-reyes.rib     blobby-hand-selective-reyes.tif
+    examples/rib/tests/blobby-hand-selective-raytrace.rib  blobby-hand-selective-raytrace.tif)
+
+add_parity_test(blobby-hand-selective-reyes-zbuffer
+    examples/rib/tests/blobby-hand-selective-reyes.rib     blobby-hand-selective-reyes.tif
+    examples/rib/tests/blobby-hand-selective-zbuffer.rib   blobby-hand-selective-zbuffer.tif)
+
+# The same 22 fields all added together: everything merges and the hand
+# becomes a mitten. Half of what makes the selective version worth
+# doing.
+add_visual_test(blobby-hand-summed-reyes
+    examples/rib/tests/blobby-hand-summed-reyes.rib
+    blobby-hand-summed-reyes.tif
+    blobby-hand-summed-reyes.tif)
+
+add_visual_test(blobby-hand-summed-raytrace
+    examples/rib/tests/blobby-hand-summed-raytrace.rib
+    blobby-hand-summed-raytrace.tif
+    blobby-hand-summed-raytrace.tif)
+
+add_visual_test(blobby-hand-summed-zbuffer
+    examples/rib/tests/blobby-hand-summed-zbuffer.rib
+    blobby-hand-summed-zbuffer.tif
+    blobby-hand-summed-zbuffer.tif)
+
+add_parity_test(blobby-hand-summed-reyes-raytrace
+    examples/rib/tests/blobby-hand-summed-reyes.rib     blobby-hand-summed-reyes.tif
+    examples/rib/tests/blobby-hand-summed-raytrace.rib  blobby-hand-summed-raytrace.tif)
+
+add_parity_test(blobby-hand-summed-reyes-zbuffer
+    examples/rib/tests/blobby-hand-summed-reyes.rib     blobby-hand-summed-reyes.tif
+    examples/rib/tests/blobby-hand-summed-zbuffer.rib   blobby-hand-summed-zbuffer.tif)
+
+# The same 22 fields under a single maximum: nothing blends at all and
+# the hand is 22 separate creased lumps. The other half.
+add_visual_test(blobby-hand-maxed-reyes
+    examples/rib/tests/blobby-hand-maxed-reyes.rib
+    blobby-hand-maxed-reyes.tif
+    blobby-hand-maxed-reyes.tif)
+
+add_visual_test(blobby-hand-maxed-raytrace
+    examples/rib/tests/blobby-hand-maxed-raytrace.rib
+    blobby-hand-maxed-raytrace.tif
+    blobby-hand-maxed-raytrace.tif)
+
+add_visual_test(blobby-hand-maxed-zbuffer
+    examples/rib/tests/blobby-hand-maxed-zbuffer.rib
+    blobby-hand-maxed-zbuffer.tif
+    blobby-hand-maxed-zbuffer.tif)
+
+add_parity_test(blobby-hand-maxed-reyes-raytrace
+    examples/rib/tests/blobby-hand-maxed-reyes.rib     blobby-hand-maxed-reyes.tif
+    examples/rib/tests/blobby-hand-maxed-raytrace.rib  blobby-hand-maxed-raytrace.tif)
+
+add_parity_test(blobby-hand-maxed-reyes-zbuffer
+    examples/rib/tests/blobby-hand-maxed-reyes.rib     blobby-hand-maxed-reyes.tif
+    examples/rib/tests/blobby-hand-maxed-zbuffer.rib   blobby-hand-maxed-zbuffer.tif)
+
+# AppNote #31's figures.31/dent.rib. Two ellipsoid fields combined four
+# ways: maximum gives a bump and a spike, opcode 4 gives a crater and a
+# bored-through tunnel (US2 scenario 2). This scene is the evidence
+# that opcode 4 is subtract in the shipping renderer -- the note's own
+# table calls it divide, and division produces nothing like these
+# shapes -- and it was also what exposed the single-direction seed
+# search: the bored sphere's field is below the threshold along the
+# whole of the rod's own axis, so the primitive used to vanish.
+add_visual_test(blobby-dent-reyes
+    examples/rib/tests/blobby-dent-reyes.rib
+    blobby-dent-reyes.tif
+    blobby-dent-reyes.tif)
+
+add_visual_test(blobby-dent-raytrace
+    examples/rib/tests/blobby-dent-raytrace.rib
+    blobby-dent-raytrace.tif
+    blobby-dent-raytrace.tif)
+
+add_visual_test(blobby-dent-zbuffer
+    examples/rib/tests/blobby-dent-zbuffer.rib
+    blobby-dent-zbuffer.tif
+    blobby-dent-zbuffer.tif)
+
+add_parity_test(blobby-dent-reyes-raytrace
+    examples/rib/tests/blobby-dent-reyes.rib     blobby-dent-reyes.tif
+    examples/rib/tests/blobby-dent-raytrace.rib  blobby-dent-raytrace.tif)
+
+add_parity_test(blobby-dent-reyes-zbuffer
+    examples/rib/tests/blobby-dent-reyes.rib     blobby-dent-reyes.tif
+    examples/rib/tests/blobby-dent-zbuffer.rib   blobby-dent-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      119 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 33 scene pairs registered under label 'parity'")
+message(STATUS "      131 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 41 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

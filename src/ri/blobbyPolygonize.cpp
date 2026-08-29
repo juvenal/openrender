@@ -94,7 +94,9 @@ class CBlobbyWalk {
         int vertexOnEdge(const CBlobbyLattice &a, const CBlobbyLattice &b);
         void emitTriangle(int a, int b, int c);
         void marchTetrahedron(const CBlobbyLattice *corners, const float *values, const int *tet);
-        int seedFrom(const float *P, CBlobbyLattice &cell);
+        int seedFrom(const float *P, int direction, CBlobbyLattice &cell);
+        void pushCell(const CBlobbyLattice &cell);
+        int scanForSeeds();
         int fieldHasNoBoundary() const;
 
         const CBlobbyProgram *program;
@@ -490,37 +492,78 @@ void CBlobbyWalk::marchTetrahedron(const CBlobbyLattice *corners, const float *v
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBlobbyWalk
-// Method				:	seedFrom
-// Description			:	Find a cell the surface crosses, starting from
-//							a primitive field's own centre.
-// Return Value			:	TRUE if one was found
-// Comments				:	The centre itself is usually deep inside the
-//							solid, so walk outward along +x until the field
-//							crosses the threshold. Bounded by the lattice,
-//							so a field whose surface simply does not exist
-//							contributes no seed rather than searching
-//							forever.
+// Method				:	pushCell
+// Description			:	Add a cell to the frontier if it is new
 ///////////////////////////////////////////////////////////////////////
-int CBlobbyWalk::seedFrom(const float *p, CBlobbyLattice &cell) {
+void CBlobbyWalk::pushCell(const CBlobbyLattice &cell) {
+    if (cell.i < lowerBound.i || cell.i > upperBound.i)
+        return;
+    if (cell.j < lowerBound.j || cell.j > upperBound.j)
+        return;
+    if (cell.k < lowerBound.k || cell.k > upperBound.k)
+        return;
+
+    if (visited.find(cell) == visited.end()) {
+        visited.insert(cell);
+        frontier.push_back(cell);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBlobbyWalk
+// Method				:	seedFrom
+// Description			:	Find a cell the surface crosses, walking outward
+//							from a primitive field's own centre along one
+//							axis direction.
+// Return Value			:	TRUE if one was found
+// Comments				:	The centre is usually deep inside the solid, so
+//							the surface has to be found by walking out to
+//							it. All six axis directions are tried, in a
+//							fixed order, and every crossing found is
+//							seeded.
+//
+//							Searching only one direction is not enough, and
+//							the case that shows it is AppNote #31's own
+//							dent figure: a unit blob with a long thin
+//							ellipsoid subtracted through it along x. Both
+//							fields are centred at the origin, and along the
+//							whole +x axis the difference stays below the
+//							threshold -- the rod is subtracting exactly
+//							there -- while the surface is very much present
+//							off-axis. A single-direction search finds
+//							nothing and the primitive silently disappears.
+//
+//							Bounded by the lattice, so a field whose
+//							surface does not exist contributes no seed
+//							rather than searching forever.
+///////////////////////////////////////////////////////////////////////
+int CBlobbyWalk::seedFrom(const float *p, int direction, CBlobbyLattice &cell) {
     CBlobbyLattice start((int)floorf((p[0] - origin[0]) / cellSize),
                          (int)floorf((p[1] - origin[1]) / cellSize),
                          (int)floorf((p[2] - origin[2]) / cellSize));
 
-    if (start.i < lowerBound.i)
-        start.i = lowerBound.i;
-    if (start.j < lowerBound.j)
-        start.j = lowerBound.j;
-    if (start.k < lowerBound.k)
-        start.k = lowerBound.k;
-
+    const int *step = blobbyFaceDirection[direction];
     float previous = cornerValue(start);
 
-    for (int step = 1; start.i + step <= upperBound.i; step++) {
-        const CBlobbyLattice probe(start.i + step, start.j, start.k);
+    for (int n = 1;; n++) {
+        const CBlobbyLattice probe(start.i + step[0] * n,
+                                   start.j + step[1] * n,
+                                   start.k + step[2] * n);
+
+        if (probe.i < lowerBound.i || probe.i > upperBound.i)
+            break;
+        if (probe.j < lowerBound.j || probe.j > upperBound.j)
+            break;
+        if (probe.k < lowerBound.k || probe.k > upperBound.k)
+            break;
+
         const float value = cornerValue(probe);
 
         if ((previous >= BLOBBY_THRESHOLD) != (value >= BLOBBY_THRESHOLD)) {
-            cell = CBlobbyLattice(start.i + step - 1, start.j, start.k);
+            // The cell between the two probes, named by its lowest corner.
+            cell = CBlobbyLattice(start.i + step[0] * n - (step[0] > 0 ? 1 : 0),
+                                  start.j + step[1] * n - (step[1] > 0 ? 1 : 0),
+                                  start.k + step[2] * n - (step[2] > 0 ? 1 : 0));
             return TRUE;
         }
 
@@ -528,6 +571,49 @@ int CBlobbyWalk::seedFrom(const float *p, CBlobbyLattice &cell) {
     }
 
     return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBlobbyWalk
+// Method				:	scanForSeeds
+// Description			:	Last-resort coarse scan of the extent for a cell
+//							the surface crosses.
+// Return Value			:	Number of seeds found
+// Comments				:	Only reached when no primitive field's own
+//							centre led to the surface -- which happens when
+//							every field is cancelled at its own centre, as
+//							a blob with something subtracted right through
+//							it can be. Deliberately strided: this is a
+//							volumetric scan, the very thing SC-012 exists
+//							to keep off the normal path, so it costs
+//							1/512th of the lattice and runs only when the
+//							alternative is losing the primitive entirely.
+//							In (i,j,k) order, so it is as deterministic as
+//							the rest of the walk.
+///////////////////////////////////////////////////////////////////////
+#define BLOBBY_SCAN_STRIDE 8
+
+int CBlobbyWalk::scanForSeeds() {
+    int found = 0;
+
+    for (int i = lowerBound.i; i <= upperBound.i; i += BLOBBY_SCAN_STRIDE) {
+        for (int j = lowerBound.j; j <= upperBound.j; j += BLOBBY_SCAN_STRIDE) {
+            float previous = cornerValue(CBlobbyLattice(i, j, lowerBound.k));
+
+            for (int k = lowerBound.k + 1; k <= upperBound.k; k++) {
+                const float value = cornerValue(CBlobbyLattice(i, j, k));
+
+                if ((previous >= BLOBBY_THRESHOLD) != (value >= BLOBBY_THRESHOLD)) {
+                    pushCell(CBlobbyLattice(i, j, k - 1));
+                    found++;
+                }
+
+                previous = value;
+            }
+        }
+    }
+
+    return found;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -588,26 +674,26 @@ CBlobbyMesh *CBlobbyWalk::run() {
         return NULL;
     }
 
-    // One seed per primitive field, in code-array order. Fields with no
-    // natural centre -- a constant, a repeller -- contribute no seed; their
-    // part of the surface is reached by continuation from a neighbouring
-    // field's seed instead.
+    // Seeds come from the primitive fields, in code-array order, six axis
+    // directions each. Fields with no natural centre -- a constant, a
+    // repeller -- contribute no seed; their part of the surface is reached
+    // by continuation from a neighbouring field's seed instead.
     for (int leaf = 0; leaf < numLeaves; leaf++) {
         vector seedPoint;
 
         if (!program->getLeafSeed(leaf, seedPoint))
             continue;
 
-        CBlobbyLattice cell;
+        for (int direction = 0; direction < 6; direction++) {
+            CBlobbyLattice cell;
 
-        if (!seedFrom(seedPoint, cell))
-            continue;
-
-        if (visited.find(cell) == visited.end()) {
-            visited.insert(cell);
-            frontier.push_back(cell);
+            if (seedFrom(seedPoint, direction, cell))
+                pushCell(cell);
         }
     }
+
+    if (frontier.empty())
+        scanForSeeds();
 
     // FIFO, not LIFO: the traversal order has to be reproducible, and a
     // stack's order depends on the seeding order in a way a queue's does
@@ -674,21 +760,9 @@ CBlobbyMesh *CBlobbyWalk::run() {
             if (faceInside == 0 || faceInside == 4)
                 continue;
 
-            const CBlobbyLattice neighbour(cell.i + blobbyFaceDirection[f][0],
-                                           cell.j + blobbyFaceDirection[f][1],
-                                           cell.k + blobbyFaceDirection[f][2]);
-
-            if (neighbour.i < lowerBound.i || neighbour.i > upperBound.i)
-                continue;
-            if (neighbour.j < lowerBound.j || neighbour.j > upperBound.j)
-                continue;
-            if (neighbour.k < lowerBound.k || neighbour.k > upperBound.k)
-                continue;
-
-            if (visited.find(neighbour) == visited.end()) {
-                visited.insert(neighbour);
-                frontier.push_back(neighbour);
-            }
+            pushCell(CBlobbyLattice(cell.i + blobbyFaceDirection[f][0],
+                                    cell.j + blobbyFaceDirection[f][1],
+                                    cell.k + blobbyFaceDirection[f][2]));
         }
     }
 

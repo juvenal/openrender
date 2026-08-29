@@ -1,0 +1,66 @@
+##RenderMan RIB-Structure 1.0
+# AppNote #31's figures.31/dent.rib, four objects built from the same two ellipsoid fields. The lower pair combine them with maximum: a sphere with a bump, and a sphere with a spike. The upper pair use opcode 4, which under the default RISpec order is subtract: a sphere with a crater, and a sphere bored through by the long thin field (US2 scenario 2). This scene is the evidence that opcode 4 is subtract in the shipping renderer -- the note's own table says divide, and division produces nothing like these shapes.
+#
+# Spec 015-blobby-implicit-surfaces, T047. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "raytrace"
+Display "blobby-dent-raytrace.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 5
+Clipping 0.1 1000
+Translate 0 0 30
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    TransformBegin
+        Translate -.7 -.55 0
+        Rotate 290 1 -1 1
+        Blobby 2 [
+            1001 0
+            1001 16
+            2 2 0 1
+        ] [
+            1   0 0 0  0 1   0 0  0 0 1   0  0 0 0 1
+            0.5 0 0 0  0 0.5 0 0  0 0 0.5 0  0 0.4 0 1
+        ] [ "" ]
+    TransformEnd
+    TransformBegin
+        Translate .7 -.55 0
+        Rotate 140 1 -1 1
+        Blobby 2 [
+            1001 0
+            1001 16
+            2 2 0 1
+        ] [
+            1   0 0 0  0 1   0 0  0 0 1   0  0 0 0 1
+            5 0 0 0  0 0.4 0 0  0 0 0.4 0  0 0 0 1
+        ] [ "" ]
+    TransformEnd
+    TransformBegin
+        Translate -.7 .55 0
+        Rotate 290 1 -1 1
+        Blobby 2 [
+            1001 0
+            1001 16
+            4 0 1
+        ] [
+            1   0 0 0  0 1   0 0  0 0 1   0  0 0 0 1
+            0.5 0 0 0  0 0.5 0 0  0 0 0.5 0  0 0.4 0 1
+        ] [ "" ]
+    TransformEnd
+    TransformBegin
+        Translate .7 .55 0
+        Rotate 140 1 -1 1
+        Blobby 2 [
+            1001 0
+            1001 16
+            4 0 1
+        ] [
+            1   0 0 0  0 1   0 0  0 0 1   0  0 0 0 1
+            5 0 0 0  0 0.4 0 0  0 0 0.4 0  0 0 0 1
+        ] [ "" ]
+    TransformEnd
+WorldEnd
