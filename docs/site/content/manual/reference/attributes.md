@@ -243,3 +243,35 @@ to a usable value.
 
 See [Blobby Implicit Surfaces](../blobby-implicit-surfaces/) for the
 primitive itself.
+
+## Trim curve attributes
+
+```
+Attribute "trimcurve" "string sense" [ "inside" ]     # default
+Attribute "trimcurve" "string sense" [ "outside" ]
+```
+
+Which side of a NURBS patch's trim loops is discarded.
+
+`"inside"` is the RenderMan Interface behaviour and the default: the region
+enclosed by the trim loops is cut away, so a loop punches a hole in the patch.
+`"outside"` inverts the test — the enclosed region is what survives and
+everything outside it is discarded, so the same loop becomes a cookie cutter.
+
+This is a non-standard extension. The spec gives no way to invert the sense,
+and authoring the complement by hand means adding an outer loop around the
+whole parameter domain wound the other way, which is both tedious and easy to
+get wrong. It is an attribute like any other, so it is inherited by nested
+scopes and applies to every `TrimCurve` in scope, not to one loop.
+
+```
+AttributeBegin
+    Attribute "trimcurve" "string sense" [ "outside" ]
+    TrimCurve 1 [1] [3] [0 0 0 1 2 3 3 3] [0] [3]
+              [7] [...u...] [...v...] [...w...]
+    NuPatch ...
+AttributeEnd
+```
+
+See [NURBS Trim Curves](../nurbs-trim-curves/) for the `TrimCurve` statement
+itself.

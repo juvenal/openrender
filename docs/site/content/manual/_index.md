@@ -37,6 +37,8 @@ Detailed documentation about openRender's features:
 - [Attributes](reference/attributes/)
 - [Solid CSG Operations](reference/solid-csg-operations/)
 - [Blobby Implicit Surfaces](reference/blobby-implicit-surfaces/)
+- [Subdivision Surfaces](reference/subdivision-surfaces/)
+- [NURBS Trim Curves](reference/nurbs-trim-curves/)
 - [Occlusion Culling](reference/occlusion-culling/)
 - [Baking 3D Textures](reference/baking-3d-textures/)
 - [Global Illumination](reference/global-illumination/)

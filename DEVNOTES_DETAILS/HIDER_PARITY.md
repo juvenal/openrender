@@ -118,3 +118,79 @@ scheme, and CShow/photon coverage) now lives in its own document —
 [SUBDIVISION_SURFACES.md](SUBDIVISION_SURFACES.md) — split out given the
 size of the spec `010-full-subdivision-support` work (six user stories
 across P0-P4). See that file for the full write-up.
+
+## Blobby Implicit Surfaces (spec 015-blobby-implicit-surfaces)
+
+The strongest parity position of any primitive here, and by construction
+rather than by convergence work. A blobby's surface is derived **once**, at
+`RiBlobby` time, into an ordinary `CPolygonMesh` handed to `addObject()`
+(FR-022). No hider ever sees a field, a lattice, or a blobby-specific type —
+they see a polygon mesh, so there is nothing for two hiders to disagree
+about beyond what they already disagree about for meshes in general.
+
+Coverage: **51 `Parity_blobby` pairings** over 27 scenes, plus 82
+`Visual_blobby` registrations across REYES, ray-trace and z-buffer. Three
+deviations from the usual two-pairings-per-scene, each deliberate:
+
+- `blobby-offscreen` is visual-only. A parity test between two empty frames
+  asserts nothing.
+- `blobby-motion-translate` and `blobby-motion-grow` are **reyes↔raytrace
+  only**. The z-buffer hider does no time sampling at all — it renders an
+  ordinary sphere in the same frame equally unblurred — so a
+  reyes↔zbuffer motion pairing would be asserting a hider limitation, not a
+  primitive property. This matches every pre-existing motion pairing.
+- `blobby-tolerance-default` and `blobby-tolerance-tight` are different
+  framings rather than a before/after pair, so they are not compared against
+  each other.
+
+See [BLOBBY_SURFACES.md](BLOBBY_SURFACES.md).
+
+## Solid Modeling / CSG (spec 013-solid-csg-operations)
+
+CSG resolution happens in the geometry domain: `CSGTreeNode` composes captured
+leaf objects and `csgBoolean` classifies intervals over ray spans, below the
+hider contract rather than inside it. Operands reach the classifier through
+the same generic `CObject` dispatch every primitive uses, which is why
+quadrics, polygon meshes, NURBS, subdivision meshes and blobbies all work as
+operands without per-hider integration.
+
+Coverage: **17 `Visual_csg` registrations** — the three set operations across
+all three camera hiders (9), plus a four-level nested tree, NURBS and
+subdivision operands, object-instance reuse, two tolerance variants and two
+interior/exterior selection scenes, all ray-trace only. Ten `CSG_*` unit
+tests cover the boolean classifier and the tessellation paths directly.
+`blobby-csg-difference` adds a blobby operand across all three hiders, and it
+*does* carry parity pairings.
+
+Two gaps here, both coverage rather than known divergence:
+
+- **No `Parity_csg` pairings are registered.** The three set-operation scenes
+  exist in reyes/raytrace/zbuffer triples and are individually pinned to
+  frozen references, but nothing directly compares one hider's CSG result
+  against another's. A direct comparison is strictly stronger than three
+  independent frozen references, and the scenes to do it already exist.
+- **Four malformed-input scenes are orphaned.**
+  `csg-malformed-{bogus-operation,nested-in-primitive,procedural-in-primitive,unmatched-solidend}.rib`
+  sit in `examples/rib/tests/` and are referenced by no test and no
+  CMakeLists. They were presumably authored for the diagnostic paths and
+  never wired up; as it stands they assert nothing.
+
+## NURBS Trim Curves (spec 009-nurbs-trim-curves)
+
+Trim classification is deliberately a *single* shared test rather than a
+per-hider one: `CTrimTest` is built once per `CNURBSPatchMesh` and consulted
+identically by the REYES dicer (`CPatch::dice()`) and the ray-tracer
+(`CTesselationPatch`). The two hiders cannot disagree about which side of a
+loop is trimmed, because there is one flattening and one odd-crossing test
+between them. That is the same "converge by sharing the kernel" shape as
+`CSampler`/`CCompositor` above, applied at the geometry layer.
+
+Coverage: **9 `Visual_nupatch` registrations** — an untrimmed control, a hole
+under both REYES and ray-trace, multiple loops, sense inversion, attribute
+scoping, and three `malformed-*` scenes (non-positive weight, unclosed loop,
+and an instanced trimmed patch). As with CSG, **no `Parity_nupatch` pairings
+are registered**; only the `hole` scene exists in both hiders at all, and the
+two are pinned to separate frozen references rather than compared. The
+shared-kernel argument above is strong, but it is an architectural argument,
+not a measurement — and it is exactly the kind of claim a parity pairing
+exists to hold honest.
