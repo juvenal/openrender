@@ -197,11 +197,14 @@ TEST(a_missing_depth_file_is_diagnosed_by_name_and_contributes_nothing) {
 	CBlobbyRepeller repeller("this-file-does-not-exist.z", NULL, 2.0f, 0.05f, 0.6f, 0.4f);
 
 	ASSERT(!repeller.isValid());
-	ASSERT(sawDiagnostic() > 0);
 
 	// The message has to name the file: in a scene with several repellers,
 	// "could not read a depth file" is not something an author can act on
-	// (FR-031).
+	// (FR-031). It also has to be the *opcode's* message -- locateFile
+	// reports every path it tries through the same handler, and its trace
+	// contains the file name too, so "something was printed that mentions
+	// the file" is satisfied even when CODE_NOFILE never fires.
+	ASSERT(diagnosticMentions("could not find the repeller's depth file"));
 	ASSERT(diagnosticMentions("this-file-does-not-exist.z"));
 
 	float g[3];
@@ -217,7 +220,8 @@ TEST(an_empty_depth_file_name_is_diagnosed_rather_than_searched_for) {
 	CBlobbyRepeller repeller("", NULL, 2.0f, 0.05f, 0.6f, 0.4f);
 
 	ASSERT(!repeller.isValid());
-	ASSERT(sawDiagnostic() > 0);
+	ASSERT(diagnosticMentions("has no depth file name"));
+	ASSERT(diagnosticMentions("contribute nothing"));
 }
 
 TEST(a_file_that_is_not_a_depth_image_is_diagnosed_and_contributes_nothing) {
@@ -228,7 +232,12 @@ TEST(a_file_that_is_not_a_depth_image_is_diagnosed_and_contributes_nothing) {
 	CBlobbyRepeller repeller("blobbyref.sl", NULL, 2.0f, 0.05f, 0.6f, 0.4f);
 
 	ASSERT(!repeller.isValid());
-	ASSERT(sawDiagnostic() > 0);
+
+	// locateFile *succeeds* here and logs the resolution, so a bare
+	// "something was printed" check would pass without the opcode ever
+	// rejecting the file. Name the rejection.
+	ASSERT(diagnosticMentions("blobbyref.sl"));
+	ASSERT(diagnosticMentions("contribute nothing"));
 
 	float g[3];
 	const float P[3] = {0, 1, 0};
@@ -249,7 +258,7 @@ TEST(a_program_containing_an_unloadable_repeller_still_renders) {
 	CBlobbyProgram	*p	=	b.build();
 
 	ASSERT(p->isValid());
-	ASSERT(sawDiagnostic() > 0);
+	ASSERT(diagnosticMentions("could not find the repeller's depth file"));
 
 	const float	centre[3]	=	{0,0,0};
 
@@ -386,17 +395,24 @@ TEST(the_field_a_repeller_contributes_is_its_profile_at_the_measured_height) {
 
 	// And the field really is the profile, term for term, down through the
 	// bulge and into the barrier.
-	// The sweep starts clear of the ground because the barrier term is -B/z:
-	// its slope B/z^2 amplifies the ~1e-4 residual left in the recovered
-	// ground without bound as the height goes to zero, reaching 1e-2 by
-	// h = 0.05. That is a property of the fixture's resolution, not of the
-	// opcode, and the region where the barrier dominates is already asserted
-	// by the "strongly negative near the ground" check above.
+	// The recovered ground is low by a known, tiny amount, and the reason is
+	// worth stating because it is not the fixture. The profile ends in
+	// 1 - ease(z/A) with ease the cubic smoothstep, and at z = A(1 - d) that
+	// factor is 3d^2 - 2d^3. Once 3d^2 falls below float32's gap at 1.0
+	// (~6e-8) the factor rounds to exactly zero, so the field cuts off at
+	// d ~ 1e-4 *below* A and the bisection above inherits that as an offset
+	// of A*d ~ 2e-4. A perfect depth map would show it too.
+	//
+	// The barrier's own slope B/z^2 then amplifies that offset without bound
+	// as the height goes to zero -- 2e-2 by h = 0.05 -- so the sweep starts
+	// clear of the ground. The tolerance is set well above the residual it
+	// leaves rather than at it: a real defect in this opcode is O(0.1), so
+	// nothing is lost by not sitting on a float32 rounding threshold.
 	for (int i=5;i<=28;i++) {
 		const float	h		=	i*0.05f;
 		const float	q[3]	=	{0,ground + h,0};
 
-		ASSERT(fabsf(p->evaluate(q) - blobbyRepulsion(h,A,B,C,D)) < 1e-3f);
+		ASSERT(fabsf(p->evaluate(q) - blobbyRepulsion(h,A,B,C,D)) < 3e-3f);
 	}
 
 	delete p;
