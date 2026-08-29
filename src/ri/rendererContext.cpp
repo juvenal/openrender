@@ -5683,7 +5683,24 @@ void CRendererContext::RiBlobbyV(int nleaf, int ncode, int code[], int nfloats, 
     }
 
     const EBlobbyOpcodeOrder order = (EBlobbyOpcodeOrder)currentOptions->blobbyOpcodeOrder;
-    CBlobbyProgram *program = new CBlobbyProgram(nleaf, ncode, code, nfloats, p0, nstrings, strings, order);
+
+    // The primitive's object-to-*world* transform, needed by the repelling
+    // ground plane alone: its depth file is in world space, so an
+    // object-space evaluation point cannot reach it without this. Every
+    // other field stays a pure function of position.
+    //
+    // Note it is not xform->from. Inside a world block the CTM already
+    // carries the world-to-camera transform, so xform->from takes an
+    // object-space point to *camera* space; composing CRenderer::toWorld
+    // (camera to world) on top of it is what actually gets to world space.
+    // Using xform->from alone renders correctly only for a camera that
+    // happens to sit at the origin, which is exactly the kind of bug that
+    // survives a first look at the picture.
+    matrix objectToWorld;
+
+    mulmm(objectToWorld, CRenderer::toWorld, xform->from);
+
+    CBlobbyProgram *program = new CBlobbyProgram(nleaf, ncode, code, nfloats, p0, nstrings, strings, order, objectToWorld);
 
     if (!program->isValid()) {
         // Every rejection has already produced a diagnostic naming the
@@ -5695,7 +5712,7 @@ void CRendererContext::RiBlobbyV(int nleaf, int ncode, int code[], int nfloats, 
     CBlobbyProgram *programClose = NULL;
 
     if (p1 != NULL) {
-        programClose = new CBlobbyProgram(nleaf, ncode, code, nfloats, p1, nstrings, strings, order);
+        programClose = new CBlobbyProgram(nleaf, ncode, code, nfloats, p1, nstrings, strings, order, objectToWorld);
 
         if (!programClose->isValid()) {
             delete programClose;

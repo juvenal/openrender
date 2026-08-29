@@ -108,7 +108,7 @@ static float rowLength(const float *m, int row) {
 // Description			:	Ctor -- copies the pools, decodes and validates
 //							the code array, then computes the field extent.
 ///////////////////////////////////////////////////////////////////////
-CBlobbyProgram::CBlobbyProgram(int nleaf, int ncode, const int *code, int nf, const float *f, int ns, const char *const *s, EBlobbyOpcodeOrder order) {
+CBlobbyProgram::CBlobbyProgram(int nleaf, int ncode, const int *code, int nf, const float *f, int ns, const char *const *s, EBlobbyOpcodeOrder order, const float *toWorld) {
     instructions = NULL;
     operandPool = NULL;
     numInstructions = 0;
@@ -154,6 +154,8 @@ CBlobbyProgram::CBlobbyProgram(int nleaf, int ncode, const int *code, int nf, co
         for (int i = 0; i < ns; i++)
             strings[i] = strdup(s[i] == NULL ? "" : s[i]);
     }
+
+    localToWorld = toWorld;
 
     decode(ncode, code);
 
@@ -382,7 +384,7 @@ void CBlobbyProgram::decode(int ncode, const int *code) {
             if (opcode == BLOBBY_OP_REPELLER) {
                 const float *shape = floats + floatIndex;
 
-                repellers[index] = new CBlobbyRepeller(strings[instruction->operands[0]], shape[0], shape[1], shape[2], shape[3]);
+                repellers[index] = new CBlobbyRepeller(strings[instruction->operands[0]], localToWorld, shape[0], shape[1], shape[2], shape[3]);
             }
         }
         else {

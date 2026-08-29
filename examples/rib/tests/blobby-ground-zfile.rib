@@ -1,0 +1,43 @@
+##RenderMan RIB-Structure 1.0
+# Generator for examples/rib/tests/blobby-ground.z, the depth-file fixture
+# the repelling-ground-plane scenes use (spec 015, T085).
+#
+# This scene is NOT registered as a test. It exists so the fixture can be
+# regenerated from something readable rather than being a binary blob with
+# no provenance:
+#
+#   cd examples/rib/tests
+#   orender blobby-ground-zfile.rib
+#
+# The ground is a ridged surface built from bilinear patches -- irregular
+# enough that the repeller has something to follow, and coarse enough that
+# the file stays small. The camera looks straight down at it, which is what
+# fixes the "view direction in which the z-file was generated" that opcode
+# 1003 measures its vertical distance in.
+version 3.03
+Hider "zbuffer"
+Display "blobby-ground.z" "zfile" "z"
+Format 128 128 1
+Projection "orthographic"
+ScreenWindow -4 4 -4 4
+Clipping 0.1 100
+Translate 0 0 10
+Rotate -90 1 0 0
+WorldBegin
+    Surface "matte"
+
+    # A ridged ground in the world xz plane, around y = 0. Four bands of
+    # bilinear patches, each band a different height, so the surface has
+    # real steps for the repeller to follow rather than being a plane in
+    # disguise.
+    # Wider than the screen window on purpose: the fixture must have a
+    # depth at every pixel, or a blob standing over an unhit corner would
+    # find no ground at all.
+    PatchMesh "bilinear" 5 "nonperiodic" 5 "nonperiodic" "P" [
+        -6 0.00 -6   -3 0.55 -6   0 0.00 -6   3 0.55 -6   6 0.00 -6
+        -6 0.55 -3   -3 1.20 -3   0 0.40 -3   3 1.20 -3   6 0.55 -3
+        -6 0.00  0   -3 0.40  0   0 0.00  0   3 0.40  0   6 0.00  0
+        -6 0.55  3   -3 1.20  3   0 0.40  3   3 1.20  3   6 0.55  3
+        -6 0.00  6   -3 0.55  6   0 0.00  6   3 0.55  6   6 0.00  6
+    ]
+WorldEnd

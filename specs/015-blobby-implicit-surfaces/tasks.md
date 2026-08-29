@@ -297,18 +297,18 @@ parameter in isolation.
 
 ### Tests for User Story 7 ⚠️ Write first, confirm they FAIL, then obtain approval
 
-- [ ] T078 [P] [US7] Write failing tests for `bump()` and `ease()` in `tests/unit/blobby/test_repeller.cpp` asserting `bump(0)=0`, `bump(1)=1`, `bump(2)=0`, zero outside `0..2`, and `ease` clamping at both ends — assert all three `bump` anchors, because the published C for this function is corrupted (`if(r=2.)` is an assignment that silently returns 0 always) and a transcription slip would otherwise pass unnoticed
-- [ ] T079 [US7] Write failing tests for `repulsion(z,A,B,C,D)` in `tests/unit/blobby/test_repeller.cpp` — zero at and above `A`, finite at `z` near zero via the `ZCLAMP` guard, and each of A, B, C, D changing the profile independently in the documented direction
-- [ ] T080 [US7] Write a failing test that a missing or unreadable depth file yields a diagnostic naming the file, a zero field contribution, and a continuing render, in `tests/unit/blobby/test_repeller.cpp`
+- [X] T078 [P] [US7] Write failing tests for `bump()` and `ease()` in `tests/unit/blobby/test_repeller.cpp` asserting `bump(0)=0`, `bump(1)=1`, `bump(2)=0`, zero outside `0..2`, and `ease` clamping at both ends — assert all three `bump` anchors, because the published C for this function is corrupted (`if(r=2.)` is an assignment that silently returns 0 always) and a transcription slip would otherwise pass unnoticed
+- [X] T079 [US7] Write failing tests for `repulsion(z,A,B,C,D)` in `tests/unit/blobby/test_repeller.cpp` — zero at and above `A`, finite at `z` near zero via the `ZCLAMP` guard, and each of A, B, C, D changing the profile independently in the documented direction
+- [X] T080 [US7] Write a failing test that a missing or unreadable depth file yields a diagnostic naming the file, a zero field contribution, and a continuing render, in `tests/unit/blobby/test_repeller.cpp`
 
 ### Implementation for User Story 7
 
-- [ ] T081 [US7] Implement a context-free depth-file loader in `src/ri/blobbyRepeller.cpp` composing existing pieces — `CRenderer::locateFile()` for path resolution, direct `TIFFOpen`/`TIFFGetField`/`TIFFReadScanline` under the existing `tiffErrorHandler`, and the shadow loader's `toNDC`/`toCamera` recovery pattern (`src/ri/texture.cpp:1292-1293`). Do **not** call `CTexture::lookupz()`: it reaches `lookupPixel()`, which dereferences `context->thread`, and no `CShadingContext` exists at build time — a null context is a crash, not a degradation
-- [ ] T082 [US7] Implement `bump()`, `ease()`, and `repulsion()` in `src/ri/blobbyRepeller.cpp` per `contracts/field-semantics.md` §2, using the **corrected** guard `r <= 0. || r >= 2.` (passes T078, T079)
-- [ ] T083 [US7] Wire opcode 1003 into field evaluation in `src/ri/blobbyField.cpp` — vertical distance measured in the view direction the depth file was generated in — with a numeric gradient along the depth-map normal, and apply the T016 unbounded-field extent rule
-- [ ] T084 [US7] Implement the invalid-file path (diagnostic, zero contribution, render continues) in `src/ri/blobbyRepeller.cpp` (passes T080)
-- [ ] T085 [P] [US7] Add a depth file fixture and author the US7 scenes — a blob at several heights above an irregular repelling ground plane, plus one scene per shaping parameter varied — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T086 [US7] Render, verify, and commit the US7 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
+- [X] T081 [US7] Implement a context-free depth-file loader in `src/ri/blobbyRepeller.cpp` composing existing pieces — `CRenderer::locateFile()` for path resolution, direct `TIFFOpen`/`TIFFGetField`/`TIFFReadScanline` under the existing `tiffErrorHandler`, and the shadow loader's `toNDC`/`toCamera` recovery pattern (`src/ri/texture.cpp:1292-1293`). Do **not** call `CTexture::lookupz()`: it reaches `lookupPixel()`, which dereferences `context->thread`, and no `CShadingContext` exists at build time — a null context is a crash, not a degradation
+- [X] T082 [US7] Implement `bump()`, `ease()`, and `repulsion()` in `src/ri/blobbyRepeller.cpp` per `contracts/field-semantics.md` §2, using the **corrected** guard `r <= 0. || r >= 2.` (passes T078, T079)
+- [X] T083 [US7] Wire opcode 1003 into field evaluation in `src/ri/blobbyField.cpp` — vertical distance measured in the view direction the depth file was generated in — with a numeric gradient along the depth-map normal, and apply the T016 unbounded-field extent rule
+- [X] T084 [US7] Implement the invalid-file path (diagnostic, zero contribution, render continues) in `src/ri/blobbyRepeller.cpp` (passes T080)
+- [X] T085 [P] [US7] Add a depth file fixture and author the US7 scenes — a blob at several heights above an irregular repelling ground plane, plus one scene per shaping parameter varied — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T086 [US7] Render, verify, and commit the US7 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`
 
 **Checkpoint**: All four primitive-field opcodes are complete. RISpec 3.2 §5.6 is fully implemented.
 

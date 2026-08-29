@@ -60,6 +60,11 @@ set(VISUAL_ENV
     "ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender"
     "DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
     "GEOMETRIES=${CMAKE_SOURCE_DIR}/openrender/geometry"
+    # Where a scene's own texture and depth-file fixtures live, alongside
+    # the .rib that uses them. Added for spec 015's repelling-ground-plane
+    # scenes, which read examples/rib/tests/blobby-ground.z; it only
+    # extends a search path, so no existing scene changes behaviour.
+    "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests"
 )
 
 # Same as VISUAL_ENV, plus Option B's unified per-bucket sample table (spec
@@ -1919,8 +1924,70 @@ add_parity_test(blobby-tolerance-inherited-reyes-zbuffer
     examples/rib/tests/blobby-tolerance-inherited-zbuffer.rib   blobby-tolerance-inherited-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US7 -- the repelling ground plane (T085/T086)
+# ---------------------------------------------------------------------------
+# One blob at three heights above an irregular ground, each carrying the
+# same repelling ground plane. Low down the barrier term carves the
+# underside away and the blob flattens against the ridge; higher up the
+# field has faded out at the cut-off height and the blob is a sphere
+# again. The visible ground is the same surface blobby-ground.z was
+# rendered from, so the repulsion can be read against what it repels
+# from (US7 scenarios 1 and 2).
+add_visual_test(blobby-repeller-heights-reyes
+    examples/rib/tests/blobby-repeller-heights-reyes.rib
+    blobby-repeller-heights-reyes.tif
+    blobby-repeller-heights-reyes.tif)
+
+add_visual_test(blobby-repeller-heights-raytrace
+    examples/rib/tests/blobby-repeller-heights-raytrace.rib
+    blobby-repeller-heights-raytrace.tif
+    blobby-repeller-heights-raytrace.tif)
+
+add_visual_test(blobby-repeller-heights-zbuffer
+    examples/rib/tests/blobby-repeller-heights-zbuffer.rib
+    blobby-repeller-heights-zbuffer.tif
+    blobby-repeller-heights-zbuffer.tif)
+
+add_parity_test(blobby-repeller-heights-reyes-raytrace
+    examples/rib/tests/blobby-repeller-heights-reyes.rib     blobby-repeller-heights-reyes.tif
+    examples/rib/tests/blobby-repeller-heights-raytrace.rib  blobby-repeller-heights-raytrace.tif)
+
+add_parity_test(blobby-repeller-heights-reyes-zbuffer
+    examples/rib/tests/blobby-repeller-heights-reyes.rib     blobby-repeller-heights-reyes.tif
+    examples/rib/tests/blobby-repeller-heights-zbuffer.rib   blobby-repeller-heights-zbuffer.tif)
+
+# Four blobs at one height, differing in one shaping parameter each: the
+# reference profile, a lower cut-off A, a sharper barrier B, and a taller
+# bulge D. Each is visibly a different shape, which is what US7 scenario
+# 3 asks. The bulge in particular is what AppNote #31's corrupted bump()
+# would have silently deleted -- its published guard is an assignment
+# rather than a comparison, so the function would return zero always.
+add_visual_test(blobby-repeller-shaping-reyes
+    examples/rib/tests/blobby-repeller-shaping-reyes.rib
+    blobby-repeller-shaping-reyes.tif
+    blobby-repeller-shaping-reyes.tif)
+
+add_visual_test(blobby-repeller-shaping-raytrace
+    examples/rib/tests/blobby-repeller-shaping-raytrace.rib
+    blobby-repeller-shaping-raytrace.tif
+    blobby-repeller-shaping-raytrace.tif)
+
+add_visual_test(blobby-repeller-shaping-zbuffer
+    examples/rib/tests/blobby-repeller-shaping-zbuffer.rib
+    blobby-repeller-shaping-zbuffer.tif
+    blobby-repeller-shaping-zbuffer.tif)
+
+add_parity_test(blobby-repeller-shaping-reyes-raytrace
+    examples/rib/tests/blobby-repeller-shaping-reyes.rib     blobby-repeller-shaping-reyes.tif
+    examples/rib/tests/blobby-repeller-shaping-raytrace.rib  blobby-repeller-shaping-raytrace.tif)
+
+add_parity_test(blobby-repeller-shaping-reyes-zbuffer
+    examples/rib/tests/blobby-repeller-shaping-reyes.rib     blobby-repeller-shaping-reyes.tif
+    examples/rib/tests/blobby-repeller-shaping-zbuffer.rib   blobby-repeller-shaping-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      161 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 61 scene pairs registered under label 'parity'")
+message(STATUS "      167 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 65 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

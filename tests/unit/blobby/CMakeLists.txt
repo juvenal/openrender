@@ -31,6 +31,13 @@ add_blobby_test(test_blobby_value_blending       test_value_blending.cpp       B
 add_blobby_test(test_blobby_mpoint               test_mpoint.cpp               Blobby_MPoint)
 add_blobby_test(test_blobby_tolerance            test_tolerance.cpp            Blobby_Tolerance)
 
+# The repeller reads a depth file through CRenderer::locateFile, so it needs
+# the same search paths the renderer resolves at startup.
+add_blobby_test(test_blobby_repeller             test_repeller.cpp             Blobby_Repeller)
+set_tests_properties(Blobby_Repeller PROPERTIES
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/shaders)
+
 # Emission tests drive the real RI entry points, so they need the shader and
 # home paths the renderer resolves at RiBegin, exactly as tests/unit/csg's
 # context-driven tests do.

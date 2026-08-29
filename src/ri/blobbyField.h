@@ -183,7 +183,13 @@ class CBlobbyInstruction {
 ///////////////////////////////////////////////////////////////////////
 class CBlobbyProgram {
     public:
-        CBlobbyProgram(int nleaf, int ncode, const int *code, int nfloats, const float *floats, int nstrings, const char *const *strings, EBlobbyOpcodeOrder order = BLOBBY_ORDER_RISPEC);
+        // `toWorld` is the primitive's local-to-world transform. It is
+        // needed by exactly one thing -- the repelling ground plane, whose
+        // depth file is in world space and which therefore cannot be
+        // evaluated from object-space coordinates alone. Everything else
+        // here stays a pure function of position, so passing NULL is
+        // correct for any program without an opcode 1003.
+        CBlobbyProgram(int nleaf, int ncode, const int *code, int nfloats, const float *floats, int nstrings, const char *const *strings, EBlobbyOpcodeOrder order = BLOBBY_ORDER_RISPEC, const float *toWorld = NULL);
         ~CBlobbyProgram();
 
         // TRUE if the declaration validated well enough to render. A
@@ -276,6 +282,10 @@ class CBlobbyProgram {
         // depends only on the declaration.
         float *inverses;
         int *singular;
+
+        // Borrowed, not owned: valid only for the duration of construction,
+        // which is the only time a repeller reads it.
+        const float *localToWorld;
 
         // Scratch buffers sized at construction so evaluation allocates
         // nothing per call.
