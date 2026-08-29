@@ -1,6 +1,6 @@
 ---
 title: "User Manual"
-date: 2025-12-08
+date: 2026-08-29
 weight: 2
 ---
 
@@ -10,9 +10,12 @@ Welcome to the openRender User Manual. This section contains guides and document
 
 ## Getting Started
 
-- [Installation Guide](installation/)
-- [Basic Usage](basics/)
-- [Advanced Topics](advanced/)
+- [Installing and Running](reference/installing-and-running/) — prerequisites,
+  building from source, and setting `ORENDERHOME`
+- [Basics, Running openRender](tutorials/basics-running-openrender/) — your
+  first render
+- [openRender and the RiSpec](/openrender/references/renderman-rispec/) — what
+  is and is not implemented against the specification
 
 ## Tutorials
 

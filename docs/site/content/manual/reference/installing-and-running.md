@@ -1,6 +1,6 @@
 ---
 title: "Installing And Running"
-date: 2025-12-08
+date: 2026-08-29
 ---
 
 # Installing And Running
@@ -11,135 +11,97 @@ openRender is a photorealistic renderer which communicates with modelers or your
 
 The scenes you want to render are described in a text file in a language very similar to Pixar's RenderMan. openRender also comes as a C/C++ library which you can link against your application. In order to find the details of this interface, you should read RenderMan Companion or RenderMan interface on [http://www.pixar.com](http://www.pixar.com).
 
-openRender comes in following forms:
+There is no binary distribution. openRender is built from source, with CMake,
+from the repository at
+[github.com/juvenal/openrender](https://github.com/juvenal/openrender).
 
-- **Source code for Windows** (openRender-src-X.Y.Z.zip)
-- **Source code for Unix** (openRender-src-X.Y.Z.tgz)
-- **Windows Installer** (openRender-X.Y.Z-Setup.exe)
-  - Follow the installation instructions. The installer will create a ORENDERHOME for you
-- **Windows binaries** (openRender-win-X.Y.Z.zip)
-  - The zip file contains a openRender directory which will be your ORENDERHOME
-- **Linux binaries** (openRender-linux-X.Y.Z.tgz)
-  - The tgz file contains a openRender directory which will be your ORENDERHOME
-- **Linux RPMs** (openRender-X.Y.Z.i586.rpm and openRender-X.Y.Z-devel.i586.rpm)
+## Prerequisites
 
-To compile openRender, you will need:
+Required:
 
-- flex / bison ( [http://www.gnu.org/software/flex/](http://www.gnu.org/software/flex/) and [http://www.gnu.org/software/bison/](http://www.gnu.org/software/bison/) )
-- libtiff ( [http://www.libtiff.org](http://www.libtiff.org) )
-- fltk ( [http://www.fltk.org](http://www.fltk.org) )
-  - Optional, only needed if you want to build "oshow"
-- OpenEXR ( [http://www.openexr.org](http://www.openexr.org) )
-  - Optional, only needed if you want to build "openexr" display driver
+- A **C++20** compiler — GCC 10+, Clang 10+, or MSVC 2019+
+- **CMake** 3.16 or newer
+- **libtiff**, **libpng**, **zlib**
+- **flex** and **bison**, to regenerate the RIB and shading-language parsers.
+  Turn this off with `-DUSE_FLEX_BISON=OFF` if you want to use the generated
+  sources shipped in the tree instead.
 
-Below are compilation instructions for various platforms:
+Optional, each enabling a component:
 
-## Compilation / Installation  for WINDOWS
+- **LLVM** — the JIT shading backend (`oshader --jit`, `.slo` shaders). If
+  CMake does not find LLVM it prints `LLVM not found -- JIT shader path
+  disabled` and builds the bytecode interpreter only. Everything still works;
+  shaders just run interpreted.
+- **OpenEXR** and **Imath** — the OpenEXR display driver
+- **FLTK** — the `oshow` viewer. Turn it off with `-DBUILD_SHOW=OFF`.
+- **GTK 4** (4.20 or newer) — the `orender-wire` scene previewer on Linux. On
+  macOS the previewer uses Metal and AppKit, which need no extra packages.
 
-You can download the openRender source code as a zip file. To compile openRender, you need Microsoft Visual Studio .NET 2005.
+## Building
 
-- Open ` openRender.sln` (in openRender/windows/vcXXX)
-- Hit - `Build - Batch Build`
-- Select the components you want to build
-- Hit `Build All`
+The same three commands on every platform:
 
-At this point, you can use this directory as your ORENDERHOME. Alternatively, you can run makeinst.bat which will create a openRender directory (that's right inside the openRender directory) and will copy all relevant files (except sources) into this new directory, which you can also use as your ORENDERHOME.
-
-You can also use the Windows installer which directly installs binary distribution.
-
-## Compilation / Installation  for UNIX
-
-You can download the openRender source code as a tgz file. Do not download the zipped source code as the file permissions will be wrong.
-
-- execute `./configure --prefix=/usr/local/openRender --enable-selfcontained`
-- execute `make`
-- execute `make install`
-
-At this point you should have a `/usr/local/openRender` directory which contains the binary distribution. You can substitute `/usr/local/openRender` with whatever location you want openRender in. This directory will be your ORENDERHOME.
-
-You can set `CXXFLAGS` to whatever compilation flags you want to have during the compilation.
-
-## Compilation / Installation  for OS X
-
-You can download the openRender source code as a tgz file. Do not download the zipped source code as the file permissions will be wrong.
-
-You will need to install libtiff and it's headers from somewhere.  You can do this with fink [[1](http://www.finkproject.org/)], in which case, after following the installation instructions for fink, you can type:
-
-- execute `fink install libtiff`
-
-Having done this and opened a new shell,
-
-- execute `./configure --prefix=/Applications/Graphics/openRender --enable-selfcontained LDFLAGS='-L/sw/lib/ -L/usr/X11R6/lib' CPPFLAGS='-I/sw/include/ -I/usr/X11R6/include'`
-- execute `make`
-- execute `make install`
-
-At this point you should have a `/Applications/Graphics/openRender` directory which contains the binary distribution. You can substitute `Applications/Graphics/openRender` with whatever location you want openRender in. This directory will be your ORENDERHOME.
-
-If you installed libtiff elsewhere (with headers say in `/path/to/tiffprefix/tiffincludes` and libraries at `/path/to/tiffprefix/tifflibs`, the the configure line needs to be altered appropriately
-
-- execute `./configure --prefix=/Applications/Graphics/openRender --enable-selfcontained LDFLAGS='-L/path/to/tiffprefix/tifflibs -L/usr/X11R6/lib' CPPFLAGS='-I/path/to/tiffprefix/tiffincludes -I/usr/X11R6/include'`
-
-You can set `CXXFLAGS` to whatever compilation flags you want to have during the compilation.
-
-There is also an XCode project you can use for OSX.
-
-## RPM Installation for UNIX
-
-RPM is available in two packages.
-
-- openRender-X.Y.Z.i586.rpm : the application itself (with shaders, doc, etc).
-- openRender-X.Y.Z-devel.i586.rpm : all the development libraries and includes files.
-
-Install it with your favourite package manager ( I use Yast on Suse/Linux )
-
-Files are installed in /opt/openrender.
-
-## Binary  Installation for MAC OSX
-
-Currently openRender is compiled against `libtiff` from fink. Under OSX 10.2 or earlier, it will also require you to use fink's dlcompat and dlcompat-shlibs libraries.
-
-Please install fink ( [http://fink.sourceforge.net](http://fink.sourceforge.net) ) to get a hold of the required libraries. I can recommend fink commander ( [http://finkcommander.sourceforge.net](http://finkcommander.sourceforge.net) ) to help ease installation of fink projects, but you'll still need to install fink. Follow the instructions over at fink for how to set it up.
-
-Install `libtiff` from fink. Also, especially for 10.2 or earlier, ensure you install up to date `dlcompat` and `dlcompat-shlib` packages.
-
-Get the binary distribution of openRender and unpack it at `/Applications/Graphics`.  There should be now a folder in `/Applications/Graphics` called `openRender`. You may have issues unpacking with some of the gui apps. Ensure you've got the latest stuffit, or use the command line:
-
-(Assuming package is on your desktop)
-
-```
- cd /Applications/Graphics/
- tar zxvf ~/Desktop/openRender-osx-1.3.xx.tar
+```bash
+git clone https://github.com/juvenal/openrender.git
+cd openrender
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 ```
 
-This part is required for **10.2 ONLY. DO NOT PERFORM THE NEXT STEP ON PANTHER (10.3)**
+Then, optionally, run the test suite and install:
 
-openRender requires dlcompat. When installed via fink, these are in `/sw/lib/libdl.0.dylib`. openRender binaries are compiled against Panther which had `/usr/lib/libdl.dylib`. The solution is to create a symbolic link from where the library is expected to be, to where it is. One final warning. Don't do this on Panther - you've been warned.
-
-```
-sudo ln -s /sw/lib/libdl.0.dylib /usr/lib/libdl.dylib
-```
-
-If you don't want to do this, or can't, there's a work around, which is to set for tcsh
-
-```
-setenv DYLD_INSERT_LIBARARIES /sw/lib/libdl.0.dylib
+```bash
+ctest --test-dir build
+cmake --install build --prefix /usr/local/openrender
 ```
 
-for bash
+The prefix you install to becomes your `ORENDERHOME` — see
+[Common instructions](#common-instructions-for-using-openrender) below.
 
-```
-export DYLD_INSERT_LIBARARIES=/sw/lib/libdl.0.dylib
+### macOS
+
+Dependencies come from [Homebrew](https://brew.sh):
+
+```bash
+brew install cmake libtiff libpng bison
+brew install llvm openexr fltk        # optional components
 ```
 
-before running openrender.
+Two notes specific to macOS, both already handled by the build system:
+
+- **You do not need `brew install flex`.** The system flex at `/usr/bin/flex`
+  is current enough and is what CMake picks up.
+- **You do need Homebrew's bison.** macOS ships bison 2.3, which is far too
+  old for this grammar. Homebrew's bison is keg-only, so it is deliberately
+  not on your `PATH` — but `CMake/openRenderUseBison.cmake` looks for it at
+  `/opt/homebrew/opt/bison/bin` and `/usr/local/opt/bison/bin` directly, so
+  no `PATH` juggling is needed. The same applies to Homebrew's keg-only LLVM,
+  which CMake falls back to at `/opt/homebrew/opt/llvm`.
+
+If you keep Homebrew somewhere unusual, point CMake at it with
+`-DCMAKE_PREFIX_PATH=<your-brew-prefix>`.
+
+### Linux
+
+Install your distribution's development packages for libtiff, libpng, zlib,
+flex and bison, plus any of the optional components you want — LLVM, OpenEXR
+with Imath, FLTK, and GTK 4 for the previewer. Package names differ between
+distributions; the CMake configure step names anything it cannot find.
+
+### Windows
+
+Generate a Visual Studio project with CMake and build that — `INSTALL.md` in
+the repository has the exact invocation for VS 2019 and newer. Note that the
+routine development and test work happens on macOS and Linux, so the Windows
+path is the least exercised of the three.
 
 ## Common instructions for using openRender
 
 You must set **ORENDERHOME** (the render root directory) to the location of your installation. At install time this corresponds to the CMake install destination: for a self-contained install it is the same as the install prefix (e.g. `/usr/local` or `/usr/local/openrender`); for a system/FHS install it is typically `share/openRender` under the prefix (e.g. `/usr/local/share/openRender`). You may also want to add the `bin` directory to your `PATH` and the `lib` directory to `LD_LIBRARY_PATH` on Unix or `DYLD_LIBRARY_PATH` on macOS.
 
-For Windows XP:
+For Windows:
 
-- Open Control Panel -> System -> Advanced -> Environment Variables
+- Open Control Panel -> System -> Advanced system settings -> Environment Variables
 - Hit New
 - Variable name: ORENDERHOME
 - Variable value: <path-to-openrender-install>
@@ -198,6 +160,23 @@ To compile a shader:
 oshader my_shader.sl
 ```
 This will produce `my_shader.rslo`.
+
+### JIT-compiled shaders
+
+If openRender was built with LLVM, `oshader --jit` compiles a shader to LLVM
+bitcode instead, producing a `.slo`:
+
+```bash
+oshader --jit -o my_shader.slo my_shader.sl
+```
+
+Both formats are loadable at render time, and which one a primitive uses is
+selected by `Attribute "shade" "shaderformat"` for one primitive, or
+`Option "shaderformat" "default"` for the whole scene.
+
+Note that nothing in the build regenerates `.slo` files: they are compiled
+artefacts, and a `.slo` built by an older `oshader` will not be refreshed by
+rebuilding. If you change a shader, recompile it explicitly.
 
 ### Legacy Compatibility
 For backward compatibility, the renderer and tools also support the older `.sdr` extension. If you need to force the compiler to output `.sdr` files, use the `--legacy-sdr` flag:

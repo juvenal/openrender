@@ -1,9 +1,18 @@
 ---
 title: "Previous Releases"
-date: 2025-12-08
+date: 2026-08-29
 ---
 
 # Previous Releases
+
+Entries below the development builds are the pre-GitHub release notes,
+inherited from when the project was distributed through SourceForge. Their
+download links are kept as history and no longer resolve to anything you can
+install; build from source instead, following
+[Installing / running openRender](/openrender/manual/reference/installing-and-running/).
+
+Version 1.0.0, the current in-development version, has no tagged release yet.
+For what it contains, see the [front page](/openrender/).
 
 ## Development build (2026-08-27)
 

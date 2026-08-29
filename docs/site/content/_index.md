@@ -27,9 +27,9 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-Full prerequisites and platform notes are in `COMPILING.txt` and `INSTALL.md`
-in the repository, and in
-[Installing / running openRender](/openrender/manual/reference/installing-and-running/).
+Full prerequisites and platform notes are in
+[Installing / running openRender](/openrender/manual/reference/installing-and-running/),
+and in `INSTALL.md` in the repository.
 
 ## Main Sections
 
