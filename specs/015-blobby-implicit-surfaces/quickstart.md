@@ -230,13 +230,30 @@ orender scene.rib
 # 2. RIB round trip — the Blobby statement must survive, not vanish
 orender -rib out.rib scene.rib && orender out.rib
 # 3. distributed
-orender -t <servers> scene.rib
+orender -s <servers> scene.rib
 ```
 
 Path 2 fails today by construction: `CRibOut::RiBlobbyV` emits
-`RIE_UNIMPLEMENT` (`ribOut.cpp:1418`), and combined with the
-`netNumServers > 0` early return that also makes path 3 silently drop the
-primitive. Both must be fixed together.
+`RIE_UNIMPLEMENT` (`ribOut.cpp:1418`), so the statement vanishes from the
+re-emitted stream. That is fixed.
+
+**Corrected during implementation:** path 3 does *not* depend on path 2, and
+the flag is `-s`, not `-t` (`-t` is the statistics flag). `netSetup()` sends
+each server the **name** of the original RIB and serves the file itself over
+`NET_SEND_FILE` if the server cannot find it, so every server parses the
+author's stream — `CRibOut` is not on the distributed path at all, and the
+`netNumServers > 0` early return is simply the client declining to build
+geometry it will not render. What path 3 actually depends on is that every
+server derive the *same* surface from the same declaration, which is what the
+determinism requirement (FR-023a) is for.
+
+**Path 3 cannot be exercised in this tree.** A server is spawned by an
+external daemon that hands the renderer an already-connected socket
+(`riNetString` of the form `client=<fd>`); no such daemon is built here, for
+any primitive. What is verified instead is both halves it rests on: the RIB
+writer round-trips a blobby exactly (`Blobby_RibOutRoundTrip`, plus the
+`blobby-roundtrip-reyes` scene parity), and repeated extraction from one
+declaration is bit-identical (`Blobby_Determinism`).
 
 Also verify the Python (`prman.py:469`) and Lua (`prman.lua:588`) `Blobby`
 emitters end to end (FR-005).
@@ -277,17 +294,69 @@ Delivered **with** the feature, not after. On the Hugo site under `site/`:
 
 ## Definition of done
 
-- [ ] All 12 RISpec opcodes covered by unit tests with hand-computed values (SC-001)
-- [ ] Both 4/5 operand orders independently tested; RISpec order confirmed default (SC-002)
-- [ ] Threshold derived and asserted, not assumed (FR-015)
-- [ ] Analytic ground truth passes before any reference image is frozen (SC-003)
-- [ ] Published example scenes render and are committed as references (SC-003a)
-- [ ] Cross-hider `Parity_` tests pass (SC-004)
-- [ ] 15+ malformed declarations: clear diagnostic each, zero crashes (SC-005)
-- [ ] Default tolerance smooth at typical framing; tightening measurably improves (SC-006)
-- [ ] Existing visual suite passes unchanged (SC-007)
-- [ ] Blobby works as a CSG operand; mesh verified watertight (SC-008, FR-027)
-- [ ] Direct, RIB round-trip, and distributed renders agree, no seams (SC-009)
-- [ ] Motion blur matches an ordinary primitive under identical motion (SC-010)
-- [ ] Hugo documentation published (SC-011)
-- [ ] Spiral renders; surface-cell ratio demonstrates surface-tracking cost (SC-012)
+Walked end to end at T105. Each box names the evidence rather than asserting
+the outcome; the two that are met only in part say so.
+
+- [X] All 12 RISpec opcodes covered by unit tests with hand-computed values (SC-001)
+  — 1000/1001/1002 in `test_field_primitives.cpp`, all eight combining opcodes
+  in `test_field_combining.cpp` (17 cases), and 1003 in `test_repeller.cpp`,
+  which evaluates a loaded repeller *through* `CBlobbyProgram::evaluate`
+  against the committed depth fixture, not merely its profile functions.
+- [X] Both 4/5 operand orders independently tested; RISpec order confirmed default (SC-002)
+  — `test_opcode_order.cpp`. Note the guidance inverted: `dent.rib` shows the
+  shipping renderer follows the RISpec order, so PRMan RIB needs no override.
+- [X] Threshold derived and asserted, not assumed (FR-015)
+  — `test_threshold_calibration.cpp` asserts both published brackets
+  (octahedron saddle above, `pairs.rib` below). The spec's second constraint
+  as worded is unsatisfiable; see `DEVNOTES_DETAILS/BLOBBY_SURFACES.md`.
+- [X] Analytic ground truth passes before any reference image is frozen (SC-003)
+  — `test_polygonize_analytic.cpp` and `test_polygonize_watertight.cpp` were
+  green before any reference TIFF was committed.
+- [X] Published example scenes render and are committed as references (SC-003a)
+  — dent, blend (three variants), spiral; 81 reference TIFFs in all.
+- [X] Cross-hider `Parity_` tests pass (SC-004)
+  — 51 `Parity_blobby` pairings. Three deviations from "2 per scene", each
+  justified: `blobby-offscreen` is visual-only (two empty frames assert
+  nothing); the two motion scenes are reyes↔raytrace only (the z-buffer
+  hider has no time sampling at all); the two tolerance scenes are different
+  framings, not an A/B pair.
+- [X] 15+ malformed declarations: clear diagnostic each, zero crashes (SC-005)
+  — `test_code_validation.cpp`, 26 cases.
+- [X] Default tolerance smooth at typical framing; tightening measurably improves (SC-006)
+  — the visual scenes for the first half;
+  `a_tighter_tolerance_reduces_deviation_from_the_analytic_surface` in
+  `test_tolerance.cpp` for the second, measured against the analytic surface
+  rather than against an image.
+- [X] Existing visual suite passes unchanged (SC-007)
+  — full `ctest`: 330 of 338. The 8 failures are exactly the pre-existing
+  baseline set (ImagerGuardTests, six `NotRequired_*-oshow`,
+  ShaderCompilerImmutability's missing references) and are unchanged by this
+  branch.
+- [X] Blobby works as a CSG operand; mesh verified watertight (SC-008, FR-027)
+  — needed no integration work: the surface reaches `addObject()` as an
+  ordinary `CPolygonMesh`. Watertightness asserted by edge-manifoldness and
+  Euler characteristic in `test_polygonize_watertight.cpp`.
+- [~] Direct, RIB round-trip, and distributed renders agree, no seams (SC-009)
+  — **two of the three paths.** Direct and round-trip agree
+  (`Blobby_RibOutRoundTrip`, and the `blobby-roundtrip-reyes` scene: 5508 vs
+  5507 lit pixels, mean absolute difference 0.19/255). The distributed path
+  **cannot be exercised in this tree** — a server is spawned by an external
+  daemon that hands the renderer a connected socket, and no such daemon is
+  built here, for any primitive. Both halves it rests on are verified: the
+  writer round-trips exactly, and extraction is bit-identical across repeats
+  (`Blobby_Determinism`). See the corrected §7 above — `CRibOut` is not on
+  the distributed path at all.
+- [X] Motion blur matches an ordinary primitive under identical motion (SC-010)
+  — `test_motion.cpp` asserts advected vertices land on the analytically
+  moved surface; the two scene pairings are reyes↔raytrace for the reason
+  given above.
+- [X] Hugo documentation published (SC-011)
+  — `docs/site/content/manual/reference/blobby-implicit-surfaces.md`, linked
+  from both `_index.md` navigation files, with the opcode 4/5 erratum and the
+  known limitations.
+- [X] Spiral renders; surface-cell ratio demonstrates surface-tracking cost (SC-012)
+  — the 480-segment spiral emits 278,024 triangles while visiting **2.77%**
+  of the cells a dense grid over the same extent would have. Note this is the
+  *second* ratio: the surface-cells-to-visited-cells ratio `data-model.md` §7
+  proposed cannot fall below 100% as the walk is written, so it is a guard on
+  the traversal rule rather than a measure of scale.

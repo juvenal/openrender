@@ -5647,12 +5647,17 @@ void CRendererContext::RiHierarchicalSubdivisionMeshV(const char *scheme, int nf
 //							The netNumServers guard is the same one every
 //							geometric primitive in this file carries: a
 //							client coordinating a distributed render builds
-//							no geometry locally, because each server parses
-//							the scene and derives its own copy. What used
-//							to lose a blobby across servers was not this
-//							guard but CRibOut::RiBlobbyV's RIE_UNIMPLEMENT
-//							stub, which dropped the statement from the
-//							re-emitted stream; that is fixed in ribOut.cpp.
+//							no geometry locally. Each server receives the
+//							*name* of the original RIB (netSetup) and pulls
+//							the file itself over NET_SEND_FILE if it cannot
+//							find it, so it parses the author's stream, not
+//							a re-emitted one -- CRibOut is not on that path
+//							at all. What a blobby therefore depends on
+//							across servers is that every server derive the
+//							same surface from the same declaration, which
+//							is why extraction is ordered rather than merely
+//							correct (FR-023a): an ordering dependence would
+//							be a visible seam between buckets.
 ///////////////////////////////////////////////////////////////////////
 void CRendererContext::RiBlobbyV(int nleaf, int ncode, int code[], int nfloats, float floats[], int nstrings, const char *strings[], int n, const char *tokens[], const void *params[]) {
     CXform *xform;

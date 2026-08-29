@@ -367,7 +367,7 @@ documentation.
 
 ### Final validation
 
-- [ ] T105 Walk the `quickstart.md` Definition of Done checklist end to end and confirm every success criterion SC-001 through SC-012 is met
+- [X] T105 Walk the `quickstart.md` Definition of Done checklist end to end and confirm every success criterion SC-001 through SC-012 is met
 
 ---
 

@@ -131,6 +131,16 @@ which is precisely where the rod is subtracting. The surface is very much
 present off-axis. All six axis directions are searched now, with a strided
 coarse scan as a last resort when no field's centre leads anywhere.
 
+**Opcode 1003 needs a test that runs it *through a program* against a real
+depth file.** Every other opcode had one; this one had coverage of its
+profile functions and of its failure paths only, and both of the traps below
+lived in exactly that gap. Each made the repeller contribute nothing at all,
+neither raised a diagnostic, and both survived until a render was looked at.
+`test_repeller.cpp` now evaluates a loaded repeller through
+`CBlobbyProgram::evaluate` against the committed fixture and asserts the
+field is the profile at the height the map reports; either bug fails it
+immediately.
+
 **`TIFFGetField` returns a pointer into libtiff's directory storage, which
 `TIFFClose` frees.** The repeller composed its view matrices after the close
 and read freed memory. The symptom was not a crash: every point projected
@@ -161,6 +171,32 @@ unquoted.** A blobby's strings array came out as `[]` when it held an empty
 string and as `[ground.z]` when it held a name — a parse error either way, and
 equally broken for a subdivision mesh's tags. Found by verifying FR-005; fixed
 in `src/python/prman.py` and `src/lua/prman.lua`.
+
+---
+
+## The distributed path does not go through `CRibOut`
+
+The spec's plan for SC-009 assumed the RIB writer served both the round trip
+and the distributed render, so that fixing `CRibOut::RiBlobbyV`'s
+`RIE_UNIMPLEMENT` stub fixed both. It does not. `netSetup()` sends each
+server the **name** of the original RIB and serves the bytes itself over
+`NET_SEND_FILE` when the server cannot find the file, so every server parses
+the author's stream. `CRibOut` is not involved, and the `netNumServers > 0`
+early return in `RiBlobbyV` — the one every geometric primitive carries — is
+just the client declining to build geometry it will never render.
+
+What a blobby actually depends on across servers is that each one derive the
+*same* surface from the same declaration. That is what FR-023a's ordering
+requirement buys, and an ordering dependence would show as a seam between
+buckets rather than as a wrong picture.
+
+**The distributed third of SC-009 is unexercised, and cannot be exercised
+here.** A server is started by an external daemon that hands the renderer an
+already-connected socket (`riNetString` of the form `client=<fd>`); no such
+daemon is built in this tree, for any primitive. Both halves the path rests
+on are verified instead — the writer round-trips a blobby exactly, and
+repeated extraction from one declaration is bit-identical. The CLI flag is
+`-s`, not the `-t` the quickstart originally gave.
 
 ---
 

@@ -39,9 +39,15 @@ set_tests_properties(Blobby_RibOutRoundTrip PROPERTIES
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/unit/blobby)
 
 # The repeller reads a depth file through CRenderer::locateFile, so it needs
-# the same search paths the renderer resolves at startup.
+# the same search paths the renderer resolves at startup. Note that %TEXTURES%
+# is expanded when COptions is constructed, which never happens in a unit test
+# -- locateFile here resolves a name relative to the working directory or
+# takes it as given, so the depth-file fixture is passed as an absolute path
+# built from the source tree rather than found on a search path.
 add_blobby_test(test_blobby_motion               test_motion.cpp               Blobby_Motion)
 add_blobby_test(test_blobby_repeller             test_repeller.cpp             Blobby_Repeller)
+target_compile_definitions(test_blobby_repeller PRIVATE
+    BLOBBY_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/examples/rib/tests")
 set_tests_properties(Blobby_Repeller PROPERTIES
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/shaders)
