@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# The same pair at 1.2 apart. Summed, the field at the midpoint is 2*(1-0.36)^3 = 0.524, just over the threshold, so the two lobes join through a narrow waist. US1 scenario 2.
+#
+# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider;
+# the same three files serve both the visual registrations (each hider
+# against its own frozen reference) and the parity registrations (the
+# hiders against each other).
+version 3.03
+Hider "reyes"
+Display "blobby-blend-influencing-reyes.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    Blobby 2 [
+        1001 0
+        1001 16
+        0 2 0 1
+    ] [
+        1 0 0 0  0 1 0 0  0 0 1 0  -0.6 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0.6 0 0 1
+    ] [ "" ]
+WorldEnd

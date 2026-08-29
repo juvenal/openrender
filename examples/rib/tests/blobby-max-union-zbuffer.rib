@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# The 0.8-apart pair -- identical geometry to blobby-blend-merged -- combined by maximum instead of add, which is exactly the contrast AppNote #31's blend.rib draws. max(a,b) <= a+b, so the surface is the union of the two spheres at their lone-blob radius: they intersect and touch, but neither swells into the other, and the intersection circle is a visible crease. US1 scenario 3.
+#
+# Spec 015-blobby-implicit-surfaces, T039. One variant per camera hider;
+# the same three files serve both the visual registrations (each hider
+# against its own frozen reference) and the parity registrations (the
+# hiders against each other).
+version 3.03
+Hider "zbuffer"
+Display "blobby-max-union-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    Blobby 2 [
+        1001 0
+        1001 16
+        2 2 0 1
+    ] [
+        1 0 0 0  0 1 0 0  0 0 1 0  -0.4 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0.4 0 0 1
+    ] [ "" ]
+WorldEnd

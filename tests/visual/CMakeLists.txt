@@ -1369,8 +1369,151 @@ set_tests_properties(Visual_blobby-parse-smoke PROPERTIES
     DEPENDS     orender)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US1 (T039/T040)
+#
+# Each scene is registered three times with add_visual_test, once per camera
+# hider, and twice with add_parity_test. Both kinds are needed and they
+# assert different things: the visual tests prove each hider still matches
+# its own frozen image, while only the parity tests prove the hiders agree
+# with *each other*, which is what SC-004 asks for. Spec 013's CSG scenes
+# used the visual half alone, so the parity half is new here.
+#
+# The references are frozen from a surface whose correctness was established
+# analytically first, not by eye: tests/unit/blobby/test_polygonize_analytic
+# asserts that a lone field resolves to exactly the sphere
+# sqrt(1 - T^(1/3)) predicts, that two coincident fields give the
+# analytically larger one, and that the normals match the analytic surface
+# normal. A frozen image proves repeatability; those tests are what prove
+# the thing being repeated is right (SC-003).
+# ---------------------------------------------------------------------------
+# Two unit-sphere fields 2.4 apart -- beyond each other's support, so
+# they cannot blend at any threshold (US1 scenario 1).
+add_visual_test(blobby-blend-far-reyes
+    examples/rib/tests/blobby-blend-far-reyes.rib
+    blobby-blend-far-reyes.tif
+    blobby-blend-far-reyes.tif)
+
+add_visual_test(blobby-blend-far-raytrace
+    examples/rib/tests/blobby-blend-far-raytrace.rib
+    blobby-blend-far-raytrace.tif
+    blobby-blend-far-raytrace.tif)
+
+add_visual_test(blobby-blend-far-zbuffer
+    examples/rib/tests/blobby-blend-far-zbuffer.rib
+    blobby-blend-far-zbuffer.tif
+    blobby-blend-far-zbuffer.tif)
+
+add_parity_test(blobby-blend-far-reyes-raytrace
+    examples/rib/tests/blobby-blend-far-reyes.rib     blobby-blend-far-reyes.tif
+    examples/rib/tests/blobby-blend-far-raytrace.rib  blobby-blend-far-raytrace.tif)
+
+add_parity_test(blobby-blend-far-reyes-zbuffer
+    examples/rib/tests/blobby-blend-far-reyes.rib     blobby-blend-far-reyes.tif
+    examples/rib/tests/blobby-blend-far-zbuffer.rib   blobby-blend-far-zbuffer.tif)
+
+# The same pair at 1.2, where the summed field at the midpoint is 0.524,
+# just over the threshold: joined through a narrow waist (US1 scenario 2).
+add_visual_test(blobby-blend-influencing-reyes
+    examples/rib/tests/blobby-blend-influencing-reyes.rib
+    blobby-blend-influencing-reyes.tif
+    blobby-blend-influencing-reyes.tif)
+
+add_visual_test(blobby-blend-influencing-raytrace
+    examples/rib/tests/blobby-blend-influencing-raytrace.rib
+    blobby-blend-influencing-raytrace.tif
+    blobby-blend-influencing-raytrace.tif)
+
+add_visual_test(blobby-blend-influencing-zbuffer
+    examples/rib/tests/blobby-blend-influencing-zbuffer.rib
+    blobby-blend-influencing-zbuffer.tif
+    blobby-blend-influencing-zbuffer.tif)
+
+add_parity_test(blobby-blend-influencing-reyes-raytrace
+    examples/rib/tests/blobby-blend-influencing-reyes.rib     blobby-blend-influencing-reyes.tif
+    examples/rib/tests/blobby-blend-influencing-raytrace.rib  blobby-blend-influencing-raytrace.tif)
+
+add_parity_test(blobby-blend-influencing-reyes-zbuffer
+    examples/rib/tests/blobby-blend-influencing-reyes.rib     blobby-blend-influencing-reyes.tif
+    examples/rib/tests/blobby-blend-influencing-zbuffer.rib   blobby-blend-influencing-zbuffer.tif)
+
+# The same pair at 0.8: a wide waist and one smooth shape, no crease
+# (US1 scenario 2).
+add_visual_test(blobby-blend-merged-reyes
+    examples/rib/tests/blobby-blend-merged-reyes.rib
+    blobby-blend-merged-reyes.tif
+    blobby-blend-merged-reyes.tif)
+
+add_visual_test(blobby-blend-merged-raytrace
+    examples/rib/tests/blobby-blend-merged-raytrace.rib
+    blobby-blend-merged-raytrace.tif
+    blobby-blend-merged-raytrace.tif)
+
+add_visual_test(blobby-blend-merged-zbuffer
+    examples/rib/tests/blobby-blend-merged-zbuffer.rib
+    blobby-blend-merged-zbuffer.tif
+    blobby-blend-merged-zbuffer.tif)
+
+add_parity_test(blobby-blend-merged-reyes-raytrace
+    examples/rib/tests/blobby-blend-merged-reyes.rib     blobby-blend-merged-reyes.tif
+    examples/rib/tests/blobby-blend-merged-raytrace.rib  blobby-blend-merged-raytrace.tif)
+
+add_parity_test(blobby-blend-merged-reyes-zbuffer
+    examples/rib/tests/blobby-blend-merged-reyes.rib     blobby-blend-merged-reyes.tif
+    examples/rib/tests/blobby-blend-merged-zbuffer.rib   blobby-blend-merged-zbuffer.tif)
+
+# Identical geometry to blobby-blend-merged but combined by maximum --
+# the contrast AppNote #31's blend.rib draws. The two spheres touch and
+# crease rather than swelling into one another (US1 scenario 3).
+add_visual_test(blobby-max-union-reyes
+    examples/rib/tests/blobby-max-union-reyes.rib
+    blobby-max-union-reyes.tif
+    blobby-max-union-reyes.tif)
+
+add_visual_test(blobby-max-union-raytrace
+    examples/rib/tests/blobby-max-union-raytrace.rib
+    blobby-max-union-raytrace.tif
+    blobby-max-union-raytrace.tif)
+
+add_visual_test(blobby-max-union-zbuffer
+    examples/rib/tests/blobby-max-union-zbuffer.rib
+    blobby-max-union-zbuffer.tif
+    blobby-max-union-zbuffer.tif)
+
+add_parity_test(blobby-max-union-reyes-raytrace
+    examples/rib/tests/blobby-max-union-reyes.rib     blobby-max-union-reyes.tif
+    examples/rib/tests/blobby-max-union-raytrace.rib  blobby-max-union-raytrace.tif)
+
+add_parity_test(blobby-max-union-reyes-zbuffer
+    examples/rib/tests/blobby-max-union-reyes.rib     blobby-max-union-reyes.tif
+    examples/rib/tests/blobby-max-union-zbuffer.rib   blobby-max-union-zbuffer.tif)
+
+# A blobby entirely outside the frustum: built and handed to addObject()
+# like any other primitive, then discarded by the renderer's ordinary
+# bounding-box culling (US1 scenario 5, FR-028).
+#
+# Visual registrations only, deliberately. Its reference is an empty frame,
+# so a parity test between two empty frames would pass whatever happened to
+# blobby rendering -- coverage that looks like coverage while asserting
+# nothing. The visual tests do assert something: that the scene renders
+# without a diagnostic and puts no geometry on screen.
+add_visual_test(blobby-offscreen-reyes
+    examples/rib/tests/blobby-offscreen-reyes.rib
+    blobby-offscreen-reyes.tif
+    blobby-offscreen-reyes.tif)
+
+add_visual_test(blobby-offscreen-raytrace
+    examples/rib/tests/blobby-offscreen-raytrace.rib
+    blobby-offscreen-raytrace.tif
+    blobby-offscreen-raytrace.tif)
+
+add_visual_test(blobby-offscreen-zbuffer
+    examples/rib/tests/blobby-offscreen-zbuffer.rib
+    blobby-offscreen-zbuffer.tif
+    blobby-offscreen-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      104 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 25 scene pairs registered under label 'parity'")
+message(STATUS "      119 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 33 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
