@@ -68,8 +68,9 @@ Two consequences worth knowing:
 
 - A second `TrimCurve` in the same scope **replaces** the first rather than
   adding to it. To trim with several loops, put them all in one statement.
-- `TrimCurve` with an empty loop set removes trimming for the rest of the
-  scope. Closing the `AttributeBegin`/`AttributeEnd` block does the same.
+- `TrimCurve [] [] [] [] [] [] [] [] []` — nine empty arrays — removes
+  trimming for the rest of the scope. Closing the
+  `AttributeBegin`/`AttributeEnd` block does the same.
 
 ```
 AttributeBegin

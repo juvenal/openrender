@@ -1,7 +1,7 @@
 # RenderMan Spec 3.2 — Implementation Gaps
 
-The delta between RI Spec 3.2 and openRender. Two tables, because the spec
-itself draws the line in two different places:
+The delta between RI Spec 3.2 and openRender, in two sections, because the
+spec itself draws the line in two different places:
 
 - **§1.1.2 Advanced Capabilities** — the eleven optional capabilities the spec
   names, and by which a renderer is expected to describe itself. These are the

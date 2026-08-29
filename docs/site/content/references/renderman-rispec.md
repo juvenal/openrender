@@ -46,8 +46,9 @@ visible object, not a soft shadow from an extended source.
 
 ## Geometric primitives
 
-All of the spec's §5 primitives are implemented. The ones with their own
-reference pages:
+Every §5 primitive has a working entry point and RIB binding, and each is
+covered by the visual regression suite. The ones with their own reference
+pages:
 
 - [Subdivision Surfaces](../../manual/reference/subdivision-surfaces/) —
   `SubdivisionMesh` and `HierarchicalSubdivisionMesh`, Catmull-Clark and Loop

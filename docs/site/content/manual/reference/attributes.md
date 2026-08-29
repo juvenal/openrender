@@ -267,8 +267,10 @@ scopes and applies to every `TrimCurve` in scope, not to one loop.
 ```
 AttributeBegin
     Attribute "trimcurve" "string sense" [ "outside" ]
-    TrimCurve 1 [1] [3] [0 0 0 1 2 3 3 3] [0] [3]
-              [7] [...u...] [...v...] [...w...]
+    TrimCurve [1] [2] [0 0 1 2 3 4 4] [0] [4] [5]
+      [0.25 0.75 0.75 0.25 0.25]
+      [0.25 0.25 0.75 0.75 0.25]
+      [1    1    1    1    1   ]
     NuPatch ...
 AttributeEnd
 ```
