@@ -90,10 +90,13 @@ requirement that a mismatch be recoverable rather than fatal.
 
 ## Open items for `research.md`
 
-1. **Surface threshold T.** Neither source states it. Determine PRMan's value (0.5 is the
-   widely cited figure) and confirm by reproducing the published reference images — the
-   six-blob coloured octahedron places unit spheres at ±0.89 on each axis and must blend
-   into one connected surface, which is a usable calibration target.
+1. **Surface threshold T — calibrate, do not assume** (settled in clarification, FR-015).
+   Neither source states it. 0.5 is the widely cited figure but must be confirmed rather
+   than adopted: derive it from the published scenes whose intended appearance is
+   documented. The six-blob coloured octahedron places unit spheres at ±0.89 on each axis
+   and must resolve to one connected surface; the appnote's unblended sphere-cluster pair
+   must resolve to separate surfaces. Those two constraints bracket the value. Record the
+   derivation next to the number.
 2. **`mpoint` extensibility.** Confirm the declaration/parameter-type system can accept a
    new SL-visible primvar type whose RIB representation is a 4×4 matrix but whose shader
    type is `point`, before tasks commit to FR-020. This touches the declaration parser and
@@ -118,3 +121,35 @@ requirement that a mismatch be recoverable rather than fatal.
 7. **AppNote caveats to verify against, not reproduce:** gritty shading under flat
    shading interpolation, poor `calculatenormal` results affecting displacement/bump,
    and dicing-rate concerns under orthographic projection.
+
+## Constraints added by the clarification session (2026-08-28)
+
+These four answers narrow the design space and should be treated as fixed inputs to
+`research.md`, not as open questions.
+
+8. **Surface extraction must track the surface, not the volume** (SC-012). The 480-segment
+   toroidal spiral is a required regression scene: a large bounding box whose surface
+   occupies a small fraction of it. A dense uniform sampling grid over the bound is
+   therefore ruled out — the design needs sparse, seeded, or surface-following extraction.
+   No wall-clock target is set.
+9. **Extraction must be deterministic** (FR-023a). Same declaration + same fidelity →
+   identical geometry, on any machine, at any thread count, in any bucket order. This
+   follows from the decision that each render server re-derives the surface from the
+   re-emitted `Blobby` declaration rather than receiving pre-derived geometry; without
+   determinism, seams appear where different servers' geometry meets. Watch for any
+   ordering dependence introduced by parallel extraction or by hash/set iteration order.
+10. **Per-blob value blending propagates through the code array** (FR-019/FR-019a), it is
+    not a flat weighted average over primitive fields. Each combining operation blends its
+    operands' values the way it blends their fields: add/multiply apportion
+    proportionally, max/min pass through the winner, and negated or subtracted operands
+    contribute nothing. This means value propagation is evaluated alongside field
+    evaluation in the same tree walk, and it needs a defined continuous fallback where an
+    apportionment would divide by zero. It is what makes the selectively-blended hand's
+    colours stop at group boundaries.
+11. **Correctness is proven analytically before any reference image is frozen** (SC-003).
+    Closed-form cases — a lone ellipsoid is exactly that ellipsoid, a lone segment is a
+    capsule of the declared radius, two coincident identical blobs give an analytically
+    predictable larger sphere, gradient normals match the analytic normal — are asserted
+    against generated geometry. The published example scenes are ordinary frozen-reference
+    regression scenes layered on top, never the sole evidence of correctness. This also
+    supplies the calibration harness item 1 needs.

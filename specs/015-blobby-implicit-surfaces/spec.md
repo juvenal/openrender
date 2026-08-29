@@ -8,6 +8,16 @@
 
 **Input**: User description: "Implement the RiBlobby blobby implicit-surface geometric primitive as defined in RenderMan Interface Specification 3.2 chapter 5.6 ('Blobby Implicit Surfaces'), cross-referenced against Pixar's PhotoRealistic RenderMan Application Note #31 (September 1999). Blobby is a standard RISpec gprim that openRender currently declares throughout its stack but leaves entirely unimplemented. Geometry generation MUST be entirely independent of the hider subsystem, carried forward in intent from spec 013 (Solid CSG Operations). Extensions introduced in PhotoRealistic RenderMan versions after the 3.2 specification are explicitly deferred to a later refinement step."
 
+## Clarifications
+
+### Session 2026-08-28
+
+- Q: How large a blobby must v1 render acceptably, and is there a speed target? → A: Correctness-first with no wall-clock target, but the published 480-segment toroidal spiral is a required visual-regression scene that must complete in the suite — which rules out an extraction approach whose cost scales with bounding-box volume rather than with the surface.
+- Q: For distributed rendering, should each server re-derive the blobby surface from its description, or receive pre-derived geometry? → A: Each server re-derives from the re-emitted `Blobby` declaration. FR-022's "exactly once" is scoped per renderer process, and derivation must be deterministic so that every server produces identical geometry from identical input.
+- Q: How should tests establish that a blobby renders correctly, not just repeatably? → A: Analytic ground truth first — cases whose exact surface is known in closed form are asserted against computed geometry — with the published example scenes layered on top as ordinary frozen-reference regression scenes. Reference images alone are not accepted as evidence of correctness.
+- Q: How should per-blob values blend when fields are combined by operations other than addition? → A: Each combining operation blends its operands' values the same way it blends their fields — add and multiply split proportionally, maximum and minimum hand the value to the winning operand, and a negated or subtracted operand contributes no value. Value blending therefore always agrees with shape blending.
+- Q: How should the surface threshold value be settled? → A: Derived by calibration against the published example scenes whose intended appearance is documented, with the derivation recorded, rather than adopting the commonly cited value on faith. It remains fixed and not author-settable.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Model an organic shape from self-blending blobs (Priority: P1)
@@ -164,7 +174,14 @@ they no longer blend and confirm each shows only its own colour with no bleed.
 3. **Given** a Blobby with a parameter of storage class constant or uniform, **When**
    the scene is rendered, **Then** its single value applies uniformly to the whole
    primitive with no per-blob variation.
-4. **Given** a Blobby whose code array contains combining instructions, **When** per-blob
+4. **Given** two groups of coloured blobs that blend within each group but are combined
+   with one another by the maximum operation, so the groups meet without merging,
+   **When** the scene is rendered, **Then** colours mix freely inside each group and do
+   not bleed across the boundary between the groups, matching what the shapes do.
+5. **Given** a blob whose field is subtracted from another to carve a dent, **When** the
+   scene is rendered, **Then** the subtracted blob's own colour does not tint the carved
+   surface; the surface keeps the colour of the blobs that remain.
+6. **Given** a Blobby whose code array contains combining instructions, **When** per-blob
    parameter values are supplied, **Then** the author supplies values only for the
    primitive fields and never for the combining instructions, and the renderer derives
    the combining instructions' values rather than requiring or accepting them.
@@ -361,8 +378,11 @@ removed and confirm the blobby is sharp.
 - A scene rendered across a network of render servers, or written back out as RIB and
   re-rendered: the blobby survives the round trip and renders identically, rather than
   being dropped or reported as unimplemented.
-- A blobby with several hundred blobs, such as the published 480-segment spiral: renders
-  without an unbounded growth in time or memory relative to a small blobby.
+- A blobby with several hundred blobs, such as the published 480-segment toroidal spiral:
+  renders to completion as part of the regression suite. Because such a blobby occupies a
+  large bounding box while its surface fills only a small fraction of it, the cost of
+  finding the surface must be governed by the surface itself rather than by the volume of
+  the bounding box.
 
 ## Requirements *(mandatory)*
 
@@ -434,8 +454,13 @@ removed and confirm the blobby is sharp.
   offending opcode and its position in the code array.
 - **FR-015**: The rendered surface MUST be the level set of the combined field at a fixed
   threshold, matching the threshold PhotoRealistic RenderMan uses, so that scene
-  descriptions written for that renderer produce the same shape here. The threshold is
-  not author-configurable.
+  descriptions written for that renderer produce the same shape here. Because neither
+  primary source states that value, it MUST be established by calibrating against the
+  published example scenes whose intended appearance is documented — the six-blob
+  octahedron must resolve to one connected surface, and a pair of blobs described as
+  unblended must resolve to two separate surfaces — and the derivation MUST be recorded
+  alongside the value rather than the value being adopted on faith. The threshold is not
+  author-configurable.
 
 #### Per-blob values
 
@@ -449,11 +474,18 @@ removed and confirm the blobby is sharp.
 - **FR-018**: Parameters of storage class constant or uniform MUST supply exactly one
   value for the whole primitive. Parameters of storage class varying or vertex MUST
   supply exactly one value per blob.
-- **FR-019**: Per-blob parameter values MUST be blended at every point on the surface in
-  proportion to how much each blob's field contributes there, mirroring how the combining
-  operations blend the fields themselves, and MUST vary continuously across the surface.
-  Values for combining instructions MUST be derived by the renderer and MUST NOT be
-  required from the author.
+- **FR-019**: Per-blob parameter values MUST be blended at every point on the surface by
+  carrying values up the code array alongside the fields, with each combining operation
+  blending its operands' values the same way it blends their fields: add and multiply
+  apportion the result among their operands in proportion to each operand's contribution;
+  maximum and minimum pass through the value of whichever operand won at that point; and
+  an operand that is negated, or that is the subtracted side of a subtraction, contributes
+  no value. Value blending therefore agrees with shape blending everywhere — blobs kept
+  from merging geometrically never bleed values into one another. Values for combining
+  instructions MUST be derived by the renderer and MUST NOT be required from the author.
+- **FR-019a**: Where an apportionment would divide by zero — every contributing operand
+  evaluating to zero at a point — the renderer MUST fall back to a defined, continuous
+  result rather than producing an invalid value or a visible discontinuity.
 - **FR-020**: The renderer MUST support a per-blob parameter type whose declared value is
   a transformation carrying points from that blob's own coordinate system into a shared
   reference coordinate system, and which a shader reads as a position. The value at a
@@ -468,10 +500,17 @@ removed and confirm the blobby is sharp.
 
 #### Geometry generation independent of the hider
 
-- **FR-022**: The surface MUST be derived from the field exactly once, in the geometry
-  domain, before any hider begins work, and the resulting geometry MUST be the single
-  representation every hider consumes. It MUST NOT be re-derived per hider, per bucket,
-  per ray, or lazily during rendering.
+- **FR-022**: Within any one renderer process, the surface MUST be derived from the field
+  exactly once, in the geometry domain, before any hider begins work, and the resulting
+  geometry MUST be the single representation every hider consumes. It MUST NOT be
+  re-derived per hider, per bucket, per ray, or lazily during rendering. A distributed
+  render is the one place the surface is derived more than once — once per participating
+  server, each from the same re-emitted declaration — which FR-023a constrains.
+- **FR-023a**: Deriving the surface MUST be deterministic: the same declaration rendered
+  with the same fidelity setting MUST produce identical geometry every time, on every
+  machine, regardless of thread count or bucket order. Without this, a distributed render
+  in which each server derives its own copy would show seams where geometry from
+  different servers meets.
 - **FR-023**: A blobby MUST render to the same resolved shape under every hider the
   renderer offers, within the same comparison tolerance the visual regression suite
   already applies to other primitives, and adding a future hider MUST require no
@@ -556,8 +595,17 @@ removed and confirm the blobby is sharp.
   twelve opcodes RISpec 3.2 defines, with no opcode covered only indirectly.
 - **SC-002**: Both readings of opcodes 4 and 5 are covered by separate tests that fail if
   either reading regresses, and the default reading is confirmed to be the RISpec 3.2 one.
-- **SC-003**: Every published reference model from the specification and the application
-  note renders recognisably: the six-blob coloured octahedron with colours blending, the
+- **SC-003**: Correctness is established analytically before any reference image is
+  frozen. Every case whose exact surface is known in closed form is asserted against the
+  generated geometry within a stated tolerance — a single ellipsoid produces that
+  ellipsoid, a single segment produces a capsule of the declared radius about the
+  declared endpoints, two coincident identical blobs produce a sphere of the analytically
+  predicted larger radius, and gradient-derived normals agree with the analytic surface
+  normal. A frozen reference image is never accepted as the sole evidence that a surface
+  is correct.
+- **SC-003a**: With that analytic base in place, every published reference model from the
+  specification and the application note renders and is committed as an ordinary frozen
+  regression scene: the six-blob coloured octahedron with colours blending, the
   selectively blended hand with fingers joining the palm and no webs between fingers, a
   multi-segment tube, a blob dented and then pierced by a subtracted blob, and a blob
   deflected by a repelling ground plane.
@@ -577,20 +625,30 @@ removed and confirm the blobby is sharp.
   composite shape correctly, verified against the same expectations the existing solid
   operation tests apply to other primitives.
 - **SC-009**: A scene containing a blobby survives a RIB write-and-reread round trip and a
-  distributed render across render servers, producing the same image in all three paths.
+  distributed render across render servers, producing the same image in all three paths,
+  with no seam visible where geometry derived by different servers meets. Deriving the
+  same declaration twice — in separate processes, and at differing thread counts —
+  produces identical geometry both times.
 - **SC-010**: A moving blobby and an ordinary primitive undergoing identical motion in the
   same scene blur over the same extent, and the same blobby outside a motion block renders
   sharp.
 - **SC-011**: Documentation for the primitive and the fidelity attribute is published on
   the project site, covering every opcode, per-blob parameters, and the opcode 4/5
   erratum, with worked examples an author can copy and render.
+- **SC-012**: A blobby of approximately 500 segment fields — the published toroidal
+  spiral — renders to completion as a member of the regression suite. No wall-clock
+  target is set, but the run must demonstrate that surface-finding cost tracks the
+  surface rather than the bounding-box volume: a sparse blobby of the same overall extent
+  but far fewer blobs must not cost disproportionately more than its surface area
+  warrants.
 
 ## Assumptions
 
-- **Surface threshold**: The specification never states the numeric level at which the
-  field defines the surface. The implementation assumes PhotoRealistic RenderMan's
-  value and will confirm it during design by reproducing the published reference images;
-  it is fixed rather than author-configurable, matching that renderer's behaviour.
+- **Surface threshold**: Neither primary source states the numeric level at which the
+  field defines the surface. Rather than adopting the commonly cited value on faith, it is
+  derived during design by calibration against the published scenes whose intended
+  appearance is documented, and the derivation is recorded with the value (FR-015). It is
+  fixed rather than author-configurable, matching PhotoRealistic RenderMan's behaviour.
 - **Opcode 4/5 default**: RISpec 3.2 is the normative source the feature targets, so its
   assignment is the default and the application note's is the opt-in compatibility mode.
   The application note is nonetheless treated as authoritative evidence of what
