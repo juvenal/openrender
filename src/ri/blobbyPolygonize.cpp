@@ -180,6 +180,7 @@ CBlobbyMesh::CBlobbyMesh() {
     weights = NULL;
     triangles = NULL;
     P1 = NULL;
+    N1 = NULL;
     numLeaves = 0;
 }
 
@@ -199,6 +200,8 @@ CBlobbyMesh::~CBlobbyMesh() {
         delete[] triangles;
     if (P1 != NULL)
         delete[] P1;
+    if (N1 != NULL)
+        delete[] N1;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -793,10 +796,107 @@ CBlobbyMesh *CBlobbyWalk::run() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Motion: advecting the shutter-open surface onto the shutter-close one
+//
+// A *fixed* number of Newton steps, never "until converged". This is the
+// determinism trap the whole motion path turns on: a convergence test makes
+// the step count a floating-point predicate, so the same input can take a
+// different number of steps under different compiler flags or FMA
+// contraction and land the vertex somewhere else. Each render server
+// derives its own copy of the surface from the same declaration, so that
+// divergence is a seam where two servers' geometry meets -- worst exactly
+// at the vertices near a topology change, where convergence is most
+// marginal (research Decision 8).
+//
+// The only branch is a guard against a degenerate gradient, which is a
+// property of the field at that point rather than of how close the
+// iteration has got. Where the surface has ceased to exist there is no
+// correct destination, so a vertex simply stops after its allotted steps:
+// bounded and locally unblurred rather than wild (US8 scenario 4).
+//
+// There is a second, quieter limit worth naming. A gradient step can only
+// follow a field it can feel, and a blobby field is *exactly* zero outside
+// its own support. So a vertex that starts outside every shutter-close
+// field -- which happens once the motion within the shutter exceeds a
+// blob's own radius -- has a zero gradient and stays where it is. That is
+// the same "bounded but not faithful" outcome FR-026 allows for topology
+// change, reached by a different route, and it is a property of gradient
+// advection rather than of this implementation of it.
+///////////////////////////////////////////////////////////////////////
+#define BLOBBY_ADVECT_STEPS 12
+
+// No single step may move a vertex further than this many cells. A Newton
+// step on a nearly-flat field is arbitrarily long, and one such step would
+// throw a vertex clear across the primitive.
+#define BLOBBY_ADVECT_MAX_CELLS 4.0f
+
+static void blobbyAdvect(const CBlobbyProgram *closeProgram, CBlobbyMesh *mesh, float cellSize) {
+    const float limit = BLOBBY_ADVECT_MAX_CELLS * cellSize;
+
+    mesh->P1 = new float[mesh->numVertices * 3];
+    mesh->N1 = new float[mesh->numVertices * 3];
+
+    for (int i = 0; i < mesh->numVertices; i++) {
+        vector p, gradient;
+
+        movvv(p, mesh->P + i * 3);
+
+        for (int step = 0; step < BLOBBY_ADVECT_STEPS; step++) {
+            const float value = closeProgram->evaluate(p, gradient);
+            const float denominator = dotvv(gradient, gradient);
+            float scale = 0;
+
+            // Newton on F(p) = T:  p <- p - (F - T) * grad(F) / |grad(F)|^2.
+            // The sign matters and is easy to get backwards: the field
+            // *increases* along its gradient, so a point with too much
+            // field has to move against it.
+            if (denominator > C_EPSILON)
+                scale = -(value - BLOBBY_THRESHOLD) / denominator;
+
+            vector offset;
+
+            initv(offset, scale * gradient[0], scale * gradient[1], scale * gradient[2]);
+
+            const float length = sqrtf(dotvv(offset, offset));
+
+            if (length > limit) {
+                const float clamped = limit / length;
+
+                offset[0] *= clamped;
+                offset[1] *= clamped;
+                offset[2] *= clamped;
+            }
+
+            addvv(p, offset);
+        }
+
+        movvv(mesh->P1 + i * 3, p);
+
+        // The normal at the second sample comes from the close field at
+        // the advected position -- the same analytic gradient the first
+        // sample's does, evaluated where the vertex actually ended up.
+        closeProgram->evaluate(p, gradient);
+
+        const float length = sqrtf(dotvv(gradient, gradient));
+        float *destination = mesh->N1 + i * 3;
+
+        if (length > C_EPSILON) {
+            const float inverse = -1 / length;
+
+            initv(destination, gradient[0] * inverse, gradient[1] * inverse, gradient[2] * inverse);
+        }
+        else {
+            // Nothing better to say than what the first sample said.
+            movvv(destination, mesh->N + i * 3);
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	blobbyPolygonize
 // Description			:	Extract the threshold level set
 ///////////////////////////////////////////////////////////////////////
-CBlobbyMesh *blobbyPolygonize(const CBlobbyProgram *program, float cellSize, int wantWeights) {
+CBlobbyMesh *blobbyPolygonize(const CBlobbyProgram *program, float cellSize, int wantWeights, const CBlobbyProgram *closeProgram) {
     if (program == NULL || !program->isValid())
         return NULL;
 
@@ -804,6 +904,10 @@ CBlobbyMesh *blobbyPolygonize(const CBlobbyProgram *program, float cellSize, int
         return NULL;
 
     CBlobbyWalk walk(program, cellSize, wantWeights);
+    CBlobbyMesh *mesh = walk.run();
 
-    return walk.run();
+    if (mesh != NULL && closeProgram != NULL && closeProgram->isValid() && mesh->numVertices > 0)
+        blobbyAdvect(closeProgram, mesh, cellSize);
+
+    return mesh;
 }

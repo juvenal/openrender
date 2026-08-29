@@ -325,17 +325,17 @@ remove the motion block and confirm the blobby is sharp.
 
 ### Tests for User Story 8 ⚠️ Write first, confirm they FAIL, then obtain approval
 
-- [ ] T087 [P] [US8] Write failing tests in `tests/unit/blobby/test_motion.cpp` that the second sample has identical vertex count, ordering, and triangle connectivity to the first — the only shape a two-sample `CPl` can represent
-- [ ] T088 [US8] Write a failing test that advection uses a **fixed** step count, so the advected position is a deterministic function of its input, in `tests/unit/blobby/test_motion.cpp`. An "iterate until converged" loop makes the step count a floating-point predicate that varies with compiler flags and FMA contraction, reintroducing exactly the cross-machine divergence FR-023a forbids, worst at vertices near a topology change
-- [ ] T089 [US8] Write a failing test that topology-changing motion (lobes merging, a piece vanishing) produces a bounded, non-crashing result with unconverged vertices left in place, in `tests/unit/blobby/test_motion.cpp`
-- [ ] T090 [P] [US8] Extend `tests/unit/blobby/test_determinism.cpp` with a failing assertion that a moving blobby's second sample is bit-identical across runs
+- [X] T087 [P] [US8] Write failing tests in `tests/unit/blobby/test_motion.cpp` that the second sample has identical vertex count, ordering, and triangle connectivity to the first — the only shape a two-sample `CPl` can represent
+- [X] T088 [US8] Write a failing test that advection uses a **fixed** step count, so the advected position is a deterministic function of its input, in `tests/unit/blobby/test_motion.cpp`. An "iterate until converged" loop makes the step count a floating-point predicate that varies with compiler flags and FMA contraction, reintroducing exactly the cross-machine divergence FR-023a forbids, worst at vertices near a topology change
+- [X] T089 [US8] Write a failing test that topology-changing motion (lobes merging, a piece vanishing) produces a bounded, non-crashing result with unconverged vertices left in place, in `tests/unit/blobby/test_motion.cpp`
+- [X] T090 [P] [US8] Extend `tests/unit/blobby/test_determinism.cpp` with a failing assertion that a moving blobby's second sample is bit-identical across runs
 
 ### Implementation for User Story 8
 
-- [ ] T091 [US8] Implement fixed-step gradient advection of shutter-open vertices onto the shutter-close level set in `src/ri/blobbyPolygonize.cpp` (passes T087, T088, T089, T090)
-- [ ] T092 [US8] Populate `CPl::data1` with the advected sample in `src/ri/blobby.cpp` — `CPolygonTriangle::moving()` is exactly `pl->data1 != NULL` (`src/ri/polygons.h:104`), so no hider changes are needed
-- [ ] T093 [P] [US8] Author the US8 scenes — a blobby and an ordinary primitive under identical motion in one block, the same scene without the motion block, and a blobby whose field parameters change over the shutter — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T094 [US8] Render, verify, and commit the US8 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`, labelling the motion scenes `slow` if they follow the existing motion tests' cost profile
+- [X] T091 [US8] Implement fixed-step gradient advection of shutter-open vertices onto the shutter-close level set in `src/ri/blobbyPolygonize.cpp` (passes T087, T088, T089, T090)
+- [X] T092 [US8] Populate `CPl::data1` with the advected sample in `src/ri/blobby.cpp` — `CPolygonTriangle::moving()` is exactly `pl->data1 != NULL` (`src/ri/polygons.h:104`), so no hider changes are needed
+- [X] T093 [P] [US8] Author the US8 scenes — a blobby and an ordinary primitive under identical motion in one block, the same scene without the motion block, and a blobby whose field parameters change over the shutter — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T094 [US8] Render, verify, and commit the US8 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`, labelling the motion scenes `slow` if they follow the existing motion tests' cost profile
 
 **Checkpoint**: All eight user stories are independently functional.
 

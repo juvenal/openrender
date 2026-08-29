@@ -33,6 +33,7 @@ add_blobby_test(test_blobby_tolerance            test_tolerance.cpp            B
 
 # The repeller reads a depth file through CRenderer::locateFile, so it needs
 # the same search paths the renderer resolves at startup.
+add_blobby_test(test_blobby_motion               test_motion.cpp               Blobby_Motion)
 add_blobby_test(test_blobby_repeller             test_repeller.cpp             Blobby_Repeller)
 set_tests_properties(Blobby_Repeller PROPERTIES
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"

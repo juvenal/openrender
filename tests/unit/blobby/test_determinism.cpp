@@ -195,6 +195,53 @@ TEST(requesting_weights_does_not_change_the_geometry) {
 	delete p;
 }
 
+// ---------------------------------------------------------------------
+// T090: the motion path is covered too, not only the initial extraction
+// ---------------------------------------------------------------------
+TEST(a_moving_blobbys_second_sample_is_bit_identical_across_runs) {
+	beginCapture();
+
+	// Determinism has to cover advection, not just extraction. A
+	// well-meaning change from a fixed step count to "iterate until
+	// converged" would leave this passing on one machine while
+	// reintroducing cross-server divergence -- worst at the vertices near a
+	// topology change, where convergence is most marginal. This asserts the
+	// consequence bit for bit; the fixed step count itself is argued for in
+	// blobbyPolygonize.cpp.
+	CBuilder	openBuilder;
+	openBuilder.sphere(0,0,0);
+
+	CBuilder	closeBuilder;
+	closeBuilder.sphere(0.25f,0.1f,0);
+
+	CBlobbyProgram	*open	=	openBuilder.build();
+	CBlobbyProgram	*close	=	closeBuilder.build();
+
+	CBlobbyMesh	*first	=	blobbyPolygonize(open,0.06f,FALSE,close);
+	CBlobbyMesh	*second	=	blobbyPolygonize(open,0.06f,FALSE,close);
+
+	ASSERT(first != NULL);
+	ASSERT(first->P1 != NULL);
+	ASSERT(identical(first,second));
+	ASSERT(memcmp(first->N1, second->N1, sizeof(float)*3*first->numVertices) == 0);
+
+	// ... and rebuilt from the same declaration, which is what each render
+	// server actually does.
+	CBlobbyProgram	*openAgain	=	openBuilder.build();
+	CBlobbyProgram	*closeAgain	=	closeBuilder.build();
+	CBlobbyMesh		*third		=	blobbyPolygonize(openAgain,0.06f,FALSE,closeAgain);
+
+	ASSERT(identical(first,third));
+
+	delete first;
+	delete second;
+	delete third;
+	delete open;
+	delete close;
+	delete openAgain;
+	delete closeAgain;
+}
+
 int main() {
 	printf("=== Blobby Determinism Tests (T026) ===\n\n");
 
@@ -203,6 +250,7 @@ int main() {
 	run_test_seed_order_follows_the_code_array_not_the_geometry();
 	run_test_many_seeded_extraction_is_reproducible();
 	run_test_requesting_weights_does_not_change_the_geometry();
+	run_test_a_moving_blobbys_second_sample_is_bit_identical_across_runs();
 
 	REPORT("Results");
 

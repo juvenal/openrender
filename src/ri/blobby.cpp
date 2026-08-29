@@ -234,8 +234,6 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     if (program == NULL || !program->isValid())
         return NULL;
 
-    (void)programClose;
-
     atomicIncrement(&stats.numBlobbies);
 
     const int numLeaves = program->getNumLeaves();
@@ -336,7 +334,7 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
         }
     }
 
-    CBlobbyMesh *extracted = blobbyPolygonize(program, cellSize, wantWeights);
+    CBlobbyMesh *extracted = blobbyPolygonize(program, cellSize, wantWeights, programClose);
 
     if (extracted == NULL || extracted->numVertices == 0 || extracted->numTriangles == 0) {
         if (extracted != NULL)
@@ -585,7 +583,26 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     if (references != NULL)
         delete[] references;
 
-    CPl *pl = new CPl(dataSize, outIndex, plParameters, data0);
+    // The second motion sample. CPolygonTriangle::moving() is exactly
+    // pl->data1 != NULL (polygons.h), so emitting this is the entire
+    // integration -- no hider learns anything about blobbies.
+    //
+    // data1 must mirror data0's whole layout, not just its positions,
+    // because the sampler interpolates every CONTAINER_VERTEX parameter
+    // between the two. P and N come from the advected sample; the blended
+    // primvars are copied, because their per-leaf values are author
+    // constants that do not move within the shutter.
+    float *data1 = NULL;
+
+    if (extracted->P1 != NULL && extracted->N1 != NULL) {
+        data1 = new float[dataSize];
+
+        memcpy(data1, data0, sizeof(float) * dataSize);
+        memcpy(data1, extracted->P1, sizeof(float) * numVertices * 3);
+        memcpy(data1 + numVertices * 3, extracted->N1, sizeof(float) * numVertices * 3);
+    }
+
+    CPl *pl = new CPl(dataSize, outIndex, plParameters, data0, data1);
 
     int *nholes = new int[numTriangles];
     int *nvertices = new int[numTriangles];

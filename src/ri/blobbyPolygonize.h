@@ -57,6 +57,7 @@ class CBlobbyMesh {
         float *weights;   // numLeaves floats per vertex, or NULL
         int *triangles;   // 3 vertex indices per triangle
         float *P1;        // Second motion sample, or NULL (FR-026)
+        float *N1;        // Normals at the second sample, or NULL
         int numLeaves;    // Stride of `weights`
 };
 
@@ -70,7 +71,16 @@ class CBlobbyMesh {
 //							the tolerance attribute. `wantWeights` selects
 //							the expensive evaluator entry point at vertex
 //							emission only (SC-012).
+//
+//							`closeProgram`, when given, is the same
+//							declaration at shutter close. The surface is
+//							extracted once from `program` and each vertex
+//							is then advected onto the close field's level
+//							set, filling P1 and N1 -- so the two samples
+//							necessarily share their vertex count, ordering
+//							and triangle connectivity, which is the only
+//							shape a two-sample CPl can represent.
 ///////////////////////////////////////////////////////////////////////
-CBlobbyMesh *blobbyPolygonize(const CBlobbyProgram *program, float cellSize, int wantWeights);
+CBlobbyMesh *blobbyPolygonize(const CBlobbyProgram *program, float cellSize, int wantWeights, const CBlobbyProgram *closeProgram = NULL);
 
 #endif

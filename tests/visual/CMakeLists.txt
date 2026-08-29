@@ -1986,8 +1986,96 @@ add_parity_test(blobby-repeller-shaping-reyes-zbuffer
     examples/rib/tests/blobby-repeller-shaping-zbuffer.rib   blobby-repeller-shaping-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US8 -- motion blur (T093/T094)
+# ---------------------------------------------------------------------------
+# The unblurred control: a blobby and an ordinary sphere of the same
+# rendered radius, side by side. It fixes what the pair looks like
+# without motion, so the blur below is measured against something.
+add_visual_test(blobby-motion-still-reyes
+    examples/rib/tests/blobby-motion-still-reyes.rib
+    blobby-motion-still-reyes.tif
+    blobby-motion-still-reyes.tif)
+
+add_visual_test(blobby-motion-still-raytrace
+    examples/rib/tests/blobby-motion-still-raytrace.rib
+    blobby-motion-still-raytrace.tif
+    blobby-motion-still-raytrace.tif)
+
+add_visual_test(blobby-motion-still-zbuffer
+    examples/rib/tests/blobby-motion-still-zbuffer.rib
+    blobby-motion-still-zbuffer.tif
+    blobby-motion-still-zbuffer.tif)
+
+add_parity_test(blobby-motion-still-reyes-raytrace
+    examples/rib/tests/blobby-motion-still-reyes.rib     blobby-motion-still-reyes.tif
+    examples/rib/tests/blobby-motion-still-raytrace.rib  blobby-motion-still-raytrace.tif)
+
+add_parity_test(blobby-motion-still-reyes-zbuffer
+    examples/rib/tests/blobby-motion-still-reyes.rib     blobby-motion-still-reyes.tif
+    examples/rib/tests/blobby-motion-still-zbuffer.rib   blobby-motion-still-zbuffer.tif)
+
+# The same pair under identical motion in one shutter. Measured on the
+# render they blur alike: 3793 against 3784 covered pixels, the same row
+# span, and the same width. That is SC-010, and it comes for free --
+# the blobby reaches the hiders as a CPolygonMesh whose CPl carries two
+# vertex samples, the representation every other primitive already blurs
+# through, so no hider contains blobby-specific motion code.
+#
+# Parity is reyes-raytrace only for the two *moving* scenes. The z-buffer
+# hider does no time sampling, so it renders both objects unblurred -- the
+# ordinary sphere in the same frame just as much as the blobby, which is
+# what shows this is the hider's own long-standing limitation rather than
+# anything to do with blobbies. Every pre-existing motion parity pairing in
+# this file is reyes-raytrace for the same reason; asserting reyes-zbuffer
+# agreement here would be asserting something the renderer does not claim.
+# The zbuffer *visual* registrations stay: the unblurred image is still
+# worth freezing.
+add_visual_test(blobby-motion-translate-reyes
+    examples/rib/tests/blobby-motion-translate-reyes.rib
+    blobby-motion-translate-reyes.tif
+    blobby-motion-translate-reyes.tif)
+
+add_visual_test(blobby-motion-translate-raytrace
+    examples/rib/tests/blobby-motion-translate-raytrace.rib
+    blobby-motion-translate-raytrace.tif
+    blobby-motion-translate-raytrace.tif)
+
+add_visual_test(blobby-motion-translate-zbuffer
+    examples/rib/tests/blobby-motion-translate-zbuffer.rib
+    blobby-motion-translate-zbuffer.tif
+    blobby-motion-translate-zbuffer.tif)
+
+add_parity_test(blobby-motion-translate-reyes-raytrace
+    examples/rib/tests/blobby-motion-translate-reyes.rib     blobby-motion-translate-reyes.tif
+    examples/rib/tests/blobby-motion-translate-raytrace.rib  blobby-motion-translate-raytrace.tif)
+
+# A blobby whose *field parameters* change across the shutter -- the blob
+# grows rather than moving, with no transform animated at all. Motion a
+# transform-only path could not express: each vertex is advected onto the
+# shutter-close level set along the gradient, so it ends up where that
+# part of the surface actually went (US8 scenario 3, FR-026).
+add_visual_test(blobby-motion-grow-reyes
+    examples/rib/tests/blobby-motion-grow-reyes.rib
+    blobby-motion-grow-reyes.tif
+    blobby-motion-grow-reyes.tif)
+
+add_visual_test(blobby-motion-grow-raytrace
+    examples/rib/tests/blobby-motion-grow-raytrace.rib
+    blobby-motion-grow-raytrace.tif
+    blobby-motion-grow-raytrace.tif)
+
+add_visual_test(blobby-motion-grow-zbuffer
+    examples/rib/tests/blobby-motion-grow-zbuffer.rib
+    blobby-motion-grow-zbuffer.tif
+    blobby-motion-grow-zbuffer.tif)
+
+add_parity_test(blobby-motion-grow-reyes-raytrace
+    examples/rib/tests/blobby-motion-grow-reyes.rib     blobby-motion-grow-reyes.tif
+    examples/rib/tests/blobby-motion-grow-raytrace.rib  blobby-motion-grow-raytrace.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      167 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 65 scene pairs registered under label 'parity'")
+message(STATUS "      176 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 69 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
