@@ -1,0 +1,31 @@
+##RenderMan RIB-Structure 1.0
+# A blue blob with a red one subtracted from it. The subtrahend carves the surface away but contributes no colour to what is left, so the crater walls stay blue: the red never appears anywhere in the image. A flat field-strength average over all leaves would tint them (US4 scenario 5, FR-019).
+#
+# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "raytrace"
+Display "blobby-carved-colour-raytrace.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -55 1 0 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.25]
+    LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+    Surface "matte"
+    Attribute "blobby" "float tolerance" [ 0.025 ]
+    Blobby 2 [
+        1001 0
+        1001 16
+        4 0 1
+    ] [
+        1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1
+        0.6 0 0 0  0 0.6 0 0  0 0 0.6 0  0 0.55 0 1
+    ] [ "" ]
+    "vertex color Cs" [
+        0.15 0.55 0.9
+        1 0 0
+    ]
+WorldEnd

@@ -192,6 +192,13 @@ class CBlobbyProgram {
         int isValid() const { return valid; }
 
         int getNumLeaves() const { return numLeaves; }
+
+        // The nleaf the author wrote, which need not agree with the
+        // count above: Pixar's own hand example declares 21 and emits
+        // 22. Per-blob parameter reads clamp to the shorter of the two,
+        // so a mismatch cannot read past the end of a primvar array
+        // (FR-017).
+        int getDeclaredLeaves() const { return declaredLeaves; }
         int getNumInstructions() const { return numInstructions; }
         const CBlobbyInstruction *getInstruction(int i) const { return instructions + i; }
 

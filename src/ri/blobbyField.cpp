@@ -816,6 +816,9 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
 
     atomicIncrement(&stats.numBlobbyFieldEvals);
 
+    if (leafWeights != NULL)
+        atomicIncrement(&stats.numBlobbyWeightedEvals);
+
     if (leafWeights != NULL && scratchWeights == NULL && numLeaves > 0)
         scratchWeights = new float[numInstructions * numLeaves];
 

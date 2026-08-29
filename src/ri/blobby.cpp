@@ -162,6 +162,21 @@ float blobbyCellSizeFromTolerance(const CBlobbyProgram *program, float tolerance
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	blobbyIsPerLeaf
+// Description			:	TRUE for the two storage classes RISpec gives
+//							one value per primitive field.
+// Comments				:	facevarying has no meaning on a blobby -- there
+//							are no faces in the declaration -- but a scene
+//							can still declare it, so it is treated as
+//							varying rather than rejected.
+///////////////////////////////////////////////////////////////////////
+static int blobbyIsPerLeaf(EVariableClass container) {
+    return (container == CONTAINER_VERTEX) ||
+           (container == CONTAINER_VARYING) ||
+           (container == CONTAINER_FACEVARYING);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	blobbyCreate
 // Description			:	Extract the surface and wrap it in a
 //							CPolygonMesh.
@@ -192,13 +207,12 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
         return NULL;
 
     (void)programClose;
-    (void)numParameters;
-    (void)tokens;
-    (void)parameters;
 
     atomicIncrement(&stats.numBlobbies);
 
-    for (int i = 0; i < program->getNumLeaves(); i++)
+    const int numLeaves = program->getNumLeaves();
+
+    for (int i = 0; i < numLeaves; i++)
         atomicIncrement(&stats.numBlobbyLeaves);
 
     const float cellSize = blobbyCellSizeFromTolerance(program, attributes != NULL ? attributes->blobbyTolerance : -1);
@@ -206,23 +220,95 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     if (!(cellSize > 0))
         return NULL;
 
-    CBlobbyMesh *extracted = blobbyPolygonize(program, cellSize, FALSE);
+    // Per-blob parameters carry one value per primitive field, so a
+    // declaration that disagrees with the code array -- as Pixar's own hand
+    // example does, declaring 21 against 22 -- means the author's arrays are
+    // shorter than the leaf count. Read the shorter of the two, so a
+    // mismatch is a diagnostic and a slightly duller blend rather than a
+    // read past the end (FR-017).
+    int declaredLeaves = program->getDeclaredLeaves();
 
-    if (extracted == NULL)
+    if (declaredLeaves < 0)
+        declaredLeaves = 0;
+
+    const int availableLeaves = (declaredLeaves < numLeaves) ? declaredLeaves : numLeaves;
+
+    CPl *source = NULL;
+
+    if (numParameters > 0 && attributes != NULL) {
+        source = parseParameterList(1, availableLeaves, availableLeaves, availableLeaves,
+                                    numParameters, tokens, parameters, NULL, 0, attributes);
+    }
+
+    // Weights are only worth their cost if something actually consumes them.
+    int wantWeights = FALSE;
+
+    if (source != NULL && availableLeaves > 0) {
+        for (int i = 0; i < source->numParameters; i++) {
+            if (blobbyIsPerLeaf(source->parameters[i].container))
+                wantWeights = TRUE;
+        }
+    }
+
+    CBlobbyMesh *extracted = blobbyPolygonize(program, cellSize, wantWeights);
+
+    if (extracted == NULL) {
+        if (source != NULL)
+            delete source;
         return NULL;
+    }
 
     if (extracted->numVertices == 0 || extracted->numTriangles == 0) {
         delete extracted;
+        if (source != NULL)
+            delete source;
         return NULL;
     }
 
     const int numVertices = extracted->numVertices;
     const int numTriangles = extracted->numTriangles;
 
+    // Size the output: P, then N, then one entry per author parameter.
+    // Per-leaf parameters become one value per *vertex*; constant and
+    // uniform ones keep their single value for the whole primitive
+    // (FR-018).
+    int numOutParameters = 2;
+    int dataSize = numVertices * 3 * 2;
+
+    if (source != NULL) {
+        for (int i = 0; i < source->numParameters; i++) {
+            const CPlParameter *sourceParameter = source->parameters + i;
+            const CVariable *variable = sourceParameter->variable;
+
+            if (blobbyIsPerLeaf(sourceParameter->container)) {
+                if (variable->type == TYPE_STRING) {
+                    // A per-blob string cannot be blended -- there is no
+                    // meaningful mixture of two names -- so it is dropped
+                    // with a diagnostic rather than silently mangled.
+                    error(CODE_BADTOKEN, "Blobby: per-blob parameter \"%s\" is a string and cannot be blended between blobs; ignoring it\n", variable->name);
+                    continue;
+                }
+
+                if (extracted->weights == NULL)
+                    continue;
+
+                dataSize += numVertices * variable->numFloats;
+            }
+            else {
+                if (variable->type == TYPE_STRING)
+                    dataSize += variable->numFloats * (int)(sizeof(char *) / sizeof(float));
+                else
+                    dataSize += variable->numFloats;
+            }
+
+            dataSize += dataSize & 1;
+            numOutParameters++;
+        }
+    }
+
     // P must live at index 0: CPolygonMesh derives its object-space bound by
     // reading the first three floats of every vertex straight out of
     // pl->data0.
-    const int dataSize = numVertices * 3 * 2;
     float *data0 = new float[dataSize];
 
     memcpy(data0, extracted->P, sizeof(float) * numVertices * 3);
@@ -231,7 +317,7 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     CVariable *variableP = CRenderer::retrieveVariable("P");
     CVariable *variableN = CRenderer::retrieveVariable("N");
 
-    CPlParameter *plParameters = new CPlParameter[2];
+    CPlParameter *plParameters = new CPlParameter[numOutParameters];
 
     plParameters[0].variable = variableP;
     plParameters[0].numItems = numVertices;
@@ -242,7 +328,91 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     plParameters[1].index = numVertices * 3;
     plParameters[1].container = CONTAINER_VERTEX;
 
-    CPl *pl = new CPl(dataSize, 2, plParameters, data0);
+    int outIndex = 2;
+    int cursor = numVertices * 3 * 2;
+
+    if (source != NULL) {
+        for (int i = 0; i < source->numParameters; i++) {
+            const CPlParameter *sourceParameter = source->parameters + i;
+            const CVariable *variable = sourceParameter->variable;
+            const int numFloats = variable->numFloats;
+
+            if (blobbyIsPerLeaf(sourceParameter->container)) {
+                if (variable->type == TYPE_STRING || extracted->weights == NULL)
+                    continue;
+
+                const float *values = source->data0 + sourceParameter->index;
+                const int leaves = sourceParameter->numItems;
+
+                for (int v = 0; v < numVertices; v++) {
+                    const float *weights = extracted->weights + v * extracted->numLeaves;
+                    float *destination = data0 + cursor + v * numFloats;
+                    float total = 0;
+
+                    for (int c = 0; c < numFloats; c++)
+                        destination[c] = 0;
+
+                    for (int leaf = 0; leaf < leaves; leaf++) {
+                        const float weight = weights[leaf];
+
+                        if (weight == 0)
+                            continue;
+
+                        total += weight;
+
+                        for (int c = 0; c < numFloats; c++)
+                            destination[c] += weight * values[leaf * numFloats + c];
+                    }
+
+                    // Renormalize over the leaves that actually had values.
+                    // Without this an nleaf mismatch would darken the blend
+                    // towards zero near the leaves whose values are missing,
+                    // rather than simply ignoring them.
+                    if (total > 0 && total < 1) {
+                        const float inverse = 1 / total;
+
+                        for (int c = 0; c < numFloats; c++)
+                            destination[c] *= inverse;
+                    }
+                    else if (total == 0 && leaves > 0) {
+                        for (int c = 0; c < numFloats; c++)
+                            destination[c] = values[c];
+                    }
+                }
+
+                plParameters[outIndex].variable = (CVariable *)variable;
+                plParameters[outIndex].numItems = numVertices;
+                plParameters[outIndex].index = cursor;
+                plParameters[outIndex].container = CONTAINER_VERTEX;
+
+                cursor += numVertices * numFloats;
+            }
+            else {
+                // Constant and uniform values apply to the whole primitive
+                // with no per-blob variation, so they pass straight through
+                // (FR-018, US4 scenario 3).
+                const int width = (variable->type == TYPE_STRING)
+                                      ? numFloats * (int)(sizeof(char *) / sizeof(float))
+                                      : numFloats;
+
+                memcpy(data0 + cursor, source->data0 + sourceParameter->index, sizeof(float) * width);
+
+                plParameters[outIndex].variable = (CVariable *)variable;
+                plParameters[outIndex].numItems = 1;
+                plParameters[outIndex].index = cursor;
+                plParameters[outIndex].container = sourceParameter->container;
+
+                cursor += width;
+            }
+
+            cursor += cursor & 1;
+            outIndex++;
+        }
+
+        delete source;
+    }
+
+    CPl *pl = new CPl(dataSize, outIndex, plParameters, data0);
 
     int *nholes = new int[numTriangles];
     int *nvertices = new int[numTriangles];

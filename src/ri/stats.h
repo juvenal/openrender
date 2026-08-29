@@ -101,6 +101,7 @@ class CStats {
         int numBlobbies;          // The stats that come from RiBlobby (spec 015)
         int numBlobbyLeaves;      // Total primitive fields across all blobbies
         int numBlobbyFieldEvals;  // Field evaluations performed
+        int numBlobbyWeightedEvals;// Of those, the ones that also produced per-leaf weights
         int numBlobbyCellsVisited;// Cells the continuation walk examined
         int numBlobbySurfaceCells;// Cells that actually straddled the surface
         int numBlobbyTriangles;   // Triangles emitted

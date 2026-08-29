@@ -1,0 +1,42 @@
+##RenderMan RIB-Structure 1.0
+# The same six coloured fields pulled out to +-1.4, beyond each other's support. Six separate surfaces, each a flat single colour, with no blending anywhere -- the control that shows the blending in blobby-coloured-octahedron is real and not just smooth shading (US4 scenario 2).
+#
+# Spec 015-blobby-implicit-surfaces, T062. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "zbuffer"
+Display "blobby-coloured-octahedron-apart-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 7
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.25]
+    LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+    Surface "matte"
+    Attribute "blobby" "float tolerance" [ 0.03 ]
+    Blobby 6 [
+        1001 0
+        1001 16
+        1001 32
+        1001 48
+        1001 64
+        1001 80
+        0 6 0 1 2 3 4 5
+    ] [
+        1 0 0 0  0 1 0 0  0 0 1 0  1.4 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0 1.4 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0 0 1.4 1
+        1 0 0 0  0 1 0 0  0 0 1 0  -1.4 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0 -1.4 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0  0 0 -1.4 1
+    ] [ "" ]
+    "vertex color Cs" [
+        1 0 0
+        0 1 0
+        0 0 1
+        0 1 1
+        1 0 1
+        1 1 0
+    ]
+WorldEnd

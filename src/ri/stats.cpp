@@ -95,6 +95,7 @@ void CStats::reset() {
     numBlobbies = 0;
     numBlobbyLeaves = 0;
     numBlobbyFieldEvals = 0;
+    numBlobbyWeightedEvals = 0;
     numBlobbyCellsVisited = 0;
     numBlobbySurfaceCells = 0;
     numBlobbyTriangles = 0;
@@ -167,6 +168,7 @@ void CStats::printStats(int level) {
             info(CODE_STATS, "        Primitives: %d\n", numBlobbies);
             info(CODE_STATS, "   Primitive fields: %d\n", numBlobbyLeaves);
             info(CODE_STATS, "       Field evals: %d\n", numBlobbyFieldEvals);
+            info(CODE_STATS, "     Weighted evals: %d\n", numBlobbyWeightedEvals);
             info(CODE_STATS, "     Cells visited: %d\n", numBlobbyCellsVisited);
             info(CODE_STATS, "     Surface cells: %d\n", numBlobbySurfaceCells);
             info(CODE_STATS, "         Triangles: %d\n", numBlobbyTriangles);

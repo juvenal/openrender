@@ -1686,8 +1686,92 @@ add_parity_test(blobby-mixed-fields-reyes-zbuffer
     examples/rib/tests/blobby-mixed-fields-zbuffer.rib   blobby-mixed-fields-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US4 -- per-blob shading values (T062/T063)
+# ---------------------------------------------------------------------------
+# AppNote #31's coloured octahedron, verbatim: six unit-sphere fields at
+# +-0.89 on each axis, summed, each carrying its own Cs. One connected
+# surface with the colours blending across every join. This is also one
+# of the two published constraints that calibrate the surface threshold,
+# so the scene is the visual counterpart of that derivation (FR-015).
+add_visual_test(blobby-coloured-octahedron-reyes
+    examples/rib/tests/blobby-coloured-octahedron-reyes.rib
+    blobby-coloured-octahedron-reyes.tif
+    blobby-coloured-octahedron-reyes.tif)
+
+add_visual_test(blobby-coloured-octahedron-raytrace
+    examples/rib/tests/blobby-coloured-octahedron-raytrace.rib
+    blobby-coloured-octahedron-raytrace.tif
+    blobby-coloured-octahedron-raytrace.tif)
+
+add_visual_test(blobby-coloured-octahedron-zbuffer
+    examples/rib/tests/blobby-coloured-octahedron-zbuffer.rib
+    blobby-coloured-octahedron-zbuffer.tif
+    blobby-coloured-octahedron-zbuffer.tif)
+
+add_parity_test(blobby-coloured-octahedron-reyes-raytrace
+    examples/rib/tests/blobby-coloured-octahedron-reyes.rib     blobby-coloured-octahedron-reyes.tif
+    examples/rib/tests/blobby-coloured-octahedron-raytrace.rib  blobby-coloured-octahedron-raytrace.tif)
+
+add_parity_test(blobby-coloured-octahedron-reyes-zbuffer
+    examples/rib/tests/blobby-coloured-octahedron-reyes.rib     blobby-coloured-octahedron-reyes.tif
+    examples/rib/tests/blobby-coloured-octahedron-zbuffer.rib   blobby-coloured-octahedron-zbuffer.tif)
+
+# The same six coloured fields at +-1.4, beyond each other's support: six
+# separate flat-coloured surfaces. The control that shows the blending in
+# the scene above is real rather than smooth shading (US4 scenario 2).
+add_visual_test(blobby-coloured-octahedron-apart-reyes
+    examples/rib/tests/blobby-coloured-octahedron-apart-reyes.rib
+    blobby-coloured-octahedron-apart-reyes.tif
+    blobby-coloured-octahedron-apart-reyes.tif)
+
+add_visual_test(blobby-coloured-octahedron-apart-raytrace
+    examples/rib/tests/blobby-coloured-octahedron-apart-raytrace.rib
+    blobby-coloured-octahedron-apart-raytrace.tif
+    blobby-coloured-octahedron-apart-raytrace.tif)
+
+add_visual_test(blobby-coloured-octahedron-apart-zbuffer
+    examples/rib/tests/blobby-coloured-octahedron-apart-zbuffer.rib
+    blobby-coloured-octahedron-apart-zbuffer.tif
+    blobby-coloured-octahedron-apart-zbuffer.tif)
+
+add_parity_test(blobby-coloured-octahedron-apart-reyes-raytrace
+    examples/rib/tests/blobby-coloured-octahedron-apart-reyes.rib     blobby-coloured-octahedron-apart-reyes.tif
+    examples/rib/tests/blobby-coloured-octahedron-apart-raytrace.rib  blobby-coloured-octahedron-apart-raytrace.tif)
+
+add_parity_test(blobby-coloured-octahedron-apart-reyes-zbuffer
+    examples/rib/tests/blobby-coloured-octahedron-apart-reyes.rib     blobby-coloured-octahedron-apart-reyes.tif
+    examples/rib/tests/blobby-coloured-octahedron-apart-zbuffer.rib   blobby-coloured-octahedron-apart-zbuffer.tif)
+
+# A blue blob with a red one subtracted from it. The subtrahend carves the
+# surface but contributes no colour, so the crater walls stay blue and
+# not one lit pixel in the frame is red-dominant. A flat field-strength
+# average over all leaves would tint them (US4 scenario 5, FR-019).
+add_visual_test(blobby-carved-colour-reyes
+    examples/rib/tests/blobby-carved-colour-reyes.rib
+    blobby-carved-colour-reyes.tif
+    blobby-carved-colour-reyes.tif)
+
+add_visual_test(blobby-carved-colour-raytrace
+    examples/rib/tests/blobby-carved-colour-raytrace.rib
+    blobby-carved-colour-raytrace.tif
+    blobby-carved-colour-raytrace.tif)
+
+add_visual_test(blobby-carved-colour-zbuffer
+    examples/rib/tests/blobby-carved-colour-zbuffer.rib
+    blobby-carved-colour-zbuffer.tif
+    blobby-carved-colour-zbuffer.tif)
+
+add_parity_test(blobby-carved-colour-reyes-raytrace
+    examples/rib/tests/blobby-carved-colour-reyes.rib     blobby-carved-colour-reyes.tif
+    examples/rib/tests/blobby-carved-colour-raytrace.rib  blobby-carved-colour-raytrace.tif)
+
+add_parity_test(blobby-carved-colour-reyes-zbuffer
+    examples/rib/tests/blobby-carved-colour-reyes.rib     blobby-carved-colour-reyes.tif
+    examples/rib/tests/blobby-carved-colour-zbuffer.rib   blobby-carved-colour-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      137 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 45 scene pairs registered under label 'parity'")
+message(STATUS "      146 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 51 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
