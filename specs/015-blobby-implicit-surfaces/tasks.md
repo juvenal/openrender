@@ -272,14 +272,14 @@ that never sets it is unchanged.
 
 ### Tests for User Story 6 ⚠️ Write first, confirm they FAIL, then obtain approval
 
-- [ ] T073 [P] [US6] Write failing tests in `tests/unit/blobby/test_tolerance.cpp` that the default cell size is derived from the T016 field extent, that tightening the tolerance measurably reduces deviation from the analytic surface, and that zero, negative, and absurdly large values each produce a diagnostic and a usable fallback rather than a hang or memory exhaustion
+- [X] T073 [P] [US6] Write failing tests in `tests/unit/blobby/test_tolerance.cpp` that the default cell size is derived from the T016 field extent, that tightening the tolerance measurably reduces deviation from the analytic surface, and that zero, negative, and absurdly large values each produce a diagnostic and a usable fallback rather than a hang or memory exhaustion
 
 ### Implementation for User Story 6
 
-- [ ] T074 [US6] Derive the default cell size from the T016 field extent in `src/ri/blobby.cpp` so scenes that never set the attribute render smoothly at typical framing (FR-025)
-- [ ] T075 [US6] Add value validation with diagnostic and fallback in `src/ri/blobby.cpp` (passes T073)
-- [ ] T076 [P] [US6] Author the US6 scenes — one blobby filling the frame at default and at a tightened tolerance, plus a scene confirming attribute-scope inheritance — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
-- [ ] T077 [US6] Render, verify, and commit the US6 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`, confirming SC-006: smooth at typical framing by default, and smooth at full-frame close-up once tightened
+- [X] T074 [US6] Derive the default cell size from the T016 field extent in `src/ri/blobby.cpp` so scenes that never set the attribute render smoothly at typical framing (FR-025)
+- [X] T075 [US6] Add value validation with diagnostic and fallback in `src/ri/blobby.cpp` (passes T073)
+- [X] T076 [P] [US6] Author the US6 scenes — one blobby filling the frame at default and at a tightened tolerance, plus a scene confirming attribute-scope inheritance — as one variant per hider in `examples/rib/tests/` — the same three files serve both the visual and the parity registrations, so no duplicate copies are needed
+- [X] T077 [US6] Render, verify, and commit the US6 reference TIFFs to `examples/rib/tests/references/`, then register three `add_visual_test` and two `add_parity_test` calls per scene in `tests/visual/CMakeLists.txt`, confirming SC-006: smooth at typical framing by default, and smooth at full-frame close-up once tightened
 
 **Checkpoint**: Authors can tune tolerance; defaults look right untouched.
 

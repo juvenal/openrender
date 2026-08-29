@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# The same blobby as a full-frame close-up, with the tolerance tightened to 0.008. SC-006's second half: at a framing where the default's facets would begin to matter, tightening keeps the silhouette smooth.
+#
+# Deliberately *not* paired against the same close-up at the default. The default turns out to be good enough at this framing that the two images differ by 36 pixels out of 22,000 -- below what the visual comparison's 8x8 block averaging can see -- so such a pair would read as coverage while asserting nothing. The measurable improvement is asserted instead where a sharper instrument is available: tests/unit/blobby/test_tolerance.cpp compares the extracted mesh against the analytic sphere and requires the error to more than halve, and blobby-tolerance-inherited below shows the same contrast in an image, at a tolerance coarse enough to see.
+#
+# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "zbuffer"
+Display "blobby-tolerance-tight-zbuffer.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 2.4
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    ShadingInterpolation "smooth"
+    Attribute "blobby" "float tolerance" [ 0.008 ]
+    Blobby 2 [
+        1001 0
+        1001 16
+        0 2 0 1
+    ] [
+        1 0 0 0  0 1 0 0  0 0 1 0  -0.35 0 0 1
+        1 0 0 0  0 1 0 0  0 0 1 0   0.35 0 0 1
+    ] [ "" ]
+WorldEnd

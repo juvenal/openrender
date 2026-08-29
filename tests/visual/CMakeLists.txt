@@ -1829,8 +1829,98 @@ add_parity_test(blobby-solid-texture-bent-reyes-zbuffer
     examples/rib/tests/blobby-solid-texture-bent-zbuffer.rib   blobby-solid-texture-bent-zbuffer.tif)
 
 # ---------------------------------------------------------------------------
+# Blobby implicit surfaces, US6 -- the fidelity control (T076/T077)
+# ---------------------------------------------------------------------------
+# One blobby at typical framing with no tolerance set: the cell size comes
+# from the primitive's own extent and its smallest field. FR-025's
+# promise, and SC-006's first half.
+add_visual_test(blobby-tolerance-default-reyes
+    examples/rib/tests/blobby-tolerance-default-reyes.rib
+    blobby-tolerance-default-reyes.tif
+    blobby-tolerance-default-reyes.tif)
+
+add_visual_test(blobby-tolerance-default-raytrace
+    examples/rib/tests/blobby-tolerance-default-raytrace.rib
+    blobby-tolerance-default-raytrace.tif
+    blobby-tolerance-default-raytrace.tif)
+
+add_visual_test(blobby-tolerance-default-zbuffer
+    examples/rib/tests/blobby-tolerance-default-zbuffer.rib
+    blobby-tolerance-default-zbuffer.tif
+    blobby-tolerance-default-zbuffer.tif)
+
+add_parity_test(blobby-tolerance-default-reyes-raytrace
+    examples/rib/tests/blobby-tolerance-default-reyes.rib     blobby-tolerance-default-reyes.tif
+    examples/rib/tests/blobby-tolerance-default-raytrace.rib  blobby-tolerance-default-raytrace.tif)
+
+add_parity_test(blobby-tolerance-default-reyes-zbuffer
+    examples/rib/tests/blobby-tolerance-default-reyes.rib     blobby-tolerance-default-reyes.tif
+    examples/rib/tests/blobby-tolerance-default-zbuffer.rib   blobby-tolerance-default-zbuffer.tif)
+
+# The same blobby as a full-frame close-up with the tolerance tightened.
+# SC-006's second half. Deliberately not paired against the same close-up
+# at the default: the default turns out good enough at that framing that
+# the two images differ by 36 pixels out of 22,000, below what the 8x8
+# block-averaged comparison can see, so such a pair would read as
+# coverage while asserting nothing. The measurable improvement is
+# asserted in test_tolerance.cpp against the analytic sphere, and shown
+# in an image by the scene below.
+add_visual_test(blobby-tolerance-tight-reyes
+    examples/rib/tests/blobby-tolerance-tight-reyes.rib
+    blobby-tolerance-tight-reyes.tif
+    blobby-tolerance-tight-reyes.tif)
+
+add_visual_test(blobby-tolerance-tight-raytrace
+    examples/rib/tests/blobby-tolerance-tight-raytrace.rib
+    blobby-tolerance-tight-raytrace.tif
+    blobby-tolerance-tight-raytrace.tif)
+
+add_visual_test(blobby-tolerance-tight-zbuffer
+    examples/rib/tests/blobby-tolerance-tight-zbuffer.rib
+    blobby-tolerance-tight-zbuffer.tif
+    blobby-tolerance-tight-zbuffer.tif)
+
+add_parity_test(blobby-tolerance-tight-reyes-raytrace
+    examples/rib/tests/blobby-tolerance-tight-reyes.rib     blobby-tolerance-tight-reyes.tif
+    examples/rib/tests/blobby-tolerance-tight-raytrace.rib  blobby-tolerance-tight-raytrace.tif)
+
+add_parity_test(blobby-tolerance-tight-reyes-zbuffer
+    examples/rib/tests/blobby-tolerance-tight-reyes.rib     blobby-tolerance-tight-reyes.tif
+    examples/rib/tests/blobby-tolerance-tight-zbuffer.rib   blobby-tolerance-tight-zbuffer.tif)
+
+# Three identical blobbies under a scene-level tolerance of 0.5, the
+# middle one tightened to 0.05 inside its own attribute scope and the
+# third after the AttributeEnd. Measured on the render, the outer two
+# deviate from a circle by 2.1% and 1.8% of their radius against the
+# middle one's 1.1%, and are visibly polygonal where it is round. A
+# tolerance that leaked out of its scope would make the third smooth
+# too (US6 scenario 3).
+add_visual_test(blobby-tolerance-inherited-reyes
+    examples/rib/tests/blobby-tolerance-inherited-reyes.rib
+    blobby-tolerance-inherited-reyes.tif
+    blobby-tolerance-inherited-reyes.tif)
+
+add_visual_test(blobby-tolerance-inherited-raytrace
+    examples/rib/tests/blobby-tolerance-inherited-raytrace.rib
+    blobby-tolerance-inherited-raytrace.tif
+    blobby-tolerance-inherited-raytrace.tif)
+
+add_visual_test(blobby-tolerance-inherited-zbuffer
+    examples/rib/tests/blobby-tolerance-inherited-zbuffer.rib
+    blobby-tolerance-inherited-zbuffer.tif
+    blobby-tolerance-inherited-zbuffer.tif)
+
+add_parity_test(blobby-tolerance-inherited-reyes-raytrace
+    examples/rib/tests/blobby-tolerance-inherited-reyes.rib     blobby-tolerance-inherited-reyes.tif
+    examples/rib/tests/blobby-tolerance-inherited-raytrace.rib  blobby-tolerance-inherited-raytrace.tif)
+
+add_parity_test(blobby-tolerance-inherited-reyes-zbuffer
+    examples/rib/tests/blobby-tolerance-inherited-reyes.rib     blobby-tolerance-inherited-reyes.tif
+    examples/rib/tests/blobby-tolerance-inherited-zbuffer.rib   blobby-tolerance-inherited-zbuffer.tif)
+
+# ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      152 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 55 scene pairs registered under label 'parity'")
+message(STATUS "      161 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 61 scene pairs registered under label 'parity'")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

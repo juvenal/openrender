@@ -1,0 +1,54 @@
+##RenderMan RIB-Structure 1.0
+# Three identical blobbies under one scene-level tolerance of 0.5. The middle one sits inside an AttributeBegin/AttributeEnd that tightens it to 0.05; the third comes after the AttributeEnd. Measured on the render, the outer two have silhouettes that deviate from a circle by 2.1% and 1.8% of their radius against the middle one's 1.1%, and they are visibly polygonal where it is round. A tolerance that leaked out of its scope would make the third smooth too (US6 scenario 3).
+#
+# Spec 015-blobby-implicit-surfaces, T076. One variant per camera hider;
+# the same three files serve both the visual and the parity registrations.
+version 3.03
+Hider "raytrace"
+Display "blobby-tolerance-inherited-raytrace.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 11
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    ShadingInterpolation "smooth"
+    Attribute "blobby" "float tolerance" [ 0.5 ]
+
+    # Coarse, taking the scene-level attribute.
+    TransformBegin
+        Translate -2.6 0 0
+        Blobby 1 [
+            1001 0
+        ] [
+            2 0 0 0  0 2 0 0  0 0 2 0  0 0 0 1
+        ] [ "" ]
+    TransformEnd
+
+    # Tightened inside its own attribute scope.
+    AttributeBegin
+        Attribute "blobby" "float tolerance" [ 0.05 ]
+        TransformBegin
+        Blobby 1 [
+            1001 0
+        ] [
+            2 0 0 0  0 2 0 0  0 0 2 0  0 0 0 1
+        ] [ "" ]
+        TransformEnd
+    AttributeEnd
+
+    # Outside that scope again, so coarse once more. If the inner value
+    # leaked, this one would be smooth too and the scene would assert
+    # nothing.
+    TransformBegin
+        Translate 2.6 0 0
+        Blobby 1 [
+            1001 0
+        ] [
+            2 0 0 0  0 2 0 0  0 0 2 0  0 0 0 1
+        ] [ "" ]
+    TransformEnd
+WorldEnd
