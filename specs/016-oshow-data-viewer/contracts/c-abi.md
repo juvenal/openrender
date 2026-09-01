@@ -1,0 +1,129 @@
+# Contract: C ABI extension (`ribpreview_api.h`)
+
+This contract governs the sole boundary between `libribpreview` (C++20) and both platform
+frontends (Swift, C++). It extends the existing header in place — see research.md §4 for why no
+second header is introduced.
+
+## Existing API (unchanged)
+
+```c
+typedef struct { float projMatrix[16]; float viewMatrix[16];
+                 float nearPlane; float farPlane; int projectionType; } PreviewCameraC;
+typedef struct { float sceneBoundsMin[3]; float sceneBoundsMax[3]; } PreviewBoundsC;
+typedef struct { float *vertices; float *colors; int vertexCount;
+                 PreviewCameraC camera; PreviewBoundsC bounds; } PreviewSceneC;
+
+PreviewSceneC *ribpreview_load(const char *ribPath);
+void           ribpreview_free(PreviewSceneC *scene);
+```
+
+This value-pair API continues to serve the RIB-scene path exactly as today. It is not modified
+and does not participate in the new handle-based lifecycle below.
+
+## New API — data documents
+
+```c
+typedef struct {
+    float *verts;   // flat float3
+    float *cols;    // flat float3, parallel to verts
+    int    count;   // number of float3 elements (not floats)
+} PrimArrayC;
+
+typedef enum {
+    RIBDATA_TYPE_PHOTONMAP = 0,
+    RIBDATA_TYPE_IRRADIANCECACHE,
+    RIBDATA_TYPE_GATHERCACHE,
+    RIBDATA_TYPE_POINTCLOUD,
+    RIBDATA_TYPE_BRICKMAP,
+    RIBDATA_TYPE_DEBUGDUMP,
+    RIBDATA_TYPE_UNSUPPORTED,   // e.g. hierarchical variant — valid, zero primitives, a warning
+} RibDataType;
+
+typedef struct {
+    PrimArrayC     lines;
+    PrimArrayC     points;
+    PrimArrayC     triangles;      // includes CPU-expanded discs, see research.md §5
+    int            sourceDiskCount;
+    int            decimatedCount;
+    PreviewBoundsC bounds;
+    PreviewCameraC camera;         // synthesized framing camera
+    RibDataType    documentType;
+    int            numChannels;
+    int            currentChannel; // -1 if numChannels == 0
+    int            detailLevel;    // -1 if not applicable (non-brick-map)
+    int            drawMode;       // meaning is per-documentType; see data-model.md
+} DataSceneC;
+
+typedef struct RibDataDocument RibDataDocument;   // opaque
+
+// Sniff a file's type without opening it. Returns RIBDATA_TYPE_* or -1 if not a data file
+// (including a valid RIB scene — this function does not attempt RIB parsing).
+int ribdata_sniff(const char *path);
+
+// Open a data file. Returns NULL on failure (message written to stderr); *err receives one of
+// the DATA_* codes from dataSniff() (see research.md §1) so the caller can map to CLI exit
+// code 4 vs a generic failure.
+RibDataDocument *ribdata_open(const char *path, int *err);
+
+// Produce the current visualization state. The returned pointer is owned by the document and
+// is invalidated by the next call to ribdata_snapshot() or ribdata_key() on the same handle —
+// callers must finish using one snapshot (e.g., upload to GPU, or serialize to JSON) before
+// requesting the next.
+const DataSceneC *ribdata_snapshot(RibDataDocument *doc);
+
+// Apply a key press (ASCII value) to the document's interactive state. Returns non-zero if
+// state changed (caller should call ribdata_snapshot() again and re-upload); zero if the key
+// had no effect (e.g., a channel key on a document with no channels).
+int ribdata_key(RibDataDocument *doc, int key);
+
+// Channel name lookup, 0-indexed. Returns NULL if index is out of range or numChannels == 0.
+const char *ribdata_channel_name(RibDataDocument *doc, int index);
+
+// Releases the document and everything ribdata_snapshot() has returned for it. Safe to call
+// with NULL (no-op).
+void ribdata_close(RibDataDocument *doc);
+```
+
+## Lifecycle contract
+
+```
+ribdata_sniff(path)                 -- optional pre-check, side-effect-free
+  → RibDataDocument *doc = ribdata_open(path, &err)
+  → const DataSceneC *scene = ribdata_snapshot(doc)    -- upload scene to GPU / serialize
+  → ... user presses a key ...
+  → if (ribdata_key(doc, key)) {
+        scene = ribdata_snapshot(doc);                  -- re-upload; previous `scene` pointer is now invalid
+    }
+  → ribdata_close(doc);                                 -- also invalidates the last `scene` pointer
+```
+
+- **Why a handle, not a value struct** (research.md §4): the `keyDown`/re-emit interaction cycle
+  needs the underlying `CDataView` to persist across frames; reconstructing the whole document
+  on every keystroke would be wasteful and would lose in-progress LOD/channel state that isn't
+  itself part of the file.
+- A `RibDataDocument` is opened by exactly one caller at a time; this feature does not require
+  the ABI to support concurrent access to the same handle from multiple threads.
+- `ribdata_open` on a file that is a valid RIB scene, not a data file, returns NULL with
+  `*err` indicating "not a data file" — callers are expected to call `ribdata_sniff` or attempt
+  `ribpreview_load` first, per the existing content-based auto-detection (FR-001).
+
+## Header consolidation
+
+`orender-wire-macos/CRibPreview/include/CRibPreview.h` is reduced to:
+
+```c
+#include "ribpreview_api.h"
+#include "cameraExport.h"
+```
+
+with `Package.swift`'s `CRibPreview` target given `headerSearchPath` entries reaching
+`../../` (for `ribpreview_api.h`) and `../../libribpreview` (for `cameraExport.h`), proven in
+implementation increment I0 before this contract's structs are added in I3. If SPM rejects
+cross-target header search paths, the fallback (a CMake `configure_file`/`copy_if_different`
+staging step, gitignored) preserves this same "one header pair, two includes" contract — the
+fallback changes *how* the files reach the target, never *what* Swift or C++ code includes.
+
+## Linux consumption
+
+`orender-wire-linux/main.cpp` includes `ribpreview_api.h` directly (as it already does today) —
+no separate header exists on the Linux side, so there is nothing to consolidate there.
