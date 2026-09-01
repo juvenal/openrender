@@ -5,7 +5,6 @@
 	Requirements:
 	- libtiff:    Available from http://www.libtiff.org
 	- flex/bison: Available on Unix platforms by default. You will have to search the internet to find the windows version. (available for free).
-	- fltk:       Available from http://www.fltk.org This is only required if you want to compile the interactive viewer. This library is not required by the renderer.
 	- openEXR:    Available from http://www.openexr.org This is only required if you want to compile the OpenEXR output driver.
 
 

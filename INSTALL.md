@@ -13,7 +13,6 @@ This document describes how to build and install openRender using CMake.
 - **libtiff**: Image format support (<http://www.libtiff.org>)
 - **libpng**: PNG image support
 - **flex / bison**: Parser generation (available on Unix platforms by default)
-- **fltk**: GUI support for the interactive viewer `oshow` (<http://www.fltk.org>)
 - **OpenEXR**: High dynamic range image support (<http://www.openexr.com>) — optional
 
 ## Building
@@ -102,7 +101,6 @@ This document describes how to build and install openRender using CMake.
 | Option | Description | Default |
 |--------|-------------|---------|
 | `USE_FLEX_BISON` | Use flex and bison to regenerate parsers | ON |
-| `BUILD_SHOW` | Build the interactive viewer (oshow) | ON |
 | `INSTALL_SELFCONTAINED` | Self-contained install under prefix (vs FHS) | ON |
 | `OPENRENDER_COMPAT_SOVERSION` | SOVERSION for libri/librslo shared libraries | Major version |
 | `OPENRENDER_PYTHONDIR` | Install destination for `prman.py` | `python/` (self-contained) or `share/openRender/python/` (FHS) |
@@ -111,7 +109,7 @@ This document describes how to build and install openRender using CMake.
 Example:
 
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHOW=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF
 ```
 
 ## Installation Layout

@@ -46,7 +46,6 @@ openRender is a sophisticated photorealistic renderer that implements a RenderMa
 
 - **libtiff**: Image format support (http://www.libtiff.org)
 - **flex/bison**: Parser generation (available on Unix platforms by default)
-- **fltk**: GUI support for the interactive viewer (http://www.fltk.org)
 - **OpenEXR**: High dynamic range image support (http://www.openexr.com)
 
 ## Building
@@ -94,7 +93,6 @@ cmake --build . --config Release
 ### CMake Options
 
 - `USE_FLEX_BISON`: Use flex and bison to regenerate parsers (default: ON)
-- `BUILD_SHOW`: Build the show program (default: ON)
 - `INSTALL_SELFCONTAINED`: Build for a self-contained setup (default: ON)
 - `OPENRENDER_COMPAT_SOVERSION`: SOVERSION for libri/librslo (default: major version)
 - `OPENRENDER_PYTHONDIR`: Install destination for `prman.py` (default: `python/`)
@@ -141,13 +139,12 @@ cmake --build . --config Release
 │   ├── dsotest/          # DSO test utilities
 │   ├── file/             # File I/O operations
 │   ├── framebuffer/      # Framebuffer implementations
-│   ├── gui/              # GUI components
 │   ├── openexr/          # OpenEXR support
 │   ├── orender/          # Main renderer executable
 │   ├── oshader/          # Shader compiler
-│   ├── oshow/            # Interactive viewer
 │   ├── otexmake/         # Texture processing tools
 │   ├── precomp/          # Precomputation tools
+│   ├── preview/          # Scene wireframe viewer (orender-wire)
 │   ├── rgbe/             # Radiance RGBE support
 │   ├── ri/               # RenderMan interface implementation
 │   ├── rslo/             # Shader runtime

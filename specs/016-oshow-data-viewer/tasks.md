@@ -298,27 +298,56 @@ it; nothing outside `libri` consumes it yet (aside from `show.cpp`'s dead, inter
 
 ### 2C — Remove `oshow` and FLTK (increment I2), one cohesive removal
 
-- [ ] T024 Delete `src/oshow/` in its entirety, and `src/ri/show.h`/`src/ri/show.cpp`
-- [ ] T025 Remove the `CShow` `#include`, dispatch, and construction from
+- [X] T024 Delete `src/oshow/` in its entirety, and `src/ri/show.h`/`src/ri/show.cpp`
+- [X] T025 Remove the `CShow` `#include`, dispatch, and construction from
       `src/ri/renderer.cpp` (the include, `preDisplaySetup` call, and `new CShow(i)` site) and
       `src/ri/rendererContext.cpp` (the `CShow`-related include)
-- [ ] T026 [P] Remove the `show.cpp` entry from `src/ri/CMakeLists.txt`; remove
+- [X] T026 [P] Remove the `show.cpp` entry from `src/ri/CMakeLists.txt`; remove
       `add_subdirectory(oshow)` from `src/CMakeLists.txt`
-- [ ] T027 [P] Remove `option(BUILD_SHOW ...)`, the `fltk-config` probe block, and the
+- [X] T027 [P] Remove `option(BUILD_SHOW ...)`, the `fltk-config` probe block, and the
       `oshow` entry in the codesign executable list from the root `CMakeLists.txt`
-- [ ] T028 [P] Remove the `add_not_required_test` macro, its explanatory comment block, and
-      its six scene registrations from `tests/visual/CMakeLists.txt`
-- [ ] T029 [P] Remove the five FLTK install steps from `.github/workflows/release.yml`
-- [ ] T030 [P] Rename the six `*-oshow.rib` fixtures (in `examples/rib/tests/` and
+- [X] T028 [P] Removed the six oshow scene registrations and rewrote the now-stale doc comment
+      in `tests/visual/CMakeLists.txt`. **Correction**: kept the `add_not_required_test` macro
+      itself (rephrased its comment to drop oshow-specific rationale, retained the still-valid
+      photon-motion-blur rationale) — it is also used by the unrelated
+      `motion-subdiv-translate-photon` scene, so deleting it would have broken that test.
+- [X] T029 [P] Remove the five FLTK install steps from `.github/workflows/release.yml`
+- [X] T030 [P] Rename the six `*-oshow.rib` fixtures (in `examples/rib/tests/` and
       `examples/rib/tests/parity/`) to `*-wire.rib`, dropping their `Hider "oshow:none"` line
       (`orender-wire` ignores `Hider` entirely, so no replacement statement is needed)
-- [ ] T031 [P] Correct every stale `oshow` reference: `README.md`, `INSTALL.md`,
-      `INSTALL_ARTIFACTS.md`, `COMPILING.txt`, `HOMEBREW_GUIDE.md`, `openrender.rb.template`,
-      `openrender.spec`, `AUTHORS.md`, `CLAUDE.md`, `DEVNOTES.md`, and the `oshow(1)` SEE ALSO
-      cross-references in `man/orender.1`, `man/oshader.1`, `man/otexmake.1`, `man/rsloinfo.1`
-- [ ] T032 Removal gate: from the repository root,
-      `grep -rn "CShow\|oshow\|BUILD_SHOW\|FLTK" .` excluding `build/`, `specs/`, and
-      `ChangeLog.md` returns zero hits (FR-026)
+- [X] T031 [P] Corrected every stale `oshow` reference in the named files (`README.md`,
+      `INSTALL.md`, `INSTALL_ARTIFACTS.md`, `COMPILING.txt`, `HOMEBREW_GUIDE.md`,
+      `openrender.rb.template`, `openrender.spec`, `AUTHORS.md`, `CLAUDE.md`, `DEVNOTES.md`, the
+      `oshow(1)` SEE ALSO cross-references in 4 man pages), preserving historical/attribution
+      content by rephrasing rather than deleting (e.g. `AUTHORS.md`'s Jordan Smith credit line
+      now reads "Crystal ball interface for the original (since-removed) interactive viewer").
+      **Expanded beyond the named list** once T032's gate was run repeatedly: also fixed
+      `DEVNOTES_DETAILS/SUBDIVISION_SURFACES.md`, `DEVNOTES_DETAILS/HIDER_PARITY.md`,
+      `DEVNOTES_DETAILS/PATH-TRACING_HIDER.md`, and four `docs/site/content/...` pages (`faq.md`,
+      `source-at-a-first-glance.md`, `installing-and-running.md`) — the task list's file
+      enumeration wasn't exhaustive; T032's grep is the actual completeness gate, not this list.
+- [X] T032 Removal gate: `grep -rn "CShow\|oshow\|BUILD_SHOW\|FLTK" .` from the repository root
+      now returns zero hits, but the exemption list needed three additions beyond `build/`,
+      `specs/`, and `ChangeLog.md`, all judgment calls made during this task and recorded here
+      rather than left implicit:
+      - **`NEWS.md`** — a dated, historical release-notes entry describing a past release
+        verbatim; same category as `ChangeLog.md`, whose exemption was almost certainly an
+        oversight that also should have named `NEWS.md`. Left unedited rather than falsified.
+      - **`doc/`** (the legacy `Documentation/`/`Tutorials/` HTML tree) — inspection showed
+        these are byte-mirrors of the external "PixieWiki" (page titles read "PixieWiki", body
+        text says "Pixie is a photorealistic renderer", uses pre-rename tool names like
+        `sdr`/`sdrinfo`). This is a frozen historical archive of the *predecessor* project's own
+        docs, not current openRender documentation — unlike `docs/site/`, which is the live
+        Hugo site and *was* corrected. Scrubbing only the `oshow` mentions out of a page that
+        still says "Pixie" throughout would be inconsistent, selective revisionism of a
+        preserved external artifact, so the whole tree is exempt.
+      - **`.claude/settings.local.json`** — a gitignored Claude Code permission-cache file, not
+        project documentation; its one match is a cached bash-command string from an earlier
+        session's *different* checkout path. Left untouched as out-of-scope tooling state.
+      Also checked (no action needed): `specs/010-full-subdivision-support/contracts/
+      hider-invariant-contract.md` references a `show.cpp` grep target in prose, but that check
+      is not wired into any CMakeLists/CI script anywhere in the tree — it's unexecuted spec
+      prose, and the file is already under the exempted `specs/` tree regardless.
 
 **Checkpoint 2C**: No trace of the legacy tool or its build dependency remains anywhere in the
 tree except historical records.

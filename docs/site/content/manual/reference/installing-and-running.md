@@ -33,7 +33,6 @@ Optional, each enabling a component:
   disabled` and builds the bytecode interpreter only. Everything still works;
   shaders just run interpreted.
 - **OpenEXR** and **Imath** — the OpenEXR display driver
-- **FLTK** — the `oshow` viewer. Turn it off with `-DBUILD_SHOW=OFF`.
 - **GTK 4** (4.20 or newer) — the `orender-wire` scene previewer on Linux. On
   macOS the previewer uses Metal and AppKit, which need no extra packages.
 
@@ -85,7 +84,7 @@ If you keep Homebrew somewhere unusual, point CMake at it with
 
 Install your distribution's development packages for libtiff, libpng, zlib,
 flex and bison, plus any of the optional components you want — LLVM, OpenEXR
-with Imath, FLTK, and GTK 4 for the previewer. Package names differ between
+with Imath, and GTK 4 for the previewer. Package names differ between
 distributions; the CMake configure step names anything it cannot find.
 
 ### Windows
@@ -143,7 +142,7 @@ Your binary distribution should have the following structure:
 |   |   |   | `oshader` | Shading language compiler |
 |   |   |   | `rsloinfo` | Get information about a compiled shader |
 |   |   |   | `otexmake` | Texture preparation tool. |
-|   |   |   | `oshow` | A viewer for photon maps/irradiance caches etc.. |
+|   |   |   | `orender-wire` | Interactive RIB scene wireframe viewer. |
 |   |   | `include/` |   | The header files |
 |   |   | `lib/` |   | The library files. |
 |   |   | `displays/` |   | The display drivers. |

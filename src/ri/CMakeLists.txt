@@ -69,7 +69,6 @@ set(ri_sources
 #	rib.cpp
 	riInterface.cpp
 	ribOut.cpp
-	show.cpp
 #	sl.cpp
 	solidObject.cpp
 	stats.cpp

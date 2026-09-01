@@ -25,7 +25,6 @@ class OpenRender < Formula
   depends_on "libpng"
   depends_on "zlib"
   depends_on "openexr"
-  depends_on "fltk"
 
   def install
     # Copy pre-compiled FHS directories directly to Homebrew Cellar prefix

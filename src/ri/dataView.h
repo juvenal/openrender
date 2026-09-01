@@ -21,11 +21,12 @@
 //
 //  File				:	dataView.h
 //  Classes				:	CPrimitiveSink, CDataView
-//  Description			:	Replaces src/gui/opengl.h's CView/dlopen/TGl* bridge with a
-//							linked-in virtual sink, so the classes that used to be
-//							visualizable only through the deleted `oshow` OpenGL module
-//							can hand their primitives to any installed CPrimitiveSink
-//							(orender-wire's Metal/GL renderers, or a headless test sink).
+//  Description			:	Replaces the old CView/dlopen/TGl* bridge with a linked-in
+//							virtual sink, so the classes that used to be visualizable
+//							only through a debug tool's dynamically-loaded OpenGL
+//							module (long since deleted) can hand their primitives to
+//							any installed CPrimitiveSink (orender-wire's Metal/GL
+//							renderers, or a headless test sink).
 //
 ////////////////////////////////////////////////////////////////////////
 #ifndef DATAVIEW_H

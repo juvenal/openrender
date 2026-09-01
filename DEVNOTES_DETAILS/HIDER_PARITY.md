@@ -114,7 +114,8 @@ Cross-hider parity/status for subdivision-surface capability (motion blur,
 the facevarying pointer-collapse fix, the new `facevaryinginterpolateboundary`/
 `facevaryingpropagatecorners`/`creasemethod` tags, the crease-quality
 non-reproduction writeup, `RiHierarchicalSubdivisionMesh[V]`, the Loop
-scheme, and CShow/photon coverage) now lives in its own document —
+scheme, and the removed debug-visualization hider/photon coverage) now
+lives in its own document —
 [SUBDIVISION_SURFACES.md](SUBDIVISION_SURFACES.md) — split out given the
 size of the spec `010-full-subdivision-support` work (six user stories
 across P0-P4). See that file for the full write-up.
