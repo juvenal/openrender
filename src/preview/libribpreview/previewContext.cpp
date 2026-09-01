@@ -198,9 +198,11 @@ PreviewSceneC *ribpreview_load(const char *ribPath) {
             out->camera.projMatrix[c*4+r] = cam.projMatrix[r*4+c];
             out->camera.viewMatrix[c*4+r] = cam.viewMatrix[r*4+c];
         }
-    out->camera.nearPlane      = cam.nearPlane;
-    out->camera.farPlane       = cam.farPlane;
-    out->camera.projectionType = (cam.projectionType == ProjectionType::Perspective) ? 0 : 1;
+    out->camera.nearPlane        = cam.nearPlane;
+    out->camera.farPlane         = cam.farPlane;
+    out->camera.projectionType   = (cam.projectionType == ProjectionType::Perspective) ? 0 : 1;
+    out->camera.fov              = cam.fov;
+    out->camera.frameAspectRatio = cam.frameAspectRatio;
 
     // Scene bounds.
     AABB &bb = scene.sceneBounds;

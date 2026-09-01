@@ -354,60 +354,161 @@ tree except historical records.
 
 ### 2D — Headless loader and C ABI (increment I3), tests first
 
-- [ ] T033 [P] Write failing test `tests/preview/test_data_world_init.cpp` (after opening a
+- [X] T033 [P] Write failing test `tests/preview/test_data_world_init.cpp` (after opening a
       constructed photon-map fixture headlessly, the view's transform is non-degenerate and
-      `bound()` returns finite values — pins the identity-matrix seeding requirement)
-- [ ] T034 [P] Write failing test `tests/preview/test_data_pointcloud.cpp` (construct a
+      `bound()` returns finite values — pins the identity-matrix seeding requirement). **Fixture
+      correction**: the fixture itself must seed `CRenderer::fromWorld`/`toWorld` to identity
+      before writing (`CPhotonMap::write()` persists them into the file), and the test must
+      deliberately corrupt those statics to a degenerate value *between* writing the fixture and
+      calling `open()` — otherwise the assertions can pass on a zero-times-identity coincidence
+      instead of actually exercising `open()`'s seeding.
+- [X] T034 [P] Write failing test `tests/preview/test_data_pointcloud.cpp` (construct a
       `CPointCloud` via its write constructor, `store()` known points, destroy to flush, reopen
       through `CDataDocument::open()`, assert type/count/bounds/channels match; also repeat the
-      round-trip storing zero points and assert the reopened document is valid with all counts
-      `== 0` — covers FR-005, added during `/speckit-analyze` remediation)
-- [ ] T035 Register T033 and T034 in `tests/preview/CMakeLists.txt`; confirm both fail to
+      round-trip storing zero points and assert the reopened document is valid — covers FR-005).
+      **Spec-level correction, found while implementing**: FR-005's literal wording ("all counts
+      == 0") does not hold for point clouds (or photon maps). `CPointCloud::balance()`
+      (`pointCloud.cpp:279-295`) — and `CPhotonMap::balance()` identically
+      (`photonMap.cpp:503-512`) — unconditionally inserts one dummy item at the origin with
+      zeroed data before writing an otherwise-empty map, "to avoid an if statement during
+      lookup." This is deliberate, existing, working behavior on the hot lookup path and is out
+      of scope to change for this feature. A zero-point round trip is still valid (doesn't
+      crash, reopens successfully) but always reports exactly one degenerate point at the
+      origin, never a literal zero count. The test asserts this documented convention instead of
+      a literal zero. **This same correction applies to T041's `test_wire_cli`** — a `--json`
+      fixture built the same way will report `"points": 1`, not `0`; do not re-derive this there.
+      (Debug-geometry dumps have no such convention and can genuinely report zero of every
+      primitive kind — the correction is specific to `CPointCloud`/`CPhotonMap`.)
+- [X] T035 Register T033 and T034 in `tests/preview/CMakeLists.txt`; confirm both fail to
       compile/link (Red — `CDataDocument` does not exist yet)
-- [ ] T036 Create `src/ri/dataLoad.h` and `src/ri/dataLoad.cpp`: `dataSniff()` (ports the
-      magic-number/version/word-size validation from `src/ri/show.cpp:82-99` verbatim) and
+- [X] T036 Create `src/ri/dataLoad.h` and `src/ri/dataLoad.cpp`: `dataSniff()` (ports the
+      magic-number/version/word-size validation from `src/ri/show.cpp:82-99`) and
       `class CDataDocument` whose `open()` sets `CRenderer::fromWorld`, `toWorld`,
       `fromWorld1`, `toWorld1`, `fromNDC`, `toNDC` to identity and `worldBmin`/`worldBmax` to
       ±infinity **before** constructing any reader, then constructs `CPhotonMap`,
       `CIrradianceCache`, `CPointCloud`, `CBrickMap`, or `CDebugView` directly (never via
       `CRenderer::getPhotonMap`/`getCache`/`getTexture3d`, which assert on mid-render-only
-      state) and owns whichever it constructs uniformly in the destructor
-- [ ] T037 Confirm T033 and T034 now pass (Green); if `CTexture3d::retrieveDisplayChannel`
-      (`texture3d.cpp:119`) turns out to be reachable on this read-only path (research.md §2
-      open question), add the minimal display-channel stub `CDataDocument::open()` needs to
-      satisfy it, within this same task
-- [ ] T038 Extend `src/preview/ribpreview_api.h` per contracts/c-abi.md: `PrimArrayC`,
+      state) and owns whichever it constructs uniformly in the destructor. **Correction, not
+      verbatim**: `show.cpp`'s own version check (`!((version[0]==VERSION_MAJOR) ||
+      (version[1]==VERSION_MINOR))`) was loose OR-based dead code that almost never actually
+      fired — the real gatekeeper in the legacy system was `ropen()`'s strict AND-based check
+      (`(version[0]!=VERSION_MAJOR) || (version[1]!=VERSION_MINOR)`), which is what every actual
+      `CRenderer::get*` reopen enforced. `dataSniff()` uses the strict, actually-enforced check,
+      since it is now the sole gatekeeper (no double-open/`ropen`-reopen fallback remains).
+      **Debug-dump detection is stricter than legacy**: `show.cpp` treated *any* non-magic-
+      matching file as a debug dump unconditionally; `dataSniff()`/`sniffHeader()` adds a real
+      structural dry-run validator (`isValidDebugDump()`: reads bmin/bmax, then walks the
+      tag/payload stream to confirm it reaches exact EOF with only known tags) so a RIB file or
+      garbage input correctly reports `DATA_NOT_A_DATA_FILE` instead of being misidentified,
+      satisfying data-model.md's validation rule.
+      **Ownership per reader type, worked out from source (not stated in research.md)**:
+      `CPhotonMap` neither closes nor retains `in` (caller must `fclose` immediately after
+      construction); `CIrradianceCache` and `CPointCloud` both close `in` themselves on every
+      path; `CBrickMap` and `CDebugView` both retain `in` for their full lifetime (lazy brick
+      reads / re-open-by-name at draw time) and close it in their own destructors. `open()`
+      follows this per-type, not a single uniform rule.
+- [X] T037 Confirmed T033 and T034 pass (Green). `CTexture3d::retrieveDisplayChannel`
+      (`texture3d.cpp:119`) is **not** reachable on the read-only load path — it is called only
+      from `defineChannels(const char *)` (the comma-string overload), never from
+      `defineChannels(int, char **, char **)` (the array overload) or from `readChannels()` (the
+      read-constructor path `CPointCloud(name, from, to, in)` actually calls). No stub needed.
+      **Caveat for a later fixture**: this conclusion covers the read path and the array-overload
+      write path (used by this task's own fixture and by `ptcapi.cpp`) — if a brick-map fixture
+      is later built using the comma-string `defineChannels(const char *)` overload instead, it
+      *will* reach `retrieveDisplayChannel` and need a pre-declared channel; check which overload
+      that fixture actually uses.
+- [X] T038 Extended `src/preview/ribpreview_api.h` per contracts/c-abi.md: `PrimArrayC`,
       `DataSceneC`, the `RibDataType` enum, and the opaque-handle functions `ribdata_sniff`,
       `ribdata_open`, `ribdata_snapshot`, `ribdata_key`, `ribdata_channel_name`,
-      `ribdata_close` (declarations only at this point; `ribpreview_load`/`ribpreview_free` are
-      untouched)
-- [ ] T039 Create `src/preview/libribpreview/dataScene.h`: the `DataScene` struct (four
-      primitive arrays — lines, points, triangles, plus a pre-expansion `disks` list) per
-      data-model.md
-- [ ] T040 [P] Write failing test `tests/preview/test_data_keys.cpp` (drive `ribdata_key()`
-      with each legacy key `m l b d p q w` against brick-map and point-cloud fixtures; assert
-      the corresponding `DataSceneC` fields change; assert **zero bytes written to stdout**
-      across the whole sequence)
-- [ ] T041 [P] Write failing test `tests/preview/test_wire_cli.cpp` (argument grammar from
-      contracts/cli-interface.md; every exit code 1–5 reachable; `--json` output is
-      well-formed JSON containing `schemaVersion` and every required key per `documentType`;
-      assert the synthesized `camera` in a data document's output actually frames the reported
-      `bounds`, covering FR-008; assert `--json` on a small fixture completes under 2 seconds,
-      covering SC-004 — both added during `/speckit-analyze` remediation)
-- [ ] T042 Register T040 and T041 in `tests/preview/CMakeLists.txt`; confirm both fail (Red —
-      `ribdata_key` and `wireCli` do not exist yet)
-- [ ] T043 Create `src/preview/libribpreview/dataSink.h` and
-      `src/preview/libribpreview/dataSink.cpp`: `class CDataSceneSink : public CPrimitiveSink`,
-      appending into a `DataScene`, applying the deterministic fixed-cap/even-stride decimation
-      decided in spec clarification, and implementing `ribdata_open`/`ribdata_snapshot`/
-      `ribdata_key`/`ribdata_channel_name`/`ribdata_close` from T038 against `CDataDocument`
-      from T036
-- [ ] T044 Create `src/preview/libribpreview/wireCli.h` and
-      `src/preview/libribpreview/wireCli.cpp`: shared argument parsing, `--help`, `--version`,
-      `--json` (headless statistics, exit codes 1–5, JSON serialization per
-      contracts/cli-interface.md), with C linkage so both platform frontends can call the same
-      implementation
-- [ ] T045 Confirm T040 and T041 now pass (Green)
+      `ribdata_close`. Also appended two trailing fields (`fov`, `frameAspectRatio`) to the
+      existing `PreviewCameraC` struct — contracts/cli-interface.md's JSON schema requires them
+      in the camera object, but the C ABI never exposed them even though the C++ `PreviewCamera`
+      already tracked both; backward-compatible append, both `previewContext.cpp` (RIB path) and
+      `dataSink.cpp` (data path) populate them. `CRibPreview.h`'s duplicate-header collapse
+      (research.md's SPM `headerSearchPath` risk) was proven separately in the macOS build; no
+      blocker here.
+- [X] T039 Created `src/preview/libribpreview/dataScene.h`: `DataScene` struct (four flat
+      primitive arrays — lineVerts/Cols, pointVerts/Cols, triVerts/Cols, plus a pre-expansion
+      `std::vector<DiskPrimitive> disks`) and `AABB`/`PreviewCamera` fields per data-model.md.
+- [X] T040 [P] Wrote `tests/preview/test_data_keys.cpp`: drives `ribdata_key()` with each legacy
+      key (`m l b d p q w`) against sequentially-opened brick-map and point-cloud fixtures,
+      asserting `DataSceneC` field changes and zero bytes on stdout (captured via dup/dup2).
+      **Two non-obvious fixes required to get this fixture working, both documented for anyone
+      building a similar fixture later:**
+      - **`renderMan` NULL-deref**: `info()`/`error()` unconditionally dereference the global
+        `renderMan` (error.cpp); nothing sets it outside a `CDataDocument`/`RiBegin` bracket, and
+        `makeBrickMap()` (the only usable brick-map fixture writer — `CBrickMap`'s direct write
+        ctor needs a protected `CChannel` type) calls `info()`/`error()` internally. Fixed in
+        production at T036 (`CDataDocument::open()`/`~CDataDocument()`, see T037's notes) and
+        worked around in the test by save/restoring a scratch `CRiInterface` around the
+        `makeBrickMap()` call.
+      - **Single-document concurrency (FR-019)**: opening both fixtures simultaneously
+        SIGSEGVs inside `CRenderer::shutdownDeclarations()`, because `CDataDocument` manipulates
+        global state and the design assumes exactly one instance alive at a time. Fixed by
+        testing each fixture sequentially (open → drive keys → close) rather than holding both
+        open at once — this is the FR-019 constraint surfacing as a real test-authoring
+        constraint, not a bug.
+- [X] T041 [P] Wrote `tests/preview/test_wire_cli.cpp`: argument grammar (help/version/usage
+      errors/file-not-found/two-positionals), `--json` well-formedness (`schemaVersion`,
+      per-`documentType` required keys) for both a RIB scene and a point-cloud fixture, the
+      FR-008 camera-framing check (near/far clipping actually brackets the reported bounds'
+      diagonal), the SC-004 2-second budget, and an auto-detection regression test added during
+      this task (see below). **Two findings from this task changed behavior/scope and are
+      recorded here rather than silently worked around:**
+      - **Exit code 3 ("RIB parse failed") is specified but not currently reachable.**
+        `ribpreview_load()`/`ribParse()` never signal a syntax-level parse failure — the RIB
+        grammar recovers from malformed input rather than aborting, so even genuinely invalid
+        RIB text (e.g. `"this is not a valid RIB file {{{"`) parses "successfully" into an
+        empty scene, exit 0. `emitRibJson()`'s `return 3` branch for a NULL
+        `ribpreview_load()` result is the contract's correct handler for a case the current
+        parser cannot produce — it is not dead code to delete, just currently unreachable. The
+        planned test case for this was removed rather than replaced with a heuristic (a
+        declarations-only RIB with zero geometry is legitimately empty and must not be treated
+        as a parse failure). **Follow-up, out of scope for spec 016**: give `ribParse()`/
+        `ribpreview_load()` a real failure-signaling channel (e.g. an error-count callback) —
+        this is spec-006/RIB-parsing territory, not spec 016's. Exit code 5 remains the other
+        documented-but-unreachable-under-`--json` code (GUI-only, by design).
+      - **Pre-existing bug found while probing the RIB path with an empty scene, out of scope
+        to fix here**: `previewContext.cpp`'s clipping-plane synthesis (`ribpreview_load()`,
+        ~line 167-171) computes `diag = sqrt(dx²+dy²+dz²)` from `scene.sceneBounds`, which stays
+        at its reset value (`±FLT_MAX`) for a scene with no geometry. `dx = -FLT_MAX - FLT_MAX`
+        overflows to `-inf` in float, so `farPlane` becomes `inf` — not valid JSON. This is
+        pre-existing spec-006 code, unrelated to spec 016's data path (whose own
+        `synthesizeCamera()` in `dataSink.cpp` already guards the degenerate/non-finite-box
+        case). Since **T041's own contract** is "well-formed JSON" for `orender-wire --json`,
+        added a local, minimal guard entirely inside `wireCli.cpp` (a `sane()` helper clamping
+        non-finite camera floats to `0.0` before printing, applied in both `emitRibJson()` and
+        `emitDataJson()`) rather than touching `previewContext.cpp`'s synthesis logic.
+      - **Auto-detection routing bug, fixed (not just a test finding)**: `ribdata_sniff()`
+        collapsed both "no data-file magic number at all" and "magic matched but
+        version/word-size incompatible" to the same `-1` return value. `wireCliRun()`'s
+        `--type=auto` path treated any `-1` as "not a data file, try RIB" — meaning a corrupted
+        or version-mismatched data file would silently "succeed" as an empty RIB scene (exit 0)
+        instead of being rejected (exit 4), the one behavior change here a real user could hit.
+        Fixed by extending `ribdata_sniff()`'s contract with a distinct `-2` sentinel for
+        "recognized magic, incompatible" (`ribpreview_api.h` contract comment updated to
+        document both sentinels explicitly) and updating auto-mode to route anything `!= -1` to
+        the data path. Covered by a new test case that corrupts a real point-cloud fixture's
+        on-disk `VERSION_MAJOR` field (4 bytes after the leading magic number, confirmed against
+        `fileResource.cpp`'s writer) and asserts `--json` (no `--type` override) exits 4.
+- [X] T042 Registered T040 and T041 in `tests/preview/CMakeLists.txt`; both failed Red before
+      T043/T044 existed (confirmed via the standard TDD sequence for this feature).
+- [X] T043 Created `src/preview/libribpreview/dataSink.h`/`.cpp`: `class CDataSceneSink :
+      public CPrimitiveSink` appending into a `DataScene`; `decimateGrouped()`/
+      `decimateDisks()` (even-stride sampling, `MAX_PRIMITIVES_PER_KIND = 100000`, matching
+      `tessPoints.cpp`'s existing `MAX_POINTS` idiom); `synthesizeCamera()` (hand-rolled
+      row-major look-at + perspective framing of the reported bounds, with a degenerate/
+      non-finite-box fallback); `buildDataScene()`; and the six `ribdata_*` C-linkage functions
+      (including the `ribdata_sniff()` fix above) against `CDataDocument` from T036.
+- [X] T044 Created `src/preview/libribpreview/wireCli.h`/`.cpp`: shared argument parsing,
+      `--help`, `--version`, `--json` (exit codes documented in cli-interface.md, JSON
+      serialization with the `sane()` finiteness guard above), `--type=auto|rib|data`, C linkage
+      for both platform frontends. Auto-detection calls `ribdata_sniff()` first and falls back
+      to the RIB path only on a genuine `-1` ("no data-file magic at all").
+- [X] T045 Confirmed T040 and T041 pass (Green) — full `ctest --test-dir build -L preview`:
+      15/15 passing, including both. Full `cmake --build build` (all targets, both the Linux-
+      style CLI pieces and the macOS SwiftUI/Metal `orender-wire.app`) rebuilt clean after the
+      `PreviewCameraC` field addition, confirming no frontend regression from the C ABI change.
 
 **Checkpoint 2D**: The entire data path — sniff, load, snapshot, interactive state, headless
 JSON — is proven correct before either platform's GUI code has been touched.

@@ -18,6 +18,7 @@ set(ri_sources
 	bsplinePatchgrid.cpp
 	csgBoolean.cpp
 	csgTree.cpp
+	dataLoad.cpp
 	dataView.cpp
 	debug.cpp
 	delayed.cpp

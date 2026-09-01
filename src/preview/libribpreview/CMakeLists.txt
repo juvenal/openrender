@@ -12,6 +12,8 @@ add_library(ribpreview STATIC
     tessellators/tessSubdivision.cpp
     tessellators/tessProc.cpp
     cameraExport.cpp
+    dataSink.cpp
+    wireCli.cpp
 )
 
 target_include_directories(ribpreview PUBLIC
