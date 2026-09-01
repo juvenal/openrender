@@ -173,51 +173,128 @@ viewing is provably unchanged.
 
 ### 2B — `CPrimitiveSink`/`CDataView` sink (increment I1), tests first
 
-- [ ] T011 [P] Write failing test `tests/preview/test_dataview_chunking.cpp` (tail-flush at
+- [X] T011 [P] Write failing test `tests/preview/test_dataview_chunking.cpp` (tail-flush at
       exactly `chunkSize`, `chunkSize±1`, `0`, and `1` primitives; asserts the corrected
-      `CPhotonMap` loop bound — see T018)
-- [ ] T012 [P] Write failing test `tests/preview/test_debugdump_roundtrip.cpp` (write via
+      `CPhotonMap` loop bound — see T018). Implementation note: rather than asserting on
+      `CPhotonMap`'s internal `numItems` (private, and always ≥1 because
+      `CPhotonMap::balance()` seeds a dummy zero-color photon on an empty map), the test
+      stores photons at `P.x = 1..count` and asserts the sink's observed max `P.x == count` —
+      directly pins "was the last stored photon dropped" without coupling to that internal
+      detail.
+- [X] T012 [P] Write failing test `tests/preview/test_debugdump_roundtrip.cpp` (write via
       `CDebugView`'s point/line/triangle/quad writers, reopen, count via a test sink; quad → 2
       triangles; last written record emitted exactly once)
-- [ ] T013 Register T011 and T012 in `tests/preview/CMakeLists.txt` via the existing
-      `add_preview_test` macro; confirm both fail to compile/link (Red — `CDataView` does not
-      exist yet)
-- [ ] T014 Create `src/ri/dataView.h`: `class CPrimitiveSink` (pure-virtual `triangles`,
+- [X] T013 Registered T011 and T012 in `tests/preview/CMakeLists.txt`; confirmed both failed
+      to compile (Red — `ri/dataView.h` did not exist yet)
+- [X] T014 Created `src/ri/dataView.h`: `class CPrimitiveSink` (pure-virtual `triangles`,
       `triangleMesh`, `lines`, `points`, `disks`) and `class CDataView` (replaces `CView`; same
       six static drawing entry points, same `chunkSize = 128 * 3`, plus `numChannels`,
       `channelName`, `currentChannel`, `detailLevel`, `drawMode`, `typeName` accessors) per
-      research.md §1 and data-model.md
-- [ ] T015 Create `src/ri/dataView.cpp`: the six static forwarders to an installed
+      research.md §1 and data-model.md.
+      **Naming-collision correction found during implementation**: `CTexture3d` already had
+      its own `int numChannels;` member field, and `CBrickMap` already had its own
+      `static int detailLevel;` — C++ does not allow a class to declare both a data member
+      and a same-named member function, so the new virtual accessors under those exact
+      names could not be implemented on the classes that needed them. Fixed by renaming the
+      **pre-existing internal fields** (not the new public accessor names, which match
+      data-model.md/tasks.md exactly): `CTexture3d::numChannels` → `channelCount` (~35 call
+      sites across `texture3d.h/.cpp`, plus external cross-references in
+      `brickmap.cpp:1651`, `remoteChannel.cpp:710,715`, and `pointHierarchy.cpp:132` — a
+      fourth `CTexture3d` consumer this task list never mentioned); `CBrickMap::detailLevel`
+      → `detail`, not `level`, since `CBrickMap::draw()` already has an unrelated local
+      `int level;` a few lines below the static's use — reusing that name would have been
+      legal but confusing. `rendererDisplay.cpp`'s unrelated `CDisplayData::numChannels`
+      (image display channels, a different struct entirely) was left untouched.
+- [X] T015 Created `src/ri/dataView.cpp`: the six static forwarders to an installed
       `CPrimitiveSink*`, and the debug-dump parser lifted from
       `git show 33506f4^:src/gui/opengl.cpp`'s `pglFile`, fixed to
       `while (fread(&tag, sizeof(int), 1, f) == 1)` (not `!feof`) and splitting the quad tag
-      into two triangles (`0,1,2` and `0,2,3`)
-- [ ] T016 [P] Reparent `src/ri/debug.h` and `src/ri/debug.cpp` from `CView` to `CDataView`
+      into two triangles (`0,1,2` and `0,2,3`). The disc-basis NaN fix research.md §1 also
+      lists under this heading does **not** belong here — the dump format has no disc tag,
+      and disc geometry expansion is CPU-side in `libribpreview` (Phase 2E), not this parser;
+      deferred to T046-T049 where it actually applies.
+- [X] T016 [P] Reparented `src/ri/debug.h` from `CView` to `CDataView`
       (`#include "gui/opengl.h"` → `#include "dataView.h"`; `: public CView` → `: public
-      CDataView`)
-- [ ] T017 [P] Reparent `src/ri/texture3d.h` from `CView` to `CDataView`
-- [ ] T018 [P] Reparent `src/ri/photonMap.h` and `src/ri/photonMap.cpp` from `CView` to
-      `CDataView`; fix the confirmed off-by-one in `CPhotonMap::draw`
-      (`src/ri/photonMap.cpp:565`): the loop must run `numItems` times from `items + 1`,
-      matching `CPointCloud::draw`'s correct bound (`src/ri/pointCloud.cpp:364`), not
-      `numItems - 1`
-- [ ] T019 [P] Reparent `src/ri/pointCloud.cpp` from `CView` to `CDataView`; replace its
-      `printf` channel/draw-mode output (`pointCloud.cpp:412-423`) with the new `CDataView`
-      accessors
-- [ ] T020 [P] Reparent `src/ri/brickmap.h` and `src/ri/brickmap.cpp` from `CView` to
-      `CDataView`; replace its `printf` detail-level/draw-type/channel output
-      (`brickmap.cpp:1375-1405`) with the new `CDataView` accessors; assign
-      `CDataView::drawTriangleMesh` for the first time (previously declared but never resolved,
-      `show.cpp:73-77`)
-- [ ] T021 [P] Reparent `src/ri/irradiance.cpp` and `src/ri/radiance.cpp` from `CView` to
-      `CDataView` (no behavior change beyond the base-class swap)
-- [ ] T022 Delete `src/gui/` in its entirety (the one remaining file, `opengl.h`) now that
-      nothing includes it
-- [ ] T023 Confirm T011 and T012 now pass (Green); run `ctest --test-dir build -L preview` in
-      full to confirm no regression in the pre-existing 9 tests
+      CDataView`); added the required `typeName() { return "Debug Dump"; }` override.
+      **Investigated-and-cleared, not a bug**: initially suspected `CDebugView::quad()` never
+      wrote its 4th point (`fwrite(P4, ...)` looked missing from a truncated `git show`
+      excerpt during investigation) — re-read the actual current file and confirmed the
+      write is present and correct; `test_debugdump_roundtrip` passed on the first run with
+      no writer change needed. No fix applied; noted here only so this false lead isn't
+      rediscovered.
+- [X] T017 [P] Reparented `src/ri/texture3d.h` from `CView` to `CDataView`; added
+      `numChannels()`/`channelName()` overrides backed by the renamed `channelCount`/
+      `channels` fields (shared by every `CTexture3d` subclass, so implemented once here —
+      see T014's naming-collision note for why the field rename was necessary).
+- [X] T018 [P] Reparented `src/ri/photonMap.h` from `CView` to `CDataView`; added
+      `typeName() { return "Photon Map"; }`; fixed the confirmed off-by-one in
+      `CPhotonMap::draw` (`src/ri/photonMap.cpp`): the loop now runs `numItems` times from
+      `items + 1`, matching `CPointCloud::draw`'s correct bound, not `numItems - 1`. Pinned
+      by T011. (`CPhotonMap::bound()` has the same `i < numItems` off-by-one one method
+      down — found but deliberately **not** fixed: no task in this phase scopes it, no test
+      covers it, and its failure mode is a marginally undersized bounding box, not a crash
+      or dropped-data desync. Flag for a future cleanup pass.)
+- [X] T019 [P] `src/ri/pointCloud.cpp`/`.h` already reach `CDataView` transitively through
+      `CTexture3d` (T017) — `CPointCloud` never inherited `CView` directly. Replaced its
+      `printf` channel output (`pointCloud.cpp` `keyDown()`) with the new accessors: added
+      `typeName() { return "Point Cloud"; }`, `currentChannel() { return drawChannel; }`,
+      `drawMode() { return drawDiscs; }` (0 = points, 1 = discs — matches `drawDiscs`
+      directly, no translation needed); updated `keyDown()`'s channel-clamp to use the
+      renamed `channelCount`.
+- [X] T020 [P] `src/ri/brickmap.cpp`/`.h` likewise already reach `CDataView` transitively
+      through `CTexture3d`. Replaced its `printf` detail-level/channel output with the new
+      accessors: `typeName() { return "Brick Map"; }`, `currentChannel() { return
+      drawChannel; }`, `detailLevel() { return detail; }`, `drawMode() { return drawType; }`
+      (0 = boxes, 1 = discs, 2 = points — matches `drawType` directly). **Scope correction**:
+      did not wire up `CDataView::drawTriangleMesh` in `CBrickMap::draw()`'s box-drawing
+      path. Confirmed via `grep` that no `draw()` body anywhere calls `drawTriangleMesh`
+      today (it was declared but never `osResolve`d under the old `CView` system, exactly as
+      this task says) — converting the existing per-vertex `drawTriangles` box rendering to
+      an indexed mesh would be new logic, not a base-class swap, and would violate the
+      "zero diff in draw() bodies" principle research.md/plan.md both commit to for no
+      test-covered benefit. `CDataView::drawTriangleMesh` exists and forwards correctly
+      (T015) for whenever a future change actually wants it.
+- [X] T021 [P] **Corrected — both halves were no-ops**: `src/ri/radiance.cpp` (`CRadianceCache`)
+      is not compiled at all (absent from `src/ri/CMakeLists.txt`) and references neither
+      `CView` nor `gui/opengl.h` — dead code, nothing to reparent. `src/ri/irradiance.h`'s
+      `CIrradianceCache : public CTexture3d` already reaches `CDataView` transitively via
+      T017 with zero direct reference of its own to change. The one real, additive change
+      needed: `CIrradianceCache` is concrete and must satisfy the new pure-virtual
+      `typeName()` — added `{ return "Irradiance Cache"; }`.
+      **Also found, not originally scoped by any task**: `src/ri/pointHierarchy.h`
+      (`CPointHierarchy : public CTexture3d, ...`) is a fourth `CTexture3d` consumer this
+      task list never mentioned. Its empty stub `draw()`/`bound()` (matching the
+      out-of-scope "point-hierarchy variant" assumption) needed the same `typeName()`
+      treatment (`{ return "Point Hierarchy"; }`), and `pointHierarchy.cpp:132` needed the
+      `numChannels` → `channelCount` cross-reference update from T014.
+- [~] T022 **Deferred to Phase 2C, folded into T024** — cannot delete `src/gui/` yet.
+      `src/ri/show.cpp` (the dead `CShow` hider, not deleted until T024) still
+      `#include`s `gui/opengl.h` for `CView::handle`/`drawTriangles`/etc. — its whole
+      dlopen-based module-loading block is unreachable today (confirmed in the original
+      pre-spec investigation: the `gui.dsply` module it looks for was deleted in `33506f4`,
+      so this always hits `error(CODE_SYSTEM, "Opengl wrapper not found...")`) but the code
+      still has to *compile*. Since every class it references (`CPhotonMap`, `CTexture3d`,
+      `CDebugView`) now derives from `CDataView` instead, `show.cpp`'s local `CView *view`
+      and the `pglVisualize`-resolved function pointer no longer type-check against them.
+      Applied the minimal interim fix to keep `show.cpp` compiling without touching
+      `gui/opengl.h`/`CView` itself: a locally-scoped `typedef void
+      (*TGlVisualizeFunction2)(CDataView *)` and `CDataView *view` in place of the `CView`
+      equivalents. `src/gui/opengl.h` itself is untouched and will be deleted together with
+      `show.cpp` in T024, when both halves of the dependency disappear in the same commit.
+- [X] T023 T011 and T012 pass (Green). Full preview suite: `ctest --test-dir build -L
+      preview` — 11/11 pass (9 pre-existing + 2 new). Full project build
+      (`cmake --build build --config Release`) succeeds with no new warnings from touched
+      files. `ctest -L visual` could not serve as an additional regression check in this
+      worktree — pre-existing, unrelated to this change: the `openrender/` deploy tree
+      (shaders/displays) was never populated here (confirmed absent entirely via `ls`; per
+      CLAUDE.md's documented deploy-tree gotcha, this requires a manual `cmake --install`
+      this worktree never had run), so all 191 visual tests fail identically on
+      "Failed to find shader defaultsurface" — an environment gap, not a code regression.
+      The preview suite is the regression gate this task actually specifies, and it is green.
 
 **Checkpoint 2B**: The sink abstraction exists and every `src/ri/` visualization class targets
-it; nothing outside `libri` consumes it yet.
+it; nothing outside `libri` consumes it yet (aside from `show.cpp`'s dead, interim-patched
+`CShow` hider, removed whole in T024).
 
 ### 2C — Remove `oshow` and FLTK (increment I2), one cohesive removal
 

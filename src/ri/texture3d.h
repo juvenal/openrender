@@ -29,8 +29,8 @@
 
 #include "common/global.h"
 #include "common/os.h"
+#include "dataView.h"
 #include "fileResource.h"
-#include "gui/opengl.h"
 #include "rendererc.h"
 #include "xform.h"
 
@@ -40,7 +40,7 @@ class CShadingContext;
 // Class				:	CTexture3d
 // Description			:	Base class for 3d textures
 // Comments				:
-class CTexture3d : public CFileResource, public CView {
+class CTexture3d : public CFileResource, public CDataView {
     protected:
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CChannel
@@ -56,7 +56,7 @@ class CTexture3d : public CFileResource, public CView {
         };
 
     public:
-        CTexture3d(const char *name, const float *from, const float *to, const float *tondc = NULL, int numChannels = 0, CChannel *channels = NULL);
+        CTexture3d(const char *name, const float *from, const float *to, const float *tondc = NULL, int channelCount = 0, CChannel *channels = NULL);
         virtual ~CTexture3d();
 
         // For storing/querying data with radius
@@ -76,6 +76,14 @@ class CTexture3d : public CFileResource, public CView {
         void getToMatrix(float *m) { movmm(m, to); }
         void getNDCMatrix(float *m) { movmm(m, toNDC); }
 
+        // CDataView channel accessors (FR-016) — shared by every CTexture3d-derived document
+        // type (CBrickMap, CPointCloud); currentChannel()/drawMode() stay per-subclass since
+        // the "currently selected" channel/draw-mode statics live there, not here.
+        int numChannels() const { return channelCount; }
+        const char *channelName(int index) const {
+            return (index >= 0 && index < channelCount) ? channels[index].name : NULL;
+        }
+
         int dataSize; // The size of each data sample
     protected:
         void defineChannels(const char *);
@@ -86,7 +94,7 @@ class CTexture3d : public CFileResource, public CView {
         matrix from, to;    // The transformation to the coordinate system
         matrix toNDC;       // The viewing transform
         float dPscale;      // The amount we need to scale dP by
-        int numChannels;    // Number of channels
+        int channelCount;    // Number of channels
         CChannel *channels; // List of channels
 
         friend class CRemotePtCloudChannel;

@@ -707,12 +707,12 @@ int CRemotePtCloudChannel::sendSetupData(SOCKET s) {
     // encode the channel (tidy this up)
     channelDef[0] = '\0';
     int i = 0;
-    while (i < (cloud->numChannels - 1)) {
+    while (i < (cloud->channelCount - 1)) {
         snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channels[i].name);
         ptr += strlen(cloud->channels[i].name) + 1;
         i++;
     }
-    strcpy(ptr, cloud->channels[cloud->numChannels - 1].name);
+    strcpy(ptr, cloud->channels[cloud->channelCount - 1].name);
 
     rcSend(s, channelDef, 1024, FALSE);
 

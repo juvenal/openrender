@@ -37,6 +37,8 @@ add_preview_test(test_preview_camera     test_camera.cpp)
 add_preview_test(test_preview_arcball    test_arcball.cpp)
 add_preview_test(test_camera_export      test_camera_export.cpp)
 add_preview_test(test_camera_replace     test_camera_replace.cpp)
+add_preview_test(test_dataview_chunking   test_dataview_chunking.cpp)
+add_preview_test(test_debugdump_roundtrip test_debugdump_roundtrip.cpp)
 add_preview_test(test_preview_integration test_integration.cpp)
 set_tests_properties(test_preview_integration PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

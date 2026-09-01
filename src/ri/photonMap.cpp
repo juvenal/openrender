@@ -562,7 +562,7 @@ void CPhotonMap::draw() {
     CPhoton *cT = items + 1;
 
     // Collect and dispatch the photons
-    for (i = numItems - 1, j = chunkSize; i > 0; i--, cT++, cP += 3, cC += 3, j--) {
+    for (i = numItems, j = chunkSize; i > 0; i--, cT++, cP += 3, cC += 3, j--) {
         if (j == 0) {
             drawPoints(chunkSize, P, C);
             cP = P;

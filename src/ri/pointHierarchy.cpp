@@ -129,7 +129,7 @@ CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *
     areaIndex = -1;
     radiosityIndex = -1;
     int i;
-    for (i = 0; i < numChannels; i++) {
+    for (i = 0; i < channelCount; i++) {
         if ((strcmp(channels[i].name, areaName) == 0) && (channels[i].numSamples == 1))
             areaIndex = channels[i].sampleStart;
         else if ((strcmp(channels[i].name, radiosityName) == 0) && (channels[i].numSamples == 3))

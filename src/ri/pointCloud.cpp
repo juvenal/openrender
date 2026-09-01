@@ -413,13 +413,11 @@ int CPointCloud::keyDown(int key) {
         drawChannel--;
         if (drawChannel < 0)
             drawChannel = 0;
-        printf("channel : %s\n", channels[drawChannel].name);
         return TRUE;
     } else if ((key == 'w') || (key == 'W')) {
         drawChannel++;
-        if (drawChannel >= numChannels)
-            drawChannel = numChannels - 1;
-        printf("channel : %s\n", channels[drawChannel].name);
+        if (drawChannel >= channelCount)
+            drawChannel = channelCount - 1;
         return TRUE;
     }
 

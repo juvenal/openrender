@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "show.h"
+#include "dataView.h"
 #include "debug.h"
 #include "error.h"
 #include "fileResource.h"
@@ -32,6 +33,13 @@
 #include "photonMap.h"
 #include "renderer.h"
 #include "texture3d.h"
+
+// pglVisualize's declared signature (see gui/opengl.h) still takes a CView*, but every
+// class it used to be handed (CPhotonMap, CTexture3d and its subclasses, CDebugView) has
+// moved to CDataView (see dataView.h). Nothing outside this dead-and-not-yet-deleted CShow
+// hider constructs a CView instance any more; a local, CDataView-typed alias is the minimal
+// fix to keep this file compiling until it is removed outright (see removal task).
+typedef void (*TGlVisualizeFunction2)(CDataView *view);
 
 // The static members of the CView class that visualizable classes derive from
 void *CView::handle = NULL;
@@ -61,8 +69,8 @@ CShow::CShow(int thread) : CShadingContext(thread) {
         if (CView::handle != NULL) {
 
             // Is this the library we were expecting ?
-            TGlVisualizeFunction visualize = (TGlVisualizeFunction)osResolve(CView::handle, "pglVisualize");
-            CView *view = NULL;
+            TGlVisualizeFunction2 visualize = (TGlVisualizeFunction2)osResolve(CView::handle, "pglVisualize");
+            CDataView *view = NULL;
 
             if (visualize != NULL) {
 

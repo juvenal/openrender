@@ -30,8 +30,8 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
+#include "dataView.h"
 #include "fileResource.h"
-#include "gui/opengl.h"
 #include "map.h"
 #include "ray.h"
 #include "refCounter.h"
@@ -71,7 +71,7 @@ class CPhotonRay : public CRay {
 // Class				:	CPhotonMap
 // Description			:	A Photon map
 // Comments				:
-class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CView, public CRefCounter {
+class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CRefCounter {
 
 #ifdef PHOTON_LOOKUP_CACHE
         class CPhotonSample {
@@ -105,6 +105,7 @@ class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CView, pub
 
         void draw();
         void bound(float *bmin, float *bmax);
+        const char *typeName() const { return "Photon Map"; }
 
 #ifdef PHOTON_LOOKUP_CACHE
         int probe(float *, const float *, const float *);

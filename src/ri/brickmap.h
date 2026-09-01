@@ -209,6 +209,10 @@ class CBrickMap : public CTexture3d {
         void draw();
         void bound(float *bmin, float *bmax);
         int keyDown(int key);
+        const char *typeName() const { return "Brick Map"; }
+        int currentChannel() const { return drawChannel; }
+        int detailLevel() const { return detail; }
+        int drawMode() const { return drawType; } // 0 = boxes, 1 = discs, 2 = points
 
         // Some global static functions for the renderer interface
         static void initBrickMap(int maxMemory = 10000000);
@@ -238,7 +242,7 @@ class CBrickMap : public CTexture3d {
         static int referenceNumber;  // The last access number
         static int currentMemory;    // The amount of used memory
         static int maxMemory;        // The maximum amount of memory to allocate
-        static int detailLevel;      // The brickmap detail level for visualization
+        static int detail;           // The brickmap detail level for visualization
         static int drawType;         // Which type to draw
         static int drawChannel;      // Which channel to draw;
 
