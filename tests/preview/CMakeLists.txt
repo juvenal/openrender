@@ -43,6 +43,7 @@ add_preview_test(test_data_world_init      test_data_world_init.cpp)
 add_preview_test(test_data_pointcloud      test_data_pointcloud.cpp)
 add_preview_test(test_data_keys            test_data_keys.cpp)
 add_preview_test(test_wire_cli             test_wire_cli.cpp)
+add_preview_test(test_data_disk_expand     test_data_disk_expand.cpp)
 add_preview_test(test_preview_integration test_integration.cpp)
 set_tests_properties(test_preview_integration PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

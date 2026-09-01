@@ -20,6 +20,6 @@ class CDataSceneSink : public CPrimitiveSink {
 
 // Fills in bounds/camera/documentType/channel/detail/draw-mode from `view`, draws it through a
 // fresh CDataSceneSink into `scene`, and applies the decimation cap. Disc records accumulate in
-// `scene.disks` pre-expansion; T048 (diskExpand.h) wires their expansion into
+// `scene.disks` pre-expansion, then diskExpand.h expands the surviving discs into
 // `scene.triVerts`/`triCols`. Called by ribdata_open()/ribdata_key().
 void buildDataScene(CDataView *view, RibDataType documentType, DataScene &scene);

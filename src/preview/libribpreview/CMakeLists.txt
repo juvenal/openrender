@@ -13,6 +13,7 @@ add_library(ribpreview STATIC
     tessellators/tessProc.cpp
     cameraExport.cpp
     dataSink.cpp
+    diskExpand.cpp
     wireCli.cpp
 )
 

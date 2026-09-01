@@ -1,5 +1,6 @@
 #include "dataSink.h"
 
+#include "diskExpand.h"
 #include "ri/dataLoad.h"
 
 #include <cmath>
@@ -47,10 +48,12 @@ void CDataSceneSink::points(int n, const float *P, const float *C) {
 }
 
 void CDataSceneSink::disks(int n, const float *P, const float *dP, const float *N, const float *C) {
+    // dP is a scalar radius per disk (stride 1) -- see DiskPrimitive's comment in dataScene.h.
+    // Reading it at stride 3 here would over-read past the end of an n-element array.
     for (int i = 0; i < n; i++) {
         DiskPrimitive d;
         d.P = {P[i * 3 + 0], P[i * 3 + 1], P[i * 3 + 2]};
-        d.dP = {dP[i * 3 + 0], dP[i * 3 + 1], dP[i * 3 + 2]};
+        d.radius = dP[i];
         d.N = {N[i * 3 + 0], N[i * 3 + 1], N[i * 3 + 2]};
         d.C = {C[i * 3 + 0], C[i * 3 + 1], C[i * 3 + 2]};
         scene.disks.push_back(d);
@@ -209,6 +212,11 @@ void buildDataScene(CDataView *view, RibDataType documentType, DataScene &scene)
     scene.decimatedCount += decimateGrouped(scene.lineVerts, scene.lineCols, 2, MAX_PRIMITIVES_PER_KIND);
     scene.decimatedCount += decimateGrouped(scene.triVerts, scene.triCols, 3, MAX_PRIMITIVES_PER_KIND);
     scene.decimatedCount += decimateDisks(scene.disks, MAX_PRIMITIVES_PER_KIND);
+
+    // Discs are capped by disc count above (scene.disks, pre-expansion) rather than by the
+    // resulting vertex count -- expand only the surviving discs into the triangle buffer.
+    for (const DiskPrimitive &d : scene.disks)
+        expandDisk(d, scene.triVerts, scene.triCols);
 
     scene.camera = synthesizeCamera(scene.bounds);
 }

@@ -515,18 +515,40 @@ JSON — is proven correct before either platform's GUI code has been touched.
 
 ### 2E — Disc expansion (increment I4)
 
-- [ ] T046 [P] Write failing test `tests/preview/test_data_disk_expand.cpp` (exactly 60
-      vertices per disc; every rim vertex within `dP + ε` of `P`; every triangle's plane normal
-      parallel to `N`; no NaN when `P == (0,0,0)` or `P ∥ N`)
-- [ ] T047 Register T046 in `tests/preview/CMakeLists.txt`; confirm it fails (Red —
-      `diskExpand` does not exist yet)
-- [ ] T048 Create `src/preview/libribpreview/diskExpand.h` and
-      `src/preview/libribpreview/diskExpand.cpp`: 20-segment CPU-side disc expansion matching
-      the deleted `pglDisks` geometry, using an axis-picking basis (never `P × N`) to avoid the
-      NaN identified in research.md §1; wire `CDataSceneSink` (T043) to call it and append
-      results into `DataScene`'s triangle array
-- [ ] T049 Confirm T046 now passes (Green); run `ctest --test-dir build -L preview` in full —
-      every Foundational test (T011, T012, T033, T034, T040, T041, T046) must be green
+- [X] T046 [P] Wrote `tests/preview/test_data_disk_expand.cpp`: exactly 60 vertices per disc (20
+      triangles x 3, non-indexed — matches the deleted `pglDisks`'s 20-segment fan, stored as a
+      flat triangle list since neither GL 3.3 core nor Metal has `GL_TRIANGLE_FAN`); every rim
+      vertex within ~1e-3 of the disc's radius from `P`; every triangle's plane normal parallel
+      (or anti-parallel) to `N`; four cases including `P == (0,0,0)` and `P ∥ N`, all asserting
+      every emitted vertex is finite. **Found and fixed a real stride bug in already-written
+      T043 code before writing this test**: `DiskPrimitive`'s `dP` field (and
+      `CDataSceneSink::disks()`'s handling of it) was modeled as a `float3` "radius vector", but
+      `CPrimitiveSink::disks()`'s `dP` argument is a **scalar** radius array (stride 1) at every
+      real call site — confirmed against `pointCloud.cpp:353` (`float dP[chunkSize]`, not
+      `chunkSize*3`), `brickmap.cpp:1148`/`1338` (`float R[chunkSize]`, `cR += 1`), and
+      `irradiance.cpp:1086`/`1100` (same pattern), all consistent with the deleted historical
+      `pglDisks`'s own `dP++` scalar iteration (`git show 33506f4^:src/gui/opengl.cpp:107`).
+      `CDataSceneSink::disks()` was reading `dP[i*3+0..2]` for an `n`-element array — a 3x
+      out-of-bounds heap over-read for every disc passed through the sink, never previously
+      exercised by any test because nothing yet called `expandDisk()` or otherwise read the
+      `disks` field. Fixed by renaming the field to a plain `float radius` and reading `dP[i]`.
+      Documented at the point of use (`dataScene.h`) so it can't regress silently.
+- [X] T047 Registered T046 in `tests/preview/CMakeLists.txt`; confirmed Red (`diskExpand.h` not
+      found) before creating the implementation.
+- [X] T048 Created `src/preview/libribpreview/diskExpand.h`/`.cpp`: 20-segment CPU-side disc
+      expansion matching the deleted `pglDisks` geometry (radius, segment count), but with an
+      axis-picking basis derived from `N` alone — **never** `P × N`, the deleted
+      implementation's basis, which is NaN when `P == (0,0,0)` or `P ∥ N` (both are structurally
+      impossible to hit here, since the new basis has no dependency on `P` at all — not just
+      guarded against, but removed). Wired into `dataSink.cpp`'s `buildDataScene()`: discs are
+      decimated by disc *count* first (`decimateDisks()`, unchanged from T043), then every
+      surviving disc is expanded and appended to `scene.triVerts`/`triCols` — so the disc
+      decimation cap and the triangle decimation cap stay independent, as `dataScene.h`'s
+      original design intended.
+- [X] T049 Confirmed T046 passes (Green: 332/332 assertions). Full
+      `ctest --test-dir build -L preview`: **16/16 passing** — every Foundational test (T011,
+      T012, T033, T034, T040, T041, T046) green, plus all pre-existing preview coverage
+      unaffected by the `DiskPrimitive` field rename.
 
 **Checkpoint 2 (end of Foundational)**: Every user story below can now be implemented against a
 complete, tested, headless-provable core. `orender-wire --json` already works for every
