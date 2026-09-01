@@ -31,9 +31,10 @@
 
 ## Notes
 
-- Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- Reasonable defaults were used in place of open questions (see Assumptions section) rather
-  than leaving [NEEDS CLARIFICATION] markers; deeper open questions that remain genuinely
-  ambiguous (e.g., an exact decimation threshold, keyboard-shortcut conflict resolution,
-  multi-document support as a future feature) are intentionally deferred to `/speckit-clarify`
-  rather than answered here, since none of them lack a reasonable default at the spec level.
+- Items marked incomplete require spec updates before `/speckit-plan`.
+- `/speckit-clarify` (2026-09-01) resolved the three highest-impact open questions — keyboard
+  shortcut conflict handling, scope of the never-working hierarchical point-cloud/brick-map
+  variant, and determinism of large-file detail reduction — and integrated the answers directly
+  into FR-006, FR-010, FR-015, and SC-006. No checklist item changed state (16/16 before and
+  after); the clarify session sharpened requirements that already passed rather than surfacing
+  new gaps.

@@ -8,6 +8,14 @@
 
 **Input**: User description: "Replace the dead `oshow` utility by absorbing its functionality into `orender-wire` as a second document type. `orender-wire` currently only opens RIB scene files and renders a flat wireframe (lines only). It should also be able to open openRender's precomputed 3D data-structure files — photon maps, irradiance caches, gather caches, point clouds, brick maps, and raw debug-geometry dumps — auto-detected by content, and visualize them with points, lines, triangles, and oriented discs (the primitive types `oshow` used to draw before its OpenGL module was deleted). The old FLTK-based `oshow` binary, the `CShow` hider, and all FLTK build dependencies are removed entirely — there is no compatibility shim. Interactive controls carried over from `oshow`: for brick maps, keys to change detail level (more/less), draw type (boxes/discs/points), and channel (previous/next); for point clouds, keys to toggle discs/points and change channel. These controls must be exposed both as real menu items (macOS) / header-bar controls (Linux) and as keyboard shortcuts, and their current state (channel name, detail level, draw mode) must be visible in the UI rather than printed to a terminal. The macOS app's shell moves from AppKit to SwiftUI (App/Scene/Commands) so it gains a real menu bar, while keeping its existing Metal renderer. The Linux app gains a populated header-bar menu (it currently has an empty one) using its existing GTK4/libadwaita/OpenGL stack. The CLI gains `--help`, `--version`, and a headless `--json` mode that prints scene/data statistics and exits without opening a window (no `ORENDERHOME`/`SHADERS`/`DISPLAYS` required, matching the existing RIB-loading path). Exactly one file is open at a time (no multi-window/multi-document model in this feature). Six existing test RIB scenes that named the dead `Hider "oshow:none"` are repointed at this new capability instead of asserting failure."
 
+## Clarifications
+
+### Session 2026-09-01
+
+- Q: When a legacy single-letter shortcut (like `d` or `q`) is offered for a data-file control, should it stay a bare key with no modifier, or be namespaced behind a modifier to guarantee it never collides with a menu accelerator? → A: Keep legacy letters as plain, unmodified keys; offered only when relevant to the open document type, so no two controls ever compete for the same key at the same time.
+- Q: Should the point-cloud/brick-map "hierarchical" variant that never had a working visualization (even before the legacy tool broke entirely) be built out with real visualization in this feature? → A: No — out of scope for this feature. It opens with a clear "not available" notice and no rendered content; real visualization is left to a future feature.
+- Q: When a data file has too many primitives to display responsively, should detail reduction follow a fixed, deterministic rule or an adaptive one that may vary by machine? → A: Fixed and deterministic — a maximum primitive count with even sampling, so the same file always reduces the same way regardless of machine.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Inspect a precomputed data-structure file (Priority: P1)
@@ -186,7 +194,9 @@ before this feature.
   successfully and indicating that there is nothing to display.
 - **FR-006**: The system MUST remain responsive when opening a data file with a very large
   number of primitives, reducing displayed detail if needed to do so, and MUST visibly
-  indicate to the user when detail has been reduced.
+  indicate to the user when detail has been reduced. Detail reduction MUST be deterministic —
+  a fixed maximum primitive count with even sampling — so the same file always reduces the
+  same way regardless of the machine it is opened on.
 
 ### Functional Requirements — Visualization
 
@@ -198,9 +208,11 @@ before this feature.
   visible without further user action.
 - **FR-009**: The system MUST allow the same navigation (orbit, pan, zoom, reset) already
   available for scene files to be used when viewing a data-structure file.
-- **FR-010**: The system MUST allow a data file with no working visualization implementation
-  (see Edge Cases) to still be opened, clearly indicating that no content is being shown for
-  it rather than failing or showing a blank scene with no explanation.
+- **FR-010**: The system MUST allow a data file with no working visualization implementation —
+  explicitly, the hierarchical point-cloud/brick-map variant that has never had one (see Edge
+  Cases) — to still be opened, clearly indicating that no content is being shown for it rather
+  than failing or showing a blank scene with no explanation. Building a working visualization
+  for this variant is explicitly out of scope for this feature.
 
 ### Functional Requirements — Interactive Controls
 
@@ -217,6 +229,9 @@ before this feature.
   update.
 - **FR-015**: Every control described in FR-011 through FR-014 MUST be reachable both through
   a visible menu, toolbar, or equivalent on-screen control, and through a keyboard shortcut.
+  These keyboard shortcuts MUST be plain, unmodified keys carried over from the legacy tool,
+  and MUST be active only while a document to which they apply is open, so they never compete
+  with another control's shortcut or an application-standard shortcut.
 - **FR-016**: The system MUST NOT rely on a terminal or console for any user-facing status —
   current channel, detail level, and draw mode MUST always be visible within the application's
   own window.
@@ -295,8 +310,8 @@ before this feature.
 - **SC-005**: Existing scene-viewing workflows (open, orbit, pan, zoom, reset, save camera)
   show no observable change in behavior after this feature ships.
 - **SC-006**: Opening a data file with a very large number of primitives (on the order of a
-  million points) completes in under 5 seconds and leaves the application responsive,
-  reducing displayed detail if necessary.
+  million points) completes in under 5 seconds and leaves the application responsive; if
+  detail is reduced to achieve this, reopening the same file always reduces it the same way.
 - **SC-007**: All six existing automated test scenes that previously could only assert the
   legacy tool's failure now assert real, successful behavior of the new capability.
 
@@ -317,4 +332,5 @@ before this feature.
   want to inspect; this feature does not add an interactive file-browsing capability.
 - A data-structure file type that has no working visualization today (see Edge Cases) is
   acceptable to open with a clear "not available" indication rather than a full visual
-  implementation; this is treated as a documented limitation rather than a defect.
+  implementation; this is treated as a documented limitation rather than a defect, explicitly
+  out of scope for this feature.
