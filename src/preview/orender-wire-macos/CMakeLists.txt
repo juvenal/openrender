@@ -20,9 +20,21 @@ set(WIRE_MACOS_BINARY    "${WIRE_MACOS_BUILD_DIR}/release/orender-wire-macos")
 set(WIRE_MACOS_APP_DIR  "${CMAKE_CURRENT_BINARY_DIR}/orender-wire.app")
 set(WIRE_MACOS_CONTENTS "${WIRE_MACOS_APP_DIR}/Contents")
 
+# SPM rejects header search paths outside the package root, so the real ribpreview_api.h is
+# staged into CRibPreview/include/ (alongside CRibPreview.h, which #includes it by bare name)
+# before every swift build. The staged copy is gitignored — see contracts/c-abi.md.
+set(WIRE_MACOS_STAGED_API_H "${WIRE_MACOS_SRC_DIR}/CRibPreview/include/ribpreview_api.h")
+add_custom_command(
+    OUTPUT  "${WIRE_MACOS_STAGED_API_H}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/src/preview/ribpreview_api.h"
+            "${WIRE_MACOS_STAGED_API_H}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/src/preview/ribpreview_api.h"
+    COMMENT "Staging ribpreview_api.h for orender-wire-macos (SPM header search path fallback)"
+)
+
 file(GLOB_RECURSE WIRE_MACOS_SOURCES
     "${WIRE_MACOS_SRC_DIR}/Sources/*.swift"
-    "${WIRE_MACOS_SRC_DIR}/Sources/*.metal"
     "${WIRE_MACOS_SRC_DIR}/Sources/*.h"
     "${WIRE_MACOS_SRC_DIR}/CRibPreview/include/*.h"
 )
@@ -64,6 +76,7 @@ add_custom_command(
     DEPENDS ${WIRE_MACOS_SOURCES}
             "${WIRE_MACOS_SRC_DIR}/Package.swift"
             "${WIRE_MACOS_SRC_DIR}/Info.plist"
+            "${WIRE_MACOS_STAGED_API_H}"
             "${LIBRIBPREVIEW_A}"
             "${LIBCOMMON_A}"
     COMMENT "Building orender-wire.app (Swift/Metal)"

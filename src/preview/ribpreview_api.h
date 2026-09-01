@@ -31,6 +31,17 @@ PreviewSceneC *ribpreview_load(const char *ribPath);
 // Free all resources allocated by ribpreview_load.
 void ribpreview_free(PreviewSceneC *scene);
 
+// Camera export — C-linkage wrappers around the C++ cameraExport API
+// (src/preview/libribpreview/cameraExport.h), defined in cameraExport.cpp.
+// camToWorld16: row-major 4×4 camera-to-world matrix (16 floats).
+// projType: 0 = perspective, 1 = orthographic.
+// fovDeg: vertical FOV in degrees (perspective only).
+// Returns 1 on success, 0 on failure (error written to stderr).
+int ribcam_write(const float *camToWorld16, int projType, float fovDeg,
+                 const char *outputPath);
+int ribcam_replace(const float *camToWorld16, int projType, float fovDeg,
+                    const char *existingPath);
+
 #ifdef __cplusplus
 }
 #endif

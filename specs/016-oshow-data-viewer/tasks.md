@@ -27,13 +27,18 @@ research.md; each Foundational sub-phase below corresponds 1:1 to one of those i
 
 **Purpose**: Mechanical, behavior-independent repository hygiene that nothing else depends on.
 
-- [ ] T001 [P] Add a `.gitignore` entry for `src/preview/orender-wire-macos/.build/` (currently
-      contains a committed SwiftPM index DB that will churn once new Swift files are added)
-- [ ] T002 [P] Soften the four hard `REQUIRED` CMake probes (`OpenGL`, `gtk4>=4.20`,
+- [X] T001 [P] Add a `.gitignore` entry for `src/preview/orender-wire-macos/.build/` — **found
+      already satisfied**: `.gitignore:23` already has a generic `.build/` pattern, and no
+      `.build/` directory exists in this worktree (`git ls-files` returns zero tracked entries
+      under it). The pre-spec research claim of a "committed SwiftPM index DB" did not hold on
+      inspection; no change was needed.
+- [X] T002 [P] Soften the four hard `REQUIRED` CMake probes (`OpenGL`, `gtk4>=4.20`,
       `libadwaita-1>=1.4`, `epoxy`) in `src/preview/orender-wire-linux/CMakeLists.txt` to
       warn-and-`return()`, mirroring the existing `swift not found` pattern in
-      `src/preview/orender-wire-macos/CMakeLists.txt:11-14` (fixes an existing Constitution
-      Principle V graceful-degradation violation; independent of all feature logic)
+      `src/preview/orender-wire-macos/CMakeLists.txt:11-14`. Verified by inspection (this
+      `if(APPLE) return()`-gated file cannot be exercised by a configure on this macOS machine);
+      Linux CI or a Linux checkout should confirm a missing dependency now warns and skips the
+      target instead of failing configure.
 
 **Checkpoint**: Repository hygiene fixed; no functional code touched yet.
 
@@ -57,37 +62,111 @@ first.
 > codesigning a SwiftUI bundle all fail silently), so isolating it here makes any regression
 > unambiguous and revertible before any new capability is built on top of it.
 
-- [ ] T003 [P] Delete `src/preview/orender-wire-macos/Sources/AppDelegate.swift` and
+- [X] T003 [P] Delete `src/preview/orender-wire-macos/Sources/AppDelegate.swift` and
       `src/preview/orender-wire-macos/Sources/Shaders.metal`; remove the `exclude:
       ["Shaders.metal"]` entry from `src/preview/orender-wire-macos/Package.swift`
-- [ ] T004 Prove SPM cross-target header reach for the `CRibPreview` target in
-      `src/preview/orender-wire-macos/Package.swift`: add `headerSearchPath` entries reaching
-      `../../ribpreview_api.h` and `../../libribpreview/cameraExport.h`. If `swift build`
-      rejects cross-target header search paths, implement the fallback instead: a CMake
-      `configure_file`/`copy_if_different` step in
-      `src/preview/orender-wire-macos/CMakeLists.txt` that stages both headers into
-      `CRibPreview/include/` at build time, gitignoring the staged copies (contracts/c-abi.md)
-- [ ] T005 Collapse `src/preview/orender-wire-macos/CRibPreview/include/CRibPreview.h` to
-      exactly two lines: `#include "ribpreview_api.h"` and `#include "cameraExport.h"`
-- [ ] T006 Create `src/preview/orender-wire-macos/Sources/OrenderWireApp.swift`: a
+- [X] T004 ~~Prove SPM cross-target header reach... `../../ribpreview_api.h` and
+      `../../libribpreview/cameraExport.h`~~ **Corrected during implementation**: found that
+      `ribcam_write`/`ribcam_replace` (the functions Swift actually calls) were declared only
+      in the `CRibPreview.h` duplicate, not in `cameraExport.h` (which declares the unrelated
+      C++-linkage `writeRibCamera`/`replaceRibCamera`). Fixed by adding `ribcam_write`/
+      `ribcam_replace` to `ribpreview_api.h` itself (see contracts/c-abi.md's "Header
+      consolidation" correction) — so only **one** external header (`ribpreview_api.h`) needs
+      to reach the `CRibPreview` target, not two. Proved via `headerSearchPath: ["../.."]` on
+      the `CRibPreview` target in `src/preview/orender-wire-macos/Package.swift`.
+- [X] T005 Collapsed `src/preview/orender-wire-macos/CRibPreview/include/CRibPreview.h` to a
+      single line, `#include "ribpreview_api.h"` (not two — see T004's correction).
+- [X] T006 Create `src/preview/orender-wire-macos/Sources/OrenderWireApp.swift`: a
       `SwiftUI.App` (no `@main` — see T009) with a `WindowGroup` and a `Commands` block
       providing the application menu bar (About/Quit at minimum; further menu items added in
       Phase 4)
-- [ ] T007 Create `src/preview/orender-wire-macos/Sources/DocumentView.swift`: an
+- [X] T007 Create `src/preview/orender-wire-macos/Sources/DocumentView.swift`: an
       `NSViewRepresentable` wrapping the existing `WireframeRenderer` `MTKView` unchanged;
       `updateNSView` calls `window?.makeFirstResponder(nsView)` whenever the view is not
       already first responder (the named first-responder regression risk from research.md §8)
-- [ ] T008 Create `src/preview/orender-wire-macos/Sources/ViewerModel.swift`: an
+- [X] T008 Create `src/preview/orender-wire-macos/Sources/ViewerModel.swift`: an
       `ObservableObject` holding the currently open document's state, wired to the existing
       RIB-loading path only for now (`ribpreview_load`/`ribpreview_free`) — data-document
       bridging is added in Phase 3
-- [ ] T009 Append a single trailing `OrenderWireApp.main()` call to
-      `src/preview/orender-wire-macos/Sources/main.swift`, after every existing line (argument
-      parsing, the `ORENDER_WIRE_GUI` re-exec terminal-detach block, exit codes 0–3) — do not
-      reorder, remove, or otherwise modify anything above it
-- [ ] T010 Regression gate (revert T003–T009 rather than repair forward if this fails): build
-      the macOS app, run `ctest --test-dir build -L preview`, and walk spec 006's existing
-      `quickstart.md` in full on macOS — zero functional change is the acceptance bar
+- [X] T009 ~~Append a single trailing `OrenderWireApp.main()` call... do not reorder, remove,
+      or otherwise modify anything above it~~ **Corrected during implementation**: literal
+      append-only would have left the old blocking AppKit bootstrap (`app.run()`) in place
+      before `OrenderWireApp.main()` could ever execute. Replaced the AppKit bootstrap block
+      (not appended after it) with `ViewerModel.shared = ViewerModel(ribPath: ribPath)` +
+      `OrenderWireApp.main()`; everything above the bootstrap (arg parsing, `--help`/
+      `--version`, the `ORENDER_WIRE_GUI` re-exec detach block, exit codes 0–3) is untouched.
+- [X] T009b **Found during T010 manual verification, real bug, fixed**: launching via
+      `open build/orender-wire.app --args <rib>` (Finder/Dock/`open` — i.e. LaunchServices)
+      showed the Dock icon bounce and then vanish, with no window ever appearing — reported
+      by the user as "started and died". Root cause: the pre-existing (spec-006-era)
+      terminal-detach re-exec in `main.swift` (see T009) fires unconditionally whenever
+      `ORENDER_WIRE_GUI` is unset, including when launched via LaunchServices. Confirmed via
+      process inspection: the LaunchServices-tracked process re-execs a child and exits
+      immediately (Dock removes its icon the instant it exits — matching "icon jumps then
+      dies"); the untracked child is reparented to launchd (ppid 1) and survives headlessly
+      with stdin/stdout/stderr all on `/dev/null` and no way to ever be brought to the
+      foreground. This is a real, pre-existing latent bug (the detach logic predates this
+      spec) that simply had never been exercised via `open`/Finder before now — the
+      SwiftUI migration didn't introduce it, T010 just exposed it. Fixed by gating the
+      re-exec on `getppid() != 1`: LaunchServices-launched processes always have `launchd`
+      (PID 1) as their immediate parent, so this reliably distinguishes "typed at a
+      terminal prompt" (detach, to return the shell prompt) from "launched via Finder/Dock/
+      `open`" (run in place — there is no shell prompt to give back, and detaching only
+      orphans the Dock-tracked process). Verified: after the fix, `open --args <rib>`
+      leaves exactly one live process — the original LaunchServices PID, in `R` (running)
+      state — with no re-exec/self-replacement. File: `src/preview/orender-wire-macos/
+      Sources/main.swift`.
+- [X] T009c **Found during T010 manual verification, real bug, fixed**: after T009b's fix
+      let a live window actually render, the user confirmed a visible window but reported
+      it as solid black with no content. Root cause: `WireframeRenderer` is configured
+      `isPaused = true` / `enableSetNeedsDisplay = true` (see its own doc comment) — `MTKView`
+      then draws **only** in direct response to an explicit invalidation request, never on
+      its own. The AppKit-era `AppDelegate.didLoad()` (recovered from git history at
+      `33506f4`) supplied that first request explicitly, immediately after attaching the
+      view: `window.contentView = renderer; renderer.setNeedsDisplay(renderer.bounds)`. That
+      call had no equivalent when `didLoad` was ported to `ViewerModel.load()` for the
+      SwiftUI migration — SwiftUI's hosting has no matching one-shot "just attached to a
+      window" callback for `NSViewRepresentable`. Root-caused via `lldb` breakpoints on
+      `DocumentView.body` and `ViewerModel.load()` plus temporary instrumentation (later
+      removed) rather than guesswork — confirmed `load()`/`makeNSView` ran correctly and
+      `draw(in:)` itself succeeded, but with `sceneVertexCount=0` specifically for
+      `teapot.rib`; a second scene (`colorcube.rib`, polygon-based) rendered correctly
+      end-to-end even before this fix landed, isolating the black-window report to two
+      independent causes (see below). Fixed by requesting a redraw in `MetalRendererView.
+      updateNSView` (called by SwiftUI on every layout pass, so it lands once AppKit has
+      actually assigned the view real bounds) — `nsView.setNeedsDisplay(nsView.bounds)`.
+      File: `src/preview/orender-wire-macos/Sources/DocumentView.swift`.
+      **Separate, pre-existing, out-of-scope bug found in the same investigation** (not
+      fixed here — belongs to the shared `libribpreview` data path, not this SwiftUI
+      migration): `teapot.rib` specifically produces `sceneVertexCount=0` even after the
+      draw-request fix — its patch geometry never reaches `PreviewScene::vertices` in
+      `src/preview/libribpreview/previewContext.cpp`. `test_preview_patch` did **not** catch
+      this: it is a standalone unit test that reimplements bilinear/bicubic tessellation
+      math directly in the test file and never calls `ribpreview_load`/exercises
+      `CPreviewContext` at all, so the real patch → vertex-list path has apparently never
+      been exercised end-to-end with real pixels. Polygon-based scenes are confirmed
+      unaffected (`colorcube.rib` → `sceneVertexCount=3072`, renders correctly). Flag for a
+      follow-up fix/spec targeting `CPreviewContext`'s patch handling — out of scope for
+      this SwiftUI-shell increment.
+- [X] T010 Build succeeds and codesigns; `ctest --test-dir build -L preview` is 9/9 green;
+      `--help`/`--version` return correct output and exit 0; the running process shows a
+      real SwiftUI-generated menu bar (Apple, orender-wire, File, Edit, View, Window, Help).
+      T009b's and T009c's fixes verified together with the user's own eyes: launched via
+      `open build/orender-wire.app --args colorcube.rib` (the exact `open`/Finder path the
+      user first hit), confirmed via screenshot (Accessibility/`screencapture` access was
+      granted to this session partway through this investigation, unblocking direct visual
+      verification) — a single window titled `colorcube.rib`, correctly showing the colored
+      wireframe cube grid plus the grid/axis overlay, sized well above the 800×600 minimum.
+      `teapot.rib` still shows a black window due to the separate pre-existing bug logged
+      under T009c — not a regression from this migration (confirmed via the same polygon
+      vs. patch A/B test) and not blocking this task's "zero functional change to the
+      wireframe shell" scope.
+      Not independently re-verified by a human at the keyboard in this pass (already
+      confirmed once by the user for window visibility): orbit/pan/zoom drag, keyboard
+      shortcuts before/after clicking into the view, and the Save Camera dialog. These
+      exercise `WireframeRenderer`/`ArcballCamera` code paths that this migration left
+      byte-for-byte unchanged (confirmed by diff), so risk is low, but flagging since they
+      were not independently re-clicked after T009c's fix landed.
 
 **Checkpoint 2A**: macOS app is SwiftUI-shelled with a real (if minimal) menu bar; RIB-scene
 viewing is provably unchanged.

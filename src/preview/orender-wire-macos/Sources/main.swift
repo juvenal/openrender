@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 
 // ─── Command-line argument handling ──────────────────────────────────────────
@@ -51,8 +52,18 @@ guard FileManager.default.fileExists(atPath: ribPath) else {
 // prevents the re-launched child from looping.  Runtime errors in the child are
 // written to stderr, which it inherits from the parent and which appears both in
 // the terminal and in macOS Console.app.
+//
+// This must NOT run when launched via Finder, the Dock, or `open` — those go through
+// LaunchServices, whose launched process always has launchd (PID 1) as its immediate
+// parent. Re-execing in that case orphans the Launch-Services-tracked process (its Dock
+// icon disappears the instant it exits) while the untracked child survives headlessly,
+// with no window and no way to bring it forward — indistinguishable from a crash. Skip
+// the detach whenever the parent is launchd; there is no shell prompt to give back in
+// that case anyway.
 
-if ProcessInfo.processInfo.environment["ORENDER_WIRE_GUI"] == nil {
+let launchedViaLaunchServices = getppid() == 1
+
+if !launchedViaLaunchServices && ProcessInfo.processInfo.environment["ORENDER_WIRE_GUI"] == nil {
     guard let self_ = Bundle.main.executableURL else {
         fputs("orender-wire: cannot resolve executable path\n", stderr)
         exit(1)
@@ -73,11 +84,11 @@ if ProcessInfo.processInfo.environment["ORENDER_WIRE_GUI"] == nil {
 }
 
 // ─── Application startup ─────────────────────────────────────────────────────
+//
+// Bootstraps via SwiftUI's App lifecycle (OrenderWireApp.main() creates and runs
+// NSApplication internally) rather than the AppKit NSApplication/NSApplicationDelegate
+// pair this replaced. ViewerModel.shared is constructed here, before handing off, so
+// OrenderWireApp can pick it up without main.swift needing to know anything about SwiftUI.
 
-let app = NSApplication.shared
-app.setActivationPolicy(.regular)
-
-let delegate = AppDelegate(ribPath: ribPath)
-app.delegate = delegate
-
-app.run()
+ViewerModel.shared = ViewerModel(ribPath: ribPath)
+OrenderWireApp.main()

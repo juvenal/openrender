@@ -22,6 +22,9 @@ Makefile
 # SwiftPM
 .build/
 
+# Staged copy of ribpreview_api.h (SPM header search path fallback — see contracts/c-abi.md)
+src/preview/orender-wire-macos/CRibPreview/include/ribpreview_api.h
+
 # CMake builds
 build/
 build-*/

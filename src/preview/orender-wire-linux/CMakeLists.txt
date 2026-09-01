@@ -4,11 +4,35 @@ if(APPLE)
     return()
 endif()
 
-find_package(OpenGL REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK4 REQUIRED gtk4>=4.20)
-pkg_check_modules(ADWAITA REQUIRED libadwaita-1>=1.4)
-pkg_check_modules(EPOXY REQUIRED epoxy)
+find_package(OpenGL)
+if(NOT OpenGL_FOUND)
+    message(WARNING "OpenGL not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+find_package(PkgConfig)
+if(NOT PkgConfig_FOUND)
+    message(WARNING "pkg-config not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(GTK4 gtk4>=4.20)
+if(NOT GTK4_FOUND)
+    message(WARNING "gtk4>=4.20 not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(ADWAITA libadwaita-1>=1.4)
+if(NOT ADWAITA_FOUND)
+    message(WARNING "libadwaita-1>=1.4 not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(EPOXY epoxy)
+if(NOT EPOXY_FOUND)
+    message(WARNING "epoxy not found — orender-wire-linux will not be built")
+    return()
+endif()
 
 add_executable(orender-wire
     main.cpp

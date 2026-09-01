@@ -115,19 +115,31 @@ ribdata_sniff(path)                 -- optional pre-check, side-effect-free
 
 ## Header consolidation
 
-`orender-wire-macos/CRibPreview/include/CRibPreview.h` is reduced to:
+**Corrected during implementation (I0)**: the original draft of this contract had
+`CRibPreview.h` include both `ribpreview_api.h` and `cameraExport.h`. On inspection,
+`cameraExport.h` declares only the C++ overload-friendly `writeRibCamera`/`replaceRibCamera`
+(taking a `CameraExport&` struct, returning `bool`) — not Swift-importable, and not what
+`WireframeRenderer.swift` actually calls. The C-linkage `ribcam_write`/`ribcam_replace`
+wrappers it *does* call are `extern "C"` functions defined in `cameraExport.cpp` but were,
+before this correction, declared **only** in the hand-maintained `CRibPreview.h` duplicate —
+exactly the drift this consolidation exists to close, just not fully closed in the first draft.
+
+Fix: `ribcam_write`/`ribcam_replace` are now declared in `ribpreview_api.h` itself, alongside
+`ribpreview_load`/`ribpreview_free`, since they are genuinely part of the public C ABI. `Linux`
+continues to call `writeRibCamera`/`replaceRibCamera` directly via `cameraExport.h` (unchanged —
+that is C++-to-C++, no Swift involved). `orender-wire-macos/CRibPreview/include/CRibPreview.h`
+is reduced to a single include:
 
 ```c
 #include "ribpreview_api.h"
-#include "cameraExport.h"
 ```
 
-with `Package.swift`'s `CRibPreview` target given `headerSearchPath` entries reaching
-`../../` (for `ribpreview_api.h`) and `../../libribpreview` (for `cameraExport.h`), proven in
-implementation increment I0 before this contract's structs are added in I3. If SPM rejects
+with `Package.swift`'s `CRibPreview` target given **one** `headerSearchPath` entry reaching
+`../../` (for `ribpreview_api.h` alone — `cameraExport.h` is never needed on the Swift side).
+This is a smaller, lower-risk change than the original two-header plan. If SPM rejects
 cross-target header search paths, the fallback (a CMake `configure_file`/`copy_if_different`
-staging step, gitignored) preserves this same "one header pair, two includes" contract — the
-fallback changes *how* the files reach the target, never *what* Swift or C++ code includes.
+staging step, gitignored) preserves the same "one header, one include" contract — the fallback
+changes *how* the file reaches the target, never *what* Swift code includes.
 
 ## Linux consumption
 
