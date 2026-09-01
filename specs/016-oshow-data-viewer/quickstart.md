@@ -49,6 +49,11 @@ failing cases, diagnostics on stderr, exit codes matching the contract. Confirm 
 with no display/window-server available (e.g., over SSH without X forwarding) — this is the
 headless-mode guarantee from FR-023/SC-004.
 
+**Timing check (SC-004)**: `time build/src/preview/orender-wire --json <point-cloud-fixture>` —
+confirm this completes in **under 2 seconds** on a typical fixture. (`test_wire_cli` also
+asserts this automatically on the same class of fixture; this manual check is a real-machine
+sanity confirmation, not the sole proof.)
+
 ## 3. Opening each document type (GUI)
 
 For each of: a RIB scene, a photon map, an irradiance cache, a gather cache, a point cloud, a
@@ -60,10 +65,6 @@ brick map, a debug-geometry dump — launch `orender-wire <file>` and confirm:
 - Orbit, pan, zoom, and reset all work identically to the existing scene-viewing behavior
   (FR-009, User Story 4).
 - For the debug-geometry dump: no channel control is offered (FR-017).
-
-Then open a data file variant known to have no working visualization (the hierarchical
-point-cloud/brick-map case): confirm it opens successfully with a clear "not available" notice
-and no crash (FR-010).
 
 ## 4. Interactive controls — menu/toolbar path
 
@@ -98,9 +99,15 @@ complete.
   on Linux, where the bug lived).
 - Confirm discs render with visually correct orientation (no degenerate/inverted discs from the
   disc-basis NaN fix) — pay particular attention to any point near the world origin.
-- Open a data file whose primitive count exceeds the deterministic decimation cap; confirm the
-  application stays responsive, and confirm a visible indication that detail was reduced
-  (FR-006, SC-006). Reopen the same file and confirm the reduction looks identical both times.
+- Open a data file whose primitive count exceeds the deterministic decimation cap (on the order
+  of a million points); confirm the application stays responsive, and confirm a visible
+  indication that detail was reduced (FR-006). Reopen the same file and confirm the reduction
+  looks identical both times.
+
+**Timing check (SC-006)**: time the open above, from launch to the window becoming responsive —
+confirm **under 5 seconds**. This is checked manually rather than by an automated test, since
+generating a million-primitive fixture inside a 30 s-timeout unit test would test fixture
+generation more than the feature.
 
 ## 7. Application chrome
 

@@ -55,7 +55,7 @@ Common envelope:
   "toolVersion": "<string>",
   "file": "<absolute path as given>",
   "documentType": "rib" | "photonmap" | "irradiancecache" | "gathercache"
-                | "pointcloud" | "brickmap" | "debugdump" | "unsupported",
+                | "pointcloud" | "brickmap" | "debugdump",
   "bounds": { "min": [x, y, z], "max": [x, y, z] },
   "warnings": ["<string>", ...]
 }
@@ -72,7 +72,7 @@ Common envelope:
 }
 ```
 
-Every other `documentType` (including `"unsupported"`) adds:
+Every other `documentType` adds:
 
 ```json
 "data": {
@@ -83,15 +83,27 @@ Every other `documentType` (including `"unsupported"`) adds:
   "currentChannel": <int>,
   "detailLevel": <int>,
   "drawMode": "<string>"
+},
+"camera": {
+  "projectionType": "perspective" | "orthographic",
+  "fov": <float>, "frameAspectRatio": <float>,
+  "nearPlane": <float>, "farPlane": <float>
 }
 ```
 
-- `documentType == "unsupported"` reports all primitive counts as 0 and a non-empty `warnings`
-  entry explaining that no visualization exists for this variant (FR-010); this is a success
-  case (exit 0), not an error.
+- The `camera` object for a data document is a synthesized framing camera (`DataSceneC.camera`
+  in contracts/c-abi.md), not read from any file — added here during `/speckit-analyze`
+  remediation, since the C ABI already exposed it but this schema previously omitted it (FR-008,
+  E2 in the analysis report).
+- Every document type this feature can detect from file content always visualizes successfully
+  — there is no "recognized but unsupported" `documentType` value (see spec.md's retired
+  FR-010; a prior draft of this schema had one for a shading-time-only variant that source
+  verification showed is unreachable through file-content detection).
 - Fields not applicable to a given document type (`channels` for a debug dump, `detailLevel` for
   anything but a brick map) are present with their "not applicable" sentinel (`[]`, `-1`) rather
   than omitted, so consumers can rely on a stable schema per `schemaVersion`.
+- `decimated > 0` reports the count of primitives dropped by the deterministic detail-reduction
+  cap (FR-006); this is a success case with a corresponding `warnings` entry, never an error.
 - `warnings` also carries the decimation notice when `decimated > 0` (FR-006).
 
 ## Compatibility notes

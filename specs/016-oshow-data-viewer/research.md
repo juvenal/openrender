@@ -60,6 +60,42 @@ validation at `src/ri/show.cpp:82-99` verbatim) and `class CDataDocument` whose 
    `new CBrickMap(in, name, from, to)`, or `new CDebugView(in, name)`.
 4. Owns whichever `CDataView*` it constructs and deletes it uniformly in `~CDataDocument()`.
 
+`dataSniff()`'s result type (referenced by `contracts/c-abi.md` as `ribdata_open`'s `*err`
+output) is:
+
+```cpp
+enum EDataFileType {
+    DATA_UNKNOWN = 0,          // sniff not yet attempted / no file open
+    DATA_NOT_A_DATA_FILE,      // no magic number and not a parseable debug dump — try RIB instead
+    DATA_PHOTONMAP,
+    DATA_IRRADIANCECACHE,
+    DATA_GATHERCACHE,
+    DATA_POINTCLOUD,
+    DATA_BRICKMAP,
+    DATA_DEBUGDUMP,
+    DATA_BAD_VERSION,          // magic matched; VERSION_MAJOR/MINOR mismatch (show.cpp:92-93)
+    DATA_BAD_WORDSIZE,         // magic matched; sizeof(int*) mismatch (show.cpp:95-96)
+};
+```
+
+No `DATA_UNSUPPORTED`/hierarchical entry exists in this enum — see the note below.
+
+**Confirmed during `/speckit-analyze` (2026-09-01) — a variant that does *not* exist in this
+enum**: pre-spec design work assumed a "recognized but unsupported" data-file variant
+(`CPointHierarchy`, whose `draw()`/`bound()` are empty stubs) reachable through this same
+content-based dispatch. Verified against source: `CPointHierarchy` is constructed only when a
+caller passes `hierarchy = TRUE` to `CRenderer::getTexture3d` (default `FALSE`,
+`src/ri/renderer.h:292`); the only such caller is the RSL shading-services bridge
+(`src/ri/rendererServicesImpl.h:98` → `src/libshader/shading/shading.cpp:554`), invoked by a
+shader's runtime request during rendering — never by anything present in the file. Its
+constructor (`pointHierarchy.h:56`) reads the identical on-disk format as `CPointCloud`; no
+magic number, type string, or header field distinguishes it. Even `show.cpp` (the code this
+feature replaces) always calls `getTexture3d(fileName, FALSE, NULL, from, to)` for both point
+clouds and brick maps (`show.cpp:120,122`), so the original tool never reached this branch
+either. **Conclusion**: this variant cannot be selected by `dataSniff()` or `CDataDocument::
+open()` as designed, under any file content. It has been removed from scope entirely (spec.md's
+retired FR-010; no corresponding enumerator here) rather than modeled as an unreachable branch.
+
 **Rationale**: `CRenderer::getPhotonMap`/`getCache`/`getTexture3d` all
 `assert(frameFiles != NULL)` (`rendererFiles.cpp:490,522,650`); `frameFiles` is created inside
 `CRenderer::beginFrame`, which `RiBeginLite()` (used by the existing RIB-loading path,

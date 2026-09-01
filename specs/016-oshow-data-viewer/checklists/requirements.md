@@ -38,3 +38,9 @@
   into FR-006, FR-010, FR-015, and SC-006. No checklist item changed state (16/16 before and
   after); the clarify session sharpened requirements that already passed rather than surfacing
   new gaps.
+- `/speckit-analyze` (2026-09-01) found that the hierarchical-variant clarification above was
+  based on a premise source verification disproved: that variant cannot be selected by file
+  content at all, so the "not available" branch it justified is unreachable. FR-010 has been
+  retired (not renumbered — see spec.md) and the corresponding Edge Case and Assumptions bullets
+  removed; FR-002 now stands unconditionally. Checklist re-verified after this correction: still
+  16/16 passing (the correction simplifies the spec, it does not introduce a new gap).

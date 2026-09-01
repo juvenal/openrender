@@ -25,7 +25,7 @@ The loaded, displayable representation of one precomputed data-structure file. O
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | `EDataFileType` | one of: photon map, irradiance cache, gather cache, point cloud, brick map, debug-geometry dump, unsupported-hierarchical, invalid |
+| `type` | `EDataFileType` (research.md §2) | one of: `DATA_PHOTONMAP`, `DATA_IRRADIANCECACHE`, `DATA_GATHERCACHE`, `DATA_POINTCLOUD`, `DATA_BRICKMAP`, `DATA_DEBUGDUMP`; `DATA_NOT_A_DATA_FILE`/`DATA_BAD_VERSION`/`DATA_BAD_WORDSIZE` never reach a constructed `CDataDocument` (open() returns null instead) |
 | `view` | `CDataView *` | owned; the five reader classes or `CDebugView` |
 | — | — | no separate bounds/camera fields; these are queried from `view->bound()` on demand |
 
@@ -38,7 +38,7 @@ The loaded, displayable representation of one precomputed data-structure file. O
 | `decimatedCount` | `int` | primitives dropped by the deterministic cap; 0 if none |
 | `bounds` | `PreviewBoundsC` | reused from the existing RIB-path struct |
 | `camera` | `PreviewCameraC` | synthesized framing camera (not read from a RIB) |
-| `documentType` | `int` (enum) | mirrors `EDataFileType`, minus `invalid` |
+| `documentType` | `RibDataType` (contracts/c-abi.md) | one of the six file-content-detectable types; never a rejection code — rejections are reported via `ribdata_open`'s `*err` output instead, so no rejected file ever produces a `DataSceneC` |
 | `numChannels`, `currentChannel` | `int` | 0/-1 when not applicable (e.g., debug dump) |
 | `detailLevel` | `int` | brick map only; -1 when not applicable |
 | `drawMode` | `int` (enum) | meaning is per-`documentType` (see Draw Mode below) |
@@ -46,14 +46,17 @@ The loaded, displayable representation of one precomputed data-structure file. O
 **Validation rules** (from FR-001 through FR-006):
 - `type` is determined solely from file content (magic number + type string), never from
   filename or extension.
-- `type == invalid` is returned, never constructed as a `CDataDocument`, when: the file is
+- `CDataDocument::open()` returns null — never a constructed document — when: the file is
   truncated/corrupt, the magic number doesn't match any known type and the file also fails to
-  parse as a debug-geometry dump, or the version/word-size check fails — this last case is
-  reported distinctly (exit code 4, not a generic parse failure).
-- `type == unsupported-hierarchical` is a valid, successfully-opened document with zero
-  primitives and one warning; it is not an error.
+  parse as a debug-geometry dump (`DATA_NOT_A_DATA_FILE`), or the version/word-size check fails
+  (`DATA_BAD_VERSION`/`DATA_BAD_WORDSIZE`, reported distinctly — exit code 4, not a generic
+  parse failure).
+- Every file that sniffs as one of the six detectable types always produces a successfully
+  visualized document — there is no "recognized but no visualization" outcome in this feature's
+  scope (see research.md §2's confirmation that the one candidate for such a case, a
+  shading-time-only rendering strategy, cannot be selected by file content at all).
 - A document with zero primitives is valid (not an error) and reports `decimatedCount == 0` and
-  all counts `== 0`.
+  all counts `== 0` (FR-005).
 
 ## Display Channel
 

@@ -174,7 +174,9 @@ tree except historical records.
       `bound()` returns finite values — pins the identity-matrix seeding requirement)
 - [ ] T034 [P] Write failing test `tests/preview/test_data_pointcloud.cpp` (construct a
       `CPointCloud` via its write constructor, `store()` known points, destroy to flush, reopen
-      through `CDataDocument::open()`, assert type/count/bounds/channels match)
+      through `CDataDocument::open()`, assert type/count/bounds/channels match; also repeat the
+      round-trip storing zero points and assert the reopened document is valid with all counts
+      `== 0` — covers FR-005, added during `/speckit-analyze` remediation)
 - [ ] T035 Register T033 and T034 in `tests/preview/CMakeLists.txt`; confirm both fail to
       compile/link (Red — `CDataDocument` does not exist yet)
 - [ ] T036 Create `src/ri/dataLoad.h` and `src/ri/dataLoad.cpp`: `dataSniff()` (ports the
@@ -203,8 +205,10 @@ tree except historical records.
       across the whole sequence)
 - [ ] T041 [P] Write failing test `tests/preview/test_wire_cli.cpp` (argument grammar from
       contracts/cli-interface.md; every exit code 1–5 reachable; `--json` output is
-      well-formed JSON containing `schemaVersion` and every required key per `documentType`,
-      including the `"unsupported"` case)
+      well-formed JSON containing `schemaVersion` and every required key per `documentType`;
+      assert the synthesized `camera` in a data document's output actually frames the reported
+      `bounds`, covering FR-008; assert `--json` on a small fixture completes under 2 seconds,
+      covering SC-004 — both added during `/speckit-analyze` remediation)
 - [ ] T042 Register T040 and T041 in `tests/preview/CMakeLists.txt`; confirm both fail (Red —
       `ribdata_key` and `wireCli` do not exist yet)
 - [ ] T043 Create `src/preview/libribpreview/dataSink.h` and
@@ -283,13 +287,14 @@ is visible.
       builds Metal-NDC `z ∈ [0,1]` and GL 3.3 core has no `glClipControl`), and reconcile
       `src/preview/orender-wire-linux/arcball.cpp`'s orthographic `updateAspect` with
       `ArcballCamera.swift`'s in the same change
-- [ ] T056 [US1] Implement the "not available" notice path for `RIBDATA_TYPE_UNSUPPORTED`
-      (the hierarchical point-cloud/brick-map variant) in both frontends: the document opens
-      successfully, shows no geometry, and displays the warning from `DataSceneC.warnings`/the
-      JSON `warnings` array
+- [ ] T056 *(Retired during `/speckit-analyze`, 2026-09-01.)* This task implemented a
+      "not available" notice for a hierarchical point-cloud/brick-map variant later shown to be
+      unreachable through file-content detection (see spec.md's retired FR-010,
+      contracts/c-abi.md's `RibDataType`, and research.md §2). No replacement task is needed:
+      `RibDataType` has no corresponding enumerator, so every document `ribdata_open` returns is
+      always visualizable. This ID is intentionally left retired rather than reused.
 - [ ] T057 [US1] Manual validation: `quickstart.md` steps 2–3 (headless CLI per document type,
-      then GUI open per document type, including the unsupported-variant case) on both
-      platforms
+      then GUI open per document type) on both platforms
 
 **Checkpoint**: User Story 1 is fully functional and independently testable — every data type
 opens and renders on both platforms.

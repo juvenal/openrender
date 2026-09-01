@@ -36,7 +36,12 @@ typedef enum {
     RIBDATA_TYPE_POINTCLOUD,
     RIBDATA_TYPE_BRICKMAP,
     RIBDATA_TYPE_DEBUGDUMP,
-    RIBDATA_TYPE_UNSUPPORTED,   // e.g. hierarchical variant — valid, zero primitives, a warning
+    // No RIBDATA_TYPE_UNSUPPORTED: a prior draft of this contract included one for a
+    // "recognized but no visualization" case (the CPointHierarchy variant). Removed after
+    // /speckit-analyze verification (research.md §2) showed that variant is a shading-time
+    // rendering strategy a shader requests at render time, never a distinguishable on-disk
+    // file format — it cannot be produced by ribdata_sniff()/ribdata_open() under any file
+    // content, so every value in this enum always corresponds to a real, visualizable document.
 } RibDataType;
 
 typedef struct {
@@ -61,8 +66,9 @@ typedef struct RibDataDocument RibDataDocument;   // opaque
 int ribdata_sniff(const char *path);
 
 // Open a data file. Returns NULL on failure (message written to stderr); *err receives one of
-// the DATA_* codes from dataSniff() (see research.md §1) so the caller can map to CLI exit
-// code 4 vs a generic failure.
+// the EDataFileType codes from dataSniff() (see research.md §2 for the concrete enum) so the
+// caller can map DATA_BAD_VERSION/DATA_BAD_WORDSIZE to CLI exit code 4, and DATA_NOT_A_DATA_FILE
+// to "try ribpreview_load() instead" (per FR-001's content-based auto-detection).
 RibDataDocument *ribdata_open(const char *path, int *err);
 
 // Produce the current visualization state. The returned pointer is owned by the document and

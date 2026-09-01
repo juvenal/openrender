@@ -13,7 +13,7 @@
 ### Session 2026-09-01
 
 - Q: When a legacy single-letter shortcut (like `d` or `q`) is offered for a data-file control, should it stay a bare key with no modifier, or be namespaced behind a modifier to guarantee it never collides with a menu accelerator? → A: Keep legacy letters as plain, unmodified keys; offered only when relevant to the open document type, so no two controls ever compete for the same key at the same time.
-- Q: Should the point-cloud/brick-map "hierarchical" variant that never had a working visualization (even before the legacy tool broke entirely) be built out with real visualization in this feature? → A: No — out of scope for this feature. It opens with a clear "not available" notice and no rendered content; real visualization is left to a future feature.
+- Q: Should the point-cloud/brick-map "hierarchical" variant that never had a working visualization (even before the legacy tool broke entirely) be built out with real visualization in this feature? → A: No — out of scope for this feature. It opens with a clear "not available" notice and no rendered content; real visualization is left to a future feature. **Superseded during `/speckit-analyze` (2026-09-01)**: source verification showed this variant cannot be selected by file content at all — it is a shading-time rendering strategy a shader requests at render time (`hierarchy=TRUE` passed to `CRenderer::getTexture3d`), never a distinguishable on-disk file format, and even the original tool's own dispatch never requested it. Since this feature's file-content detection (FR-001) can never produce it, the "not available" branch described here is unreachable and has been removed; see the retired FR-010 below. Every point-cloud and brick-map file this feature can detect now always visualizes (FR-002 is unconditional).
 - Q: When a data file has too many primitives to display responsively, should detail reduction follow a fixed, deterministic rule or an adaptive one that may vary by machine? → A: Fixed and deterministic — a maximum primitive count with even sampling, so the same file always reduces the same way regardless of machine.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -170,10 +170,6 @@ before this feature.
 - What happens when the application is launched with no file argument, or with an unrecognized
   option? It must print a clear usage message and exit with a failure status rather than
   opening an empty window.
-- What happens when a data file's format is one the application has no dedicated visualization
-  for (for example, a hierarchical point-cloud variant that has never had a working viewer)?
-  The application must open the file and clearly indicate that no visualization is available
-  for it, rather than crashing, hanging, or silently showing nothing with no explanation.
 
 ## Requirements *(mandatory)*
 
@@ -208,11 +204,14 @@ before this feature.
   visible without further user action.
 - **FR-009**: The system MUST allow the same navigation (orbit, pan, zoom, reset) already
   available for scene files to be used when viewing a data-structure file.
-- **FR-010**: The system MUST allow a data file with no working visualization implementation —
-  explicitly, the hierarchical point-cloud/brick-map variant that has never had one (see Edge
-  Cases) — to still be opened, clearly indicating that no content is being shown for it rather
-  than failing or showing a blank scene with no explanation. Building a working visualization
-  for this variant is explicitly out of scope for this feature.
+- **FR-010**: *(Retired during `/speckit-analyze`, 2026-09-01 — see Clarifications.)* This
+  requirement described a "no visualization available" fallback for a data-file variant later
+  shown to be unreachable through this feature's own content-based detection (FR-001): it is
+  selected only by a shader's runtime request during rendering, never by anything present in a
+  file. No replacement requirement is needed — FR-002 already unconditionally covers every
+  detectable data-structure file type. This ID is intentionally left retired rather than reused,
+  so downstream references (data model, contracts, tasks) that predate this correction remain
+  traceable.
 
 ### Functional Requirements — Interactive Controls
 
@@ -330,7 +329,6 @@ before this feature.
   application launches.
 - The headless statistics mode is aimed at users and scripts that already know which file they
   want to inspect; this feature does not add an interactive file-browsing capability.
-- A data-structure file type that has no working visualization today (see Edge Cases) is
-  acceptable to open with a clear "not available" indication rather than a full visual
-  implementation; this is treated as a documented limitation rather than a defect, explicitly
-  out of scope for this feature.
+- Every data-structure file type this feature can detect from file content always has a working
+  visualization; there is no "recognized but unsupported" variant in scope (see the retired
+  FR-010 and the corrected Clarifications entry).
