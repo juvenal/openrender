@@ -36,11 +36,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "object.h"
-#include "polygons.h"
-#include "rendererContext.h"
 #include "ri.h"
-#include "riHooks.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -68,45 +64,6 @@ static int tests_failed = 0;
             return;                                                \
         }                                                          \
     } while (0)
-
-///////////////////////////////////////////////////////////////////////
-// Capture what reaches addObject()
-///////////////////////////////////////////////////////////////////////
-class CCaptureContext : public CRendererContext {
-    public:
-        int numCaptured;
-        int numVertices;
-        int numTriangles;
-        float bmin[3], bmax[3];
-
-        CCaptureContext() : CRendererContext(), numCaptured(0), numVertices(0), numTriangles(0) {
-            for (int i = 0; i < 3; i++) {
-                bmin[i] = 0;
-                bmax[i] = 0;
-            }
-        }
-
-        virtual void addObject(CObject *o) {
-            CPolygonMesh *mesh = dynamic_cast<CPolygonMesh *>(o);
-
-            if (mesh != NULL) {
-                numCaptured++;
-                for (int i = 0; i < 3; i++) {
-                    bmin[i] = mesh->bmin[i];
-                    bmax[i] = mesh->bmax[i];
-                }
-            }
-
-            CRendererContext::addObject(o);
-        }
-};
-
-static CCaptureContext *g_context = NULL;
-
-static CRendererContext *makeCaptureContext() {
-    g_context = new CCaptureContext();
-    return g_context;
-}
 
 // Two summed ellipsoid fields carrying a per-blob colour, so the round
 // trip has to preserve the code array, the floats, the strings and the
