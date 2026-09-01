@@ -687,7 +687,12 @@ void CRibGeometryContext::RiPointsV(int npoints, int n, const char *tokens[], co
 void CRibGeometryContext::RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int n, const char *tokens[], const void *params[]) {
     if (!shouldProcess(motionBlockDepth_, motionGeomConsumed_))
         return;
-    if (strcmp(scheme, RI_CATMULLCLARK) != 0)
+    // The wireframe preview only ever draws the base control-cage topology (see
+    // tessSubdivision.cpp -- it walks nvertices/vertices directly and never refines by scheme),
+    // so any scheme CSubdivMesh itself supports is safe to accept here. Rejecting "loop" left a
+    // valid, non-empty RIB scene silently rendering as an empty view -- caught by
+    // test_preview_subdiv.cpp (spec 016, T050) against examples/rib/tests/subdiv-loop-wire.rib.
+    if (strcmp(scheme, RI_CATMULLCLARK) != 0 && strcmp(scheme, RI_LOOP) != 0)
         return;
 
     int j = 0;

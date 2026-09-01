@@ -5,7 +5,7 @@
 build
 build-*
 tmp-root
-orender-*
+/orender-*
 openrender
 install_staging
 

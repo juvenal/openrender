@@ -22,6 +22,7 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
 
     private var commandQueue: MTLCommandQueue!
     private var scenePipeline: MTLRenderPipelineState!
+    private var pointsPipeline: MTLRenderPipelineState!
     private var gridAxisPipeline: MTLRenderPipelineState!
     private var depthState: MTLDepthStencilState!
     private var sceneBuffer: MTLBuffer?
@@ -29,6 +30,26 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
     private var sceneVertexCount: Int = 0
     private var gridAxisBuffer: MTLBuffer!
     private var gridAxisVertexCount: Int = 0
+
+    // ─── Data-document buffers (spec 016) ───────────────────────────────────
+    // Populated only when opening a data document (photon map, cache, point cloud, brick map,
+    // debug dump) instead of a RIB scene; a RIB document leaves all three nil, and drawing skips
+    // them. Discs arrive already CPU-expanded into triVerts/triCols (see diskExpand.h), so no
+    // separate disc pipeline is needed -- they draw through the same triangle pipeline as any
+    // other filled geometry (e.g. brick-map boxes).
+    //
+    // `dataDoc` is retained (not freed after upload) because ribdata_key()'s re-emit cycle
+    // (User Story 2) needs the CDataView underneath it to stay alive for the document's whole
+    // session -- unlike ribpreview_free's fully-materialized-then-torn-down RIB scene.
+    // nonisolated(unsafe): deinit is nonisolated and needs to read this to release the handle;
+    // safe because this instance holds the only reference and deinit runs exactly once.
+    private nonisolated(unsafe) var dataDoc: OpaquePointer?
+    private var dataLineBuffer, dataLineColorBuffer: MTLBuffer?
+    private var dataLineVertexCount: Int = 0
+    private var dataPointBuffer, dataPointColorBuffer: MTLBuffer?
+    private var dataPointVertexCount: Int = 0
+    private var dataTriBuffer, dataTriColorBuffer: MTLBuffer?
+    private var dataTriVertexCount: Int = 0
 
     // Track drag type for mouseMoved / mouseDragged disambiguation.
     private enum DragKind { case orbit, pan }
@@ -54,7 +75,38 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
                                 bounds: scene.pointee.bounds)
     }
 
+    // Opens a data document (photon map, irradiance/gather cache, point cloud, brick map, or
+    // debug-geometry dump) already produced by ribdata_open(). Takes ownership of `doc` -- it is
+    // released in deinit, not here, since ribdata_key() (User Story 2) needs it to outlive this
+    // initializer.
+    init(metalDevice: MTLDevice, dataDoc doc: OpaquePointer) {
+        super.init(frame: .zero, device: metalDevice)
+        delegate                    = self
+        colorPixelFormat            = .bgra8Unorm
+        depthStencilPixelFormat     = .depth32Float
+        clearColor                  = MTLClearColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.0)
+        isPaused                    = true
+        enableSetNeedsDisplay       = true
+
+        dataDoc = doc
+        buildPipelines(device: metalDevice)
+        buildDepthState(device: metalDevice)
+        buildGridAxisBuffer(device: metalDevice)
+
+        guard let snapshot = ribdata_snapshot(doc) else {
+            fatalError("orender-wire: ribdata_snapshot returned NULL for a just-opened document")
+        }
+        buildDataBuffers(device: metalDevice, snapshot: snapshot)
+        arcball = ArcballCamera(camera: snapshot.pointee.camera, bounds: snapshot.pointee.bounds)
+    }
+
     required init(coder: NSCoder) { fatalError("not used") }
+
+    deinit {
+        if let doc = dataDoc {
+            ribdata_close(doc)
+        }
+    }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -80,6 +132,30 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
         }
 
         fragment float4 sceneFrag(SceneOut in [[stage_in]]) {
+            return float4(in.color, 1.0);
+        }
+
+        // Points need an explicit point size -- unlike lines/triangles, MTLPrimitiveType.point
+        // renders 1-pixel dots unless the vertex shader writes [[point_size]] itself. The
+        // sceneVertex/scenePipeline above is reused as-is for triangles (discs arrive already
+        // CPU-expanded into the triangle buffer -- see diskExpand.h) by simply changing the
+        // MTLPrimitiveType passed to drawPrimitives; only points need a distinct pipeline.
+        struct PointOut { float4 position [[position]]; float3 color; float pointSize [[point_size]]; };
+
+        vertex PointOut pointVertex(
+            uint                        vid       [[vertex_id]],
+            const device packed_float3 *positions [[buffer(0)]],
+            constant float4x4          &mvp       [[buffer(1)]],
+            const device packed_float3 *colors    [[buffer(2)]]
+        ) {
+            PointOut o;
+            o.position  = mvp * float4(float3(positions[vid]), 1.0);
+            o.color     = float3(colors[vid]);
+            o.pointSize = 4.0;
+            return o;
+        }
+
+        fragment float4 pointFrag(PointOut in [[stage_in]]) {
             return float4(in.color, 1.0);
         }
 
@@ -119,6 +195,15 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
         sd.vertexDescriptor = svd
         scenePipeline = try! device.makeRenderPipelineState(descriptor: sd)
 
+        // Points pipeline (same packed_float3 layout as the scene pipeline, stride 12)
+        let pd = MTLRenderPipelineDescriptor()
+        pd.vertexFunction   = library.makeFunction(name: "pointVertex")
+        pd.fragmentFunction = library.makeFunction(name: "pointFrag")
+        pd.colorAttachments[0].pixelFormat = .bgra8Unorm
+        pd.depthAttachmentPixelFormat      = .depth32Float
+        pd.vertexDescriptor = svd
+        pointsPipeline = try! device.makeRenderPipelineState(descriptor: pd)
+
         // Grid+axis pipeline ({packed_float3 pos, packed_float3 col}, stride 24)
         let gd = MTLRenderPipelineDescriptor()
         gd.vertexFunction   = library.makeFunction(name: "gridVertex")
@@ -156,6 +241,25 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
                                                  options: .storageModeShared)
         }
         sceneVertexCount = n
+    }
+
+    // Uploads a PrimArrayC's verts/cols into a pair of Metal buffers, or leaves them nil if
+    // count == 0 -- calling device.makeBuffer with a null/empty pointer is undefined, not a
+    // no-op, so every caller must check count first.
+    private func uploadPrimArray(device: MTLDevice, array: PrimArrayC) -> (MTLBuffer?, MTLBuffer?, Int) {
+        let n = Int(array.count)
+        guard n > 0, let verts = array.verts, let cols = array.cols else { return (nil, nil, 0) }
+        let byteLen = n * 3 * MemoryLayout<Float>.size
+        let vBuf = device.makeBuffer(bytes: verts, length: byteLen, options: .storageModeShared)
+        let cBuf = device.makeBuffer(bytes: cols, length: byteLen, options: .storageModeShared)
+        return (vBuf, cBuf, n)
+    }
+
+    private func buildDataBuffers(device: MTLDevice, snapshot: UnsafePointer<DataSceneC>) {
+        let s = snapshot.pointee
+        (dataLineBuffer, dataLineColorBuffer, dataLineVertexCount) = uploadPrimArray(device: device, array: s.lines)
+        (dataPointBuffer, dataPointColorBuffer, dataPointVertexCount) = uploadPrimArray(device: device, array: s.points)
+        (dataTriBuffer, dataTriColorBuffer, dataTriVertexCount) = uploadPrimArray(device: device, array: s.triangles)
     }
 
     private func buildGridAxisBuffer(device: MTLDevice) {
@@ -205,6 +309,11 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
         }
 
         encoder.setDepthStencilState(depthState)
+        // Data-document geometry (brick-map boxes, point-cloud/photon discs expanded to
+        // triangles, etc.) has no reliable winding order to cull against -- discs in particular
+        // are single-sided fans with an arbitrary basis (see diskExpand.h). Disabling culling
+        // for the whole pass costs nothing on lines/points, which Metal never culls anyway.
+        encoder.setCullMode(.none)
         var mvp = arcball.viewProjectionMatrix
 
         if let buf = sceneBuffer, sceneVertexCount > 0 {
@@ -215,6 +324,36 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
                 encoder.setVertexBuffer(colBuf, offset: 0, index: 2)
             }
             encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: sceneVertexCount)
+        }
+
+        if let buf = dataLineBuffer, dataLineVertexCount > 0 {
+            encoder.setRenderPipelineState(scenePipeline)
+            encoder.setVertexBuffer(buf, offset: 0, index: 0)
+            encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.size, index: 1)
+            if let colBuf = dataLineColorBuffer {
+                encoder.setVertexBuffer(colBuf, offset: 0, index: 2)
+            }
+            encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: dataLineVertexCount)
+        }
+
+        if let buf = dataTriBuffer, dataTriVertexCount > 0 {
+            encoder.setRenderPipelineState(scenePipeline)
+            encoder.setVertexBuffer(buf, offset: 0, index: 0)
+            encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.size, index: 1)
+            if let colBuf = dataTriColorBuffer {
+                encoder.setVertexBuffer(colBuf, offset: 0, index: 2)
+            }
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: dataTriVertexCount)
+        }
+
+        if let buf = dataPointBuffer, dataPointVertexCount > 0 {
+            encoder.setRenderPipelineState(pointsPipeline)
+            encoder.setVertexBuffer(buf, offset: 0, index: 0)
+            encoder.setVertexBytes(&mvp, length: MemoryLayout<simd_float4x4>.size, index: 1)
+            if let colBuf = dataPointColorBuffer {
+                encoder.setVertexBuffer(colBuf, offset: 0, index: 2)
+            }
+            encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: dataPointVertexCount)
         }
 
         var gridOrigin = arcball.orbitCenter

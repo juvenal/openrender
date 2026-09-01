@@ -171,6 +171,25 @@ first.
 **Checkpoint 2A**: macOS app is SwiftUI-shelled with a real (if minimal) menu bar; RIB-scene
 viewing is provably unchanged.
 
+**Retroactive correction (found during Phase 3/T053, not caught at the time):** three of this
+phase's own new files — `Sources/DocumentView.swift`, `Sources/OrenderWireApp.swift`, and
+`Sources/ViewerModel.swift` — were never actually tracked by git. The repo's `.gitignore` had an
+unanchored `orender-*` pattern (matching *any* path component starting with `orender-`,
+anywhere in the tree, not just at the repo root); since `src/preview/orender-wire-macos/` itself
+matches that pattern, plain `git add` silently skipped every new file created under it, while
+files that predated the ignore rule (`ArcballCamera.swift`, `WireframeRenderer.swift`,
+`main.swift`, `Package.swift`, `Info.plist`, `CMakeLists.txt`, `CRibPreview.h`) stayed tracked
+from before. Net effect: this phase's manual commits do not actually contain half of I0's new
+Swift sources — anyone re-cloning the branch would be missing `OrenderWireApp.swift` entirely
+and the build would fail. Fixed by anchoring the pattern to the repo root (`/orender-*` instead
+of `orender-*`) in `.gitignore`, which stops matching nested directories while still ignoring
+whatever stray root-level `orender-*` build artifact the rule originally existed for. The two
+paths that are *supposed* to stay ignored under this directory (`.build/`, the staged
+`CRibPreview/include/ribpreview_api.h` copy) have their own explicit `.gitignore` entries and
+are unaffected. **Action needed from the user**: `git add` the three now-visible files (plus the
+`.gitignore` fix itself) in the next commit — this session did not stage or commit them, per
+standing instructions.
+
 ### 2B — `CPrimitiveSink`/`CDataView` sink (increment I1), tests first
 
 - [X] T011 [P] Write failing test `tests/preview/test_dataview_chunking.cpp` (tail-flush at
@@ -567,45 +586,123 @@ is visible.
 
 ### Tests for User Story 1
 
-- [ ] T050 [P] [US1] Write test `tests/preview/test_preview_subdiv.cpp` exercising the six
-      retargeted RIB scenes (`examples/rib/tests/**/*-wire.rib`, from T030) through
-      `libribpreview`; assert non-zero vertex count and finite bounds for each. (The underlying
-      tessellator, `tessSubdivision.cpp`, is pre-existing and unchanged — this test adds
-      coverage that has never existed, rather than driving new production code, so it may pass
-      immediately once registered.)
-- [ ] T051 [US1] Register T050 in `tests/preview/CMakeLists.txt`; confirm it passes
+- [X] T050 [P] [US1] Wrote `tests/preview/test_preview_subdiv.cpp`: loads all six retargeted RIB
+      scenes (`examples/rib/tests/**/*-wire.rib` and `.../parity/motion-subdiv-translate-wire.rib`,
+      from T030) through `ribpreview_load()`, asserting non-zero vertex count, finite bounds, and
+      finite vertices for each. **This task's own assumption — "the tessellator is pre-existing
+      and unchanged, so this test may pass immediately" — was wrong, and finding out was the
+      point of writing the test first.** `subdiv-loop-wire.rib` (`SubdivisionMesh "loop"`)
+      loaded successfully but produced **zero vertices**: `CRibGeometryContext::
+      RiSubdivisionMeshV` (`ribGeometryContext.cpp:690`, pre-existing spec-006 code, unrelated to
+      spec 016's own new code) unconditionally rejected any scheme string other than
+      `RI_CATMULLCLARK`, silently dropping Loop-scheme meshes with no warning — a real,
+      previously-latent gap in `orender-wire`'s wireframe path, not a spec-016 regression. Since
+      this exact fixture was retargeted specifically to demonstrate Loop-scheme support in the
+      new viewer (see the fixture's own header comment), leaving it broken would defeat the
+      point of the retarget — in scope to fix here. Fixed by also accepting `RI_LOOP`: the
+      preview path's tessellator (`tessSubdivision.cpp`) only ever draws the base control-cage
+      edges regardless of scheme (it never subdivides), so the scheme string was purely a
+      restrictive filter with no corresponding rendering logic tied to it — safe to relax.
+      `RiHierarchicalSubdivisionMeshV`'s equivalent check was left untouched (still
+      catmull-clark-only): none of the six fixtures exercises `HierarchicalSubdivisionMesh
+      "loop"`, so there is no test-driven reason to extend it, and doing so speculatively would
+      be scope creep.
+- [X] T051 [US1] Registered T050 in `tests/preview/CMakeLists.txt` (with the same
+      `WORKING_DIRECTORY` override as `test_preview_integration`, since it uses relative RIB
+      paths); confirmed it fails Red for `subdiv-loop-wire.rib` before the
+      `RiSubdivisionMeshV` fix above, and passes Green after. Full
+      `ctest --test-dir build -L preview`: 17/17 passing.
 
 ### Implementation for User Story 1
 
-- [ ] T052 [US1] In both frontends, route a newly opened file through content-based detection
-      (`ribdata_sniff` vs. the existing RIB-parse attempt) instead of the current
-      always-assume-RIB behavior, per FR-001
-- [ ] T053 [US1] Add three new Metal render pipelines (points, triangles, discs) to
-      `src/preview/orender-wire-macos/Sources/WireframeRenderer.swift`'s `buildPipelines`/
-      `draw(in:)`, reusing the existing line/triangle vertex layout; points use
-      `[[point_size]]`; explicitly `setCullMode(.none)` (discs are single-sided fans); wire
-      `ViewerModel` (T008) to call `ribdata_open`/`ribdata_snapshot` and upload `DataSceneC`'s
-      buffers when a data file is opened
-- [ ] T054 [P] [US1] Add the equivalent three new GLSL 330 pipelines (points, triangles,
-      discs) to `src/preview/orender-wire-linux/main.cpp`, reusing the existing vertex layout;
-      `glEnable(GL_PROGRAM_POINT_SIZE)` and set `gl_PointSize`; `glDisable(GL_CULL_FACE)`; wire
-      it to call `ribdata_open`/`ribdata_snapshot` when a data file is opened
-- [ ] T055 [US1] Apply the GL depth-range fix in `src/preview/orender-wire-linux/main.cpp`'s
-      projection-upload path (`clip.z = 2 * z_metal - w`, since `ribGeometryContext.cpp:337`
-      builds Metal-NDC `z ∈ [0,1]` and GL 3.3 core has no `glClipControl`), and reconcile
-      `src/preview/orender-wire-linux/arcball.cpp`'s orthographic `updateAspect` with
-      `ArcballCamera.swift`'s in the same change
+- [X] T052 [US1] Both frontends now route a newly opened file through content-based detection
+      (`ribdata_sniff` vs. the existing RIB-parse attempt) instead of always assuming RIB, per
+      FR-001 — implemented together with T053/T054 below (`ViewerModel.load()` on macOS,
+      `load_scene_thread()` on Linux), since the routing decision and the two load paths it
+      chooses between are inseparable in both files. Both mirror `wireCliRun()`'s auto-detection
+      rule exactly: `ribdata_sniff() != -1` routes to the data path, so a `-2` (recognized magic,
+      incompatible version/word-size) is correctly treated as "this is a data file, let
+      `ribdata_open()` report the real failure" rather than silently falling back to an empty
+      RIB scene.
+- [X] T053 [US1] Added Metal render pipelines for points and reused the existing pipeline for
+      triangles in `src/preview/orender-wire-macos/Sources/WireframeRenderer.swift`. **Only one
+      new pipeline was actually needed, not three**: discs arrive already CPU-expanded into the
+      triangle buffer (T048's `diskExpand.h`), so "triangles" and "discs" share one pipeline and
+      one `drawPrimitives(type: .triangle, …)` call — only points need a distinct vertex
+      function, since Metal renders `.point` primitives as 1px dots unless the vertex shader
+      writes `[[point_size]]` itself (the existing `sceneVertex`/`SceneOut` never did). Added
+      `pointVertex`/`PointOut`/`pointsPipeline` for that case. `encoder.setCullMode(.none)` is
+      applied once per frame (not per-draw-call) since it costs nothing on lines/points, which
+      Metal never culls regardless. Extended `ViewerModel.load()` to branch on `ribdata_sniff()`
+      (T052) into `loadRibScene()` (unchanged existing behavior) or a new `loadDataDocument()`
+      that calls `ribdata_open()`/constructs `WireframeRenderer(metalDevice:dataDoc:)`. This new
+      initializer **retains** the opened `RibDataDocument*` handle (via `ribdata_snapshot()`, not
+      freed like `ribpreview_free()`) for the document's session lifetime, since User Story 2's
+      `ribdata_key()` re-emit cycle (not implemented yet — T058) needs the underlying `CDataView`
+      to stay alive; released in `deinit`. Swift 6 required `nonisolated(unsafe)` on the stored
+      `OpaquePointer` for the `@MainActor` class's (nonisolated) `deinit` to read it. Verified:
+      `cmake --build build` (full project including this target) succeeds; a real point-cloud
+      fixture (`.ptc`, 200 points across 10×10×2, via `CPointCloud`'s write constructor) was
+      opened with the built `orender-wire.app` binary directly (`ORENDER_WIRE_GUI=1`, bypassing
+      the terminal-detach re-exec) and stayed running with no crash and no stderr output after 3
+      seconds — the launch, content-detection routing, `ribdata_open`, and GPU buffer upload
+      paths all complete without crashing. **Not verified**: the actual rendered pixels (no
+      display/interactive session available in this environment) — deferred to `quickstart.md`
+      manual validation (T057).
+- [X] T054 [P] [US1] Added the equivalent GLSL 330 points pipeline (`POINT_VERT`/`POINT_FRAG`,
+      `gl_PointSize` written in the vertex shader + `glEnable(GL_PROGRAM_POINT_SIZE)`) to
+      `src/preview/orender-wire-linux/main.cpp`; triangles reuse the existing `SCENE_VERT`/
+      `SCENE_FRAG` program for the same reason as T053 (discs pre-expanded into the triangle
+      array). Added `glDisable(GL_CULL_FACE)` explicitly in `on_realize` (already GL's default,
+      stated for clarity per the plan). Added a `LoadResult` struct so `load_scene_thread()` can
+      report back which of `ribpreview_load()`/`ribdata_open()` it took (GTask's
+      `g_task_return_pointer` carries one typed pointer); `on_load_done()` branches on
+      `result->isData` to build either the existing RIB path or a new `upload_data_scene()`
+      uploading `DataSceneC`'s lines/points/triangles into three new VAO/VBO sets. `AppState`
+      retains the opened `RibDataDocument*` (same reasoning as T053 — `ribdata_key()` needs it
+      alive for User Story 2), released in `on_close_request`. **⚠️ Compile-unverified**: this
+      session runs on macOS, and `src/preview/CMakeLists.txt` only adds
+      `add_subdirectory(orender-wire-linux)` under `elseif(UNIX)` — mutually exclusive with
+      `if(APPLE)`, so this file is structurally never part of the build graph here regardless of
+      whether GTK4/libadwaita/epoxy happen to be installed. The change was written with care
+      against the existing GLSL/GTask/VAO patterns already in the file and cross-checked line by
+      line, but **needs a real Linux build (CI or a Linux box) to confirm it actually compiles**
+      before being trusted.
+- [X] T055 [US1] Applied the GL depth-range fix in `src/preview/orender-wire-linux/arcball.cpp`'s
+      constructor: `remapClipZMetalToGL()` rewrites the loaded projection matrix's z row
+      (`row_z_new = 2*row_z − row_w` for each column) once, baked into `ribProj_` so `reset()`
+      (which just copies `ribProj_` back) keeps the fix automatically — `ribGeometryContext.cpp`
+      builds `projMatrix16` in Metal-NDC convention (`clip.z ∈ [0,1]`) since the macOS renderer
+      consumes it unmodified, and GL 3.3 core has no `glClipControl` to accept that convention
+      directly. Also reconciled `updateAspect()`'s orthographic divergence: the previous
+      perspective-only gate (`if (projMatrix_.at(2,3) == 1.0f)`) left orthographic scenes
+      unrescaled (stretched) on window resize; removed the gate so the same `(0,0) = (1,1)/(w/h)`
+      rescale applies unconditionally, matching `ArcballCamera.swift`'s `updateAspect`, which
+      never had this gate and was already correct for both projection types (the ratio-rescale
+      formula is identical for perspective and orthographic in a symmetric frustum). **Same
+      compile-unverified caveat as T054** — this file is also `orender-wire-linux`-only and
+      structurally excluded from this machine's build graph.
 - [ ] T056 *(Retired during `/speckit-analyze`, 2026-09-01.)* This task implemented a
       "not available" notice for a hierarchical point-cloud/brick-map variant later shown to be
       unreachable through file-content detection (see spec.md's retired FR-010,
       contracts/c-abi.md's `RibDataType`, and research.md §2). No replacement task is needed:
       `RibDataType` has no corresponding enumerator, so every document `ribdata_open` returns is
       always visualizable. This ID is intentionally left retired rather than reused.
-- [ ] T057 [US1] Manual validation: `quickstart.md` steps 2–3 (headless CLI per document type,
-      then GUI open per document type) on both platforms
+- [ ] T057 [US1] **Blocked on the user/CI — requires an interactive display and, for the Linux
+      half, a real Linux machine, neither available in this session.** Manual validation:
+      `quickstart.md` steps 2–3 (headless CLI per document type, then GUI open per document
+      type) on both platforms. What this session *could* verify without a display is covered in
+      T053's notes (macOS: builds clean, opens a real point-cloud fixture without crashing,
+      3-second-alive smoke test, zero stderr) — that is a crash/wiring check, not a substitute
+      for actually looking at the rendered geometry. Do not mark this done from a headless check.
 
 **Checkpoint**: User Story 1 is fully functional and independently testable — every data type
-opens and renders on both platforms.
+opens and renders on both platforms. **Not yet confirmed**: T054/T055 (Linux) are
+compile-unverified, and T057's visual/manual validation on both platforms is outstanding —
+this checkpoint's automated portion (T050/T051, the full preview ctest suite, and the macOS
+crash-free smoke test) is green, but the checkpoint's own stated goal ("every data type opens
+and renders on both platforms") cannot be fully confirmed without a person or CI at a display
+on each platform.
 
 ---
 

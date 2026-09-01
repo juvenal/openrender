@@ -51,6 +51,27 @@ out vec4 fragColor;
 void main() { fragColor = vec4(vColor, 1.0); }
 )";
 
+// Points need an explicit size -- GL_POINTS renders 1-pixel dots unless the vertex shader
+// writes gl_PointSize itself (with GL_PROGRAM_POINT_SIZE enabled). SCENE_VERT/SCENE_FRAG above
+// are reused as-is for triangles (discs arrive already CPU-expanded into the triangle buffer --
+// see diskExpand.h) by simply drawing GL_TRIANGLES instead of GL_LINES; only points need a
+// distinct pipeline.
+static const char *POINT_VERT = R"(
+#version 330 core
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 inColor;
+uniform mat4 mvp;
+out vec3 vColor;
+void main() { gl_Position = mvp * vec4(position, 1.0); vColor = inColor; gl_PointSize = 4.0; }
+)";
+
+static const char *POINT_FRAG = R"(
+#version 330 core
+in vec3 vColor;
+out vec4 fragColor;
+void main() { fragColor = vec4(vColor, 1.0); }
+)";
+
 // ─── GL helpers ──────────────────────────────────────────────────────────────
 
 static GLuint compile_shader(GLenum type, const char *src) {
@@ -111,10 +132,25 @@ struct AppState {
     GtkWidget     *spinner;
 
     // GL resources (created on realize, after GL context exists)
-    GLuint sceneProg  = 0, gridProg      = 0;
+    GLuint sceneProg  = 0, gridProg      = 0, pointsProg = 0;
     GLuint sceneVAO   = 0, sceneVBO      = 0, sceneColorVBO = 0;
     GLuint gridVAO    = 0, gridVBO       = 0;
     int    sceneCount = 0, gridCount     = 0;
+
+    // Data-document buffers (spec 016). Populated only when opening a data document (photon
+    // map, cache, point cloud, brick map, debug dump) instead of a RIB scene; a RIB document
+    // leaves all three counts at 0 and rendering skips them. Discs arrive already CPU-expanded
+    // into the triangle arrays (see diskExpand.h), so triangles reuses sceneProg/sceneVAO's
+    // layout via its own VAO -- no separate disc pipeline is needed.
+    GLuint dataLineVAO = 0, dataLineVBO = 0, dataLineColorVBO = 0;
+    GLuint dataPointVAO = 0, dataPointVBO = 0, dataPointColorVBO = 0;
+    GLuint dataTriVAO = 0, dataTriVBO = 0, dataTriColorVBO = 0;
+    int    dataLineCount = 0, dataPointCount = 0, dataTriCount = 0;
+
+    // Retained (not closed on load) because ribdata_key()'s re-emit cycle (User Story 2) needs
+    // the CDataView underneath it to stay alive for the document's whole session -- unlike
+    // ribpreview_free's fully-materialized-then-torn-down RIB scene. Closed in on_close_request.
+    RibDataDocument *dataDoc = nullptr;
 
     ArcballCamera *arcball = nullptr;
 
@@ -127,17 +163,47 @@ struct AppState {
     PreviewSceneC *scene = nullptr;
 };
 
+// Result of the background open: exactly one of ribScene/dataDoc is set on success. A plain
+// struct with raw pointers -- ownership of whichever pointer is set transfers to AppState in
+// on_load_done, so ~LoadResult must never free them itself.
+struct LoadResult {
+    bool isData = false;
+    PreviewSceneC *ribScene = nullptr;
+    RibDataDocument *dataDoc = nullptr;
+};
+
 // ─── Background load (GTask) ─────────────────────────────────────────────────
 
 static void load_scene_thread(GTask *task, gpointer, gpointer task_data, GCancellable *) {
     const char *path = static_cast<const char *>(task_data);
-    PreviewSceneC *scene = ribpreview_load(path);
-    if (!scene) {
-        g_task_return_error(task, g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
-                                               "ribpreview_load failed"));
-        return;
+    LoadResult *result = new LoadResult();
+
+    // Content-based detection (FR-001): -1 means no data-file magic at all (try RIB); any other
+    // value -- including -2, "recognized magic but incompatible version/word-size" -- means this
+    // IS a data file and must be routed to ribdata_open(), which reports the real failure reason
+    // rather than falling back to RIB and silently rendering an empty scene. Mirrors
+    // wireCliRun()'s auto-detection in src/preview/libribpreview/wireCli.cpp.
+    if (ribdata_sniff(path) != -1) {
+        result->isData = true;
+        int err = 0;
+        result->dataDoc = ribdata_open(path, &err);
+        if (!result->dataDoc) {
+            delete result;
+            g_task_return_error(task, g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
+                                                   "not a recognized data file"));
+            return;
+        }
+    } else {
+        result->ribScene = ribpreview_load(path);
+        if (!result->ribScene) {
+            delete result;
+            g_task_return_error(task, g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
+                                                   "ribpreview_load failed"));
+            return;
+        }
     }
-    g_task_return_pointer(task, scene, nullptr);
+
+    g_task_return_pointer(task, result, [](gpointer p) { delete static_cast<LoadResult *>(p); });
 }
 
 // ─── GL realize ──────────────────────────────────────────────────────────────
@@ -146,8 +212,9 @@ static void on_realize(GtkGLArea *area, AppState *state) {
     gtk_gl_area_make_current(area);
     if (gtk_gl_area_get_error(area)) return;
 
-    state->sceneProg = link_program(SCENE_VERT, SCENE_FRAG);
-    state->gridProg  = link_program(GRID_VERT,  GRID_FRAG);
+    state->sceneProg  = link_program(SCENE_VERT, SCENE_FRAG);
+    state->gridProg   = link_program(GRID_VERT,  GRID_FRAG);
+    state->pointsProg = link_program(POINT_VERT, POINT_FRAG);
 
     // Scene VAO/VBO (filled later when scene loads)
     glGenVertexArrays(1, &state->sceneVAO);
@@ -162,6 +229,32 @@ static void on_realize(GtkGLArea *area, AppState *state) {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
+
+    // Data-document VAO/VBOs (lines, points, triangles -- filled later, same packed-float3
+    // layout as the scene VAO above).
+    auto setupPrimVAO = [](GLuint &vao, GLuint &vbo, GLuint &colorVbo) {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &colorVbo);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, colorVbo);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+        glEnableVertexAttribArray(1);
+        glBindVertexArray(0);
+    };
+    setupPrimVAO(state->dataLineVAO, state->dataLineVBO, state->dataLineColorVBO);
+    setupPrimVAO(state->dataPointVAO, state->dataPointVBO, state->dataPointColorVBO);
+    setupPrimVAO(state->dataTriVAO, state->dataTriVBO, state->dataTriColorVBO);
+
+    // Data-document geometry (brick-map boxes, expanded discs, etc.) has no reliable winding
+    // order to cull against -- discs in particular are single-sided fans with an arbitrary
+    // basis (see diskExpand.h). GL_CULL_FACE defaults to disabled, but state this explicitly
+    // rather than relying on the default.
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     // Grid+axis VAO/VBO (static)
     auto gridVerts = buildGridAxis();
@@ -193,10 +286,20 @@ static void on_unrealize(GtkGLArea *area, AppState *state) {
     glDeleteVertexArrays(1, &state->sceneVAO);
     glDeleteBuffers(1, &state->sceneVBO);
     glDeleteBuffers(1, &state->sceneColorVBO);
+    glDeleteVertexArrays(1, &state->dataLineVAO);
+    glDeleteBuffers(1, &state->dataLineVBO);
+    glDeleteBuffers(1, &state->dataLineColorVBO);
+    glDeleteVertexArrays(1, &state->dataPointVAO);
+    glDeleteBuffers(1, &state->dataPointVBO);
+    glDeleteBuffers(1, &state->dataPointColorVBO);
+    glDeleteVertexArrays(1, &state->dataTriVAO);
+    glDeleteBuffers(1, &state->dataTriVBO);
+    glDeleteBuffers(1, &state->dataTriColorVBO);
     glDeleteVertexArrays(1, &state->gridVAO);
     glDeleteBuffers(1, &state->gridVBO);
     glDeleteProgram(state->sceneProg);
     glDeleteProgram(state->gridProg);
+    glDeleteProgram(state->pointsProg);
 }
 
 // ─── GL render ───────────────────────────────────────────────────────────────
@@ -217,6 +320,35 @@ static gboolean on_render(GtkGLArea * /*area*/, GdkGLContext *, AppState *state)
                            1, GL_FALSE, mvp);
         glBindVertexArray(state->sceneVAO);
         glDrawArrays(GL_LINES, 0, state->sceneCount);
+        glBindVertexArray(0);
+    }
+
+    // Data-document passes (lines, triangles -- including expanded discs -- reuse sceneProg;
+    // points need pointsProg for gl_PointSize).
+    if (state->dataLineCount > 0) {
+        glUseProgram(state->sceneProg);
+        glUniformMatrix4fv(glGetUniformLocation(state->sceneProg, "mvp"),
+                           1, GL_FALSE, mvp);
+        glBindVertexArray(state->dataLineVAO);
+        glDrawArrays(GL_LINES, 0, state->dataLineCount);
+        glBindVertexArray(0);
+    }
+
+    if (state->dataTriCount > 0) {
+        glUseProgram(state->sceneProg);
+        glUniformMatrix4fv(glGetUniformLocation(state->sceneProg, "mvp"),
+                           1, GL_FALSE, mvp);
+        glBindVertexArray(state->dataTriVAO);
+        glDrawArrays(GL_TRIANGLES, 0, state->dataTriCount);
+        glBindVertexArray(0);
+    }
+
+    if (state->dataPointCount > 0) {
+        glUseProgram(state->pointsProg);
+        glUniformMatrix4fv(glGetUniformLocation(state->pointsProg, "mvp"),
+                           1, GL_FALSE, mvp);
+        glBindVertexArray(state->dataPointVAO);
+        glDrawArrays(GL_POINTS, 0, state->dataPointCount);
         glBindVertexArray(0);
     }
 
@@ -270,42 +402,71 @@ static void upload_scene(AppState *state) {
     state->sceneCount = n;
 }
 
+// Uploads one PrimArrayC's verts/cols into a pair of already-created VBOs, or leaves the count
+// at 0 if empty -- calling glBufferData with a null/empty pointer is undefined, not a no-op, so
+// every caller must check count first.
+static void upload_prim_array(GLuint vbo, GLuint colorVbo, const PrimArrayC &arr, int &countOut) {
+    int n = arr.count;
+    if (n <= 0 || !arr.verts || !arr.cols) { countOut = 0; return; }
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(n * 3 * sizeof(float)), arr.verts, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, colorVbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(n * 3 * sizeof(float)), arr.cols, GL_STATIC_DRAW);
+    countOut = n;
+}
+
+static void upload_data_scene(AppState *state, const DataSceneC *snap) {
+    gtk_gl_area_make_current(GTK_GL_AREA(state->glArea));
+    upload_prim_array(state->dataLineVBO, state->dataLineColorVBO, snap->lines, state->dataLineCount);
+    upload_prim_array(state->dataPointVBO, state->dataPointColorVBO, snap->points, state->dataPointCount);
+    upload_prim_array(state->dataTriVBO, state->dataTriColorVBO, snap->triangles, state->dataTriCount);
+}
+
 // ─── Background load completion (main thread) ─────────────────────────────────
 
 static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
     AppState *state = static_cast<AppState *>(user_data);
 
     GError *err = nullptr;
-    PreviewSceneC *scene = static_cast<PreviewSceneC *>(
+    LoadResult *result = static_cast<LoadResult *>(
         g_task_propagate_pointer(G_TASK(res), &err));
 
     // Hide spinner regardless of outcome.
     if (state->spinner)
         gtk_widget_set_visible(state->spinner, FALSE);
 
-    if (err || !scene) {
-        fprintf(stderr, "orender-wire: error: RIB parse failed (see above)\n");
+    if (err || !result) {
+        fprintf(stderr, "orender-wire: error: failed to open '%s'\n", state->ribPath);
         if (err) g_error_free(err);
         // Leave blank window; user can close.
         return;
     }
-
-    state->scene = scene;
-
-    const PreviewCameraC &cam  = scene->camera;
-    const PreviewBoundsC &bnds = scene->bounds;
 
     int w = gtk_widget_get_width(state->glArea);
     int h = gtk_widget_get_height(state->glArea);
     if (w <= 0) w = 800;
     if (h <= 0) h = 600;
 
-    state->arcball = new ArcballCamera(
-        cam.projMatrix, cam.viewMatrix,
-        bnds.sceneBoundsMin, bnds.sceneBoundsMax,
-        (float)w, (float)h);
+    if (result->isData) {
+        state->dataDoc = result->dataDoc;
+        const DataSceneC *snap = ribdata_snapshot(state->dataDoc);
+        state->arcball = new ArcballCamera(
+            snap->camera.projMatrix, snap->camera.viewMatrix,
+            snap->bounds.sceneBoundsMin, snap->bounds.sceneBoundsMax,
+            (float)w, (float)h);
+        upload_data_scene(state, snap);
+    } else {
+        state->scene = result->ribScene;
+        const PreviewCameraC &cam  = state->scene->camera;
+        const PreviewBoundsC &bnds = state->scene->bounds;
+        state->arcball = new ArcballCamera(
+            cam.projMatrix, cam.viewMatrix,
+            bnds.sceneBoundsMin, bnds.sceneBoundsMax,
+            (float)w, (float)h);
+        upload_scene(state);
+    }
 
-    upload_scene(state);
+    delete result;   // ribScene/dataDoc ownership already transferred into state above
 
     gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
 }
@@ -436,6 +597,10 @@ static gboolean on_close_request(GtkWindow *, AppState *state) {
     if (state->scene) {
         ribpreview_free(state->scene);
         state->scene = nullptr;
+    }
+    if (state->dataDoc) {
+        ribdata_close(state->dataDoc);
+        state->dataDoc = nullptr;
     }
     delete state->arcball;
     state->arcball = nullptr;
