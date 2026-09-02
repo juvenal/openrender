@@ -51,6 +51,12 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
     private var dataTriBuffer, dataTriColorBuffer: MTLBuffer?
     private var dataTriVertexCount: Int = 0
 
+    // Cached by value from the last ribdata_snapshot() call (see buildDataBuffers) -- read by
+    // ViewerModel to drive the Commands menu's enabled state and the on-screen status text
+    // (User Story 2). A value copy, not the live pointer: DataSceneC's own contract says the
+    // pointer ribdata_snapshot() returns is invalidated by the next snapshot/key call.
+    private(set) var lastDataSnapshot: DataSceneC?
+
     // Track drag type for mouseMoved / mouseDragged disambiguation.
     private enum DragKind { case orbit, pan }
     private var activeDrag: DragKind? = nil
@@ -260,6 +266,33 @@ final class WireframeRenderer: MTKView, MTKViewDelegate {
         (dataLineBuffer, dataLineColorBuffer, dataLineVertexCount) = uploadPrimArray(device: device, array: s.lines)
         (dataPointBuffer, dataPointColorBuffer, dataPointVertexCount) = uploadPrimArray(device: device, array: s.points)
         (dataTriBuffer, dataTriColorBuffer, dataTriVertexCount) = uploadPrimArray(device: device, array: s.triangles)
+        lastDataSnapshot = s
+    }
+
+    // MARK: – Data-document interactive state (User Story 2)
+
+    // Channel name at the current snapshot's currentChannel, or nil if not applicable
+    // (numChannels == 0, or a RIB document). FR-017: callers use this (or numChannels == 0
+    // directly) to disable/hide the channel control rather than offering an inert one.
+    var dataChannelName: String? {
+        guard let doc = dataDoc, let snap = lastDataSnapshot, snap.currentChannel >= 0 else { return nil }
+        guard let cstr = ribdata_channel_name(doc, snap.currentChannel) else { return nil }
+        return String(cString: cstr)
+    }
+
+    // Applies one legacy key (`m l b d p q w`) to the open data document. No-op (returns false)
+    // if no data document is open, or if the underlying CDataView doesn't recognize this key for
+    // its type (e.g. 'b' on a point cloud) -- ribdata_key()/keyDown() already handle that
+    // gracefully, so callers don't need to pre-filter by document type for correctness, only for
+    // menu-item discoverability (T058).
+    @discardableResult
+    func sendDataKey(_ key: Character) -> Bool {
+        guard let doc = dataDoc, let ascii = key.asciiValue else { return false }
+        let changed = ribdata_key(doc, Int32(ascii))
+        guard changed != 0, let device, let snapshot = ribdata_snapshot(doc) else { return false }
+        buildDataBuffers(device: device, snapshot: snapshot)
+        setNeedsDisplay(bounds)
+        return true
     }
 
     private func buildGridAxisBuffer(device: MTLDevice) {

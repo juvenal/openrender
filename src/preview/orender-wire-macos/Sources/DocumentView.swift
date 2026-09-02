@@ -43,6 +43,25 @@ struct DocumentView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.large)
             }
+
+            // On-screen indicator (FR-016, User Story 2): current channel/detail/draw-mode for
+            // a data document, never only in a terminal. Absent entirely for a RIB document.
+            if let status = model.dataStatusText {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Text(status)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.black.opacity(0.55))
+                            .cornerRadius(6)
+                            .padding(12)
+                        Spacer()
+                    }
+                }
+            }
         }
         .frame(minWidth: 800, minHeight: 600)
         .navigationTitle(model.windowTitle)

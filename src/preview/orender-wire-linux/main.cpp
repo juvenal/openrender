@@ -152,6 +152,15 @@ struct AppState {
     // ribpreview_free's fully-materialized-then-torn-down RIB scene. Closed in on_close_request.
     RibDataDocument *dataDoc = nullptr;
 
+    // Header-bar menu (User Story 2): one GSimpleAction per legacy key, shared between the menu
+    // button and the existing on_key handler (one action implementation, two entry points).
+    // Enabled/disabled per-document-type in update_header_bar_state().
+    GSimpleAction *actPrevChannel = nullptr, *actNextChannel = nullptr;
+    GSimpleAction *actIncDetail = nullptr, *actDecDetail = nullptr;
+    GSimpleAction *actDrawBoxes = nullptr, *actDrawDiscs = nullptr, *actDrawPoints = nullptr;
+    GSimpleAction *actSaveCamera = nullptr;
+    AdwWindowTitle *windowTitle = nullptr;
+
     ArcballCamera *arcball = nullptr;
 
     // Input state
@@ -422,6 +431,86 @@ static void upload_data_scene(AppState *state, const DataSceneC *snap) {
     upload_prim_array(state->dataTriVBO, state->dataTriColorVBO, snap->triangles, state->dataTriCount);
 }
 
+// ─── Header-bar / on-screen state (User Story 2) ──────────────────────────────
+
+// Mirrors wireCli.cpp's drawModeName(): boxes/discs/points for a brick map, discs/points for a
+// point cloud, "fixed" for the three document types with no user-controllable draw mode.
+static const char *draw_mode_display_name(RibDataType type, int mode) {
+    if (type == RIBDATA_TYPE_BRICKMAP) {
+        switch (mode) {
+        case 0: return "Boxes";
+        case 1: return "Discs";
+        default: return "Points";
+        }
+    }
+    if (type == RIBDATA_TYPE_POINTCLOUD)
+        return (mode == 1) ? "Discs" : "Points";
+    return "Fixed";
+}
+
+// Refreshes the AdwWindowTitle subtitle (FR-016: channel/detail/draw-mode visible on screen, not
+// only in a terminal) and each header-bar action's enabled state (T061: document-type-
+// conditional controls; FR-017/T062: no inert channel control when numChannels == 0). Called
+// once after a document finishes loading and again after every key/menu action that changes
+// state.
+static void update_header_bar_state(AppState *state) {
+    bool hasData = state->dataDoc != nullptr;
+    bool hasChannels = false, isBrickmap = false, isPointcloud = false;
+    std::string subtitle;
+
+    if (hasData) {
+        const DataSceneC *snap = ribdata_snapshot(state->dataDoc);
+        hasChannels  = snap->numChannels > 0;
+        isBrickmap   = snap->documentType == RIBDATA_TYPE_BRICKMAP;
+        isPointcloud = snap->documentType == RIBDATA_TYPE_POINTCLOUD;
+
+        std::vector<std::string> parts;
+        if (hasChannels) {
+            const char *name = ribdata_channel_name(state->dataDoc, snap->currentChannel);
+            parts.push_back(std::string("Channel: ") + (name ? name : ""));
+        }
+        if (isBrickmap)
+            parts.push_back("Detail: " + std::to_string(snap->detailLevel));
+        parts.push_back(std::string("Draw: ") + draw_mode_display_name(snap->documentType, snap->drawMode));
+
+        for (size_t i = 0; i < parts.size(); i++) {
+            if (i > 0) subtitle += "   \xE2\x80\xA2   "; // U+2022 BULLET
+            subtitle += parts[i];
+        }
+    }
+
+    if (state->windowTitle)
+        adw_window_title_set_subtitle(state->windowTitle, subtitle.c_str());
+
+    bool supportsDetail     = isBrickmap;
+    bool supportsBoxMode    = isBrickmap;
+    bool supportsDrawToggle = isBrickmap || isPointcloud;
+
+    if (state->actPrevChannel) g_simple_action_set_enabled(state->actPrevChannel, hasChannels);
+    if (state->actNextChannel) g_simple_action_set_enabled(state->actNextChannel, hasChannels);
+    if (state->actIncDetail)   g_simple_action_set_enabled(state->actIncDetail, supportsDetail);
+    if (state->actDecDetail)   g_simple_action_set_enabled(state->actDecDetail, supportsDetail);
+    if (state->actDrawBoxes)   g_simple_action_set_enabled(state->actDrawBoxes, supportsBoxMode);
+    if (state->actDrawDiscs)   g_simple_action_set_enabled(state->actDrawDiscs, supportsDrawToggle);
+    if (state->actDrawPoints)  g_simple_action_set_enabled(state->actDrawPoints, supportsDrawToggle);
+    // T061: hide (disable) Save Camera when a data document is open.
+    if (state->actSaveCamera)  g_simple_action_set_enabled(state->actSaveCamera, !hasData);
+}
+
+// Applies one legacy key (`m l b d p q w`) to the open data document -- shared by on_key and the
+// header-bar menu actions (one action implementation, two entry points). No-op if no data
+// document is open, or if the underlying CDataView doesn't recognize this key for its type (e.g.
+// 'b' on a point cloud) -- ribdata_key()/keyDown() already handle that gracefully.
+static void apply_data_key(AppState *state, char key) {
+    if (!state->dataDoc) return;
+    if (!ribdata_key(state->dataDoc, (int)key)) return;
+
+    const DataSceneC *snap = ribdata_snapshot(state->dataDoc);
+    upload_data_scene(state, snap);
+    update_header_bar_state(state);
+    gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
+}
+
 // ─── Background load completion (main thread) ─────────────────────────────────
 
 static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
@@ -468,6 +557,7 @@ static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
 
     delete result;   // ribScene/dataDoc ownership already transferred into state above
 
+    update_header_bar_state(state);
     gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
 }
 
@@ -554,6 +644,16 @@ static void save_camera_callback(GObject *dialog, GAsyncResult *result,
     g_free(path);
 }
 
+static void trigger_save_camera(AppState *state) {
+    if (!state->arcball) return;
+    GtkWindow *win = GTK_WINDOW(gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
+    GtkFileDialog *dlg = gtk_file_dialog_new();
+    gtk_file_dialog_set_title(dlg, "Export Camera");
+    gtk_file_dialog_set_initial_name(dlg, "camera.rib");
+    gtk_file_dialog_save(dlg, win, nullptr, save_camera_callback, state);
+    g_object_unref(dlg);
+}
+
 static gboolean on_key(GtkEventControllerKey *, guint keyval, guint /*keycode*/,
                         GdkModifierType, AppState *state) {
     switch (keyval) {
@@ -567,20 +667,46 @@ static gboolean on_key(GtkEventControllerKey *, guint keyval, guint /*keycode*/,
         return TRUE;
     case GDK_KEY_s:
     case GDK_KEY_S:
-        if (state->arcball) {
-            GtkWindow *win = GTK_WINDOW(
-                gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
-            GtkFileDialog *dlg = gtk_file_dialog_new();
-            gtk_file_dialog_set_title(dlg, "Export Camera");
-            gtk_file_dialog_set_initial_name(dlg, "camera.rib");
-            gtk_file_dialog_save(dlg, win, nullptr,
-                                 save_camera_callback, state);
-            g_object_unref(dlg);
-        }
+        trigger_save_camera(state);
         return TRUE;
-    case GDK_KEY_Escape:
+    case GDK_KEY_m:
+    case GDK_KEY_M:
+        apply_data_key(state, 'm');
+        return TRUE;
+    case GDK_KEY_l:
+    case GDK_KEY_L:
+        apply_data_key(state, 'l');
+        return TRUE;
+    case GDK_KEY_b:
+    case GDK_KEY_B:
+        apply_data_key(state, 'b');
+        return TRUE;
+    case GDK_KEY_d:
+    case GDK_KEY_D:
+        apply_data_key(state, 'd');
+        return TRUE;
+    case GDK_KEY_p:
+    case GDK_KEY_P:
+        apply_data_key(state, 'p');
+        return TRUE;
+    case GDK_KEY_w:
+    case GDK_KEY_W:
+        apply_data_key(state, 'w');
+        return TRUE;
     case GDK_KEY_q:
     case GDK_KEY_Q: {
+        // Legacy oshow convention: 'q' means "previous channel" for a document that has
+        // channels. That collides with this app's own pre-existing "bare q/Q quits" binding, so
+        // route by document state instead of always quitting -- Escape remains an unconditional
+        // quit either way.
+        bool hasChannels = state->dataDoc && ribdata_snapshot(state->dataDoc)->numChannels > 0;
+        if (hasChannels) {
+            apply_data_key(state, 'q');
+            return TRUE;
+        }
+        [[fallthrough]];
+    }
+    case GDK_KEY_Escape: {
         GtkWindow *win = GTK_WINDOW(
             gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
         if (win) gtk_window_close(win);
@@ -589,6 +715,35 @@ static gboolean on_key(GtkEventControllerKey *, guint keyval, guint /*keycode*/,
     default:
         return FALSE;
     }
+}
+
+// ─── Header-bar menu actions (User Story 2) ────────────────────────────────────
+// Each forwards to the same apply_data_key()/trigger_save_camera() the keyboard uses -- one
+// action implementation, two entry points, per T060.
+
+static void action_prev_channel(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'q');
+}
+static void action_next_channel(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'w');
+}
+static void action_inc_detail(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'm');
+}
+static void action_dec_detail(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'l');
+}
+static void action_draw_boxes(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'b');
+}
+static void action_draw_discs(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'd');
+}
+static void action_draw_points(GSimpleAction *, GVariant *, gpointer user_data) {
+    apply_data_key(static_cast<AppState *>(user_data), 'p');
+}
+static void action_save_camera(GSimpleAction *, GVariant *, gpointer user_data) {
+    trigger_save_camera(static_cast<AppState *>(user_data));
 }
 
 // ─── Window close (clean shutdown) ───────────────────────────────────────────
@@ -627,6 +782,70 @@ static void on_activate(AdwApplication *app, gpointer user_data) {
 
     GtkWidget *header_bar = adw_header_bar_new();
     adw_toolbar_view_add_top_bar(ADW_TOOLBAR_VIEW(toolbar_view), header_bar);
+
+    // AdwWindowTitle: shown in place of the plain title, subtitle carries document type /
+    // channel / detail level / draw mode (FR-016) once a document loads -- see
+    // update_header_bar_state(). gtk_window_set_title above still sets the taskbar/switcher
+    // entry; this is purely the header-bar's own visual title.
+    AdwWindowTitle *windowTitleWidget = ADW_WINDOW_TITLE(adw_window_title_new(title.c_str(), ""));
+    state->windowTitle = windowTitleWidget;
+    adw_header_bar_set_title_widget(ADW_HEADER_BAR(header_bar), GTK_WIDGET(windowTitleWidget));
+
+    // Header-bar menu (User Story 2): one GSimpleAction per legacy key, added to the window's
+    // own action group (invoked as "win.<name>" from the menu model below) and shared with the
+    // existing on_key handler via apply_data_key()/trigger_save_camera() -- one action
+    // implementation, two entry points. Enabled state is set per-document-type once a document
+    // loads (update_header_bar_state()); until then everything starts disabled.
+    auto addAction = [&](const char *name, GCallback cb) {
+        GSimpleAction *act = g_simple_action_new(name, nullptr);
+        g_simple_action_set_enabled(act, FALSE);
+        g_signal_connect(act, "activate", cb, state);
+        g_action_map_add_action(G_ACTION_MAP(window), G_ACTION(act));
+        return act;
+    };
+    state->actPrevChannel = addAction("prev-channel", G_CALLBACK(action_prev_channel));
+    state->actNextChannel = addAction("next-channel", G_CALLBACK(action_next_channel));
+    state->actIncDetail   = addAction("inc-detail",   G_CALLBACK(action_inc_detail));
+    state->actDecDetail   = addAction("dec-detail",   G_CALLBACK(action_dec_detail));
+    state->actDrawBoxes   = addAction("draw-boxes",   G_CALLBACK(action_draw_boxes));
+    state->actDrawDiscs   = addAction("draw-discs",   G_CALLBACK(action_draw_discs));
+    state->actDrawPoints  = addAction("draw-points",  G_CALLBACK(action_draw_points));
+    state->actSaveCamera  = addAction("save-camera",  G_CALLBACK(action_save_camera));
+    // Save Camera works for any loaded document (RIB or data) until a data document is
+    // specifically open -- start enabled, update_header_bar_state() disables it once needed.
+    g_simple_action_set_enabled(state->actSaveCamera, TRUE);
+
+    GMenu *menu = g_menu_new();
+
+    GMenu *channelSection = g_menu_new();
+    g_menu_append(channelSection, "Previous Channel", "win.prev-channel");
+    g_menu_append(channelSection, "Next Channel", "win.next-channel");
+    g_menu_append_section(menu, nullptr, G_MENU_MODEL(channelSection));
+    g_object_unref(channelSection);
+
+    GMenu *detailSection = g_menu_new();
+    g_menu_append(detailSection, "Increase Detail Level", "win.inc-detail");
+    g_menu_append(detailSection, "Decrease Detail Level", "win.dec-detail");
+    g_menu_append_section(menu, nullptr, G_MENU_MODEL(detailSection));
+    g_object_unref(detailSection);
+
+    GMenu *drawSection = g_menu_new();
+    g_menu_append(drawSection, "Draw as Boxes", "win.draw-boxes");
+    g_menu_append(drawSection, "Draw as Discs", "win.draw-discs");
+    g_menu_append(drawSection, "Draw as Points", "win.draw-points");
+    g_menu_append_section(menu, nullptr, G_MENU_MODEL(drawSection));
+    g_object_unref(drawSection);
+
+    GMenu *cameraSection = g_menu_new();
+    g_menu_append(cameraSection, "Save Camera\xE2\x80\xA6", "win.save-camera"); // U+2026 ELLIPSIS
+    g_menu_append_section(menu, nullptr, G_MENU_MODEL(cameraSection));
+    g_object_unref(cameraSection);
+
+    GtkWidget *menuButton = gtk_menu_button_new();
+    gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(menuButton), "open-menu-symbolic");
+    gtk_menu_button_set_menu_model(GTK_MENU_BUTTON(menuButton), G_MENU_MODEL(menu));
+    g_object_unref(menu);
+    adw_header_bar_pack_end(ADW_HEADER_BAR(header_bar), menuButton);
 
     // Overlay: glArea + spinner
     GtkWidget *overlay = gtk_overlay_new();

@@ -24,6 +24,79 @@ final class ViewerModel: ObservableObject {
     let ribPath: String
     @Published private(set) var renderer: WireframeRenderer?
 
+    // ─── Data-document interactive state (User Story 2) ─────────────────────
+    // Mirrors WireframeRenderer.lastDataSnapshot into @Published storage -- WireframeRenderer
+    // itself isn't an ObservableObject, so SwiftUI's Commands menu and DocumentView's status
+    // overlay observe these instead, refreshed after every sendDataKey() and on load.
+    @Published private(set) var dataDocumentType: RibDataType?
+    @Published private(set) var dataNumChannels: Int32 = 0
+    @Published private(set) var dataChannelName: String?
+    @Published private(set) var dataDetailLevel: Int32 = -1
+    @Published private(set) var dataDrawMode: Int32 = 0
+
+    var isDataDocumentOpen: Bool { dataDocumentType != nil }
+    var hasChannels: Bool { dataNumChannels > 0 }
+    var supportsDetailLevel: Bool { dataDocumentType == RIBDATA_TYPE_BRICKMAP }
+    var supportsBoxDrawMode: Bool { dataDocumentType == RIBDATA_TYPE_BRICKMAP }
+    var supportsDrawModeToggle: Bool {
+        dataDocumentType == RIBDATA_TYPE_BRICKMAP || dataDocumentType == RIBDATA_TYPE_POINTCLOUD
+    }
+
+    // On-screen indicator (FR-016): channel/detail/draw-mode state, never only in a terminal.
+    // nil for a RIB document or before a data document finishes loading -- DocumentView hides
+    // the status overlay entirely in that case.
+    var dataStatusText: String? {
+        guard isDataDocumentOpen else { return nil }
+        var parts: [String] = []
+        if hasChannels, let name = dataChannelName {
+            parts.append("Channel: \(name)")
+        }
+        if supportsDetailLevel {
+            parts.append("Detail: \(dataDetailLevel)")
+        }
+        parts.append("Draw: \(drawModeDisplayName)")
+        return parts.joined(separator: "   •   ")
+    }
+
+    private var drawModeDisplayName: String {
+        switch dataDocumentType {
+        case RIBDATA_TYPE_BRICKMAP:
+            switch dataDrawMode {
+            case 0: return "Boxes"
+            case 1: return "Discs"
+            default: return "Points"
+            }
+        case RIBDATA_TYPE_POINTCLOUD:
+            return dataDrawMode == 1 ? "Discs" : "Points"
+        default:
+            return "Fixed"
+        }
+    }
+
+    // Applies one legacy key (`m l b d p q w`) to the open data document and refreshes the
+    // published state above. No-op for a RIB document or a key the document type doesn't
+    // recognize (see WireframeRenderer.sendDataKey).
+    func sendDataKey(_ key: Character) {
+        guard let r = renderer, r.sendDataKey(key) else { return }
+        refreshDataState()
+    }
+
+    private func refreshDataState() {
+        guard let snap = renderer?.lastDataSnapshot else {
+            dataDocumentType = nil
+            dataNumChannels  = 0
+            dataChannelName  = nil
+            dataDetailLevel  = -1
+            dataDrawMode     = 0
+            return
+        }
+        dataDocumentType = snap.documentType
+        dataNumChannels  = snap.numChannels
+        dataChannelName  = renderer?.dataChannelName
+        dataDetailLevel  = snap.detailLevel
+        dataDrawMode     = snap.drawMode
+    }
+
     var windowTitle: String {
         URL(fileURLWithPath: ribPath).lastPathComponent
     }
@@ -91,5 +164,6 @@ final class ViewerModel: ObservableObject {
         }
 
         renderer = WireframeRenderer(metalDevice: metalDevice, dataDoc: doc)
+        refreshDataState()
     }
 }

@@ -719,33 +719,89 @@ shortcuts produce the same effect.
 
 ### Implementation for User Story 2
 
-- [ ] T058 [US2] Add `Commands` menu items to
-      `src/preview/orender-wire-macos/Sources/OrenderWireApp.swift` for channel next/prev,
-      detail level +/-, and draw-mode switching, each wired to `ribdata_key`/`ViewerModel` and
-      given a `.keyboardShortcut` matching the legacy letter (`m l b d p q w`); each item is
-      enabled only when the open document type supports it, so no two controls ever compete for
-      the same key
-- [ ] T059 [US2] Add an on-screen indicator (window title or status text, driven by
-      `ViewerModel`'s published state) showing current channel name, detail level, and draw
-      mode, on macOS
-- [ ] T060 [P] [US2] In `src/preview/orender-wire-linux/main.cpp`, populate the previously
-      empty `AdwHeaderBar` (`adw_header_bar_new()`) with a `GtkMenuButton` bound to a
-      `GMenuModel` whose entries are `GSimpleAction`s shared with the existing `on_key` key
-      handler (one action implementation, two entry points), plus an `AdwWindowTitle` subtitle
-      showing document type / channel / detail level / draw mode
-- [ ] T061 [P] [US2] Make the Linux header-bar controls document-type-conditional (hide
-      channel/detail controls when a RIB document is open; hide Save Camera when a data
-      document is open) — no `AdwViewStack`, since both document types share one `GtkGLArea`
-      and one set of pipelines
-- [ ] T062 [US2] Confirm on both platforms that a channel control is not offered, or is
-      clearly inert, for a document type with `numChannels == 0` (a debug-geometry dump), per
-      FR-017
-- [ ] T063 [US2] Manual validation: `quickstart.md` steps 4–5 (menu-only path, then
-      keyboard-only path, including the macOS first-responder regression check after launch and
-      after clicking the render view) on both platforms
+- [X] T058 [US2] Added a `CommandMenu("Data")` to
+      `src/preview/orender-wire-macos/Sources/OrenderWireApp.swift`: Previous/Next Channel
+      (`q`/`w`), Increase/Decrease Detail Level (`m`/`l`), Draw as Boxes/Discs/Points (`b`/`d`/`p`),
+      each a `Button` with a bare `.keyboardShortcut` (no modifiers) calling
+      `model.sendDataKey(_:)`. `.disabled(...)` is driven by new `ViewerModel` computed
+      properties (`hasChannels`, `supportsDetailLevel`, `supportsBoxDrawMode`,
+      `supportsDrawModeToggle`) so brick-map-only controls (detail level, box mode) and
+      channel controls (FR-017: only meaningful for the two document types with channels) are
+      inert everywhere else. `d`/`p` are genuinely shared between brick maps (3 draw modes) and
+      point clouds (2 draw modes) with no real conflict, since only one document is ever open.
+      `ViewerModel.sendDataKey(_:)` forwards to a new `WireframeRenderer.sendDataKey(_:)`, which
+      calls `ribdata_key()`, rebuilds the data GPU buffers via the existing `buildDataBuffers()`
+      on change, and triggers a redraw; `WireframeRenderer` caches the raw `DataSceneC` by value
+      (`lastDataSnapshot`) after every rebuild, since the pointer `ribdata_snapshot()` returns is
+      documented as invalidated by the next snapshot/key call. No conflict with macOS's Cmd+Q
+      (system-provided, unrelated to bare `q`).
+- [X] T059 [US2] Added a semi-transparent status overlay (bottom-left, monospaced) to
+      `DocumentView.swift`, driven by `ViewerModel.dataStatusText` — a computed property built
+      from the same `@Published` mirror of `lastDataSnapshot` used by T058's menu, e.g.
+      `"Channel: _radiosity   •   Detail: 2   •   Draw: Discs"`. `nil` (overlay hidden entirely)
+      for a RIB document or before a data document finishes loading. `drawModeDisplayName`
+      mirrors `wireCli.cpp`'s `drawModeName()` (boxes/discs/points for brick map, discs/points
+      for point cloud, "Fixed" otherwise). Verified: full `cmake --build build` succeeds; the
+      same point-cloud-fixture smoke test as T053 (launch via `ORENDER_WIRE_GUI=1`, 3-second
+      alive check) re-run after these changes, still zero crash/stderr. Rendered appearance
+      still unverified (no display in this environment) — deferred to T063/`quickstart.md`.
+- [X] T060 [P] [US2] Populated the previously-empty `AdwHeaderBar` in
+      `src/preview/orender-wire-linux/main.cpp`: a `GtkMenuButton` (`open-menu-symbolic`) bound
+      to a `GMenuModel` (four sections: channel, detail, draw mode, save camera), each item
+      invoking a `GSimpleAction` added to the window's own action group (`win.<name>`). Every
+      action forwards to the exact same shared functions `on_key` already calls —
+      `apply_data_key(state, <letter>)` (new, factored out of what used to be inlined per-key
+      logic) and a new `trigger_save_camera(state)` (factored out of `on_key`'s old inlined 's'
+      case) — "one action implementation, two entry points" as specified. Added an
+      `AdwWindowTitle` with a subtitle refreshed by a new `update_header_bar_state()` (mirrors
+      `draw_mode_display_name()` from `wireCli.cpp`'s `drawModeName()`), called once after
+      `on_load_done()` and again after every `apply_data_key()` state change.
+      **Real key-binding collision found and resolved, not just a straightforward
+      port**: the legacy oshow convention needs bare `q`/`Q` to mean "previous channel" for a
+      document that has channels, but this app's own pre-existing `on_key` already binds bare
+      `q`/`Q` to **quit** — a conflict that didn't exist on macOS (quit there is Cmd+Q, a
+      completely different key combination from any bare-letter data-document shortcut).
+      Resolved by routing `q`/`Q` at runtime: if the open document currently has channels
+      (`ribdata_snapshot(...)->numChannels > 0`), it means channel-previous; otherwise it falls
+      through to the existing quit behavior. `Escape` remains an unconditional quit either way,
+      so quitting is never actually blocked. **⚠️ Compile-unverified** — same reasoning as
+      T054/T055 (this machine's CMake config structurally excludes `orender-wire-linux` under
+      `if(APPLE)`/`elseif(UNIX)`); written and cross-checked carefully against the existing
+      GTK4/GMenu/GAction patterns in the file, but needs a real Linux build to confirm.
+- [X] T061 [P] [US2] Document-type-conditional enabling, in the same
+      `update_header_bar_state()` added for T060: channel actions enabled only when
+      `numChannels > 0`; detail-level and "draw as boxes" actions enabled only for a brick map;
+      "draw as discs/points" enabled for brick map or point cloud; **Save Camera disabled
+      whenever a data document is open** (`!hasData`), matching the plan's stated scope — the
+      keyboard `s` shortcut itself is intentionally left unconditional (matches macOS, where
+      `WireframeRenderer.keyDown`'s `s` case is likewise not document-type-gated — the
+      conditional behavior applies to the *discoverable menu control*, not the raw key). No
+      `AdwViewStack` used, per the plan — one `GtkGLArea`, one set of pipelines, for both
+      document types. Same compile-unverified caveat as T060.
+- [X] T062 [US2] Confirmed structurally on both platforms: the channel actions'/menu-items'
+      enabled state is driven directly by `numChannels > 0` (macOS: `ViewerModel.hasChannels`;
+      Linux: `update_header_bar_state()`'s `hasChannels` local) — since only point clouds and
+      brick maps ever report `numChannels > 0` (confirmed against `dataSink.cpp`'s
+      `buildDataScene()`, which reads `view->numChannels()`, itself only overridden by
+      `CPointCloud`/`CBrickMap` per `dataView.h`'s default-0 base), a photon map, irradiance/
+      gather cache, or debug-geometry dump always disables/hides the channel control per FR-017.
+      No document type can reach an "offered but silently does nothing" state, since the same
+      `numChannels` value gates both the enabled-state check here and `ribdata_key()`'s own
+      `q`/`w` handling underneath.
+- [ ] T063 [US2] **Blocked on the user/CI — same reasoning as T057**: requires an interactive
+      display on both platforms, plus a real Linux machine for the Linux half. Manual
+      validation: `quickstart.md` steps 4–5 (menu-only path, then keyboard-only path, including
+      the macOS first-responder regression check after launch and after clicking the render
+      view). What this session could verify without a display (build success, crash-free
+      smoke-launch, the `q`-collision logic traced by hand) is not a substitute for actually
+      clicking the menu items and watching the visualization/status text update — do not mark
+      this done from a headless check.
 
 **Checkpoint**: User Stories 1 and 2 both work independently; every interactive control from the
-legacy tool is now discoverable and terminal-free.
+legacy tool is now discoverable and terminal-free. **Not yet confirmed**: T060/T061 (Linux) are
+compile-unverified, and T063's manual validation on both platforms is outstanding — the
+automated/buildable portion (macOS build + crash-free smoke test, full preview ctest suite) is
+green, but nobody has yet watched a menu click actually change what's on screen.
 
 ---
 
