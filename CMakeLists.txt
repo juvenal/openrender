@@ -296,17 +296,65 @@ if(APPLE AND NOT DEFINED LLVM_DIR)
         set(LLVM_DIR "/opt/homebrew/opt/llvm/lib/cmake/llvm" CACHE PATH "LLVM cmake dir (Homebrew fallback)" FORCE)
     endif()
 endif()
+# Minimum LLVM for the JIT (.slo) shader path.  15 is where both of the
+# version-sensitive LLVM APIs this tree uses became available:
+#
+#   * LLJIT::lookup() returning ExecutorAddr, used as symOrErr->getValue() in
+#     src/libshader/shading/llvmJit.cpp.  LLVM 14 and earlier returned a
+#     JITEvaluatedSymbol, which spells the same thing getAddress().
+#   * PointerType::getUnqual(LLVMContext&) for opaque-pointer IR emission, used
+#     throughout src/libshader/compiler/llvmEmitter.cpp.
+#
+# Ubuntu 22.04 LTS ships llvm-15, so this floor is satisfiable from that
+# release's default archive.  It is also below OpenShadingLanguage's own floor
+# of LLVM 14, so a future OSL integration cannot be blocked by this number --
+# but note that OSL embeds its own LLVM JIT, and loading two different LLVM
+# majors into one process is its own (much tighter) constraint.
+set(OPENRENDER_LLVM_MIN_VERSION "15" CACHE STRING
+    "Minimum LLVM major version for the JIT (.slo) shader path")
+
+# NOTE: this find_package call is deliberately version-less.  LLVM's own
+# LLVMConfigVersion.cmake treats a requested version as an EXACT major.minor
+# match rather than a minimum:
+#
+#     # LLVM is API-compatible only with matching major.minor versions
+#     if("22.1" VERSION_EQUAL
+#         "${PACKAGE_FIND_VERSION_MAJOR}.${PACKAGE_FIND_VERSION_MINOR}" ...)
+#
+# so find_package(LLVM 15 CONFIG) *rejects* LLVM 16 through 23, and even
+# find_package(LLVM 22 CONFIG) rejects LLVM 22.1 -- CMake fills the unspecified
+# minor as 0, comparing "22.1" against "22.0".  Because the call is QUIET and
+# not REQUIRED, that rejection is silent: configure succeeds, the JIT is
+# switched off, and every .slo code path disappears from the build.  A minimum
+# simply cannot be expressed through find_package here; it has to be checked by
+# hand, which is what the version comparison below does.
 find_package(LLVM CONFIG QUIET)
-if(LLVM_FOUND)
-    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-    set(OPENRENDER_HAVE_LLVM ON)
+
+set(OPENRENDER_HAVE_LLVM OFF)
+set(OPENRENDER_LLVM_VERSION_MAJOR 0)
+set(OPENRENDER_LLVM_VERSION_MINOR 0)
+
+if(NOT LLVM_FOUND)
+    message(STATUS "LLVM not found -- JIT shader path disabled, shaders run interpreted")
+elseif(LLVM_PACKAGE_VERSION VERSION_LESS "${OPENRENDER_LLVM_MIN_VERSION}")
+    # Distinct from "not found": LLVM is installed and usable, just too old.
+    # Reporting both as "not found" is what made this class of misconfiguration
+    # invisible in the first place.
+    message(WARNING
+        "Found LLVM ${LLVM_PACKAGE_VERSION}, but the JIT (.slo) shader path requires "
+        ">= ${OPENRENDER_LLVM_MIN_VERSION} -- JIT disabled, shaders run interpreted")
+    set(LLVM_FOUND OFF)
+    # Keep the real version in the config.h macros rather than zeroing them.
+    # OPENRENDER_HAVE_LLVM already says the JIT is off; these two are the only
+    # record of *which* LLVM was rejected, which is what makes this state
+    # debuggable from a build tree alone.
     set(OPENRENDER_LLVM_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
     set(OPENRENDER_LLVM_VERSION_MINOR ${LLVM_VERSION_MINOR})
 else()
-    message(STATUS "LLVM not found -- JIT shader path disabled")
-    set(OPENRENDER_HAVE_LLVM OFF)
-    set(OPENRENDER_LLVM_VERSION_MAJOR 0)
-    set(OPENRENDER_LLVM_VERSION_MINOR 0)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} -- JIT shader path enabled")
+    set(OPENRENDER_HAVE_LLVM ON)
+    set(OPENRENDER_LLVM_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
+    set(OPENRENDER_LLVM_VERSION_MINOR ${LLVM_VERSION_MINOR})
 endif()
 
 # ###########################################################################

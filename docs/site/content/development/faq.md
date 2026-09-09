@@ -27,10 +27,12 @@ but the ones that most often go missing are:
 - **bison** — required to regenerate the parsers, and on macOS it must be
   Homebrew's, because the system bison is version 2.3 and far too old. See
   [Installing on macOS](/openrender/development/installing-on-osx/).
-- **LLVM** — optional. Without it, CMake prints
+- **LLVM 15 or newer** — optional. Without it, CMake prints
   `LLVM not found -- JIT shader path disabled` and the renderer uses the
   bytecode shader interpreter. That is a working configuration, not a broken
-  one.
+  one. An LLVM older than 15 is reported separately — CMake names the version
+  it found and says the JIT needs a newer one — so a too-old toolchain is
+  never mistaken for a missing one.
 - **FLTK** — optional, only for the `oshow` viewer. Build without it using
   `-DBUILD_SHOW=OFF`.
 - **X11** (Linux only) — the framebuffer display helper `orender-fb-linux`

@@ -30,6 +30,22 @@ set_tests_properties(LibShader_Compiler PROPERTIES
 message(STATUS "  - LibShader_Compiler (unit tests for RSL compiler)")
 
 # ---------------------------------------------------------------------------
+# The three tests below all reach into llvmEmitter.cpp -- kHandledOpcodes,
+# kOpcodeParamTable and computeUsedParameters() are defined there, and that
+# translation unit is only compiled when OPENRENDER_HAVE_LLVM is set (see
+# src/libshader/compiler/CMakeLists.txt). Registered unconditionally, they fail
+# to *link* in a JIT-less build:
+#
+#     Undefined symbols for architecture arm64:
+#       "_kHandledOpcodes", referenced from: _main in test_opcode_coverage.cpp.o
+#
+# which broke the whole build, not just the tests. Pre-existing on master and
+# only reachable by configuring without LLVM, which nothing did until the
+# version floor above started routing too-old toolchains down the same path.
+# ---------------------------------------------------------------------------
+if(OPENRENDER_HAVE_LLVM)
+
+# ---------------------------------------------------------------------------
 # test_opcode_coverage — JIT (.slo) / .rslo opcode-parity coverage guard
 # (spec 011-jit-opcode-parity, FR-006). Compares kHandledOpcodes
 # (llvmEmitter.cpp) against a reachable-opcode set computed at test-run time
@@ -124,3 +140,8 @@ set_tests_properties(LibShader_UsedParametersGating PROPERTIES
 )
 
 message(STATUS "  - LibShader_UsedParametersGating (usedParameters bitmask gating conditions)")
+
+else()
+    message(STATUS "  - LibShader_OpcodeCoverage / UsedParametersTable / UsedParametersGating "
+                   "SKIPPED (no LLVM JIT in this build -- they test the JIT emitter)")
+endif()

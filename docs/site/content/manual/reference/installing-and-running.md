@@ -28,10 +28,16 @@ Required:
 
 Optional, each enabling a component:
 
-- **LLVM** — the JIT shading backend (`oshader --jit`, `.slo` shaders). If
-  CMake does not find LLVM it prints `LLVM not found -- JIT shader path
-  disabled` and builds the bytecode interpreter only. Everything still works;
-  shaders just run interpreted.
+- **LLVM 15 or newer** — the JIT shading backend (`oshader --jit`, `.slo`
+  shaders). If CMake does not find LLVM it prints `LLVM not found -- JIT
+  shader path disabled` and builds the bytecode interpreter only. If it finds
+  an LLVM older than 15 it says so explicitly, naming the version it found,
+  and disables the JIT for the same reason. Either way everything still works;
+  shaders just run interpreted. Homebrew's `llvm` and Ubuntu 22.04 LTS's
+  `llvm-15-dev` both clear the floor; note that Ubuntu's unversioned `llvm`
+  metapackage is older on 22.04, so install the versioned package. Override
+  the floor with `-DOPENRENDER_LLVM_MIN_VERSION=<major>` if you have reason
+  to.
 - **OpenEXR** and **Imath** — the OpenEXR display driver
 - **FLTK** — the `oshow` viewer. Turn it off with `-DBUILD_SHOW=OFF`.
 - **GTK 4** (4.20 or newer) — the `orender-wire` scene previewer on Linux. On

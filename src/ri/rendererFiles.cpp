@@ -744,6 +744,17 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *p
             if (CRenderer::locateFileEx(shaderLocation, name, "slo", path) == TRUE) {
                 cShader = parseSloShader(name, shaderLocation);
             }
+#else
+            // The scene asked for the JIT backend but this binary has none --
+            // LLVM was missing, or older than OPENRENDER_LLVM_MIN_VERSION, when
+            // it was configured. The .rslo fallback below still renders, so say
+            // so once rather than letting a build-configuration mismatch look
+            // like a normal render. Only the no-JIT-at-all case warns; a build
+            // *with* the JIT that simply has no .slo on disk falls back
+            // silently, which is a legitimate and intentional path.
+            warning(CODE_INCAPABLE,
+                    "Shader \"%s\": shaderformat \"slo\" requested, but this build has no "
+                    "LLVM JIT support; using the .rslo interpreter instead\n", name);
 #endif
             if (cShader == NULL &&
                 CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {

@@ -120,6 +120,19 @@ macro(add_visual_test SCENE_NAME RIB_FILE OUTPUT_TIF REF_TIF)
         ENVIRONMENT    "${VISUAL_ENV}"
         DEPENDS        orender
     )
+
+    # Collect the JIT scenes so the end of this file can disable them when the
+    # build has no LLVM JIT.  Those scenes set
+    #   Attribute "shade" "shaderformat" ["slo"]
+    # and compare against their .rslo counterpart's reference image.  Without
+    # the JIT, getShader() (src/ri/rendererFiles.cpp) falls back to .rslo, so
+    # the test renders through the interpreter and matches that same reference
+    # exactly -- a guaranteed pass that exercises no JIT code at all.  Keyed off
+    # the name suffix rather than a hand-kept list so a newly added -slo scene
+    # is covered automatically.
+    if("${SCENE_NAME}" MATCHES "-slo$")
+        list(APPEND OPENRENDER_SLO_VISUAL_TESTS Visual_${SCENE_NAME})
+    endif()
 endmacro()
 
 # ---------------------------------------------------------------------------
@@ -2188,3 +2201,22 @@ message(STATUS "  - Cross-hider parity tests: 75 scene pairs registered under la
 message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
+
+# ---------------------------------------------------------------------------
+# .slo (LLVM JIT) scenes in a build without the JIT.
+#
+# Registered either way, so the suite's total never quietly shrinks, but marked
+# DISABLED when there is no JIT behind them -- ctest then reports them as
+# skipped instead of passing them on the interpreter's output.  See the
+# collection site in add_visual_test() above for why they would otherwise pass.
+# ---------------------------------------------------------------------------
+if(OPENRENDER_SLO_VISUAL_TESTS)
+    list(LENGTH OPENRENDER_SLO_VISUAL_TESTS _n_slo_tests)
+    if(OPENRENDER_HAVE_LLVM)
+        message(STATUS "  - .slo (LLVM JIT) variants: ${_n_slo_tests} scenes enabled")
+    else()
+        set_tests_properties(${OPENRENDER_SLO_VISUAL_TESTS} PROPERTIES DISABLED TRUE)
+        message(STATUS "  - .slo (LLVM JIT) variants: ${_n_slo_tests} scenes DISABLED (no LLVM JIT in this build)")
+    endif()
+    unset(_n_slo_tests)
+endif()
