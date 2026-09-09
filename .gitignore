@@ -9,6 +9,10 @@ tmp-root
 openrender
 install_staging
 
+# Manual-testing fixture files (spec 016 quickstart.md validation) -- generated locally, not
+# source
+/fixtures/
+
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt

@@ -34,12 +34,12 @@ if(NOT EPOXY_FOUND)
     return()
 endif()
 
-add_executable(orender-wire
+add_executable(orender-wire-linux
     main.cpp
     arcball.cpp
 )
 
-target_include_directories(orender-wire PRIVATE
+target_include_directories(orender-wire-linux PRIVATE
     ${CMAKE_SOURCE_DIR}/src/preview
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -48,7 +48,7 @@ target_include_directories(orender-wire PRIVATE
     ${EPOXY_INCLUDE_DIRS}
 )
 
-target_link_libraries(orender-wire PRIVATE
+target_link_libraries(orender-wire-linux PRIVATE
     ribpreview
     ${GTK4_LIBRARIES}
     ${ADWAITA_LIBRARIES}
@@ -56,14 +56,25 @@ target_link_libraries(orender-wire PRIVATE
     OpenGL::GL
 )
 
-target_compile_features(orender-wire PRIVATE cxx_std_20)
-target_compile_options(orender-wire PRIVATE ${GTK4_CFLAGS_OTHER} ${ADWAITA_CFLAGS_OTHER})
-target_link_options(orender-wire PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_LDFLAGS_OTHER})
+target_compile_features(orender-wire-linux PRIVATE cxx_std_20)
+target_compile_options(orender-wire-linux PRIVATE ${GTK4_CFLAGS_OTHER} ${ADWAITA_CFLAGS_OTHER})
+target_link_options(orender-wire-linux PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_LDFLAGS_OTHER})
 
-set_target_properties(orender-wire PROPERTIES
+# Target name carries the platform suffix (matches orender-wire-macos); the produced binary is
+# still plain "orender-wire" on disk, in the build tree and once installed.
+#
+# BUILD_WITH_INSTALL_RPATH is intentionally left at its default (FALSE): setting it TRUE would
+# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libri.so)
+# into the *build-tree* binary too, where $ORIGIN/../lib resolves to a directory that doesn't
+# exist (libri.so actually lives under build/src/ri/) -- the binary would fail to even start
+# ("error while loading shared libraries: libri.so.1: cannot open shared object file") when run
+# directly from build/, which is exactly how this gets tested during development. Leaving this
+# unset lets CMake auto-compute a correct build-tree RPATH while still applying INSTALL_RPATH at
+# actual `cmake --install` time.
+set_target_properties(orender-wire-linux PROPERTIES
+    OUTPUT_NAME "orender-wire"
     INSTALL_RPATH "$ORIGIN/../lib"
-    BUILD_WITH_INSTALL_RPATH TRUE
 )
 
-install(TARGETS orender-wire DESTINATION libexec)
+install(TARGETS orender-wire-linux DESTINATION libexec)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../libexec/orender-wire ${CMAKE_INSTALL_PREFIX}/bin/orender-wire)")

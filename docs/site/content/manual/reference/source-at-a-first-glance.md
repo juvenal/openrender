@@ -18,7 +18,7 @@ When you unzip openRender-src-X.Y.Z, you should get the following directory stru
     - framebuffer - *"framebuffer" display driver*
     - openexr - *"openexr" display driver*
     - precomp - *A program that generates misc. code for openRender*
-    - preview - *orender-wire, an interactive scene wireframe viewer*
+    - preview - *orender-wire, an interactive viewer for RIB scenes and precomputed data-structure files*
     - rgbe - *"rgbe" display driver*
     - ri - *The main RenderMan Ri library*
     - orender - *The program that uses "ri" to render your RIB files*

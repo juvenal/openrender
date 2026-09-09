@@ -7,7 +7,7 @@
 
 #include "common/algebra.h"
 #include "ri/pointCloud.h"
-#include "wireCli.h"
+#include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;
 #define CHECK(expr) do { \

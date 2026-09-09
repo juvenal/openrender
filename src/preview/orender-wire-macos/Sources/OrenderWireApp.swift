@@ -24,6 +24,16 @@ struct OrenderWireApp: SwiftUI.App {
                     showAbout()
                 }
             }
+            // This app is single-document (FR-019: exactly one file open at a time) and
+            // ViewerModel.shared is a per-process singleton -- a second WindowGroup-provided
+            // window ends up hosting the *same* WireframeRenderer/MTKView instance as the first
+            // (MetalRendererView.makeNSView always returns model.renderer). AppKit can't attach
+            // one NSView to two windows at once, so "New Window" silently steals the view out
+            // from under the first window, and closing either window tears down the shared view
+            // for both -- observed as every other window going blank. Suppress the
+            // WindowGroup-default "New Window" item entirely rather than trying to make
+            // multi-window "work"; this feature has no multi-document model to support it.
+            CommandGroup(replacing: .newItem) {}
             // Data-document controls carried over from the deleted oshow tool (User Story 2):
             // channel/detail-level/draw-mode, as real menu items with the same legacy letter
             // keyboard shortcuts, instead of only being reachable via a terminal-invisible key

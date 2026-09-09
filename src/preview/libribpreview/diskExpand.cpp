@@ -29,9 +29,14 @@ void expandDisk(const DiskPrimitive &disk, std::vector<float3> &outVerts, std::v
     const float step = 6.283185307179586f / (float)DISK_SEGMENTS;
     const float radius = disk.radius;
 
-    outVerts.reserve(outVerts.size() + DISK_SEGMENTS * 3);
-    outCols.reserve(outCols.size() + DISK_SEGMENTS * 3);
-
+    // No reserve() here deliberately: std::vector::reserve() allocates *exactly* the requested
+    // capacity (no amortized headroom, unlike push_back's own internal growth), so calling it
+    // every invocation with "current size + this batch" forces a full reallocation and copy of
+    // the entire buffer on every single call -- O(N^2) over N discs, not O(N). Confirmed as the
+    // cause of a 9.5-minute load for a 500K-point cloud (100,000 discs surviving decimation).
+    // Callers expanding many discs into the same vectors should reserve() the known final size
+    // ONCE before the loop (see dataSink.cpp's buildDataScene()); left unreserved, push_back's
+    // own amortized doubling still keeps this at worst O(N) amortized, just not zero-realloc.
     float3 rim0 = add(disk.P, mul(X, radius)); // theta = 0
     for (int i = 0; i < DISK_SEGMENTS; i++) {
         float theta1 = (float)(i + 1) * step;

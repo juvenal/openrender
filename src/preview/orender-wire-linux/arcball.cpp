@@ -237,6 +237,14 @@ void ArcballCamera::reset() {
     viewMatrix_  = initViewMatrix_;
     orbCtrBaked_ = initOrbCtrBaked_;
     projMatrix_  = ribProj_;
+    // Re-apply the *current* window's aspect correction rather than leaving ribProj_'s own
+    // baked-in aspect in place -- see ArcballCamera.swift's reset() for the full explanation
+    // (identical bug, independently present on both platforms). For a RIB scene, ribProj_
+    // already reflects the file's declared frame aspect ratio; for a synthesized data-document
+    // camera it's a meaningless hardcoded 1:1. Either way, updateAspect() at load time already
+    // corrected this once for the actual window shape, and resetting without redoing it
+    // silently threw that correction away.
+    updateAspect(windowW_, windowH_);
 }
 
 void ArcballCamera::updateAspect(float w, float h) {

@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cerrno>
 #include <unistd.h>
 #include <string>
 #include <vector>
@@ -906,32 +905,8 @@ static void on_activate(AdwApplication *app, gpointer user_data) {
 
 // ─── main ─────────────────────────────────────────────────────────────────────
 
-static const char *HELP_TEXT =
-"Usage: orender-wire [OPTIONS] <scene.rib>\n"
-"\n"
-"Open and inspect a RenderMan RIB scene as an interactive wireframe.\n"
-"\n"
-"Options:\n"
-"  --help       Show this help text and exit\n"
-"  --version    Print version and exit\n"
-"\n"
-"Controls:\n"
-"  Left drag      Orbit camera\n"
-"  Middle drag    Pan camera\n"
-"  Scroll         Zoom\n"
-"  R / Home       Reset camera to RIB viewpoint\n"
-"  S              Save current camera to RIB file\n"
-"  Q / Escape     Quit\n"
-"\n"
-"Exit codes:\n"
-"  0  Normal exit\n"
-"  1  Usage error (bad arguments)\n"
-"  2  File not found or unreadable\n"
-"  3  RIB parse failed\n"
-"  4  No display available\n";
-
 int main(int argc, char **argv) {
-    // Suppress Mesa/EGL warnings and driver loader errors by forcing the OpenGL 
+    // Suppress Mesa/EGL warnings and driver loader errors by forcing the OpenGL
     // renderer and silencing Mesa's internal diagnostic/error logging.
     setenv("GSK_RENDERER", "gl", 0);
     setenv("EGL_LOG_LEVEL", "fatal", 0);
@@ -939,34 +914,40 @@ int main(int argc, char **argv) {
     setenv("LIBGL_DEBUG", "quiet", 0);
     setenv("MESA_LOG_FILE", "/dev/null", 0);
 
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            fputs(HELP_TEXT, stdout);
-            return 0;
-        }
-        if (strcmp(argv[i], "--version") == 0) {
-            puts("orender-wire 1.0");
-            return 0;
-        }
-    }
+    // Delegates entirely to wireCliRun() (src/preview/libribpreview/wireCli.cpp) -- the shared,
+    // already-tested (test_wire_cli.cpp) argument grammar, --help/--version text, --json
+    // headless mode, and exit codes 1-4, so this frontend and the macOS one never drift from
+    // each other or from contracts/cli-interface.md. This replaces main()'s own former ad-hoc
+    // --help/--version/argc/access() checks, which never supported --json or --type at all.
+    //
+    // Must run, and return exitCode on WIRE_CLI_EXIT, before daemon()/GTK init below --
+    // otherwise `--json` would daemonize into a background process before ever printing
+    // anything, and a test harness (or an SSH session with no window server) would see exit 0
+    // with no output instead of the JSON/text on this process's own stdout.
+    char *outPath = nullptr;
+    int wireExitCode = 0;
+    WireCliAction wireAction = wireCliRun(argc, argv, &outPath, &wireExitCode);
+    if (wireAction == WIRE_CLI_EXIT)
+        return wireExitCode;
 
-    if (argc < 2) {
-        fprintf(stderr, "Usage: orender-wire <scene.rib>\n");
-        return 1;   // exit 1: usage error
-    }
+    // outPath is intentionally never freed -- AppState::ribPath keeps using this raw pointer
+    // for the whole process lifetime (until exit), same as every other AppState member that
+    // lives until on_close_request/process exit.
+    const char *ribPath = outPath;
 
-    const char *ribPath = argv[1];
-    if (access(ribPath, R_OK) != 0) {
-        fprintf(stderr, "orender-wire: cannot open '%s': %s\n",
-                ribPath, strerror(errno));
-        return 2;
-    }
-
-    // Release the terminal. nochdir=1 to keep CWD for RIB resources, 
+    // Release the terminal. nochdir=1 to keep CWD for RIB resources,
     // noclose=1 to keep stderr open for warnings.
-    if (daemon(1, 1) != 0) {
-        perror("orender-wire: daemon failed");
-        return 5;
+    //
+    // ORENDER_WIRE_GUI (same sentinel name as the macOS frontend's re-exec bypass) skips the
+    // daemonize step for debugging: a crash after daemon() forks into the background is
+    // otherwise invisible to the calling shell -- it detaches into a session the shell isn't
+    // waiting on, so "no window, no error" is exactly what a post-fork crash looks like from
+    // the terminal.
+    if (getenv("ORENDER_WIRE_GUI") == nullptr) {
+        if (daemon(1, 1) != 0) {
+            perror("orender-wire: daemon failed");
+            return 5;
+        }
     }
 
     AppState state{};

@@ -47,6 +47,15 @@ set(LIBRI_VERSIONED  "libri.${OPENRENDER_COMPAT_SOVERSION}.dylib")
 
 add_custom_command(
     OUTPUT  "${WIRE_MACOS_BINARY}"
+    # SPM's own incremental build tracks Swift source files, not the externally-linked
+    # libribpreview.a/libopenrendercommon.a passed via raw -Xlinker flags below -- when only
+    # those C++ static libraries change (no .swift file touched), `swift build` sees "no Swift
+    # sources changed" and skips relinking entirely, leaving this stale binary in place even
+    # though CMake correctly re-invoked this whole custom command because its OWN DEPENDS list
+    # (LIBRIBPREVIEW_A/LIBCOMMON_A below) changed. Removing the previous output first forces
+    # SPM to always perform the final link step, since "produce this output file" is then
+    # unconditionally true regardless of what its own source-level tracking concluded.
+    COMMAND "${CMAKE_COMMAND}" -E remove -f "${WIRE_MACOS_BINARY}"
     COMMAND "${SWIFT_EXECUTABLE}" build
             --configuration release
             --package-path "${WIRE_MACOS_SRC_DIR}"

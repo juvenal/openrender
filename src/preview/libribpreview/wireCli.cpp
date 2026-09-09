@@ -1,5 +1,3 @@
-#include "wireCli.h"
-
 #include "common/global.h"
 #include "ribpreview_api.h"
 #include "ri/dataLoad.h"

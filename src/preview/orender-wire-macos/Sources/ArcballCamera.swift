@@ -150,6 +150,14 @@ final class ArcballCamera {
         viewMatrix  = initViewMatrix
         orbCtrBaked = initOrbCtrBaked
         projMatrix  = ribProj
+        // Re-apply the *current* window's aspect correction rather than leaving ribProj's own
+        // baked-in aspect in place. For a RIB scene, ribProj already reflects the file's
+        // declared frame aspect ratio; for a synthesized data-document camera it's a meaningless
+        // hardcoded 1:1 (see dataSink.cpp's synthesizeCamera()) -- either way, `updateAspect` at
+        // load time already corrected this once for the actual window shape, and resetting
+        // without redoing it silently threw that correction away, squashing/stretching the view
+        // whenever the window isn't square.
+        updateAspect(width: windowSize.x, height: windowSize.y)
     }
 
     // MARK: – Resize

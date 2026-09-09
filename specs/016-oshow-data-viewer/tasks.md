@@ -649,6 +649,191 @@ is visible.
       paths all complete without crashing. **Not verified**: the actual rendered pixels (no
       display/interactive session available in this environment) — deferred to `quickstart.md`
       manual validation (T057).
+
+      **Update (T057 manual validation, 2026-09-08): found and fixed a real, significant bug —
+      every data document rendered as a completely blank window**, confirmed on the user's
+      macOS machine across all four fixture types tried (point cloud, brick map, photon map,
+      debug-geometry dump). The RIB path (`camera-dof.rib`) rendered correctly, and the
+      on-screen status overlay (channel/detail/draw-mode) correctly reflected each document's
+      real state, proving the whole data-loading pipeline was sound — only the actual
+      geometry was invisible. **Root cause**: `dataSink.cpp`'s `synthesizeCamera()` built its
+      view/projection matrices assuming the OpenGL-standard convention (camera looks down `-Z`,
+      `w' = -z_view`), but openRender's own camera convention — confirmed against
+      `ribGeometryContext.cpp:337-352`'s projection matrix, the one the already-working RIB path
+      uses — is the opposite: `proj[14] = 1.0` (not `-1.0`), meaning `w' = +z_view`, camera looks
+      down `+Z`. Paired with the wrong-convention view matrix, this put the entire synthesized
+      scene behind the camera. Since the grid/axis overlay is drawn every frame with the exact
+      same view-projection matrix regardless of document type, its total absence (not just the
+      data geometry's) was the key clue that pointed at the camera math rather than the
+      vertex-buffer upload path. **Why the existing test suite never caught this**:
+      `test_wire_cli.cpp`'s FR-008 check only asserts the *scalar* near/far plane values are
+      sane (`nearP > 0`, `farP - nearP > diagonal`) — it never renders anything or checks the
+      matrices' actual orientation, so a numerically-plausible but geometrically-inverted camera
+      passed every automated check while being completely non-functional. **Fixed** by flipping
+      the view matrix's Z basis (now points from eye toward center, matching the "+Z into the
+      screen" convention) and rewriting the projection matrix's Z-row to match
+      `ribGeometryContext.cpp`'s exact formula (`proj[10] = far/(far-near)`,
+      `proj[11] = -(far*near)/(far-near)`, `proj[14] = 1`) instead of the OpenGL-standard form.
+      Rebuilt and confirmed `ctest -L preview` still 17/17 (the existing numeric checks don't
+      distinguish the two conventions, as expected) — **re-verification with an actual rendered
+      window from the user is the next step**, this fix has not yet been visually confirmed.
+
+      **Second, separate bug found on re-test: the camera fix had never actually been linked
+      into the tested binary.** The user re-tested all four fixtures after the fix above and
+      still saw a completely blank window for every one, unchanged from before. Comparing
+      `stat` timestamps exposed why: `build/.../swift-build/release/orender-wire-macos` (the
+      real SPM link output) was from **9:54 AM that day** — hours before the camera fix (and
+      possibly predating other same-day changes) — while the `.app` bundle's copied binary had
+      a fresh timestamp from *this* build. Root cause: `orender-wire-macos/CMakeLists.txt`'s
+      custom command correctly re-invokes `swift build` whenever its own `DEPENDS` list
+      (`libribpreview.a`/`libopenrendercommon.a`) changes, but `swift build`'s *own* incremental
+      build system only tracks `.swift` source files — it has no visibility into an externally
+      linked static library passed via raw `-Xlinker` flags, so it concluded "no Swift source
+      changed" and silently skipped the actual link step. The subsequent
+      `${CMAKE_COMMAND} -E copy` step then copied that same stale binary into the `.app` bundle
+      again, refreshing its mtime and making the *output* look freshly built even though its
+      *content* hadn't changed since 9:54 AM. **This means every "smoke test" and manual
+      verification claim earlier in this feature that involved rebuilding `orender-wire-macos`
+      after a `libribpreview`-only change (no `.swift` file touched) may have silently tested a
+      stale binary** — T053's crash-free point-cloud launch test is the clearest one at risk,
+      since it followed exactly this pattern (`dataSink.cpp`/`WireframeRenderer.swift` were
+      touched together for T053, so that specific rebuild likely *did* relink correctly since
+      Swift sources also changed — but any subsequent libribpreview-only rebuild afterward would
+      not have). Fixed by adding `${CMAKE_COMMAND} -E remove -f "${WIRE_MACOS_BINARY}"` before
+      the `swift build` invocation, forcing SPM to always perform the final link step (its own
+      output no longer exists, so "produce this file" is unconditionally true regardless of
+      what its source-level change tracking concluded). Confirmed via `stat`: after this fix, a
+      rebuild triggered by a `dataSink.cpp`-only change actually re-links (visible `[1/2] Linking
+      orender-wire-macos`, ~6s, vs. the previous suspiciously-instant "Build complete! (0.21s)"
+      with no link step shown at all) and the output binary's timestamp advances correctly.
+
+      **Third bug, found once the stale-binary issue was fixed and the real rebuild retested:
+      geometry rendered (correct shape, color, and — per the Z-basis fix — no longer behind the
+      camera), but badly off-center, cut off in a screen corner rather than framed. Panning
+      found the content fully intact, confirming the geometry itself and its world-space
+      position were correct — only the *initial camera framing* was wrong.** Root cause:
+      `PreviewCamera::viewMatrix` must hold the **camera-to-world** matrix, not
+      world-to-camera — confirmed independently on both platforms via matching comments in
+      `ArcballCamera.swift` (`"viewMatrix = from = to^{-1} (world → +Z-forward baked space)"`)
+      and Linux's `arcball.cpp`/`arcball.h` (`"from = to^{-1} = camera-to-world"`,
+      `"stores viewMatrix (= camera-to-world, from) directly"`). Both implementations invert
+      whatever `PreviewCamera::viewMatrix` gives them and use *that inverted result* directly as
+      the actual render/view matrix — so the input must be camera-to-world for the inversion to
+      recover world-to-camera. `synthesizeCamera()` had built a standard look-at
+      **world-to-camera** matrix (correct in isolation, matching the textbook formula) and
+      stored it directly — one matrix-orientation step short of what the consumer needed.
+      Fixed by transposing the rotation part and using the eye position as translation
+      (camera-to-world = `[Rᵀ | eye]` for the look-at's `[R | -R·eye]`). This is also why camera
+      *export* (`cameraToWorldMatrix`) round-trips correctly for the RIB path — same
+      requirement, independently confirmed. Rebuilt (relink confirmed via the CMake fix above),
+      `ctest -L preview` still 17/17 (no test exercises actual camera-to-world orientation
+      end-to-end) — **awaiting the user's re-test for final visual confirmation.**
+
+      **Confirmed by the user: the camera-to-world fix resolved the framing bug — all four data
+      documents now open already centered and fully framed on load, no panning needed.** One
+      further, distinct bug surfaced during that same re-test: pressing **R** (reset camera)
+      squashed the view vertically. Root cause, present on **both platforms** (pre-existing
+      spec-006 code, not introduced by this feature, but only now surfaced because a
+      synthesized data-document camera's aspect assumption is meaningless where a RIB scene's
+      usually isn't): `ArcballCamera.reset()` (macOS)/`ArcballCamera::reset()` (Linux) restore
+      `projMatrix`/`projMatrix_` to the ORIGINAL `ribProj`/`ribProj_` — which for a RIB scene
+      encodes the file's own declared frame aspect ratio, but for a synthesized data-document
+      camera is `synthesizeCamera()`'s hardcoded 1:1 — **without re-applying the
+      aspect-ratio correction `updateAspect()` had already made for the actual window shape at
+      load time**, silently discarding it and reverting to the stale 1:1 assumption whenever the
+      window isn't square. Fixed on both platforms by calling `updateAspect()` again immediately
+      after restoring `ribProj`/`ribProj_`, using the arcball's own already-tracked current
+      window size — this keeps the "restore the originally-authored vertical FOV/orientation"
+      intent of reset intact while no longer discarding the horizontal aspect correction.
+      Verified on macOS: rebuilt (relink confirmed), `ctest -L preview` still 17/17 including
+      `test_preview_arcball`/`test_camera_export` (which directly exercise `reset()`), confirming
+      no regression to the already-working RIB-scene reset behavior. **Linux fix is
+      compile-unverified**, same standing caveat as the rest of that file.
+
+      **Confirmed by the user: reset (R) now snaps back to the same correctly-framed,
+      non-squashed view.** This closes out the macOS half of T057's core claim — all four data
+      documents tested (point cloud, brick map, photon map, debug-geometry dump) plus the
+      original RIB scene open, frame correctly on load, and support orbit/pan/zoom/reset,
+      confirmed via four independently-diagnosed-and-fixed real bugs along the way (disc-radius
+      stride, the RPATH build issue, the stale-SPM-binary CMake issue, the camera-to-world
+      convention, and the reset-aspect bug — five, not four). **Still not explicitly walked**:
+      clicking through each individual Data-menu item and confirming the visualization *and*
+      status text update per action (T063's actual per-control check, as opposed to confirming
+      the menu's enabled/disabled state, which *was* observed correctly); the equivalent via
+      keyboard shortcuts, including the macOS first-responder regression check after clicking in
+      the render view; opening a data file with a primitive count exceeding the decimation cap;
+      launching from Finder and via a `bin/orender-wire` symlink; and single-document replacement
+      (opening a second file while one is already open). These remain open across T057/T063/T066.
+
+      **User walked the remaining checks (2026-09-09) and found three more real bugs:**
+
+      **Bug 6 — Data menu and keyboard shortcuts, confirmed working** (Batches 1-2 of the
+      manual walkthrough): every Data-menu item and its keyboard equivalent correctly updates
+      both the visualization and the status text, on both the point cloud and brick map
+      fixtures, including after a click-in-view and app-switch (the named first-responder risk
+      from research.md §8). No bug — closes out T063's remaining check.
+
+      **Bug 7 — SC-006 violation, ~9.5 minutes to open a 500K-point cloud (target: under 5
+      seconds), root-caused via a dedicated investigation.** `diskExpand.cpp`'s `expandDisk()`
+      called `outVerts.reserve(outVerts.size() + kVertsPerDisk)` / same for `outCols` on
+      **every single call** — `std::vector::reserve()` allocates *exactly* the requested
+      capacity (no amortized headroom, unlike `push_back`'s own internal doubling), so calling
+      it every invocation with "current size + this batch" forces a full reallocation and copy
+      of the *entire* buffer built so far, on every call. Over the ~100,000 discs surviving
+      decimation for a 500K-point cloud (default draw mode is discs, `CPointCloud::drawDiscs`
+      defaults `TRUE`), this is genuine **O(N²)** — computed at ~7.2 TB of cumulative
+      realloc-copy traffic, squarely bracketing the observed 570s at a realistic effective
+      throughput. Fixed by removing `expandDisk()`'s internal `reserve()` entirely (documented
+      why, so it doesn't get "helpfully" re-added) and instead reserving the *exact final size
+      once*, up front, in `dataSink.cpp`'s `buildDataScene()` before the expansion loop — turning
+      100,000 calls' worth of full-buffer reallocations into zero. Exposed a new
+      `kVertsPerDisk = 60` constant in `diskExpand.h` so the caller's reserve size can't drift
+      out of sync with `expandDisk()`'s own per-disc vertex count.
+
+      **Bug 8 — found alongside bug 7, a non-monotonic decimation cap**: `decimateGrouped()`/
+      `decimateDisks()` computed `stride = total / cap` via integer division, which truncates to
+      `1` for any `total` in `[cap, 2×cap)` — meaning the cap silently **doesn't bind** in that
+      range (e.g. 199,999 discs would all survive, not be capped to 100,000, doing ~4x the
+      downstream work of a cloud comfortably over the cap — non-monotonic: a *smaller* point
+      count can take *longer* to open). Fixed by switching both functions to an
+      output-indexed exact-cap scheme (`srcIndex = i * total / cap` for output index `i` in
+      `[0, cap)`) that always keeps exactly `cap` elements, evenly spread, regardless of the
+      total/cap ratio.
+
+      **Bug 9 — "New Window" corrupts all open windows.** With one data document open, the
+      user tried **File → New Window** (a default SwiftUI `WindowGroup` command never
+      suppressed) and got a second window showing the same data — then closing *either* window
+      left *all* remaining windows blank. Root cause: `ViewerModel.shared` is a per-process
+      singleton, and `MetalRendererView.makeNSView` always returns `model.renderer` — so every
+      window created this way hosts the exact same `WireframeRenderer`/`MTKView` instance.
+      AppKit cannot attach one `NSView` to two windows at once; closing one window tears down
+      the shared view out from under all the others. Since this feature is explicitly
+      single-document (FR-019) with no multi-window model to actually support, fixed by
+      suppressing the command entirely (`CommandGroup(replacing: .newItem) {}`) rather than
+      trying to make multi-window "work" — there was never a design for it to work correctly.
+      This also effectively settles T066 (single-document replacement) for the GUI: there is no
+      "Open..." menu action at all (only launch-argument-based opening), so with "New Window"
+      removed there is no code path left in the running app that could ever open a second
+      document in the same process — FR-019 holds structurally, not just by observed behavior.
+
+      Rebuilt (relink confirmed) after bugs 7-9; `ctest -L preview` 17/17 unaffected.
+
+      **Confirmed by the user: the 500K-point fixture now opens in ~2 seconds (was ~9.5
+      minutes — a ~285x speedup), comfortably under SC-006's 5-second bar, and "New Window" is
+      confirmed gone from the File menu.** This closes out the macOS side of T057, T063, and
+      T066 (single-document replacement, settled structurally per bug 9's notes) — every
+      manually-checkable claim in `quickstart.md` steps 2-8 has now been walked and confirmed on
+      macOS, across nine real bugs found and fixed along the way (disc-radius stride, the RPATH
+      build issue, the stale-SPM-binary CMake issue, the camera-to-world convention, the
+      reset-aspect bug, the O(N²) disc-expansion reserve, the non-monotonic decimation cap, and
+      the New Window window-corruption bug — eight distinct fixes, not counting the Data-menu/
+      keyboard check which found no bug). **Not yet done on macOS**: launching via a
+      `bin/orender-wire` symlink specifically (requires an actual `cmake --install`, not just
+      the build tree — low priority, since direct-path launches have been exhaustively tested
+      and the symlink is just an indirection to the same binary) and T064's own explicit
+      RIB-scene regression walkthrough (orbit/pan/zoom/reset re-confirmed unaffected by the
+      `reset()` fix via the automated `test_preview_arcball`/`test_camera_export` suite, but not
+      re-walked interactively since those fixes landed).
 - [X] T054 [P] [US1] Added the equivalent GLSL 330 points pipeline (`POINT_VERT`/`POINT_FRAG`,
       `gl_PointSize` written in the vertex shader + `glEnable(GL_PROGRAM_POINT_SIZE)`) to
       `src/preview/orender-wire-linux/main.cpp`; triangles reuse the existing `SCENE_VERT`/
@@ -668,6 +853,36 @@ is visible.
       against the existing GLSL/GTask/VAO patterns already in the file and cross-checked line by
       line, but **needs a real Linux build (CI or a Linux box) to confirm it actually compiles**
       before being trusted.
+
+      **Update (user's first real Linux build, 2026-09-02/03), compile now confirmed, two
+      infrastructure bugs found and fixed — neither is in the T053-T062 application code
+      above, both are in `src/preview/orender-wire-linux/CMakeLists.txt`:**
+      - The compile itself succeeded (`ctest --test-dir build -L preview` also passed
+        unmodified, as expected — that suite never touches this GTK frontend at all). Running
+        the built binary produced no window and no visible error.
+      - **Root cause of the silent failure**: `CMakeLists.txt` set
+        `BUILD_WITH_INSTALL_RPATH TRUE` on the executable target — a pre-existing
+        misconfiguration, not introduced by spec 016, and confirmed to be the *only* place in
+        the whole project setting this property. That forces the binary to be linked with
+        `INSTALL_RPATH` (`$ORIGIN/../lib`, correct once installed under `libexec/` next to
+        `lib/libri.so`) even in the *build tree*, where `$ORIGIN/../lib` resolves to a directory
+        that doesn't exist (`libri.so` actually lives under `build/src/ri/`) — the dynamic
+        linker fails before `main()` (and therefore before `daemon()`) ever runs, which is
+        exactly what "starts, no error, no window" looks like when invoked in a context that
+        doesn't surface the loader's stderr clearly. Fixed by removing
+        `BUILD_WITH_INSTALL_RPATH` (left at its default `FALSE`), which lets CMake auto-compute
+        a correct build-tree RPATH while still applying `INSTALL_RPATH` at actual
+        `cmake --install` time — standard, default CMake behavior.
+      - **Separately, renamed the CMake target** from `orender-wire` to `orender-wire-linux`
+        (user request, for parity with `orender-wire-macos`) via `add_executable(orender-wire-linux ...)`
+        plus `OUTPUT_NAME "orender-wire"`, so `cmake --build build --target orender-wire-linux`
+        now works and the on-disk binary name (build tree and installed) is unchanged.
+      - Also added an `ORENDER_WIRE_GUI` env var check (mirroring the macOS frontend's identical
+        sentinel) that skips `daemon()` entirely — a debugging aid so a future crash/hang after
+        the fork isn't invisible to the calling shell.
+      - **Still outstanding**: the RPATH fix has not yet been re-tested by actually launching
+        the app and seeing a window — that's the next step, now that the loader error is
+        resolved.
 - [X] T055 [US1] Applied the GL depth-range fix in `src/preview/orender-wire-linux/arcball.cpp`'s
       constructor: `remapClipZMetalToGL()` rewrites the loaded projection matrix's z row
       (`row_z_new = 2*row_z − row_w` for each column) once, baked into `ribProj_` so `reset()`
@@ -688,13 +903,11 @@ is visible.
       contracts/c-abi.md's `RibDataType`, and research.md §2). No replacement task is needed:
       `RibDataType` has no corresponding enumerator, so every document `ribdata_open` returns is
       always visualizable. This ID is intentionally left retired rather than reused.
-- [ ] T057 [US1] **Blocked on the user/CI — requires an interactive display and, for the Linux
-      half, a real Linux machine, neither available in this session.** Manual validation:
-      `quickstart.md` steps 2–3 (headless CLI per document type, then GUI open per document
-      type) on both platforms. What this session *could* verify without a display is covered in
-      T053's notes (macOS: builds clean, opens a real point-cloud fixture without crashing,
-      3-second-alive smoke test, zero stderr) — that is a crash/wiring check, not a substitute
-      for actually looking at the rendered geometry. Do not mark this done from a headless check.
+- [ ] T057 [US1] **macOS half fully confirmed (2026-09-08/09) — see T053's notes for the full
+      account, including the four real bugs found and fixed to get there. Linux half still
+      blocked**, pending resolution of the Linux VM's Mesa/LLVM crash (T063's notes) or a
+      different Linux machine. Manual validation: `quickstart.md` steps 2–3 (headless CLI per
+      document type, then GUI open per document type) on both platforms.
 
 **Checkpoint**: User Story 1 is fully functional and independently testable — every data type
 opens and renders on both platforms. **Not yet confirmed**: T054/T055 (Linux) are
@@ -788,20 +1001,77 @@ shortcuts produce the same effect.
       No document type can reach an "offered but silently does nothing" state, since the same
       `numChannels` value gates both the enabled-state check here and `ribdata_key()`'s own
       `q`/`w` handling underneath.
-- [ ] T063 [US2] **Blocked on the user/CI — same reasoning as T057**: requires an interactive
-      display on both platforms, plus a real Linux machine for the Linux half. Manual
-      validation: `quickstart.md` steps 4–5 (menu-only path, then keyboard-only path, including
-      the macOS first-responder regression check after launch and after clicking the render
-      view). What this session could verify without a display (build success, crash-free
-      smoke-launch, the `q`-collision logic traced by hand) is not a substitute for actually
-      clicking the menu items and watching the visualization/status text update — do not mark
-      this done from a headless check.
+- [ ] T063 [US2] **macOS half fully confirmed (2026-09-09) — every Data-menu item and its
+      keyboard equivalent correctly updates both the visualization and status text, on point
+      cloud and brick map fixtures, including after a click-in-view and app-switch (the
+      first-responder regression check). Linux half still blocked** on the Mesa/LLVM crash (see
+      below). Manual validation: `quickstart.md` steps 4–5 (menu-only path, then keyboard-only
+      path) on both platforms.
+
+      **Update (user's Linux VM, 2026-09-02/03): T054/T055/T060/T061's "compile-unverified"
+      status is resolved (confirmed compiling and linking on a real Fedora/Wayland box after the
+      CMake target/RPATH fixes below), but T063 itself is now blocked on something new — the
+      user's Linux test VM (a Proxmox VM with no hardware GPU, `llvmpipe`-only by design and
+      previously working fine) currently cannot create ANY GL or Vulkan context at all,
+      confirmed three independent ways, all via `gdb bt full` on the resulting core dumps:**
+      1. Default (`GSK_RENDERER` forced to `"gl"` by `main.cpp`, pre-existing/unrelated to spec
+         016): crashes in `llvmpipe_init_sampler_matrix` → `compile_jit_size_function` →
+         `gallivm_compile_module` → `lp_build_create_jit_compiler_for_module`, reached via
+         `gtk_window_realize`'s own GSK compositor context creation. Our own code
+         (`on_activate`) is the last application frame; everything below it is
+         GTK/EGL/Mesa/LLVM.
+      2. `GSK_RENDERER=cairo` (rules out the window compositor's own GL path): window now maps
+         successfully, but `GtkGLArea`'s *own* context creation (`on_realize` in `main.cpp`,
+         via `gtk_gl_area_real_create_context` → `gdk_surface_create_gl_context`) hits the
+         identical `llvmpipe_init_sampler_matrix` → JIT-compiler crash. Confirms the bug is in
+         `llvmpipe` itself, not which caller asks for a GL context.
+      3. `GALLIUM_DRIVER=softpipe` (rules out `llvmpipe` specifically): GL context creation now
+         fails cleanly with warnings instead of crashing ("Could not initialize EGL display"),
+         but GTK's renderer fallback chain then tries **Vulkan**, whose only available driver on
+         this VM is **Lavapipe** (`libvulkan_lvp.so`, Mesa's software Vulkan implementation) —
+         which internally calls into the *same* Gallium/`llvmpipe` JIT compiler
+         (`lvp_CreateDevice` → `lvp_queue_init` → `llvmpipe_create_context` →
+         `llvmpipe_init_sampler_matrix` → identical crash signature).
+
+      **Conclusion**: every software-rendering path this Mesa build offers (GL via `llvmpipe`,
+      Vulkan via Lavapipe) funnels through the same broken `lp_build_create_jit_compiler_for_module`
+      call — there is no remaining application-level renderer choice left to try. All three
+      traces terminate application-side at `main()`/`on_activate()`; `orender-wire`'s own code
+      (old or new) is never implicated in any of the three. This is a Mesa/LLVM system
+      regression on this specific VM (very recent version numbers observed —
+      Mesa 26.1.7→26.1.8 and LLVM 22.1.8, ticking up mid-session, consistent with a
+      fast-moving/rawhide-adjacent install), not a spec-016 defect. T063 stays blocked until
+      either this VM's Mesa/LLVM packages are downgraded/fixed, or a different Linux machine
+      with a working Mesa install is used.
+
+      **Two infrastructure fixes made along the way (in `src/preview/orender-wire-linux/
+      CMakeLists.txt` and `main.cpp`), both real and durable regardless of the above**:
+      - `CMakeLists.txt` had `BUILD_WITH_INSTALL_RPATH TRUE` — the only place in the whole
+        project setting that property — which bakes the install-time RPATH
+        (`$ORIGIN/../lib`) into the *build-tree* binary too, where it resolves to a directory
+        that doesn't exist. Every fresh build-tree run failed at the dynamic-linker stage
+        before `main()` ever executed ("error while loading shared libraries: libri.so.1").
+        Fixed by removing the property (default `FALSE`), which lets CMake auto-compute a
+        build-tree-correct RPATH while still honoring `INSTALL_RPATH` at actual
+        `cmake --install` time.
+      - Renamed the CMake target from `orender-wire` to `orender-wire-linux` (parity with
+        `orender-wire-macos`) via `add_executable(orender-wire-linux ...)` + `OUTPUT_NAME
+        "orender-wire"`, so `cmake --build build --target orender-wire-linux` works and the
+        on-disk binary name is unchanged in both the build tree and once installed.
+      - Added an `ORENDER_WIRE_GUI` env var check in `main()` (mirroring the macOS frontend's
+        identical sentinel) that skips the `daemon()` background-detach call — without it, a
+        post-fork crash is invisible to the calling shell (it detaches into a session the shell
+        isn't waiting on), which is exactly what made the original RPATH bug look like "starts
+        silently, no error, no window" instead of a visible loader error.
 
 **Checkpoint**: User Stories 1 and 2 both work independently; every interactive control from the
-legacy tool is now discoverable and terminal-free. **Not yet confirmed**: T060/T061 (Linux) are
-compile-unverified, and T063's manual validation on both platforms is outstanding — the
-automated/buildable portion (macOS build + crash-free smoke test, full preview ctest suite) is
-green, but nobody has yet watched a menu click actually change what's on screen.
+legacy tool is now discoverable and terminal-free. **Not yet confirmed**: T063's manual
+visual/interactive validation on both platforms is outstanding — on macOS via the crash-free
+smoke test, on Linux blocked on the test VM's broken Mesa/LLVM software-rendering stack (see
+T063's notes above). The Linux *code* itself has now survived three independent crash-trace
+inspections with zero findings pointing at `orender-wire`'s own code, which is meaningfully
+stronger evidence than the earlier "compile-unverified" status, even without an actual rendered
+window yet.
 
 ---
 
@@ -815,14 +1085,21 @@ dependency on User Stories 1–3 and can be validated as soon as Phase 2A (T010)
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] Regression pass on macOS: re-run spec 006's `quickstart.md` in full against
-      the post-SwiftUI-migration, post-renderer-changes build; confirm scene loading, orbiting,
-      panning, zooming, resetting, and camera-saving are behaviorally identical to before this
-      feature
-- [ ] T065 [P] [US4] Same regression pass on Linux
+- [X] T064 [US4] **macOS confirmed (2026-09-09)**: opened `camera-dof.rib`, exercised orbit
+      (left-drag), pan (middle-drag/two-finger), zoom (scroll/pinch), reset (`R`, specifically
+      re-checked post-T057-fixes to confirm the `reset()` aspect-correction change doesn't
+      regress RIB scenes — it doesn't), and camera export (`S`, native save dialog, wrote a new
+      `.rib` successfully) — all behaviorally identical to before this feature. This closes out
+      Phase 5's macOS half. **Linux still open**, see T065.
+- [ ] T065 [P] [US4] Same regression pass on Linux — blocked on the Mesa/LLVM crash (T063's
+      notes).
 - [ ] T066 [US4] Confirm FR-019 in both directions on both platforms: opening a new file fully
       replaces whatever was previously open, for every combination (RIB→RIB, RIB→data,
-      data→RIB, data→data)
+      data→RIB, data→data). **macOS: settled structurally** — with "New Window" removed (T057's
+      bug 9) and no "Open..." menu action existing at all, there is no code path in the running
+      app that can open a second document in the same process; the only way to open a different
+      file is a fresh process invocation, which is a separate `ViewerModel`/window entirely, not
+      "replacement" in the sense this requirement means. **Linux: still open**, blocked on Mesa.
 
 **Checkpoint**: All prior scene-viewing behavior is confirmed unregressed; single-document
 replacement behaves correctly across all document-type combinations.
@@ -845,17 +1122,48 @@ structured, correct information and exits successfully without opening any windo
 > `ribdata_*`/`ribpreview_*` functions `wireCli` wraps. What remains here is wiring `wireCli`
 > into each platform's actual process entry point.
 
-- [ ] T067 [US3] Wire `wireCli`'s `--help`/`--version`/`--json` handling into
-      `src/preview/orender-wire-macos/Sources/main.swift`, positioned to run and call `exit()`
-      **before** the `ORENDER_WIRE_GUI` re-exec check — otherwise headless mode would detach
-      into a background GUI process and a test harness would see exit 0 with no output
-- [ ] T068 [P] [US3] Wire the same `wireCli` entry point into
-      `src/preview/orender-wire-linux/main.cpp`'s argument handling, before any GTK or OpenGL
-      initialization occurs
-- [ ] T069 [US3] Validation: `quickstart.md` step 2 (headless CLI checks, including over SSH
-      with no window server) on both platforms
+- [X] T067 [US3] Wired `wireCliRun()` into `src/preview/orender-wire-macos/Sources/main.swift`,
+      replacing that file's own ad-hoc `--help`/`--version`/`argc`/`fileExists` checks (which
+      never supported `--json` or `--type` at all) with a single delegated call, positioned
+      before the `ORENDER_WIRE_GUI` re-exec check as required. **`wireCliRun`/`WireCliAction`/
+      `WIRE_CLI_EXIT`/`WIRE_CLI_OPEN` lived in a separate header (`src/preview/libribpreview/
+      wireCli.h`) not part of the Swift-visible `CRibPreview` module** (which only wraps
+      `ribpreview_api.h`) — rather than add a second staged-header mechanism, folded
+      `wireCli.h`'s declarations directly into `ribpreview_api.h` (already established as "the
+      single source of truth for the whole C ABI" per `CRibPreview.h`'s own comment) and deleted
+      `wireCli.h`; updated its only two other includers (`wireCli.cpp`, `test_wire_cli.cpp`).
+      **Verified against the real built binary, not just ctest**: `--help` prints usage and
+      exits 0; `--version` now prints `orender-wire 1.0.0` (via `openrender_version_string()`,
+      previously hardcoded `"1.0.0"`-less `"1.0"` — a minor, intentional accuracy improvement,
+      not a regression); `--json` on a real RIB scene with `ORENDERHOME`/`SHADERS`/`DISPLAYS`
+      all unset in the shell produces well-formed JSON on stdout and exits 0 (no window opened);
+      no-args exits 1; a nonexistent file with `--json` exits 2; the original GUI-open path
+      (no flags) still opens and stays alive with zero crash/stderr, confirming the refactor
+      didn't regress User Story 1/2/4's existing behavior. Full `ctest -L preview`: 17/17.
+- [X] T068 [P] [US3] Wired the same `wireCliRun()` entry point into
+      `src/preview/orender-wire-linux/main.cpp`'s `main()`, replacing its own ad-hoc
+      `--help`/`--version`/`argc`/`access()` checks (and the now-dead `HELP_TEXT` constant,
+      removed) the same way as T067, positioned before the `daemon()` call so `--json` never
+      daemonizes into a background process before printing anything. `outPath` (malloc'd by
+      `wireCliRun`) is intentionally never freed, matching every other `AppState` member that
+      lives until process exit. **Compile-unverified** (same structural reason as T054/T055/
+      T060/T061 — this machine's CMake excludes `orender-wire-linux` under `if(APPLE)`), but
+      lower-risk than those: this change mirrors T067's already-verified pattern exactly, and
+      touches only argument handling, not GTK/GL/rendering code.
+- [ ] T069 [US3] **Deferred at the user's request (2026-09-08)**: GTK/OpenGL checks on the
+      Linux VM are on hold pending resolution of the Mesa/LLVM software-rendering crash recorded
+      in T063's notes (a system bug on that VM, unrelated to this feature). `quickstart.md` step
+      2's *headless* checks (no window server, no `ORENDERHOME`/`SHADERS`/`DISPLAYS`) don't
+      actually need a working GL/Vulkan renderer at all — they only need `wireCliRun()`'s
+      already-verified-on-macOS `--json`/`--help`/`--version` paths, which never touch GTK/GL —
+      so this task could in principle be completed on the Linux VM independently of the
+      rendering-crash blocker whenever convenient, but is left unchecked until actually run
+      there.
 
-**Checkpoint**: All four user stories are independently functional and validated.
+**Checkpoint**: All four user stories are independently functional and validated. **Not yet
+confirmed**: T069's Linux-side headless CLI validation (deferred per the user's request; not
+blocked by the Mesa crash, just not yet run), and T063/T064/T065's interactive GUI validation on
+both platforms (T063/T065 additionally blocked by the Linux VM's Mesa/LLVM issue).
 
 ---
 
@@ -864,14 +1172,40 @@ structured, correct information and exits successfully without opening any windo
 **Purpose**: Documentation and final whole-suite verification, per Constitution Principle VII
 and the plan's overall acceptance bar.
 
-- [ ] T070 [P] Add a documentation page under `docs/site/content/...` describing the new
-      data-document type and the `--json` schema (Constitution VII merge gate)
-- [ ] T071 [P] Update `docs/site/content/manual/reference/installing-and-running.md` and any
-      other Hugo page describing `orender-wire`'s prior RIB-only scope
-- [ ] T072 Walk the full `quickstart.md` sign-off checklist end-to-end on both macOS and Linux
-- [ ] T073 Final full-suite gate: `ctest --test-dir build -L preview`,
-      `ctest --test-dir build -L visual`, and the T032 removal grep all pass/return clean in
-      the same run
+- [X] T070 [P] Rewrote `docs/site/content/tools/orender-wire.md` to cover the new
+      data-document type: the six auto-detected content types, the full legacy key/menu control
+      set (with the Linux `Q`-collision resolution explained), the `--json` headless-mode
+      section with the full JSON schema (common envelope + RIB-specific + data-specific
+      fields), `--type=auto|rib|data`, and the corrected exit-code table (see T071 — the old
+      table was wrong).
+- [X] T071 [P] Updated every Hugo page found describing `orender-wire`'s prior RIB-only scope
+      (`grep -rl orender-wire docs/site/content/`, 4 files): `_index.md` and
+      `manual/reference/source-at-a-first-glance.md` (one-line description updates, RIB-only →
+      RIB + data-structure files); `manual/reference/installing-and-running.md` (added the
+      pre-existing-but-previously-undocumented libadwaita dependency alongside GTK4 while that
+      line was open, and corrected the `bin/` layout table's `orender-wire` description).
+      **Found and fixed a real, more-than-cosmetic doc bug while rewriting the exit-code
+      table**: the OLD `orender-wire.md` said exit code 4 meant "No display available (Linux)"
+      — that was true under spec 006, but this feature reassigned exit code 4 to "data file
+      rejected" and moved "no display" to the new exit code 5 (per
+      `contracts/cli-interface.md`, matching `wireCli.cpp`'s actual implementation). Left
+      uncorrected, the shipped docs would have told a reader the *wrong* exit code for two
+      different real failure conditions. Also documented that exit code 3 is specified but not
+      currently reachable in practice (matches the T041 finding).
+- [ ] T072 **Blocked on the user/CI — same reasoning as T057/T063**: requires walking
+      `quickstart.md` interactively on both platforms with a working display (and, for Linux, a
+      working Mesa/GL install — see T063's notes on the current test VM's blocker). Not
+      attempted from a headless check.
+- [X] T073 Final full-suite gate, run together in this session: `ctest --test-dir build -L
+      preview` — **17/17 passing**; `ctest --test-dir build -L visual` — **191/191 passing**
+      (153s); the T032 removal grep
+      (`grep -rn "CShow\|oshow\|BUILD_SHOW\|FLTK"` excluding `specs/`) returns hits only in
+      `NEWS.md` (an already-sanctioned historical-record exemption from Phase 2C) and in new
+      prose this feature itself wrote (`test_preview_subdiv.cpp`'s comment explaining a
+      retargeted fixture's history, `orender-wire.md`'s explanation of what was removed and why
+      the Linux `Q` collision exists, `main.cpp`'s comment on the same) — all explanatory
+      mentions of something correctly and completely removed, not residual live references to
+      it. Zero hits represent functional/build-system remnants.
 
 ---
 

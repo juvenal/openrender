@@ -33,8 +33,9 @@ Optional, each enabling a component:
   disabled` and builds the bytecode interpreter only. Everything still works;
   shaders just run interpreted.
 - **OpenEXR** and **Imath** — the OpenEXR display driver
-- **GTK 4** (4.20 or newer) — the `orender-wire` scene previewer on Linux. On
-  macOS the previewer uses Metal and AppKit, which need no extra packages.
+- **GTK 4** (4.20 or newer) and **libadwaita** (1.4 or newer) — the `orender-wire`
+  scene/data-structure previewer on Linux. On macOS the previewer uses Metal and
+  SwiftUI/AppKit, which need no extra packages.
 
 ## Building
 
@@ -142,7 +143,7 @@ Your binary distribution should have the following structure:
 |   |   |   | `oshader` | Shading language compiler |
 |   |   |   | `rsloinfo` | Get information about a compiled shader |
 |   |   |   | `otexmake` | Texture preparation tool. |
-|   |   |   | `orender-wire` | Interactive RIB scene wireframe viewer. |
+|   |   |   | `orender-wire` | Interactive viewer for RIB scenes and precomputed data-structure files (photon maps, caches, point clouds, brick maps, debug-geometry dumps). |
 |   |   | `include/` |   | The header files |
 |   |   | `lib/` |   | The library files. |
 |   |   | `displays/` |   | The display drivers. |

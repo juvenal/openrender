@@ -122,8 +122,9 @@ transparency, matte objects, displacement and depth-filter modes rather than
 each implementing them separately. See
 [Hiders](/openrender/manual/reference/hiders/).
 
-**Tools.** `orender-wire`, an interactive wireframe scene previewer (Metal on
-macOS, GTK 4 on Linux); a platform-neutral IPC framebuffer display; and
+**Tools.** `orender-wire`, an interactive viewer for RIB scenes and precomputed
+data-structure files — photon maps, caches, point clouds, brick maps, debug-geometry
+dumps (Metal on macOS, GTK 4 on Linux); a platform-neutral IPC framebuffer display; and
 Python and Lua bindings for driving the interface from a script.
 
 Earlier release notes, from before the project moved to GitHub, are kept in

@@ -61,45 +61,53 @@ void CDataSceneSink::disks(int n, const float *P, const float *dP, const float *
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Drop whole primitives (groups of `groupSize` vertices) via even-stride subsampling once the
-// group count exceeds `cap`. Returns the number of primitives dropped.
+// Drop whole primitives (groups of `groupSize` vertices) via even subsampling once the group
+// count exceeds `cap`. Returns the number of primitives dropped.
+//
+// Indexes the OUTPUT position (0..cap-1) and maps each back to a source index via
+// `i * total / cap`, rather than stepping the INPUT by a fixed `stride = total / cap`: integer
+// division makes `stride` truncate to 1 for any `total` in [cap, 2*cap), silently keeping every
+// single group and not reducing the count at all in that range -- e.g. 199,999 groups with
+// cap=100,000 kept all 199,999 instead of capping at 100,000, doing roughly 4x the downstream
+// work of a cloud comfortably over the cap. The output-indexed form always keeps exactly `cap`
+// groups (when total > cap), evenly spread, regardless of the total/cap ratio.
 static int decimateGrouped(std::vector<float3> &verts, std::vector<float3> &cols, int groupSize, int cap) {
     int totalGroups = (int)verts.size() / groupSize;
     if (totalGroups <= cap)
         return 0;
 
-    int stride = totalGroups / cap;
     std::vector<float3> newVerts, newCols;
     newVerts.reserve((size_t)cap * groupSize);
     newCols.reserve((size_t)cap * groupSize);
 
-    int kept = 0;
-    for (int g = 0; g < totalGroups; g += stride) {
+    for (int i = 0; i < cap; i++) {
+        int g = (int)((int64_t)i * totalGroups / cap);
         for (int k = 0; k < groupSize; k++) {
             newVerts.push_back(verts[(size_t)g * groupSize + k]);
             newCols.push_back(cols[(size_t)g * groupSize + k]);
         }
-        kept++;
     }
 
     verts.swap(newVerts);
     cols.swap(newCols);
-    return totalGroups - kept;
+    return totalGroups - cap;
 }
 
+// Same output-indexed exact-cap scheme as decimateGrouped() above, and for the same reason.
 static int decimateDisks(std::vector<DiskPrimitive> &disks, int cap) {
     int total = (int)disks.size();
     if (total <= cap)
         return 0;
 
-    int stride = total / cap;
     std::vector<DiskPrimitive> kept;
     kept.reserve(cap);
-    for (int i = 0; i < total; i += stride)
-        kept.push_back(disks[i]);
+    for (int i = 0; i < cap; i++) {
+        int idx = (int)((int64_t)i * total / cap);
+        kept.push_back(disks[idx]);
+    }
 
     disks.swap(kept);
-    return total - (int)disks.size();
+    return total - cap;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -138,8 +146,14 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     float eyeY = cy + dirY * distance;
     float eyeZ = cz + dirZ * distance;
 
-    // Look-at basis: z points from center toward eye (camera looks down -z).
-    float zx = dirX, zy = dirY, zz = dirZ;
+    // Look-at basis: z is the forward/viewing direction, from eye toward center. This matches
+    // openRender's own camera convention (not OpenGL's) -- confirmed against
+    // ribGeometryContext.cpp:337-352's projection matrix, whose w'=+z_view (proj[14]=1.0, not
+    // -1.0) requires visible points to have *positive* view-space Z, i.e. the camera looks down
+    // +Z, not -Z. Using "z points from center toward eye" (camera looks down -Z, the OpenGL
+    // convention) here was the bug: paired with that projection matrix it puts the entire scene
+    // behind the camera, so nothing -- not even the grid, drawn with the same matrix -- appears.
+    float zx = -dirX, zy = -dirY, zz = -dirZ;
     float upX = 0.0f, upY = 1.0f, upZ = 0.0f;
     // x = normalize(up x z)
     float xx = upY * zz - upZ * zy;
@@ -159,21 +173,31 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     cam.nearPlane = distance * 0.01f;
     cam.farPlane = distance + radius * 4.0f + 10.0f;
 
+    // PreviewCamera::viewMatrix must be the camera-to-world matrix ("from"), not
+    // world-to-camera ("to") -- both ArcballCamera implementations (macOS's
+    // ArcballCamera.swift, Linux's arcball.cpp) invert whatever they're given and use *that*
+    // result directly as the actual render/view matrix ("from = to^{-1} = camera-to-world").
+    // Confirmed independently on both platforms via identical comments; this is also why
+    // camera export (cameraToWorldMatrix) round-trips correctly. Camera-to-world here is the
+    // transpose of the look-at rotation (X/Y/Z basis rows above), with translation = eye.
     float view[16] = {
-        xx, xy, xz, -(xx * eyeX + xy * eyeY + xz * eyeZ),
-        yx, yy, yz, -(yx * eyeX + yy * eyeY + yz * eyeZ),
-        zx, zy, zz, -(zx * eyeX + zy * eyeY + zz * eyeZ),
+        xx, yx, zx, eyeX,
+        xy, yy, zy, eyeY,
+        xz, yz, zz, eyeZ,
         0, 0, 0, 1,
     };
     std::memcpy(cam.viewMatrix, view, sizeof(view));
 
+    // Matches ribGeometryContext.cpp:337-352's convention exactly (Metal NDC, Z in [0,1],
+    // w'=+z_view): proj[10]=far/(far-near), proj[11]=-(far*near)/(far-near), proj[14]=1 -- not
+    // the OpenGL-standard Z-in-[-1,1]/w'=-z_view form this used before.
     float f = 1.0f / std::tan(fovRad * 0.5f);
     float nearP = cam.nearPlane, farP = cam.farPlane;
     float proj[16] = {
         f, 0, 0, 0,
         0, f, 0, 0,
-        0, 0, (farP + nearP) / (nearP - farP), (2 * farP * nearP) / (nearP - farP),
-        0, 0, -1, 0,
+        0, 0, farP / (farP - nearP), -(farP * nearP) / (farP - nearP),
+        0, 0, 1, 0,
     };
     std::memcpy(cam.projMatrix, proj, sizeof(proj));
 
@@ -215,6 +239,15 @@ void buildDataScene(CDataView *view, RibDataType documentType, DataScene &scene)
 
     // Discs are capped by disc count above (scene.disks, pre-expansion) rather than by the
     // resulting vertex count -- expand only the surviving discs into the triangle buffer.
+    //
+    // Reserving the exact final size ONCE here, before the loop, is not just an optimization:
+    // expandDisk() deliberately never reserves internally (see its own comment) specifically
+    // because per-call reserve() calls with no headroom turned this into O(N^2) reallocation
+    // traffic -- confirmed as a 9.5-minute load for a 500K-point cloud (100,000 surviving
+    // discs). Reserving here once makes every subsequent push_back inside the loop a no-op
+    // allocation-wise.
+    scene.triVerts.reserve(scene.triVerts.size() + scene.disks.size() * kVertsPerDisk);
+    scene.triCols.reserve(scene.triCols.size() + scene.disks.size() * kVertsPerDisk);
     for (const DiskPrimitive &d : scene.disks)
         expandDisk(d, scene.triVerts, scene.triCols);
 
