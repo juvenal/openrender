@@ -11,7 +11,9 @@
 # Reference images must already exist in examples/rib/tests/references/.
 # To regenerate references, render each scene manually and copy the output there.
 
-cmake_minimum_required(VERSION 3.16)
+# No cmake_minimum_required() here on purpose: this file is only ever reached
+# through add_subdirectory(), and a subdirectory call would reset the policy
+# stack, overriding the tiered floor set in the top-level CMakeLists.txt.
 
 # Block-average threshold (0–255).
 # Each 8×8 block's average color is compared; a block fails if any RGB channel

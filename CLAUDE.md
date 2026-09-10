@@ -19,7 +19,17 @@ cmake --build build --config Release
 
 From-scratch configure/build steps live in `COMPILING.txt` / `INSTALL.md`.
 Key CMake options: `USE_FLEX_BISON`, `BUILD_SHOW`, `INSTALL_SELFCONTAINED`,
-`OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`.
+`OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`,
+`OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15).
+
+**Tiered CMake floor:** the default build requires CMake >= 3.19 (what the JIT
+and a future OSL integration target); `-DOPENRENDER_ENABLE_JIT=OFF` lowers it to
+3.16 and drops LLVM entirely. The floor is chosen by an `if()` *before*
+`project()`, so it can only key off the explicit option, never off whether LLVM
+was detected. Never write `find_package(LLVM <N>)` — LLVM's config-version file
+treats a requested version as an exact major.minor match, not a minimum, so it
+silently rejects every newer LLVM; find version-less and compare
+`LLVM_PACKAGE_VERSION` by hand.
 
 ## Running a render
 

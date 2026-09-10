@@ -22,7 +22,9 @@
 #   would need to be made unique per-parser before they could be merged into
 #   a single shared library (Phase B work).
 
-cmake_minimum_required(VERSION 3.16)
+# No cmake_minimum_required() here on purpose: this file is only ever reached
+# through add_subdirectory(), and a subdirectory call would reset the policy
+# stack, overriding the tiered floor set in the top-level CMakeLists.txt.
 
 add_subdirectory(compiler)
 add_subdirectory(runtime)

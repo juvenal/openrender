@@ -20,7 +20,9 @@ from the repository at
 Required:
 
 - A **C++20** compiler — GCC 10+, Clang 10+, or MSVC 2019+
-- **CMake** 3.16 or newer
+- **CMake** 3.19 or newer for a default build; 3.16 is enough if you turn the
+  JIT off with `-DOPENRENDER_ENABLE_JIT=OFF` (see
+  [Building without the JIT](#building-without-the-jit) below)
 - **libtiff**, **libpng**, **zlib**
 - **flex** and **bison**, to regenerate the RIB and shading-language parsers.
   Turn this off with `-DUSE_FLEX_BISON=OFF` if you want to use the generated
@@ -63,6 +65,30 @@ cmake --install build --prefix /usr/local/openrender
 
 The prefix you install to becomes your `ORENDERHOME` — see
 [Common instructions](#common-instructions-for-using-openrender) below.
+
+### Building without the JIT
+
+The LLVM JIT shader path is what pushes the CMake floor to 3.19 — and it is
+also what a future OpenShadingLanguage integration will require, since OSL
+itself needs CMake 3.19 and LLVM 14 or newer. Neither is available on older
+distributions.
+
+Turning the JIT off lowers the CMake requirement to 3.16 and drops LLVM from
+the dependency list entirely:
+
+```bash
+cmake -S . -B build -DOPENRENDER_ENABLE_JIT=OFF
+```
+
+What you get is the bytecode interpreter, which renders every shader the JIT
+does — `.slo` files simply are not built or loaded, and a scene that asks for
+`shaderformat "slo"` says so and falls back to `.rslo`.
+
+Ubuntu 20.04 is the case this exists for: it ships CMake 3.16.3 and LLVM 10–12,
+and since that LLVM is below openRender's floor of 15 the JIT could not be
+built there in any case. Treat this as possible rather than supported — no
+continuous integration or routine development exercises a pre-3.19 build, so it
+may need fixing when you try it.
 
 ### macOS
 

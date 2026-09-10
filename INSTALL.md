@@ -5,7 +5,8 @@ This document describes how to build and install openRender using CMake.
 ## Prerequisites
 
 - **C++20** compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
-- **CMake** 3.16 or higher
+- **CMake** 3.19 or higher — 3.16 is enough for an interpreter-only build,
+  configured with `-DOPENRENDER_ENABLE_JIT=OFF`
 - **Git** (for cloning the repository)
 
 ## Dependencies

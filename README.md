@@ -39,7 +39,7 @@ openRender is a sophisticated photorealistic renderer that implements a RenderMa
 ### Prerequisites
 
 - C++20 compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
-- CMake 3.16 or higher
+- CMake 3.19 or higher (3.16 with `-DOPENRENDER_ENABLE_JIT=OFF`)
 - Git
 
 ### Dependencies

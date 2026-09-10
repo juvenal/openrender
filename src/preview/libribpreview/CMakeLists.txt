@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+# No cmake_minimum_required() here on purpose: this file is only ever reached
+# through add_subdirectory(), and a subdirectory call would reset the policy
+# stack, overriding the tiered floor set in the top-level CMakeLists.txt.
 
 add_library(ribpreview STATIC
     ribGeometryContext.cpp

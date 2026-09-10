@@ -1,4 +1,30 @@
-cmake_minimum_required(VERSION 3.16)
+# ###########################################################################
+# ########## CMake floor, tiered by whether the LLVM JIT is wanted
+# ###########################################################################
+# The JIT (.slo) shader path targets CMake >= 3.19, which is also what a future
+# OpenShadingLanguage integration requires of its own accord (OSL: CMake >= 3.19,
+# LLVM >= 14). The interpreter-only build needs nothing newer than 3.16 -- no
+# command used anywhere in this tree postdates it -- so an older distribution can
+# still produce a working renderer by opting out of the JIT:
+#
+#     cmake -S . -B build -DOPENRENDER_ENABLE_JIT=OFF
+#
+# Ubuntu 20.04 is the case this exists for: cmake 3.16.3 and LLVM 10-12, the
+# latter below OPENRENDER_LLVM_MIN_VERSION anyway, so interpreter-only is the
+# only build it could ever produce. Possible in principle; NOT a tested
+# configuration -- nothing in CI or local development exercises a pre-3.19
+# policy regime.
+#
+# This keys off an explicit option rather than off whether LLVM is actually
+# installed, and it has to: cmake_minimum_required() must precede project(),
+# which must precede find_package(LLVM), so no detection result exists yet.
+# The option itself is formally declared just after project() below; here we can
+# only read what -D put in the cache, hence the NOT DEFINED default-to-ON test.
+if(NOT DEFINED OPENRENDER_ENABLE_JIT OR OPENRENDER_ENABLE_JIT)
+    cmake_minimum_required(VERSION 3.19)
+else()
+    cmake_minimum_required(VERSION 3.16)
+endif()
 
 project(openRender
     VERSION 1.0.0
@@ -48,6 +74,10 @@ include(GNUInstallDirs)
 # ###########################################################################
 # ########## Options
 # ###########################################################################
+# Declared here for cache/GUI visibility and the default; the tiered
+# cmake_minimum_required() at the top of this file already read it from the
+# cache, so a -D on the command line drives both consistently.
+option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs CMake >= 3.19 and LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
 option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(BUILD_SHOW "Build the show program" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
@@ -283,7 +313,7 @@ endif()
 # ########## LLVM (optional — required only for JIT shader compilation)
 # ###########################################################################
 # Hint for Homebrew LLVM on macOS (llvm-config may not be in PATH)
-if(APPLE AND NOT DEFINED LLVM_DIR)
+if(OPENRENDER_ENABLE_JIT AND APPLE AND NOT DEFINED LLVM_DIR)
     find_program(_LLVM_CONFIG NAMES llvm-config
         HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin)
     if(_LLVM_CONFIG)
@@ -328,11 +358,19 @@ set(OPENRENDER_LLVM_MIN_VERSION "15" CACHE STRING
 # switched off, and every .slo code path disappears from the build.  A minimum
 # simply cannot be expressed through find_package here; it has to be checked by
 # hand, which is what the version comparison below does.
-find_package(LLVM CONFIG QUIET)
-
 set(OPENRENDER_HAVE_LLVM OFF)
 set(OPENRENDER_LLVM_VERSION_MAJOR 0)
 set(OPENRENDER_LLVM_VERSION_MINOR 0)
+
+if(NOT OPENRENDER_ENABLE_JIT)
+    # Opted out at the top of this file, where it also lowered the CMake floor
+    # to 3.16. Skip detection outright: finding LLVM here and enabling the JIT
+    # anyway would build the JIT under a policy regime it does not target.
+    message(STATUS "JIT shader path disabled by OPENRENDER_ENABLE_JIT=OFF -- shaders run interpreted")
+    set(LLVM_FOUND OFF)
+else()
+
+find_package(LLVM CONFIG QUIET)
 
 if(NOT LLVM_FOUND)
     message(STATUS "LLVM not found -- JIT shader path disabled, shaders run interpreted")
@@ -356,6 +394,8 @@ else()
     set(OPENRENDER_LLVM_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
     set(OPENRENDER_LLVM_VERSION_MINOR ${LLVM_VERSION_MINOR})
 endif()
+
+endif() # OPENRENDER_ENABLE_JIT
 
 # ###########################################################################
 # ########## Installation Configuration
