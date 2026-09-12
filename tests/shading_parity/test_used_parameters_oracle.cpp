@@ -145,7 +145,10 @@ static void runOracleFixture(const char *label, const char *shaderKind,
 
     RiEnd();
 
-    chdir(savedCwd);
+    // Reported rather than discarded: a silent failure here would leave every
+    // later test in this binary resolving relative paths from the wrong
+    // directory. (A (void) cast would not silence warn_unused_result.)
+    if (chdir(savedCwd) != 0) perror("chdir (restoring working directory)");
 }
 
 // T010: fixture never assigns Ci or Oi, and references no other RSL

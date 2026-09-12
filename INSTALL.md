@@ -5,8 +5,7 @@ This document describes how to build and install openRender using CMake.
 ## Prerequisites
 
 - **C++20** compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
-- **CMake** 3.19 or higher — 3.16 is enough for an interpreter-only build,
-  configured with `-DOPENRENDER_ENABLE_JIT=OFF`
+- **CMake** 3.19 or higher
 - **Git** (for cloning the repository)
 
 ## Dependencies
@@ -102,7 +101,6 @@ This document describes how to build and install openRender using CMake.
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `USE_FLEX_BISON` | Use flex and bison to regenerate parsers | ON |
 | `BUILD_SHOW` | Build the interactive viewer (oshow) | ON |
 | `INSTALL_SELFCONTAINED` | Self-contained install under prefix (vs FHS) | ON |
 | `OPENRENDER_COMPAT_SOVERSION` | SOVERSION for libri/librslo shared libraries | Major version |

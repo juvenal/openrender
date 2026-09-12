@@ -69,7 +69,16 @@ struct SessionCtx {
     uint32_t width      = 0;
     uint32_t height     = 0;
     uint32_t numSamples = 0;
-    char     title[512] = {};
+    // title must hold a composed status line, not just a title, so it is sized
+    // for the worst case rather than matching baseTitle. Longest composer is
+    //   "Rendering Completed - %s @ %s [%s]"
+    // = 28 fixed bytes + baseTitle (<=511) + startTimeStr (<=15)
+    //   + durationStr (<=31) + NUL = 586. At 512 this could truncate, which
+    // -Wformat-truncation reports; 1024 leaves the margin provable to the
+    // compiler and removes the truncation outright rather than hiding it.
+    // SessionCtx is process-local -- only baseTitle is filled from the wire
+    // payload -- so the size is not part of any protocol.
+    char     title[1024] = {};
     char     baseTitle[512] = {};  // original title before status prefix
     time_t   startEpoch = 0;       // wall-clock time render began (from START)
     char     startTimeStr[16] = {}; // formatted HH:MM:SS

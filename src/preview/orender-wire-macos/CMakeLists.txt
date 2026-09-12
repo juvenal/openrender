@@ -1,7 +1,9 @@
 # orender-wire-macos — macOS wireframe viewer (Swift 6 / Metal / AppKit)
 # Mirrors the orender-fb-macos SPM + CMake pattern exactly.
 
-cmake_minimum_required(VERSION 3.15)
+# No cmake_minimum_required() here on purpose: this file is only ever reached
+# through add_subdirectory(), and a subdirectory call would reset the policy
+# stack, overriding the floor set in the top-level CMakeLists.txt.
 
 if(NOT APPLE)
     return()

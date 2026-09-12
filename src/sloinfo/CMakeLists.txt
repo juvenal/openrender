@@ -21,10 +21,8 @@ target_include_directories(sloinfo PRIVATE
 # sloinfo aborts at startup even though extractMetadataFromFile() itself never touches ri.
 if(OPENRENDER_HAVE_LLVM)
     target_link_libraries(sloinfo PRIVATE libshader_jitmeta)
-    target_include_directories(sloinfo PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/libshader/shading
-        ${LLVM_INCLUDE_DIRS}
-    )
+    target_include_directories(sloinfo PRIVATE ${CMAKE_SOURCE_DIR}/src/libshader/shading)
+    target_include_directories(sloinfo SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(sloinfo PRIVATE ${LLVM_DEFINITIONS})
 endif()
 

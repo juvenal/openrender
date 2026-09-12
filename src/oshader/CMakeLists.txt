@@ -28,7 +28,13 @@ target_link_libraries(oshader PRIVATE libshader_compiler openrendercommon)
 # The llvmEmitter.cpp is compiled into libshader_compiler, which already links LLVM.
 # oshader only needs the config.h define and LLVM include path for the #ifdef guard.
 if(OPENRENDER_HAVE_LLVM)
-    target_include_directories(oshader PRIVATE ${LLVM_INCLUDE_DIRS})
+# SYSTEM: emit LLVM's headers via -isystem so GCC stops diagnosing code we do
+# not own. LLVM 18 produces -Wredundant-move from its ORC headers, and
+# -Wnull-dereference from BasicBlock::getTerminator() inlined into our call
+# sites -- both reported at a location inside /usr/lib/llvm-*/include, and
+# neither actionable here. A #pragma around the #includes cannot suppress the
+# inlined-instantiation case, which is why this is done per target instead.
+    target_include_directories(oshader SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(oshader PRIVATE ${LLVM_DEFINITIONS})
 endif()
 

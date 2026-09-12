@@ -198,7 +198,11 @@ static void test_t019_no_crash_when_alights_null() {
     if (toDetach) toDetach->detach();
     RiEnd();
 
-    if (!savedCwd.empty()) chdir(savedCwd.c_str());
+    // Reported rather than discarded -- see the note in
+    // test_used_parameters_oracle.cpp; a (void) cast does not silence
+    // warn_unused_result on chdir.
+    if (!savedCwd.empty() && chdir(savedCwd.c_str()) != 0)
+        perror("chdir (restoring working directory)");
 }
 
 // T020: prepareAmbient() must accumulate a single ambient light's Cl exactly
@@ -266,7 +270,11 @@ static void test_t020_ambient_accumulates_once() {
     if (toDetach) toDetach->detach();
     RiEnd();
 
-    if (!savedCwd.empty()) chdir(savedCwd.c_str());
+    // Reported rather than discarded -- see the note in
+    // test_used_parameters_oracle.cpp; a (void) cast does not silence
+    // warn_unused_result on chdir.
+    if (!savedCwd.empty() && chdir(savedCwd.c_str()) != 0)
+        perror("chdir (restoring working directory)");
 }
 
 int main() {

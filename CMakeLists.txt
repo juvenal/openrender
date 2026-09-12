@@ -1,30 +1,13 @@
-# ###########################################################################
-# ########## CMake floor, tiered by whether the LLVM JIT is wanted
-# ###########################################################################
-# The JIT (.slo) shader path targets CMake >= 3.19, which is also what a future
-# OpenShadingLanguage integration requires of its own accord (OSL: CMake >= 3.19,
-# LLVM >= 14). The interpreter-only build needs nothing newer than 3.16 -- no
-# command used anywhere in this tree postdates it -- so an older distribution can
-# still produce a working renderer by opting out of the JIT:
+# 3.19 is what the LLVM JIT path targets, and what a future OpenShadingLanguage
+# integration requires of its own accord (OSL: CMake >= 3.19, LLVM >= 14).
 #
-#     cmake -S . -B build -DOPENRENDER_ENABLE_JIT=OFF
-#
-# Ubuntu 20.04 is the case this exists for: cmake 3.16.3 and LLVM 10-12, the
-# latter below OPENRENDER_LLVM_MIN_VERSION anyway, so interpreter-only is the
-# only build it could ever produce. Possible in principle; NOT a tested
-# configuration -- nothing in CI or local development exercises a pre-3.19
-# policy regime.
-#
-# This keys off an explicit option rather than off whether LLVM is actually
-# installed, and it has to: cmake_minimum_required() must precede project(),
-# which must precede find_package(LLVM), so no detection result exists yet.
-# The option itself is formally declared just after project() below; here we can
-# only read what -D put in the cache, hence the NOT DEFINED default-to-ON test.
-if(NOT DEFINED OPENRENDER_ENABLE_JIT OR OPENRENDER_ENABLE_JIT)
-    cmake_minimum_required(VERSION 3.19)
-else()
-    cmake_minimum_required(VERSION 3.16)
-endif()
+# This was briefly tiered -- 3.16 when the JIT was switched off -- to let Ubuntu
+# 20.04 build an interpreter-only renderer with its stock cmake 3.16.3. That tier
+# is gone: 20.04 also ships GCC 9.4, which has no <source_location> and only
+# partial C++20, so it could never compile this tree no matter what CMake
+# allowed. The supported baseline is Ubuntu 24.04 (cmake 3.28, GCC 13, LLVM 18),
+# which clears this floor with room to spare.
+cmake_minimum_required(VERSION 3.19)
 
 project(openRender
     VERSION 1.0.0
@@ -74,11 +57,9 @@ include(GNUInstallDirs)
 # ###########################################################################
 # ########## Options
 # ###########################################################################
-# Declared here for cache/GUI visibility and the default; the tiered
-# cmake_minimum_required() at the top of this file already read it from the
-# cache, so a -D on the command line drives both consistently.
-option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs CMake >= 3.19 and LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
-option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
+# Purely a JIT on/off switch: turning it off skips LLVM detection entirely and
+# builds the bytecode interpreter alone. It no longer affects the CMake floor.
+option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
 option(BUILD_SHOW "Build the show program" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
 # Remove obsolete staging options - we now use system package managers
@@ -89,9 +70,36 @@ option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom 
 set(OPENRENDER_COMPAT_SOVERSION "${PROJECT_VERSION_MAJOR}" CACHE STRING
     "SOVERSION for libri/librslo — defaults to current major; override to stay compatible with an older ABI")
 
-if(USE_FLEX_BISON)
-	include(CMake/openRenderUseFlex.cmake)
-	include(CMake/openRenderUseBison.cmake)
+# flex and bison are REQUIRED, not optional. The tree deliberately ships no
+# pre-generated parser sources -- every lexer and parser is produced at build
+# time -- so there is nothing to fall back to. A USE_FLEX_BISON=OFF option used
+# to exist and promised exactly that fallback, but the generated sources it
+# named (src/ri/{rib,dso,ifexpr,variable}.cpp, src/libshader/{runtime,shading}/
+# rslo.cpp) are not in the repository; it could only ever fail. Removed.
+include(CMake/openRenderUseFlex.cmake)
+include(CMake/openRenderUseBison.cmake)
+
+# Fail here, with a message that says what to install. Without this the modules
+# above simply never define the flex_file()/bison_file() macros, and the first
+# use in a subdirectory dies with "Unknown CMake command", which says nothing
+# about the real problem.
+if(NOT FLEX_EXECUTABLE OR NOT BISON_EXECUTABLE)
+    set(_missing_tools "")
+    if(NOT FLEX_EXECUTABLE)
+        list(APPEND _missing_tools "flex")
+    endif()
+    if(NOT BISON_EXECUTABLE)
+        list(APPEND _missing_tools "bison")
+    endif()
+    string(REPLACE ";" " and " _missing_tools "${_missing_tools}")
+    message(FATAL_ERROR
+        "Required build tool(s) not found: ${_missing_tools}.\n"
+        "openRender generates its RIB and shading-language parsers at build time "
+        "and ships no pre-generated sources, so these are mandatory.\n"
+        "  Debian/Ubuntu : sudo apt-get install flex bison\n"
+        "  Fedora/RHEL   : sudo dnf install flex bison\n"
+        "  macOS         : brew install bison   (the system flex is new enough; "
+        "the system bison is 2.3 and is NOT)")
 endif()
 
 
@@ -296,24 +304,80 @@ if(BUILD_SHOW)
     endif()
 endif()
 
-# OpenEXR (optional) - requires Imath for version 3.x
+# ###########################################################################
+# ########## OpenEXR (optional) — supports both 2.x and 3.x packaging
+# ###########################################################################
+# The 2.x -> 3.x transition changed how the library is *packaged*, not its API.
+# src/openexr/openexr.cpp compiles unmodified against both: it uses only the
+# `Imf` and `Imath` namespace aliases and unqualified `half`, all of which
+# exist in either major version. Only the CMake targets differ:
+#
+#   OpenEXR 3.x   Imath is its own top-level project.
+#                 Targets: OpenEXR::OpenEXR  +  Imath::Imath
+#   OpenEXR 2.5+  Imath and Half ship inside IlmBase.
+#                 Targets: OpenEXR::IlmImf   +  IlmBase::Imath, IlmBase::Half
+#
+# Ubuntu 22.04 ships OpenEXR 2.5.7, so the 2.x branch is what it takes.
+#
+# Discrimination is by exported TARGET rather than by version string: the
+# version variable's presence and spelling vary between the two config
+# packages, whereas the target names are exactly what we need to link anyway.
+#
+# Note the absence of REQUIRED anywhere below. This dependency is optional, and
+# a REQUIRED find inside it turns "EXR driver unavailable" into a hard configure
+# failure — which is precisely what `find_package(Imath REQUIRED CONFIG)` used
+# to do on any 2.x system: OpenEXR itself was found, Imath then aborted the
+# whole configure, long before LLVM or anything else was probed.
+#
+# OpenEXR 2.3 (Ubuntu 20.04) predates config-package support and exports no
+# targets at all, so it lands in the final else() and the driver is skipped —
+# the documented best-effort degradation on that platform.
 find_package(OpenEXR QUIET CONFIG)
-if(OpenEXR_FOUND)
-    # OpenEXR 3.x also requires Imath
-    find_package(Imath REQUIRED CONFIG)
-    message(STATUS "Found OpenEXR: ${OpenEXR_VERSION}")
-    message(STATUS "Found Imath: ${Imath_VERSION}")
-    set(HAVE_OPENEXR ON)
+
+set(HAVE_OPENEXR OFF)
+set(OPENRENDER_OPENEXR_LIBS "")
+
+if(NOT OpenEXR_FOUND)
+    message(STATUS "OpenEXR not found -- EXR display driver will not be built")
+elseif(TARGET OpenEXR::OpenEXR)
+    # ---- OpenEXR 3.x ----
+    find_package(Imath QUIET CONFIG)
+    if(TARGET Imath::Imath)
+        set(HAVE_OPENEXR ON)
+        set(OPENRENDER_OPENEXR_LIBS OpenEXR::OpenEXR Imath::Imath)
+        message(STATUS "Found OpenEXR ${OpenEXR_VERSION} (3.x) with Imath ${Imath_VERSION}")
+    else()
+        message(WARNING "Found OpenEXR ${OpenEXR_VERSION} (3.x) but no Imath package -- EXR driver disabled")
+    endif()
+elseif(TARGET OpenEXR::IlmImf)
+    # ---- OpenEXR 2.5+ ----
+    find_package(IlmBase QUIET CONFIG)
+    if(TARGET IlmBase::Imath AND TARGET IlmBase::Half)
+        set(HAVE_OPENEXR ON)
+        set(OPENRENDER_OPENEXR_LIBS OpenEXR::IlmImf IlmBase::Imath IlmBase::Half)
+        message(STATUS "Found OpenEXR ${OpenEXR_VERSION} (2.x) with IlmBase ${IlmBase_VERSION}")
+    else()
+        message(WARNING "Found OpenEXR ${OpenEXR_VERSION} (2.x) but no IlmBase package -- EXR driver disabled")
+    endif()
 else()
-    message(WARNING "OpenEXR not found - OpenEXR display driver will not be built")
-    set(HAVE_OPENEXR OFF)
+    message(WARNING "Found OpenEXR ${OpenEXR_VERSION} but it exports no recognised target -- EXR driver disabled")
 endif()
 
 # ###########################################################################
 # ########## LLVM (optional — required only for JIT shader compilation)
 # ###########################################################################
 # Hint for Homebrew LLVM on macOS (llvm-config may not be in PATH)
-if(OPENRENDER_ENABLE_JIT AND APPLE AND NOT DEFINED LLVM_DIR)
+#
+# `NOT LLVM_DIR` rather than `NOT DEFINED LLVM_DIR`: when find_package fails,
+# CMake caches LLVM_DIR as "LLVM_DIR-NOTFOUND", which *is* defined. Under the
+# DEFINED test this hint would then never run again, so a build tree that failed
+# to find LLVM once could never recover — it would silently stay JIT-less across
+# every later reconfigure, which is exactly the failure mode the version gate
+# below exists to make visible. Observed for real: a Homebrew `llvm` upgrade
+# deleted the Cellar path a working cache pointed at, and the tree went quietly
+# interpreter-only. A value ending in -NOTFOUND is false in an if(), so the
+# plain test covers both "never set" and "previously failed".
+if(OPENRENDER_ENABLE_JIT AND APPLE AND NOT LLVM_DIR)
     find_program(_LLVM_CONFIG NAMES llvm-config
         HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin)
     if(_LLVM_CONFIG)
@@ -363,9 +427,9 @@ set(OPENRENDER_LLVM_VERSION_MAJOR 0)
 set(OPENRENDER_LLVM_VERSION_MINOR 0)
 
 if(NOT OPENRENDER_ENABLE_JIT)
-    # Opted out at the top of this file, where it also lowered the CMake floor
-    # to 3.16. Skip detection outright: finding LLVM here and enabling the JIT
-    # anyway would build the JIT under a policy regime it does not target.
+    # Explicitly opted out. Skip detection outright rather than finding LLVM and
+    # enabling the JIT anyway -- OPENRENDER_ENABLE_JIT=OFF means "no LLVM in this
+    # build", not "use it if it happens to be installed".
     message(STATUS "JIT shader path disabled by OPENRENDER_ENABLE_JIT=OFF -- shaders run interpreted")
     set(LLVM_FOUND OFF)
 else()

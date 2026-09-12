@@ -4,21 +4,17 @@
 #   Moved from src/oshader/ (all sources except oshader.cpp)
 #   The oshader binary in src/oshader/ links against this library.
 
-if(USE_FLEX_BISON)
-    include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
-    include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
-    include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri)
+include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri)
 
-    flex_file(rslo.l lex.rslo.cpp rslo)
-    flex_file(../../ri/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
+flex_file(rslo.l lex.rslo.cpp rslo)
+flex_file(../../ri/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
 
-    bison_file(rslo.y rslo_generated.cpp rslo)
-    bison_file(../../ri/dso.y dso_generated.cpp dso)
+bison_file(rslo.y rslo_generated.cpp rslo)
+bison_file(../../ri/dso.y dso_generated.cpp dso)
 
-    set(parser_sources rslo_generated.cpp dso_generated.cpp)
-else()
-    set(parser_sources ../../ri/dso.cpp)  # rslo.cpp always compiled; only dso.cpp added here
-endif()
+set(parser_sources rslo_generated.cpp dso_generated.cpp)
 
 set(compiler_sources
     libshader_compiler_init.cpp   # defines LOGGING_IMPLEMENTATION for this library
@@ -81,7 +77,13 @@ target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
     # Include dirs and defines only — no link dep on the OBJECT library.
     # The SHARED library below carries the actual LLVM link to avoid duplicates.
-    target_include_directories(libshader_compiler_obj PRIVATE ${LLVM_INCLUDE_DIRS})
+# SYSTEM: emit LLVM's headers via -isystem so GCC stops diagnosing code we do
+# not own. LLVM 18 produces -Wredundant-move from its ORC headers, and
+# -Wnull-dereference from BasicBlock::getTerminator() inlined into our call
+# sites -- both reported at a location inside /usr/lib/llvm-*/include, and
+# neither actionable here. A #pragma around the #includes cannot suppress the
+# inlined-instantiation case, which is why this is done per target instead.
+    target_include_directories(libshader_compiler_obj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_compiler_obj PRIVATE ${LLVM_DEFINITIONS})
 endif()
 

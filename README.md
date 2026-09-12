@@ -39,7 +39,7 @@ openRender is a sophisticated photorealistic renderer that implements a RenderMa
 ### Prerequisites
 
 - C++20 compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
-- CMake 3.19 or higher (3.16 with `-DOPENRENDER_ENABLE_JIT=OFF`)
+- CMake 3.19 or higher
 - Git
 
 ### Dependencies
@@ -93,7 +93,6 @@ cmake --build . --config Release
 
 ### CMake Options
 
-- `USE_FLEX_BISON`: Use flex and bison to regenerate parsers (default: ON)
 - `BUILD_SHOW`: Build the show program (default: ON)
 - `INSTALL_SELFCONTAINED`: Build for a self-contained setup (default: ON)
 - `OPENRENDER_COMPAT_SOVERSION`: SOVERSION for libri/librslo (default: major version)

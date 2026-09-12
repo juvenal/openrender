@@ -275,7 +275,11 @@ static void test_unknown_opcode_safe_close() {
 
     // Inject an unknown opcode (0xFF)
     uint8_t bad[5] = {0xFF, 0x00, 0x00, 0x00, 0x00}; // opcode=0xFF, length=0
-    write(sv[0], bad, 5);
+    // Asserted rather than discarded: if the injection did not land in full,
+    // runLoop() below would be reading a stream that never carried the unknown
+    // opcode, and the test would pass without testing anything.
+    const ssize_t injected = write(sv[0], bad, sizeof(bad));
+    EXPECT_EQ(injected, (ssize_t)sizeof(bad));
     close(sv[0]);
 
     // Should not crash, should not hang

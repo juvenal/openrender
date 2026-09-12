@@ -4,17 +4,13 @@
 #   Moved from src/rslo/
 #   Provides rsloGet() / rsloDelete() for the sloinfo tool.
 
-if(USE_FLEX_BISON)
-    include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
-    include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
 
-    flex_file(rslo.l lex.rslo.cpp rslo)
-    bison_file(rslo.y rslo_generated.cpp rslo)
+flex_file(rslo.l lex.rslo.cpp rslo)
+bison_file(rslo.y rslo_generated.cpp rslo)
 
-    set(runtime_sources rslo_generated.cpp)
-else()
-    set(runtime_sources rslo.cpp)
-endif()
+set(runtime_sources rslo_generated.cpp)
 
 add_library(libshader_runtime_obj OBJECT ${runtime_sources})
 set_target_properties(libshader_runtime_obj PROPERTIES

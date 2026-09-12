@@ -18,15 +18,21 @@ cmake --build build --config Release
 ```
 
 From-scratch configure/build steps live in `COMPILING.txt` / `INSTALL.md`.
-Key CMake options: `USE_FLEX_BISON`, `BUILD_SHOW`, `INSTALL_SELFCONTAINED`,
+Key CMake options: `BUILD_SHOW`, `INSTALL_SELFCONTAINED`,
 `OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`,
 `OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15).
 
-**Tiered CMake floor:** the default build requires CMake >= 3.19 (what the JIT
-and a future OSL integration target); `-DOPENRENDER_ENABLE_JIT=OFF` lowers it to
-3.16 and drops LLVM entirely. The floor is chosen by an `if()` *before*
-`project()`, so it can only key off the explicit option, never off whether LLVM
-was detected. Never write `find_package(LLVM <N>)` — LLVM's config-version file
+**flex and bison are mandatory.** No pre-generated parser sources are kept in
+the repo, so there is nothing to fall back to; the old `USE_FLEX_BISON=OFF`
+option promised a fallback that could only ever fail and has been removed.
+macOS needs Homebrew's bison (the system one is 2.3); the system flex is fine.
+
+**CMake floor is a flat 3.19** (what the JIT and a future OSL integration
+target). `-DOPENRENDER_ENABLE_JIT=OFF` skips LLVM detection entirely and builds
+the interpreter alone; it no longer affects the CMake floor. **Supported
+baseline is Ubuntu 24.04** (cmake 3.28, GCC 13, LLVM 18) — 22.04's GCC 11 has no
+`<format>` and 20.04's GCC 9.4 has no `<source_location>`, so neither can build
+this tree with stock toolchains. Never write `find_package(LLVM <N>)` — LLVM's config-version file
 treats a requested version as an exact major.minor match, not a minimum, so it
 silently rejects every newer LLVM; find version-less and compare
 `LLVM_PACKAGE_VERSION` by hand.

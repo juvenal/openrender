@@ -20,13 +20,12 @@ from the repository at
 Required:
 
 - A **C++20** compiler — GCC 10+, Clang 10+, or MSVC 2019+
-- **CMake** 3.19 or newer for a default build; 3.16 is enough if you turn the
-  JIT off with `-DOPENRENDER_ENABLE_JIT=OFF` (see
-  [Building without the JIT](#building-without-the-jit) below)
+- **CMake** 3.19 or newer
 - **libtiff**, **libpng**, **zlib**
-- **flex** and **bison**, to regenerate the RIB and shading-language parsers.
-  Turn this off with `-DUSE_FLEX_BISON=OFF` if you want to use the generated
-  sources shipped in the tree instead.
+- **flex** and **bison**. The RIB and shading-language parsers are generated
+  at build time; no pre-generated sources are kept in the repository, so these
+  are mandatory rather than a convenience. CMake stops with an explicit message
+  naming whichever one is missing.
 
 Optional, each enabling a component:
 
@@ -40,9 +39,14 @@ Optional, each enabling a component:
   metapackage is older on 22.04, so install the versioned package. Override
   the floor with `-DOPENRENDER_LLVM_MIN_VERSION=<major>` if you have reason
   to.
-- **OpenEXR** and **Imath** — the OpenEXR display driver
+- **OpenEXR** — the OpenEXR display driver. Both packaging generations work:
+  3.x (with the separate **Imath** package) and 2.5+ (with **IlmBase**, which
+  is where Imath and Half lived before the 3.0 split). Ubuntu 22.04 ships
+  2.5.7 and builds the driver via the IlmBase path; Ubuntu 20.04 ships 2.3,
+  which predates CMake config packages, so the driver is skipped there.
 - **FLTK** — the `oshow` viewer. Turn it off with `-DBUILD_SHOW=OFF`.
-- **GTK 4** (4.20 or newer) — the `orender-wire` scene previewer on Linux. On
+- **GTK 4** (4.10 or newer) and **libadwaita** (1.4 or newer) — the
+  `orender-wire` scene previewer on Linux. Ubuntu 24.04 satisfies both. On
   macOS the previewer uses Metal and AppKit, which need no extra packages.
 
 ## Building
@@ -68,13 +72,7 @@ The prefix you install to becomes your `ORENDERHOME` — see
 
 ### Building without the JIT
 
-The LLVM JIT shader path is what pushes the CMake floor to 3.19 — and it is
-also what a future OpenShadingLanguage integration will require, since OSL
-itself needs CMake 3.19 and LLVM 14 or newer. Neither is available on older
-distributions.
-
-Turning the JIT off lowers the CMake requirement to 3.16 and drops LLVM from
-the dependency list entirely:
+Turning the JIT off drops LLVM from the dependency list entirely:
 
 ```bash
 cmake -S . -B build -DOPENRENDER_ENABLE_JIT=OFF
@@ -82,13 +80,8 @@ cmake -S . -B build -DOPENRENDER_ENABLE_JIT=OFF
 
 What you get is the bytecode interpreter, which renders every shader the JIT
 does — `.slo` files simply are not built or loaded, and a scene that asks for
-`shaderformat "slo"` says so and falls back to `.rslo`.
-
-Ubuntu 20.04 is the case this exists for: it ships CMake 3.16.3 and LLVM 10–12,
-and since that LLVM is below openRender's floor of 15 the JIT could not be
-built there in any case. Treat this as possible rather than supported — no
-continuous integration or routine development exercises a pre-3.19 build, so it
-may need fixing when you try it.
+`shaderformat "slo"` says so and falls back to `.rslo`. Useful if you would
+rather not carry an LLVM build dependency; nothing else in the renderer changes.
 
 ### macOS
 

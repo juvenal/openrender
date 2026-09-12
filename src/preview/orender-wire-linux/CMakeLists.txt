@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+# No cmake_minimum_required() here on purpose: this file is only ever reached
+# through add_subdirectory(), and a subdirectory call would reset the policy
+# stack, overriding the floor set in the top-level CMakeLists.txt.
 
 if(APPLE)
     return()
@@ -6,7 +8,13 @@ endif()
 
 find_package(OpenGL REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK4 REQUIRED gtk4>=4.20)
+# Floors state what this code actually calls, not what happened to be installed
+# when it was written. Newest GTK API used is GtkFileDialog (gtk_file_dialog_new/
+# save/save_finish/set_initial_name/set_title) -- GTK 4.10. Newest libadwaita API
+# is AdwToolbarView -- 1.4. Everything else is 4.0/1.0 era. The previous gtk4>=4.20
+# was ten minor versions above anything here and excluded every current Ubuntu LTS
+# (24.04 ships 4.14). Note gtk_spinner_new, used below, is deprecated in 4.20.
+pkg_check_modules(GTK4 REQUIRED gtk4>=4.10)
 pkg_check_modules(ADWAITA REQUIRED libadwaita-1>=1.4)
 pkg_check_modules(EPOXY REQUIRED epoxy)
 

@@ -31,13 +31,9 @@ set(shading_sources
     shading.cpp
 )
 
-if(USE_FLEX_BISON)
-    flex_file(rslo.l lex.rslo.cpp rslo)
-    bison_file(rslo.y rslo_generated.cpp rslo)
-    list(APPEND shading_sources rslo_generated.cpp)
-else()
-    list(APPEND shading_sources rslo.cpp)
-endif()
+flex_file(rslo.l lex.rslo.cpp rslo)
+bison_file(rslo.y rslo_generated.cpp rslo)
+list(APPEND shading_sources rslo_generated.cpp)
 
 if(OPENRENDER_HAVE_LLVM)
     list(APPEND shading_sources llvmJit.cpp)
@@ -56,10 +52,8 @@ if(OPENRENDER_HAVE_LLVM)
     llvm_map_components_to_libnames(JITMETA_LLVM_LIBS core bitreader support)
     add_library(libshader_jitmeta STATIC llvmJitMetadata.cpp)
     set_target_properties(libshader_jitmeta PROPERTIES OUTPUT_NAME shader_jitmeta)
-    target_include_directories(libshader_jitmeta PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${LLVM_INCLUDE_DIRS}
-    )
+    target_include_directories(libshader_jitmeta PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(libshader_jitmeta SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_jitmeta PRIVATE ${LLVM_DEFINITIONS})
     target_link_libraries(libshader_jitmeta PUBLIC ${JITMETA_LLVM_LIBS})
 endif()
@@ -102,7 +96,13 @@ if(OPENRENDER_HAVE_LLVM)
     # PUBLIC so that ri (which links this shared lib) automatically gets LLVM
     # on its link line without ri/CMakeLists.txt having to add it again.
     target_link_libraries(libshader_shading PUBLIC ${SHADING_LLVM_LIBS})
-    target_include_directories(libshader_shading PRIVATE ${LLVM_INCLUDE_DIRS})
+# SYSTEM: emit LLVM's headers via -isystem so GCC stops diagnosing code we do
+# not own. LLVM 18 produces -Wredundant-move from its ORC headers, and
+# -Wnull-dereference from BasicBlock::getTerminator() inlined into our call
+# sites -- both reported at a location inside /usr/lib/llvm-*/include, and
+# neither actionable here. A #pragma around the #includes cannot suppress the
+# inlined-instantiation case, which is why this is done per target instead.
+    target_include_directories(libshader_shading SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(libshader_shading PRIVATE ${LLVM_DEFINITIONS})
     target_link_libraries(libshader_shading PRIVATE libshader_jitmeta)
 endif()

@@ -48,8 +48,13 @@ static bool isLLVMBitcode(const char *filename) {
     FILE *f = fopen(filename, "rb");
     if (!f) return false;
     unsigned char hdr[4] = {0, 0, 0, 0};
-    (void)fread(hdr, 1, 4, f);
+    // The count is checked rather than discarded: a short read is not an error
+    // as far as fread is concerned, and a (void) cast does not suppress glibc's
+    // warn_unused_result on it. A file shorter than the 4-byte magic cannot be
+    // a shader object under either encoding tested below.
+    const size_t magicRead = fread(hdr, 1, sizeof(hdr), f);
     fclose(f);
+    if (magicRead != sizeof(hdr)) return false;
     // Raw bitcode
     if (hdr[0] == 0x42 && hdr[1] == 0x43) return true;
     // Wrapper format
