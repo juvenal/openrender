@@ -84,6 +84,35 @@ if(OPENRENDER_HAVE_LLVM)
 # neither actionable here. A #pragma around the #includes cannot suppress the
 # inlined-instantiation case, which is why this is done per target instead.
     target_include_directories(libshader_compiler_obj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+
+    # -Wnull-dereference is switched off for llvmEmitter.cpp alone, under GCC only.
+    #
+    # GCC reports "potential null pointer dereference" at llvm/IR/Value.h against
+    # `this` inside Value::getValueID(), reached by inlining
+    # Instruction::isTerminator() <- BasicBlock::back(). The pointer it doubts is
+    # &bb->back(), inside LLVM's container -- not one we hand it.
+    #
+    # It is a false positive rooted in LLVM's intrusive ilist, whose end() IS a
+    # sentinel node, so back() is *--end(). GCC's value-range propagation cannot
+    # correlate empty() with back() yielding a real node, and there is no way to
+    # write the test that avoids it: LLVM 23's own hasTerminator() is
+    # `!InstList.empty() && InstList.back().isTerminator()` -- the identical shape
+    # that warns here, and the LLVM 18 getTerminator() this code used before warned
+    # the same way.
+    #
+    # Two narrower fixes were tried on Ubuntu 24.04 / GCC 13 / LLVM 18 and both
+    # failed: marking the LLVM headers SYSTEM (above) -- ineffective because this
+    # is a middle-end warning raised after inlining, not a front-end one -- and
+    # guarding with `!bb->empty() &&` in currentBlockHasTerminator(), which GCC
+    # cannot see through the sentinel. A #pragma in the source is attributed to
+    # Value.h rather than to us, so it does not reach it either.
+    #
+    # Scope is one file, one compiler, one warning. The single pointer this code
+    # actually owns -- IRBuilder::GetInsertBlock() -- is still asserted and
+    # explicitly null-checked in currentBlockHasTerminator(); that guard is real
+    # and stays.
+    set_source_files_properties(llvmEmitter.cpp PROPERTIES
+        COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU>:-Wno-null-dereference>")
     target_compile_definitions(libshader_compiler_obj PRIVATE ${LLVM_DEFINITIONS})
 endif()
 

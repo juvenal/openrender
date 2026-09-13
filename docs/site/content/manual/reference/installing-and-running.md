@@ -19,7 +19,10 @@ from the repository at
 
 Required:
 
-- A **C++20** compiler — GCC 10+, Clang 10+, or MSVC 2019+
+- A **C++20** compiler with `<format>` — **GCC 13 or newer**, Clang 17+ with
+  libc++, or Clang against libstdc++ 13+. `std::format` only reached libstdc++
+  in GCC 13, so GCC 11 and 12 cannot build this tree (this is what rules out
+  Ubuntu 22.04's stock toolchain).
 - **CMake** 3.19 or newer
 - **libtiff**, **libpng**, **zlib**
 - **flex** and **bison**. The RIB and shading-language parsers are generated
@@ -108,10 +111,33 @@ If you keep Homebrew somewhere unusual, point CMake at it with
 
 ### Linux
 
-Install your distribution's development packages for libtiff, libpng, zlib,
-flex and bison, plus any of the optional components you want — LLVM, OpenEXR
-with Imath, FLTK, and GTK 4 for the previewer. Package names differ between
-distributions; the CMake configure step names anything it cannot find.
+Ubuntu 24.04 LTS is the supported baseline, and everything openRender builds is
+available from its default archive:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential cmake pkg-config \
+  flex bison \
+  libtiff-dev libpng-dev zlib1g-dev \
+  llvm-18-dev \
+  libopenexr-dev libimath-dev \
+  libx11-dev libwayland-dev wayland-protocols libdecor-0-dev \
+  libgtk-4-dev libadwaita-1-dev libepoxy-dev libgl-dev
+```
+
+The last two lines are the display side: X11 and Wayland for the framebuffer
+helper `orender-fb-linux`, GTK 4 and libadwaita for the `orender-wire`
+previewer. Drop them only if you do not want those components — `libx11-dev`
+is a hard requirement for the framebuffer helper, while the Wayland and GTK
+packages are probed and skipped when absent.
+
+`llvm-18-dev` can be `llvm-19-dev` instead; both clear the floor. Omit it
+entirely with `-DOPENRENDER_ENABLE_JIT=OFF` (see
+[Building without the JIT](#building-without-the-jit)).
+
+On other distributions the package names differ, but the set is the same, and
+the CMake configure step names anything it cannot find.
 
 ### Windows
 

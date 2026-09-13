@@ -4,17 +4,41 @@ This document describes how to build and install openRender using CMake.
 
 ## Prerequisites
 
-- **C++20** compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
+- **C++20** compiler with `<format>` and `<source_location>`:
+  **GCC 13 or newer**, or Clang 17+ with libc++, or Clang against libstdc++ 13+.
+  `src/includes/logging.hpp` uses `std::format`, and libstdc++ only gained
+  `<format>` in GCC 13 — GCC 11 and 12 cannot build this tree, which is why
+  Ubuntu 22.04's stock toolchain does not work.
 - **CMake** 3.19 or higher
 - **Git** (for cloning the repository)
 
+Supported baseline is **Ubuntu 24.04 LTS** (GCC 13, CMake 3.28, LLVM 18,
+OpenEXR 3.1). See
+[Installing / running openRender](https://juvenal.github.io/openrender/manual/reference/installing-and-running/#linux)
+for a copy-pasteable `apt-get` line.
+
 ## Dependencies
+
+Required:
 
 - **libtiff**: Image format support (<http://www.libtiff.org>)
 - **libpng**: PNG image support
-- **flex / bison**: Parser generation (available on Unix platforms by default)
+- **zlib**
+- **flex / bison**: Parser generation — **mandatory**; no pre-generated parser
+  sources are kept in the repository. On macOS you need Homebrew's bison, as
+  the system one is 2.3; the system flex is fine.
+
+Optional, each enabling a component:
+
+- **LLVM** 15 or newer: the JIT (`.slo`) shader backend. Skip with
+  `-DOPENRENDER_ENABLE_JIT=OFF`.
+- **OpenEXR** (2.5+ or 3.x) — with **Imath** for 3.x, or **IlmBase** for 2.x:
+  the EXR display driver (<http://www.openexr.com>)
+- **X11**: required by the `orender-fb-linux` framebuffer helper.
+  **Wayland** + **wayland-protocols** + **libdecor** are used when present.
+- **GTK 4** (4.10+) and **libadwaita** (1.4+): the `orender-wire` previewer on
+  Linux. macOS uses Metal/AppKit and needs neither.
 - **fltk**: GUI support for the interactive viewer `oshow` (<http://www.fltk.org>)
-- **OpenEXR**: High dynamic range image support (<http://www.openexr.com>) — optional
 
 ## Building
 

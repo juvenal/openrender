@@ -688,6 +688,9 @@ Files written on one platform can be read on any other supported platform:
 ### For Plugin Developers
 
 1. **Compiler Requirement**: Must use GCC 10+, Clang 10+, or AppleClang 12+
+   *(accurate when this migration landed; the tree's floor has since risen to
+   **GCC 13** because `src/includes/logging.hpp` uses `std::format`, which
+   libstdc++ only shipped in GCC 13 — see INSTALL.md)*
 2. **Binary I/O**: Plugins writing binary files should migrate to `portable_io.h` (recommended, not required)
 3. **Atomic Operations**: If using `atomicIncrement/Decrement`, pass by reference instead of pointer when migrating to `atomic_modern.h`
 
