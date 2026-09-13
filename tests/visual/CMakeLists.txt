@@ -57,11 +57,45 @@ target_compile_features(test_perf_compare PRIVATE cxx_std_20)
 # ---------------------------------------------------------------------------
 # Environment common to all visual tests
 # ---------------------------------------------------------------------------
+# Every path below resolves inside the source tree or the build tree. Nothing
+# points at openrender/ -- that is the gitignored deploy tree, populated only by
+# `cmake --install`, so on a fresh clone it does not exist. The suite used to
+# depend on it for three things, and failed wholesale without it:
+#
+#   .orenderrc  supplied Format 640 480 1 and PixelSamples 2 2. 47 of 206 scenes
+#               declare no Format and 155 no PixelSamples, so they inherited
+#               these -- and rendered at the wrong size or sampling without them.
+#               Now served from tests/visual/orenderrc, which is tracked, via a
+#               private ORENDERHOME below.
+#   displays/   held the .dsply display drivers. Those are built in the build
+#               tree, four separate target directories; addressed by generator
+#               expression so it works under any generator and any platform's
+#               module naming.
+#   geometry/   an install-time copy of the tracked geometry/ at the source root
+#               (verified identical, 8 files). No test scene uses a Geometry
+#               statement today, so this only keeps the search path well formed.
+#
+# A deploy tree built on one platform also carries that platform's binaries, so
+# pointing tests at it made a macOS checkout unusable on Linux even when present.
+set(VISUAL_RC_HOME ${CMAKE_BINARY_DIR}/tests/visual/_home)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/orenderrc
+               ${VISUAL_RC_HOME}/.orenderrc COPYONLY)
+
+set(VISUAL_DISPLAY_PATH "$<TARGET_FILE_DIR:file>:$<TARGET_FILE_DIR:rgbe>:$<TARGET_FILE_DIR:framebuffer>")
+if(HAVE_OPENEXR)
+    set(VISUAL_DISPLAY_PATH "${VISUAL_DISPLAY_PATH}:$<TARGET_FILE_DIR:openexr>")
+endif()
+
+# The build tree, and only the build tree. shaders/CMakeLists.txt compiles every
+# .sl into ${CMAKE_BINARY_DIR}/shaders as part of the normal build, so the suite
+# runs from a clean clone after `cmake --build` alone -- no `cmake --install`,
+# and no dependency on the gitignored openrender/ deploy tree, whose objects
+# also carried whichever platform produced them.
 set(VISUAL_ENV
-    "SHADERS=${CMAKE_SOURCE_DIR}/shaders"
-    "ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender"
-    "DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
-    "GEOMETRIES=${CMAKE_SOURCE_DIR}/openrender/geometry"
+    "SHADERS=${CMAKE_BINARY_DIR}/shaders"
+    "ORENDERHOME=${VISUAL_RC_HOME}"
+    "DISPLAYS=${VISUAL_DISPLAY_PATH}"
+    "GEOMETRIES=${CMAKE_SOURCE_DIR}/geometry"
     # Where a scene's own texture and depth-file fixtures live, alongside
     # the .rib that uses them. Added for spec 015's repelling-ground-plane
     # scenes, which read examples/rib/tests/blobby-ground.z; it only

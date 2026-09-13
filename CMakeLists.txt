@@ -559,6 +559,9 @@ add_subdirectory(tests)
 # ###########################################################################
 add_subdirectory(src)
 
+# After src/: the shader compile rules need the oshader target to exist.
+add_subdirectory(shaders)
+
 # ###########################################################################
 # ########## Self-contained dependency bundling
 # ###########################################################################
@@ -698,82 +701,12 @@ if(INSTALL_SELFCONTAINED)
         endif()
     ")
 endif()
-
 ########################################################################
-# Compile shaders at install time (runs AFTER all install(TARGETS))
+# Shaders are compiled as a BUILD step, not at install time.
 ########################################################################
-# At this point in the install sequence, all binaries (including oshader)
-# have been installed to their final destinations. This install(CODE) block
-# compiles the installed .sl sources into .rslo objects in-place.
-install(CODE "
-    message(STATUS \"Compiling installed RSL shaders...\")
-    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
-    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
-    set(_incdir \"-I\${_shaderdir}/includes\")
-
-    # Check if the installed oshader exists (it should, since install(TARGETS) runs first)
-    if(NOT EXISTS \"\${_oshader_install}\")
-        message(WARNING \"  oshader binary not found at \${_oshader_install} — skipping shader compilation\")
-    else()
-        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
-        set(_ok 0)
-        set(_failed 0)
-        foreach(_sl \${_sl_files})
-            get_filename_component(_base \${_sl} NAME_WE)
-            execute_process(
-                COMMAND \"\${_oshader_install}\" \${_incdir} \${_sl}
-                WORKING_DIRECTORY \${_shaderdir}
-                RESULT_VARIABLE _rc
-                OUTPUT_VARIABLE _out
-                ERROR_VARIABLE _err
-            )
-            if(_rc)
-                message(WARNING \"  oshader: \${_base}.sl failed (rc=\${_rc})\")
-                if(_err)
-                    message(WARNING \"    stderr: \${_err}\")
-                endif()
-                math(EXPR _failed \"\${_failed} + 1\")
-            else()
-                math(EXPR _ok \"\${_ok} + 1\")
-            endif()
-        endforeach()
-        message(STATUS \"  Shaders compiled: \${_ok} ok, \${_failed} failed\")
-    endif()
-")
-
-# Second independent pass: compile .slo (LLVM JIT bitcode) when LLVM is available.
-# Runs only when OPENRENDER_HAVE_LLVM was set at configure time.
-# Failures here are warnings only — .rslo is always the authoritative fallback.
-if(OPENRENDER_HAVE_LLVM)
-install(CODE "
-    message(STATUS \"Compiling installed RSL shaders to .slo (LLVM JIT)...\")
-    set(_shaderdir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")
-    set(_oshader_install \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/oshader\")
-    set(_incdir \"-I\${_shaderdir}/includes\")
-
-    if(NOT EXISTS \"\${_oshader_install}\")
-        message(WARNING \"  oshader binary not found — skipping .slo compilation\")
-    else()
-        file(GLOB _sl_files \"\${_shaderdir}/*.sl\")
-        set(_ok 0)
-        set(_failed 0)
-        foreach(_sl \${_sl_files})
-            get_filename_component(_base \${_sl} NAME_WE)
-            execute_process(
-                COMMAND \"\${_oshader_install}\" --jit \${_incdir} \${_sl}
-                WORKING_DIRECTORY \${_shaderdir}
-                RESULT_VARIABLE _rc
-                OUTPUT_VARIABLE _out
-                ERROR_VARIABLE _err
-            )
-            if(_rc)
-                message(WARNING \"  oshader --jit: \${_base}.sl failed (rc=\${_rc})\")
-                math(EXPR _failed \"\${_failed} + 1\")
-            else()
-                math(EXPR _ok \"\${_ok} + 1\")
-            endif()
-        endforeach()
-        message(STATUS \"  Shaders compiled to .slo: \${_ok} ok, \${_failed} failed\")
-    endif()
-")
-endif()
+# Two install(CODE) passes used to run oshader over the freshly installed
+# .sl files, once for .rslo and once for .slo. They were removed: compiling
+# during the build gives real dependency tracking (oshader changes ->
+# shaders rebuild), lets `ctest -L visual` work without installing first,
+# and keeps compiled objects out of the source tree. See shaders/
+# CMakeLists.txt, which also installs the resulting objects.

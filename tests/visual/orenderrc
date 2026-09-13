@@ -1,0 +1,31 @@
+########################################################################
+## Renderer defaults for the visual regression suite.
+##
+## This file exists because the suite used to inherit its defaults from
+## openrender/.orenderrc -- the deploy tree, which is gitignored and only
+## populated by `cmake --install`. On a fresh clone that file is absent, so
+## every scene rendered with different defaults than its reference image was
+## produced with, and the entire suite failed. Measured against the scenes as
+## they stand: 47 of 206 declare no Format and 155 declare no PixelSamples, so
+## the values below are load-bearing, not cosmetic.
+##
+## It is deliberately hermetic: no %ORENDERHOME% or /usr/local entries, so a
+## stray /usr/local/shaders on a developer's machine cannot change a result.
+## Search paths resolve only through the environment variables the test harness
+## sets, all of which point inside the source or build tree.
+##
+## Keep Format and PixelSamples in step with the reference images. Changing
+## either invalidates every reference for a scene that does not set its own.
+########################################################################
+
+Option "shaderformat" "default"  ["rslo"]
+
+Option "searchpath" "shader"     ["&:.:%SHADERS%"]
+Option "searchpath" "texture"    ["&:.:%TEXTURES%"]
+Option "searchpath" "archive"    ["&:.:%RIBS%"]
+Option "searchpath" "display"    ["&:.:%DISPLAYS%"]
+Option "searchpath" "procedural" ["&:.:%PROCEDURALS%"]
+Option "searchpath" "geometry"   ["&:.:%GEOMETRIES%"]
+
+Format 640 480 1
+PixelSamples 2 2

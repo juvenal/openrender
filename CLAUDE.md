@@ -56,38 +56,27 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 `cmake --build` does **not** refresh the compiled `.slo`/`.rslo` shaders
 inside it.
 
-**Where the compiled shaders actually live:** only in
-`openrender/shaders/` — 69 `.rslo` + 69 `.slo`, written by the install-time
-passes at the end of the root `CMakeLists.txt`. The tracked `shaders/` tree
-holds **only** `.sl` sources plus `includes/`; there is no tracked bitcode at
-all. The visual suite reaches the compiled objects through
-`%ORENDERHOME%/shaders` in `openrender/.orenderrc`, so **`ctest -L visual`
-cannot pass from a clean clone until `cmake --install` has run at least
-once.** (Deliberately not yet fixed; a build-tree shader-compilation step is
-the real answer and is noted for future review.)
+**Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
+69 `.rslo` (+ 69 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
+`includes/`; compiled objects never land next to them. `cmake --install` copies
+the build-tree objects into the deploy tree — it no longer compiles anything.
 
-**Staleness is real but is a timestamp problem, not a known-bad-shader
-problem.** Nothing in the build graph regenerates bitcode in either
-direction: editing an `oshader --jit` emitter source
-(`src/libshader/compiler/*`) does not trigger an `oshader` rebuild via
-`cmake --build --target orender`, and rebuilding `oshader` does not
-regenerate `.slo` files produced by an older binary. A green `-slo` run after
-an emitter change is not evidence the change is correct unless every `.slo`
-the suite loads postdates both the source edit and the `oshader` rebuild —
-check with `stat` first. To regenerate all of them:
+So `cmake --build && ctest -L visual` works from a clean clone, with no install
+step and no dependency on the gitignored `openrender/` deploy tree. Verified by
+renaming `openrender/` aside and running the suite: 191/191.
 
-```bash
-cmake --build build --target oshader
-cd openrender/shaders && for f in *.sl; do \
-    SHADERS_INCLUDE="$PWD/includes" ../../build/src/oshader/oshader \
-        --jit -o "${f%.sl}.slo" "$f"; done
-```
+**Dependency tracking is now real**, which retires the old staleness trap:
+editing a `.sl` recompiles it, editing any `.slh` recompiles the shaders, and
+**rebuilding `oshader` recompiles every shader**. A green `-slo` run after an
+emitter change is now genuine evidence. (`.slh` dependencies are deliberately
+coarse — all shaders depend on all headers; a full 138-object rebuild is ~2s.)
 
 An ABI/signature mismatch between stale bitcode and current runtime C++
-(`op_*`/`rsl_*` functions) is not caught at build or link time; it reads
-garbage arguments at JIT call sites, typically surfacing as a crash with
-implausible values (e.g. a negative array stride) deep in a runtime function
-that itself has no bug.
+(`op_*`/`rsl_*` functions) is still not caught at build or link time if you
+somehow hand-place an old `.slo`; it reads garbage arguments at JIT call sites,
+typically surfacing as a crash with implausible values (e.g. a negative array
+stride) deep in a runtime function that itself has no bug.
 
 **Corrected 2026-09-12 — `wood`, `blue_marble` and `brushedmetal` `.slo` are
 NOT "stale/broken on master".** This file previously said to expect those
