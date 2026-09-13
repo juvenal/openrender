@@ -54,29 +54,48 @@ Env var is `ORENDERHOME` (not the old `PIXIEHOME`, since commit `fe9b4cf`).
 disposable, gitignored deploy tree only refreshed by `cmake --install`
 (which needs prefix workarounds to run without sudo locally). A plain
 `cmake --build` does **not** refresh the compiled `.slo`/`.rslo` shaders
-inside it. If you touch `wood.sl`, `blue_marble.sl`, or `brushedmetal.sl`,
-expect their `-slo` visual ctest variants to already be stale/broken on
-`master` independent of your change — check `openrender/shaders/<name>.slo`
-timestamps before assuming you caused a regression.
+inside it.
 
-**This staleness is not limited to the deploy tree** — nothing in the build
-graph regenerates `.slo` bitcode in the *tracked* `shaders/` source tree
-either, in either direction: editing an `oshader --jit` emitter source
-(`src/libshader/compiler/*`) does not trigger a rebuild of `oshader` via
+**Where the compiled shaders actually live:** only in
+`openrender/shaders/` — 69 `.rslo` + 69 `.slo`, written by the install-time
+passes at the end of the root `CMakeLists.txt`. The tracked `shaders/` tree
+holds **only** `.sl` sources plus `includes/`; there is no tracked bitcode at
+all. The visual suite reaches the compiled objects through
+`%ORENDERHOME%/shaders` in `openrender/.orenderrc`, so **`ctest -L visual`
+cannot pass from a clean clone until `cmake --install` has run at least
+once.** (Deliberately not yet fixed; a build-tree shader-compilation step is
+the real answer and is noted for future review.)
+
+**Staleness is real but is a timestamp problem, not a known-bad-shader
+problem.** Nothing in the build graph regenerates bitcode in either
+direction: editing an `oshader --jit` emitter source
+(`src/libshader/compiler/*`) does not trigger an `oshader` rebuild via
 `cmake --build --target orender`, and rebuilding `oshader` does not
-regenerate any `.slo` files that were compiled by an older `oshader` binary.
-A green `-slo` visual-test run after an emitter change is not evidence the
-change is correct unless every `.slo` the test suite depends on postdates
-both the emitter source edit and the `oshader` rebuild — check with `stat`
-first. To regenerate: `cmake --build build --target oshader`, then
-`build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`
-for each stale shader (add `SHADERS_INCLUDE=<path>` for shaders that
-`#include` `.slh` headers — see next gotcha), then refresh the deploy-tree
-copy too. An ABI/signature mismatch between stale bitcode and current
-runtime C++ (`op_*`/`rsl_*` functions) is not caught at build or link time;
-it reads garbage arguments at JIT call sites, typically surfacing as a
-crash with implausible values (e.g. a negative array stride) deep in a
-runtime function that itself has no bug.
+regenerate `.slo` files produced by an older binary. A green `-slo` run after
+an emitter change is not evidence the change is correct unless every `.slo`
+the suite loads postdates both the source edit and the `oshader` rebuild —
+check with `stat` first. To regenerate all of them:
+
+```bash
+cmake --build build --target oshader
+cd openrender/shaders && for f in *.sl; do \
+    SHADERS_INCLUDE="$PWD/includes" ../../build/src/oshader/oshader \
+        --jit -o "${f%.sl}.slo" "$f"; done
+```
+
+An ABI/signature mismatch between stale bitcode and current runtime C++
+(`op_*`/`rsl_*` functions) is not caught at build or link time; it reads
+garbage arguments at JIT call sites, typically surfacing as a crash with
+implausible values (e.g. a negative array stride) deep in a runtime function
+that itself has no bug.
+
+**Corrected 2026-09-12 — `wood`, `blue_marble` and `brushedmetal` `.slo` are
+NOT "stale/broken on master".** This file previously said to expect those
+three `-slo` variants to fail independently of your change. Measured: all 69
+`.slo` were regenerated from scratch and the full suite passed **191/191**,
+with those three moving by −0.15, −1.39 and −0.24 block-avg-diff against a
+threshold of 20 — i.e. within sampling noise, on both old and fresh bitcode.
+Do not pre-emptively distrust a green result on them.
 
 **`oshader -I <path>` CLI quirk:** combining `-I` with `-o` and a positional
 `.sl` input currently fails to parse (`Output file specified with multiple
@@ -218,6 +237,24 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
 4. **LLVM LLJIT init:** requires `InitializeNativeTarget()` /
    `AsmPrinter`/`AsmParser` before `LLJITBuilder().create()` — failure is a
    silent `nullptr`, not a crash or exception.
+4a. **Never call `BasicBlock::getTerminator()` to test whether a block is
+   terminated.** Its contract changed in **LLVM 23**: through LLVM 22 it
+   returned `nullptr` for an unterminated block, but 23 made it
+   `assert(hasTerminator())` and then `return &InstList.back();`
+   unconditionally. Under `NDEBUG` the assert is gone, so it hands back the
+   last *non-terminator* instruction and the idiom
+   `if (!bb->getTerminator()) B.CreateRetVoid();` silently reads as "already
+   terminated" — `oshader --jit` then emitted functions with no `ret void` and
+   every shader failed module verification (`Basic Block in function 'X' does
+   not have terminator!`, exit 3, 0/69 compiled) while LLVM 18 stayed fine.
+   LLVM 23's replacements `hasTerminator()` / `getTerminatorOrNull()` do
+   **not** exist in LLVM 15 (`OPENRENDER_LLVM_MIN_VERSION`), so the portable
+   test — and what LLVM 23's own `hasTerminator()` is built from — is
+   `!bb->empty() && bb->back().isTerminator()`. It lives in one helper,
+   `currentBlockHasTerminator()` in `llvmEmitter.cpp`; keep it the only place
+   that answers this question. Building at `-O0`/Debug surfaces the class of
+   bug instantly, because LLVM's own assertion fires; a Release build hides it
+   completely (this is *our* `NDEBUG`, not the installed LLVM's).
 5. **RSL return-type inference:** a function's return type is inferred from
    its *first* `return` statement. An early `return <uniform literal>`
    followed by a later `return <varying expr>` fails with "Can not assign

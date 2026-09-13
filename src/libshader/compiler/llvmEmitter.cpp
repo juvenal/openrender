@@ -45,6 +45,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
@@ -94,6 +95,45 @@ static bool isHandledOpcode(const std::string &op) {
         if (op == kHandledOpcodes[i]) return true;
     }
     return false;
+}
+
+// =========================================================================
+// currentBlockHasTerminator — does the builder's insertion block already end?
+//
+// Used in the six places this file decides whether to append a br/ret. Two
+// separate hazards make it a function rather than an inline expression.
+//
+// 1. BasicBlock::getTerminator() CHANGED CONTRACT. Through LLVM 22 it returned
+//    nullptr for a block with no terminator, and this file relied on that:
+//        if (!B.GetInsertBlock()->getTerminator()) B.CreateRetVoid();
+//    LLVM 23 turned it into a precondition -- assert(hasTerminator()) and then
+//    `return &InstList.back();` unconditionally. With NDEBUG the assert is gone,
+//    so it hands back the last *non-terminator* instruction, the old test reads
+//    as "already terminated", and no terminator is appended. That is exactly why
+//    `oshader --jit` started emitting functions with no `ret void` and failing
+//    module verification ("Basic Block in function 'X' does not have
+//    terminator!") on LLVM 23, while remaining correct on LLVM 18.
+//
+//    LLVM 23 provides hasTerminator() and getTerminatorOrNull() for this, but
+//    NEITHER exists in LLVM 15 -- OPENRENDER_LLVM_MIN_VERSION -- so using them
+//    would need a version conditional. empty() and back() are stable public API
+//    across the whole supported range and are precisely what LLVM 23's own
+//    hasTerminator() is implemented in terms of, so spell the test out here and
+//    it is correct on every LLVM we support.
+//
+// 2. IRBuilder::GetInsertBlock() may legitimately return null (LLVM allows it
+//    after ClearInsertionPoint()). Every path here sets an insertion point
+//    first, but GCC cannot see that and reported a potential null dereference
+//    against llvm/IR/Value.h -- a middle-end warning raised after inlining, so
+//    neither -isystem on the LLVM headers nor a #pragma around the #includes
+//    reaches it. The explicit test removes the unguarded dereference, and the
+//    assert turns a would-be crash into a clean failure if that ever changes.
+// =========================================================================
+static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
+    const llvm::BasicBlock *bb = B.GetInsertBlock();
+    assert(bb != nullptr && "IRBuilder has no insertion point");
+    if (bb == nullptr) return false;
+    return !bb->empty() && bb->back().isTerminator();
 }
 
 // =========================================================================
@@ -655,13 +695,13 @@ static void emitFunction(const IRFunction &irFn,
             ForScope &fs = forStack.back();
             if (blk.label == fs.latchLabel) {
                 // Body falls through to latch.
-                if (!B.GetInsertBlock()->getTerminator())
+                if (!currentBlockHasTerminator(B))
                     B.CreateBr(fs.latchBB);
                 B.SetInsertPoint(fs.latchBB);
             }
             if (blk.label == fs.exitLabel) {
                 // Latch falls through back to condition (loop back).
-                if (!B.GetInsertBlock()->getTerminator())
+                if (!currentBlockHasTerminator(B))
                     B.CreateBr(fs.condBB);
                 // Emit forend in the exit BB.
                 B.SetInsertPoint(fs.exitBB);
@@ -686,7 +726,7 @@ static void emitFunction(const IRFunction &irFn,
 
             // If the body BB has no terminator yet (normal fall-through path),
             // branch to the latch.
-            if (!B.GetInsertBlock()->getTerminator())
+            if (!currentBlockHasTerminator(B))
                 B.CreateBr(sc.latchBB);
 
             // Emit latch: call op_illuminance_next, branch body or exit.
@@ -711,7 +751,7 @@ static void emitFunction(const IRFunction &irFn,
             // Terminator
             // ----------------------------------------------------------------
             if (op == "return") {
-                if (!B.GetInsertBlock()->getTerminator())
+                if (!currentBlockHasTerminator(B))
                     B.CreateRetVoid();
                 return;
             }
@@ -1113,7 +1153,7 @@ static void emitFunction(const IRFunction &irFn,
 
             // 'continue': jump to the latch (increment) block.
             if (op == "continue") {
-                if (!forStack.empty() && !B.GetInsertBlock()->getTerminator())
+                if (!forStack.empty() && !currentBlockHasTerminator(B))
                     B.CreateBr(forStack.back().latchBB);
                 continue;
             }
@@ -2029,7 +2069,7 @@ static void emitFunction(const IRFunction &irFn,
     }
 
     // Ensure a terminator exists.
-    if (!B.GetInsertBlock()->getTerminator())
+    if (!currentBlockHasTerminator(B))
         B.CreateRetVoid();
 }
 
