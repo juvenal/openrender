@@ -98,6 +98,7 @@ class CIrradianceCache : public CTexture3d {
 
         void draw();
         int keyDown(int key);
+        const char *typeName() const { return "Irradiance Cache"; }
 
         void bound(float *bmin, float *bmax);
 

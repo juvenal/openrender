@@ -15,7 +15,7 @@
 - Gary Oliver & Kirk Bailey – Shading language preprocessor (pp)
 - Bruce Walter – Radiance RGBE (pic) output
 - Moritz Moeller – Windows installer
-- Jordan Smith – Crystal ball interface for "oshow"
+- Jordan Smith – Crystal ball interface for the original (since-removed) interactive viewer
 - Mayur Patel – Pseudo random generator
 - Ashton Edwin-Kent – Web page
 - Cedric Paille – RPM releases

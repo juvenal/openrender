@@ -94,7 +94,7 @@ jobs:
 
       - name: Install dependencies via Homebrew
         run: |
-          brew install libtiff libpng flex bison openexr fltk pkg-config
+          brew install libtiff libpng flex bison openexr pkg-config
 
       - name: Build self-contained version (x86_64)
         run: |
@@ -156,7 +156,7 @@ jobs:
 
       - name: Install dependencies via Homebrew
         run: |
-          brew install libtiff libpng flex bison openexr fltk pkg-config
+          brew install libtiff libpng flex bison openexr pkg-config
 
       - name: Build self-contained version (arm64)
         run: |
@@ -277,7 +277,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y \
             libtiff-dev libpng-dev zlib1g-dev flex bison \
-            libopenexr-dev libfltk1.3-dev libx11-dev \
+            libopenexr-dev libx11-dev \
             libwayland-dev wayland-protocols libdecor-0-dev pkg-config
 
       - name: Build self-contained version (Linux x86_64)
@@ -330,7 +330,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y \
             libtiff-dev libpng-dev zlib1g-dev flex bison \
-            libopenexr-dev libfltk1.3-dev libx11-dev \
+            libopenexr-dev libx11-dev \
             libwayland-dev wayland-protocols libdecor-0-dev pkg-config
 
       - name: Build and Pack DEB via CPack
@@ -364,7 +364,7 @@ jobs:
 
       - name: Install dependencies via dnf
         run: |
-          dnf install -y cmake gcc-c++ make flex bison libtiff-devel libpng-devel zlib-devel openexr-devel fltk-devel libX11-devel wayland-devel wayland-protocols-devel libdecor-devel rpm-build pkgconfig git
+          dnf install -y cmake gcc-c++ make flex bison libtiff-devel libpng-devel zlib-devel openexr-devel libX11-devel wayland-devel wayland-protocols-devel libdecor-devel rpm-build pkgconfig git
 
       - name: Set up CMake Version in CMakeLists.txt
         run: |

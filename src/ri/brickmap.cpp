@@ -40,7 +40,7 @@ CBrickMap *CBrickMap::brickMaps = NULL; // List of brickmaps in memory
 int CBrickMap::referenceNumber = 0;     // The last reference number
 int CBrickMap::currentMemory = 0;       // The currently used memory abount
 int CBrickMap::maxMemory = 0;           // The maximum memory for brickmaps
-int CBrickMap::detailLevel = 2;         // The detail level
+int CBrickMap::detail = 2;              // The detail level
 int CBrickMap::drawType = 0;            // Draw boxes
 int CBrickMap::drawChannel = 0;         // Which channel to draw
 
@@ -1154,10 +1154,10 @@ void CBrickMap::draw() {
     float *cN = N;
     float *cR = R;
     int clampedLevel_bm;
-    if (0 > detailLevel) {
+    if (0 > detail) {
         clampedLevel_bm = 0;
     } else {
-        clampedLevel_bm = detailLevel;
+        clampedLevel_bm = detail;
     }
     int level;
     if (maxDepth < clampedLevel_bm) {
@@ -1373,14 +1373,12 @@ void CBrickMap::draw() {
 // Comments				:
 int CBrickMap::keyDown(int key) {
     if ((key == 'M') || (key == 'm')) {
-        detailLevel++;
-        printf("level : %d\n", detailLevel);
+        detail++;
         return TRUE;
     } else if ((key == 'L') || (key == 'l')) {
-        detailLevel--;
-        if (detailLevel < 0)
-            detailLevel = 0;
-        printf("level : %d\n", detailLevel);
+        detail--;
+        if (detail < 0)
+            detail = 0;
         return TRUE;
     } else if ((key == 'b') || (key == 'B')) {
         drawType = 0;
@@ -1395,13 +1393,11 @@ int CBrickMap::keyDown(int key) {
         drawChannel--;
         if (drawChannel < 0)
             drawChannel = 0;
-        printf("channel : %s\n", channels[drawChannel].name);
         return TRUE;
     } else if ((key == 'w') || (key == 'W')) {
         drawChannel++;
-        if (drawChannel >= numChannels)
-            drawChannel = numChannels - 1;
-        printf("channel : %s\n", channels[drawChannel].name);
+        if (drawChannel >= channelCount)
+            drawChannel = channelCount - 1;
         return TRUE;
     }
 
@@ -1648,7 +1644,7 @@ void makeBrickMap(int /*nb*/, const char **src, const char *dest, TSearchpath *s
             snprintf(tempName, sizeof(tempName), "%s.tmp", dest);
 
             CPointCloud *cPtCloud = new CPointCloud(filePointCloud, identityMatrix, identityMatrix, in);
-            CBrickMap *cBMap = new CBrickMap(tempName, cPtCloud->bmin, cPtCloud->bmax, identityMatrix, identityMatrix, cPtCloud->toNDC, cPtCloud->channels, cPtCloud->numChannels, maxDepth);
+            CBrickMap *cBMap = new CBrickMap(tempName, cPtCloud->bmin, cPtCloud->bmax, identityMatrix, identityMatrix, cPtCloud->toNDC, cPtCloud->channels, cPtCloud->channelCount, maxDepth);
             float *data = cPtCloud->data.array;
             for (i = 1; i <= cPtCloud->numItems; i++) {
                 CPointCloudPoint *p = cPtCloud->items + i;

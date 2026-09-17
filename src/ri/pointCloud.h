@@ -64,10 +64,13 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
         void lookup(float *, const float *, const float *, float);
         void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
 
-        // CView interface for drawing
+        // CDataView interface for drawing
         void draw();
         int keyDown(int);
         void bound(float *bmin, float *bmax);
+        const char *typeName() const { return "Point Cloud"; }
+        int currentChannel() const { return drawChannel; }
+        int drawMode() const { return drawDiscs; } // 0 = points, 1 = discs
 
         // ptcApi interface
         int getNumPoints() { return numItems; }

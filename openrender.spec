@@ -44,7 +44,7 @@ mkdir $RPM_BUILD_ROOT
 %setup -q
 
 %build
-./configure --prefix=%{prefix} --enable-selfcontained  --enable-static-openexr CXXFLAGS="-g -fno-strict-aliasing -O2" --enable-static-fltk
+./configure --prefix=%{prefix} --enable-selfcontained  --enable-static-openexr CXXFLAGS="-g -fno-strict-aliasing -O2"
 make
 
 %install

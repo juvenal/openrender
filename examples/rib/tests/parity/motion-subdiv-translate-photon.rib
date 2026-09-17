@@ -6,9 +6,8 @@ version 3.03
 # Clarifications, the photon-mapping hider does not gain motion-blur support
 # in this feature (User Story 1's scope is limited to REYES/stochastic and
 # ray-tracing) -- this scene is authored as a deliverable to document that
-# gap but is NOT required to pass, matching the CShow treatment (see
-# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib). Registered
-# under CMake's "not-required" label, excluded from `ctest -L visual`.
+# gap but is NOT required to pass. Registered under CMake's "not-required"
+# label, excluded from `ctest -L visual`.
 #
 # Structure: Frame 1 runs the photon hider (CPhotonHider never produces an
 # image on its own -- see subdiv-facevarying-seam-photon.rib's header

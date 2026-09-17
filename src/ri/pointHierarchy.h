@@ -71,9 +71,10 @@ class CPointHierarchy : public CTexture3d, public CMap<CPointCloudPoint> {
         int average(int numItems, int *indices);
         int cluster(int numItems, int *indices);
 
-        // CView interface
+        // CDataView interface
         void draw() {}
         void bound(float *, float *) {}
+        const char *typeName() const { return "Point Hierarchy"; }
 };
 
 #endif

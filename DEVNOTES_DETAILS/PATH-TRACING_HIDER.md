@@ -26,8 +26,7 @@ CShadingContext (abstract)
 │   ├── CStochastic — stochastic sampling, motion blur, DOF
 │   └── CZbuffer    — classic depth buffer
 ├── CRaytracer      — primary camera rays (not path tracing)
-├── CPhotonHider    — photon map pass
-└── CShow           — debug/viz hider
+└── CPhotonHider    — photon map pass
 ```
 
 Hider selection is a plain `strcmp` chain in `renderer.cpp:beginFrame()` (~line 908). Adding a new hider requires:

@@ -37,6 +37,17 @@ add_preview_test(test_preview_camera     test_camera.cpp)
 add_preview_test(test_preview_arcball    test_arcball.cpp)
 add_preview_test(test_camera_export      test_camera_export.cpp)
 add_preview_test(test_camera_replace     test_camera_replace.cpp)
+add_preview_test(test_dataview_chunking   test_dataview_chunking.cpp)
+add_preview_test(test_debugdump_roundtrip test_debugdump_roundtrip.cpp)
+add_preview_test(test_data_world_init      test_data_world_init.cpp)
+add_preview_test(test_data_pointcloud      test_data_pointcloud.cpp)
+add_preview_test(test_data_keys            test_data_keys.cpp)
+add_preview_test(test_wire_cli             test_wire_cli.cpp)
+add_preview_test(test_data_disk_expand     test_data_disk_expand.cpp)
+add_preview_test(test_preview_subdiv       test_preview_subdiv.cpp)
+set_tests_properties(test_preview_subdiv PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
 add_preview_test(test_preview_integration test_integration.cpp)
 set_tests_properties(test_preview_integration PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

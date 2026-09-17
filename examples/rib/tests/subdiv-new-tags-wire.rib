@@ -1,15 +1,14 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 
-# T064 (spec 010-full-subdivision-support, US3): CShow ("oshow:" hider)
-# targeting scene for the new-tags capability. See
-# examples/rib/tests/parity/motion-subdiv-translate-oshow.rib's header
-# comment for why this is authored-but-not-required. Otherwise identical to
+# T064 (spec 010-full-subdivision-support, US3), repointed at orender-wire by
+# a later spec: targeting scene for the new-tags capability. Formerly
+# asserted the removed debug-visualization hider's failure; now a plain
+# scene, viewable with orender-wire. Otherwise identical to
 # examples/rib/tests/subdiv-new-tags-raytrace.rib.
-Hider "oshow:none"
 Option "shaderformat" "default" ["rslo"]
 PixelSamples 4 4
-Display "subdiv-new-tags-oshow.tif" "file" "rgba"
+Display "subdiv-new-tags-wire.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 320 240 1
 Translate 0 0 3

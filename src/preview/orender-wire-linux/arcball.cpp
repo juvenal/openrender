@@ -104,13 +104,25 @@ static mat4 load_mat4(const float *p) {
     mat4 m; std::memcpy(m.m, p, 64); return m;
 }
 
+// ribGeometryContext.cpp builds projMatrix16 in Metal-NDC convention (clip.z in [0,1]), since
+// the macOS renderer consumes it unmodified. GL 3.3 core has no glClipControl and always expects
+// clip.z in [-1,1] -- reconciled here, once, at load time rather than per-vertex in the shader,
+// by rewriting the projection matrix's z row: clip.z_gl = 2*clip.z_metal - clip.w becomes the
+// new row (2*row_z - row_w) for every column. Baked into ribProj_ (not projMatrix_) so reset()
+// -- which just copies ribProj_ back -- keeps the fix automatically.
+static void remapClipZMetalToGL(mat4 &proj) {
+    for (int c = 0; c < 4; c++)
+        proj.at(c, 2) = 2.0f * proj.at(c, 2) - proj.at(c, 3);
+}
+
 ArcballCamera::ArcballCamera(const float *projMatrix16,
                              const float *viewMatrix16,
                              const float *sceneBoundsMin,
                              const float *sceneBoundsMax,
                              float windowW, float windowH)
 {
-    ribProj_    = load_mat4(projMatrix16);
+    ribProj_ = load_mat4(projMatrix16);
+    remapClipZMetalToGL(ribProj_);
     projMatrix_ = ribProj_;
 
     // from = to^{-1} = camera-to-world (baked space: +Z forward)
@@ -225,14 +237,25 @@ void ArcballCamera::reset() {
     viewMatrix_  = initViewMatrix_;
     orbCtrBaked_ = initOrbCtrBaked_;
     projMatrix_  = ribProj_;
+    // Re-apply the *current* window's aspect correction rather than leaving ribProj_'s own
+    // baked-in aspect in place -- see ArcballCamera.swift's reset() for the full explanation
+    // (identical bug, independently present on both platforms). For a RIB scene, ribProj_
+    // already reflects the file's declared frame aspect ratio; for a synthesized data-document
+    // camera it's a meaningless hardcoded 1:1. Either way, updateAspect() at load time already
+    // corrected this once for the actual window shape, and resetting without redoing it
+    // silently threw that correction away.
+    updateAspect(windowW_, windowH_);
 }
 
 void ArcballCamera::updateAspect(float w, float h) {
     windowW_ = w;
     windowH_ = h;
     radius_  = std::sqrt(w*w + h*h) * 0.5f;
-    if (projMatrix_.at(2,3) == 1.0f) {   // perspective
-        float fv = projMatrix_.at(1,1);
-        projMatrix_.at(0,0) = fv / (w / h);
-    }
+    // Applies to perspective and orthographic alike: for a symmetric frustum, the (0,0)/(1,1)
+    // ratio scales with aspect the same way in both projection types. The previous
+    // perspective-only gate here left orthographic scenes stretched on resize -- reconciled to
+    // match ArcballCamera.swift's unconditional version (WireframeRenderer.swift), which never
+    // had this gate.
+    float fv = projMatrix_.at(1,1);
+    projMatrix_.at(0,0) = fv / (w / h);
 }

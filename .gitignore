@@ -5,9 +5,13 @@
 build
 build-*
 tmp-root
-orender-*
+/orender-*
 openrender
 install_staging
+
+# Manual-testing fixture files (spec 016 quickstart.md validation) -- generated locally, not
+# source
+/fixtures/
 
 # CMake generated files
 CMakeFiles/
@@ -21,6 +25,9 @@ Makefile
 
 # SwiftPM
 .build/
+
+# Staged copy of ribpreview_api.h (SPM header search path fallback — see contracts/c-abi.md)
+src/preview/orender-wire-macos/CRibPreview/include/ribpreview_api.h
 
 # CMake builds
 build/

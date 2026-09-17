@@ -347,35 +347,37 @@ Loop scheme to confirm zero regressions to any pre-existing Catmull-Clark
 or other-primitive-type scene. Per FR-014, `subdiv-loop-photon.rib` extends
 this to the photon hider as a required-to-pass scene
 (`tests/visual/CMakeLists.txt:954-957`) — passes; the visual suite now
-stands at 75 scenes total (see the CShow note below).
+stands at 75 scenes total (see the debug/visualization-hider note below).
 
-## Debug/Visualization Hider (CShow) and Remaining Photon Coverage
+## Debug/Visualization Hider (historical) and Remaining Photon Coverage
 
 **Authored, not a gate — matches spec.md's Edge Cases.** Per the plan-mode
-brief and spec.md, the `CShow` (`oshow:`-prefixed) hider is a pre-existing,
-documented non-functional gap in this codebase (the legacy GUI/OpenGL
-module it depended on was removed — see repository root `CLAUDE.md`'s
-"REMOVED" note on `src/gui`) that this feature does not fix. One
-`CShow`-targeting scene was authored per user story (US1-US6, six scenes
-total under `examples/rib/tests/`, plus `parity/motion-subdiv-translate-oshow.rib`
-for US1) and registered under a new `"not-required"` ctest label
-(`add_not_required_test` macro, `tests/visual/CMakeLists.txt:169-203` — no
-prior "authored-not-required" convention existed to copy, so this feature
-introduces it). Direct execution of all seven confirms deterministic,
-expected failure: exit code 255, stderr `"Opengl wrapper not found..."` —
-not a hang or an ambiguous crash, consistent with the documented gap.
+brief and spec.md, this codebase's debug/visualization hider was a
+pre-existing, documented non-functional gap (the legacy GUI/OpenGL module
+it depended on was removed — see repository root `CLAUDE.md`'s "REMOVED"
+note on `src/gui`) that this feature did not fix; that hider and its
+targeting scenes have since been removed/repointed at `orender-wire`
+entirely by a later feature. At the time, one such scene was authored per
+user story (US1-US6, six scenes total under `examples/rib/tests/`, plus a
+motion-blur scene under `parity/` for US1) and registered under a new
+`"not-required"` ctest label (`add_not_required_test` macro,
+`tests/visual/CMakeLists.txt:169-203` — no prior "authored-not-required"
+convention existed to copy, so this feature introduced it). Direct
+execution of all seven confirmed deterministic, expected failure at the
+time: exit code 255, stderr `"Opengl wrapper not found..."` — not a hang or
+an ambiguous crash, consistent with the documented gap.
 
 The same `"not-required"` label also carries `parity/motion-subdiv-translate-photon.rib`
 (FR-017's photon-motion-blur exception, see Motion Blur above) — that scene
-differs from the CShow scenes in that it *does* run to completion (exit 0);
-it is unasserted against a reference image only because photon+motion
+differs from the six above in that it *does* run to completion (exit 0); it
+is unasserted against a reference image only because photon+motion
 correctness is explicitly out of scope, not because it fails to run.
 
 Together with the four required-to-pass photon scenes noted inline above
-(facevarying, new tags, hierarchical overrides, Loop), this closes FR-014
+(facevarying, new tags, hierarchical overrides, Loop), this closed FR-014
 (every fixed/new capability gets photon-hider coverage where the capability
-applies) and the CShow deliverable from spec.md's Edge Cases, without
-promoting CShow itself to a merge gate.
+applies) and the debug/visualization-hider deliverable from spec.md's Edge
+Cases, without promoting that hider itself to a merge gate.
 
 ## Regression invariant
 

@@ -38,7 +38,6 @@ Optional, each enabling a component:
   **Wayland** + **wayland-protocols** + **libdecor** are used when present.
 - **GTK 4** (4.10+) and **libadwaita** (1.4+): the `orender-wire` previewer on
   Linux. macOS uses Metal/AppKit and needs neither.
-- **fltk**: GUI support for the interactive viewer `oshow` (<http://www.fltk.org>)
 
 ## Building
 
@@ -125,7 +124,7 @@ Optional, each enabling a component:
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `BUILD_SHOW` | Build the interactive viewer (oshow) | ON |
+| `USE_FLEX_BISON` | Use flex and bison to regenerate parsers | ON |
 | `INSTALL_SELFCONTAINED` | Self-contained install under prefix (vs FHS) | ON |
 | `OPENRENDER_COMPAT_SOVERSION` | SOVERSION for libri/librslo shared libraries | Major version |
 | `OPENRENDER_PYTHONDIR` | Install destination for `prman.py` | `python/` (self-contained) or `share/openRender/python/` (FHS) |
@@ -134,7 +133,7 @@ Optional, each enabling a component:
 Example:
 
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHOW=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF
 ```
 
 ## Installation Layout

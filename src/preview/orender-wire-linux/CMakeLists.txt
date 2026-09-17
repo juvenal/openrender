@@ -6,24 +6,42 @@ if(APPLE)
     return()
 endif()
 
-find_package(OpenGL REQUIRED)
-find_package(PkgConfig REQUIRED)
-# Floors state what this code actually calls, not what happened to be installed
-# when it was written. Newest GTK API used is GtkFileDialog (gtk_file_dialog_new/
-# save/save_finish/set_initial_name/set_title) -- GTK 4.10. Newest libadwaita API
-# is AdwToolbarView -- 1.4. Everything else is 4.0/1.0 era. The previous gtk4>=4.20
-# was ten minor versions above anything here and excluded every current Ubuntu LTS
-# (24.04 ships 4.14). Note gtk_spinner_new, used below, is deprecated in 4.20.
-pkg_check_modules(GTK4 REQUIRED gtk4>=4.10)
-pkg_check_modules(ADWAITA REQUIRED libadwaita-1>=1.4)
-pkg_check_modules(EPOXY REQUIRED epoxy)
+find_package(OpenGL)
+if(NOT OpenGL_FOUND)
+    message(WARNING "OpenGL not found — orender-wire-linux will not be built")
+    return()
+endif()
 
-add_executable(orender-wire
+find_package(PkgConfig)
+if(NOT PkgConfig_FOUND)
+    message(WARNING "pkg-config not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(GTK4 gtk4>=4.20)
+if(NOT GTK4_FOUND)
+    message(WARNING "gtk4>=4.20 not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(ADWAITA libadwaita-1>=1.4)
+if(NOT ADWAITA_FOUND)
+    message(WARNING "libadwaita-1>=1.4 not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+pkg_check_modules(EPOXY epoxy)
+if(NOT EPOXY_FOUND)
+    message(WARNING "epoxy not found — orender-wire-linux will not be built")
+    return()
+endif()
+
+add_executable(orender-wire-linux
     main.cpp
     arcball.cpp
 )
 
-target_include_directories(orender-wire PRIVATE
+target_include_directories(orender-wire-linux PRIVATE
     ${CMAKE_SOURCE_DIR}/src/preview
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -32,7 +50,7 @@ target_include_directories(orender-wire PRIVATE
     ${EPOXY_INCLUDE_DIRS}
 )
 
-target_link_libraries(orender-wire PRIVATE
+target_link_libraries(orender-wire-linux PRIVATE
     ribpreview
     ${GTK4_LIBRARIES}
     ${ADWAITA_LIBRARIES}
@@ -40,14 +58,25 @@ target_link_libraries(orender-wire PRIVATE
     OpenGL::GL
 )
 
-target_compile_features(orender-wire PRIVATE cxx_std_20)
-target_compile_options(orender-wire PRIVATE ${GTK4_CFLAGS_OTHER} ${ADWAITA_CFLAGS_OTHER})
-target_link_options(orender-wire PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_LDFLAGS_OTHER})
+target_compile_features(orender-wire-linux PRIVATE cxx_std_20)
+target_compile_options(orender-wire-linux PRIVATE ${GTK4_CFLAGS_OTHER} ${ADWAITA_CFLAGS_OTHER})
+target_link_options(orender-wire-linux PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_LDFLAGS_OTHER})
 
-set_target_properties(orender-wire PROPERTIES
+# Target name carries the platform suffix (matches orender-wire-macos); the produced binary is
+# still plain "orender-wire" on disk, in the build tree and once installed.
+#
+# BUILD_WITH_INSTALL_RPATH is intentionally left at its default (FALSE): setting it TRUE would
+# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libri.so)
+# into the *build-tree* binary too, where $ORIGIN/../lib resolves to a directory that doesn't
+# exist (libri.so actually lives under build/src/ri/) -- the binary would fail to even start
+# ("error while loading shared libraries: libri.so.1: cannot open shared object file") when run
+# directly from build/, which is exactly how this gets tested during development. Leaving this
+# unset lets CMake auto-compute a correct build-tree RPATH while still applying INSTALL_RPATH at
+# actual `cmake --install` time.
+set_target_properties(orender-wire-linux PROPERTIES
+    OUTPUT_NAME "orender-wire"
     INSTALL_RPATH "$ORIGIN/../lib"
-    BUILD_WITH_INSTALL_RPATH TRUE
 )
 
-install(TARGETS orender-wire DESTINATION libexec)
+install(TARGETS orender-wire-linux DESTINATION libexec)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../libexec/orender-wire ${CMAKE_INSTALL_PREFIX}/bin/orender-wire)")

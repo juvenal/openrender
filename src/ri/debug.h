@@ -30,13 +30,13 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "gui/opengl.h"
+#include "dataView.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDebugView
 // Description			:	This class is used to draw various things
 // Comments				:
-class CDebugView : public CView {
+class CDebugView : public CDataView {
     public:
         CDebugView(const char *fileName, int append = FALSE);
         CDebugView(FILE *in, const char *fileName);
@@ -81,10 +81,11 @@ class CDebugView : public CView {
             fwrite(P4, sizeof(float), 3, file);
         }
 
-        // Stuff inherited from CView
+        // Stuff inherited from CDataView
         void draw();
         void bound(float *bmin, float *bmax);
         int keyDown(int) { return FALSE; }
+        const char *typeName() const { return "Debug Dump"; }
 
     private:
         vector bmin, bmax;

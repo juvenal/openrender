@@ -20,7 +20,6 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 | `sloinfo` | Unified shader inspector (auto-detects `.slo` / `.rslo` by file magic) | `/usr/local/bin/sloinfo` |
 | `rsloinfo` | Symlink to `sloinfo` for backward compatibility | `/usr/local/bin/rsloinfo` → `sloinfo` |
 | `otexmake` | Texture creation utility | `/usr/local/bin/otexmake` |
-| `oshow` | GUI viewer (FLTK-based, optional) | `/usr/local/bin/oshow` |
 | `precomp` | Preprocessor (not installed by default) | Build only |
 
 ---
@@ -175,8 +174,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── oshader
 │   ├── sloinfo
 │   ├── rsloinfo -> sloinfo
-│   ├── otexmake
-│   └── oshow
+│   └── otexmake
 ├── lib/
 │   ├── libri.dylib          # shared (versioned: libri.1.dylib)
 │   ├── libri.a              # static
@@ -233,7 +231,6 @@ test do
   system "#{bin}/oshader", "--version"
   system "#{bin}/otexmake", "--help"
   system "#{bin}/rsloinfo", "--version"
-  # oshow is optional (requires fltk)
 end
 ```
 

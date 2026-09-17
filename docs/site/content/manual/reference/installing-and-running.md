@@ -32,25 +32,14 @@ Required:
 
 Optional, each enabling a component:
 
-- **LLVM 15 or newer** — the JIT shading backend (`oshader --jit`, `.slo`
-  shaders). If CMake does not find LLVM it prints `LLVM not found -- JIT
-  shader path disabled` and builds the bytecode interpreter only. If it finds
-  an LLVM older than 15 it says so explicitly, naming the version it found,
-  and disables the JIT for the same reason. Either way everything still works;
-  shaders just run interpreted. Homebrew's `llvm` and Ubuntu 22.04 LTS's
-  `llvm-15-dev` both clear the floor; note that Ubuntu's unversioned `llvm`
-  metapackage is older on 22.04, so install the versioned package. Override
-  the floor with `-DOPENRENDER_LLVM_MIN_VERSION=<major>` if you have reason
-  to.
-- **OpenEXR** — the OpenEXR display driver. Both packaging generations work:
-  3.x (with the separate **Imath** package) and 2.5+ (with **IlmBase**, which
-  is where Imath and Half lived before the 3.0 split). Ubuntu 22.04 ships
-  2.5.7 and builds the driver via the IlmBase path; Ubuntu 20.04 ships 2.3,
-  which predates CMake config packages, so the driver is skipped there.
-- **FLTK** — the `oshow` viewer. Turn it off with `-DBUILD_SHOW=OFF`.
-- **GTK 4** (4.10 or newer) and **libadwaita** (1.4 or newer) — the
-  `orender-wire` scene previewer on Linux. Ubuntu 24.04 satisfies both. On
-  macOS the previewer uses Metal and AppKit, which need no extra packages.
+- **LLVM** — the JIT shading backend (`oshader --jit`, `.slo` shaders). If
+  CMake does not find LLVM it prints `LLVM not found -- JIT shader path
+  disabled` and builds the bytecode interpreter only. Everything still works;
+  shaders just run interpreted.
+- **OpenEXR** and **Imath** — the OpenEXR display driver
+- **GTK 4** (4.10 or newer) and **libadwaita** (1.4 or newer) — the `orender-wire`
+  scene/data-structure previewer on Linux. On macOS the previewer uses Metal and
+  SwiftUI/AppKit, which need no extra packages.
 
 ## Building
 
@@ -194,7 +183,7 @@ Your binary distribution should have the following structure:
 |   |   |   | `oshader` | Shading language compiler |
 |   |   |   | `rsloinfo` | Get information about a compiled shader |
 |   |   |   | `otexmake` | Texture preparation tool. |
-|   |   |   | `oshow` | A viewer for photon maps/irradiance caches etc.. |
+|   |   |   | `orender-wire` | Interactive viewer for RIB scenes and precomputed data-structure files (photon maps, caches, point clouds, brick maps, debug-geometry dumps). |
 |   |   | `include/` |   | The header files |
 |   |   | `lib/` |   | The library files. |
 |   |   | `displays/` |   | The display drivers. |

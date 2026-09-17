@@ -105,7 +105,6 @@ class OpenRender < Formula
   depends_on "zlib"
   
   # Optional dependencies
-  depends_on "fltk" => :optional
   depends_on "openexr" => :optional
   depends_on "libx11" => :optional
 
@@ -225,10 +224,10 @@ Users can install with/without optional features:
 
 ```bash
 # With all features
-brew install openrender --with-fltk --with-openexr --with-libx11
+brew install openrender --with-openexr --with-libx11
 
-# Without GUI
-brew install openrender --without-fltk
+# Without OpenEXR support
+brew install openrender --without-openexr
 ```
 
 To handle this in your formula:
@@ -236,10 +235,6 @@ To handle this in your formula:
 ```ruby
 def install
   args = std_cmake_args
-  
-  # Disable GUI if FLTK not requested
-  args << "-DBUILD_SHOW=OFF" if build.without? "fltk"
-  
   system "cmake", "-S", ".", "-B", "build", *args
   system "cmake", "--build", "build"
   system "cmake", "--install", "build"

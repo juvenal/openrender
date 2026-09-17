@@ -60,7 +60,7 @@ include(GNUInstallDirs)
 # Purely a JIT on/off switch: turning it off skips LLVM detection entirely and
 # builds the bytecode interpreter alone. It no longer affects the CMake floor.
 option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
-option(BUILD_SHOW "Build the show program" ON)
+option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
 # Remove obsolete staging options - we now use system package managers
 
@@ -115,7 +115,7 @@ endif()
 # Platform-specific settings
 if(APPLE)
     # Support both Apple Silicon (arm64) and Intel (x86_64)
-    # Note: Universal binaries require universal versions of all dependencies (TIFF, PNG, FLTK, etc.)
+    # Note: Universal binaries require universal versions of all dependencies (TIFF, PNG, etc.)
     # If dependencies are single-arch, comment out the architecture you don't have
     if(NOT CMAKE_OSX_ARCHITECTURES)
         set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
@@ -245,8 +245,7 @@ message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
 set(openrendertiff_libs TIFF::TIFF PNG::PNG)
 
 # Threads
-# Prefer -pthread compiler/link flag over -lpthread to avoid duplicate
-# library warnings when linking against FLTK (which adds -lpthread via fltk-config).
+# Prefer -pthread compiler/link flag over -lpthread to avoid duplicate library warnings.
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -264,44 +263,6 @@ endif()
 # Dynamic loading library
 if(UNIX)
     find_library(DL_LIBRARY dl REQUIRED)
-endif()
-
-# FLTK for GUI (use fltk-config as it doesn't provide pkg-config)
-if(BUILD_SHOW)
-    find_program(FLTK_CONFIG_EXECUTABLE NAMES fltk-config)
-    if(FLTK_CONFIG_EXECUTABLE)
-        execute_process(
-            COMMAND ${FLTK_CONFIG_EXECUTABLE} --version
-            OUTPUT_VARIABLE FLTK_VERSION
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        execute_process(
-            COMMAND ${FLTK_CONFIG_EXECUTABLE} --cflags
-            OUTPUT_VARIABLE FLTK_CFLAGS
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        execute_process(
-            COMMAND ${FLTK_CONFIG_EXECUTABLE} --ldflags
-            OUTPUT_VARIABLE FLTK_LDFLAGS
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-
-        # Create imported target for FLTK
-        add_library(FLTK::FLTK INTERFACE IMPORTED)
-        separate_arguments(FLTK_CFLAGS)
-        # Use SHELL: prefix to prevent CMake from splitting framework arguments
-        set_target_properties(FLTK::FLTK PROPERTIES
-            INTERFACE_COMPILE_OPTIONS "${FLTK_CFLAGS}"
-            INTERFACE_LINK_OPTIONS "SHELL:${FLTK_LDFLAGS}"
-        )
-
-        message(STATUS "Found FLTK: ${FLTK_VERSION}")
-        set(HAVE_FLTK ON)
-    else()
-        message(WARNING "FLTK not found - oshow program will not be built")
-        set(BUILD_SHOW OFF)
-        set(HAVE_FLTK OFF)
-    endif()
 endif()
 
 # ###########################################################################
@@ -586,7 +547,7 @@ if(INSTALL_SELFCONTAINED)
 
         # Collect installed executables that exist (some may be optional).
         set(_scan_exes)
-        foreach(_exe orender oshader otexmake sloinfo oshow)
+        foreach(_exe orender oshader otexmake sloinfo)
             if(EXISTS \"\${_binpath}/\${_exe}\")
                 list(APPEND _scan_exes \"\${_binpath}/\${_exe}\")
             endif()

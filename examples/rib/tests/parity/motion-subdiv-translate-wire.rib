@@ -1,19 +1,16 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 
-# T064 (spec 010-full-subdivision-support, US1): CShow ("oshow:" hider)
-# targeting scene for the motion-blur capability. Authored as a deliverable
-# per FR-014/spec.md's Edge Cases, but NOT required to pass or run -- CShow
-# is a separate, pre-existing non-functional gap (its OpenGL visualization
-# module was removed from this fork; see src/ri/show.cpp's
-# "Opengl wrapper not found" path when CView::handle is NULL). Registered
-# under CMake's "not-required" label (see tests/visual/CMakeLists.txt),
-# excluded from the standard `ctest -L visual` regression sweep. Otherwise
-# identical to examples/rib/tests/parity/motion-subdiv-translate-raytrace.rib.
-Hider "oshow:none"
+# T064 (spec 010-full-subdivision-support, US1), repointed at orender-wire by
+# a later spec: targeting scene for the motion-blur capability. Formerly
+# asserted the removed debug-visualization hider's failure (its OpenGL
+# module had already been removed from this fork; the hider itself is now
+# deleted entirely, not just non-functional). Now a plain scene, viewable
+# with orender-wire. Otherwise identical to
+# examples/rib/tests/parity/motion-subdiv-translate-raytrace.rib.
 PixelSamples 4 4
 Shutter 0 1
-Display "motion-subdiv-translate-oshow.tif" "file" "rgba"
+Display "motion-subdiv-translate-wire.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 320 240 1
 Translate 0 0 5

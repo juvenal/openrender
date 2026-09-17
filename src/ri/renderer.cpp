@@ -61,7 +61,6 @@
 #include "ri_config.h"
 #include "rib.h"
 #include "shader.h"
-#include "show.h"
 #include "stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
@@ -933,8 +932,6 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         CStochastic::preDisplaySetup();
     } else if (strcmp(hider, "zbuffer") == 0) {
         CZbuffer::preDisplaySetup();
-    } else if (strncmp(hider, "oshow:", 6) == 0) {
-        CShow::preDisplaySetup();
     } else if (strcmp(hider, "photon") == 0) {
         CPhotonHider::preDisplaySetup();
     } else {
@@ -961,9 +958,6 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
             dispatchJob = dispatchReyes;
         } else if (strcmp(hider, "zbuffer") == 0) {
             contexts[i] = new CZbuffer(i);
-            dispatchJob = dispatchReyes;
-        } else if (strncmp(hider, "oshow:", 6) == 0) {
-            contexts[i] = new CShow(i);
             dispatchJob = dispatchReyes;
         } else if (strcmp(hider, "photon") == 0) {
             contexts[i] = new CPhotonHider(i, context->getAttributes(TRUE));

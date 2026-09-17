@@ -39,7 +39,7 @@
 CTexture3d::CTexture3d(const char *n, const float *f, const float *t, const float *tndc, int nc, CChannel *ch) : CFileResource(n) {
     dataSize = 0;
     channels = NULL;
-    numChannels = 0;
+    channelCount = 0;
     movmm(from, f);
     movmm(to, t);
 
@@ -52,10 +52,10 @@ CTexture3d::CTexture3d(const char *n, const float *f, const float *t, const floa
     if (nc > 0) {
         int i;
 
-        numChannels = nc;
+        channelCount = nc;
         channels = new CChannel[nc];
-        memcpy(channels, ch, sizeof(CChannel) * numChannels);
-        for (i = 0, dataSize = 0; i < numChannels; i++)
+        memcpy(channels, ch, sizeof(CChannel) * channelCount);
+        for (i = 0, dataSize = 0; i < channelCount; i++)
             dataSize += channels[i].numSamples;
     }
 }
@@ -88,20 +88,20 @@ void CTexture3d::defineChannels(const char *channelDefinitions) {
         return;
 
     // determinte the channels
-    numChannels = 1;
+    channelCount = 1;
     dataSize = 0;
 
     const char *sd = channelDefinitions;
     while ((sd = strchr(sd, ',')) != NULL) {
         sd++;
-        numChannels++;
+        channelCount++;
     }
-    channels = new CChannel[numChannels];
+    channels = new CChannel[channelCount];
 
     // parse the channels / sample types
     char *sampleDefinition = strdup(channelDefinitions); // duplicate to tokenize
     nextComma = sampleName = sampleDefinition;
-    numChannels = 0;
+    channelCount = 0;
     do {
         // parse to next comma, remove spaces
         nextComma = strchr(sampleName, ',');
@@ -119,18 +119,18 @@ void CTexture3d::defineChannels(const char *channelDefinitions) {
         oChannel = CRenderer::retrieveDisplayChannel(sampleName);
         if (oChannel != NULL) {
             // it's a predefined / already seen channel
-            strcpy(channels[numChannels].name, oChannel->name);
-            channels[numChannels].sampleStart = dataSize;
-            channels[numChannels].numSamples = oChannel->numSamples;
+            strcpy(channels[channelCount].name, oChannel->name);
+            channels[channelCount].sampleStart = dataSize;
+            channels[channelCount].numSamples = oChannel->numSamples;
             if (oChannel->variable != NULL)
-                channels[numChannels].type = oChannel->variable->type;
+                channels[channelCount].type = oChannel->variable->type;
             else
-                channels[numChannels].type = TYPE_FLOAT;
-            channels[numChannels].fill = oChannel->fill;
+                channels[channelCount].type = TYPE_FLOAT;
+            channels[channelCount].fill = oChannel->fill;
             // GSHTODO: duplicate fill
 
             dataSize += oChannel->numSamples;
-            numChannels++;
+            channelCount++;
         } else {
             error(CODE_BADTOKEN, "Unknown display channel \"%s\"\n", sampleName);
         }
@@ -153,7 +153,7 @@ void CTexture3d::defineChannels(int n, char **channelNames, char **channelTypes)
     channels = new CChannel[n];
 
     // parse the channels / sample types
-    numChannels = 0;
+    channelCount = 0;
     for (int i = 0; i < n; i++) {
         // parse to next comma, remove spaces
 
@@ -161,15 +161,15 @@ void CTexture3d::defineChannels(int n, char **channelNames, char **channelTypes)
         if (parseVariable(&var, channelNames[i], channelTypes[i]) == TRUE) {
 
             // it's a predefined / already seen channel
-            strcpy(channels[numChannels].name, channelNames[i]);
-            channels[numChannels].sampleStart = dataSize;
-            channels[numChannels].numSamples = var.numFloats;
-            channels[numChannels].fill = NULL;
-            channels[numChannels].type = var.type;
+            strcpy(channels[channelCount].name, channelNames[i]);
+            channels[channelCount].sampleStart = dataSize;
+            channels[channelCount].numSamples = var.numFloats;
+            channels[channelCount].fill = NULL;
+            channels[channelCount].type = var.type;
             // GSHTODO: deal with fill
 
             dataSize += var.numFloats;
-            numChannels++;
+            channelCount++;
         } else {
             error(CODE_BADTOKEN, "Failed to interpret display channel name \"%s\"\n", channelNames[i]);
         }
@@ -189,12 +189,12 @@ void CTexture3d::writeChannels(FILE *out) {
         return;
     }
 
-    if (!writeInt32(out, static_cast<int32_p>(numChannels))) {
-        error(CODE_SYSTEM, "Failed to write texture3d numChannels\n");
+    if (!writeInt32(out, static_cast<int32_p>(channelCount))) {
+        error(CODE_SYSTEM, "Failed to write texture3d channelCount\n");
         return;
     }
 
-    for (int i = 0; i < numChannels; i++) {
+    for (int i = 0; i < channelCount; i++) {
         // Write CChannel fields individually instead of struct
         // Write name as fixed-size string
         if (fwrite(channels[i].name, 1, 64, out) != 64) {
@@ -239,15 +239,15 @@ void CTexture3d::readChannels(FILE *in) {
         return;
     }
 
-    int32_p numChannels_i;
-    if (!readInt32(in, numChannels_i)) {
-        error(CODE_SYSTEM, "Failed to read texture3d numChannels\n");
+    int32_p channelCount_i;
+    if (!readInt32(in, channelCount_i)) {
+        error(CODE_SYSTEM, "Failed to read texture3d channelCount\n");
         return;
     }
-    numChannels = numChannels_i;
+    channelCount = channelCount_i;
 
-    channels = new CChannel[numChannels];
-    for (int i = 0; i < numChannels; i++) {
+    channels = new CChannel[channelCount];
+    for (int i = 0; i < channelCount; i++) {
         // Read CChannel fields individually instead of struct
         // Read name as fixed-size string
         if (fread(channels[i].name, 1, 64, in) != 64) {
@@ -301,7 +301,7 @@ void CTexture3d::resolve(int n, const char **names, int *entry, int *size) {
         int j;
 
         // Find the channel
-        for (j = 0; j < numChannels; j++) {
+        for (j = 0; j < channelCount; j++) {
             if (strcmp(names[i], channels[j].name) == 0) {
                 entry[i] = channels[j].sampleStart;
                 size[i] = channels[j].numSamples;
@@ -309,7 +309,7 @@ void CTexture3d::resolve(int n, const char **names, int *entry, int *size) {
             }
         }
 
-        if (j == numChannels) {
+        if (j == channelCount) {
             error(CODE_BADTOKEN, "Unknown 3d texture channel \"%s\"\n", names[i]);
             entry[i] = 0;
             size[i] = 0;
@@ -324,8 +324,8 @@ void CTexture3d::resolve(int n, const char **names, int *entry, int *size) {
 // Return Value			:	-
 // Comments				:	FIXME and return enums, do the ptcapi conversion there
 void CTexture3d::queryChannels(int *num, const char **vartypes, const char **varnames) {
-    num[0] = numChannels;
-    for (int i = 0; i < numChannels; i++) {
+    num[0] = channelCount;
+    for (int i = 0; i < channelCount; i++) {
         varnames[i] = channels[i].name;
         switch (channels[i].type) {
         case TYPE_FLOAT:

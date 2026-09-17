@@ -18,6 +18,8 @@ set(ri_sources
 	bsplinePatchgrid.cpp
 	csgBoolean.cpp
 	csgTree.cpp
+	dataLoad.cpp
+	dataView.cpp
 	debug.cpp
 	delayed.cpp
 	displayChannel.cpp
@@ -68,7 +70,6 @@ set(ri_sources
 #	rib.cpp
 	riInterface.cpp
 	ribOut.cpp
-	show.cpp
 #	sl.cpp
 	solidObject.cpp
 	stats.cpp

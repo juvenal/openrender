@@ -68,7 +68,6 @@
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
-#include "show.h"
 #include "solidObject.h"
 #include "stats.h"
 #include "stochastic.h"

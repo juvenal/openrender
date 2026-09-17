@@ -231,19 +231,15 @@ endmacro()
 #
 # Some hider/scene combinations are pre-existing, documented gaps that this
 # project's test suite authors as deliverables but explicitly does not gate
-# on: CShow (the "oshow:" debug/visualization hider) is non-functional in
-# this build -- its OpenGL visualization module was removed (see
-# src/ri/show.cpp's "Opengl wrapper not found" path, CView::handle stays
-# NULL) -- and the photon hider has no motion-blur-aware tracing path
-# (spec.md's Clarifications). There was no pre-existing "authored-not-
-# required" CMake convention in this file before this feature to copy (only
-# "visual;regression" and "parity;regression" existed), so this macro
-# establishes one: register the scene as a plain orender smoke run (no
-# reference-image comparison -- CShow's HIDER_NODISPLAY means no image is
-# ever produced, and correctness of the photon+motion combination is
-# explicitly out of scope) under the "not-required" label, which
-# `ctest -L visual` and `ctest -L parity` never select. Run explicitly via
-# `ctest -L not-required` to smoke-test these by hand.
+# on: the photon hider has no motion-blur-aware tracing path (spec.md's
+# Clarifications). There was no pre-existing "authored-not-required" CMake
+# convention in this file before spec 010 to copy (only "visual;regression"
+# and "parity;regression" existed), so this macro establishes one: register
+# the scene as a plain orender smoke run (no reference-image comparison --
+# correctness of the photon+motion combination is explicitly out of scope)
+# under the "not-required" label, which `ctest -L visual` and
+# `ctest -L parity` never select. Run explicitly via `ctest -L not-required`
+# to smoke-test these by hand.
 #
 # Arguments:
 #   SCENE_NAME   — test identifier (used as CTest name suffix and for scratch dir)
@@ -1202,36 +1198,17 @@ add_visual_test(subdiv-loop-photon
     subdiv-loop-photon.tif
     subdiv-loop-raytrace.tif)
 
-# --- Subdivision surfaces: authored-but-not-required scenes (spec
-# 010-full-subdivision-support, Phase 9 Polish, T064/T069). See
-# add_not_required_test()'s definition above for why these are registered
-# under the "not-required" label instead of "visual"/"parity". CShow
-# ("oshow:" hider) scenes cover all six user stories (FR-014, spec.md's Edge
-# Cases); the photon-hider motion-blur scene documents the one capability
-# (subdivision + motion blur under the photon hider) this feature explicitly
-# does not extend to the photon hider (FR-017). Confirmed by direct
-# execution: all six CShow scenes fail deterministically and immediately
-# with "Opengl wrapper not found" (exit 255, not a hang or crash -- CShow's
-# OpenGL visualization module was removed from this fork, so CView::handle
-# is always NULL); the photon-motion-blur scene runs to completion (exit 0).
-add_not_required_test(motion-subdiv-translate-oshow
-    examples/rib/tests/parity/motion-subdiv-translate-oshow.rib)
-
-add_not_required_test(subdiv-facevarying-seam-oshow
-    examples/rib/tests/subdiv-facevarying-seam-oshow.rib)
-
-add_not_required_test(subdiv-new-tags-oshow
-    examples/rib/tests/subdiv-new-tags-oshow.rib)
-
-add_not_required_test(subdiv-crease-convergence-oshow
-    examples/rib/tests/subdiv-crease-convergence-oshow.rib)
-
-add_not_required_test(subdiv-hierarchical-override-oshow
-    examples/rib/tests/subdiv-hierarchical-override-oshow.rib)
-
-add_not_required_test(subdiv-loop-oshow
-    examples/rib/tests/subdiv-loop-oshow.rib)
-
+# --- Subdivision surfaces: authored-but-not-required scene (spec
+# 010-full-subdivision-support, Phase 9 Polish, T064/T069; six sibling
+# scenes formerly registered here, targeting the removed debug-visualization
+# hider, were repointed at orender-wire instead by a later spec and no
+# longer need this "not-required" treatment). See add_not_required_test()'s
+# definition above for why this scene is registered under the
+# "not-required" label instead of "visual"/"parity": it documents the one
+# capability (subdivision + motion blur under the photon hider) this
+# feature explicitly does not extend to the photon hider (FR-017).
+# Confirmed by direct execution: the scene runs to completion (exit 0),
+# just with no motion blur applied.
 add_not_required_test(motion-subdiv-translate-photon
     examples/rib/tests/parity/motion-subdiv-translate-photon.rib)
 

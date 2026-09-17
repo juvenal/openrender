@@ -18,7 +18,7 @@ cmake --build build --config Release
 ```
 
 From-scratch configure/build steps live in `COMPILING.txt` / `INSTALL.md`.
-Key CMake options: `BUILD_SHOW`, `INSTALL_SELFCONTAINED`,
+Key CMake options: `USE_FLEX_BISON`, `INSTALL_SELFCONTAINED`,
 `OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`,
 `OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15).
 
@@ -114,13 +114,12 @@ build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`.
 │   ├── oshader/            RSL→.rslo/.slo compiler CLI (oshader, oshader --jit)
 │   ├── rslo/, rsloinfo/, sloinfo/   Shader runtime + inspection CLIs
 │   ├── orender/            Main renderer executable
-│   ├── oshow/              Interactive viewer
 │   ├── preview/             orender-wire scene wireframe viewer (libribpreview + macOS/Linux frontends)
 │   ├── framebuffer/         IPC framebuffer display driver
 │   ├── file/                File-format display plugins (TIFF/PNG/EXR/RGBE)
 │   ├── otexmake/, precomp/  Texture / precomputation tools
 │   ├── python/, lua/        Language bindings
-│   └── gui/                 REMOVED (legacy Qt/FLTK GUI deleted; see DEVNOTES.md)
+│   └── gui/                 REMOVED (legacy GUI deleted; see DEVNOTES.md)
 ├── tests/                  Unit + visual regression tests
 └── DEVNOTES.md / DEVNOTES_DETAILS/   Living status doc + deep-dive guides (see below)
 ```
@@ -132,7 +131,6 @@ build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`.
 - `CReyes` (bucket rasterizer) → `CStochastic` (motion blur, DOF) and `CZbuffer` (classic depth buffer)
 - `CRaytracer` — primary camera rays (no native motion blur support yet — open issue)
 - `CPhotonHider` — photon map pass
-- `CShow` — debug/viz hider
 
 Hider selection is a `strcmp` chain in `renderer.cpp:beginFrame()` (~line 908).
 Adding a hider = new `#include` + `if/else if` branch + a class inheriting `CShadingContext`.
