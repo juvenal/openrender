@@ -526,6 +526,52 @@ void CDummyObject::intersect(CShadingContext *, CRay *) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSurface
+// Method				:	checkRayGuard
+// Description			:	Shared ray-rejection + displacement-tesselation
+//							guard, consolidated from three previously
+//							duplicated copies (a macro each in quadrics.cpp
+//							and patches.cpp, plus two open-coded copies in
+//							polygons.cpp).
+// Return Value			:	TRUE if the caller should return immediately
+// Comments				:
+bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
+    if (!(rv->flags & attributes->flags))
+        return TRUE;
+
+    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
+        const float importance = attributes->lodImportance;
+        if (importance >= 0) {
+            if (rv->jimp > importance)
+                return TRUE;
+        } else {
+            if ((1 - rv->jimp) >= -importance)
+                return TRUE;
+        }
+    }
+
+    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
+        // Do we have a grid ?
+        if (children == NULL) {
+            osLock(CRenderer::tesselateMutex);
+
+            if (children == NULL) {
+                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
+
+                tesselation->initTesselation(context);
+                tesselation->attach();
+                children = tesselation;
+            }
+
+            osUnlock(CRenderer::tesselateMutex);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
 // Method				:	intersect
 // Description			:	Intersect the surface
 // Return Value			:

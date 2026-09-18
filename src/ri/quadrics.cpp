@@ -43,40 +43,6 @@
 #include "stats.h"
 #include "surface.h"
 
-#define checkRay(rv)                                                                                                   \
-    if (!(rv->flags & attributes->flags))                                                                              \
-        return;                                                                                                        \
-                                                                                                                       \
-    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {                                                                    \
-        const float importance = attributes->lodImportance;                                                            \
-        if (importance >= 0) {                                                                                         \
-            if (rv->jimp > importance)                                                                                 \
-                return;                                                                                                \
-        } else {                                                                                                       \
-            if ((1 - rv->jimp) >= -importance)                                                                         \
-                return;                                                                                                \
-        }                                                                                                              \
-    }                                                                                                                  \
-                                                                                                                       \
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {                  \
-        /* Do we have a grid ? */                                                                                      \
-        if (children == NULL) {                                                                                        \
-            osLock(CRenderer::tesselateMutex);                                                                         \
-                                                                                                                       \
-            if (children == NULL) {                                                                                    \
-                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1); \
-                tesselation->initTesselation(context);                                                                 \
-                tesselation->attach();                                                                                 \
-                children = tesselation;                                                                                \
-            }                                                                                                          \
-            osUnlock(CRenderer::tesselateMutex);                                                                       \
-        }                                                                                                              \
-        return;                                                                                                        \
-    }                                                                                                                  \
-                                                                                                                       \
-    vector oFrom, oDir;                                                                                                \
-    transform(oFrom, oDir, xform, rv);
-
 #define transformPoints()                                                                                                                \
     if ((xform->next != NULL) && (!(up & (PARAMETER_BEGIN_SAMPLE | PARAMETER_END_SAMPLE)))) {                                            \
                                                                                                                                          \
@@ -202,7 +168,11 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
     double s[2];
     double r, umax, vmin, vmax;
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     if (nextData != NULL) {
         r = (float)(this->r * (1.0 - rv->time) + nextData[0] * (double)rv->time);
@@ -674,7 +644,11 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
     double r, z, umax;
     vector Nt;
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     // Convert to the object coordinate system
     if (nextData != NULL) {
@@ -1032,7 +1006,11 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
     double height, r, umax;
     vector Nt;
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     from = oFrom;
     dir = oDir;
@@ -1460,7 +1438,11 @@ CParaboloid::~CParaboloid() {
 void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
     vector Nt;
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -1901,7 +1883,11 @@ CCylinder::~CCylinder() {
 void CCylinder::intersect(CShadingContext *context, CRay *rv) {
     vector Nt;
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -2332,7 +2318,11 @@ CHyperboloid::~CHyperboloid() {
 // Comments				:
 void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -2868,7 +2858,11 @@ CToroid::~CToroid() {
 // Comments				:
 void CToroid::intersect(CShadingContext *context, CRay *rv) {
 
-    checkRay(rv);
+    if (checkRayGuard(rv, context))
+        return;
+
+    vector oFrom, oDir;
+    transform(oFrom, oDir, xform, rv);
 
     double rmin, rmax, umax, vmin, vmax;
 

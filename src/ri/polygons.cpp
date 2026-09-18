@@ -136,38 +136,8 @@ CPolygonTriangle::~CPolygonTriangle() {
 // Return Value			:	-
 // Comments				:
 void CPolygonTriangle::intersect(CShadingContext *context, CRay *cRay) {
-    if (!(cRay->flags & attributes->flags))
+    if (checkRayGuard(cRay, context))
         return;
-
-    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
-        const float importance = attributes->lodImportance;
-        if (importance >= 0) {
-            if (cRay->jimp > importance)
-                return;
-        } else {
-            if ((1 - cRay->jimp) >= -importance)
-                return;
-        }
-    }
-
-    // smash to grids if we've got displacement
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
-        // Do we have a grid ?
-        if (children == NULL) {
-            osLock(CRenderer::tesselateMutex);
-
-            if (children == NULL) {
-                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
-
-                tesselation->initTesselation(context);
-                tesselation->attach();
-                children = tesselation;
-            }
-
-            osUnlock(CRenderer::tesselateMutex);
-        }
-        return;
-    }
 
     // Get the polygon corners
     const CPl *pl = mesh->pl;
@@ -703,38 +673,8 @@ CPolygonQuad::~CPolygonQuad() {
 // Return Value			:	-
 // Comments				:
 void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
-    if (!(cRay->flags & attributes->flags))
+    if (checkRayGuard(cRay, context))
         return;
-
-    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
-        const float importance = attributes->lodImportance;
-        if (importance >= 0) {
-            if (cRay->jimp > importance)
-                return;
-        } else {
-            if ((1 - cRay->jimp) >= -importance)
-                return;
-        }
-    }
-
-    // smash to grids if we've got displacement
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
-        // Do we have a grid ?
-        if (children == NULL) {
-            osLock(CRenderer::tesselateMutex);
-
-            if (children == NULL) {
-                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
-
-                tesselation->initTesselation(context);
-                tesselation->attach();
-                children = tesselation;
-            }
-
-            osUnlock(CRenderer::tesselateMutex);
-        }
-        return;
-    }
 
     const CPl *pl = mesh->pl;
     const float *vertices = pl->data0;

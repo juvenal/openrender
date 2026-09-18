@@ -144,6 +144,15 @@ class CSurface : public CObject {
         virtual bool hasTrim() const { return FALSE; }
 
     protected:
+        // Shared ray-rejection + displacement-tesselation guard used at the top
+        // of every raytraced-intersection override that supports displacement
+        // shaders (quadrics, CBilinearPatch, CPolygonTriangle, CPolygonQuad).
+        // Returns TRUE if the caller should return immediately: either the ray
+        // was rejected by attribute flags/LOD importance, or a CTesselationPatch
+        // was just lazily built (or already exists) to handle displacement and
+        // ownership of further intersection has passed to it. Returns FALSE if
+        // the caller should proceed with its own ray/primitive math.
+        bool checkRayGuard(CRay *rv, CShadingContext *context);
 };
 
 #endif
