@@ -85,7 +85,7 @@ class CCaptureContext : public CRendererContext {
 
 static CCaptureContext *g_captureContext = NULL;
 
-static CRendererContext *makeCaptureContext() {
+static CRiInterface *makeCaptureContext() {
     g_captureContext = new CCaptureContext();
     return g_captureContext;
 }

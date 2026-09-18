@@ -32,6 +32,7 @@
 #include "error.h"
 #include "ri.h"
 #include "ri_config.h"
+#include "riHooks.h"
 #include "ribOut.h"
 #include "variable.h"
 
@@ -1987,3 +1988,21 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                                                                 declareVariable("texturename", "string");
                                                                 declareVariable("to", "point");
                                                             }
+
+namespace {
+
+CRiInterface *makeRibOut(const char *name, FILE *stream) {
+    if (name != nullptr)
+        return new CRibOut(name);
+    return new CRibOut(stream);
+}
+
+// Registers CRibOut as RiBegin()'s "RIB-output" implementation (see riHooks.h)
+// the moment this translation unit is linked -- ri.cpp itself never names
+// CRibOut.
+struct CRibOutRegistrar {
+    CRibOutRegistrar() { RiRegisterRibOutFactory(&makeRibOut); }
+};
+const CRibOutRegistrar g_ribOutRegistrar;
+
+} // namespace

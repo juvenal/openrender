@@ -40,12 +40,11 @@
 #include "delayed.h"
 #include "error.h"
 #include "logging.hpp"
-#include "rendererContext.h"
 #include "ri.h"
+#include "riHooks.h"
 #include "riInterface.h"
 #include "ri_config.h"
 #include "rib.h"
-#include "ribOut.h"
 
 //////////////////////////////////////////////////////////////////
 // Token definitions
@@ -427,10 +426,26 @@ static int archiveNesting = 0;
 CRiInterface *savedRenderMan = NULL; // This variable contains the parent context for arhiving
 CRiInterface *renderMan = NULL;      // This variable is exported for error reporting
 
-static CRendererContext *(*s_contextFactory)() = nullptr;
+// Test-facing override (see riHooks.h) -- ignores the rib-file/net-string args,
+// matching existing behaviour for capture-only contexts.
+static CRiInterface *(*s_contextFactory)() = nullptr;
+// Registered once by rendererContext.cpp's static initializer; unset only in a
+// build that never links the render domain at all.
+static CRiInterface *(*s_defaultContextFactory)(const char *ribFile, const char *netString) = nullptr;
+// Registered once by ribOut.cpp's static initializer; unset only in a build
+// that never links the output domain.
+static CRiInterface *(*s_ribOutFactory)(const char *name, FILE *stream) = nullptr;
 
-void RiSetContextFactory(CRendererContext *(*factory)()) {
+void RiSetContextFactory(CRiInterface *(*factory)()) {
     s_contextFactory = factory;
+}
+
+void RiRegisterDefaultContextFactory(CRiInterface *(*factory)(const char *ribFile, const char *netString)) {
+    s_defaultContextFactory = factory;
+}
+
+void RiRegisterRibOutFactory(CRiInterface *(*factory)(const char *name, FILE *stream)) {
+    s_ribOutFactory = factory;
 }
 int ignoreCommand = FALSE;    // This variable can be set to force ignore ri commands (used for conditional execution)
 int insideRunProgram = FALSE; // Are we running inside a runprogram context
@@ -601,6 +616,31 @@ RiBegin(RtToken name) {
     // call further down, since CRibOut never goes through beginRenderer().
     bool ribOutMode = FALSE;
 
+    // Resolve which registered implementation to construct -- see riHooks.h.
+    // Neither lambda names CRendererContext or CRibOut; whichever domains a
+    // given build actually links are what make s_defaultContextFactory /
+    // s_ribOutFactory non-null in the first place.
+    auto resolveContext = [&](const char *ribFile, const char *netString) -> bool {
+        if (s_contextFactory)
+            renderMan = s_contextFactory();
+        else if (s_defaultContextFactory)
+            renderMan = s_defaultContextFactory(ribFile, netString);
+        else {
+            error(CODE_INCAPABLE, "Full-render mode is not available in this build (no renderer context registered)\n");
+            return false;
+        }
+        return true;
+    };
+    auto resolveRibOut = [&](const char *ribOutName, FILE *ribOutStream) -> bool {
+        if (s_ribOutFactory)
+            renderMan = s_ribOutFactory(ribOutName, ribOutStream);
+        else {
+            error(CODE_INCAPABLE, "RIB-output mode is not available in this build (no RIB writer registered)\n");
+            return false;
+        }
+        return true;
+    };
+
     // Parse the net string
     if (name != NULL) {
         if (name[0] == '#') {
@@ -629,13 +669,18 @@ RiBegin(RtToken name) {
             riRib = extract(riRibFile, "rib:", name);
             riNet = extract(riNetString, "net:", name);
 
-            if (riRib & riNet)
-                renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext(riRibFile, riNetString);
-            else
-                renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
+            if (riRib & riNet) {
+                if (!resolveContext(riRibFile, riNetString))
+                    return;
+            }
+            else {
+                if (!resolveContext(nullptr, nullptr))
+                    return;
+            }
         }
         else {
-            renderMan = new CRibOut(name);
+            if (!resolveRibOut(name, nullptr))
+                return;
             ribOutMode = TRUE;
         }
     }
@@ -643,12 +688,14 @@ RiBegin(RtToken name) {
         char *runProgEnv = osEnvironment("OPENRENDER_RUNPROGRAM");
         if (runProgEnv != NULL) {
             // If we're a runprogram, we should be writing out to stdout
-            renderMan = new CRibOut(stdout);
+            if (!resolveRibOut(nullptr, stdout))
+                return;
             ribOutMode = TRUE;
             insideRunProgram = TRUE;
         }
         else {
-            renderMan = s_contextFactory ? s_contextFactory() : new CRendererContext();
+            if (!resolveContext(nullptr, nullptr))
+                return;
         }
     }
 

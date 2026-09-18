@@ -62,6 +62,7 @@
 #include "rendererContext.h"
 #include "ri.h"
 #include "ri_config.h"
+#include "riHooks.h"
 #include "rib.h"
 #include "blobby.h"
 #include "blobbyField.h"
@@ -6240,3 +6241,19 @@ void CRendererContext::RiError(int code, int severity, const char *mes) {
     }
     free(tmp);
 }
+
+namespace {
+
+CRiInterface *makeDefaultRendererContext(const char *ribFile, const char *netString) {
+    return new CRendererContext(ribFile, netString);
+}
+
+// Registers CRendererContext as RiBegin()'s "full render" implementation (see
+// riHooks.h) the moment this translation unit is linked -- ri.cpp itself never
+// names CRendererContext.
+struct CRendererContextRegistrar {
+    CRendererContextRegistrar() { RiRegisterDefaultContextFactory(&makeDefaultRendererContext); }
+};
+const CRendererContextRegistrar g_rendererContextRegistrar;
+
+} // namespace
