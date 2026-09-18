@@ -5,10 +5,10 @@
  *
  * Description:
  *   ribVector's counterpart to src/ri/render/geometryDispatch.cpp. Provides
- *   the SAME seven CObject/CSurface/CCurve/CPoints methods with alternate
- *   bodies that never touch CShadingContext/CReyes, so a consumer that links
- *   this file instead of geometryDispatch.cpp never needs libshader_shading
- *   or the Reyes hider resolvable at all.
+ *   the SAME CObject/CSurface/CCurve/CCubicCurve/CLinearCurve/CPoints methods
+ *   with alternate bodies that never touch CShadingContext/CReyes, so a
+ *   consumer that links this file instead of geometryDispatch.cpp never
+ *   needs libshader_shading or the Reyes hider resolvable at all.
  *
  *   This is safe because none of orender-wire's actual code path ever
  *   reaches these methods: CPreviewContext::addObject() extracts geometry
@@ -74,6 +74,16 @@ void CSurface::shade(CShadingContext *, int, CRay **) {
 
 void CCurve::dice(CReyes *) {
     error(CODE_BUG, "CCurve::dice() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CCubicCurve::splitToChildren(CReyes *) {
+    error(CODE_BUG, "CCubicCurve::splitToChildren() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CLinearCurve::splitToChildren(CReyes *) {
+    error(CODE_BUG, "CLinearCurve::splitToChildren() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
 

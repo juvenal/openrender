@@ -484,6 +484,42 @@ void CCurve::dice(CReyes *rasterizer) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CCubicCurve
+// Method				:	splitToChildren
+// Description			:	Split the curve into two children
+// Return Value			:	-
+// Comments				:
+void CCubicCurve::splitToChildren(CReyes *rasterizer) {
+    const float vmid = (vmin + vmax) * 0.5f;
+
+    // Create the children
+    CCubicCurve *c0 = new CCubicCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
+    CCubicCurve *c1 = new CCubicCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
+
+    // Insert the children
+    rasterizer->drawObject(c0);
+    rasterizer->drawObject(c1);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CLinearCurve
+// Method				:	splitToChildren
+// Description			:	Split the curve into two children
+// Return Value			:	-
+// Comments				:
+void CLinearCurve::splitToChildren(CReyes *rasterizer) {
+    const float vmid = (vmin + vmax) * 0.5f;
+
+    // Create the children
+    CLinearCurve *c0 = new CLinearCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
+    CLinearCurve *c1 = new CLinearCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
+
+    // Insert the children
+    rasterizer->drawObject(c0);
+    rasterizer->drawObject(c1);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CPoints
 // Method				:	dice
 // Description			:	See object.h

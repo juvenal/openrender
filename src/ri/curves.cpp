@@ -392,23 +392,8 @@ void CCubicCurve::sample(int start, int numVertices, float **varying, float ***l
     up &= ~(PARAMETER_P | PARAMETER_NG | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DPDTIME | variables->parameters);
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CCubicCurve
-// Method				:	dice
-// Description			:	Dice the curve group into smaller ones
-// Return Value			:	-
-// Comments				:
-void CCubicCurve::splitToChildren(CReyes *rasterizer) {
-    const float vmid = (vmin + vmax) * 0.5f;
-
-    // Create the children
-    CCubicCurve *c0 = new CCubicCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
-    CCubicCurve *c1 = new CCubicCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
-
-    // Insert the children
-    rasterizer->drawObject(c0);
-    rasterizer->drawObject(c1);
-}
+// CCubicCurve::splitToChildren() lives in geometryDispatch.cpp (real body) /
+// geometryDispatchStub.cpp (ribVector stub) -- see that file's header comment.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CLinearCurve
@@ -543,17 +528,8 @@ void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **v
 // Description			:	Dice the curve group into smaller ones
 // Return Value			:	-
 // Comments				:
-void CLinearCurve::splitToChildren(CReyes *rasterizer) {
-    const float vmid = (vmin + vmax) * 0.5f;
-
-    // Create the children
-    CLinearCurve *c0 = new CLinearCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
-    CLinearCurve *c1 = new CLinearCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
-
-    // Insert the children
-    rasterizer->drawObject(c0);
-    rasterizer->drawObject(c1);
-}
+// CLinearCurve::splitToChildren() lives in geometryDispatch.cpp (real body) /
+// geometryDispatchStub.cpp (ribVector stub) -- see that file's header comment.
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	CCurveMesh
