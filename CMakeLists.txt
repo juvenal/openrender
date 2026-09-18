@@ -1,3 +1,38 @@
+# CMAKE_OSX_DEPLOYMENT_TARGET must be set BEFORE project() to actually take
+# effect: project() seeds it as an (empty) cache entry during its own
+# Apple-platform bootstrap, and a later set(... CACHE STRING ...) without
+# FORCE -- which is what this file used to do, well after project() -- is a
+# silent no-op against a cache entry that already exists. Confirmed empty in
+# a fresh CMakeCache.txt: every macOS binary here has actually been compiled
+# against the SDK's own ambient OS version (26.0 on this machine), not 11.0 as
+# this file appeared to declare for however long that line existed.
+#
+# The floor is 13.3 (Ventura), not 11.0: once the deployment target was
+# actually enforced, logging.hpp's std::format use of floating-point
+# arguments failed to compile -- Apple's libc++ implements std::format's
+# floating-point path via std::to_chars(double), and Apple's SDK only ships
+# that starting macOS 13.3 ("'to_chars' is unavailable: introduced in macOS
+# 13.3"). 11.0 was therefore never a buildable floor on Apple's own toolchain
+# for however long this line existed; it just went unenforced. This mirrors
+# the GCC 13 (<format>) / GCC 11 (<source_location>) floors already
+# documented for Linux -- same std::format dependency, different C++ runtime.
+#
+# CMAKE_OSX_ARCHITECTURES has the exact same pre-project()-CACHE-entry
+# mechanics, and this file used to (no-op) declare "arm64;x86_64" for
+# universal binaries -- but actually forcing that, once fixed the same way,
+# breaks this build immediately: Homebrew's TIFF here is a single-arch
+# (arm64) bottle, and the link fails with "symbol(s) not found for
+# architecture x86_64". So the "universal binaries" intent was apparently
+# never actually exercised either, and turning it on for real is a separate
+# decision (it requires universal builds of every Homebrew dependency) left
+# alone here -- only the deployment-target floor, which has no such
+# dependency-availability prerequisite, is fixed in this pass.
+if(APPLE)
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS deployment version" FORCE)
+    endif()
+endif()
+
 # 3.19 is what the LLVM JIT path targets, and what a future OpenShadingLanguage
 # integration requires of its own accord (OSL: CMake >= 3.19, LLVM >= 14).
 #
@@ -111,17 +146,15 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Platform-specific settings
-if(APPLE)
-    # Support both Apple Silicon (arm64) and Intel (x86_64)
-    # Note: Universal binaries require universal versions of all dependencies (TIFF, PNG, etc.)
-    # If dependencies are single-arch, comment out the architecture you don't have
-    if(NOT CMAKE_OSX_ARCHITECTURES)
-        set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
-    endif()
-    # Use modern macOS deployment target
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version")
-endif()
+# CMAKE_OSX_DEPLOYMENT_TARGET is set before project() at the top of this file
+# -- setting it here would be too late to take effect. CMAKE_OSX_ARCHITECTURES
+# is deliberately left at CMake's default (the host's native arch) -- see the
+# comment at the top of this file for why forcing "arm64;x86_64" here breaks
+# the build until every Homebrew dependency also ships as a universal binary.
+# A universal build remains possible on demand via
+# -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" on the initial `cmake -S` /
+# `cmake --fresh` invocation (it must be on the command line, not a set() in
+# this file, for the same pre-project()-CACHE-entry reason as above).
 
 # Create interface library for common flags
 add_library(openrender_common_flags INTERFACE)

@@ -87,6 +87,7 @@ add_custom_command(
     DEPENDS ${WIRE_MACOS_SOURCES}
             "${WIRE_MACOS_SRC_DIR}/Package.swift"
             "${WIRE_MACOS_SRC_DIR}/Info.plist"
+            "${WIRE_MACOS_SRC_DIR}/CRibPreview/module.modulemap"
             "${WIRE_MACOS_STAGED_API_H}"
             "${LIBRIBPREVIEW_A}"
             "${LIBCOMMON_A}"

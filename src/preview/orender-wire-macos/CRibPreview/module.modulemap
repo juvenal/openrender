@@ -1,0 +1,9 @@
+// CRibPreview has no compilable sources of its own -- the real library
+// (libribpreview.a + libri.dylib) is linked externally via -Xlinker flags in
+// CMakeLists.txt. This module exists purely to vend ribpreview_api.h to
+// Swift, which is exactly what SPM's systemLibrary target type is for: it
+// never expects an object file, unlike a regular target given zero sources.
+module CRibPreview {
+    umbrella header "include/CRibPreview.h"
+    export *
+}
