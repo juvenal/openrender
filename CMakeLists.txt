@@ -60,7 +60,6 @@ include(GNUInstallDirs)
 # Purely a JIT on/off switch: turning it off skips LLVM detection entirely and
 # builds the bytecode interpreter alone. It no longer affects the CMake floor.
 option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
-option(USE_FLEX_BISON "Use flex and bison to regenerate parsers" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
 # Remove obsolete staging options - we now use system package managers
 

@@ -18,9 +18,9 @@ if(NOT PkgConfig_FOUND)
     return()
 endif()
 
-pkg_check_modules(GTK4 gtk4>=4.20)
+pkg_check_modules(GTK4 gtk4>=4.10)
 if(NOT GTK4_FOUND)
-    message(WARNING "gtk4>=4.20 not found — orender-wire-linux will not be built")
+    message(WARNING "gtk4>=4.10 not found — orender-wire-linux will not be built")
     return()
 endif()
 
