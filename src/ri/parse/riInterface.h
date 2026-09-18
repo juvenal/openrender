@@ -33,7 +33,8 @@
 #include "ri.h"
 #include "ri_config.h"
 
-class CObject; // forward declaration for addObject()
+class CObject;      // forward declaration for addObject()
+class CAttributes;  // forward declaration for getAttributes()
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRiInterface
@@ -45,6 +46,16 @@ class CRiInterface {
         virtual ~CRiInterface();
 
         virtual void addObject(CObject *) {}
+
+        // The shared RIB grammar (rib.y) needs read access to the currently
+        // active attributes (specifically uStep/vStep) to validate PatchMesh/
+        // Curves vertex counts while parsing -- regardless of which concrete
+        // CRiInterface is driving the parse. Contexts that track a real
+        // attribute stack (CRendererContext, CRibGeometryContext) override
+        // this; one that doesn't (e.g. CRibOut) safely falls back to NULL,
+        // and the grammar substitutes the RISpec default basis step (3) --
+        // see getBasisSteps() in rib.y.
+        virtual CAttributes *getAttributes(int modify) { return nullptr; }
 
         virtual void RiDeclare(const char *, const char *);
 

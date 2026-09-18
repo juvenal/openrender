@@ -362,6 +362,30 @@ static	int		parameterListCheck() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	getBasisSteps
+// Description			:	Get the currently active bicubic-patch basis
+//							step sizes, for validating PatchMesh/Curves
+//							vertex counts while parsing. renderMan may be
+//							any CRiInterface (full pipeline, preview, or
+//							ribout passthrough) -- contexts that don't
+//							track a real attribute stack return NULL from
+//							getAttributes(), and we fall back to the
+//							RISpec default basis (bezier, step 3).
+// Return Value			:	-
+// Comments				:
+static	void	getBasisSteps(int *uStep,int *vStep) {
+	CAttributes	*attributes	=	renderMan->getAttributes(FALSE);
+
+	if (attributes != NULL) {
+		*uStep	=	attributes->uStep;
+		*vStep	=	attributes->vStep;
+	} else {
+		*uStep	=	3;
+		*vStep	=	3;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	getBasis
 // Description			:	Get the basis matrix from a given text
 // Return Value			:	TRUE if OK
@@ -1988,9 +2012,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					int	numuPatches,numvPatches;
 					int	nu	=	(int) $3;
 					int	nv	=	(int) $5;
-					CAttributes	*attributes	=	CRenderer::context->getAttributes(FALSE);
+					int	uStep,vStep;
 					int	uw,vw;
 					int	numVaryings;
+
+					getBasisSteps(&uStep,&vStep);
 
 					if (strcmp($4,RI_PERIODIC) == 0) {
 						uw	=	TRUE;
@@ -2025,16 +2051,16 @@ ribComm:		RIB_STRUCTURE_COMMENT
 						numExpectedVertices	=	nu*nv;
 
 						if (uw) {
-							numuPatches	=	nu / attributes->uStep;
+							numuPatches	=	nu / uStep;
 						} else {
-							numuPatches	=	(nu - 4) / attributes->uStep + 1;
+							numuPatches	=	(nu - 4) / uStep + 1;
 						}
 
 
 						if (vw) {
-							numvPatches	=	nv / attributes->vStep;
+							numvPatches	=	nv / vStep;
 						} else {
-							numvPatches	=	(nv - 4) / attributes->vStep + 1;
+							numvPatches	=	(nv - 4) / vStep + 1;
 						}
 
 						numVaryings		=	(numuPatches+1-uw)*(numvPatches+1-vw);
@@ -2349,9 +2375,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				{
 					int			*argi1		=	getInt(0);
 					int			numVertices,numUniforms;
-					CAttributes	*attributes	=	CRenderer::context->getAttributes(FALSE);
+					int			uStep,vStep;
 					int			wrap;
 					int			numVaryings,i;
+
+					getBasisSteps(&uStep,&vStep);
 
 					if (strcmp($4,RI_PERIODIC) == 0) {
 						wrap	=	TRUE;
@@ -2368,7 +2396,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 						numUniforms		=	$3;
 					} else if (strcmp($2,RI_CUBIC) == 0) {
 						for (i=0,numVertices=0,numVaryings=0,numUniforms=0;i<$3;i++) {
-							int	j		=	(argi1[i] - 4) / attributes->vStep + 1;
+							int	j		=	(argi1[i] - 4) / vStep + 1;
 							numVertices	+=	argi1[i];
 							numVaryings	+=	j + (1 - wrap);
 						}

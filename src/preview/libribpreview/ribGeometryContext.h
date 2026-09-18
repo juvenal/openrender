@@ -72,6 +72,7 @@ public:
     void RiOpacity(float *) override {}
     void RiSides(int nsides) override;
     void RiBasis(float ubasis[4][4], int ustep, float vbasis[4][4], int vstep) override;
+    CAttributes *getAttributes(int) override { return currentAttributes_; }
     void RiOrientation(const char *orientation) override;
     void RiReverseOrientation() override;
 
