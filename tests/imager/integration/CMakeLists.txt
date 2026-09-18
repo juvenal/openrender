@@ -1,5 +1,10 @@
 # Integration tests for imager shader support
 
+# See tests/imager/CMakeLists.txt: compiled shaders live in the build tree,
+# and DISPLAYS points at the file display plugin's own build-tree output
+# rather than the (uninstalled-by-default) deploy tree.
+set(IMAGER_INTEGRATION_DISPLAY_PATH "$<TARGET_FILE_DIR:file>")
+
 add_executable(test_imager_render test_imager_render.cpp)
 target_link_libraries(test_imager_render PRIVATE openrender_common_flags openrendercommon)
 target_include_directories(test_imager_render PRIVATE
@@ -19,7 +24,7 @@ add_test(NAME ImagerBackgroundRender
 set_tests_properties(ImagerBackgroundRender PROPERTIES
     TIMEOUT 120
     LABELS "imager;integration;render"
-    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender;DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=${IMAGER_INTEGRATION_DISPLAY_PATH}"
     DEPENDS orender
 )
 
@@ -34,7 +39,7 @@ add_test(NAME ImagerRegressionRender
 set_tests_properties(ImagerRegressionRender PROPERTIES
     TIMEOUT 120
     LABELS "imager;integration;regression"
-    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender;DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=${IMAGER_INTEGRATION_DISPLAY_PATH}"
     DEPENDS orender
 )
 
@@ -49,7 +54,7 @@ add_test(NAME ImagerParamOverrideRender
 set_tests_properties(ImagerParamOverrideRender PROPERTIES
     TIMEOUT 120
     LABELS "imager;integration;params"
-    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender;DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=${IMAGER_INTEGRATION_DISPLAY_PATH}"
     DEPENDS orender
 )
 
@@ -64,7 +69,7 @@ add_test(NAME ImagerDualDisplayRender
 set_tests_properties(ImagerDualDisplayRender PROPERTIES
     TIMEOUT 120
     LABELS "imager;integration;dual-display"
-    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender;DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=${IMAGER_INTEGRATION_DISPLAY_PATH}"
     DEPENDS orender
 )
 
