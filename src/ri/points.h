@@ -80,7 +80,12 @@ class CPoints : public CSurface {
 
         // Raw vertex data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
+        // Only ever called on objects built via the CPl* constructor (the RIB-
+        // level object-graph representation reached through instantiate()/
+        // addObject()); the CPointBase* constructor below is prep()'s internal,
+        // per-hider split representation and never flows through addObject().
         void wireData(const float *&positions, int &numPoints) const {
+            assert(pl != NULL);
             positions = pl->data0; numPoints = this->numPoints;
         }
 
