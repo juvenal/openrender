@@ -10,12 +10,13 @@ include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/hiders)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/render)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/state)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/parse)
 
 flex_file(rslo.l lex.rslo.cpp rslo)
-flex_file(../../ri/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
+flex_file(../../ri/parse/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
 
 bison_file(rslo.y rslo_generated.cpp rslo)
-bison_file(../../ri/dso.y dso_generated.cpp dso)
+bison_file(../../ri/parse/dso.y dso_generated.cpp dso)
 
 set(parser_sources rslo_generated.cpp dso_generated.cpp)
 

@@ -24,7 +24,7 @@
 #ifndef RENDERER_SERVICES_H
 #define RENDERER_SERVICES_H
 
-#include "ri/ri.h"         // RtFilterFunc, RtStepFilterFunc, RtFloat
+#include "ri/parse/ri.h"         // RtFilterFunc, RtStepFilterFunc, RtFloat
 #include "ri/rendererc.h"  // ECoordinateSystem
 #include "common/global.h" // basic types
 

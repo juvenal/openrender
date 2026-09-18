@@ -4,15 +4,16 @@ include_directories(.)
 # libshader/shading/ but still include ri/ files without prefix.  Adding ri/ here
 # makes those transitive includes work for all targets in the project.
 include_directories(ri)
-# hiders/, render/ and state/ are domains split out of the historically flat
-# ri/ tree (see the domain-split plan; renderer.h in particular is one of
-# the widely-included headers the comment above already calls out). Flat
-# alongside ri/ itself for the same reason: every #include "reyes.h" /
-# #include "renderer.h" / #include "attributes.h" elsewhere in the tree keeps
-# resolving unqualified.
+# hiders/, render/, state/ and parse/ are domains split out of the
+# historically flat ri/ tree (see the domain-split plan; renderer.h in
+# particular is one of the widely-included headers the comment above already
+# calls out). Flat alongside ri/ itself for the same reason: every
+# #include "reyes.h" / #include "renderer.h" / #include "attributes.h" /
+# #include "ri.h" elsewhere in the tree keeps resolving unqualified.
 include_directories(ri/hiders)
 include_directories(ri/render)
 include_directories(ri/state)
+include_directories(ri/parse)
 include_directories(libshader/shading)
 
 add_subdirectory(common)

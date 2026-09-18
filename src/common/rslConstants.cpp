@@ -18,7 +18,7 @@
  *
  */
 
-#include "../ri/ri.h"  // RtBasis, RtFloat, EXTERN macro
+#include "../ri/parse/ri.h"  // RtBasis, RtFloat, EXTERN macro
 #include "algebra.h"   // C_PI
 #include <cmath>
 

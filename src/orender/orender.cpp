@@ -30,7 +30,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "ri/ri.h"
+#include "ri/parse/ri.h"
 #include "logging.hpp"
 
 #ifdef _WINDOWS

@@ -6,7 +6,7 @@
 #include "common/algebra.h"
 #include "ri/brickmap.h"
 #include "ri/pointCloud.h"
-#include "ri/riInterface.h"
+#include "ri/parse/riInterface.h"
 #include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;

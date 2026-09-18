@@ -30,7 +30,7 @@
 
 #include "common/global.h"
 #include "common/os.h"
-#include "ri/ri.h"
+#include "ri/parse/ri.h"
 #include "logging.hpp"
 
 // TODO: tileSize — tiled texture output was planned to allow writing mipmapped

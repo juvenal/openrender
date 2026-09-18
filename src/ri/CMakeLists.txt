@@ -1,17 +1,20 @@
-file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
-# hiders/, render/ and state/ are domains split out of the historically flat
-# src/ri/ tree (see the domain-split plan) -- kept on the same flat include
-# path as "." so every #include "reyes.h"/"renderer.h"/"attributes.h" style
-# reference elsewhere in the tree keeps working unqualified, exactly like "."
-# itself already does. state/ (attributes, options, xform, displayChannel) is
-# not ribRender-only the way hiders/render are -- it's the widely-shared
-# graphics-state domain future ribVector/ribOut will also need.
+# hiders/, render/, state/ and parse/ are domains split out of the
+# historically flat src/ri/ tree (see the domain-split plan) -- kept on the
+# same flat include path as "." so every #include "reyes.h"/"renderer.h"/
+# "attributes.h"/"ri.h" style reference elsewhere in the tree keeps working
+# unqualified, exactly like "." itself already does. state/ (attributes,
+# options, xform, displayChannel) and parse/ (RIB/DSO/variable/ifexpr
+# grammars, ri.cpp's Ri*() dispatch, CRiInterface, error reporting) are not
+# ribRender-only the way hiders/render are -- both are shared foundation
+# future ribVector/ribOut will also need.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hiders)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
 # Allow ri/ files to include shading engine headers from their new location.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 
@@ -35,7 +38,7 @@ set(ri_sources
 	state/displayChannel.cpp
 	dlobject.cpp
 #	dso.cpp
-	error.cpp
+	parse/error.cpp
 	fileResource.cpp
 	hcshader.cpp
 	hiders/irradiance.cpp
@@ -79,9 +82,9 @@ set(ri_sources
 	render/rendererNetwork.cpp
 	render/rendererShadingServices.cpp
 	resource.cpp
-	ri.cpp
+	parse/ri.cpp
 #	rib.cpp
-	riInterface.cpp
+	parse/riInterface.cpp
 	ribOut.cpp
 #	sl.cpp
 	solidObject.cpp
@@ -103,16 +106,21 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # define flex targets
-flex_file(dso.l lex.dso.cpp dso)
-flex_file(rib.l lex.rib.cpp rib)
-flex_file(variable.l lex.var.cpp var)
-flex_file(ifexpr.l lex.if.cpp if)
+# Inputs moved to parse/ (see the domain-split plan); outputs still land
+# flat in CMAKE_CURRENT_BINARY_DIR regardless -- FLEX_FILE/BISON_FILE
+# (CMake/openRenderUse{Flex,Bison}.cmake) hardcode PATH_OPT to "", so the
+# generated lex.*.cpp/*_generated.cpp names and ri_sources entries below
+# are unaffected by this move.
+flex_file(parse/dso.l lex.dso.cpp dso)
+flex_file(parse/rib.l lex.rib.cpp rib)
+flex_file(parse/variable.l lex.var.cpp var)
+flex_file(parse/ifexpr.l lex.if.cpp if)
 
 # define bison targets (they depend on flex ones, via prefix - third arg)
-bison_file(dso.y dso_generated.cpp dso)
-bison_file(rib.y rib_generated.cpp rib)
-bison_file(variable.y variable_generated.cpp var)
-bison_file(ifexpr.y ifexpr_generated.cpp if)
+bison_file(parse/dso.y dso_generated.cpp dso)
+bison_file(parse/rib.y rib_generated.cpp rib)
+bison_file(parse/variable.y variable_generated.cpp var)
+bison_file(parse/ifexpr.y ifexpr_generated.cpp if)
 
 # add the generated bison cpp's
 set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp variable_generated.cpp ifexpr_generated.cpp)
@@ -151,6 +159,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/parse>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)

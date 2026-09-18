@@ -26,7 +26,7 @@
 
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
-#include "ri/ri.h"
+#include "ri/parse/ri.h"
 #include "ri/shader.h"
 
 static int g_passed = 0;

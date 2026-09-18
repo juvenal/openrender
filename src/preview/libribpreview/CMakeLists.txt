@@ -27,6 +27,7 @@ target_include_directories(ribpreview PUBLIC
     ${CMAKE_SOURCE_DIR}/src/ri/hiders
     ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
+    ${CMAKE_SOURCE_DIR}/src/ri/parse
     ${CMAKE_BINARY_DIR}
 )
 
