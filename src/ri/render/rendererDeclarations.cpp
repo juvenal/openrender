@@ -516,28 +516,13 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	makeGlobalVariable
-// Description			:	Forcefully make a variable global
-// Return Value			:
-// Comments				:
-void CRenderer::makeGlobalVariable(CVariable *var) {
-
-    // Did we already start rendering ?
-    var->entry = globalVariables->numItems;
-    var->storage = STORAGE_GLOBAL;
-    globalVariables->push(var);
-
-    // Flush the states for the shading contexts
-    if (contexts != NULL) {
-        int i;
-
-        for (i = 0; i < numThreads; i++) {
-            contexts[i]->updateState();
-        }
-    }
-}
+// CRenderer::makeGlobalVariable() lives in rendererDeclarationsDispatch.cpp
+// (real body) / rendererDeclarationsDispatchStub.cpp (ribVector stub).
+// initDeclarations() (above) reaches it unconditionally -- every "global ..."
+// typed variable it declares (P, N, Cs, Ci, etc.) routes through
+// declareVariable() -> here -- so it can't simply be excluded from a
+// ribVector build the way the hider/shading files are; it needs its own
+// real/stub split like the geometry dispatch methods.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer

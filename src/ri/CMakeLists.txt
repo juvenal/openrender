@@ -76,12 +76,14 @@ set(ri_sources
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
+	render/rendererDeclarationsDispatch.cpp
 	render/rendererDisplay.cpp
 	render/rendererFiles.cpp
 	render/rendererJobs.cpp
 	render/rendererMutexes.cpp
 	render/rendererNetwork.cpp
 	render/rendererShadingServices.cpp
+	render/rendererStatics.cpp
 	resource.cpp
 	parse/ri.cpp
 #	rib.cpp
