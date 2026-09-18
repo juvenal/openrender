@@ -112,12 +112,13 @@ set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp variable_genera
 # Target names: ri/ri_static/ri_obj were renamed to ribRender/ribRender_static/
 # ribRender_obj as part of splitting this library into domain-scoped pieces
 # (ribRender = full renderer, ribVector = geometry-only extraction for
-# orender-wire, ribOut = RIB text output) -- see the domain-split plan. This
-# is a target-identifier rename only: OUTPUT_NAME is set to "ri" on both the
-# shared and static libraries below, so the compiled artifacts stay
-# libri.so.1/libri.dylib/libri.a exactly as before, preserving the existing
-# SONAME/ABI and every hardcoded "libri" path in orender-wire-macos's
-# CMakeLists.txt and any external packaging.
+# orender-wire, ribOut = RIB text output) -- see the domain-split plan.
+#
+# The compiled artifact itself is renamed too, from libri to libRIBRender --
+# nothing outside this repo distributes libri, so this is the cheap moment to
+# do it. libri is kept as a symlinked alias (below) purely so anything not yet
+# updated to the new name keeps working; new/internal consumers should link
+# against RIBRender directly rather than rely on the alias.
 add_library(ribRender_obj OBJECT ${ri_sources} ${ri_headers})
 set_target_properties(ribRender_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(ribRender_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
@@ -131,7 +132,7 @@ target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_li
 # Phase C: ri links against libshader_shading (shading engine in its own library).
 # LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
 add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj>)
-set_target_properties(ribRender PROPERTIES OUTPUT_NAME ri)
+set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
 # any target that includes ri's headers transitively.
@@ -160,7 +161,7 @@ endif()
 
 # Static library — same object files, library consumers inherit the link requirements
 add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
-set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME ri)
+set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender)
 target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(WIN32)
     target_link_libraries(ribRender_static INTERFACE zlib ws2_32)
@@ -169,9 +170,46 @@ if(UNIX)
     target_link_libraries(ribRender_static INTERFACE z)
 endif()
 
+# libri compatibility alias: a symlink next to the real libRIBRender artifact
+# (both in the build tree and once installed), for anything not yet updated
+# to the new name. Points at the unversioned dev name, which itself resolves
+# through CMake's own VERSION/SOVERSION symlink chain for the shared library.
+add_custom_command(TARGET ribRender POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink
+        "${CMAKE_SHARED_LIBRARY_PREFIX}RIBRender${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        "${CMAKE_SHARED_LIBRARY_PREFIX}ri${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:ribRender>"
+    COMMENT "Creating libri -> libRIBRender compatibility alias"
+    VERBATIM
+)
+add_custom_command(TARGET ribRender_static POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink
+        "${CMAKE_STATIC_LIBRARY_PREFIX}RIBRender${CMAKE_STATIC_LIBRARY_SUFFIX}"
+        "${CMAKE_STATIC_LIBRARY_PREFIX}ri${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:ribRender_static>"
+    COMMENT "Creating libri.a -> libRIBRender.a compatibility alias"
+    VERBATIM
+)
+
 install(TARGETS ribRender
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(TARGETS ribRender_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 install(FILES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+# Recreate the libri alias at install time too -- install(TARGETS) only installs
+# the real files CMake generated for ribRender/ribRender_static (including its
+# own SONAME symlink chain), not the extra alias created above by POST_BUILD.
+install(CODE
+    "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        \"${CMAKE_SHARED_LIBRARY_PREFIX}RIBRender${CMAKE_SHARED_LIBRARY_SUFFIX}\"
+        \"${CMAKE_SHARED_LIBRARY_PREFIX}ri${CMAKE_SHARED_LIBRARY_SUFFIX}\"
+     WORKING_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")"
+)
+install(CODE
+    "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        \"${CMAKE_STATIC_LIBRARY_PREFIX}RIBRender${CMAKE_STATIC_LIBRARY_SUFFIX}\"
+        \"${CMAKE_STATIC_LIBRARY_PREFIX}ri${CMAKE_STATIC_LIBRARY_SUFFIX}\"
+     WORKING_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")"
+)

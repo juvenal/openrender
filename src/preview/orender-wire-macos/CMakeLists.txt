@@ -44,8 +44,8 @@ file(GLOB_RECURSE WIRE_MACOS_SOURCES
 # Paths to C++ static libraries built by CMake that libribpreview depends on.
 set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/libribpreview.a")
 set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libopenrendercommon.a")
-set(LIBRI_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
-set(LIBRI_VERSIONED  "libri.${OPENRENDER_COMPAT_SOVERSION}.dylib")
+set(LIBRIBRENDER_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
+set(LIBRIBRENDER_VERSIONED  "libRIBRender.${OPENRENDER_COMPAT_SOVERSION}.dylib")
 
 add_custom_command(
     OUTPUT  "${WIRE_MACOS_BINARY}"
@@ -64,8 +64,8 @@ add_custom_command(
             --build-path    "${WIRE_MACOS_BUILD_DIR}"
             -Xlinker "${LIBRIBPREVIEW_A}"
             -Xlinker "${LIBCOMMON_A}"
-            -Xlinker "-L${LIBRI_DYLIB_DIR}"
-            -Xlinker "-lri"
+            -Xlinker "-L${LIBRIBRENDER_DYLIB_DIR}"
+            -Xlinker "-lRIBRender"
             -Xlinker "-rpath" -Xlinker "@executable_path/../Frameworks"
     COMMAND "${CMAKE_COMMAND}" -E remove_directory "${WIRE_MACOS_CONTENTS}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${WIRE_MACOS_CONTENTS}/MacOS"
@@ -78,11 +78,11 @@ add_custom_command(
             "${WIRE_MACOS_SRC_DIR}/Info.plist"
             "${WIRE_MACOS_CONTENTS}/Info.plist"
     COMMAND "${CMAKE_COMMAND}" -E copy
-            "${LIBRI_DYLIB_DIR}/${LIBRI_VERSIONED}"
-            "${WIRE_MACOS_CONTENTS}/Frameworks/${LIBRI_VERSIONED}"
+            "${LIBRIBRENDER_DYLIB_DIR}/${LIBRIBRENDER_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/${LIBRIBRENDER_VERSIONED}"
     COMMAND "${CMAKE_COMMAND}" -E create_symlink
-            "${LIBRI_VERSIONED}"
-            "${WIRE_MACOS_CONTENTS}/Frameworks/libri.dylib"
+            "${LIBRIBRENDER_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/libRIBRender.dylib"
     COMMAND codesign --force --deep -s - "${WIRE_MACOS_APP_DIR}"
     DEPENDS ${WIRE_MACOS_SOURCES}
             "${WIRE_MACOS_SRC_DIR}/Package.swift"

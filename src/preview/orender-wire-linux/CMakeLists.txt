@@ -66,10 +66,10 @@ target_link_options(orender-wire-linux PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_L
 # still plain "orender-wire" on disk, in the build tree and once installed.
 #
 # BUILD_WITH_INSTALL_RPATH is intentionally left at its default (FALSE): setting it TRUE would
-# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libri.so)
+# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libRIBRender.so)
 # into the *build-tree* binary too, where $ORIGIN/../lib resolves to a directory that doesn't
-# exist (libri.so actually lives under build/src/ri/) -- the binary would fail to even start
-# ("error while loading shared libraries: libri.so.1: cannot open shared object file") when run
+# exist (libRIBRender.so actually lives under build/src/ri/) -- the binary would fail to even start
+# ("error while loading shared libraries: libRIBRender.so.1: cannot open shared object file") when run
 # directly from build/, which is exactly how this gets tested during development. Leaving this
 # unset lets CMake auto-compute a correct build-tree RPATH while still applying INSTALL_RPATH at
 # actual `cmake --install` time.
