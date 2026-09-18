@@ -16,8 +16,8 @@
 #include <cstring>
 
 #include "ri/options.h"
-#include "ri/renderer.h"
-#include "ri/rendererContext.h"
+#include "ri/render/renderer.h"
+#include "ri/render/rendererContext.h"
 #include "ri/ri.h"
 #include "ri/shader.h"
 

@@ -4,8 +4,8 @@
 
 #include "common/algebra.h"
 #include "ri/dataLoad.h"
-#include "ri/photonMap.h"
-#include "ri/renderer.h"
+#include "ri/hiders/photonMap.h"
+#include "ri/render/renderer.h"
 
 static int g_pass = 0, g_fail = 0;
 #define CHECK(expr) do { \

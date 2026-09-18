@@ -24,6 +24,8 @@ target_include_directories(ribpreview PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}      # exposes previewTypes.h, previewContext.h, etc.
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/ri
+    ${CMAKE_SOURCE_DIR}/src/ri/hiders
+    ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_BINARY_DIR}
 )
 

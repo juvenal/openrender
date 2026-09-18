@@ -80,8 +80,11 @@ endif()
 
 # Shading engine needs src/ri/ headers for renderer types (CObject, CPhotonMap, etc.)
 # and its own directory for shading.h, shader.h, rslo_code.h, macro headers.
+# CPhotonMap now lives under src/ri/hiders/ (see the domain-split plan).
 target_include_directories(libshader_shading PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri
+    ${CMAKE_SOURCE_DIR}/src/ri/hiders
+    ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )

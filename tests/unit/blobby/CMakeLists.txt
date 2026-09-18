@@ -12,6 +12,8 @@ macro(add_blobby_test target source testname)
     target_compile_features(${target} PRIVATE cxx_std_20)
     target_include_directories(${target} PRIVATE
         ${CMAKE_SOURCE_DIR}/src/ri
+        ${CMAKE_SOURCE_DIR}/src/ri/hiders
+        ${CMAKE_SOURCE_DIR}/src/ri/render
         ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(${target} PRIVATE ribRender openrendercommon)
     add_test(NAME ${testname} COMMAND ${target})

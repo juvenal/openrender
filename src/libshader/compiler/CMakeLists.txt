@@ -7,6 +7,8 @@
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/hiders)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/render)
 
 flex_file(rslo.l lex.rslo.cpp rslo)
 flex_file(../../ri/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/

@@ -19,8 +19,8 @@
 
 #include "includes/logging.hpp"
 #include "ri/options.h"
-#include "ri/renderer.h"
-#include "ri/rendererContext.h"
+#include "ri/render/renderer.h"
+#include "ri/render/rendererContext.h"
 #include "ri/ri.h"
 
 // ---------------------------------------------------------------------------

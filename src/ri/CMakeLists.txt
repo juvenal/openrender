@@ -1,7 +1,14 @@
-file(GLOB ri_headers *.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
+# hiders/ and render/ are the first two domains split out of the historically
+# flat src/ri/ tree (see the domain-split plan) -- ribRender-only content so
+# far, but kept on the same flat include path as "." so every #include
+# "reyes.h"/"renderer.h" style reference elsewhere in the tree keeps working
+# unqualified, exactly like "." itself already does.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hiders)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 # Allow ri/ files to include shading engine headers from their new location.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 
@@ -28,20 +35,26 @@ set(ri_sources
 	error.cpp
 	fileResource.cpp
 	hcshader.cpp
+	hiders/irradiance.cpp
+	hiders/occlusion.cpp
+	hiders/photon.cpp
+	hiders/photonMap.cpp
+	hiders/raytracer.cpp
+	hiders/reyes.cpp
+	hiders/sampler.cpp
+	hiders/stochastic.cpp
+	hiders/trace.cpp
+	hiders/zbuffer.cpp
 #	ifexpr.cpp
 	imager.cpp
 	implicitSurface.cpp
 	init.cpp
-	irradiance.cpp
 	linsys.cpp
 	memory.cpp
 	object.cpp
-	occlusion.cpp
 	options.cpp
 	patches.cpp
 	patchgrid.cpp
-	photon.cpp
-	photonMap.cpp
 	pl.cpp
 	points.cpp
 	pointCloud.cpp
@@ -50,22 +63,19 @@ set(ri_sources
 	ptcapi.cpp
 	quadrics.cpp
 	random.cpp
-	raytracer.cpp
 	refCounter.cpp
 	remoteChannel.cpp
-	renderer.cpp
-	rendererClipping.cpp
-	rendererContext.cpp
-	rendererDeclarations.cpp
-	rendererDisplay.cpp
-	rendererFiles.cpp
-	rendererJobs.cpp
-	rendererMutexes.cpp
-	rendererNetwork.cpp
-	rendererShadingServices.cpp
+	render/renderer.cpp
+	render/rendererClipping.cpp
+	render/rendererContext.cpp
+	render/rendererDeclarations.cpp
+	render/rendererDisplay.cpp
+	render/rendererFiles.cpp
+	render/rendererJobs.cpp
+	render/rendererMutexes.cpp
+	render/rendererNetwork.cpp
+	render/rendererShadingServices.cpp
 	resource.cpp
-	sampler.cpp
-	reyes.cpp
 	ri.cpp
 #	rib.cpp
 	riInterface.cpp
@@ -73,7 +83,6 @@ set(ri_sources
 #	sl.cpp
 	solidObject.cpp
 	stats.cpp
-	stochastic.cpp
 	subdivision.cpp
 	subdivisionCreator.cpp
 	subdivisionHierarchical.cpp
@@ -82,10 +91,8 @@ set(ri_sources
 	texmake.cpp
 	texture.cpp
 	texture3d.cpp
-	trace.cpp
 #	variable.cpp
 	xform.cpp
-	zbuffer.cpp
 )
 
 # this is to make sure generated bison cpp's include the correct lex.xxx.cpp
@@ -138,6 +145,8 @@ set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender)
 # any target that includes ri's headers transitively.
 target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)

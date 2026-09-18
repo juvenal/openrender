@@ -92,6 +92,8 @@ target_include_directories(test_libshader_used_parameters_table PRIVATE
     ${CMAKE_BINARY_DIR}/src/libshader/compiler   # Flex/Bison generated headers
     ${CMAKE_SOURCE_DIR}/src                      # common/, logging.h
     ${CMAKE_SOURCE_DIR}/src/ri                   # rendererc.h (PARAMETER_* constants)
+    ${CMAKE_SOURCE_DIR}/src/ri/hiders
+    ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/libshader/shading    # scriptFunctions.h/scriptOpcodes.h
 )
 
