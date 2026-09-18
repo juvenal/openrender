@@ -108,59 +108,70 @@ bison_file(ifexpr.y ifexpr_generated.cpp if)
 set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp variable_generated.cpp ifexpr_generated.cpp)
 
 # Compile once with PIC so the same objects serve both the shared and static lib.
-add_library(ri_obj OBJECT ${ri_sources} ${ri_headers})
-set_target_properties(ri_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(ri_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
+#
+# Target names: ri/ri_static/ri_obj were renamed to ribRender/ribRender_static/
+# ribRender_obj as part of splitting this library into domain-scoped pieces
+# (ribRender = full renderer, ribVector = geometry-only extraction for
+# orender-wire, ribOut = RIB text output) -- see the domain-split plan. This
+# is a target-identifier rename only: OUTPUT_NAME is set to "ri" on both the
+# shared and static libraries below, so the compiled artifacts stay
+# libri.so.1/libri.dylib/libri.a exactly as before, preserving the existing
+# SONAME/ABI and every hardcoded "libri" path in orender-wire-macos's
+# CMakeLists.txt and any external packaging.
+add_library(ribRender_obj OBJECT ${ri_sources} ${ri_headers})
+set_target_properties(ribRender_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(ribRender_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 # Propagate compile-time interface requirements: HAVE_CONFIG_H, warning flags,
 # include dirs, and external lib headers (TIFF, PNG).
-target_link_libraries(ri_obj PRIVATE openrendercommon ${openrendertiff_libs})
+target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_libs})
 
 # Shared library — external deps (TIFF, PNG, z) are PRIVATE (implementation detail
 # of libri; not part of its public API, so not propagated to linking executables).
 # Phase C: ri links against libshader_shading (shading engine in its own library).
 # LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
-add_library(ri SHARED $<TARGET_OBJECTS:ri_obj>)
+add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj>)
+set_target_properties(ribRender PROPERTIES OUTPUT_NAME ri)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
 # any target that includes ri's headers transitively.
-target_include_directories(ri PUBLIC
+target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
-target_link_libraries(ri PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(WIN32)
-    target_link_libraries(ri PRIVATE zlib ws2_32)
+    target_link_libraries(ribRender PRIVATE zlib ws2_32)
 endif()
 if(UNIX)
-    target_link_libraries(ri PRIVATE z)
+    target_link_libraries(ribRender PRIVATE z)
 endif()
-set_target_properties(ri PROPERTIES
+set_target_properties(ribRender PROPERTIES
     VERSION   ${PROJECT_VERSION}
     SOVERSION ${OPENRENDER_COMPAT_SOVERSION}
 )
 if(APPLE)
     if(INSTALL_SELFCONTAINED)
-        set_target_properties(ri PROPERTIES INSTALL_NAME_DIR "@rpath")
+        set_target_properties(ribRender PROPERTIES INSTALL_NAME_DIR "@rpath")
     else()
-        set_target_properties(ri PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+        set_target_properties(ribRender PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
 endif()
 
 # Static library — same object files, library consumers inherit the link requirements
-add_library(ri_static STATIC $<TARGET_OBJECTS:ri_obj>)
-set_target_properties(ri_static PROPERTIES OUTPUT_NAME ri)
-target_link_libraries(ri_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
+add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
+set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME ri)
+target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(WIN32)
-    target_link_libraries(ri_static INTERFACE zlib ws2_32)
+    target_link_libraries(ribRender_static INTERFACE zlib ws2_32)
 endif()
 if(UNIX)
-    target_link_libraries(ri_static INTERFACE z)
+    target_link_libraries(ribRender_static INTERFACE z)
 endif()
 
-install(TARGETS ri
+install(TARGETS ribRender
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS ri_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+install(TARGETS ribRender_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 install(FILES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

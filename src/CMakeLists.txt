@@ -14,10 +14,10 @@ add_subdirectory(precomp)
 add_subdirectory(rgbe)
 add_subdirectory(libshader)  # RSL shader library (compiler + runtime + shading engine)
 add_subdirectory(ri)
-# Phase C: libshader_shading is a real target; ri links against it.
-# These aliases let existing consumers link 'libshader' without knowing about ri.
-add_library(libshader        ALIAS ri)
-add_library(libshader_static ALIAS ri_static)
+# Phase C: libshader_shading is a real target; ribRender links against it.
+# These aliases let existing consumers link 'libshader' without knowing about ribRender.
+add_library(libshader        ALIAS ribRender)
+add_library(libshader_static ALIAS ribRender_static)
 add_subdirectory(preview)
 add_subdirectory(orender)
 add_subdirectory(oshader)

@@ -13,7 +13,7 @@ macro(add_blobby_test target source testname)
     target_include_directories(${target} PRIVATE
         ${CMAKE_SOURCE_DIR}/src/ri
         ${CMAKE_SOURCE_DIR}/src)
-    target_link_libraries(${target} PRIVATE ri openrendercommon)
+    target_link_libraries(${target} PRIVATE ribRender openrendercommon)
     add_test(NAME ${testname} COMMAND ${target})
     set_tests_properties(${testname} PROPERTIES TIMEOUT 120 LABELS "blobby;unit")
 endmacro()

@@ -16,7 +16,7 @@
 # libshader_compiler -- avoids linking compiler+shading together (research.md
 # risk noted in plan.md Phase 4).
 add_executable(test_shading_parity_used_parameters_oracle test_used_parameters_oracle.cpp)
-target_link_libraries(test_shading_parity_used_parameters_oracle PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_link_libraries(test_shading_parity_used_parameters_oracle PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 target_include_directories(test_shading_parity_used_parameters_oracle PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -33,7 +33,7 @@ set_tests_properties(ShadingParity_UsedParametersOracle PROPERTIES
 # alights is nullptr (RSLShading::shade() entry point) and the
 # prepareAmbient() double-count fix. Interpreter (.rslo) backend only.
 add_executable(test_shading_parity_ambient_accumulation test_ambient_accumulation.cpp)
-target_link_libraries(test_shading_parity_ambient_accumulation PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_link_libraries(test_shading_parity_ambient_accumulation PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 target_include_directories(test_shading_parity_ambient_accumulation PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -51,7 +51,7 @@ set_tests_properties(ShadingParity_AmbientAccumulation PROPERTIES
 # Ol has no runtime consumer in either backend, so this is the one
 # Ol-related property that is actually backend-comparable.
 add_executable(test_shading_parity_ol_wiring test_ol_wiring.cpp)
-target_link_libraries(test_shading_parity_ol_wiring PRIVATE openrender_common_flags ri libshader_shading openrendercommon)
+target_link_libraries(test_shading_parity_ol_wiring PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 target_include_directories(test_shading_parity_ol_wiring PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
