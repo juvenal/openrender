@@ -48,6 +48,14 @@ class CPolygonMesh : public CObject {
         void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
+        // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &npoly, const int *&nholes,
+                      const int *&nvertices, const int *&vertices) const {
+            positions = pl->data0; npoly = this->npoly;
+            nholes = this->nholes; nvertices = this->nvertices; vertices = this->vertices;
+        }
+
     private:
         void create(CShadingContext *);
 
@@ -60,7 +68,6 @@ class CPolygonMesh : public CObject {
 
         friend class CPolygonTriangle;
         friend class CPolygonQuad;
-        friend class CPreviewContext;
         friend CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh);
 };
 

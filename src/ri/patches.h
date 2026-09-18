@@ -105,8 +105,6 @@ class CBilinearPatch : public CSurface {
         CParameter *parameters;         // The parameters for the patch
         float *vertex;                  // The vertex data
         float uMult, vMult, uOrg, vOrg; // The parametric range of the patch
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -133,8 +131,6 @@ class CBicubicPatch : public CSurface {
         CParameter *parameters;         // Parameters for the patch
         float *vertex;                  // The vertex data
         float uOrg, vOrg, uMult, vMult; // The parametric range of the patch
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -183,8 +179,6 @@ class CNURBSPatch : public CSurface {
         int uOrder, vOrder;             // The order of the patch
         float uOrg, vOrg, uMult, vMult; // The parametric range of the patch
         CTrimTest *trimTest;            // Shared trim classification (refcounted, see CTrimTest); NULL if untrimmed
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -201,6 +195,12 @@ class CPatchMesh : public CObject {
         void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
+        // Raw control-cage data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &nu, int &nv) const {
+            positions = pl->data0; nu = uVertices; nv = vVertices;
+        }
+
     private:
         void create(CShadingContext *context);
 
@@ -209,7 +209,6 @@ class CPatchMesh : public CObject {
         int uVertices, vVertices, uWrap, vWrap;
         TMutex mutex;
 
-        friend class CPreviewContext;
         friend CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float tolerance, int computeDerivatives);
 };
 
@@ -309,6 +308,12 @@ class CNURBSPatchMesh : public CObject {
         void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
+        // Raw control-cage data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &nu, int &nv) const {
+            positions = pl->data0; nu = uVertices; nv = vVertices;
+        }
+
     private:
         void create(CShadingContext *context);
 
@@ -319,7 +324,6 @@ class CNURBSPatchMesh : public CObject {
 
         CTrimTest *trimTest; // Shared trim classification for this mesh (nullptr if no TrimCurve was set)
 
-        friend class CPreviewContext;
         friend CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh *mesh, float tolerance, int computeDerivatives);
 };
 

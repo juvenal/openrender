@@ -78,6 +78,12 @@ class CPoints : public CSurface {
         int moving() const { return (pl != NULL ? (pl->data1 != NULL) : base->variables->moving); }
         void interpolate(int, float **, float ***) const;
 
+        // Raw vertex data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &numPoints) const {
+            positions = pl->data0; numPoints = this->numPoints;
+        }
+
     private:
         void prep();
 
@@ -89,8 +95,6 @@ class CPoints : public CSurface {
         const float **points; // Entry points to points
 
         CPointBase *base; // The point base
-
-        friend class CPreviewContext;
 };
 
 #endif

@@ -52,46 +52,69 @@ void CPreviewContext::addObject(CObject *obj) {
     const float *wf = obj->xform->from;
 
     if (auto *m = dynamic_cast<CPolygonMesh *>(obj)) {
-        tessPolygon(m->pl->data0, m->npoly, m->nholes, m->nvertices, m->vertices,
-                    wf, col, V, C, B);
+        const float *positions; int npoly; const int *nholes, *nvertices, *vertices;
+        m->wireData(positions, npoly, nholes, nvertices, vertices);
+        tessPolygon(positions, npoly, nholes, nvertices, vertices, wf, col, V, C, B);
 
     } else if (auto *m = dynamic_cast<CPatchMesh *>(obj)) {
-        tessPatch(m->pl->data0, m->uVertices, m->vVertices, wf, col, V, C, B);
+        const float *positions; int nu, nv;
+        m->wireData(positions, nu, nv);
+        tessPatch(positions, nu, nv, wf, col, V, C, B);
 
     } else if (auto *m = dynamic_cast<CNURBSPatchMesh *>(obj)) {
-        tessNurbs(m->pl->data0, m->uVertices, m->vVertices, wf, col, V, C, B);
+        const float *positions; int nu, nv;
+        m->wireData(positions, nu, nv);
+        tessNurbs(positions, nu, nv, wf, col, V, C, B);
 
     } else if (auto *s = dynamic_cast<CSphere *>(obj)) {
-        tessQuadricSphere(s->r, s->umax, s->vmin, s->vmax, wf, col, V, C, B);
+        float r, umax, vmin, vmax;
+        s->wireData(r, umax, vmin, vmax);
+        tessQuadricSphere(r, umax, vmin, vmax, wf, col, V, C, B);
 
     } else if (auto *d = dynamic_cast<CDisk *>(obj)) {
-        tessQuadricDisk(d->r, d->z, d->umax, wf, col, V, C, B);
+        float r, z, umax;
+        d->wireData(r, z, umax);
+        tessQuadricDisk(r, z, umax, wf, col, V, C, B);
 
     } else if (auto *c = dynamic_cast<CCone *>(obj)) {
-        tessQuadricCone(c->r, c->height, c->umax, wf, col, V, C, B);
+        float r, height, umax;
+        c->wireData(r, height, umax);
+        tessQuadricCone(r, height, umax, wf, col, V, C, B);
 
     } else if (auto *c = dynamic_cast<CCylinder *>(obj)) {
-        tessQuadricCylinder(c->r, c->zmin, c->zmax, c->umax, wf, col, V, C, B);
+        float r, zmin, zmax, umax;
+        c->wireData(r, zmin, zmax, umax);
+        tessQuadricCylinder(r, zmin, zmax, umax, wf, col, V, C, B);
 
     } else if (auto *p = dynamic_cast<CParaboloid *>(obj)) {
-        tessQuadricParaboloid(p->r, p->zmin, p->zmax, p->umax, wf, col, V, C, B);
+        float r, zmin, zmax, umax;
+        p->wireData(r, zmin, zmax, umax);
+        tessQuadricParaboloid(r, zmin, zmax, umax, wf, col, V, C, B);
 
     } else if (auto *h = dynamic_cast<CHyperboloid *>(obj)) {
-        tessQuadricHyperboloid(h->p1, h->p2, h->umax, wf, col, V, C, B);
+        const float *p1, *p2; float umax;
+        h->wireData(p1, p2, umax);
+        tessQuadricHyperboloid(p1, p2, umax, wf, col, V, C, B);
 
     } else if (auto *t = dynamic_cast<CToroid *>(obj)) {
-        tessQuadricToroid(t->rmax, t->rmin, t->vmin, t->vmax, t->umax, wf, col, V, C, B);
+        float rmax, rmin, vmin, vmax, umax;
+        t->wireData(rmax, rmin, vmin, vmax, umax);
+        tessQuadricToroid(rmax, rmin, vmin, vmax, umax, wf, col, V, C, B);
 
     } else if (auto *c = dynamic_cast<CCurveMesh *>(obj)) {
-        tessCurve(c->pl->data0, c->numCurves, c->nverts,
-                  c->wrap != 0, wf, col, V, C, B);
+        const float *positions; int numCurves, wrap; const int *nverts;
+        c->wireData(positions, numCurves, nverts, wrap);
+        tessCurve(positions, numCurves, nverts, wrap != 0, wf, col, V, C, B);
 
     } else if (auto *p = dynamic_cast<CPoints *>(obj)) {
-        tessPoints(p->pl->data0, p->numPoints, wf, col, V, C, B);
+        const float *positions; int numPoints;
+        p->wireData(positions, numPoints);
+        tessPoints(positions, numPoints, wf, col, V, C, B);
 
     } else if (auto *s = dynamic_cast<CSubdivMesh *>(obj)) {
-        tessSubdivision(s->pl->data0, s->numFaces,
-                        s->numVerticesPerFace, s->vertexIndices,
+        const float *positions; int numFaces; const int *numVerticesPerFace, *vertexIndices;
+        s->wireData(positions, numFaces, numVerticesPerFace, vertexIndices);
+        tessSubdivision(positions, numFaces, numVerticesPerFace, vertexIndices,
                         wf, col, V, C, B);
 
     } else if (auto *d = dynamic_cast<CDelayedObject *>(obj)) {
@@ -152,6 +175,10 @@ PreviewSceneC *ribpreview_load(const char *ribPath) {
     RiBeginLite();
 
     CPreviewContext ctx;
+    // CRiInterface's own constructor already does this (renderMan = this), so
+    // this line is technically redundant -- kept for clarity at the call site.
+    // The reset below is NOT redundant: ctx stays alive well past ribParse(),
+    // and renderMan must stop pointing at it before anything else runs.
     renderMan = &ctx;
     ribParse(ribPath, nullptr);
     renderMan = nullptr;

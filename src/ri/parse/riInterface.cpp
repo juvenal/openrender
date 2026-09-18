@@ -37,6 +37,17 @@ CRiInterface::CRiInterface() {
 }
 
 CRiInterface::~CRiInterface() {
+    // renderMan is a bare global pointer, not owned by any one instance: whoever
+    // constructs a CRiInterface becomes the active one automatically (see the
+    // constructor above), but nothing symmetrically un-installs it. Most call
+    // sites (RiEnd(), RiArchiveEnd()'s nested-context restore) already reassign
+    // renderMan themselves right after destroying the old one, so this guard is
+    // a no-op there -- it only matters for a caller that destroys a CRiInterface
+    // without immediately repointing renderMan elsewhere (e.g. ribpreview_load()
+    // used to rely on doing this by hand), where leaving renderMan dangling at a
+    // freed object would otherwise be a silent use-after-free waiting to happen.
+    if (renderMan == this)
+        renderMan = nullptr;
 }
 
 void CRiInterface::RiDeclare(const char *, const char *) {

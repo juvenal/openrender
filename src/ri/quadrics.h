@@ -61,6 +61,10 @@ class CSphere : public CSurface {
             return 0;
         }
 
+        void wireData(float &r, float &umax, float &vmin, float &vmax) const {
+            r = this->r; umax = this->umax; vmin = this->vmin; vmax = this->vmax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -68,8 +72,6 @@ class CSphere : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -88,6 +90,10 @@ class CDisk : public CSurface {
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
+        void wireData(float &r, float &z, float &umax) const {
+            r = this->r; z = this->z; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -95,8 +101,6 @@ class CDisk : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -126,6 +130,10 @@ class CCone : public CSurface {
             return 0;
         }
 
+        void wireData(float &r, float &height, float &umax) const {
+            r = this->r; height = this->height; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -133,8 +141,6 @@ class CCone : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -165,6 +171,10 @@ class CParaboloid : public CSurface {
             return 0;
         }
 
+        void wireData(float &r, float &zmin, float &zmax, float &umax) const {
+            r = this->r; zmin = this->zmin; zmax = this->zmax; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -172,8 +182,6 @@ class CParaboloid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -203,6 +211,10 @@ class CCylinder : public CSurface {
             return 0;
         }
 
+        void wireData(float &r, float &zmin, float &zmax, float &umax) const {
+            r = this->r; zmin = this->zmin; zmax = this->zmax; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -210,8 +222,6 @@ class CCylinder : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -242,6 +252,10 @@ class CHyperboloid : public CSurface {
             return 0;
         }
 
+        void wireData(const float *&p1, const float *&p2, float &umax) const {
+            p1 = this->p1; p2 = this->p2; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -250,8 +264,6 @@ class CHyperboloid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float *, float *, float);
-
-        friend class CPreviewContext;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -282,6 +294,10 @@ class CToroid : public CSurface {
             return 2;
         }
 
+        void wireData(float &rmax, float &rmin, float &vmin, float &vmax, float &umax) const {
+            rmax = this->rmax; rmin = this->rmin; vmin = this->vmin; vmax = this->vmax; umax = this->umax;
+        }
+
     private:
         CParameter *parameters;
         unsigned int parametersF;
@@ -289,8 +305,6 @@ class CToroid : public CSurface {
         float *nextData;
 
         void computeObjectBound(float *, float *, float, float, float, float, float);
-
-        friend class CPreviewContext;
 };
 
 #endif

@@ -127,6 +127,13 @@ class CCurveMesh : public CObject {
         void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
+        // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &numCurves, const int *&nverts, int &wrap) const {
+            positions = pl->data0; numCurves = this->numCurves;
+            nverts = this->nverts; wrap = this->wrap;
+        }
+
     private:
         void create(CShadingContext *context);
 
@@ -139,8 +146,6 @@ class CCurveMesh : public CObject {
 
         const CVariable *sizeVariable;
         float maxSize;
-
-        friend class CPreviewContext;
 };
 
 void curvesCreate(CAttributes *, CXform *, CPl *, int, int, int, int *, int, CRendererContext *);

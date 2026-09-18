@@ -61,6 +61,14 @@ class CSubdivMesh : public CObject {
         // being read/deleted).
         CObject *tessellateToSurfaces(CMemPage *&mem);
 
+        // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
+        // wireframe extractor), which has no CShadingContext to dice() through.
+        void wireData(const float *&positions, int &numFaces,
+                      const int *&numVerticesPerFace, const int *&vertexIndices) const {
+            positions = pl->data0; numFaces = this->numFaces;
+            numVerticesPerFace = this->numVerticesPerFace; vertexIndices = this->vertexIndices;
+        }
+
     private:
         void create(CShadingContext *context);
         CObject *buildSurfaces(CMemPage *&mem);
@@ -77,8 +85,6 @@ class CSubdivMesh : public CObject {
         float *floatargs;
         CHierarchicalOverride *overrides;
         TMutex mutex;
-
-        friend class CPreviewContext;
 };
 
 #endif
