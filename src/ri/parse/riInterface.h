@@ -35,6 +35,7 @@
 
 class CObject;      // forward declaration for addObject()
 class CAttributes;  // forward declaration for getAttributes()
+class COptions;     // forward declaration for getOptions()
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRiInterface
@@ -56,6 +57,19 @@ class CRiInterface {
         // and the grammar substitutes the RISpec default basis step (3) --
         // see getBasisSteps() in rib.y.
         virtual CAttributes *getAttributes(int modify) { return nullptr; }
+
+        // Same reasoning, for the RIB lexer's `ReadArchive "file"` handling
+        // (parse/rib.l): it needs the active Options' archivePath to resolve
+        // a bare (no-directory-component) archive filename via search path.
+        // CRendererContext overrides this with its real accessor; a context
+        // that doesn't track a real COptions (CRibGeometryContext included --
+        // it tracks only a lightweight camera/screen-window struct, not a
+        // real COptions) falls back to NULL here, and the lexer degrades to
+        // "no search path" rather than crashing -- an explicit relative/
+        // absolute archive path (the common case) still resolves correctly
+        // either way, since that branch of locateFile() never consults the
+        // search path at all.
+        virtual COptions *getOptions() { return nullptr; }
 
         virtual void RiDeclare(const char *, const char *);
 

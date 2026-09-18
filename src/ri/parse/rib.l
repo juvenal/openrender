@@ -167,10 +167,15 @@ ReadArchive[ \t]*\"[^\"]*\"							{
 
 														fileName[strlen(fileName)-1]	=	'\0';
 
-														options		=	CRenderer::context->getOptions();
+														options		=	renderMan->getOptions();
 
-														// Look for the file at the usual locations
-														if (CRenderer::locateFile(location,fileName,options->archivePath,TRUE) == TRUE) {
+														// Look for the file at the usual locations. A context that
+														// doesn't track a real COptions (see CRiInterface::getOptions())
+														// degrades to no search path here, rather than crashing --
+														// an explicit relative/absolute archive path still resolves,
+														// since that's the branch of locateFile() that never touches
+														// the search path at all.
+														if (CRenderer::locateFile(location,fileName,options ? options->archivePath : NULL,TRUE) == TRUE) {
 															FILE	*in;
 
 															info(CODE_RESOLUTION,"\"%s\" -> \"%s\"\n",fileName,location);

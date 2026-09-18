@@ -202,7 +202,7 @@ class CRendererContext : public CRiInterface {
         // The following functions provide access to the graphics state
         CXform *getXform(int);                                                            // Get the active XForm
         CAttributes *getAttributes(int) override;                                         // Get the active Attributes
-        COptions *getOptions();                                                           // Get the active Options
+        COptions *getOptions() override;                                                  // Get the active Options
         CShaderInstance *getShader(const char *, int, int, const char **, const void **); // Load a shader
 
         // Delayed object junk
