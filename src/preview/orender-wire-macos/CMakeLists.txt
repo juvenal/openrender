@@ -42,10 +42,13 @@ file(GLOB_RECURSE WIRE_MACOS_SOURCES
 )
 
 # Paths to C++ static libraries built by CMake that libribpreview depends on.
+# libribpreview links ribVector (not ribRender): the geometry-only extraction
+# with no LLVM/libshader_shading dependency -- see the domain-split plan and
+# src/ri/CMakeLists.txt's ribVector section for why.
 set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/libribpreview.a")
 set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libopenrendercommon.a")
-set(LIBRIBRENDER_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
-set(LIBRIBRENDER_VERSIONED  "libRIBRender.${OPENRENDER_COMPAT_SOVERSION}.dylib")
+set(LIBRIBVECTOR_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
+set(LIBRIBVECTOR_VERSIONED  "libribVector.${OPENRENDER_COMPAT_SOVERSION}.dylib")
 
 add_custom_command(
     OUTPUT  "${WIRE_MACOS_BINARY}"
@@ -64,8 +67,8 @@ add_custom_command(
             --build-path    "${WIRE_MACOS_BUILD_DIR}"
             -Xlinker "${LIBRIBPREVIEW_A}"
             -Xlinker "${LIBCOMMON_A}"
-            -Xlinker "-L${LIBRIBRENDER_DYLIB_DIR}"
-            -Xlinker "-lRIBRender"
+            -Xlinker "-L${LIBRIBVECTOR_DYLIB_DIR}"
+            -Xlinker "-lribVector"
             -Xlinker "-rpath" -Xlinker "@executable_path/../Frameworks"
     COMMAND "${CMAKE_COMMAND}" -E remove_directory "${WIRE_MACOS_CONTENTS}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${WIRE_MACOS_CONTENTS}/MacOS"
@@ -78,11 +81,11 @@ add_custom_command(
             "${WIRE_MACOS_SRC_DIR}/Info.plist"
             "${WIRE_MACOS_CONTENTS}/Info.plist"
     COMMAND "${CMAKE_COMMAND}" -E copy
-            "${LIBRIBRENDER_DYLIB_DIR}/${LIBRIBRENDER_VERSIONED}"
-            "${WIRE_MACOS_CONTENTS}/Frameworks/${LIBRIBRENDER_VERSIONED}"
+            "${LIBRIBVECTOR_DYLIB_DIR}/${LIBRIBVECTOR_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/${LIBRIBVECTOR_VERSIONED}"
     COMMAND "${CMAKE_COMMAND}" -E create_symlink
-            "${LIBRIBRENDER_VERSIONED}"
-            "${WIRE_MACOS_CONTENTS}/Frameworks/libRIBRender.dylib"
+            "${LIBRIBVECTOR_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/libribVector.dylib"
     COMMAND codesign --force --deep -s - "${WIRE_MACOS_APP_DIR}"
     DEPENDS ${WIRE_MACOS_SOURCES}
             "${WIRE_MACOS_SRC_DIR}/Package.swift"

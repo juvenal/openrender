@@ -31,7 +31,7 @@ target_include_directories(ribpreview PUBLIC
     ${CMAKE_BINARY_DIR}
 )
 
-target_link_libraries(ribpreview PUBLIC ribRender openrendercommon)
+target_link_libraries(ribpreview PUBLIC ribVector openrendercommon)
 target_compile_features(ribpreview PRIVATE cxx_std_20)
 
 # Suppress C++20 deprecation warning noise from ri headers

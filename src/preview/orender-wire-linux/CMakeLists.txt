@@ -66,13 +66,21 @@ target_link_options(orender-wire-linux PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_L
 # still plain "orender-wire" on disk, in the build tree and once installed.
 #
 # BUILD_WITH_INSTALL_RPATH is intentionally left at its default (FALSE): setting it TRUE would
-# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libRIBRender.so)
+# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libribVector.so)
 # into the *build-tree* binary too, where $ORIGIN/../lib resolves to a directory that doesn't
-# exist (libRIBRender.so actually lives under build/src/ri/) -- the binary would fail to even start
-# ("error while loading shared libraries: libRIBRender.so.1: cannot open shared object file") when run
+# exist (libribVector.so actually lives under build/src/ri/) -- the binary would fail to even start
+# ("error while loading shared libraries: libribVector.so.1: cannot open shared object file") when run
 # directly from build/, which is exactly how this gets tested during development. Leaving this
 # unset lets CMake auto-compute a correct build-tree RPATH while still applying INSTALL_RPATH at
 # actual `cmake --install` time.
+#
+# ribpreview links ribVector (not ribRender): the geometry-only extraction
+# with no LLVM/libshader_shading dependency at all -- this is what actually
+# fixes the LLVM symbol-collision crash between this project's own bundled
+# LLVM and Mesa's system LLVM (both loaded into the same process once
+# orender-wire, which uses OpenGL, links anything pulling in LLVM) that used
+# to crash orender-wire on Linux. See the domain-split plan and
+# src/ri/CMakeLists.txt's ribVector section for the full rationale.
 set_target_properties(orender-wire-linux PROPERTIES
     OUTPUT_NAME "orender-wire"
     INSTALL_RPATH "$ORIGIN/../lib"
