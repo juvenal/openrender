@@ -72,24 +72,8 @@ CObject::~CObject() {
     xform->detach();
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CObject
-// Method				:	dice
-// Description			:	Dice the children objects
-// Return Value			:	-
-// Comments				:
-void CObject::dice(CReyes *rasterizer) {
-    CObject *cObject, *nObject;
-    for (cObject = children; cObject != NULL; cObject = nObject) {
-        nObject = cObject->sibling;
-
-        cObject->attach();
-
-        rasterizer->drawObject(cObject);
-
-        cObject->detach();
-    }
-}
+// CObject::dice() lives in geometryDispatch.cpp (real body) /
+// geometryDispatchStub.cpp (ribVector stub) -- see that file's header comment.
 
 static float getDisp(const float *mat, float) {
     float tmp[4], tmp2[4];
@@ -524,125 +508,9 @@ void CDummyObject::intersect(CShadingContext *, CRay *) {
     // assert(FALSE);
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSurface
-// Method				:	checkRayGuard
-// Description			:	Shared ray-rejection + displacement-tesselation
-//							guard, consolidated from three previously
-//							duplicated copies (a macro each in quadrics.cpp
-//							and patches.cpp, plus two open-coded copies in
-//							polygons.cpp).
-// Return Value			:	TRUE if the caller should return immediately
-// Comments				:
-bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
-    if (!(rv->flags & attributes->flags))
-        return TRUE;
-
-    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
-        const float importance = attributes->lodImportance;
-        if (importance >= 0) {
-            if (rv->jimp > importance)
-                return TRUE;
-        } else {
-            if ((1 - rv->jimp) >= -importance)
-                return TRUE;
-        }
-    }
-
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
-        // Do we have a grid ?
-        if (children == NULL) {
-            osLock(CRenderer::tesselateMutex);
-
-            if (children == NULL) {
-                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
-
-                tesselation->initTesselation(context);
-                tesselation->attach();
-                children = tesselation;
-            }
-
-            osUnlock(CRenderer::tesselateMutex);
-        }
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSurface
-// Method				:	intersect
-// Description			:	Intersect the surface
-// Return Value			:
-// Comments				:
-void CSurface::intersect(CShadingContext *context, CRay *cRay) {
-
-    if (!(cRay->flags & attributes->flags))
-        return;
-
-    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
-        const float importance = attributes->lodImportance;
-        if (importance >= 0) {
-            if (cRay->jimp > importance)
-                return;
-        } else {
-            if ((1 - cRay->jimp) >= -importance)
-                return;
-        }
-    }
-
-    // Do we have a grid ?
-    if (children == NULL) {
-        // Intersect with our bounding box
-        float t = nearestBox(bmin, bmax, cRay->from, cRay->invDir, cRay->tmin, cRay->t);
-
-        // Bail out if the hit point is already further than the ray got
-        // Note: this avoids unneeded top level tesselations
-        if (!(t < cRay->t))
-            return;
-
-        // We must lock the tesselateMutex so that the list of known tesselation patches
-        // is maintained in a thread safe manner
-        osLock(CRenderer::tesselateMutex);
-
-        if (children == NULL) {
-
-            CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
-
-            tesselation->initTesselation(context);
-            tesselation->attach();
-            children = tesselation;
-        }
-
-        osUnlock(CRenderer::tesselateMutex);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSurface
-// Method				:	dice
-// Description			:	Dice the object into smaller ones
-// Return Value			:
-// Comments				:
-void CSurface::dice(CReyes *rasterizer) {
-
-    int minU, minV;
-    int dicingStatsResult = getDicingStats(0, minU, minV);
-    int minSplits;
-    if (attributes->minSplits > dicingStatsResult) {
-        minSplits = attributes->minSplits;
-    } else {
-        minSplits = dicingStatsResult;
-    }
-
-    CPatch *cSurface = new CPatch(attributes, xform, this, 0, 1, 0, 1, 0, minSplits);
-    cSurface->attach();
-    cSurface->dice(rasterizer);
-    cSurface->detach();
-
-    // Note we tesselate for raytracing on demand - so we do not automatically emit a CTesselationPatch here
-}
+// CSurface::checkRayGuard()/intersect()/dice()/shade() (below moving()/sample()/
+// interpolate()) live in geometryDispatch.cpp (real body) / geometryDispatchStub.cpp
+// (ribVector stub) -- see that file's header comment.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSurface
@@ -676,31 +544,3 @@ void CSurface::interpolate(int, float **, float ***) const {
     assert(FALSE);
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSurface
-// Method				:	split
-// Description			:	Split an object
-// Return Value			:
-// Comments				:
-void CSurface::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
-    float *u = varying[VARIABLE_U];
-    float *v = varying[VARIABLE_V];
-    float *time = varying[VARIABLE_TIME];
-    float *I = varying[VARIABLE_I];
-    float *du = varying[VARIABLE_DU];
-    int i;
-
-    for (i = numRays; i > 0; i--) {
-        const CRay *cRay = *rays++;
-
-        *u++ = cRay->u;                        // The intersection u
-        *v++ = cRay->v;                        // The intersection v
-        *time++ = cRay->time;                  // The intersection time
-        *du++ = cRay->da * cRay->t + cRay->db; // The ray differential
-        mulvf(I, cRay->dir, cRay->t);          // Compute the I vector
-        I += 3;
-    }
-
-    context->shade(this, numRays, 1, SHADING_2D, 0);
-}

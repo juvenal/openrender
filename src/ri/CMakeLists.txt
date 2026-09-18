@@ -71,6 +71,7 @@ set(ri_sources
 	random.cpp
 	refCounter.cpp
 	remoteChannel.cpp
+	render/geometryDispatch.cpp
 	render/renderer.cpp
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
