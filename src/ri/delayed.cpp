@@ -86,44 +86,13 @@ CDelayedObject::~CDelayedObject() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject
-// Method				:	intersect
-// Description			:	See object.h
-// Return Value			:	-
-// Comments				:
-void CDelayedObject::intersect(CShadingContext *context, CRay *) {
-
-    // Process the object
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedObject(context, this, subdivisionFunction, data, bmin, bmax);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CDelayedObject
-// Method				:	dice
-// Description			:	See object.h
-// Return Value			:	-
-// Comments				:
-void CDelayedObject::dice(CReyes *r) {
-
-    // Process the object
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedObject(r, this, subdivisionFunction, data, bmin, bmax);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
-
-    // Let the parent dice it
-    CObject::dice(r);
-}
+// Method				:	intersect / dice
+// Comments				:	Real bodies live in render/geometryDispatch.cpp
+//							(need CRenderer::context->processDelayedObject());
+//							a loud stub lives in
+//							vector/geometryDispatchStub.cpp -- addObject()
+//							never calls either on this class (see
+//							geometryDispatch.cpp's header comment).
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject
@@ -179,44 +148,13 @@ CDelayedInstance::~CDelayedInstance() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedInstance
-// Method				:	intersect
-// Description			:	See object.h
-// Return Value			:	-
-// Comments				:
-void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
-
-    // Process the instance
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedInstance(context, this);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CDelayedInstance
-// Method				:	dice
-// Description			:	See object.h
-// Return Value			:	-
-// Comments				:
-void CDelayedInstance::dice(CReyes *r) {
-
-    // Process the instance
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedInstance(r, this);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
-
-    // Let the parent take care of the instance
-    CObject::dice(r);
-}
+// Method				:	intersect / dice
+// Comments				:	Real bodies live in render/geometryDispatch.cpp
+//							(need CRenderer::context->processDelayedInstance());
+//							a loud stub lives in
+//							vector/geometryDispatchStub.cpp -- addObject()
+//							never calls either on this class (see
+//							geometryDispatch.cpp's header comment).
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedInstance

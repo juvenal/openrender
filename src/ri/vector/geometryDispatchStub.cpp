@@ -5,28 +5,29 @@
  *
  * Description:
  *   ribVector's counterpart to src/ri/render/geometryDispatch.cpp. Provides
- *   the SAME CObject/CSurface/CCurve/CCubicCurve/CLinearCurve/CPoints methods
- *   with alternate bodies that never touch CShadingContext/CReyes, so a
- *   consumer that links this file instead of geometryDispatch.cpp never
- *   needs libshader_shading or the Reyes hider resolvable at all.
+ *   the SAME CObject/CSurface/CCurve/CCubicCurve/CLinearCurve/CPoints/
+ *   CDelayedObject/CDelayedInstance methods with alternate bodies that never
+ *   touch CShadingContext/CReyes, so a consumer that links this file instead
+ *   of geometryDispatch.cpp never needs libshader_shading or the Reyes
+ *   hider resolvable at all.
  *
  *   This is safe because none of orender-wire's actual code path ever
  *   reaches these methods: CPreviewContext::addObject() extracts geometry
  *   via each class's own wireData() accessor and this file's own dedicated
  *   tessellators (src/preview/libribpreview/tessellators/), never by calling
- *   intersect()/dice()/shade() on the constructed object. These bodies exist
- *   purely to give every geometry class a complete, linkable vtable; they
- *   are deliberately loud (error() + assert(FALSE)) rather than silent
- *   no-ops, so that if this analysis is ever wrong and one of them *is*
- *   reached, it fails immediately and diagnosably instead of producing a
- *   quietly-wrong wireframe.
+ *   intersect()/dice()/shade() on the constructed object -- and for
+ *   CDelayedObject/CDelayedInstance specifically, addObject() draws a
+ *   procedural bounding box / walks the instance chain and calls
+ *   instantiate() instead, confirmed by reading previewContext.cpp directly.
+ *   These bodies exist purely to give every geometry class a complete,
+ *   linkable vtable; they are deliberately loud (error() + assert(FALSE))
+ *   rather than silent no-ops, so that if this analysis is ever wrong and
+ *   one of them *is* reached, it fails immediately and diagnosably instead
+ *   of producing a quietly-wrong wireframe.
  *
  *   checkRayGuard() is the one exception: returning TRUE ("caller should
  *   return immediately") is a legitimate, correct answer for a build that
  *   never raytraces at all, not an error path -- there is nothing to log.
- *
- *   Not yet wired into any CMake target (see the vector-domain step of the
- *   codebase-refactor-fixture plan for when a ribVector target is added).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -37,6 +38,7 @@
  *
  */
 #include "curves.h"
+#include "delayed.h"
 #include "error.h"
 #include "object.h"
 #include "points.h"
@@ -89,5 +91,25 @@ void CLinearCurve::splitToChildren(CReyes *) {
 
 void CPoints::dice(CReyes *) {
     error(CODE_BUG, "CPoints::dice() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CDelayedObject::intersect(CShadingContext *, CRay *) {
+    error(CODE_BUG, "CDelayedObject::intersect() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CDelayedObject::dice(CReyes *) {
+    error(CODE_BUG, "CDelayedObject::dice() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CDelayedInstance::intersect(CShadingContext *, CRay *) {
+    error(CODE_BUG, "CDelayedInstance::intersect() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
+void CDelayedInstance::dice(CReyes *) {
+    error(CODE_BUG, "CDelayedInstance::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }

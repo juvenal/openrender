@@ -5,26 +5,39 @@
  *
  * Description:
  *   Real (rendering-time) bodies of the small set of CObject/CSurface/CCurve/
- *   CPoints methods that reach into the shading engine or the Reyes hider
- *   (CShadingContext::shade/displace/urand, CReyes::drawObject/drawPoints,
- *   CTesselationPatch construction). Most are virtual overrides, so a
- *   geometry class's vtable includes them whether or not a given consumer
- *   ever calls them; CObject::cluster() is the one non-virtual exception,
- *   included here because its own body (not a vtable slot) references
- *   CShadingContext::urand() -- an inline wrapper in shading.h around the
- *   real CShadingContext::next_state() -- discovered only by an `nm -u`
- *   sweep over the built object files, not by reading the source, since it
- *   reads exactly like the memory-pool-only pattern every other safe method
- *   here follows. A consumer that must not link libshader_shading
- *   (orender-wire's ribVector, see the domain-split plan) needs a build of
- *   the geometry classes where these specific methods have alternate,
- *   non-shading bodies instead -- see geometryDispatchStub.cpp for that
- *   alternate build's counterpart.
+ *   CPoints/CDelayedObject/CDelayedInstance methods that reach into the
+ *   shading engine or the Reyes hider (CShadingContext::shade/displace/
+ *   urand, CReyes::drawObject/drawPoints, CTesselationPatch construction,
+ *   CRenderer::context->processDelayedObject/processDelayedInstance). Most
+ *   are virtual overrides, so a geometry class's vtable includes them
+ *   whether or not a given consumer ever calls them; CObject::cluster() is
+ *   a non-virtual exception, included here because its own body (not a
+ *   vtable slot) references CShadingContext::urand() -- an inline wrapper
+ *   in shading.h around the real CShadingContext::next_state() --
+ *   discovered only by an `nm -u` sweep over the built object files, not by
+ *   reading the source, since it reads exactly like the memory-pool-only
+ *   pattern every other safe method here follows. A consumer that must not
+ *   link libshader_shading (orender-wire's ribVector, see the domain-split
+ *   plan) needs a build of the geometry classes where these specific
+ *   methods have alternate, non-shading bodies instead -- see
+ *   geometryDispatchStub.cpp for that alternate build's counterpart.
+ *
+ *   CDelayedObject::intersect()/dice() and CDelayedInstance::intersect()/
+ *   dice() are vtable-anchored the same way: both classes ARE genuinely
+ *   constructed by ribVector's real path (CRibGeometryContext::addObject()
+ *   emits both), but that same addObject() never calls intersect()/dice()
+ *   on them -- CDelayedObject is drawn as a procedural bounding box
+ *   (tessProc()) and CDelayedInstance is unwrapped by walking its
+ *   instance chain and calling instantiate() (a different, still-shared
+ *   method, kept in delayed.cpp) on each child. Confirmed by reading
+ *   previewContext.cpp's addObject() dynamic_cast branches for both
+ *   classes directly, not by assuming.
  *
  *   Everything else about these classes (constructors, computeObjectBound,
- *   sample()/interpolate(), create(), wireData() accessors) has no such
- *   dependency and stays in object.cpp/curves.cpp/points.cpp, compiled
- *   identically for every consumer.
+ *   sample()/interpolate(), create(), wireData() accessors,
+ *   CDelayed*::instantiate()) has no such dependency and stays in
+ *   object.cpp/curves.cpp/points.cpp/delayed.cpp, compiled identically for
+ *   every consumer.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -39,6 +52,7 @@
 #include <math.h>
 
 #include "curves.h"
+#include "delayed.h"
 #include "error.h"
 #include "memory.h"
 #include "object.h"
@@ -645,4 +659,86 @@ void CPoints::dice(CReyes *rasterizer) {
 
         memEnd(rasterizer->threadMemory);
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedObject
+// Method				:	intersect
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedObject::intersect(CShadingContext *context, CRay *) {
+
+    // Process the object
+    if (processed == FALSE) {
+        osLock(CRenderer::delayedMutex);
+        if (processed == FALSE) {
+            CRenderer::context->processDelayedObject(context, this, subdivisionFunction, data, bmin, bmax);
+            processed = TRUE;
+        }
+        osUnlock(CRenderer::delayedMutex);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedObject
+// Method				:	dice
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedObject::dice(CReyes *r) {
+
+    // Process the object
+    if (processed == FALSE) {
+        osLock(CRenderer::delayedMutex);
+        if (processed == FALSE) {
+            CRenderer::context->processDelayedObject(r, this, subdivisionFunction, data, bmin, bmax);
+            processed = TRUE;
+        }
+        osUnlock(CRenderer::delayedMutex);
+    }
+
+    // Let the parent dice it
+    CObject::dice(r);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedInstance
+// Method				:	intersect
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
+
+    // Process the instance
+    if (processed == FALSE) {
+        osLock(CRenderer::delayedMutex);
+        if (processed == FALSE) {
+            CRenderer::context->processDelayedInstance(context, this);
+            processed = TRUE;
+        }
+        osUnlock(CRenderer::delayedMutex);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedInstance
+// Method				:	dice
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedInstance::dice(CReyes *r) {
+
+    // Process the instance
+    if (processed == FALSE) {
+        osLock(CRenderer::delayedMutex);
+        if (processed == FALSE) {
+            CRenderer::context->processDelayedInstance(r, this);
+            processed = TRUE;
+        }
+        osUnlock(CRenderer::delayedMutex);
+    }
+
+    // Let the parent take care of the instance
+    CObject::dice(r);
 }

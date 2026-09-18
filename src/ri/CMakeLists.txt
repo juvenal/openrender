@@ -30,6 +30,7 @@ set(ri_sources
 	curves.cpp
 	bsplinePatchgrid.cpp
 	csgBoolean.cpp
+	csgTesselationDispatch.cpp
 	csgTree.cpp
 	dataLoad.cpp
 	dataView.cpp
@@ -80,6 +81,7 @@ set(ri_sources
 	render/rendererDeclarationsDispatch.cpp
 	render/rendererDisplay.cpp
 	render/rendererFiles.cpp
+	render/rendererFileSearch.cpp
 	render/rendererJobs.cpp
 	render/rendererMutexes.cpp
 	render/rendererNetwork.cpp
@@ -223,8 +225,50 @@ endif()
 # rendererDeclarationsDispatch.cpp are swapped for their vector/*Stub.cpp
 # counterparts rather than merely removed, since those methods are reached
 # for real (or vtable-required) even in a build with no rendering pipeline.
+#
+# The six entries below were confirmed excludable by a second `nm -u` sweep
+# after the above: init.cpp is a single function, CRendererContext::init(),
+# dead for the same reason rendererContext.cpp is. render/rendererFiles.cpp
+# (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
+# render/rendererDisplay.cpp (CRenderer::dispatch() -> CImagerExecutor) are
+# both full-pipeline-only, reached only from beginFrame()/render(), which
+# ribpreview_load() never calls. csgTree.cpp and solidObject.cpp are RIB
+# `Solid`/CSG support: CRibGeometryContext has no RiSolidBegin/RiSolidEnd
+# override at all, so CSG is structurally unsupported on the preview path,
+# and CSolidObject is constructed only from csgTree.cpp (confirmed by
+# grepping every "new CSolidObject"/"CSolidObject(" site repo-wide) -- so
+# excluding csgTree.cpp makes solidObject.cpp dead too. parse/ifexpr_generated.cpp
+# (the RIB `if()`-conditional grammar) defines CRendererContext::ifParse(),
+# called only from the two RiIfBeginV/RiElseIfV sites in the already-excluded
+# rendererContext.cpp -- confirmed by grepping every ifParse call site
+# repo-wide, so despite being a *separate* grammar file from the main RIB
+# parser, it's exclusively a CRendererContext feature and drops out cleanly
+# with it (verified this is NOT the same situation as rib_generated.cpp's own
+# direct CRenderer::context->getAttributes() calls, which were load-bearing
+# for PatchMesh/Curves parsing and got a real, generic fix instead -- see the
+# CRiInterface::getAttributes() virtual and rib.y's getBasisSteps()).
+#
+# A third sweep (after the above) found remoteChannel.cpp and
+# render/rendererJobs.cpp: the former's CRemoteChannel-derived classes
+# (CRemoteICacheChannel/CRemoteTSMChannel/CRemotePtCloudChannel) are
+# constructed only from rendererDisplay.cpp/rendererFiles.cpp (both already
+# excluded, confirmed by grepping every "new CRemote*"/"CRemoteChannel("
+# site repo-wide), and the latter is pure distributed-render job dispatch
+# (bucket assignment, network server thread) -- neither is ever touched by
+# orender-wire's preview path. That sweep also surfaced CRenderer::
+# locateFile()/normalizeFileName() as a real gap: they're plain filesystem/
+# network path-search helpers with no shading-engine dependency of their
+# own, but they lived in render/rendererFiles.cpp alongside the genuinely
+# full-pipeline-only getShader/getPhotonMap/etc. -- and they're actually
+# needed (blobbyRepeller.cpp, texmake.cpp, texture.cpp, brickmap.cpp, and
+# rib_generated.cpp's RiReadArchiveV archive-path search all call
+# locateFile() directly). Moved to render/rendererFileSearch.cpp, compiled
+# identically for both ribRender and ribVector -- no real/stub split needed,
+# since there's nothing shading-specific to swap out.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
+    csgTesselationDispatch.cpp
+    csgTree.cpp
     dlobject.cpp
     hcshader.cpp
     hiders/irradianceDispatch.cpp
@@ -236,16 +280,24 @@ list(REMOVE_ITEM ribVector_sources
     hiders/stochastic.cpp
     hiders/trace.cpp
     hiders/zbuffer.cpp
+    ifexpr_generated.cpp
     imager.cpp
     implicitSurface.cpp
+    init.cpp
+    remoteChannel.cpp
     render/geometryDispatch.cpp
     render/renderer.cpp
     render/rendererContext.cpp
     render/rendererDeclarationsDispatch.cpp
+    render/rendererDisplay.cpp
+    render/rendererFiles.cpp
+    render/rendererJobs.cpp
     render/rendererShadingServices.cpp
+    solidObject.cpp
     surface.cpp
 )
 list(APPEND ribVector_sources
+    vector/csgTesselationDispatchStub.cpp
     vector/geometryDispatchStub.cpp
     vector/irradianceDispatchStub.cpp
     vector/rendererDeclarationsDispatchStub.cpp
