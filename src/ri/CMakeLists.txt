@@ -42,6 +42,7 @@ set(ri_sources
 	fileResource.cpp
 	hcshader.cpp
 	hiders/irradiance.cpp
+	hiders/irradianceDispatch.cpp
 	hiders/occlusion.cpp
 	hiders/photon.cpp
 	hiders/photonMap.cpp
@@ -193,6 +194,97 @@ if(WIN32)
 endif()
 if(UNIX)
     target_link_libraries(ribRender_static INTERFACE z)
+endif()
+
+# ribVector: geometry-only extraction for orender-wire (see the domain-split
+# plan) -- the same ri_sources list minus every file confirmed, via an
+# `nm -u` sweep over ribRender_obj's built object files (not by reading
+# source -- see geometryDispatch.cpp's and rendererDeclarationsDispatch.cpp's
+# header comments for what that sweep found), to still reach
+# CShadingContext/CReyes after the real/stub extractions above: the Reyes/
+# raytrace/photon/stochastic/zbuffer/occlusion/irradiance/sampler/trace
+# hiders, CPatch/CTesselationPatch's own adaptive-tessellation machinery
+# (surface.cpp), the imager/DL-object/implicit-surface/hierarchical-cache-
+# shader features (dlobject.cpp, hcshader.cpp, imager.cpp,
+# implicitSurface.cpp -- none of which orender-wire's preview path ever
+# constructs), rendererShadingServices.cpp, and CRenderer's actual render
+# pipeline (renderer.cpp, confirmed dead code here by tracing
+# ribpreview_load()'s call graph: RiBeginLite() -> RiInit(), which never
+# touches CRenderer -- ribVector needs only its static data, split out to
+# rendererStatics.cpp). Also excludes rendererContext.cpp: CRendererContext
+# is the *other* CRiInterface implementation (the one orender's real
+# RiBegin() path uses), never constructed by ribpreview_load() (which uses
+# CPreviewContext, in libribpreview, instead) -- but its own compiled
+# method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
+# straight into CRenderer::beginFrame()/render()/etc. and construct
+# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap/
+# CQuadLight/CSphereLight, so linking it in would silently reintroduce most
+# of what everything else in this list was excluded to avoid. geometryDispatch.cpp and
+# rendererDeclarationsDispatch.cpp are swapped for their vector/*Stub.cpp
+# counterparts rather than merely removed, since those methods are reached
+# for real (or vtable-required) even in a build with no rendering pipeline.
+set(ribVector_sources ${ri_sources})
+list(REMOVE_ITEM ribVector_sources
+    dlobject.cpp
+    hcshader.cpp
+    hiders/irradianceDispatch.cpp
+    hiders/occlusion.cpp
+    hiders/photon.cpp
+    hiders/raytracer.cpp
+    hiders/reyes.cpp
+    hiders/sampler.cpp
+    hiders/stochastic.cpp
+    hiders/trace.cpp
+    hiders/zbuffer.cpp
+    imager.cpp
+    implicitSurface.cpp
+    render/geometryDispatch.cpp
+    render/renderer.cpp
+    render/rendererContext.cpp
+    render/rendererDeclarationsDispatch.cpp
+    render/rendererShadingServices.cpp
+    surface.cpp
+)
+list(APPEND ribVector_sources
+    vector/geometryDispatchStub.cpp
+    vector/irradianceDispatchStub.cpp
+    vector/rendererDeclarationsDispatchStub.cpp
+)
+
+add_library(ribVector_obj OBJECT ${ribVector_sources} ${ri_headers})
+set_target_properties(ribVector_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(ribVector_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
+target_link_libraries(ribVector_obj PRIVATE openrendercommon ${openrendertiff_libs})
+
+# Deliberately no libshader_shading, no LLVM: that is the entire point of this
+# target existing separately from ribRender.
+add_library(ribVector SHARED $<TARGET_OBJECTS:ribVector_obj>)
+target_include_directories(ribVector PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/parse>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
+)
+target_link_libraries(ribVector PRIVATE ${openrendertiff_libs} openrendercommon)
+if(WIN32)
+    target_link_libraries(ribVector PRIVATE zlib ws2_32)
+endif()
+if(UNIX)
+    target_link_libraries(ribVector PRIVATE z)
+endif()
+set_target_properties(ribVector PROPERTIES
+    VERSION   ${PROJECT_VERSION}
+    SOVERSION ${OPENRENDER_COMPAT_SOVERSION}
+)
+if(APPLE)
+    if(INSTALL_SELFCONTAINED)
+        set_target_properties(ribVector PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+        set_target_properties(ribVector PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
 endif()
 
 # libri compatibility alias: a symlink next to the real libRIBRender artifact

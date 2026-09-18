@@ -43,6 +43,20 @@ const unsigned int CACHE_RDONLY = 8; // ONLY Read the cache
 
 // Forward declarations
 class CRemoteICacheChannel;
+class CShadingContext;
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	irradianceSampleAccept
+// Description			:	Weighted-discard test used by CIrradianceCache::
+//							lookup() while accumulating cached samples. Real
+//							body lives in irradianceDispatch.cpp (needs
+//							CShadingContext::next_state via context->urand());
+//							a non-shading stub lives in
+//							vector/irradianceDispatchStub.cpp for consumers
+//							that must not link libshader_shading.
+// Return Value			:	TRUE if the sample should be accepted
+// Comments				:
+bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
