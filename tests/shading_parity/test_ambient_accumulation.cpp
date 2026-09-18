@@ -36,7 +36,7 @@
 #include <unistd.h>
 
 #include "libshader/include/openrender/RSLShading.h"
-#include "ri/attributes.h"
+#include "ri/state/attributes.h"
 #include "ri/memory.h"
 #include "ri/object.h"
 #include "ri/render/renderer.h"
@@ -44,7 +44,7 @@
 #include "ri/ri.h"
 #include "ri/shader.h"
 #include "ri/shading.h"
-#include "ri/xform.h"
+#include "ri/state/xform.h"
 
 static int g_passed = 0;
 static int g_failed = 0;

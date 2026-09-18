@@ -1,19 +1,22 @@
-file(GLOB ri_headers *.h hiders/*.h render/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
-# hiders/ and render/ are the first two domains split out of the historically
-# flat src/ri/ tree (see the domain-split plan) -- ribRender-only content so
-# far, but kept on the same flat include path as "." so every #include
-# "reyes.h"/"renderer.h" style reference elsewhere in the tree keeps working
-# unqualified, exactly like "." itself already does.
+# hiders/, render/ and state/ are domains split out of the historically flat
+# src/ri/ tree (see the domain-split plan) -- kept on the same flat include
+# path as "." so every #include "reyes.h"/"renderer.h"/"attributes.h" style
+# reference elsewhere in the tree keeps working unqualified, exactly like "."
+# itself already does. state/ (attributes, options, xform, displayChannel) is
+# not ribRender-only the way hiders/render are -- it's the widely-shared
+# graphics-state domain future ribVector/ribOut will also need.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hiders)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
 # Allow ri/ files to include shading engine headers from their new location.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 
 set(ri_sources
-	attributes.cpp
+	state/attributes.cpp
 	blobby.cpp
 	blobbyField.cpp
 	blobbyPolygonize.cpp
@@ -29,7 +32,7 @@ set(ri_sources
 	dataView.cpp
 	debug.cpp
 	delayed.cpp
-	displayChannel.cpp
+	state/displayChannel.cpp
 	dlobject.cpp
 #	dso.cpp
 	error.cpp
@@ -52,7 +55,7 @@ set(ri_sources
 	linsys.cpp
 	memory.cpp
 	object.cpp
-	options.cpp
+	state/options.cpp
 	patches.cpp
 	patchgrid.cpp
 	pl.cpp
@@ -92,7 +95,7 @@ set(ri_sources
 	texture.cpp
 	texture3d.cpp
 #	variable.cpp
-	xform.cpp
+	state/xform.cpp
 )
 
 # this is to make sure generated bison cpp's include the correct lex.xxx.cpp
@@ -147,6 +150,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)

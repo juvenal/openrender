@@ -94,6 +94,7 @@ target_include_directories(test_libshader_used_parameters_table PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri                   # rendererc.h (PARAMETER_* constants)
     ${CMAKE_SOURCE_DIR}/src/ri/hiders
     ${CMAKE_SOURCE_DIR}/src/ri/render
+    ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/libshader/shading    # scriptFunctions.h/scriptOpcodes.h
 )
 

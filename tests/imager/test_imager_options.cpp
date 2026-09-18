@@ -15,7 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "ri/options.h"
+#include "ri/state/options.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 #include "ri/ri.h"
