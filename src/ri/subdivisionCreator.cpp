@@ -1839,16 +1839,7 @@ void CSubdivMesh::dice(CReyes *rasterizer) {
     if (children == NULL)
         create(rasterizer);
 
-    CObject *cObject, *nObject;
-    for (cObject = children; cObject != NULL; cObject = nObject) {
-        nObject = cObject->sibling;
-
-        cObject->attach();
-
-        rasterizer->drawObject(cObject);
-
-        cObject->detach();
-    }
+    CObject::dice(rasterizer);
 }
 
 ///////////////////////////////////////////////////////////////////////
