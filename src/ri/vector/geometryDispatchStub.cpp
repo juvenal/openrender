@@ -47,6 +47,11 @@ void CObject::dice(CReyes *) {
     assert(FALSE);
 }
 
+void CObject::cluster(CShadingContext *) {
+    error(CODE_BUG, "CObject::cluster() reached in a build with no rendering pipeline\n");
+    assert(FALSE);
+}
+
 bool CSurface::checkRayGuard(CRay *, CShadingContext *) {
     // Never raytraced in this build -- there is nothing for the caller to do.
     return TRUE;
