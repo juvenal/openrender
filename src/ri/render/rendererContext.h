@@ -203,6 +203,7 @@ class CRendererContext : public CRiInterface {
         CXform *getXform(int);                                                            // Get the active XForm
         CAttributes *getAttributes(int) override;                                         // Get the active Attributes
         COptions *getOptions() override;                                                  // Get the active Options
+        void getBasisSteps(int &uStep, int &vStep) override;                              // Get the active basis step sizes
         CShaderInstance *getShader(const char *, int, int, const char **, const void **); // Load a shader
 
         // Delayed object junk

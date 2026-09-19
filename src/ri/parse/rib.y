@@ -367,22 +367,13 @@ static	int		parameterListCheck() {
 //							step sizes, for validating PatchMesh/Curves
 //							vertex counts while parsing. renderMan may be
 //							any CRiInterface (full pipeline, preview, or
-//							ribout passthrough) -- contexts that don't
-//							track a real attribute stack return NULL from
-//							getAttributes(), and we fall back to the
-//							RISpec default basis (bezier, step 3).
+//							RIB-generator/ribout mode) -- each answers this
+//							correctly for its own tracked state; see
+//							CRiInterface::getBasisSteps()'s own comment.
 // Return Value			:	-
 // Comments				:
 static	void	getBasisSteps(int *uStep,int *vStep) {
-	CAttributes	*attributes	=	renderMan->getAttributes(FALSE);
-
-	if (attributes != NULL) {
-		*uStep	=	attributes->uStep;
-		*vStep	=	attributes->vStep;
-	} else {
-		*uStep	=	3;
-		*vStep	=	3;
-	}
+	renderMan->getBasisSteps(*uStep,*vStep);
 }
 
 ///////////////////////////////////////////////////////////////////////

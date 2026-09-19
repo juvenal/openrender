@@ -148,6 +148,27 @@ class CRibOut : public CRiInterface {
         virtual void RiPointsPolygonsV(int npolys, int *nverts, int *verts, int n, const char *tokens[], const void *params[]);
         virtual void RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]);
         virtual void RiBasis(float ubasis[][4], int ustep, float vbasis[][4], int vstep);
+
+        // CRibOut has no real CAttributes to hand back from getAttributes()
+        // (it tracks only uStep/vStep, in its own lightweight CRibAttributes,
+        // for its own RIB-text-generation correctness), but it does track
+        // those two fields correctly -- see the CRibAttributes class above
+        // and RiBasis()'s body. Answering this correctly matters even for a
+        // RIB generator (RiBegin with a filename is RISpec's own term for
+        // this mode): per RISpec 3.2 section 5.2, the number of patches a
+        // PatchMeshV request produces -- hence the parameter-list size the
+        // shared grammar (rib.y) expects before this class ever sees the
+        // call -- is defined in terms of the current basis's step size, not
+        // just validated against it. Without this override, a spec-
+        // compliant RIB file that sets a non-default RiBasis before a
+        // PatchMesh/Curves statement would have that statement's expected
+        // vertex count computed against the wrong (default bezier/3) step,
+        // rejecting valid geometry instead of passing it through.
+        void getBasisSteps(int &uStep, int &vStep) override {
+            uStep = attributes->uStep;
+            vStep = attributes->vStep;
+        }
+
         virtual void RiPatchV(const char *type, int n, const char *tokens[], const void *params[]);
         virtual void RiPatchMeshV(const char *type, int nu, const char *uwrap, int nv, const char *vwrap, int n, const char *tokens[], const void *params[]);
         virtual void RiNuPatchV(int nu, int uorder, float *uknot, float umin, float umax, int nv, int vorder, float *vknot, float vmin, float vmax, int n, const char *tokens[], const void *params[]);

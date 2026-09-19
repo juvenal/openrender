@@ -265,6 +265,19 @@ COptions *CRendererContext::getOptions() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
+// Method				:	getBasisSteps
+// Description			:	Get the active basis step sizes
+// Return Value			:	-
+// Comments				:
+void CRendererContext::getBasisSteps(int &uStep, int &vStep) {
+    CAttributes *cAttributes = getAttributes(FALSE);
+
+    uStep = cAttributes->uStep;
+    vStep = cAttributes->vStep;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
 // Method				:	getShader
 // Description			:	Create an instance of a shader
 // Return Value			:

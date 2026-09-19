@@ -48,15 +48,36 @@ class CRiInterface {
 
         virtual void addObject(CObject *) {}
 
-        // The shared RIB grammar (rib.y) needs read access to the currently
-        // active attributes (specifically uStep/vStep) to validate PatchMesh/
-        // Curves vertex counts while parsing -- regardless of which concrete
-        // CRiInterface is driving the parse. Contexts that track a real
-        // attribute stack (CRendererContext, CRibGeometryContext) override
-        // this; one that doesn't (e.g. CRibOut) safely falls back to NULL,
-        // and the grammar substitutes the RISpec default basis step (3) --
-        // see getBasisSteps() in rib.y.
+        // General-purpose accessor for a context that tracks a real
+        // CAttributes stack (CRendererContext, CRibGeometryContext); one that
+        // doesn't (e.g. CRibOut, which tracks only uStep/vStep in its own
+        // lightweight, unrelated CRibAttributes type -- there is no
+        // CAttributes* it could honestly return) falls back to NULL. See
+        // getBasisSteps() just below for the one thing every concrete
+        // CRiInterface actually needs to answer correctly regardless.
         virtual CAttributes *getAttributes(int modify) { return nullptr; }
+
+        // The shared RIB grammar (rib.y) needs the currently active bicubic-
+        // patch basis step sizes to validate PatchMesh/Curves vertex counts
+        // while parsing -- per RISpec 3.2 section 5.2, the number of patches
+        // (hence the expected vertex/varying/uniform counts) a PatchMeshV
+        // request produces is *defined* in terms of the current u/v basis's
+        // step size (RiBasis, itself part of the graphics state), not just
+        // validated against it -- so this needs to be right for every
+        // CRiInterface implementation that parses RIB text, RIB-generator
+        // mode (RiBegin with a filename, RISpec's own term -- see CRibOut)
+        // included, not only the rendering/preview paths. A narrower virtual
+        // than getAttributes() on purpose: unlike CRendererContext/
+        // CRibGeometryContext, CRibOut has no real CAttributes to hand back,
+        // but does track uStep/vStep itself (in CRibAttributes, for its own
+        // RIB-text-generation correctness) and can answer this exactly. The
+        // base default is the RISpec default basis (bezier, step 3) --
+        // correct for a context that's never had RiBasis() called on it, not
+        // just a safe fallback for one that doesn't track this at all.
+        virtual void getBasisSteps(int &uStep, int &vStep) {
+            uStep = 3;
+            vStep = 3;
+        }
 
         // Same reasoning, for the RIB lexer's `ReadArchive "file"` handling
         // (parse/rib.l): it needs the active Options' archivePath to resolve
