@@ -55,7 +55,7 @@ class CRiInterface {
         // CAttributes* it could honestly return) falls back to NULL. See
         // getBasisSteps() just below for the one thing every concrete
         // CRiInterface actually needs to answer correctly regardless.
-        virtual CAttributes *getAttributes(int modify) { return nullptr; }
+        virtual CAttributes *getAttributes(int) { return nullptr; }
 
         // The shared RIB grammar (rib.y) needs the currently active bicubic-
         // patch basis step sizes to validate PatchMesh/Curves vertex counts

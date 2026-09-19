@@ -61,143 +61,144 @@ class CRendererContext : public CRiInterface {
         ///////////////////////////////////////////////////////////////////////
         // Renderer interface
         ///////////////////////////////////////////////////////////////////////
-        void RiDeclare(const char *, const char *);
+        void RiDeclare(const char *, const char *) override;
 
-        void RiFrameBegin(int);
-        void RiFrameEnd(void);
-        void RiWorldBegin(void);
-        void RiWorldEnd(void);
+        void RiFrameBegin(int) override;
+        void RiFrameEnd(void) override;
+        void RiWorldBegin(void) override;
+        void RiWorldEnd(void) override;
 
-        void RiFormat(int xres, int yres, float aspect);
-        void RiFrameAspectRatio(float aspect);
-        void RiScreenWindow(float left, float right, float bot, float top);
-        void RiCropWindow(float xmin, float xmax, float ymin, float ymax);
-        void RiProjectionV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiClipping(float hither, float yon);
-        void RiClippingPlane(float x, float y, float z, float nx, float ny, float nz);
-        void RiDepthOfField(float fstop, float focallength, float focaldistance);
-        void RiShutter(float smin, float smax);
+        void RiFormat(int xres, int yres, float aspect) override;
+        void RiFrameAspectRatio(float aspect) override;
+        void RiScreenWindow(float left, float right, float bot, float top) override;
+        void RiCropWindow(float xmin, float xmax, float ymin, float ymax) override;
+        void RiProjectionV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiClipping(float hither, float yon) override;
+        void RiClippingPlane(float x, float y, float z, float nx, float ny, float nz) override;
+        void RiDepthOfField(float fstop, float focallength, float focaldistance) override;
+        void RiShutter(float smin, float smax) override;
 
-        void RiPixelVariance(float variation);
-        void RiPixelSamples(float xsamples, float ysamples);
-        void RiPixelFilter(float (*function)(float, float, float, float), float xwidth, float ywidth);
-        void RiExposure(float gain, float gamma);
-        void RiImagerV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiQuantize(const char *type, int one, int qmin, int qmax, float ampl);
-        void RiDisplayV(const char *name, const char *type, const char *mode, int n, const char *tokens[], const void *params[]);
-        void RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt n, RtToken tokens[], RtPointer params[]);
-        void RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]);
+        void RiPixelVariance(float variation) override;
+        void RiPixelSamples(float xsamples, float ysamples) override;
+        void RiPixelFilter(float (*function)(float, float, float, float), float xwidth, float ywidth) override;
+        void RiExposure(float gain, float gamma) override;
+        void RiImagerV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiQuantize(const char *type, int one, int qmin, int qmax, float ampl) override;
+        void RiDisplayV(const char *name, const char *type, const char *mode, int n, const char *tokens[], const void *params[]) override;
+        void RiCustomDisplayV(const char *name, RtToken mode, RtDisplayStartFunction, RtDisplayDataFunction, RtDisplayFinishFunction, RtInt n, RtToken tokens[], RtPointer params[]) override;
+        void RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) override;
 
-        void RiHiderV(const char *type, int n, const char *tokens[], const void *params[]);
-        void RiColorSamples(int N, float *nRGB, float *RGBn);
-        void RiRelativeDetail(float relativedetail);
-        void RiOptionV(const char *name, int n, const char *tokens[], const void *params[]);
+        void RiHiderV(const char *type, int n, const char *tokens[], const void *params[]) override;
+        void RiColorSamples(int N, float *nRGB, float *RGBn) override;
+        void RiRelativeDetail(float relativedetail) override;
+        void RiOptionV(const char *name, int n, const char *tokens[], const void *params[]) override;
 
-        void RiAttributeBegin(void);
-        void RiAttributeEnd(void);
-        void RiColor(float *Cs);
-        void RiOpacity(float *Cs);
-        void RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4);
+        void RiAttributeBegin(void) override;
+        void RiAttributeEnd(void) override;
+        void RiColor(float *Cs) override;
+        void RiOpacity(float *Cs) override;
+        void RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4) override;
 
-        void *RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]);
-        void *RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]);
+        void *RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void *RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
 
-        void RiIlluminate(const void *light, int onoff);
-        void RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiShadingRate(float size);
-        void RiShadingInterpolation(const char *type);
-        void RiMatte(int onoff);
+        void RiIlluminate(const void *light, int onoff) override;
+        void RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiShadingRate(float size) override;
+        void RiShadingInterpolation(const char *type) override;
+        void RiMatte(int onoff) override;
 
-        void RiBound(float *bound);
-        void RiDetail(float *bound);
-        void RiDetailRange(float minvis, float lowtran, float uptran, float maxvis);
-        void RiGeometricApproximation(const char *type, float value);
-        void RiGeometricRepresentation(const char *type);
-        void RiOrientation(const char *orientation), RiReverseOrientation(void);
-        void RiSides(int nsides);
+        void RiBound(float *bound) override;
+        void RiDetail(float *bound) override;
+        void RiDetailRange(float minvis, float lowtran, float uptran, float maxvis) override;
+        void RiGeometricApproximation(const char *type, float value) override;
+        void RiGeometricRepresentation(const char *type) override;
+        void RiOrientation(const char *orientation) override;
+        void RiReverseOrientation(void) override;
+        void RiSides(int nsides) override;
 
-        void RiIdentity(void);
-        void RiTransform(float transform[][4]);
-        void RiConcatTransform(float transform[][4]);
-        void RiPerspective(float fov);
-        void RiTranslate(float dx, float dy, float dz);
-        void RiRotate(float angle, float dx, float dy, float dz);
-        void RiScale(float dx, float dy, float dz);
-        void RiSkew(float angle, float dx1, float dy1, float dz1, float dx2, float dy2, float dz2);
-        void RiDeformationV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiDisplacementV(const char *name, int n, const char *tokens[], const void *params[]);
-        void RiCoordinateSystem(const char *space);
-        void RiCoordSysTransform(const char *space);
+        void RiIdentity(void) override;
+        void RiTransform(float transform[][4]) override;
+        void RiConcatTransform(float transform[][4]) override;
+        void RiPerspective(float fov) override;
+        void RiTranslate(float dx, float dy, float dz) override;
+        void RiRotate(float angle, float dx, float dy, float dz) override;
+        void RiScale(float dx, float dy, float dz) override;
+        void RiSkew(float angle, float dx1, float dy1, float dz1, float dx2, float dy2, float dz2) override;
+        void RiDeformationV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiDisplacementV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiCoordinateSystem(const char *space) override;
+        void RiCoordSysTransform(const char *space) override;
 
-        RtPoint *RiTransformPoints(const char *fromspace, const char *tospace, int npoints, RtPoint *points);
+        RtPoint *RiTransformPoints(const char *fromspace, const char *tospace, int npoints, RtPoint *points) override;
 
-        void RiTransformBegin(void);
-        void RiTransformEnd(void);
+        void RiTransformBegin(void) override;
+        void RiTransformEnd(void) override;
 
-        void RiAttributeV(const char *name, int n, const char *tokens[], const void *params[]);
+        void RiAttributeV(const char *name, int n, const char *tokens[], const void *params[]) override;
 
-        void RiPolygonV(int nvertices, int n, const char *tokens[], const void *params[]);
-        void RiGeneralPolygonV(int nloops, int *nverts, int n, const char *tokens[], const void *params[]);
-        void RiPointsPolygonsV(int npolys, int *nverts, int *verts, int n, const char *tokens[], const void *params[]);
-        void RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]);
-        void RiBasis(float ubasis[][4], int ustep, float vbasis[][4], int vstep);
-        void RiPatchV(const char *type, int n, const char *tokens[], const void *params[]);
-        void RiPatchMeshV(const char *type, int nu, const char *uwrap, int nv, const char *vwrap, int n, const char *tokens[], const void *params[]);
-        void RiNuPatchV(int nu, int uorder, float *uknot, float umin, float umax, int nv, int vorder, float *vknot, float vmin, float vmax, int n, const char *tokens[], const void *params[]);
-        void RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w);
+        void RiPolygonV(int nvertices, int n, const char *tokens[], const void *params[]) override;
+        void RiGeneralPolygonV(int nloops, int *nverts, int n, const char *tokens[], const void *params[]) override;
+        void RiPointsPolygonsV(int npolys, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) override;
+        void RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) override;
+        void RiBasis(float ubasis[][4], int ustep, float vbasis[][4], int vstep) override;
+        void RiPatchV(const char *type, int n, const char *tokens[], const void *params[]) override;
+        void RiPatchMeshV(const char *type, int nu, const char *uwrap, int nv, const char *vwrap, int n, const char *tokens[], const void *params[]) override;
+        void RiNuPatchV(int nu, int uorder, float *uknot, float umin, float umax, int nv, int vorder, float *vknot, float vmin, float vmax, int n, const char *tokens[], const void *params[]) override;
+        void RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w) override;
 
-        void RiSphereV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiConeV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiCylinderV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiHyperboloidV(float *point1, float *point2, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiParaboloidV(float rmax, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiDiskV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiTorusV(float majorrad, float minorrad, float phimin, float phimax, float thetamax, int n, const char *tokens[], const void *params[]);
-        void RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *));
-        void RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]);
+        void RiSphereV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiConeV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiCylinderV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiHyperboloidV(float *point1, float *point2, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiParaboloidV(float rmax, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiDiskV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiTorusV(float majorrad, float minorrad, float phimin, float phimax, float thetamax, int n, const char *tokens[], const void *params[]) override;
+        void RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *)) override;
+        void RiGeometryV(const char *type, int n, const char *tokens[], const void *params[]) override;
         void loadAndExecuteNamedGeometry(const char *filename, const char *objectName);
 
-        void RiCurvesV(const char *degree, int ncurves, int nverts[], const char *wrap, int n, const char *tokens[], const void *params[]);
-        void RiPointsV(int npts, int n, const char *tokens[], const void *params[]);
-        void RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int n, const char *tokens[], const void *params[]);
-        void RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int noverrides, int overrideFaceIndex[], int overrideLevel[], const char *overrideTags[], float overrideValues[], int n, const char *tokens[], const void *params[]);
-        void RiBlobbyV(int nleaf, int ncode, int code[], int nflt, float flt[], int nstr, const char *str[], int n, const char *tokens[], const void *params[]);
+        void RiCurvesV(const char *degree, int ncurves, int nverts[], const char *wrap, int n, const char *tokens[], const void *params[]) override;
+        void RiPointsV(int npts, int n, const char *tokens[], const void *params[]) override;
+        void RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int n, const char *tokens[], const void *params[]) override;
+        void RiHierarchicalSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int noverrides, int overrideFaceIndex[], int overrideLevel[], const char *overrideTags[], float overrideValues[], int n, const char *tokens[], const void *params[]) override;
+        void RiBlobbyV(int nleaf, int ncode, int code[], int nflt, float flt[], int nstr, const char *str[], int n, const char *tokens[], const void *params[]) override;
 
-        void RiSolidBegin(const char *type);
-        void RiSolidEnd(void);
-        void *RiObjectBegin(void);
+        void RiSolidBegin(const char *type) override;
+        void RiSolidEnd(void) override;
+        void *RiObjectBegin(void) override;
 
-        void RiObjectEnd(void);
-        void RiObjectInstance(const void *handle);
-        void RiMotionBeginV(int N, float times[]);
-        void RiMotionEnd(void);
+        void RiObjectEnd(void) override;
+        void RiObjectInstance(const void *handle) override;
+        void RiMotionBeginV(int N, float times[]) override;
+        void RiMotionEnd(void) override;
 
-        void RiMakeTextureV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]);
-        void RiMakeBumpV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]);
-        void RiMakeLatLongEnvironmentV(const char *pic, const char *tex, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]);
-        void RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float fov, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]);
-        void RiMakeShadowV(const char *pic, const char *tex, int n, const char *tokens[], const void *params[]);
-        void RiMakeBrickMapV(int nb, const char **src, const char *dest, int n, const char *tokens[], const void *params[]);
+        void RiMakeTextureV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) override;
+        void RiMakeBumpV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) override;
+        void RiMakeLatLongEnvironmentV(const char *pic, const char *tex, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) override;
+        void RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float fov, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) override;
+        void RiMakeShadowV(const char *pic, const char *tex, int n, const char *tokens[], const void *params[]) override;
+        void RiMakeBrickMapV(int nb, const char **src, const char *dest, int n, const char *tokens[], const void *params[]) override;
 
-        void RiArchiveRecord(const char *type, const char *format, va_list args);
-        void RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int n, const char *tokens[], const void *params[]);
+        void RiArchiveRecord(const char *type, const char *format, va_list args) override;
+        void RiReadArchiveV(const char *filename, void (*callback)(const char *, ...), int n, const char *tokens[], const void *params[]) override;
 
-        void *RiArchiveBeginV(const char *name, int n, const char *tokens[], const void *parms[]);
-        void RiArchiveEnd(void);
+        void *RiArchiveBeginV(const char *name, int n, const char *tokens[], const void *parms[]) override;
+        void RiArchiveEnd(void) override;
 
-        void RiResourceV(const char *handle, const char *type, int n, const char *tokens[], const void *parms[]);
-        void RiResourceBegin(void);
-        void RiResourceEnd(void);
+        void RiResourceV(const char *handle, const char *type, int n, const char *tokens[], const void *parms[]) override;
+        void RiResourceBegin(void) override;
+        void RiResourceEnd(void) override;
 
-        void RiIfBeginV(const char *expr, int n, const char *tokens[], const void *parms[]);
-        void RiElseIfV(const char *expr, int n, const char *tokens[], const void *parms[]);
-        void RiElse(void);
-        void RiIfEnd(void);
+        void RiIfBeginV(const char *expr, int n, const char *tokens[], const void *parms[]) override;
+        void RiElseIfV(const char *expr, int n, const char *tokens[], const void *parms[]) override;
+        void RiElse(void) override;
+        void RiIfEnd(void) override;
 
-        void RiError(int, int, const char *);
+        void RiError(int, int, const char *) override;
 
         // The following functions provide access to the graphics state
         CXform *getXform(int);                                                            // Get the active XForm
@@ -211,7 +212,7 @@ class CRendererContext : public CRiInterface {
         void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
         void processDelayedSolid(CShadingContext *context, CSolidObject *solid);
 
-        virtual void addObject(CObject *); // Add an object into the scene
+        virtual void addObject(CObject *) override; // Add an object into the scene
         void addInstance(const void *);    // Add an instance into the scene
         void rendererThread(const void *);
 

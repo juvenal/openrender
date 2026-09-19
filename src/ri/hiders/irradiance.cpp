@@ -43,7 +43,6 @@
 #include "texture.h"
 
 const float weightNormalDenominator = (float)(1 / (1 - cos(radians(10))));
-const float horizonCutoff = (float)cosf((float)radians(80));
 
 ///////////////////////////////////////////////////////////////////////
 //

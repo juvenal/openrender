@@ -195,6 +195,17 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(openrender_common_flags INTERFACE
         $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wunsequenced>
     )
+
+    # The full warning set above is verified clean as of 2026-09-19 (a from-scratch
+    # `rm -rf build openrender && cmake -B build ... && cmake --build build`, zero
+    # -W-flagged diagnostics -- the only remaining build-time warnings are linker
+    # noise from third-party binaries: Homebrew's LLVM/imaging libraries built
+    # against a newer macOS SDK than this project targets, and a documented
+    # PackageDescription.MacOSVersion granularity gap in orender-wire-macos's
+    # Package.swift, neither fixable from this project's own source or CMake
+    # config). -Werror locks that state in: any new warning is now a build
+    # failure instead of silently accumulating again.
+    target_compile_options(openrender_common_flags INTERFACE -Werror)
 endif()
 
 # ###########################################################################

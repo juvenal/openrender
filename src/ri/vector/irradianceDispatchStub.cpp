@@ -50,7 +50,7 @@ void CIrradianceCache::sample(float *, const float *, const float *, const float
     assert(FALSE);
 }
 
-bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *) {
+bool irradianceSampleAccept(float w, float smallSampleWeight [[maybe_unused]], CShadingContext *) {
     assert(smallSampleWeight == 0.0f);
     return w > 0.0f;
 }
