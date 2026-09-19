@@ -264,3 +264,33 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
 9. **Default RIB projection is ORTHOGRAPHIC** per RISpec when no
    `Projection` statement is given (not perspective) —
    `ribGeometryContext.h:151`.
+10. **`illuminate(P, axis, angle)`'s 3-argument hemisphere-cone test only
+   works when `axis` is the built-in global `N`.** Passing a locally
+   computed `normal` variable (e.g. one built from cross-product corner
+   math for a procedural, non-geometry-bound area light) compiles and
+   links fine but silently illuminates nothing — no compile or runtime
+   error, `Cl` is just never set for any point. Write the light's normal
+   into `N` itself before calling `illuminate()`, matching
+   `shaders/arealight.sl`/`shadowarea.sl`/`rayarea.sl`'s own pattern,
+   rather than keeping it in a separate local. Found and worked around
+   while porting `spherelight`/`quadlight` off hardcoded C++ (`hcshader.cpp`)
+   to real RSL (2026-09-19).
+11. **`illuminate()`'s own `L` sign convention is `N.normalize(L)` for a
+   Lambertian-emitting light surface, not `-N.normalize(L)`.** A
+   hand-derived formula that manually computed `L` in C++ and negated it
+   (as the old hardcoded `CQuadLight::illuminate()` did) does not carry
+   the same sign once ported to RSL's `illuminate()` block, since RSL sets
+   up `L` itself. The wrong sign compiles and runs with no error — it just
+   produces a negative (clamped-to-black) `Cl` for every point. Confirmed
+   by direct render testing; `shadowarea.sl`/`rayarea.sl` already use the
+   correct `N.normalize(L)` form.
+12. **`random()` under the LLVM JIT (`--jit`/`.slo`) is untested territory
+   and was found broken (2026-09-19)** the first time a shipped shader
+   (`spherelight`/`quadlight`) used it in a per-sample loop: the
+   interpreter (`.rslo`) path renders correctly, but the JIT path produces
+   visibly wrong output (a checkerboard-noise artifact for `quadlight`, a
+   fully black render for `spherelight`) with no error. `Attribute "shade"
+   "shaderformat" ["rslo"]` (or leaving shaderformat unset, since `rslo` is
+   this engine's default) sidesteps it. Root cause not yet investigated —
+   flagged here rather than in a shader comment since it's an engine-level
+   JIT defect, not something either shader can work around on its own.

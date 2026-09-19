@@ -1,0 +1,95 @@
+#!version 1.0.0
+#!name "spherelight"
+light
+#!parameters:
+uniform	point	from	=	"shader"  [ 0 0 0 ]
+uniform	float	radius	=	0
+uniform	color	lightcolor	=	1
+uniform	float	intensity	=	1
+uniform	float	numSamples	=	1
+#!variables:
+uniform	vector	temporary_0
+varying	float	worldRadius
+varying	float	i
+varying	float	u1
+varying	float	u2
+varying	float	theta
+varying	float	z
+varying	float	r
+varying	vector	dir
+varying	vector	toSample
+varying	vector	Psample
+varying	float	vis
+uniform	float	temporary_1
+uniform	vector	temporary_2
+varying	vector	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	vector	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+#!Init:
+	vfromf  temporary_0 0 0 0
+	pfrom  from "shader" temporary_0
+	return            
+#!Code:
+	vfromf  temporary_2 radius 0 0
+	vtransform	("v=Sv")  temporary_0 "shader" temporary_2
+	length	("f=v")  temporary_1 temporary_0
+	vufloat  worldRadius temporary_1
+	vuvector  temporary_3 from
+	illuminate temporary_3 #!Label5
+	vufloat  vis 0
+	moveff  i vis
+	forbegin #!Label6 #!Label7 #!Label8
+#!Label6:
+	vufloat  temporary_5 numSamples
+	flt  temporary_4 i temporary_5
+	for temporary_4
+	random	("f=")  u1
+	random	("f=")  u2
+	vufloat  temporary_1 6.2831853080000002
+	vufloat  temporary_4 temporary_1
+	mulff  theta temporary_4 u1
+	vufloat  temporary_4 1
+	vufloat  temporary_6 2
+	mulff  temporary_5 temporary_6 u2
+	subff  z temporary_4 temporary_5
+	vufloat  temporary_5 0
+	moveff  temporary_7 temporary_4
+	mulff  temporary_8 z z
+	subff  temporary_6 temporary_7 temporary_8
+	max	("f=ff")  temporary_4 temporary_5 temporary_6
+	sqrt	("f=f")  r temporary_4
+	cos	("f=f")  temporary_5 theta
+	mulff  temporary_4 r temporary_5
+	sin	("f=f")  temporary_6 theta
+	mulff  temporary_5 r temporary_6
+	vfromf  dir temporary_4 temporary_5 z
+	vuvector  temporary_9 from
+	vfromf  temporary_11 worldRadius
+	mulvv  temporary_10 temporary_11 dir
+	addvv  Psample temporary_9 temporary_10
+	subvv  toSample Psample Ps
+	visibility	("f=pp")  temporary_5 Ps Psample
+	dot  temporary_6 toSample toSample
+	divff  temporary_4 temporary_5 temporary_6
+	addff  vis vis temporary_4
+#!Label7:
+	vufloat  temporary_4 1
+	addff  i i temporary_4
+#!Label8:
+	forend
+	vufloat  temporary_4 numSamples
+	divff  vis vis temporary_4
+	vufloat  temporary_5 intensity
+	mulff  temporary_4 vis temporary_5
+	vfromf  temporary_9 temporary_4
+	vuvector  temporary_10 lightcolor
+	mulvv  Cl temporary_9 temporary_10
+#!Label5:
+	endilluminate
+	return

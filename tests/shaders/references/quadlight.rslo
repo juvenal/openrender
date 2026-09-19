@@ -1,0 +1,134 @@
+#!version 1.0.0
+#!name "quadlight"
+light
+#!parameters:
+uniform	point	P0
+uniform	point	P1
+uniform	point	P2
+uniform	point	P3	=	"shader"  [ 1 1 0 ]
+uniform	vector	direction	=	 [ 0 0 0 ]
+uniform	float	useDirection	=	0
+uniform	color	lightcolor	=	1
+uniform	float	intensity	=	1
+uniform	float	numSamples	=	1
+uniform	float	reverse	=	0
+#!variables:
+uniform	vector	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+varying	vector	center
+varying	float	i
+varying	float	u_1
+varying	float	v_1
+varying	float	vis
+varying	vector	edge0
+varying	vector	edge1
+varying	vector	Psample
+varying	vector	toSample
+uniform	vector	temporary_3
+uniform	vector	temporary_4
+uniform	vector	temporary_5
+varying	float	temporary_6
+varying	vector	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	vector	temporary_10
+varying	vector	temporary_11
+varying	vector	temporary_12
+varying	float	temporary_13
+#!Init:
+	vufloat  temporary_1 -1
+	moveff  temporary_2 temporary_1
+	vfromf  temporary_0 temporary_1 temporary_2 0
+	pfrom  P0 "shader" temporary_0
+	vufloat  temporary_1 -1
+	vfromf  temporary_0 1 temporary_1 0
+	pfrom  P1 "shader" temporary_0
+	vufloat  temporary_1 -1
+	vfromf  temporary_0 temporary_1 1 0
+	pfrom  P2 "shader" temporary_0
+	vfromf  temporary_0 1 1 0
+	pfrom  P3 "shader" temporary_0
+	return            
+#!Code:
+	addvv  temporary_5 P0 P1
+	addvv  temporary_4 temporary_5 P2
+	addvv  temporary_3 temporary_4 P3
+	vfromf  temporary_4 4
+	divvv  temporary_0 temporary_3 temporary_4
+	vuvector  center temporary_0
+	fneql  temporary_1 useDirection 0
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label10
+	normalize	("v=v")  temporary_0 direction
+	vuvector  N temporary_0
+#!Label10:
+	else #!Label9
+	subvv  temporary_4 P1 P0
+	subvv  temporary_5 P2 P0
+	cross  temporary_3 temporary_4 temporary_5
+	normalize	("v=v")  temporary_0 temporary_3
+	vuvector  N temporary_0
+#!Label9:
+	endif
+	fneql  temporary_1 reverse 0
+	vufloat  temporary_6 temporary_1
+	if temporary_6 #!Label11
+	vufloat  temporary_1 -1
+	vfromf  temporary_0 temporary_1
+	vuvector  temporary_7 temporary_0
+	mulvv  N N temporary_7
+#!Label11:
+	endif
+	vufloat  temporary_1 1.570796327
+	vufloat  temporary_6 temporary_1
+	illuminate center N temporary_6 #!Label13
+	vufloat  vis 0
+	moveff  i vis
+	forbegin #!Label14 #!Label15 #!Label16
+#!Label14:
+	vufloat  temporary_9 numSamples
+	flt  temporary_8 i temporary_9
+	for temporary_8
+	random	("f=")  u_1
+	random	("f=")  v_1
+	vuvector  temporary_7 P0
+	vfromf  temporary_11 u_1
+	subvv  temporary_0 P1 P0
+	vuvector  temporary_12 temporary_0
+	mulvv  temporary_10 temporary_11 temporary_12
+	addvv  edge0 temporary_7 temporary_10
+	vuvector  temporary_7 P2
+	vfromf  temporary_11 u_1
+	subvv  temporary_0 P3 P2
+	vuvector  temporary_12 temporary_0
+	mulvv  temporary_10 temporary_11 temporary_12
+	addvv  edge1 temporary_7 temporary_10
+	vfromf  temporary_10 v_1
+	subvv  temporary_11 edge1 edge0
+	mulvv  temporary_7 temporary_10 temporary_11
+	addvv  Psample edge0 temporary_7
+	subvv  toSample Psample Ps
+	visibility	("f=pp")  temporary_9 Ps Psample
+	dot  temporary_13 toSample toSample
+	divff  temporary_8 temporary_9 temporary_13
+	addff  vis vis temporary_8
+#!Label15:
+	vufloat  temporary_8 1
+	addff  i i temporary_8
+#!Label16:
+	forend
+	vufloat  temporary_8 numSamples
+	divff  vis vis temporary_8
+	vufloat  temporary_9 intensity
+	mulff  temporary_8 vis temporary_9
+	vfromf  temporary_10 temporary_8
+	vuvector  temporary_11 lightcolor
+	mulvv  temporary_7 temporary_10 temporary_11
+	normalize	("v=v")  temporary_11 L
+	dot  temporary_8 N temporary_11
+	vfromf  temporary_10 temporary_8
+	mulvv  Cl temporary_7 temporary_10
+#!Label13:
+	endilluminate
+	return
