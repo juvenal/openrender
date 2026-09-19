@@ -35,8 +35,8 @@
 #include "pl.h"
 #include "polygons.h"
 #include "renderer.h"
-#include "variable.h"
 #include "stats.h"
+#include "variable.h"
 #include "xform.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -169,8 +169,8 @@ float blobbyCellSizeFromTolerance(const CBlobbyProgram *program, float tolerance
 ///////////////////////////////////////////////////////////////////////
 class CBlobbyReference {
     public:
-        CVariable *variable;    // The shader parameter it binds to
-        const float *matrices;  // 16 floats per primitive field
+        CVariable *variable;   // The shader parameter it binds to
+        const float *matrices; // 16 floats per primitive field
 };
 
 ///////////////////////////////////////////////////////////////////////

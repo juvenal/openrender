@@ -260,71 +260,71 @@ int CWinDisplay::data(int x, int y, int w, int h, float *d) {
         unsigned int *dest = &imageData[((height - (i + y) - 1) * width + x)];
 
         switch (numSamples) {
-        case 0:
-            break;
-        case 1:
-            for (j = 0; j < w; j++) {
-                unsigned char d = (unsigned char)(src[0] * 255);
+            case 0:
+                break;
+            case 1:
+                for (j = 0; j < w; j++) {
+                    unsigned char d = (unsigned char)(src[0] * 255);
 
-                *dest++ = color(d, d, d, d);
-                src++;
-            }
-            break;
-        case 2:
-            for (j = 0; j < w; j++) {
-                const float r = src[0] * src[1] * 255 + (1 - src[1]) * get_r(dest[0]);
-                const float a = src[1] * 255 + (1 - src[1]) * get_a(dest[0]);
-                unsigned char dr = (unsigned char)r;
-                unsigned char da = (unsigned char)a;
+                    *dest++ = color(d, d, d, d);
+                    src++;
+                }
+                break;
+            case 2:
+                for (j = 0; j < w; j++) {
+                    const float r = src[0] * src[1] * 255 + (1 - src[1]) * get_r(dest[0]);
+                    const float a = src[1] * 255 + (1 - src[1]) * get_a(dest[0]);
+                    unsigned char dr = (unsigned char)r;
+                    unsigned char da = (unsigned char)a;
 
-                *dest++ = color(dr, dr, dr, da);
+                    *dest++ = color(dr, dr, dr, da);
 
-                src += 2;
-            }
-            break;
-        case 3:
-            for (j = 0; j < w; j++) {
-                unsigned char dr = (unsigned char)(src[0] * 255);
-                unsigned char dg = (unsigned char)(src[1] * 255);
-                unsigned char db = (unsigned char)(src[2] * 255);
+                    src += 2;
+                }
+                break;
+            case 3:
+                for (j = 0; j < w; j++) {
+                    unsigned char dr = (unsigned char)(src[0] * 255);
+                    unsigned char dg = (unsigned char)(src[1] * 255);
+                    unsigned char db = (unsigned char)(src[2] * 255);
 
-                *dest++ = color(dr, dg, db, (unsigned char)255);
+                    *dest++ = color(dr, dg, db, (unsigned char)255);
 
-                src += 3;
-            }
-            break;
-        case 4:
-            for (j = 0; j < w; j++) {
-                const float r = src[0] * src[3] * 255 + (1 - src[3]) * get_r(dest[0]);
-                const float g = src[1] * src[3] * 255 + (1 - src[3]) * get_g(dest[0]);
-                const float b = src[2] * src[3] * 255 + (1 - src[3]) * get_b(dest[0]);
-                const float a = src[3] * 255 + (1 - src[3]) * get_a(dest[0]);
-                unsigned char dr = (unsigned char)r;
-                unsigned char dg = (unsigned char)g;
-                unsigned char db = (unsigned char)b;
-                unsigned char da = (unsigned char)a;
+                    src += 3;
+                }
+                break;
+            case 4:
+                for (j = 0; j < w; j++) {
+                    const float r = src[0] * src[3] * 255 + (1 - src[3]) * get_r(dest[0]);
+                    const float g = src[1] * src[3] * 255 + (1 - src[3]) * get_g(dest[0]);
+                    const float b = src[2] * src[3] * 255 + (1 - src[3]) * get_b(dest[0]);
+                    const float a = src[3] * 255 + (1 - src[3]) * get_a(dest[0]);
+                    unsigned char dr = (unsigned char)r;
+                    unsigned char dg = (unsigned char)g;
+                    unsigned char db = (unsigned char)b;
+                    unsigned char da = (unsigned char)a;
 
-                *dest++ = color(dr, dg, db, da);
+                    *dest++ = color(dr, dg, db, da);
 
-                src += 4;
-            }
-            break;
-        default:
-            for (j = 0; j < w; j++) {
-                float r = src[0] * src[3] * 255 + (1 - src[3]) * get_r(*dest);
-                float g = src[1] * src[3] * 255 + (1 - src[3]) * get_g(*dest);
-                float b = src[2] * src[3] * 255 + (1 - src[3]) * get_b(*dest);
-                float a = src[3] * 255 + (1 - src[3]) * get_a(*dest);
-                unsigned char dr = (unsigned char)r;
-                unsigned char dg = (unsigned char)g;
-                unsigned char db = (unsigned char)b;
-                unsigned char da = (unsigned char)a;
+                    src += 4;
+                }
+                break;
+            default:
+                for (j = 0; j < w; j++) {
+                    float r = src[0] * src[3] * 255 + (1 - src[3]) * get_r(*dest);
+                    float g = src[1] * src[3] * 255 + (1 - src[3]) * get_g(*dest);
+                    float b = src[2] * src[3] * 255 + (1 - src[3]) * get_b(*dest);
+                    float a = src[3] * 255 + (1 - src[3]) * get_a(*dest);
+                    unsigned char dr = (unsigned char)r;
+                    unsigned char dg = (unsigned char)g;
+                    unsigned char db = (unsigned char)b;
+                    unsigned char da = (unsigned char)a;
 
-                *dest++ = color(dr, dg, db, da);
+                    *dest++ = color(dr, dg, db, da);
 
-                src += numSamples;
-            }
-            break;
+                    src += numSamples;
+                }
+                break;
         }
     }
 
@@ -373,11 +373,11 @@ void CWinDisplay::finish() {
  */
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
     return 0;

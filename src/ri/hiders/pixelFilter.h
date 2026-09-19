@@ -54,42 +54,42 @@
 //							kernel-weight lookup, weighted channel accumulate,
 //							and post-accumulate normalize-by-weight.
 class CPixelFilterAccumulator {
-public:
-    // Precomputed-kernel weight for a sample at grid position (sx, sy) within
-    // a filterWidth-wide kernel footprint. Identical to the
-    // CRenderer::pixelFilterKernel[sy * filterWidth + sx] lookup every
-    // precomputed-mode caller (CStochastic, CZbuffer, CRaytracer) already
-    // performed inline.
-    static inline float precomputedWeight(int sx, int sy, int filterWidth) {
-        return CRenderer::pixelFilterKernel[sy * filterWidth + sx];
-    }
-
-    // Accumulate dest[k] += weight * src[k] for k in [0, numChannels).
-    // Channel-order marshalling (which src offset maps to which dest offset,
-    // and any derived channel that isn't a plain weighted copy) is the
-    // caller's responsibility -- this is the inner multiply-add loop every
-    // hider's filter step already performed by hand.
-    static inline void splat(float *dest, const float *src, int numChannels, float weight) {
-        for (int k = 0; k < numChannels; k++) {
-            dest[k] += weight * src[k];
+    public:
+        // Precomputed-kernel weight for a sample at grid position (sx, sy) within
+        // a filterWidth-wide kernel footprint. Identical to the
+        // CRenderer::pixelFilterKernel[sy * filterWidth + sx] lookup every
+        // precomputed-mode caller (CStochastic, CZbuffer, CRaytracer) already
+        // performed inline.
+        static inline float precomputedWeight(int sx, int sy, int filterWidth) {
+            return CRenderer::pixelFilterKernel[sy * filterWidth + sx];
         }
-    }
 
-    // Normalize numPixels pixels (each numChannels wide, contiguous) by their
-    // accumulated filter weight, for pixels whose weight is > 0. Only call
-    // this where the caller's existing behavior already normalizes -- see
-    // the file header for which hiders/modes that is.
-    static inline void normalizeByWeight(float *pixels, const float *weights, int numPixels, int numChannels) {
-        for (int i = 0; i < numPixels; i++) {
-            if (weights[i] > 0) {
-                const float inv = 1.0f / weights[i];
-                float *p = &pixels[i * numChannels];
-                for (int j = 0; j < numChannels; j++) {
-                    p[j] *= inv;
+        // Accumulate dest[k] += weight * src[k] for k in [0, numChannels).
+        // Channel-order marshalling (which src offset maps to which dest offset,
+        // and any derived channel that isn't a plain weighted copy) is the
+        // caller's responsibility -- this is the inner multiply-add loop every
+        // hider's filter step already performed by hand.
+        static inline void splat(float *dest, const float *src, int numChannels, float weight) {
+            for (int k = 0; k < numChannels; k++) {
+                dest[k] += weight * src[k];
+            }
+        }
+
+        // Normalize numPixels pixels (each numChannels wide, contiguous) by their
+        // accumulated filter weight, for pixels whose weight is > 0. Only call
+        // this where the caller's existing behavior already normalizes -- see
+        // the file header for which hiders/modes that is.
+        static inline void normalizeByWeight(float *pixels, const float *weights, int numPixels, int numChannels) {
+            for (int i = 0; i < numPixels; i++) {
+                if (weights[i] > 0) {
+                    const float inv = 1.0f / weights[i];
+                    float *p = &pixels[i * numChannels];
+                    for (int j = 0; j < numChannels; j++) {
+                        p[j] *= inv;
+                    }
                 }
             }
         }
-    }
 };
 
 #endif

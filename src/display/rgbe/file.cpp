@@ -25,57 +25,55 @@
 
 #include "common/global.h"
 #include "common/os.h"
+#include "dsply.h"
 #include "file/file_base.h"
 #include "rgbe.h"
-#include "dsply.h"
 
 class CRgbeFramebuffer : public CFileOutputBase {
-public:
-    CRgbeFramebuffer(const char *name, int w, int h, int ns,
-                     const char * /*samples*/, TDisplayParameterFunction fp)
-        : CFileOutputBase(w, h, ns,
-                          /*pixelSize=*/ ns * (int)sizeof(float),
-                          fp) {
-        char fileName[256];
-        if (!strchr(name, '.'))
-            snprintf(fileName, sizeof(fileName), "%s.pic", name);
-        else {
-            strncpy(fileName, name, sizeof(fileName) - 1);
-            fileName[sizeof(fileName) - 1] = '\0';
+    public:
+        CRgbeFramebuffer(const char *name, int w, int h, int ns, const char * /*samples*/, TDisplayParameterFunction fp)
+            : CFileOutputBase(w, h, ns,
+                              /*pixelSize=*/ns * (int)sizeof(float),
+                              fp) {
+            char fileName[256];
+            if (!strchr(name, '.'))
+                snprintf(fileName, sizeof(fileName), "%s.pic", name);
+            else {
+                strncpy(fileName, name, sizeof(fileName) - 1);
+                fileName[sizeof(fileName) - 1] = '\0';
+            }
+
+            image = fopen(fileName, "wb");
+            if (image)
+                RGBE_WriteHeader(image, w, h, nullptr);
         }
 
-        image = fopen(fileName, "wb");
-        if (image)
-            RGBE_WriteHeader(image, w, h, nullptr);
-    }
+        ~CRgbeFramebuffer() override {
+            if (image)
+                fclose(image);
+        }
 
-    ~CRgbeFramebuffer() override {
-        if (image)
-            fclose(image);
-    }
+        bool success() const override { return !!image; }
 
-    bool success() const override { return !!image; }
+    protected:
+        // Store as float; RGBE encoding happens in flushRow.
+        void fillPixels(int row, int xOff, int nPx, const float *src) override {
+            auto *dst = reinterpret_cast<float *>(scanlines[row]) + xOff * numSamples;
+            for (int j = nPx * numSamples; j > 0; j--)
+                *dst++ = *src++;
+        }
 
-protected:
-    // Store as float; RGBE encoding happens in flushRow.
-    void fillPixels(int row, int xOff, int nPx, const float *src) override {
-        auto *dst = reinterpret_cast<float *>(scanlines[row]) + xOff * numSamples;
-        for (int j = nPx * numSamples; j > 0; j--)
-            *dst++ = *src++;
-    }
+        void flushRow(int row) override {
+            RGBE_WritePixels(image, reinterpret_cast<float *>(scanlines[row]), width);
+        }
 
-    void flushRow(int row) override {
-        RGBE_WritePixels(image, reinterpret_cast<float *>(scanlines[row]), width);
-    }
-
-private:
-    FILE *image = nullptr;
+    private:
+        FILE *image = nullptr;
 };
 
 extern "C" {
 
-void *displayStart(const char *name, int width, int height, int numSamples,
-                   const char *samples, TDisplayParameterFunction fp) {
+void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction fp) {
     auto *f = new CRgbeFramebuffer(name, width, height, numSamples, samples, fp);
     if (!f->success()) {
         delete f;
@@ -90,8 +88,7 @@ int displayData(void *im, int x, int y, int w, int h, float *data) {
     return TRUE;
 }
 
-int displayRawData(void * /*im*/, int /*x*/, int /*y*/,
-                   int /*w*/, int /*h*/, void * /*data*/) {
+int displayRawData(void * /*im*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, void * /*data*/) {
     return TRUE;
 }
 

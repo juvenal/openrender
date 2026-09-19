@@ -116,12 +116,17 @@ class CMap {
         // Return Value			:
         // Comments				:
         void read(FILE *in) {
-            if (fread(&numItems, sizeof(int), 1, in) != 1) { /* read error */ }
-            if (fread(&maxItems, sizeof(int), 1, in) != 1) { /* read error */ }
+            if (fread(&numItems, sizeof(int), 1, in) != 1) { /* read error */
+            }
+            if (fread(&maxItems, sizeof(int), 1, in) != 1) { /* read error */
+            }
             items = new T[maxItems + 1];
-            if (fread(items, sizeof(T), numItems + 1, in) != (size_t)(numItems + 1)) { /* read error */ }
-            if (fread(bmin, sizeof(float), 3, in) != 3) { /* read error */ }
-            if (fread(bmax, sizeof(float), 3, in) != 3) { /* read error */ }
+            if (fread(items, sizeof(T), numItems + 1, in) != (size_t)(numItems + 1)) { /* read error */
+            }
+            if (fread(bmin, sizeof(float), 3, in) != 3) { /* read error */
+            }
+            if (fread(bmax, sizeof(float), 3, in) != 3) { /* read error */
+            }
 
             numItemsh = numItems >> 1;
         }
@@ -173,7 +178,8 @@ class CMap {
                 photon->flags = 0;
 
                 return photon;
-            } else {
+            }
+            else {
                 T *newitems;
 
                 maxItems += stepSize;
@@ -210,7 +216,8 @@ class CMap {
                 addBox(bmin, bmax, item->P);
 
                 return photon;
-            } else {
+            }
+            else {
                 T *newitems;
 
                 maxItems += stepSize;
@@ -294,7 +301,8 @@ class CMap {
             if ((3 * median) <= (end - start + 1)) {
                 median += median;
                 median += start - 1;
-            } else
+            }
+            else
                 median = end - median + 1;
 
             int axis = 2;
@@ -363,7 +371,8 @@ class CMap {
                     bmax[axis] = ar1[index]->P[axis];
                     balance(ar1, ar2, 2 * index, start, median - 1);
                     bmax[axis] = tmp;
-                } else {
+                }
+                else {
                     ar1[2 * index] = ar2[start];
                 }
             }
@@ -374,7 +383,8 @@ class CMap {
                     bmin[axis] = ar1[index]->P[axis];
                     balance(ar1, ar2, 2 * index + 1, median + 1, end);
                     bmin[axis] = tmp;
-                } else {
+                }
+                else {
                     ar1[2 * index + 1] = ar2[end];
                 }
             }
@@ -402,8 +412,8 @@ class CMap {
                     if (d * d < l->distances[0]) {
                         lookupWithN(l, 2 * index);
                     }
-
-                } else {
+                }
+                else {
                     lookupWithN(l, 2 * index);
 
                     if (d * d < l->distances[0]) {
@@ -443,8 +453,8 @@ class CMap {
                     if (d * d < l->distances[0]) {
                         lookup(l, 2 * index);
                     }
-
-                } else {
+                }
+                else {
                     lookup(l, 2 * index);
 
                     if (d * d < l->distances[0]) {
@@ -472,7 +482,8 @@ class CMap {
                 l->numFound++;
                 l->distances[l->numFound] = d;
                 l->indices[l->numFound] = photon;
-            } else {
+            }
+            else {
                 int j, parent;
 
                 if (l->gotHeap == FALSE) {

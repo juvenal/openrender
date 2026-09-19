@@ -60,7 +60,8 @@ CZbuffer::CZbuffer(int thread) : CReyes(thread), COcclusionCuller() {
     int cullerSize;
     if (totalHeight > totalWidth) {
         cullerSize = totalHeight;
-    } else {
+    }
+    else {
         cullerSize = totalWidth;
     }
     initCuller(cullerSize, &maxDepth);
@@ -147,7 +148,8 @@ void CZbuffer::rasterDrawPrimitives(CRasterGrid *grid) {
     // Draw the suckers one by one
     if (grid->flags & RASTER_POINT) {
 #include "zbufferPoint.h"
-    } else {
+    }
+    else {
 #include "zbufferQuad.h"
     }
 }

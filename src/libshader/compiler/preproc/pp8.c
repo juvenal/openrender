@@ -99,7 +99,8 @@ EVALINT eval(void) {
             if (Token[0] != '\n') {
                 non_fatal("Invalid operator",
                           Token);
-            } else
+            }
+            else
                 pushback('\n'); /* Put eol back out */
             break;
         }
@@ -315,16 +316,20 @@ EVALINT evalmdr(void) {
             if (temp == 0) {
                 non_fatal("Division by zero", "");
                 val = 0;
-            } else
+            }
+            else
                 val = val / temp;
-        } else if (test("%")) {
+        }
+        else if (test("%")) {
             temp = evalfuns();
             if (temp == 0) {
                 non_fatal("Division by zero", "");
                 val = 0;
-            } else
+            }
+            else
                 val = val % temp;
-        } else
+        }
+        else
             break;
     }
     return (val);
@@ -365,7 +370,8 @@ EVALINT evalfuns(void) {
                (t != '\n') && (t != EOF))
             ;
         return ((EVALINT)0);
-    } else if (test("defined")) {
+    }
+    else if (test("defined")) {
         if (!(pflag = (getnstoken(GT_STR) == '('))) /* Latch '(' */
             pbstr(Token);                           /* Put it back if not */
 
@@ -379,14 +385,16 @@ EVALINT evalfuns(void) {
             }
 
             return ((EVALINT)rv);
-        } else if (t == '\n')
+        }
+        else if (t == '\n')
             pushback('\n');
         else if (t == EOF)
             end_of_file();
 
         non_fatal("Not an identifier", Token);
         return ((EVALINT)FALSE);
-    } else if (test("_isstring")) {
+    }
+    else if (test("_isstring")) {
         rv = FALSE;
         if (!test("("))
             non_fatal("Missing '('", "");
@@ -411,7 +419,8 @@ EVALINT evalfuns(void) {
             }
         }
         return ((EVALINT)rv);
-    } else if (test("_strsize")) {
+    }
+    else if (test("_strsize")) {
         rv = 1;
         if (!test("("))
             non_fatal("Missing '('", "");
@@ -435,7 +444,8 @@ EVALINT evalfuns(void) {
                         end_of_file();
                     pbstr(Token);
                 }
-            } else {
+            }
+            else {
                 for (;;) {
                     str = &Token[1];
                     for (; (*str != '\0') &&
@@ -447,15 +457,18 @@ EVALINT evalfuns(void) {
                                 count = 0;
                                 while (isxdigit(*++str) && (++count < 3))
                                     ;
-                            } else {
+                            }
+                            else {
                                 if (isdigit(*str)) { /* Octal seq. >=3 octal dig */
                                     count = 0;
                                     while (isdigit(*++str) && (++count < 3))
                                         ;
-                                } else
+                                }
+                                else
                                     str++;
                             }
-                        } else
+                        }
+                        else
                             str++;
                         /************************************************************************/
                     }
@@ -486,7 +499,8 @@ EVALINT evalfuns(void) {
             }
         }
         return ((EVALINT)rv);
-    } else
+    }
+    else
         return (evalucom());
 }
 
@@ -548,100 +562,104 @@ EVALINT evalval(void) {
         val = evaltern(); /* Get deeper expression */
         if (!test(")"))
             non_fatal("Mismatched \"()\"", "");
-    } else if (test("'")) /* Quoted character constant ? */
+    }
+    else if (test("'")) /* Quoted character constant ? */
     {
         val = getchn();  /* Get next character char */
         if (val == '\\') /* Special test for escaped chars */
         {
             switch ((char)(val = getchn())) {
-            case 'a':
-                val = '\a';
-                break; /* Alert char	*/
-            case 'b':
-                val = '\b';
-                break; /* Backspace	*/
-            case 'f':
-                val = '\f';
-                break; /* Form feed	*/
-            case 'n':
-                val = '\n';
-                break; /* Newline	*/
-            case 'r':
-                val = '\r';
-                break; /* Return	*/
-            case 't':
-                val = '\t';
-                break; /* Horiz. tab	*/
-            case 'v':
-                val = '\v';
-                break; /* Vert. tab	*/
-            case '\\':
-                val = '\\';
-                break;
-            case '\'':
-                val = '\'';
-                break;
-            case '\"':
-                val = '\"';
-                break;
-            case '?':
-                val = '?';
-                break;
+                case 'a':
+                    val = '\a';
+                    break; /* Alert char	*/
+                case 'b':
+                    val = '\b';
+                    break; /* Backspace	*/
+                case 'f':
+                    val = '\f';
+                    break; /* Form feed	*/
+                case 'n':
+                    val = '\n';
+                    break; /* Newline	*/
+                case 'r':
+                    val = '\r';
+                    break; /* Return	*/
+                case 't':
+                    val = '\t';
+                    break; /* Horiz. tab	*/
+                case 'v':
+                    val = '\v';
+                    break; /* Vert. tab	*/
+                case '\\':
+                    val = '\\';
+                    break;
+                case '\'':
+                    val = '\'';
+                    break;
+                case '\"':
+                    val = '\"';
+                    break;
+                case '?':
+                    val = '?';
+                    break;
 
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-                /*
-                 *	Lead in to octal numeric field: get octal number.
-                 */
-                for (val -= '0'; (c = getchn()) != '\'';) {
-                    if (c == '\n') {
-                        non_fatal("EOL in '' constant", "");
-                        break;
-                    } else if (c == EOF)
-                        end_of_file();
-                    else if (isoct(c))
-                        val = val * 8 + c - '0'; /* Add in */
-                    else {
-                        non_fatal("Invalid octal digit", "");
-                        break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                    /*
+                     *	Lead in to octal numeric field: get octal number.
+                     */
+                    for (val -= '0'; (c = getchn()) != '\'';) {
+                        if (c == '\n') {
+                            non_fatal("EOL in '' constant", "");
+                            break;
+                        }
+                        else if (c == EOF)
+                            end_of_file();
+                        else if (isoct(c))
+                            val = val * 8 + c - '0'; /* Add in */
+                        else {
+                            non_fatal("Invalid octal digit", "");
+                            break;
+                        }
                     }
-                }
-                pushback(c);
-                break;
+                    pushback(c);
+                    break;
 
-            case 'x':
-                /*
-                 *	Beginning of hex numeric field, get number.
-                 */
-                for (val = 0; (c = getchn()) != '\'';) {
-                    if (c == '\n') {
-                        non_fatal("EOL in '' constant", "");
-                        break;
-                    } else if (c == EOF)
-                        end_of_file();
-                    else if (ishex(c))
-                        val = val * 16 + hexbin(c);
-                    else {
-                        non_fatal("Invalid hex digit", "");
-                        break;
+                case 'x':
+                    /*
+                     *	Beginning of hex numeric field, get number.
+                     */
+                    for (val = 0; (c = getchn()) != '\'';) {
+                        if (c == '\n') {
+                            non_fatal("EOL in '' constant", "");
+                            break;
+                        }
+                        else if (c == EOF)
+                            end_of_file();
+                        else if (ishex(c))
+                            val = val * 16 + hexbin(c);
+                        else {
+                            non_fatal("Invalid hex digit", "");
+                            break;
+                        }
                     }
-                }
-                pushback(c);
-                break;
-            default:
-                non_fatal("Invalid character escape", "");
-                break;
+                    pushback(c);
+                    break;
+                default:
+                    non_fatal("Invalid character escape", "");
+                    break;
             }
         }
         if (!test("'"))
             non_fatal("Mismatched apostrophes", "");
-    } else {
+    }
+    else {
         /* Pack a number */
         if (item(getnstoken, GT_STR)) {
             if (isdigit(Token[0])) {
@@ -655,14 +673,16 @@ EVALINT evalval(void) {
                             val = val * 16 +
                                   hexbin(*p);
                         }
-                    } else {
+                    }
+                    else {
                         /* Octal number */
                         for (; isoct(*p); ++p) {
                             val = val * 8 +
                                   *p - '0';
                         }
                     }
-                } else {
+                }
+                else {
                     /* Decimal number */
                     for (; isdigit(*p); ++p)
                         val = val * 10 + *p - '0';
@@ -671,14 +691,16 @@ EVALINT evalval(void) {
                     non_fatal("Bad operand",
                               Token);
                 }
-            } else {
+            }
+            else {
                 /* #if of undef'd id OK */
                 if (!istype(Token[0] & 0xFF, C_L)) {
                     non_fatal("Expected operand", Token);
                 }
                 return ((EVALINT)0);
             }
-        } else {
+        }
+        else {
             non_fatal("Expected operand", Token);
             return ((EVALINT)0);
         }
@@ -797,7 +819,8 @@ int match(char *tbuf, const char *str) {
             s += strlen(Token); /* Move past matched part */
             if (*s == '\0')
                 break; /* Exit if end of string */
-        } else {
+        }
+        else {
             pbstr(Token); /* Unfetch unmatching string */
             break;
         }
@@ -836,7 +859,8 @@ char *readexpline(char *buf, int bufsize) {
                 ((sy = lookup(Token, NULL)) != NULL) &&
                 (sy->disable != TRUE)) {
                 bufp = docall(sy, bufp, &buf[bufsize - 1]);
-            } else {
+            }
+            else {
                 bufp = addstr(bufp, &buf[bufsize - 1], rbo,
                               Token);
                 if (is_func)
@@ -844,7 +868,8 @@ char *readexpline(char *buf, int bufsize) {
                 else if (strcmp(Token, "defined") == EQUAL)
                     is_func = TRUE;
             }
-        } else
+        }
+        else
             bufp = addstr(bufp, &buf[bufsize - 1], rbo, Token);
     }
 

@@ -96,7 +96,8 @@ void CDepository::lookup(float *C, const float *P, const float *N) {
         float maxDot;
         if (0 > dotValue) {
             maxDot = 0;
-        } else {
+        }
+        else {
             maxDot = dotValue;
         }
         const float t2 = sqrtf(maxDot);

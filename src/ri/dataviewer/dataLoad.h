@@ -6,16 +6,16 @@ class CDataView;
 // One of the six visualizable file-content types, or a reason CDataDocument::open() refused
 // to construct a document. Never determined from a filename/extension -- content only.
 enum EDataFileType {
-    DATA_UNKNOWN = 0,      // sniff not yet attempted / no file open
-    DATA_NOT_A_DATA_FILE,  // no magic number, and not a parseable debug-geometry dump either
+    DATA_UNKNOWN = 0,     // sniff not yet attempted / no file open
+    DATA_NOT_A_DATA_FILE, // no magic number, and not a parseable debug-geometry dump either
     DATA_PHOTONMAP,
     DATA_IRRADIANCECACHE,
     DATA_GATHERCACHE,
     DATA_POINTCLOUD,
     DATA_BRICKMAP,
     DATA_DEBUGDUMP,
-    DATA_BAD_VERSION,   // magic matched; VERSION_MAJOR/MINOR mismatch
-    DATA_BAD_WORDSIZE,  // magic matched; sizeof(int *) mismatch
+    DATA_BAD_VERSION,  // magic matched; VERSION_MAJOR/MINOR mismatch
+    DATA_BAD_WORDSIZE, // magic matched; sizeof(int *) mismatch
 };
 
 // Side-effect-free: determines a file's data-structure type from content alone. Never touches

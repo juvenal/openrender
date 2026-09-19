@@ -1,21 +1,28 @@
+#include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <cmath>
 
 // Integration test: load camera-dof.rib through ribpreview_load
 // and verify basic invariants.
 #include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 int main(int argc, char *argv[]) {
     // Locate the test RIB — prefer argv[1], fall back to relative path
     const char *ribPath = "examples/rib/camera-dof.rib";
-    if (argc > 1) ribPath = argv[1];
+    if (argc > 1)
+        ribPath = argv[1];
 
     PreviewSceneC *scene = ribpreview_load(ribPath);
     if (!scene) {
@@ -32,7 +39,10 @@ int main(int argc, char *argv[]) {
     bool allFinite = true;
     for (int i = 0; i < scene->vertexCount * 3; ++i) {
         float v = scene->vertices[i];
-        if (!std::isfinite(v)) { allFinite = false; break; }
+        if (!std::isfinite(v)) {
+            allFinite = false;
+            break;
+        }
     }
     CHECK(allFinite);
 

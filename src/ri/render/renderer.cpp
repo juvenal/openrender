@@ -285,7 +285,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // If there is no pre-world MotionBegin, both endpoints are identical.
     if (x->next != NULL) {
         movmm(fromWorld1, x->next->from);
-        movmm(toWorld1,   x->next->to);
+        movmm(toWorld1, x->next->to);
         cameraHasMotion = true;
 
         // Decompose relative motion (cam_t0 -> cam_t1) into rotation quaternion
@@ -314,10 +314,11 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         // every quad per sample (see stochasticQuad.h fast path).
         cameraRotationOnly = cameraHasRotation &&
                              (fabsf(relTrans[0]) + fabsf(relTrans[1]) + fabsf(relTrans[2]) < 1e-5f);
-    } else {
+    }
+    else {
         movmm(fromWorld1, x->from);
-        movmm(toWorld1,   x->to);
-        cameraHasMotion   = false;
+        movmm(toWorld1, x->to);
+        cameraHasMotion = false;
         cameraHasRotation = false;
         cameraRotationOnly = false;
     }
@@ -337,22 +338,26 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         // Update the resolution as necessary
         if (frameAR > ar) {
             yres = (int)(xres * pixelAR / frameAR);
-        } else {
+        }
+        else {
             xres = (int)(frameAR * yres / pixelAR);
         }
-    } else {
+    }
+    else {
         frameAR = xres * pixelAR / (float)yres;
     }
 
     if (flags & OPTIONS_FLAGS_CUSTOM_SCREENWINDOW) {
         // The user explicitly entered the screen window, so we don't have to make sure it matches the frame aspect ratio
-    } else {
+    }
+    else {
         if (frameAR > (float)1.0) {
             screenTop = 1.0f;
             screenBottom = -1.0f;
             screenLeft = -frameAR;
             screenRight = frameAR;
-        } else {
+        }
+        else {
             screenTop = 1 / frameAR;
             screenBottom = -1 / frameAR;
             screenLeft = -1.0f;
@@ -363,7 +368,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Compute the image plane depth
     if (projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         imagePlane = (float)(1 / tan(radians(fov * 0.5f)));
-    } else {
+    }
+    else {
         imagePlane = 1;
     }
     invImagePlane = 1 / imagePlane;
@@ -428,7 +434,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         cocFactorSamples = 0;
         cocFactorPixels = 0;
         invFocaldistance = 0;
-    } else {
+    }
+    else {
         cocFactorScreen = (float)(imagePlane * aperture * focaldistance / (focaldistance + aperture));
         cocFactorSamples = cocFactorScreen * sqrtf(dPixeldx * dPixeldx * pixelXsamples * pixelXsamples + dPixeldy * dPixeldy * pixelYsamples * pixelYsamples);
         cocFactorPixels = cocFactorScreen * sqrtf(dPixeldx * dPixeldx + dPixeldy * dPixeldy);
@@ -456,7 +463,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     if (projection == OPTIONS_PROJECTION_ORTHOGRAPHIC) {
         lengthA = 0;
         lengthB = sqrtf(dxdPixel * dxdPixel + dydPixel * dydPixel);
-    } else {
+    }
+    else {
         lengthA = sqrtf(dxdPixel * dxdPixel + dydPixel * dydPixel) / imagePlane;
         lengthB = 0;
     }
@@ -628,7 +636,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     float xOffsetClamped;
     if (0 > xOffsetValue) {
         xOffsetClamped = 0;
-    } else {
+    }
+    else {
         xOffsetClamped = xOffsetValue;
     }
     xSampleOffset = (int)ceil(xOffsetClamped);
@@ -636,7 +645,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     float yOffsetClamped;
     if (0 > yOffsetValue) {
         yOffsetClamped = 0;
-    } else {
+    }
+    else {
         yOffsetClamped = yOffsetValue;
     }
     ySampleOffset = (int)ceil(yOffsetClamped);
@@ -734,13 +744,17 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Allow the hider to control display setup
     if (strcmp(hider, "raytrace") == 0) {
         CRaytracer::preDisplaySetup();
-    } else if (strcmp(hider, "reyes") == 0) {
+    }
+    else if (strcmp(hider, "reyes") == 0) {
         CStochastic::preDisplaySetup();
-    } else if (strcmp(hider, "zbuffer") == 0) {
+    }
+    else if (strcmp(hider, "zbuffer") == 0) {
         CZbuffer::preDisplaySetup();
-    } else if (strcmp(hider, "photon") == 0) {
+    }
+    else if (strcmp(hider, "photon") == 0) {
         CPhotonHider::preDisplaySetup();
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Hider \"%s\" unavailable\n", hider);
         CStochastic::preDisplaySetup();
     }
@@ -759,16 +773,20 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         if (strcmp(hider, "raytrace") == 0) {
             contexts[i] = new CRaytracer(i);
             dispatchJob = dispatchReyes;
-        } else if (strcmp(hider, "reyes") == 0) {
+        }
+        else if (strcmp(hider, "reyes") == 0) {
             contexts[i] = new CStochastic(i);
             dispatchJob = dispatchReyes;
-        } else if (strcmp(hider, "zbuffer") == 0) {
+        }
+        else if (strcmp(hider, "zbuffer") == 0) {
             contexts[i] = new CZbuffer(i);
             dispatchJob = dispatchReyes;
-        } else if (strcmp(hider, "photon") == 0) {
+        }
+        else if (strcmp(hider, "photon") == 0) {
             contexts[i] = new CPhotonHider(i, context->getAttributes(TRUE));
             dispatchJob = dispatchPhoton;
-        } else {
+        }
+        else {
             contexts[i] = new CStochastic(i);
             dispatchJob = dispatchReyes;
         }
@@ -868,7 +886,8 @@ void CRenderer::endFrame() {
 
         if (netBuffer.integer == NET_READY) {
             // We're proceeding to the next frame
-        } else {
+        }
+        else {
             fatal(CODE_BADTOKEN, "Invalid net command\n");
         }
     }
@@ -991,8 +1010,8 @@ void CRenderer::renderFrame() {
             netBuffer.integer = NET_READY;
             rcSend(netServers[i], &netBuffer, sizeof(T32));
         }
-
-    } else {
+    }
+    else {
         int i;
         TThread *threads;
 

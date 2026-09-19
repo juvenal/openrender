@@ -16,7 +16,7 @@
  */
 
 #include "passUniformLifting.h"
-#include "../rslo.h"  // for SLC_xxx constants
+#include "../rslo.h" // for SLC_xxx constants
 #include <unordered_map>
 
 // -------------------------------------------------------------------------
@@ -51,10 +51,10 @@ bool CUniformLiftingPass::isUniformSafeOpcode(const std::string &opcode) {
         "setxcomp", "setycomp", "setzcomp",
         "matfromf", "matfromv",
         "inversesqrt",
-        nullptr
-    };
+        nullptr};
     for (int i = 0; uniformSafe[i] != nullptr; ++i) {
-        if (opcode == uniformSafe[i]) return true;
+        if (opcode == uniformSafe[i])
+            return true;
     }
     return false;
 }
@@ -68,7 +68,8 @@ void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
                                                std::unordered_set<std::string> &out) {
     for (const IRBlock &blk : fn.blocks) {
         for (const IRInstr &instr : blk.instrs) {
-            if (instr.opcode != "gatherHeader") continue;
+            if (instr.opcode != "gatherHeader")
+                continue;
             // operands = [category, P, N, sampleCone, samples,
             //             name0, value0, name1, value1, ...]
             for (size_t i = 6; i < instr.operands.size(); i += 2) {
@@ -83,23 +84,24 @@ void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
 // -------------------------------------------------------------------------
 
 // static
-bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
-                                 std::unordered_set<std::string> &uniformSet,
-                                 const std::unordered_map<std::string, int> &writeCounts,
-                                 const std::unordered_set<std::string> &gatherOutputs) {
+bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod, std::unordered_set<std::string> &uniformSet, const std::unordered_map<std::string, int> &writeCounts, const std::unordered_set<std::string> &gatherOutputs) {
     bool changed = false;
     for (IRBlock &blk : fn.blocks) {
         for (const IRInstr &instr : blk.instrs) {
-            if (!instr.hasResult()) continue;
-            if (!isUniformSafeOpcode(instr.opcode)) continue;
+            if (!instr.hasResult())
+                continue;
+            if (!isUniformSafeOpcode(instr.opcode))
+                continue;
 
             // Already uniform?
             IRVarInfo *vi = mod.findVar(instr.result);
-            if (!vi) continue;
+            if (!vi)
+                continue;
             // Skip globals: their stride is fixed by the renderer (s_rslGlobalStrides).
             // Promoting them would incorrectly add them to uniformSet, causing local
             // variables that read from varying globals (e.g. alpha) to be wrongly promoted.
-            if (vi->isGlobal()) continue;
+            if (vi->isGlobal())
+                continue;
             if (vi->isUniform()) {
                 uniformSet.insert(instr.result);
                 continue;
@@ -108,20 +110,23 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
             // gather() writes into its output-bound variables per loop
             // iteration without that write appearing as an IRInstr result,
             // so writeCounts below can't see it. Never promote these.
-            if (gatherOutputs.find(instr.result) != gatherOutputs.end()) continue;
+            if (gatherOutputs.find(instr.result) != gatherOutputs.end())
+                continue;
 
             // Variables written more than once in the function cannot be safely
             // promoted: a later write might assign a varying value, making the
             // "uniform" tag from an earlier write incorrect.
             {
                 auto wc = writeCounts.find(instr.result);
-                if (wc != writeCounts.end() && wc->second > 1) continue;
+                if (wc != writeCounts.end() && wc->second > 1)
+                    continue;
             }
 
             // Check if all named operands are in the uniform set.
             bool allUniform = true;
             for (const IROperand &op : instr.operands) {
-                if (op.isLiteral() || op.isQuoted() || op.isLabel()) continue;
+                if (op.isLiteral() || op.isQuoted() || op.isLabel())
+                    continue;
                 if (uniformSet.find(op.token) == uniformSet.end()) {
                     allUniform = false;
                     break;
@@ -130,7 +135,7 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod,
 
             if (allUniform) {
                 // Promote: set SLC_UNIFORM, clear SLC_VARYING.
-                vi->slcType |=  SLC_UNIFORM;
+                vi->slcType |= SLC_UNIFORM;
                 vi->slcType &= ~SLC_VARYING;
                 uniformSet.insert(instr.result);
                 changed = true;

@@ -35,11 +35,11 @@
 
 #include <cstdio>
 
-#include "riHooks.h"
-#include "rendererContext.h"
 #include "object.h"
-#include "solidObject.h"
+#include "rendererContext.h"
 #include "ri.h"
+#include "riHooks.h"
+#include "solidObject.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -54,8 +54,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \

@@ -43,10 +43,12 @@
         __a = new CFragment;                                           \
         if (CRenderer::numExtraSamples > 0) {                          \
             __a->extraSamples = new float[CRenderer::numExtraSamples]; \
-        } else {                                                       \
+        }                                                              \
+        else {                                                         \
             __a->extraSamples = NULL;                                  \
         }                                                              \
-    } else {                                                           \
+    }                                                                  \
+    else {                                                             \
         __a = freeFragments;                                           \
         freeFragments = freeFragments->next;                           \
     }                                                                  \
@@ -76,7 +78,8 @@ CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apert
     // Allocate the framebuffer for extra samples (checkpointed)
     if (CRenderer::numExtraSamples > 0) {
         extraSampleMemory = (float *)ralloc(totalWidth * totalHeight * CRenderer::numExtraSamples * sizeof(float), CRenderer::globalMemory);
-    } else {
+    }
+    else {
         extraSampleMemory = NULL;
     }
     // Allocate the pixels (checkpointed)
@@ -99,7 +102,8 @@ CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apert
     int cullerSize;
     if (totalHeight > totalWidth) {
         cullerSize = totalHeight;
-    } else {
+    }
+    else {
         cullerSize = totalWidth;
     }
     initCuller(cullerSize, &maxDepth);
@@ -202,11 +206,11 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             pixel->jtStratum = ((pxi * CRenderer::pixelXsamples + pxj) * rasterTimeStrata()) / (CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
             const CSampleValue sample = CRenderer::correlatedSampleTable
-                ? correlatedTable[(size_t)i * sampleWidth + j]
-                : sampler.nextSample(
-                      pxi * CRenderer::pixelXsamples + pxj,
-                      pxj * CRenderer::pixelYsamples + pxi,
-                      wantLens);
+                                            ? correlatedTable[(size_t)i * sampleWidth + j]
+                                            : sampler.nextSample(
+                                                  pxi * CRenderer::pixelXsamples + pxj,
+                                                  pxj * CRenderer::pixelYsamples + pxi,
+                                                  wantLens);
 
             pixel->jx = sample.jitterX;
             pixel->jy = sample.jitterY;
@@ -238,7 +242,8 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
                     pixel->xcentRot = (CRenderer::imagePlane * r[0] / r[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
                     pixel->ycentRot = (CRenderer::imagePlane * r[1] / r[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
                     pixel->zScale = 1.0f / r[2];
-                } else {
+                }
+                else {
                     // Rotated beyond the eye plane: park the sample far outside
                     // every bound so no quad can ever match it
                     pixel->xcentRot = -1e9f;
@@ -288,7 +293,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
 // Description			:	Draw bunch of primitives
 // Return Value			:	-
 // Comments				:
-void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
+void CStochastic::rasterDrawPrimitives(CRasterGrid *grid){
 // Instantiate the dispatch switch
 #define DEFINE_STOCHASTIC_SWITCH
 #include "stochasticPrimitives.h"
@@ -324,7 +329,8 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
             __dest->prev = lSample;                                                                      \
             cSample->prev = __dest;                                                                      \
             lSample->next = __dest;                                                                      \
-        } else {                                                                                         \
+        }                                                                                                \
+        else {                                                                                           \
             CFragment *cSample;                                                                          \
             for (cSample = lSample->prev; __z < cSample->z; lSample = cSample, cSample = cSample->prev)  \
                 ;                                                                                        \
@@ -376,7 +382,8 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
                     printf("*");                                                                                \
                 }                                                                                               \
                 printf("*\n");                                                                                  \
-            } else {                                                                                            \
+            }                                                                                                   \
+            else {                                                                                              \
                 printf("\n");                                                                                   \
             }                                                                                                   \
             ds = ds->prev;                                                                                      \
@@ -402,7 +409,8 @@ void CStochastic::rasterDrawPrimitives(CRasterGrid *grid) {
                 rO[0] *= 1 + Oc[0];                                                                                                        \
                 rO[1] *= 1 + Oc[1];                                                                                                        \
                 rO[2] *= 1 + Oc[2];                                                                                                        \
-            } else {                                                                                                                       \
+            }                                                                                                                              \
+            else {                                                                                                                         \
                 O[0] += Oc[0] * rO[0];                                                                                                     \
                 O[1] += Oc[1] * rO[1];                                                                                                     \
                 O[2] += Oc[2] * rO[2];                                                                                                     \
@@ -585,308 +593,310 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
                     }
                 }
 
-        // Deal with no samples, and resolve the depth-filter z (min/max/avg/mid)
-        // via the shared CCompositor::evaluateDepth (spec 008-hider-parity-convergence,
-        // S3) -- the candidate-list walk + threshold test + Mid-mode second-candidate
-        // search + zold floor + clip-correct all now live there, ported verbatim from
-        // what this block used to do inline.
+                // Deal with no samples, and resolve the depth-filter z (min/max/avg/mid)
+                // via the shared CCompositor::evaluateDepth (spec 008-hider-parity-convergence,
+                // S3) -- the candidate-list walk + threshold test + Mid-mode second-candidate
+                // search + zold floor + clip-correct all now live there, ported verbatim from
+                // what this block used to do inline.
 
-        if (cSample == NULL) {
-            // No samples that satisfy zthreshold, use defaults
-            for (int es = 0; es < numExtraNonCompChannels; es++) {
-                const int sampleOffset = CRenderer::nonCompChannelOrder[es * 4];
-                const int numSamples = CRenderer::nonCompChannelOrder[es * 4 + 1];
-                copyNonCompSamples(CRenderer::sampleDefaults + sampleOffset);
-            }
-            Z[0] = C_INFINITY;
-        } else {
-            depthFilterZs.clear();
-            depthFilterOpacities.clear();
-            for (CFragment *dSample = cPixel->first.next; dSample != NULL; dSample = dSample->next) {
-                depthFilterZs.push_back(dSample->z);
-                depthFilterOpacities.push_back(dSample->opacity[0]);
-                depthFilterOpacities.push_back(dSample->opacity[1]);
-                depthFilterOpacities.push_back(dSample->opacity[2]);
-            }
+                if (cSample == NULL) {
+                    // No samples that satisfy zthreshold, use defaults
+                    for (int es = 0; es < numExtraNonCompChannels; es++) {
+                        const int sampleOffset = CRenderer::nonCompChannelOrder[es * 4];
+                        const int numSamples = CRenderer::nonCompChannelOrder[es * 4 + 1];
+                        copyNonCompSamples(CRenderer::sampleDefaults + sampleOffset);
+                    }
+                    Z[0] = C_INFINITY;
+                }
+                else {
+                    depthFilterZs.clear();
+                    depthFilterOpacities.clear();
+                    for (CFragment *dSample = cPixel->first.next; dSample != NULL; dSample = dSample->next) {
+                        depthFilterZs.push_back(dSample->z);
+                        depthFilterOpacities.push_back(dSample->opacity[0]);
+                        depthFilterOpacities.push_back(dSample->opacity[1]);
+                        depthFilterOpacities.push_back(dSample->opacity[2]);
+                    }
 
-            // Min/Max/Avg all resolve identically at this per-sample-point level
-            // (nearest passing candidate) -- only Mid's second-candidate search
-            // differs, so any non-Mid mode is passed through as Min here.
-            const DepthFilterMode mode = (CRenderer::depthFilter == DEPTH_MID) ? DepthFilterMode::Mid : DepthFilterMode::Min;
+                    // Min/Max/Avg all resolve identically at this per-sample-point level
+                    // (nearest passing candidate) -- only Mid's second-candidate search
+                    // differs, so any non-Mid mode is passed through as Min here.
+                    const DepthFilterMode mode = (CRenderer::depthFilter == DEPTH_MID) ? DepthFilterMode::Mid : DepthFilterMode::Min;
 
-            Z[0] = CCompositor::evaluateDepth(depthFilterZs.data(), depthFilterOpacities.data(),
-                                               (int)depthFilterZs.size(), mode, zvisibilityThreshold,
-                                               pixelHasMatte, cPixel->zold);
-        }
+                    Z[0] = CCompositor::evaluateDepth(depthFilterZs.data(), depthFilterOpacities.data(),
+                                                      (int)depthFilterZs.size(), mode, zvisibilityThreshold,
+                                                      pixelHasMatte, cPixel->zold);
+                }
 
 #undef NonCompositeSampleLoop
 #undef copyNonCompSamples
+            }
+
+            ///////////////////////////////////////////////
+            // Composite loop for composited aovs, rgba
+            // Note: we also remove the samples here
+            ///////////////////////////////////////////////
+
+            {
+                CompositeAccumulator acc;
+                CCompositor::begin(acc, ES);
+
+                cSample = cPixel->first.next;
+                oSample = cSample;
+                cSample = cSample->next;
+
+                CompositeSample cs;
+                cs.color = oSample->color;
+                cs.opacity = oSample->opacity;
+                cs.extraSamples = oSample->extraSamples;
+                cs.z = oSample->z;
+                CCompositor::composite(acc, cs);
+
+                // Transparency collapse, and delete samples
+                for (; cSample != NULL;) {
+                    deleteFragment(oSample);
+
+                    cs.color = cSample->color;
+                    cs.opacity = cSample->opacity;
+                    cs.extraSamples = cSample->extraSamples;
+                    cs.z = cSample->z;
+                    CCompositor::composite(acc, cs);
+
+                    oSample = cSample;
+                    cSample = cSample->next;
+                }
+
+                movvv(C, acc.color);
+                movvv(O, acc.opacity);
+
+                // Alpha is the average opacity
+                // I know this is wrong but this is more useful
+                cFb[0] = ((O[0] + O[1] + O[2]) * 0.3333333333333333f);
+            }
+        }
     }
 
-    ///////////////////////////////////////////////
-    // Composite loop for composited aovs, rgba
-    // Note: we also remove the samples here
-    ///////////////////////////////////////////////
+    // Note: at this point, all the subpixel samples are valid
+    // We could output subpixel samples here if we wish to support a subpixel hider
 
-    {
-        CompositeAccumulator acc;
-        CCompositor::begin(acc, ES);
+    // Clear the memory first
+    for (tmp = fb2, i = xres * yres * CRenderer::numSamples; i > 0; i--)
+        *tmp++ = 0;
 
-        cSample = cPixel->first.next;
-        oSample = cSample;
-        cSample = cSample->next;
+    // Perform non area-filtering for depth
+    // Note: technically, this should filter in the specified width/height
+    // but > 1 pixel doesn't really make sense
+    switch (CRenderer::depthFilter) {
+        case DEPTH_MIN:
 
-        CompositeSample cs;
-        cs.color = oSample->color;
-        cs.opacity = oSample->opacity;
-        cs.extraSamples = oSample->extraSamples;
-        cs.z = oSample->z;
-        CCompositor::composite(acc, cs);
+            for (int y = 0; y < yres; y++) {
+                float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
+                float *cPixel = cPixelLine;
+                float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
+                float *cSample = cSampleLine;
 
-        // Transparency collapse, and delete samples
-        for (; cSample != NULL;) {
-            deleteFragment(oSample);
+                for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
+                    cPixel[4] = cSample[1]; // initialize with first sample
+                }
 
-            cs.color = cSample->color;
-            cs.opacity = cSample->opacity;
-            cs.extraSamples = cSample->extraSamples;
-            cs.z = cSample->z;
-            CCompositor::composite(acc, cs);
+                cSample = cSampleLine;
+                for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
+                    cPixel = cPixelLine;
+                    for (i = 0; i < xres; i++) {
+                        for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
+                            if (cSample[1] < cPixel[4]) {
+                                cPixel[4] = cSample[1];
+                            }
+                        }
+                        cPixel += CRenderer::numSamples;
+                    }
+                    // cSample += CRenderer::xSampleOffset*pixelSize;
+                    cSample = cSampleLine + totalWidth * pixelSize;
+                    cSampleLine = cSample;
+                }
+            }
 
-            oSample = cSample;
-            cSample = cSample->next;
-        }
+            break;
+        case DEPTH_MAX:
 
-        movvv(C, acc.color);
-        movvv(O, acc.opacity);
+            for (int y = 0; y < yres; y++) {
+                float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
+                float *cPixel = cPixelLine;
+                float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
+                float *cSample = cSampleLine;
 
-        // Alpha is the average opacity
-        // I know this is wrong but this is more useful
-        cFb[0] = ((O[0] + O[1] + O[2]) * 0.3333333333333333f);
-    }
-}
-}
+                for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
+                    cPixel[4] = cSample[1]; // initialize with first sample
+                }
 
-// Note: at this point, all the subpixel samples are valid
-// We could output subpixel samples here if we wish to support a subpixel hider
+                cSample = cSampleLine;
+                for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
+                    cPixel = cPixelLine;
+                    for (i = 0; i < xres; i++) {
+                        for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
+                            if (cSample[1] > cPixel[4]) {
+                                cPixel[4] = cSample[1];
+                            }
+                        }
+                        cPixel += CRenderer::numSamples;
+                    }
+                    // cSample += CRenderer::xSampleOffset*pixelSize;
+                    cSample = cSampleLine + totalWidth * pixelSize;
+                    cSampleLine = cSample;
+                }
+            }
 
-// Clear the memory first
-for (tmp = fb2, i = xres * yres * CRenderer::numSamples; i > 0; i--)
-    *tmp++ = 0;
+            break;
+        case DEPTH_AVG:
 
-// Perform non area-filtering for depth
-// Note: technically, this should filter in the specified width/height
-// but > 1 pixel doesn't really make sense
-switch (CRenderer::depthFilter) {
-case DEPTH_MIN:
+            for (int y = 0; y < yres; y++) {
+                float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
+                float *cPixel = cPixelLine;
+                float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
+                float *cSample = cSampleLine;
 
-    for (int y = 0; y < yres; y++) {
-        float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
-        float *cPixel = cPixelLine;
-        float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
-        float *cSample = cSampleLine;
+                for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
+                    cPixel[4] = 0; // initialize with zero
+                }
 
-        for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
-            cPixel[4] = cSample[1]; // initialize with first sample
-        }
+                cSample = cSampleLine;
+                for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
+                    cPixel = cPixelLine;
+                    for (i = 0; i < xres; i++) {
+                        for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
+                            cPixel[4] += cSample[1];
+                        }
+                        cPixel += CRenderer::numSamples;
+                    }
+                    // cSample += CRenderer::xSampleOffset*pixelSize;
+                    cSample = cSampleLine + totalWidth * pixelSize;
+                    cSampleLine = cSample;
+                }
+            }
 
-        cSample = cSampleLine;
-        for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
-            cPixel = cPixelLine;
-            for (i = 0; i < xres; i++) {
-                for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    if (cSample[1] < cPixel[4]) {
-                        cPixel[4] = cSample[1];
+            {
+                const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
+                for (int y = 0; y < yres; y++) {
+                    float *cPixel = &fb2[y * xres * CRenderer::numSamples];
+                    for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
+                        cPixel[4] *= normalizer;
                     }
                 }
-                cPixel += CRenderer::numSamples;
             }
-            // cSample += CRenderer::xSampleOffset*pixelSize;
-            cSample = cSampleLine + totalWidth * pixelSize;
-            cSampleLine = cSample;
-        }
-    }
 
-    break;
-case DEPTH_MAX:
+            break;
 
-    for (int y = 0; y < yres; y++) {
-        float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
-        float *cPixel = cPixelLine;
-        float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
-        float *cSample = cSampleLine;
+        case DEPTH_MID:
+            // cSample[1] already holds the per-subsample midpoint z resolved by
+            // CCompositor::evaluateDepth (spec 008-hider-parity-convergence, S3);
+            // this is just the cross-subsample average of that value.
 
-        for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
-            cPixel[4] = cSample[1]; // initialize with first sample
-        }
+            for (int y = 0; y < yres; y++) {
+                float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
+                float *cPixel = cPixelLine;
+                float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
+                float *cSample = cSampleLine;
 
-        cSample = cSampleLine;
-        for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
-            cPixel = cPixelLine;
-            for (i = 0; i < xres; i++) {
-                for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    if (cSample[1] > cPixel[4]) {
-                        cPixel[4] = cSample[1];
+                for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
+                    cPixel[4] = 0; // initialize with zero
+                }
+
+                cSample = cSampleLine;
+                for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
+                    cPixel = cPixelLine;
+                    for (i = 0; i < xres; i++) {
+                        for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
+                            cPixel[4] += cSample[1];
+                        }
+                        cPixel += CRenderer::numSamples;
+                    }
+                    // cSample += CRenderer::xSampleOffset*pixelSize;
+                    cSample = cSampleLine + totalWidth * pixelSize;
+                    cSampleLine = cSample;
+                }
+            }
+
+            {
+                const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
+                for (int y = 0; y < yres; y++) {
+                    float *cPixel = &fb2[y * xres * CRenderer::numSamples];
+                    for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
+                        cPixel[4] *= normalizer;
                     }
                 }
-                cPixel += CRenderer::numSamples;
             }
-            // cSample += CRenderer::xSampleOffset*pixelSize;
-            cSample = cSampleLine + totalWidth * pixelSize;
-            cSampleLine = cSample;
-        }
     }
 
-    break;
-case DEPTH_AVG:
-
-    for (int y = 0; y < yres; y++) {
-        float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
-        float *cPixel = cPixelLine;
-        float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
-        float *cSample = cSampleLine;
-
-        for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
-            cPixel[4] = 0; // initialize with zero
-        }
-
-        cSample = cSampleLine;
-        for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
-            cPixel = cPixelLine;
-            for (i = 0; i < xres; i++) {
-                for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    cPixel[4] += cSample[1];
-                }
-                cPixel += CRenderer::numSamples;
-            }
-            // cSample += CRenderer::xSampleOffset*pixelSize;
-            cSample = cSampleLine + totalWidth * pixelSize;
-            cSampleLine = cSample;
-        }
+    // FIXME: Filter non-composited samples
+    if (numExtraNonCompChannels > 0) {
     }
 
-    {
-        const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
+    // Filter the samples
+    if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
         for (int y = 0; y < yres; y++) {
-            float *cPixel = &fb2[y * xres * CRenderer::numSamples];
-            for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
-                cPixel[4] *= normalizer;
-            }
-        }
-    }
+            for (sy = 0; sy < filterHeight; sy++) {
+                for (sx = 0; sx < filterWidth; sx++) {
+                    float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
+                    const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
+                    const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
 
-    break;
+                    for (i = 0; i < xres; i++) {
+                        CPixelFilterAccumulator::splat(&pixelLine[0], &sampleLine[2], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pixelLine[1], &sampleLine[3], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pixelLine[2], &sampleLine[4], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pixelLine[3], &sampleLine[0], 1, filterResponse);
 
-case DEPTH_MID:
-    // cSample[1] already holds the per-subsample midpoint z resolved by
-    // CCompositor::evaluateDepth (spec 008-hider-parity-convergence, S3);
-    // this is just the cross-subsample average of that value.
+                        // Filter the extra samples here
+                        CPixelFilterAccumulator::splat(&pixelLine[5], &sampleLine[6], CRenderer::numExtraSamples, filterResponse);
 
-    for (int y = 0; y < yres; y++) {
-        float *cPixelLine = &fb2[y * xres * CRenderer::numSamples];
-        float *cPixel = cPixelLine;
-        float *cSampleLine = &fbs[((y * CRenderer::pixelYsamples + CRenderer::ySampleOffset) * totalWidth + CRenderer::xSampleOffset) * pixelSize];
-        float *cSample = cSampleLine;
-
-        for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples, cSample += CRenderer::pixelXsamples * pixelSize) {
-            cPixel[4] = 0; // initialize with zero
-        }
-
-        cSample = cSampleLine;
-        for (sy = 0; sy < CRenderer::pixelYsamples; sy++) {
-            cPixel = cPixelLine;
-            for (i = 0; i < xres; i++) {
-                for (sx = 0; sx < CRenderer::pixelXsamples; sx++, cSample += pixelSize) {
-                    cPixel[4] += cSample[1];
+                        // Advance
+                        pixelLine += CRenderer::numSamples;
+                        sampleLine += sampleLineDisplacement;
+                    }
                 }
-                cPixel += CRenderer::numSamples;
             }
-            // cSample += CRenderer::xSampleOffset*pixelSize;
-            cSample = cSampleLine + totalWidth * pixelSize;
-            cSampleLine = cSample;
         }
     }
+    else {
+        // Continuous mode: evaluate filter function at exact sample positions and normalize per pixel
+        float *filterNorm = (float *)ralloc(xres * sizeof(float), threadMemory);
 
-    {
-        const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
         for (int y = 0; y < yres; y++) {
-            float *cPixel = &fb2[y * xres * CRenderer::numSamples];
-            for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
-                cPixel[4] *= normalizer;
-            }
-        }
-    }
-}
+            memset(filterNorm, 0, xres * sizeof(float));
+            float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
 
-// FIXME: Filter non-composited samples
-if (numExtraNonCompChannels > 0) {
-}
+            for (sy = 0; sy < filterHeight; sy++) {
+                for (sx = 0; sx < filterWidth; sx++) {
+                    const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
+                    // Position of this sample relative to the pixel center, in pixel units
+                    const float cy = (sy - halfFilterHeight + 0.5f) / (float)CRenderer::pixelYsamples;
+                    const float cx = (sx - halfFilterWidth + 0.5f) / (float)CRenderer::pixelXsamples;
+                    const float filterResponse = CRenderer::pixelFilter(
+                        cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
 
-// Filter the samples
-if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
-    for (int y = 0; y < yres; y++) {
-        for (sy = 0; sy < filterHeight; sy++) {
-            for (sx = 0; sx < filterWidth; sx++) {
-                float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
-                const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
-                const float filterResponse = CRenderer::pixelFilterKernel[sy * filterWidth + sx];
+                    float *pLine = pixelLine;
+                    const float *sLine = sampleLine;
+                    for (i = 0; i < xres; i++) {
+                        CPixelFilterAccumulator::splat(&pLine[0], &sLine[2], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pLine[1], &sLine[3], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pLine[2], &sLine[4], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pLine[3], &sLine[0], 1, filterResponse);
 
-                for (i = 0; i < xres; i++) {
-                    CPixelFilterAccumulator::splat(&pixelLine[0], &sampleLine[2], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pixelLine[1], &sampleLine[3], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pixelLine[2], &sampleLine[4], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pixelLine[3], &sampleLine[0], 1, filterResponse);
+                        CPixelFilterAccumulator::splat(&pLine[5], &sLine[6], CRenderer::numExtraSamples, filterResponse);
 
-                    // Filter the extra samples here
-                    CPixelFilterAccumulator::splat(&pixelLine[5], &sampleLine[6], CRenderer::numExtraSamples, filterResponse);
-
-                    // Advance
-                    pixelLine += CRenderer::numSamples;
-                    sampleLine += sampleLineDisplacement;
+                        filterNorm[i] += filterResponse;
+                        pLine += CRenderer::numSamples;
+                        sLine += sampleLineDisplacement;
+                    }
                 }
             }
+
+            // Normalize each pixel by accumulated filter weight
+            CPixelFilterAccumulator::normalizeByWeight(pixelLine, filterNorm, xres, CRenderer::numSamples);
         }
     }
-} else {
-    // Continuous mode: evaluate filter function at exact sample positions and normalize per pixel
-    float *filterNorm = (float *)ralloc(xres * sizeof(float), threadMemory);
 
-    for (int y = 0; y < yres; y++) {
-        memset(filterNorm, 0, xres * sizeof(float));
-        float *pixelLine = &fb2[y * xres * CRenderer::numSamples];
-
-        for (sy = 0; sy < filterHeight; sy++) {
-            for (sx = 0; sx < filterWidth; sx++) {
-                const float *sampleLine = &fbs[((y * CRenderer::pixelYsamples + sy) * totalWidth + sx) * pixelSize];
-                // Position of this sample relative to the pixel center, in pixel units
-                const float cy = (sy - halfFilterHeight + 0.5f) / (float)CRenderer::pixelYsamples;
-                const float cx = (sx - halfFilterWidth  + 0.5f) / (float)CRenderer::pixelXsamples;
-                const float filterResponse = CRenderer::pixelFilter(
-                    cx, cy, CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight);
-
-                float *pLine = pixelLine;
-                const float *sLine = sampleLine;
-                for (i = 0; i < xres; i++) {
-                    CPixelFilterAccumulator::splat(&pLine[0], &sLine[2], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pLine[1], &sLine[3], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pLine[2], &sLine[4], 1, filterResponse);
-                    CPixelFilterAccumulator::splat(&pLine[3], &sLine[0], 1, filterResponse);
-
-                    CPixelFilterAccumulator::splat(&pLine[5], &sLine[6], CRenderer::numExtraSamples, filterResponse);
-
-                    filterNorm[i] += filterResponse;
-                    pLine  += CRenderer::numSamples;
-                    sLine  += sampleLineDisplacement;
-                }
-            }
-        }
-
-        // Normalize each pixel by accumulated filter weight
-        CPixelFilterAccumulator::normalizeByWeight(pixelLine, filterNorm, xres, CRenderer::numSamples);
-    }
-}
-
-memEnd(threadMemory);
+    memEnd(threadMemory);
 }
 
 // A transient data structure to hold TSM data
@@ -949,7 +959,8 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
             error(CODE_SYSTEM, "Failed to write deep shadow closest sample\n");
             return;
         }
-    } else if (cZ == data.origin[0]) { // Do we have a step ?
+    }
+    else if (cZ == data.origin[0]) { // Do we have a step ?
         const float dr = absf(data.origin[1] - opacity[0]);
         const float dg = absf(data.origin[2] - opacity[1]);
         const float db = absf(data.origin[3] - opacity[2]);
@@ -966,7 +977,8 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
                 return;
             }
         }
-    } else {
+    }
+    else {
         // Check for the window of validity
         const float denom = 1 / (cZ - data.origin[0]);
         float crSlopeMax = (opacity[0] - data.origin[1] + data.tsmThreshold) * denom;
@@ -1005,7 +1017,8 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
             data.rSlopeMin = crSlopeMin;
             data.gSlopeMin = cgSlopeMin;
             data.bSlopeMin = cbSlopeMin;
-        } else {
+        }
+        else {
             data.origin[1] += (data.rSlopeMin + data.rSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
             data.origin[2] += (data.gSlopeMin + data.gSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
             data.origin[3] += (data.bSlopeMin + data.bSlopeMax) * (data.lastZ - data.origin[0]) * 0.5f;
@@ -1040,7 +1053,8 @@ inline void outSample(float cZ, const float *opacity, CTSMData &data) {
                         return;
                     }
                 }
-            } else {
+            }
+            else {
                 const float denom = 1 / (cZ - data.origin[0]);
                 data.rSlopeMax = (opacity[0] - data.origin[1] + data.tsmThreshold) * denom;
                 data.gSlopeMax = (opacity[1] - data.origin[2] + data.tsmThreshold) * denom;
@@ -1167,7 +1181,8 @@ void CStochastic::filterSamples(int numSamples, CFragment **samples, float *weig
         if (stop == 3) {
             finishSample(cZ, opacity, data);
             break;
-        } else {
+        }
+        else {
             outSample(cZ, opacity, data);
         }
 
@@ -1259,7 +1274,8 @@ void CStochastic::deepShadowCompute() {
 
                 // Filter/write the pixels
                 filterSamples(numSamples, fSamples, fWeights);
-            } else {
+            }
+            else {
                 // Output a dummy pixel (portable I/O - Phase 2)
                 float dummy[4];
 

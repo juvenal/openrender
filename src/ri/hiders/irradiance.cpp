@@ -85,7 +85,8 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
         if (in != NULL) {
 
             // Read the samples
-            if (fread(&maxDepth, sizeof(int), 1, in) != 1) { /* read error */ }
+            if (fread(&maxDepth, sizeof(int), 1, in) != 1) { /* read error */
+            }
             root = readNode(in);
 
             // Close the file
@@ -110,13 +111,15 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
         float maxBmax01;
         if (bmax[1] > bmax[0]) {
             maxBmax01 = bmax[1];
-        } else {
+        }
+        else {
             maxBmax01 = bmax[0];
         }
         float maxBmax012;
         if (bmax[2] > maxBmax01) {
             maxBmax012 = bmax[2];
-        } else {
+        }
+        else {
             maxBmax012 = maxBmax01;
         }
         root->side = maxBmax012;
@@ -316,7 +319,8 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
             C[i] = 0;
 
         scratch->occlusionParams.pointHierarchy->lookup(C, cP, cdPdu, cdPdv, cN, context);
-    } else {
+    }
+    else {
         CCacheSample *cSample;
         CCacheNode *cNode;
         float totalWeight = 0;
@@ -378,7 +382,8 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
                 float maxE1E2;
                 if (e2 > e1) {
                     maxE1E2 = e2;
-                } else {
+                }
+                else {
                     maxE1E2 = e1;
                 }
                 float w = 1 - K * maxE1E2;
@@ -429,7 +434,8 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
             C[2] = (float)(irradiance[2] * normalizer);
             C[3] = (float)(coverage * normalizer);
             mulmv(C + 4, from, envdir); // envdir is stored in the target coordinate system
-        } else {
+        }
+        else {
             // Are we sampling the cache ?
             if (flags & CACHE_SAMPLE) {
                 vector dPdu, dPdv;
@@ -441,7 +447,8 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
                 // Create a new sample
                 sample(C, P, dPdu, dPdv, N, context);
                 mulmv(C + 4, from, C + 4); // envdir is stored in the target coordinate system
-            } else {
+            }
+            else {
 
                 // No joy
                 C[0] = 0;
@@ -602,7 +609,8 @@ int CIrradianceCache::keyDown(int key) {
     if ((key == 'd') || (key == 'D')) {
         drawDiscs = TRUE;
         return TRUE;
-    } else if ((key == 'p') || (key == 'P')) {
+    }
+    else if ((key == 'p') || (key == 'P')) {
         drawDiscs = FALSE;
         return TRUE;
     }

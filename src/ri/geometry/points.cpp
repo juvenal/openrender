@@ -76,7 +76,8 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
             }
 
             break;
-        } else if (cVar->entry == VARIABLE_CONSTANTWIDTH) {
+        }
+        else if (cVar->entry == VARIABLE_CONSTANTWIDTH) {
             const float *vertex = pl->data0 + pl->parameters[i].index;
 
             if (vertex[0] > maxSize) {
@@ -111,7 +112,8 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
             mulmp(tmp, from, vertex);
             addBox(bmin, bmax, tmp);
         }
-    } else if (xform->next != NULL) {
+    }
+    else if (xform->next != NULL) {
         const float *from = xform->next->from;
         for (vertex = pl->data0, i = 0; i < numPoints; i++, vertex += 3) {
             mulmp(tmp, from, vertex);
@@ -211,7 +213,8 @@ void CPoints::sample(int start [[maybe_unused]], int numVertices [[maybe_unused]
             memcpy(vertexData, cP, vertexSize * sizeof(float));
             vertexData += vertexSize;
         }
-    } else {
+    }
+    else {
         for (int i = 0; i < numPoints; ++i) {
             const float *cP = points[i];
             memcpy(vertexData, cP, vertexSize * sizeof(float));
@@ -237,7 +240,8 @@ void CPoints::sample(int start [[maybe_unused]], int numVertices [[maybe_unused]
                 subvv(dest, points[i] + vertexSize, points[i]);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numPoints; ++i)
                 initv(dest, 0, 0, 0);
@@ -324,7 +328,8 @@ void CPoints::prep() {
             }
 
             break;
-        } else if (cVar->entry == VARIABLE_CONSTANTWIDTH) {
+        }
+        else if (cVar->entry == VARIABLE_CONSTANTWIDTH) {
             float *vertex = pl->data0 + pl->parameters[i].index;
 
             vertex[0] *= expansion;

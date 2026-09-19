@@ -93,7 +93,8 @@ CPrimaryBundle::~CPrimaryBundle() {
 // Return Value			:	-
 // Comments				:
 static void resolveNonComp(CPrimaryRay *cRay) {
-    if (cRay->nonCompLatched) return;
+    if (cRay->nonCompLatched)
+        return;
 
     bool pixelHasMatte = false;
     for (const auto &s : cRay->pendingNonComp) {
@@ -182,8 +183,8 @@ static void resolveDepth(CPrimaryRay *cRay) {
     // -infinity (a -infinity no-op silently drops the floor that produces
     // reyes's own clipMax-collapsed Mid-mode output).
     cRay->samples[4] = CCompositor::evaluateDepth(zs.data(), opacities.data(), count, mode,
-                                                   CRenderer::zvisibilityThreshold, pixelHasMatte,
-                                                   CRenderer::clipMax);
+                                                  CRenderer::zvisibilityThreshold, pixelHasMatte,
+                                                  CRenderer::clipMax);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -246,7 +247,8 @@ void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
             sOpacity[0] = -Oi[0];
             sOpacity[1] = -Oi[1];
             sOpacity[2] = -Oi[2];
-        } else {
+        }
+        else {
             movvv(sOpacity, Oi);
         }
 
@@ -291,12 +293,13 @@ void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
         }
 
         const bool transparent = (Oi[0] < CRenderer::opacityThreshold[0]) ||
-                                  (Oi[1] < CRenderer::opacityThreshold[1]) ||
-                                  (Oi[2] < CRenderer::opacityThreshold[2]);
+                                 (Oi[1] < CRenderer::opacityThreshold[1]) ||
+                                 (Oi[2] < CRenderer::opacityThreshold[2]);
 
         if (transparent) {
             rays[last++] = cRay;
-        } else {
+        }
+        else {
             movvv(cRay->samples, cRay->acc.color);
             resolveNonComp(cRay);
             resolveDepth(cRay);
@@ -333,7 +336,8 @@ void CPrimaryBundle::postShade(int nr, CRay **r) {
                     *d++ = *src++;
             }
         }
-    } else {
+    }
+    else {
         for (int i = 0; i < nr; i++) {
             CPrimaryRay *cRay = (CPrimaryRay *)r[i];
 
@@ -410,7 +414,8 @@ void CRaytracer::renderingLoop() {
 
             // End the context
             break;
-        } else if (job.type == CRenderer::CJob::BUCKET) {
+        }
+        else if (job.type == CRenderer::CJob::BUCKET) {
             const int x = job.xBucket;
             const int y = job.yBucket;
 
@@ -426,14 +431,16 @@ void CRaytracer::renderingLoop() {
             int width;
             if (CRenderer::bucketWidth < availableWidth2) {
                 width = CRenderer::bucketWidth;
-            } else {
+            }
+            else {
                 width = availableWidth2;
             }
             int availableHeight2 = CRenderer::yPixels - top;
             int height;
             if (CRenderer::bucketHeight < availableHeight2) {
                 height = CRenderer::bucketHeight;
-            } else {
+            }
+            else {
                 height = availableHeight2;
             }
 
@@ -453,8 +460,8 @@ void CRaytracer::renderingLoop() {
                 currentXBucket = 0;
                 currentYBucket++;
             }
-
-        } else {
+        }
+        else {
             error(CODE_BUG, "Invalid job for the hider\n");
         }
     }
@@ -526,14 +533,16 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                 int my;
                 if (8 < myLimit) {
                     my = 8;
-                } else {
+                }
+                else {
                     my = myLimit;
                 }
                 int mxLimit = xsamples - i;
                 int mx;
                 if (8 < mxLimit) {
                     mx = 8;
-                } else {
+                }
+                else {
                     mx = mxLimit;
                 }
                 for (y = 0; y < my; y++) {
@@ -553,8 +562,8 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         // would have drawn this entry for, so no sub_x/sub_y
                         // modulo remapping is needed on this side.
                         const CSampleValue jitterSample = CRenderer::correlatedSampleTable
-                            ? correlatedTable[(size_t)(j + y) * xsamples + (i + x)]
-                            : sampler.nextSample(sub_y * nx + sub_x, 0, false);
+                                                              ? correlatedTable[(size_t)(j + y) * xsamples + (i + x)]
+                                                              : sampler.nextSample(sub_y * nx + sub_x, 0, false);
 
                         cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + jitterSample.jitterX) * invXsamples; // Center the sample location in the pixel
                         cRay->y = (float)top + (float)(j + y - CRenderer::ySampleOffset + jitterSample.jitterY) * invYsamples;
@@ -630,7 +639,8 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
             cRay->tmin = 0;
         }
-    } else {
+    }
+    else {
         for (i = numShading; i > 0; i--, cRay++) {
             // First two numbers in the samples list are the x/y coordinates in pixels of the sample location
             x = cRay->x;
@@ -653,7 +663,8 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             if (CRenderer::correlatedSampleTable) {
                 diskSample[0] = cRay->lensU;
                 diskSample[1] = cRay->lensV;
-            } else {
+            }
+            else {
                 lensSampler.lensSample(diskSample);
             }
             from[COMP_X] += diskSample[0] * CRenderer::aperture;
@@ -685,7 +696,8 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             cRay->db = 0;
             cRay->da = a;
         }
-    } else {
+    }
+    else {
         const float b = CRenderer::dxdPixel;
 
         cRay = rays;
@@ -745,14 +757,20 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
         }
 
         if (CRenderer::pixelFilterMode == CRenderer::FILTER_MODE_PRECOMPUTED) {
-            const float halfFilterWidth  = filterWidth  * 0.5f;
+            const float halfFilterWidth = filterWidth * 0.5f;
             const float halfFilterHeight = filterHeight * 0.5f;
             for (pixelY = pt; pixelY <= pb; pixelY++) {
                 for (pixelX = pl; pixelX <= pr; pixelX++) {
                     int px = (int)floor((pixelX + 0.5f - x) * CRenderer::pixelXsamples + halfFilterWidth);
                     int py = (int)floor((pixelY + 0.5f - y) * CRenderer::pixelYsamples + halfFilterHeight);
-                    if (px < 0) px = 0; else if (px >= filterWidth)  px = filterWidth  - 1;
-                    if (py < 0) py = 0; else if (py >= filterHeight) py = filterHeight - 1;
+                    if (px < 0)
+                        px = 0;
+                    else if (px >= filterWidth)
+                        px = filterWidth - 1;
+                    if (py < 0)
+                        py = 0;
+                    else if (py >= filterHeight)
+                        py = filterHeight - 1;
                     const float contribution = CPixelFilterAccumulator::precomputedWeight(px, py, filterWidth);
                     const int pixelIdx = (pixelY - top) * xpixels + pixelX - left;
 
@@ -764,7 +782,8 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
                     CPixelFilterAccumulator::splat(&fbPixels[pixelIdx * CRenderer::numSamples], fbs, CRenderer::numSamples, contribution);
                 }
             }
-        } else {
+        }
+        else {
             float cx, cy;
             for (cy = pt + 0.5f - y, pixelY = pt; pixelY <= pb; pixelY++, cy++) {
                 for (cx = pl + 0.5f - x, pixelX = pl; pixelX <= pr; pixelX++, cx++) {

@@ -8,10 +8,16 @@
 #include "ri/render/renderer.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 // A photon map's read constructor combines its own stored fromWorld/toWorld matrices with
 // CRenderer::fromWorld/toWorld (photonMap.cpp:103-104) -- if those statics are left at their
@@ -28,10 +34,10 @@ static void writePhotonMapFixture(const char *path) {
 
     CPhotonMap *map = new CPhotonMap(path, NULL);
 
-    float P[3] = { 1, 2, 3 };
-    float N[3] = { 0, 0, 1 };
-    float I[3] = { 0, 0, 1 };
-    float C[3] = { 1, 1, 1 };
+    float P[3] = {1, 2, 3};
+    float N[3] = {0, 0, 1};
+    float I[3] = {0, 0, 1};
+    float C[3] = {1, 1, 1};
     map->store(P, N, I, C);
 
     map->modifying = TRUE;

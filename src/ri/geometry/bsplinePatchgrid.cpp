@@ -182,16 +182,19 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
         vertexData = vertex; // No need for interpolation
         vertexDataStep = 0;
         vertexSampleStride = vertexSize * 16;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
             vertexSampleStride = vertexSize * 16;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + vertexSize * 16 * upatches * vpatches; // No need for interpolation
             vertexDataStep = 0;
             vertexSampleStride = vertexSize * 16;
-        } else {
+        }
+        else {
             // Interpolate the vertex data in advance
             // Note: this is potentially hugely expensive
             float *interpolate;
@@ -209,7 +212,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 double clampedU;
                 if (uLimit < uValue) {
                     clampedU = uLimit;
-                } else {
+                }
+                else {
                     clampedU = uValue;
                 }
                 const int x = (int)floor(clampedU);
@@ -218,7 +222,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 double clampedV;
                 if (vLimit < vValue) {
                     clampedV = vLimit;
-                } else {
+                }
+                else {
                     clampedV = vValue;
                 }
                 const int y = (int)floor(clampedV);
@@ -251,7 +256,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
             double clampedU_bs;
             if (uLimit_bs < uVal) {
                 clampedU_bs = uLimit_bs;
-            } else {
+            }
+            else {
                 clampedU_bs = uVal;
             }
             const int x = (int)floor(clampedU_bs);
@@ -260,7 +266,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
             double clampedV_bs;
             if (vLimit_bs < vVal) {
                 clampedV_bs = vLimit_bs;
-            } else {
+            }
+            else {
                 clampedV_bs = vVal;
             }
             const int y = (int)floor(clampedV_bs);
@@ -326,7 +333,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 double clampedU;
                 if (uLimit < uValue) {
                     clampedU = uLimit;
-                } else {
+                }
+                else {
                     clampedU = uValue;
                 }
                 const int x = (int)floor(clampedU);
@@ -335,7 +343,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 double clampedV;
                 if (vLimit < vValue) {
                     clampedV = vLimit;
-                } else {
+                }
+                else {
                     clampedV = vValue;
                 }
                 const int y = (int)floor(clampedV);
@@ -363,7 +372,8 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 // Scale the dPdtime
                 mulvf(dest - 3, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -398,8 +408,10 @@ void CBSplinePatchGrid::interpolate(int numVertices, float **varying, float ***l
         dPdv = varying[VARIABLE_DPDV];
 
         for (i = numVertices; i > 0; i--) {
-            float uval = *u; *u++ = uval * uMult + uOrg;
-            float vval = *v; *v++ = vval * vMult + vOrg;
+            float uval = *u;
+            *u++ = uval * uMult + uOrg;
+            float vval = *v;
+            *v++ = vval * vMult + vOrg;
             *du++ *= uMult;
             *dv++ *= vMult;
             mulvf(dPdu, uMult);

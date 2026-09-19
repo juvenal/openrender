@@ -89,26 +89,30 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
         i = (int)strlen(type);
         fwrite(&i, sizeof(int), 1, f);
         fwrite(type, sizeof(char), i + 1, f);
-    } else {
+    }
+    else {
         unsigned int magic = 0;
         int version[4];
         char *t;
 
-        if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */ }
+        if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */
+        }
 
         if (magic != magicNumber) {
             if (magic == magicNumberReversed) {
                 // This is a pixie file, but wrong endian
                 // Always report file wordsize errors
                 error(CODE_BADFILE, "File \"%s\" is binary incompatible (generated on a different endian machine)\n", name);
-            } else if (probe == FALSE) {
+            }
+            else if (probe == FALSE) {
                 error(CODE_BADFILE, "File \"%s\" is binary incompatible\n", name);
             }
             fclose(f);
             return NULL;
         }
 
-        if (fread(version, 3, sizeof(int), f) != 3) { /* read error */ }
+        if (fread(version, 3, sizeof(int), f) != 3) { /* read error */
+        }
 
         if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
             // Always report file version errors
@@ -118,7 +122,8 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
         }
 
         // intentionally read separately for backward compatibility
-        if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */ }
+        if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */
+        }
 
         if (version[3] != sizeof(int *)) {
             // Always report file wordsize errors
@@ -127,9 +132,11 @@ FILE *ropen(const char *name, const char *mode, const char *type, int probe) {
             return NULL;
         }
 
-        if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */ }
+        if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */
+        }
         t = (char *)alloca((i + 1) * sizeof(char));
-        if (fread(t, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */ }
+        if (fread(t, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */
+        }
 
         if (strcmp(t, type) != 0) {
             if (probe == FALSE)
@@ -158,19 +165,22 @@ FILE *ropen(const char *name, char *type) {
         return NULL;
     }
 
-    if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */ }
+    if (fread(&magic, 1, sizeof(int), f) != 1) { /* read error */
+    }
 
     if (magic != magicNumber) {
         if (magic == magicNumberReversed) {
             error(CODE_BADFILE, "File \"%s\" is binary incompatible (generated on a different endian machine)\n", name);
-        } else {
+        }
+        else {
             error(CODE_BADFILE, "File \"%s\" is binary incompatible\n", name);
         }
         fclose(f);
         return NULL;
     }
 
-    if (fread(version, 3, sizeof(int), f) != 3) { /* read error */ }
+    if (fread(version, 3, sizeof(int), f) != 3) { /* read error */
+    }
 
     if ((version[0] != VERSION_MAJOR) || (version[1] != VERSION_MINOR)) {
         error(CODE_BADFILE, "File \"%s\" is of incompatible version\n", name);
@@ -179,7 +189,8 @@ FILE *ropen(const char *name, char *type) {
     }
 
     // intentionally read separately for backward compatibility
-    if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */ }
+    if (fread(version + 3, 1, sizeof(int), f) != 1) { /* read error */
+    }
 
     if (version[3] != sizeof(int *)) {
         error(CODE_BADFILE, "File \"%s\" is binary incompatible (generated on a machine with different word size)\n", name);
@@ -187,8 +198,10 @@ FILE *ropen(const char *name, char *type) {
         return NULL;
     }
 
-    if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */ }
-    if (fread(type, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */ }
+    if (fread(&i, 1, sizeof(int), f) != 1) { /* read error */
+    }
+    if (fread(type, i + 1, sizeof(char), f) != (size_t)(i + 1)) { /* read error */
+    }
 
     return f;
 }

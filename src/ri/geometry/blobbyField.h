@@ -167,11 +167,11 @@ typedef enum {
 ///////////////////////////////////////////////////////////////////////
 class CBlobbyInstruction {
     public:
-        int opcode;       // As written in the code array
-        int leafIndex;    // Ordinal among opcode >= 1000 instructions, or -1
-        int numOperands;  // Number of entries in operands
-        int *operands;    // floats/strings indices, or earlier instruction indices
-        int resolvedOp;   // opcode with 4/5 mapped through the opcode order
+        int opcode;      // As written in the code array
+        int leafIndex;   // Ordinal among opcode >= 1000 instructions, or -1
+        int numOperands; // Number of entries in operands
+        int *operands;   // floats/strings indices, or earlier instruction indices
+        int resolvedOp;  // opcode with 4/5 mapped through the opcode order
 };
 
 ///////////////////////////////////////////////////////////////////////

@@ -193,7 +193,8 @@ void CPointCloud::write() {
 
         // Close the file
         fclose(out);
-    } else {
+    }
+    else {
         error(CODE_BADFILE, "Failed to open \"%s\" for writing\n", name);
     }
 }
@@ -381,9 +382,11 @@ void CPointCloud::draw() {
         float *DDs = data.array + cT->entryNumber + sampleStart;
         if (numSamples == 1) {
             initv(cC, DDs[0]);
-        } else if (numSamples == 2) {
+        }
+        else if (numSamples == 2) {
             initv(cC, DDs[0], DDs[1], 0);
-        } else {
+        }
+        else {
             movvv(cC, DDs);
         }
     }
@@ -406,15 +409,18 @@ int CPointCloud::keyDown(int key) {
     if ((key == 'd') || (key == 'D')) {
         drawDiscs = TRUE;
         return TRUE;
-    } else if ((key == 'p') || (key == 'P')) {
+    }
+    else if ((key == 'p') || (key == 'P')) {
         drawDiscs = FALSE;
         return TRUE;
-    } else if ((key == 'q') || (key == 'Q')) {
+    }
+    else if ((key == 'q') || (key == 'Q')) {
         drawChannel--;
         if (drawChannel < 0)
             drawChannel = 0;
         return TRUE;
-    } else if ((key == 'w') || (key == 'W')) {
+    }
+    else if ((key == 'w') || (key == 'W')) {
         drawChannel++;
         if (drawChannel >= channelCount)
             drawChannel = channelCount - 1;

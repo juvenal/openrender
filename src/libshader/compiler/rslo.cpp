@@ -1260,8 +1260,7 @@ CVariable *CScriptContext::getVariable(const char *vn) {
         // Enforce shader-type scope: if this built-in has a scope restriction
         // and the current shader type is known but not in the allowed set, reject it.
         auto scopeIt = globalVarScope.find(vn);
-        if (scopeIt != globalVarScope.end() && shaderType != 0
-                && !(scopeIt->second & shaderType)) {
+        if (scopeIt != globalVarScope.end() && shaderType != 0 && !(scopeIt->second & shaderType)) {
             error("Variable \"%s\" is not valid in this shader type\n", vn);
             return nullptr;
         }
@@ -1515,7 +1514,8 @@ void CScriptContext::generateCode(const char *o) {
             rslo->error("tmpfile() failed — cannot discard .rslo output in JIT mode\n");
             return;
         }
-    } else {
+    }
+    else {
         out = fopen(o, "w");
         if (out == nullptr) {
             rslo->error("Failed to open \"%s\"\n", o);
@@ -1660,7 +1660,8 @@ void CScriptContext::generateCode(const char *o) {
         if (emitJIT) {
             // Retain the optimized IR for the caller to emit .slo.
             lastCompiledModule = std::move(mod);
-        } else {
+        }
+        else {
             // Emit the (optimized) Init and Code sections to the .rslo file.
             CRSLObjectEmitter emitter;
             emitter.emitFunctions(*mod, out);

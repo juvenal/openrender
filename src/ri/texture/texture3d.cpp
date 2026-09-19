@@ -131,7 +131,8 @@ void CTexture3d::defineChannels(const char *channelDefinitions) {
 
             dataSize += oChannel->numSamples;
             channelCount++;
-        } else {
+        }
+        else {
             error(CODE_BADTOKEN, "Unknown display channel \"%s\"\n", sampleName);
         }
 
@@ -170,7 +171,8 @@ void CTexture3d::defineChannels(int n, char **channelNames, char **channelTypes)
 
             dataSize += var.numFloats;
             channelCount++;
-        } else {
+        }
+        else {
             error(CODE_BADTOKEN, "Failed to interpret display channel name \"%s\"\n", channelNames[i]);
         }
     }
@@ -281,7 +283,8 @@ void CTexture3d::readChannels(FILE *in) {
                 error(CODE_SYSTEM, "Failed to read texture3d channel fill data\n");
                 return;
             }
-        } else {
+        }
+        else {
             channels[i].fill = NULL;
         }
     }
@@ -328,26 +331,26 @@ void CTexture3d::queryChannels(int *num, const char **vartypes, const char **var
     for (int i = 0; i < channelCount; i++) {
         varnames[i] = channels[i].name;
         switch (channels[i].type) {
-        case TYPE_FLOAT:
-            vartypes[i] = "float";
-            break;
-        case TYPE_COLOR:
-            vartypes[i] = "color";
-            break;
-        case TYPE_VECTOR:
-            vartypes[i] = "vector";
-            break;
-        case TYPE_NORMAL:
-            vartypes[i] = "normal";
-            break;
-        case TYPE_POINT:
-            vartypes[i] = "point";
-            break;
-        case TYPE_MATRIX:
-            vartypes[i] = "matrix";
-            break;
-        default:
-            error(CODE_BADTOKEN, "Unknown texture3d channel type\n");
+            case TYPE_FLOAT:
+                vartypes[i] = "float";
+                break;
+            case TYPE_COLOR:
+                vartypes[i] = "color";
+                break;
+            case TYPE_VECTOR:
+                vartypes[i] = "vector";
+                break;
+            case TYPE_NORMAL:
+                vartypes[i] = "normal";
+                break;
+            case TYPE_POINT:
+                vartypes[i] = "point";
+                break;
+            case TYPE_MATRIX:
+                vartypes[i] = "matrix";
+                break;
+            default:
+                error(CODE_BADTOKEN, "Unknown texture3d channel type\n");
         }
     }
 }

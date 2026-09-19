@@ -90,7 +90,8 @@ CPatchGrid::CPatchGrid(CAttributes *a, CXform *x, CVertexData *var, CParameter *
 
             src += vertexSize;
         }
-    } else {
+    }
+    else {
         dest = vertex = new float[numVertices * vertexSize];
 
         for (i = numVertices * vertexSize; i > 0; i--)
@@ -214,14 +215,17 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
     if (variables->moving == FALSE) {
         vertexData = vertex; // No need for interpolation
         vertexDataStep = 0;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + vertexSize * (nu + 2) * (nv + 2); // No need for interpolation
             vertexDataStep = 0;
-        } else {
+        }
+        else {
             // GSHTODO: use uv's to interpolate only the needed vertices
             // Interpolate the vertex data in advance
             float *interpolate;
@@ -260,7 +264,8 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
             double nuMinus2 = nu - 2;
             if (nuMinus2 < cu) {
                 clampedCu = nuMinus2;
-            } else {
+            }
+            else {
                 clampedCu = cu;
             }
             const int x = (int)floor(clampedCu);
@@ -268,7 +273,8 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
             double nvMinus2 = nv - 2;
             if (nvMinus2 < cv) {
                 clampedCv = nvMinus2;
-            } else {
+            }
+            else {
                 clampedCv = cv;
             }
             const int y = (int)floor(clampedCv);
@@ -342,7 +348,8 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
                 float nuMinus2f = (nu - 2);
                 if (nuMinus2f < cu) {
                     clampedCu = nuMinus2f;
-                } else {
+                }
+                else {
                     clampedCu = cu;
                 }
                 const int x = (int)floor(clampedCu);
@@ -350,7 +357,8 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
                 float nvMinus2f = (nv - 2);
                 if (nvMinus2f < cv) {
                     clampedCv = nvMinus2f;
-                } else {
+                }
+                else {
                     clampedCv = cv;
                 }
                 const int y = (int)floor(clampedCv);
@@ -370,7 +378,8 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);

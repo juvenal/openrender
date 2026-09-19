@@ -659,7 +659,8 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *p
             // silently, which is a legitimate and intentional path.
             warning(CODE_INCAPABLE,
                     "Shader \"%s\": shaderformat \"slo\" requested, but this build has no "
-                    "LLVM JIT support; using the .rslo interpreter instead\n", name);
+                    "LLVM JIT support; using the .rslo interpreter instead\n",
+                    name);
 #endif
             if (cShader == NULL &&
                 CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {

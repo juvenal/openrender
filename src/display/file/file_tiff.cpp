@@ -23,40 +23,43 @@
 
 #include <string.h>
 
-CFileFramebufferTIFF::CFileFramebufferTIFF(const char *name, int w, int h,
-                                           int ns, const char *samples,
-                                           TDisplayParameterFunction fp)
+CFileFramebufferTIFF::CFileFramebufferTIFF(const char *name, int w, int h, int ns, const char *samples, TDisplayParameterFunction fp)
     : CFileOutputBase(w, h, ns,
                       /*pixelSize placeholder — set below*/ ns,
                       fp,
-                      /*isDepth=*/ strcmp(samples, "z") == 0) {
+                      /*isDepth=*/strcmp(samples, "z") == 0) {
 
-    float worldToNDC[16]    = {};
+    float worldToNDC[16] = {};
     float worldToCamera[16] = {};
     float *tmp;
 
     // Pixar matrix metadata
     if ((tmp = (float *)fp("NP", FLOAT_PARAMETER, 16)))
-        for (int i = 0; i < 16; i++) worldToNDC[i] = tmp[i];
+        for (int i = 0; i < 16; i++)
+            worldToNDC[i] = tmp[i];
     if ((tmp = (float *)fp("Nl", FLOAT_PARAMETER, 16)))
-        for (int i = 0; i < 16; i++) worldToCamera[i] = tmp[i];
+        for (int i = 0; i < 16; i++)
+            worldToCamera[i] = tmp[i];
 
-    char *software       = (char *)fp("Software", STRING_PARAMETER, 1);
+    char *software = (char *)fp("Software", STRING_PARAMETER, 1);
     const char *compress = (const char *)fp("compression", STRING_PARAMETER, 1);
 
     // Determine bit depth from quantization
     if (qmax == 0) {
         bitspersample = 32;
-        sampleformat  = SAMPLEFORMAT_IEEEFP;
-    } else if (qmax > 65535) {
+        sampleformat = SAMPLEFORMAT_IEEEFP;
+    }
+    else if (qmax > 65535) {
         bitspersample = 32;
-        sampleformat  = SAMPLEFORMAT_UINT;
-    } else if (qmax > 255) {
+        sampleformat = SAMPLEFORMAT_UINT;
+    }
+    else if (qmax > 255) {
         bitspersample = 16;
-        sampleformat  = SAMPLEFORMAT_UINT;
-    } else {
+        sampleformat = SAMPLEFORMAT_UINT;
+    }
+    else {
         bitspersample = 8;
-        sampleformat  = SAMPLEFORMAT_UINT;
+        sampleformat = SAMPLEFORMAT_UINT;
     }
 
     // Fix up pixelSize now that we know bitspersample
@@ -66,22 +69,22 @@ CFileFramebufferTIFF::CFileFramebufferTIFF(const char *name, int w, int h,
     if (!image)
         return;
 
-    TIFFSetField(image, TIFFTAG_IMAGEWIDTH,    (unsigned long)w);
-    TIFFSetField(image, TIFFTAG_IMAGELENGTH,   (unsigned long)h);
-    TIFFSetField(image, TIFFTAG_ORIENTATION,   ORIENTATION_TOPLEFT);
-    TIFFSetField(image, TIFFTAG_PLANARCONFIG,  PLANARCONFIG_CONTIG);
+    TIFFSetField(image, TIFFTAG_IMAGEWIDTH, (unsigned long)w);
+    TIFFSetField(image, TIFFTAG_IMAGELENGTH, (unsigned long)h);
+    TIFFSetField(image, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+    TIFFSetField(image, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(image, TIFFTAG_RESOLUTIONUNIT, RESUNIT_NONE);
-    TIFFSetField(image, TIFFTAG_XRESOLUTION,   (float)1.0);
-    TIFFSetField(image, TIFFTAG_YRESOLUTION,   (float)1.0);
+    TIFFSetField(image, TIFFTAG_XRESOLUTION, (float)1.0);
+    TIFFSetField(image, TIFFTAG_YRESOLUTION, (float)1.0);
     TIFFSetField(image, TIFFTAG_BITSPERSAMPLE, (unsigned short)bitspersample);
-    TIFFSetField(image, TIFFTAG_SAMPLEFORMAT,  (unsigned short)sampleformat);
+    TIFFSetField(image, TIFFTAG_SAMPLEFORMAT, (unsigned short)sampleformat);
     TIFFSetField(image, TIFFTAG_SAMPLESPERPIXEL, (unsigned short)ns);
     TIFFSetField(image, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, worldToNDC);
     TIFFSetField(image, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, worldToCamera);
 
     ttag_t tiffcompression = COMPRESSION_LZW;
     if (compress) {
-        if      (strcmp(compress, "LZW") == 0 || strcmp(compress, "lzw") == 0)
+        if (strcmp(compress, "LZW") == 0 || strcmp(compress, "lzw") == 0)
             tiffcompression = COMPRESSION_LZW;
         else if (strcmp(compress, "JPEG") == 0 || strcmp(compress, "jpeg") == 0 || strcmp(compress, "jpg") == 0)
             tiffcompression = COMPRESSION_JPEG;
@@ -93,16 +96,18 @@ CFileFramebufferTIFF::CFileFramebufferTIFF(const char *name, int w, int h,
 
     if (tiffcompression != COMPRESSION_NONE && !TIFFIsCODECConfigured(tiffcompression)) {
         tiffcompression = TIFFIsCODECConfigured(COMPRESSION_LZW)
-            ? COMPRESSION_LZW : COMPRESSION_NONE;
+                              ? COMPRESSION_LZW
+                              : COMPRESSION_NONE;
     }
     TIFFSetField(image, TIFFTAG_COMPRESSION, tiffcompression);
 
-    if (tiffcompression == COMPRESSION_LZW      ||
-        tiffcompression == COMPRESSION_DEFLATE  ||
+    if (tiffcompression == COMPRESSION_LZW ||
+        tiffcompression == COMPRESSION_DEFLATE ||
         tiffcompression == COMPRESSION_ADOBE_DEFLATE ||
         tiffcompression == COMPRESSION_PIXARLOG) {
         const ttag_t pred = (sampleformat == SAMPLEFORMAT_IEEEFP)
-            ? PREDICTOR_FLOATINGPOINT : PREDICTOR_HORIZONTAL;
+                                ? PREDICTOR_FLOATINGPOINT
+                                : PREDICTOR_HORIZONTAL;
         TIFFSetField(image, TIFFTAG_PREDICTOR, pred);
     }
 
@@ -127,31 +132,34 @@ CFileFramebufferTIFF::~CFileFramebufferTIFF() {
 
 void CFileFramebufferTIFF::fillPixels(int row, int xOff, int nPx, const float *src) {
     switch (bitspersample) {
-    case 8: {
-        auto *dst = reinterpret_cast<uint8_t *>(scanlines[row]) + xOff * numSamples;
-        for (int j = nPx * numSamples; j > 0; j--)
-            *dst++ = (uint8_t)*src++;
-        break;
-    }
-    case 16: {
-        auto *dst = reinterpret_cast<uint16_t *>(scanlines[row]) + xOff * numSamples;
-        for (int j = nPx * numSamples; j > 0; j--)
-            *dst++ = (uint16_t)*src++;
-        break;
-    }
-    case 32:
-        if (sampleformat == SAMPLEFORMAT_IEEEFP) {
-            auto *dst = reinterpret_cast<float *>(scanlines[row]) + xOff * numSamples;
+        case 8:
+        {
+            auto *dst = reinterpret_cast<uint8_t *>(scanlines[row]) + xOff * numSamples;
             for (int j = nPx * numSamples; j > 0; j--)
-                *dst++ = *src++;
-        } else {
-            auto *dst = reinterpret_cast<uint32_t *>(scanlines[row]) + xOff * numSamples;
-            for (int j = nPx * numSamples; j > 0; j--)
-                *dst++ = (uint32_t)*src++;
+                *dst++ = (uint8_t)*src++;
+            break;
         }
-        break;
-    default:
-        break;
+        case 16:
+        {
+            auto *dst = reinterpret_cast<uint16_t *>(scanlines[row]) + xOff * numSamples;
+            for (int j = nPx * numSamples; j > 0; j--)
+                *dst++ = (uint16_t)*src++;
+            break;
+        }
+        case 32:
+            if (sampleformat == SAMPLEFORMAT_IEEEFP) {
+                auto *dst = reinterpret_cast<float *>(scanlines[row]) + xOff * numSamples;
+                for (int j = nPx * numSamples; j > 0; j--)
+                    *dst++ = *src++;
+            }
+            else {
+                auto *dst = reinterpret_cast<uint32_t *>(scanlines[row]) + xOff * numSamples;
+                for (int j = nPx * numSamples; j > 0; j--)
+                    *dst++ = (uint32_t)*src++;
+            }
+            break;
+        default:
+            break;
     }
 }
 

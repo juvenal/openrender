@@ -279,7 +279,8 @@ class CTrie : public CDictionary<const char *, valType> {
                     prevNode->pointers[(unsigned char)key[-1]] = makeNode(new CTrieLeaf(key - 1, val));
 
                     return;
-                } else if (isLeaf(currentNode)) {
+                }
+                else if (isLeaf(currentNode)) {
                     // We hit a leaf, push the other item down one level
                     CTrieNode *oLeaf = currentNode;
                     CTrieLeaf *cLeaf = getLeaf(currentNode);
@@ -287,7 +288,8 @@ class CTrie : public CDictionary<const char *, valType> {
                     if (cLeaf->key[0] == '\0') {
                         // We have a collision
                         return;
-                    } else {
+                    }
+                    else {
                         cLeaf->key++;
                     }
 
@@ -295,7 +297,8 @@ class CTrie : public CDictionary<const char *, valType> {
                     currentNode->pointers[(unsigned char)(*cLeaf->key)] = oLeaf;
 
                     prevNode->pointers[(unsigned char)key[-1]] = currentNode;
-                } else {
+                }
+                else {
                     prevNode = currentNode;
                     currentNode = currentNode->pointers[(unsigned char)(*key++)];
                 }
@@ -319,7 +322,8 @@ class CTrie : public CDictionary<const char *, valType> {
                     if (strcmp(key, cLeaf->key) == 0) {
                         val = cLeaf->val;
                         return TRUE;
-                    } else
+                    }
+                    else
                         return FALSE;
                 }
 
@@ -346,7 +350,8 @@ class CTrie : public CDictionary<const char *, valType> {
                         pNode->pointers[(unsigned char)(*key)] = NULL;
                         delete cLeaf;
                         return TRUE;
-                    } else
+                    }
+                    else
                         return FALSE;
                 }
 
@@ -373,7 +378,8 @@ class CTrie : public CDictionary<const char *, valType> {
                 CTrieLeaf *cLeaf = getLeaf(cNode);
                 delete cLeaf->val;
                 delete cLeaf;
-            } else {
+            }
+            else {
                 int i;
 
                 for (i = 0; i < 256; i++) {
@@ -533,7 +539,8 @@ class CMemPool {
                 cItem = (T *)freeItems;
                 freeItems = (T64 *)freeItems->pointer;
                 return cItem;
-            } else {
+            }
+            else {
                 T64 *cBank;
                 int i;
                 T *cItem;
@@ -614,7 +621,8 @@ class CMemStack {
                     int pageSizeToUse;
                     if (size > pageSize) {
                         pageSizeToUse = size;
-                    } else {
+                    }
+                    else {
                         pageSizeToUse = pageSize;
                     }
                     CMemPage *cPage = memoryNewPage(pageSizeToUse);

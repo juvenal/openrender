@@ -1,19 +1,19 @@
 // orender-wire — Linux GTK 4 / OpenGL 3.3 Core wireframe scene previewer.
 
 #include <adwaita.h>
-#include <gtk/gtk.h>
-#include <epoxy/gl.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
-#include <string>
-#include <vector>
+#include <epoxy/gl.h>
 #include <filesystem>
+#include <gtk/gtk.h>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
-#include "ribpreview_api.h"
-#include "libribpreview/cameraExport.h"
 #include "arcball.h"
+#include "libribpreview/cameraExport.h"
+#include "ribpreview_api.h"
 
 // ─── GLSL 3.30 core shaders ──────────────────────────────────────────────────
 
@@ -80,23 +80,27 @@ static GLuint compile_shader(GLenum type, const char *src) {
     GLint ok;
     glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
     if (!ok) {
-        char log[512]; glGetShaderInfoLog(s, 512, nullptr, log);
+        char log[512];
+        glGetShaderInfoLog(s, 512, nullptr, log);
         fprintf(stderr, "orender-wire: shader compile error: %s\n", log);
     }
     return s;
 }
 
 static GLuint link_program(const char *vert, const char *frag) {
-    GLuint vs = compile_shader(GL_VERTEX_SHADER,   vert);
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, vert);
     GLuint fs = compile_shader(GL_FRAGMENT_SHADER, frag);
-    GLuint p  = glCreateProgram();
-    glAttachShader(p, vs); glAttachShader(p, fs);
+    GLuint p = glCreateProgram();
+    glAttachShader(p, vs);
+    glAttachShader(p, fs);
     glLinkProgram(p);
-    glDeleteShader(vs); glDeleteShader(fs);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
     GLint ok;
     glGetProgramiv(p, GL_LINK_STATUS, &ok);
     if (!ok) {
-        char log[512]; glGetProgramInfoLog(p, 512, nullptr, log);
+        char log[512];
+        glGetProgramInfoLog(p, 512, nullptr, log);
         fprintf(stderr, "orender-wire: shader link error: %s\n", log);
     }
     return p;
@@ -104,7 +108,9 @@ static GLuint link_program(const char *vert, const char *frag) {
 
 // ─── Grid/axis geometry ──────────────────────────────────────────────────────
 
-struct GridVert { float x,y,z,r,g,b; };
+struct GridVert {
+        float x, y, z, r, g, b;
+};
 
 static std::vector<GridVert> buildGridAxis() {
     std::vector<GridVert> v;
@@ -112,72 +118,77 @@ static std::vector<GridVert> buildGridAxis() {
     constexpr float gc = 0.28f;
     for (int i = -10; i <= 10; i++) {
         float f = (float)i;
-        v.push_back({-10,0,f, gc,gc,gc}); v.push_back({ 10,0,f, gc,gc,gc});
-        v.push_back({ f,0,-10,gc,gc,gc}); v.push_back({ f,0,10, gc,gc,gc});
+        v.push_back({-10, 0, f, gc, gc, gc});
+        v.push_back({10, 0, f, gc, gc, gc});
+        v.push_back({f, 0, -10, gc, gc, gc});
+        v.push_back({f, 0, 10, gc, gc, gc});
     }
     // XYZ gizmo
-    v.push_back({0,0,0,1.f,0.2f,0.2f}); v.push_back({2,0,0,1.f,0.2f,0.2f});
-    v.push_back({0,0,0,0.2f,1.f,0.2f}); v.push_back({0,2,0,0.2f,1.f,0.2f});
-    v.push_back({0,0,0,0.2f,0.2f,1.f}); v.push_back({0,0,2,0.2f,0.2f,1.f});
+    v.push_back({0, 0, 0, 1.f, 0.2f, 0.2f});
+    v.push_back({2, 0, 0, 1.f, 0.2f, 0.2f});
+    v.push_back({0, 0, 0, 0.2f, 1.f, 0.2f});
+    v.push_back({0, 2, 0, 0.2f, 1.f, 0.2f});
+    v.push_back({0, 0, 0, 0.2f, 0.2f, 1.f});
+    v.push_back({0, 0, 2, 0.2f, 0.2f, 1.f});
     return v;
 }
 
 // ─── App state ───────────────────────────────────────────────────────────────
 
 struct AppState {
-    const char    *ribPath;
+        const char *ribPath;
 
-    GtkWidget     *glArea;
-    GtkWidget     *spinner;
+        GtkWidget *glArea;
+        GtkWidget *spinner;
 
-    // GL resources (created on realize, after GL context exists)
-    GLuint sceneProg  = 0, gridProg      = 0, pointsProg = 0;
-    GLuint sceneVAO   = 0, sceneVBO      = 0, sceneColorVBO = 0;
-    GLuint gridVAO    = 0, gridVBO       = 0;
-    int    sceneCount = 0, gridCount     = 0;
+        // GL resources (created on realize, after GL context exists)
+        GLuint sceneProg = 0, gridProg = 0, pointsProg = 0;
+        GLuint sceneVAO = 0, sceneVBO = 0, sceneColorVBO = 0;
+        GLuint gridVAO = 0, gridVBO = 0;
+        int sceneCount = 0, gridCount = 0;
 
-    // Data-document buffers (spec 016). Populated only when opening a data document (photon
-    // map, cache, point cloud, brick map, debug dump) instead of a RIB scene; a RIB document
-    // leaves all three counts at 0 and rendering skips them. Discs arrive already CPU-expanded
-    // into the triangle arrays (see diskExpand.h), so triangles reuses sceneProg/sceneVAO's
-    // layout via its own VAO -- no separate disc pipeline is needed.
-    GLuint dataLineVAO = 0, dataLineVBO = 0, dataLineColorVBO = 0;
-    GLuint dataPointVAO = 0, dataPointVBO = 0, dataPointColorVBO = 0;
-    GLuint dataTriVAO = 0, dataTriVBO = 0, dataTriColorVBO = 0;
-    int    dataLineCount = 0, dataPointCount = 0, dataTriCount = 0;
+        // Data-document buffers (spec 016). Populated only when opening a data document (photon
+        // map, cache, point cloud, brick map, debug dump) instead of a RIB scene; a RIB document
+        // leaves all three counts at 0 and rendering skips them. Discs arrive already CPU-expanded
+        // into the triangle arrays (see diskExpand.h), so triangles reuses sceneProg/sceneVAO's
+        // layout via its own VAO -- no separate disc pipeline is needed.
+        GLuint dataLineVAO = 0, dataLineVBO = 0, dataLineColorVBO = 0;
+        GLuint dataPointVAO = 0, dataPointVBO = 0, dataPointColorVBO = 0;
+        GLuint dataTriVAO = 0, dataTriVBO = 0, dataTriColorVBO = 0;
+        int dataLineCount = 0, dataPointCount = 0, dataTriCount = 0;
 
-    // Retained (not closed on load) because ribdata_key()'s re-emit cycle (User Story 2) needs
-    // the CDataView underneath it to stay alive for the document's whole session -- unlike
-    // ribpreview_free's fully-materialized-then-torn-down RIB scene. Closed in on_close_request.
-    RibDataDocument *dataDoc = nullptr;
+        // Retained (not closed on load) because ribdata_key()'s re-emit cycle (User Story 2) needs
+        // the CDataView underneath it to stay alive for the document's whole session -- unlike
+        // ribpreview_free's fully-materialized-then-torn-down RIB scene. Closed in on_close_request.
+        RibDataDocument *dataDoc = nullptr;
 
-    // Header-bar menu (User Story 2): one GSimpleAction per legacy key, shared between the menu
-    // button and the existing on_key handler (one action implementation, two entry points).
-    // Enabled/disabled per-document-type in update_header_bar_state().
-    GSimpleAction *actPrevChannel = nullptr, *actNextChannel = nullptr;
-    GSimpleAction *actIncDetail = nullptr, *actDecDetail = nullptr;
-    GSimpleAction *actDrawBoxes = nullptr, *actDrawDiscs = nullptr, *actDrawPoints = nullptr;
-    GSimpleAction *actSaveCamera = nullptr;
-    AdwWindowTitle *windowTitle = nullptr;
+        // Header-bar menu (User Story 2): one GSimpleAction per legacy key, shared between the menu
+        // button and the existing on_key handler (one action implementation, two entry points).
+        // Enabled/disabled per-document-type in update_header_bar_state().
+        GSimpleAction *actPrevChannel = nullptr, *actNextChannel = nullptr;
+        GSimpleAction *actIncDetail = nullptr, *actDecDetail = nullptr;
+        GSimpleAction *actDrawBoxes = nullptr, *actDrawDiscs = nullptr, *actDrawPoints = nullptr;
+        GSimpleAction *actSaveCamera = nullptr;
+        AdwWindowTitle *windowTitle = nullptr;
 
-    ArcballCamera *arcball = nullptr;
+        ArcballCamera *arcball = nullptr;
 
-    // Input state
-    bool  orbitActive = false;
-    bool  panActive   = false;
-    double pressX = 0, pressY = 0;
+        // Input state
+        bool orbitActive = false;
+        bool panActive = false;
+        double pressX = 0, pressY = 0;
 
-    // Geometry available once background load completes.
-    PreviewSceneC *scene = nullptr;
+        // Geometry available once background load completes.
+        PreviewSceneC *scene = nullptr;
 };
 
 // Result of the background open: exactly one of ribScene/dataDoc is set on success. A plain
 // struct with raw pointers -- ownership of whichever pointer is set transfers to AppState in
 // on_load_done, so ~LoadResult must never free them itself.
 struct LoadResult {
-    bool isData = false;
-    PreviewSceneC *ribScene = nullptr;
-    RibDataDocument *dataDoc = nullptr;
+        bool isData = false;
+        PreviewSceneC *ribScene = nullptr;
+        RibDataDocument *dataDoc = nullptr;
 };
 
 // ─── Background load (GTask) ─────────────────────────────────────────────────
@@ -198,15 +209,16 @@ static void load_scene_thread(GTask *task, gpointer, gpointer task_data, GCancel
         if (!result->dataDoc) {
             delete result;
             g_task_return_error(task, g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
-                                                   "not a recognized data file"));
+                                                  "not a recognized data file"));
             return;
         }
-    } else {
+    }
+    else {
         result->ribScene = ribpreview_load(path);
         if (!result->ribScene) {
             delete result;
             g_task_return_error(task, g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
-                                                   "ribpreview_load failed"));
+                                                  "ribpreview_load failed"));
             return;
         }
     }
@@ -218,10 +230,11 @@ static void load_scene_thread(GTask *task, gpointer, gpointer task_data, GCancel
 
 static void on_realize(GtkGLArea *area, AppState *state) {
     gtk_gl_area_make_current(area);
-    if (gtk_gl_area_get_error(area)) return;
+    if (gtk_gl_area_get_error(area))
+        return;
 
-    state->sceneProg  = link_program(SCENE_VERT, SCENE_FRAG);
-    state->gridProg   = link_program(GRID_VERT,  GRID_FRAG);
+    state->sceneProg = link_program(SCENE_VERT, SCENE_FRAG);
+    state->gridProg = link_program(GRID_VERT, GRID_FRAG);
     state->pointsProg = link_program(POINT_VERT, POINT_FRAG);
 
     // Scene VAO/VBO (filled later when scene loads)
@@ -231,10 +244,10 @@ static void on_realize(GtkGLArea *area, AppState *state) {
 
     glBindVertexArray(state->sceneVAO);
     glBindBuffer(GL_ARRAY_BUFFER, state->sceneVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void *)0);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, state->sceneColorVBO);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void *)0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
@@ -246,10 +259,10 @@ static void on_realize(GtkGLArea *area, AppState *state) {
         glGenBuffers(1, &colorVbo);
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void *)0);
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, colorVbo);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12, (void *)0);
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);
     };
@@ -275,9 +288,9 @@ static void on_realize(GtkGLArea *area, AppState *state) {
     glBufferData(GL_ARRAY_BUFFER,
                  (GLsizeiptr)(gridVerts.size() * sizeof(GridVert)),
                  gridVerts.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GridVert), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GridVert), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GridVert), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GridVert), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
@@ -289,7 +302,8 @@ static void on_realize(GtkGLArea *area, AppState *state) {
 
 static void on_unrealize(GtkGLArea *area, AppState *state) {
     gtk_gl_area_make_current(area);
-    if (gtk_gl_area_get_error(area)) return;
+    if (gtk_gl_area_get_error(area))
+        return;
 
     glDeleteVertexArrays(1, &state->sceneVAO);
     glDeleteBuffers(1, &state->sceneVBO);
@@ -316,7 +330,8 @@ static gboolean on_render(GtkGLArea * /*area*/, GdkGLContext *, AppState *state)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!state->arcball) return TRUE;
+    if (!state->arcball)
+        return TRUE;
 
     float mvp[16];
     state->arcball->viewProjectionMatrix(mvp);
@@ -387,7 +402,8 @@ static void on_resize(GtkGLArea *, int width, int height, AppState *state) {
 
 static void upload_scene(AppState *state) {
     int n = state->scene->vertexCount;
-    if (n <= 0) return;
+    if (n <= 0)
+        return;
 
     gtk_gl_area_make_current(GTK_GL_AREA(state->glArea));
 
@@ -415,7 +431,10 @@ static void upload_scene(AppState *state) {
 // every caller must check count first.
 static void upload_prim_array(GLuint vbo, GLuint colorVbo, const PrimArrayC &arr, int &countOut) {
     int n = arr.count;
-    if (n <= 0 || !arr.verts || !arr.cols) { countOut = 0; return; }
+    if (n <= 0 || !arr.verts || !arr.cols) {
+        countOut = 0;
+        return;
+    }
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(n * 3 * sizeof(float)), arr.verts, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, colorVbo);
@@ -437,9 +456,12 @@ static void upload_data_scene(AppState *state, const DataSceneC *snap) {
 static const char *draw_mode_display_name(RibDataType type, int mode) {
     if (type == RIBDATA_TYPE_BRICKMAP) {
         switch (mode) {
-        case 0: return "Boxes";
-        case 1: return "Discs";
-        default: return "Points";
+            case 0:
+                return "Boxes";
+            case 1:
+                return "Discs";
+            default:
+                return "Points";
         }
     }
     if (type == RIBDATA_TYPE_POINTCLOUD)
@@ -459,8 +481,8 @@ static void update_header_bar_state(AppState *state) {
 
     if (hasData) {
         const DataSceneC *snap = ribdata_snapshot(state->dataDoc);
-        hasChannels  = snap->numChannels > 0;
-        isBrickmap   = snap->documentType == RIBDATA_TYPE_BRICKMAP;
+        hasChannels = snap->numChannels > 0;
+        isBrickmap = snap->documentType == RIBDATA_TYPE_BRICKMAP;
         isPointcloud = snap->documentType == RIBDATA_TYPE_POINTCLOUD;
 
         std::vector<std::string> parts;
@@ -473,7 +495,8 @@ static void update_header_bar_state(AppState *state) {
         parts.push_back(std::string("Draw: ") + draw_mode_display_name(snap->documentType, snap->drawMode));
 
         for (size_t i = 0; i < parts.size(); i++) {
-            if (i > 0) subtitle += "   \xE2\x80\xA2   "; // U+2022 BULLET
+            if (i > 0)
+                subtitle += "   \xE2\x80\xA2   "; // U+2022 BULLET
             subtitle += parts[i];
         }
     }
@@ -481,19 +504,27 @@ static void update_header_bar_state(AppState *state) {
     if (state->windowTitle)
         adw_window_title_set_subtitle(state->windowTitle, subtitle.c_str());
 
-    bool supportsDetail     = isBrickmap;
-    bool supportsBoxMode    = isBrickmap;
+    bool supportsDetail = isBrickmap;
+    bool supportsBoxMode = isBrickmap;
     bool supportsDrawToggle = isBrickmap || isPointcloud;
 
-    if (state->actPrevChannel) g_simple_action_set_enabled(state->actPrevChannel, hasChannels);
-    if (state->actNextChannel) g_simple_action_set_enabled(state->actNextChannel, hasChannels);
-    if (state->actIncDetail)   g_simple_action_set_enabled(state->actIncDetail, supportsDetail);
-    if (state->actDecDetail)   g_simple_action_set_enabled(state->actDecDetail, supportsDetail);
-    if (state->actDrawBoxes)   g_simple_action_set_enabled(state->actDrawBoxes, supportsBoxMode);
-    if (state->actDrawDiscs)   g_simple_action_set_enabled(state->actDrawDiscs, supportsDrawToggle);
-    if (state->actDrawPoints)  g_simple_action_set_enabled(state->actDrawPoints, supportsDrawToggle);
+    if (state->actPrevChannel)
+        g_simple_action_set_enabled(state->actPrevChannel, hasChannels);
+    if (state->actNextChannel)
+        g_simple_action_set_enabled(state->actNextChannel, hasChannels);
+    if (state->actIncDetail)
+        g_simple_action_set_enabled(state->actIncDetail, supportsDetail);
+    if (state->actDecDetail)
+        g_simple_action_set_enabled(state->actDecDetail, supportsDetail);
+    if (state->actDrawBoxes)
+        g_simple_action_set_enabled(state->actDrawBoxes, supportsBoxMode);
+    if (state->actDrawDiscs)
+        g_simple_action_set_enabled(state->actDrawDiscs, supportsDrawToggle);
+    if (state->actDrawPoints)
+        g_simple_action_set_enabled(state->actDrawPoints, supportsDrawToggle);
     // T061: hide (disable) Save Camera when a data document is open.
-    if (state->actSaveCamera)  g_simple_action_set_enabled(state->actSaveCamera, !hasData);
+    if (state->actSaveCamera)
+        g_simple_action_set_enabled(state->actSaveCamera, !hasData);
 }
 
 // Applies one legacy key (`m l b d p q w`) to the open data document -- shared by on_key and the
@@ -501,8 +532,10 @@ static void update_header_bar_state(AppState *state) {
 // document is open, or if the underlying CDataView doesn't recognize this key for its type (e.g.
 // 'b' on a point cloud) -- ribdata_key()/keyDown() already handle that gracefully.
 static void apply_data_key(AppState *state, char key) {
-    if (!state->dataDoc) return;
-    if (!ribdata_key(state->dataDoc, (int)key)) return;
+    if (!state->dataDoc)
+        return;
+    if (!ribdata_key(state->dataDoc, (int)key))
+        return;
 
     const DataSceneC *snap = ribdata_snapshot(state->dataDoc);
     upload_data_scene(state, snap);
@@ -525,15 +558,18 @@ static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
 
     if (err || !result) {
         fprintf(stderr, "orender-wire: error: failed to open '%s'\n", state->ribPath);
-        if (err) g_error_free(err);
+        if (err)
+            g_error_free(err);
         // Leave blank window; user can close.
         return;
     }
 
     int w = gtk_widget_get_width(state->glArea);
     int h = gtk_widget_get_height(state->glArea);
-    if (w <= 0) w = 800;
-    if (h <= 0) h = 600;
+    if (w <= 0)
+        w = 800;
+    if (h <= 0)
+        h = 600;
 
     if (result->isData) {
         state->dataDoc = result->dataDoc;
@@ -543,9 +579,10 @@ static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
             snap->bounds.sceneBoundsMin, snap->bounds.sceneBoundsMax,
             (float)w, (float)h);
         upload_data_scene(state, snap);
-    } else {
+    }
+    else {
         state->scene = result->ribScene;
-        const PreviewCameraC &cam  = state->scene->camera;
+        const PreviewCameraC &cam = state->scene->camera;
         const PreviewBoundsC &bnds = state->scene->bounds;
         state->arcball = new ArcballCamera(
             cam.projMatrix, cam.viewMatrix,
@@ -554,7 +591,7 @@ static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
         upload_scene(state);
     }
 
-    delete result;   // ribScene/dataDoc ownership already transferred into state above
+    delete result; // ribScene/dataDoc ownership already transferred into state above
 
     update_header_bar_state(state);
     gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
@@ -562,18 +599,19 @@ static void on_load_done(GObject *, GAsyncResult *res, gpointer user_data) {
 
 // ─── Input controllers ────────────────────────────────────────────────────────
 
-static void on_press(GtkGestureClick *gesture, int /*n_press*/,
-                     double x, double y, AppState *state) {
-    if (!state->arcball) return;
+static void on_press(GtkGestureClick *gesture, int /*n_press*/, double x, double y, AppState *state) {
+    if (!state->arcball)
+        return;
     int button = gtk_gesture_single_get_current_button(
         GTK_GESTURE_SINGLE(gesture));
     double sx = x, sy = y;
     if (button == 1) {
         state->orbitActive = true;
-        state->panActive   = false;
+        state->panActive = false;
         state->arcball->beginOrbit((float)sx, (float)sy);
-    } else if (button == 2) {
-        state->panActive   = true;
+    }
+    else if (button == 2) {
+        state->panActive = true;
         state->orbitActive = false;
         state->arcball->beginPan((float)sx, (float)sy);
     }
@@ -583,23 +621,25 @@ static void on_press(GtkGestureClick *gesture, int /*n_press*/,
 
 static void on_release(GtkGestureClick *, int, double, double, AppState *state) {
     state->orbitActive = false;
-    state->panActive   = false;
+    state->panActive = false;
 }
 
 static void on_motion(GtkEventControllerMotion *, double x, double y, AppState *state) {
-    if (!state->arcball) return;
+    if (!state->arcball)
+        return;
     if (state->orbitActive) {
         state->arcball->orbit((float)x, (float)y);
         gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
-    } else if (state->panActive) {
+    }
+    else if (state->panActive) {
         state->arcball->pan((float)x, (float)y);
         gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
     }
 }
 
-static gboolean on_scroll(GtkEventControllerScroll *, double /*dx*/, double dy,
-                           AppState *state) {
-    if (!state->arcball) return FALSE;
+static gboolean on_scroll(GtkEventControllerScroll *, double /*dx*/, double dy, AppState *state) {
+    if (!state->arcball)
+        return FALSE;
     state->arcball->zoom((float)(dy > 0 ? 1 : -1));
     gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
     return TRUE;
@@ -607,16 +647,20 @@ static gboolean on_scroll(GtkEventControllerScroll *, double /*dx*/, double dy,
 
 // ─── Camera export (S key) ────────────────────────────────────────────────────
 
-static void save_camera_callback(GObject *dialog, GAsyncResult *result,
-                                 gpointer user_data) {
+static void save_camera_callback(GObject *dialog, GAsyncResult *result, gpointer user_data) {
     AppState *state = static_cast<AppState *>(user_data);
     GError *err = nullptr;
     GFile *file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(dialog), result, &err);
-    if (!file) { if (err) g_error_free(err); return; }
+    if (!file) {
+        if (err)
+            g_error_free(err);
+        return;
+    }
 
     char *path = g_file_get_path(file);
     g_object_unref(file);
-    if (!path) return;
+    if (!path)
+        return;
 
     float c2w[16];
     state->arcball->cameraToWorldMatrix(c2w);
@@ -625,13 +669,13 @@ static void save_camera_callback(GObject *dialog, GAsyncResult *result,
     float row[16];
     for (int r = 0; r < 4; r++)
         for (int c = 0; c < 4; c++)
-            row[r*4+c] = c2w[c*4+r];
+            row[r * 4 + c] = c2w[c * 4 + r];
 
     CameraExport cam{};
     std::memcpy(cam.cameraToWorld, row, sizeof(row));
     cam.projectionType = state->arcball->isOrthographic() ? 1 : 0;
-    cam.fov            = state->arcball->fovDegrees();
-    cam.outputPath     = path;
+    cam.fov = state->arcball->fovDegrees();
+    cam.outputPath = path;
 
     bool exists = std::filesystem::exists(path);
     cam.updateExisting = exists;
@@ -644,7 +688,8 @@ static void save_camera_callback(GObject *dialog, GAsyncResult *result,
 }
 
 static void trigger_save_camera(AppState *state) {
-    if (!state->arcball) return;
+    if (!state->arcball)
+        return;
     GtkWindow *win = GTK_WINDOW(gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
     GtkFileDialog *dlg = gtk_file_dialog_new();
     gtk_file_dialog_set_title(dlg, "Export Camera");
@@ -653,66 +698,68 @@ static void trigger_save_camera(AppState *state) {
     g_object_unref(dlg);
 }
 
-static gboolean on_key(GtkEventControllerKey *, guint keyval, guint /*keycode*/,
-                        GdkModifierType, AppState *state) {
+static gboolean on_key(GtkEventControllerKey *, guint keyval, guint /*keycode*/, GdkModifierType, AppState *state) {
     switch (keyval) {
-    case GDK_KEY_r:
-    case GDK_KEY_R:
-    case GDK_KEY_Home:
-        if (state->arcball) {
-            state->arcball->reset();
-            gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
+        case GDK_KEY_r:
+        case GDK_KEY_R:
+        case GDK_KEY_Home:
+            if (state->arcball) {
+                state->arcball->reset();
+                gtk_gl_area_queue_render(GTK_GL_AREA(state->glArea));
+            }
+            return TRUE;
+        case GDK_KEY_s:
+        case GDK_KEY_S:
+            trigger_save_camera(state);
+            return TRUE;
+        case GDK_KEY_m:
+        case GDK_KEY_M:
+            apply_data_key(state, 'm');
+            return TRUE;
+        case GDK_KEY_l:
+        case GDK_KEY_L:
+            apply_data_key(state, 'l');
+            return TRUE;
+        case GDK_KEY_b:
+        case GDK_KEY_B:
+            apply_data_key(state, 'b');
+            return TRUE;
+        case GDK_KEY_d:
+        case GDK_KEY_D:
+            apply_data_key(state, 'd');
+            return TRUE;
+        case GDK_KEY_p:
+        case GDK_KEY_P:
+            apply_data_key(state, 'p');
+            return TRUE;
+        case GDK_KEY_w:
+        case GDK_KEY_W:
+            apply_data_key(state, 'w');
+            return TRUE;
+        case GDK_KEY_q:
+        case GDK_KEY_Q:
+        {
+            // Legacy oshow convention: 'q' means "previous channel" for a document that has
+            // channels. That collides with this app's own pre-existing "bare q/Q quits" binding, so
+            // route by document state instead of always quitting -- Escape remains an unconditional
+            // quit either way.
+            bool hasChannels = state->dataDoc && ribdata_snapshot(state->dataDoc)->numChannels > 0;
+            if (hasChannels) {
+                apply_data_key(state, 'q');
+                return TRUE;
+            }
+            [[fallthrough]];
         }
-        return TRUE;
-    case GDK_KEY_s:
-    case GDK_KEY_S:
-        trigger_save_camera(state);
-        return TRUE;
-    case GDK_KEY_m:
-    case GDK_KEY_M:
-        apply_data_key(state, 'm');
-        return TRUE;
-    case GDK_KEY_l:
-    case GDK_KEY_L:
-        apply_data_key(state, 'l');
-        return TRUE;
-    case GDK_KEY_b:
-    case GDK_KEY_B:
-        apply_data_key(state, 'b');
-        return TRUE;
-    case GDK_KEY_d:
-    case GDK_KEY_D:
-        apply_data_key(state, 'd');
-        return TRUE;
-    case GDK_KEY_p:
-    case GDK_KEY_P:
-        apply_data_key(state, 'p');
-        return TRUE;
-    case GDK_KEY_w:
-    case GDK_KEY_W:
-        apply_data_key(state, 'w');
-        return TRUE;
-    case GDK_KEY_q:
-    case GDK_KEY_Q: {
-        // Legacy oshow convention: 'q' means "previous channel" for a document that has
-        // channels. That collides with this app's own pre-existing "bare q/Q quits" binding, so
-        // route by document state instead of always quitting -- Escape remains an unconditional
-        // quit either way.
-        bool hasChannels = state->dataDoc && ribdata_snapshot(state->dataDoc)->numChannels > 0;
-        if (hasChannels) {
-            apply_data_key(state, 'q');
+        case GDK_KEY_Escape:
+        {
+            GtkWindow *win = GTK_WINDOW(
+                gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
+            if (win)
+                gtk_window_close(win);
             return TRUE;
         }
-        [[fallthrough]];
-    }
-    case GDK_KEY_Escape: {
-        GtkWindow *win = GTK_WINDOW(
-            gtk_widget_get_ancestor(state->glArea, GTK_TYPE_WINDOW));
-        if (win) gtk_window_close(win);
-        return TRUE;
-    }
-    default:
-        return FALSE;
+        default:
+            return FALSE;
     }
 }
 
@@ -758,7 +805,7 @@ static gboolean on_close_request(GtkWindow *, AppState *state) {
     }
     delete state->arcball;
     state->arcball = nullptr;
-    return FALSE;   // allow default close
+    return FALSE; // allow default close
 }
 
 // ─── GTK application activate ─────────────────────────────────────────────────
@@ -768,8 +815,7 @@ static void on_activate(AdwApplication *app, gpointer user_data) {
 
     // Window
     GtkWidget *window = adw_application_window_new(GTK_APPLICATION(app));
-    std::string title = std::string("orender-wire — ")
-                      + std::filesystem::path(state->ribPath).filename().string();
+    std::string title = std::string("orender-wire — ") + std::filesystem::path(state->ribPath).filename().string();
     gtk_window_set_title(GTK_WINDOW(window), title.c_str());
     gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
     g_signal_connect(window, "close-request",
@@ -804,12 +850,12 @@ static void on_activate(AdwApplication *app, gpointer user_data) {
     };
     state->actPrevChannel = addAction("prev-channel", G_CALLBACK(action_prev_channel));
     state->actNextChannel = addAction("next-channel", G_CALLBACK(action_next_channel));
-    state->actIncDetail   = addAction("inc-detail",   G_CALLBACK(action_inc_detail));
-    state->actDecDetail   = addAction("dec-detail",   G_CALLBACK(action_dec_detail));
-    state->actDrawBoxes   = addAction("draw-boxes",   G_CALLBACK(action_draw_boxes));
-    state->actDrawDiscs   = addAction("draw-discs",   G_CALLBACK(action_draw_discs));
-    state->actDrawPoints  = addAction("draw-points",  G_CALLBACK(action_draw_points));
-    state->actSaveCamera  = addAction("save-camera",  G_CALLBACK(action_save_camera));
+    state->actIncDetail = addAction("inc-detail", G_CALLBACK(action_inc_detail));
+    state->actDecDetail = addAction("dec-detail", G_CALLBACK(action_dec_detail));
+    state->actDrawBoxes = addAction("draw-boxes", G_CALLBACK(action_draw_boxes));
+    state->actDrawDiscs = addAction("draw-discs", G_CALLBACK(action_draw_discs));
+    state->actDrawPoints = addAction("draw-points", G_CALLBACK(action_draw_points));
+    state->actSaveCamera = addAction("save-camera", G_CALLBACK(action_save_camera));
     // Save Camera works for any loaded document (RIB or data) until a data document is
     // specifically open -- start enabled, update_header_bar_state() disables it once needed.
     g_simple_action_set_enabled(state->actSaveCamera, TRUE);
@@ -867,15 +913,15 @@ static void on_activate(AdwApplication *app, gpointer user_data) {
     gtk_overlay_add_overlay(GTK_OVERLAY(overlay), spinner);
 
     // GL signals
-    g_signal_connect(glArea, "realize",   G_CALLBACK(on_realize),   state);
-    g_signal_connect(glArea, "unrealize", G_CALLBACK(on_unrealize),  state);
-    g_signal_connect(glArea, "render",    G_CALLBACK(on_render),     state);
-    g_signal_connect(glArea, "resize",    G_CALLBACK(on_resize),     state);
+    g_signal_connect(glArea, "realize", G_CALLBACK(on_realize), state);
+    g_signal_connect(glArea, "unrealize", G_CALLBACK(on_unrealize), state);
+    g_signal_connect(glArea, "render", G_CALLBACK(on_render), state);
+    g_signal_connect(glArea, "resize", G_CALLBACK(on_resize), state);
 
     // Input controllers
     GtkGestureClick *click = GTK_GESTURE_CLICK(gtk_gesture_click_new());
     gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); // all buttons
-    g_signal_connect(click, "pressed",  G_CALLBACK(on_press),   state);
+    g_signal_connect(click, "pressed", G_CALLBACK(on_press), state);
     g_signal_connect(click, "released", G_CALLBACK(on_release), state);
     gtk_widget_add_controller(glArea, GTK_EVENT_CONTROLLER(click));
 
@@ -954,13 +1000,14 @@ int main(int argc, char **argv) {
     state.ribPath = ribPath;
 
     AdwApplication *app = adw_application_new("press.v2labs.orender.wire",
-                                               G_APPLICATION_NON_UNIQUE);
+                                              G_APPLICATION_NON_UNIQUE);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), &state);
 
     int status = g_application_run(G_APPLICATION(app), 0, nullptr);
     g_object_unref(app);
 
     // No display → GTK exits with non-zero; map to exit code 4.
-    if (status != 0) return 4;
+    if (status != 0)
+        return 4;
     return 0;
 }

@@ -15,10 +15,10 @@
  *
  */
 
+#include "../../src/display/framebuffer/framebuffer.h"
+#include <cassert>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
-#include "../../src/display/framebuffer/framebuffer.h"
 
 // Test counter
 static int tests_passed = 0;
@@ -49,7 +49,7 @@ static int tests_failed = 0;
 TEST(wayland_detection_logic) {
     // Tests the prioritization logic
     printf("\n  [INFO] Verifying Wayland-first prioritization logic");
-    ASSERT(true); 
+    ASSERT(true);
 }
 
 TEST(multi_display_concurrency) {

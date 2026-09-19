@@ -26,15 +26,15 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
-#include <llvm/ExecutionEngine/Orc/LLJIT.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Metadata.h>
 #include <llvm/Bitcode/BitcodeReader.h>
-#include <llvm/Support/MemoryBuffer.h>
-#include <llvm/Support/Error.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/DynamicLibrary.h>
 #include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/IR/Metadata.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/DynamicLibrary.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/TargetSelect.h>
 #pragma GCC diagnostic pop
 
 // CLLVMJitEngine::extractMetadataFromModule / extractMetadataFromFile now live in
@@ -58,7 +58,7 @@ CLLVMJitEngine::CLLVMJitEngine() {
     llvm::InitializeNativeTargetAsmParser();
 
     auto jitOrErr = llvm::orc::LLJITBuilder()
-        .create();
+                        .create();
     if (!jitOrErr) {
         log_error("Failed to create LLJIT instance: {}", llvm::toString(jitOrErr.takeError()));
         return;
@@ -89,14 +89,15 @@ CLLVMJitEngine::CLLVMJitEngine() {
     if (!dlsgOrErr) {
         log_error("Failed to create DynamicLibrarySearchGenerator: {}",
                   llvm::toString(dlsgOrErr.takeError()));
-    } else {
+    }
+    else {
         jit->getMainJITDylib().addGenerator(std::move(*dlsgOrErr));
     }
 }
 
 CLLVMJitEngine::~CLLVMJitEngine() {}
 
-CLLVMJitEngine& CLLVMJitEngine::getInstance() {
+CLLVMJitEngine &CLLVMJitEngine::getInstance() {
     static CLLVMJitEngine instance;
     return instance;
 }
@@ -106,7 +107,8 @@ CLLVMJitEngine& CLLVMJitEngine::getInstance() {
 // =========================================================================
 bool CLLVMJitEngine::getCachedMetadata(const std::string &shaderName, SLOShaderInfo &info) const {
     auto it = metaCache_.find(shaderName);
-    if (it == metaCache_.end()) return false;
+    if (it == metaCache_.end())
+        return false;
     info = it->second;
     return true;
 }
@@ -115,8 +117,9 @@ bool CLLVMJitEngine::getCachedMetadata(const std::string &shaderName, SLOShaderI
 // CLLVMJitEngine::compileShader
 // =========================================================================
 TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
-                                               const std::string &shaderName) {
-    if (!jit) return nullptr;
+                                              const std::string &shaderName) {
+    if (!jit)
+        return nullptr;
 
     std::lock_guard<std::mutex> lock(compileMutex_);
 
@@ -178,7 +181,8 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
         if (initOrErr) {
             initCache_[shaderName] =
                 reinterpret_cast<TShaderJitEntry>(initOrErr->getValue());
-        } else {
+        }
+        else {
             llvm::consumeError(initOrErr.takeError());
         }
     }

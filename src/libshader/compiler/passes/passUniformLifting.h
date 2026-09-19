@@ -34,38 +34,35 @@
 #define OSHADER_PASSES_PASSUNIFORMLIFTING_H
 
 #include "passManager.h"
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <string>
 
 class CUniformLiftingPass : public CIRPass {
-public:
-    bool        run(IRModule &mod) override;
-    const char *name() const override { return "UniformLifting"; }
+    public:
+        bool run(IRModule &mod) override;
+        const char *name() const override { return "UniformLifting"; }
 
-private:
-    // Returns true if an opcode never touches per-vertex built-in variables
-    // (so its result can be UNIFORM if all inputs are UNIFORM).
-    static bool isUniformSafeOpcode(const std::string &opcode);
+    private:
+        // Returns true if an opcode never touches per-vertex built-in variables
+        // (so its result can be UNIFORM if all inputs are UNIFORM).
+        static bool isUniformSafeOpcode(const std::string &opcode);
 
-    // One forward sweep over fn using the current uniform set.
-    // writeCounts: number of write sites per variable in the whole function.
-    // Variables with >1 write site are never promoted.
-    // gatherOutputs: variables bound as a "name:X", value output of a
-    // gather() statement. gather() writes a new value into these per loop
-    // iteration without appearing as an IRInstr result, so writeCounts can't
-    // see that write; these are never promoted regardless of write count.
-    // Returns true if any variable was promoted.
-    static bool liftFn(IRFunction &fn, IRModule &mod,
-                       std::unordered_set<std::string> &uniformSet,
-                       const std::unordered_map<std::string, int> &writeCounts,
-                       const std::unordered_set<std::string> &gatherOutputs);
+        // One forward sweep over fn using the current uniform set.
+        // writeCounts: number of write sites per variable in the whole function.
+        // Variables with >1 write site are never promoted.
+        // gatherOutputs: variables bound as a "name:X", value output of a
+        // gather() statement. gather() writes a new value into these per loop
+        // iteration without appearing as an IRInstr result, so writeCounts can't
+        // see that write; these are never promoted regardless of write count.
+        // Returns true if any variable was promoted.
+        static bool liftFn(IRFunction &fn, IRModule &mod, std::unordered_set<std::string> &uniformSet, const std::unordered_map<std::string, int> &writeCounts, const std::unordered_set<std::string> &gatherOutputs);
 
-    // Collects the value-half variable names of every gather() "name:X",
-    // value output binding in fn (see gatherHeader's operand layout:
-    // [category, P, N, sampleCone, samples, name0, value0, name1, value1, ...]).
-    static void collectGatherOutputs(const IRFunction &fn,
-                                     std::unordered_set<std::string> &out);
+        // Collects the value-half variable names of every gather() "name:X",
+        // value output binding in fn (see gatherHeader's operand layout:
+        // [category, P, N, sampleCone, samples, name0, value0, name1, value1, ...]).
+        static void collectGatherOutputs(const IRFunction &fn,
+                                         std::unordered_set<std::string> &out);
 };
 
 #endif // OSHADER_PASSES_PASSUNIFORMLIFTING_H

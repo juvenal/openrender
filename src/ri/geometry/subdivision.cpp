@@ -65,7 +65,8 @@ CSubdivision::CSubdivision(CAttributes *a, CXform *x, CVertexData *var, CParamet
         this->vertex = new float[K * vertexData->vertexSize];
 
         projectVertices(this->vertex, vertex, 0);
-    } else {
+    }
+    else {
         this->vertex = new float[K * vertexData->vertexSize * 2];
 
         projectVertices(this->vertex, vertex, 0);
@@ -158,14 +159,17 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
     if (this->vertexData->moving == 0) {
         vertexData = vertex; // No need for interpolation
         vertexDataStep = 0;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + K * vertexSize; // No need for interpolation
             vertexDataStep = 0;
-        } else {
+        }
+        else {
             // Interpolate the vertex data in advance
             float *interpolate;
             const float *time = varying[VARIABLE_TIME] + start;
@@ -218,13 +222,15 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
 
             if ((cu == 0) && (cv == 0)) {
                 n = /*10*/ 24;
-            } else {
+            }
+            else {
                 float logCu = -log(cu);
                 float logCv = -log(cv);
                 float minLog;
                 if (logCv < logCu) {
                     minLog = logCv;
-                } else {
+                }
+                else {
                     minLog = logCu;
                 }
                 n = (int)floor(minLog / log(2.0)) + 1;
@@ -239,11 +245,13 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
                 k = 0;
                 cu = 2 * cu - 1;
                 cv = 2 * cv;
-            } else if (cu < 0.5) {
+            }
+            else if (cu < 0.5) {
                 k = 2;
                 cu = 2 * cu;
                 cv = 2 * cv - 1;
-            } else {
+            }
+            else {
                 k = 1;
                 cu = 2 * cu - 1;
                 cv = 2 * cv - 1;

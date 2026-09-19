@@ -24,9 +24,9 @@
 #ifndef RENDERER_SERVICES_H
 #define RENDERER_SERVICES_H
 
+#include "common/global.h"       // basic types
 #include "ri/parse/ri.h"         // RtFilterFunc, RtStepFilterFunc, RtFloat
-#include "ri/render/rendererc.h"  // ECoordinateSystem
-#include "common/global.h" // basic types
+#include "ri/render/rendererc.h" // ECoordinateSystem
 
 // Forward declarations (defined in src/ri/)
 class CTexture;
@@ -52,10 +52,10 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         // Grid / global variable memory
         ///////////////////////////////////////////////////////////////
-        virtual int       maxGridSize() const = 0;
-        virtual int       numGlobalVariables() const = 0;
+        virtual int maxGridSize() const = 0;
+        virtual int numGlobalVariables() const = 0;
         virtual CVariable *globalVariable(int i) const = 0;
-        virtual CMemPage  *globalMemory() const = 0;
+        virtual CMemPage *globalMemory() const = 0;
 
         ///////////////////////////////////////////////////////////////
         // Shutter / timing  (used by shade() for motion interpolation)
@@ -69,7 +69,7 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         virtual float dxdPixel() const = 0;
         virtual float imagePlane() const = 0;
-        virtual int   projection() const = 0;   // OPTIONS_PROJECTION_*
+        virtual int projection() const = 0; // OPTIONS_PROJECTION_*
 
         ///////////////////////////////////////////////////////////////
         // Shader parameter flags
@@ -79,10 +79,10 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         // Clipping / hider
         ///////////////////////////////////////////////////////////////
-        virtual float        clipMin() const = 0;
-        virtual float        clipMax() const = 0;
+        virtual float clipMin() const = 0;
+        virtual float clipMax() const = 0;
         virtual unsigned int hiderFlags() const = 0;
-        virtual bool         hasIlluminationHook() const = 0;
+        virtual bool hasIlluminationHook() const = 0;
 
         ///////////////////////////////////////////////////////////////
         // World bounds
@@ -94,16 +94,12 @@ class CRendererServices {
         // Texture / environment / point-cloud resource loaders
         // Implementations must be thread-safe (include mutex locking).
         ///////////////////////////////////////////////////////////////
-        virtual CTexture         *getTexture(const char *name) = 0;
-        virtual CEnvironment     *getEnvironment(const char *name) = 0;
-        virtual CPhotonMap       *getPhotonMap(const char *name) = 0;
-        virtual CTexture3d       *getCache(const char *handle, const char *mode,
-                                           const float *from, const float *to) = 0;
+        virtual CTexture *getTexture(const char *name) = 0;
+        virtual CEnvironment *getEnvironment(const char *name) = 0;
+        virtual CPhotonMap *getPhotonMap(const char *name) = 0;
+        virtual CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) = 0;
         virtual CTextureInfoBase *getTextureInfo(const char *name) = 0;
-        virtual CTexture3d       *getTexture3d(const char *name, int write,
-                                               const char *channels,
-                                               const float *from, const float *to,
-                                               int hierarchy = FALSE) = 0;
+        virtual CTexture3d *getTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE) = 0;
 
         ///////////////////////////////////////////////////////////////
         // Light category / global string IDs
@@ -134,37 +130,37 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         // Filter function lookup (shaderPl.cpp)
         ///////////////////////////////////////////////////////////////
-        virtual RtFilterFunc     getFilter(const char *name) const = 0;
+        virtual RtFilterFunc getFilter(const char *name) const = 0;
         virtual RtStepFilterFunc getStepFilter(const char *name) const = 0;
-        virtual CVariable       *retrieveVariable(const char *name) const = 0;
+        virtual CVariable *retrieveVariable(const char *name) const = 0;
 
         ///////////////////////////////////////////////////////////////
         // Render option getters (shading.cpp CShadingContext::options())
         ///////////////////////////////////////////////////////////////
-        virtual int          xres() const = 0;
-        virtual int          yres() const = 0;
-        virtual int          frame() const = 0;
-        virtual float        frameAR() const = 0;
-        virtual float        cropLeft() const = 0;
-        virtual float        cropTop() const = 0;
-        virtual float        cropRight() const = 0;
-        virtual float        cropBottom() const = 0;
-        virtual float        fstop() const = 0;
-        virtual float        focallength() const = 0;
-        virtual float        focaldistance() const = 0;
-        virtual float        bucketWidth() const = 0;
-        virtual float        bucketHeight() const = 0;
+        virtual int xres() const = 0;
+        virtual int yres() const = 0;
+        virtual int frame() const = 0;
+        virtual float frameAR() const = 0;
+        virtual float cropLeft() const = 0;
+        virtual float cropTop() const = 0;
+        virtual float cropRight() const = 0;
+        virtual float cropBottom() const = 0;
+        virtual float fstop() const = 0;
+        virtual float focallength() const = 0;
+        virtual float focaldistance() const = 0;
+        virtual float bucketWidth() const = 0;
+        virtual float bucketHeight() const = 0;
         virtual const float *colorQuantizer() const = 0;
         virtual const float *depthQuantizer() const = 0;
-        virtual float        pixelFilterWidth() const = 0;
-        virtual float        pixelFilterHeight() const = 0;
-        virtual float        gamma() const = 0;
-        virtual float        gain() const = 0;
-        virtual int          maxRayDepth() const = 0;
-        virtual float        relativeDetail() const = 0;
-        virtual int          pixelXsamples() const = 0;
-        virtual int          pixelYsamples() const = 0;
-        virtual bool         lookupUserOption(const char *name, CVariable *&var) const = 0;
+        virtual float pixelFilterWidth() const = 0;
+        virtual float pixelFilterHeight() const = 0;
+        virtual float gamma() const = 0;
+        virtual float gain() const = 0;
+        virtual int maxRayDepth() const = 0;
+        virtual float relativeDetail() const = 0;
+        virtual int pixelXsamples() const = 0;
+        virtual int pixelYsamples() const = 0;
+        virtual bool lookupUserOption(const char *name, CVariable *&var) const = 0;
 };
 
 #endif // RENDERER_SERVICES_H

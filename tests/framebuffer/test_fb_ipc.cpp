@@ -15,12 +15,12 @@
  *
  */
 
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <cassert>
-#include <vector>
 #include "../../src/display/framebuffer/fbipc_display.h"
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
 
 // Test counter
 static int tests_passed = 0;
@@ -75,7 +75,8 @@ TEST(security_validation) {
     const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
     if (!xdg_runtime) {
         printf("\n  [WARN] XDG_RUNTIME_DIR not set. Security check limited.");
-    } else {
+    }
+    else {
         printf("\n  [INFO] Validating permissions for %s", xdg_runtime);
     }
     // Buffer safety verified via bounds checking in CIPCDisplay::data

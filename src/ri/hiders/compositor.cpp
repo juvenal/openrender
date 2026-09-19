@@ -66,7 +66,8 @@ void CCompositor::composite(CompositeAccumulator &acc, const CompositeSample &sa
                 else
                     movvv(acc.extra + sampleOffset, sampleExtra + sampleOffset);
             }
-        } else {
+        }
+        else {
             movvv(acc.color, color);
             movvv(acc.opacity, opacity);
             acc.ropacity[0] = 1 - opacity[0];
@@ -95,7 +96,8 @@ void CCompositor::composite(CompositeAccumulator &acc, const CompositeSample &sa
             if (!matteMode)
                 movvv(acc.extra + sampleOffset, sampleExtra + sampleOffset);
         }
-    } else {
+    }
+    else {
         acc.color[0] += acc.ropacity[0] * color[0];
         acc.color[1] += acc.ropacity[1] * color[1];
         acc.color[2] += acc.ropacity[2] * color[2];
@@ -134,8 +136,7 @@ void CCompositor::composite(CompositeAccumulator &acc, const CompositeSample &sa
 //							stop searching); false if the caller should
 //							advance to the next fragment.
 // Comments				:
-bool CCompositor::compositeNonComp(float *dst, const CompositeSample &sample,
-                                    const vector zvisibilityThreshold, bool pixelHasMatte) {
+bool CCompositor::compositeNonComp(float *dst, const CompositeSample &sample, const vector zvisibilityThreshold, bool pixelHasMatte) {
     const int numExtraNonCompChannels = CRenderer::numExtraNonCompChannels;
     const int *nonCompChannelOrder = CRenderer::nonCompChannelOrder;
     const float *opacity = sample.opacity;
@@ -143,8 +144,8 @@ bool CCompositor::compositeNonComp(float *dst, const CompositeSample &sample,
 
     if (!pixelHasMatte) {
         const bool passesThreshold = (opacity[0] > zvisibilityThreshold[0]) ||
-                                      (opacity[1] > zvisibilityThreshold[1]) ||
-                                      (opacity[2] > zvisibilityThreshold[2]);
+                                     (opacity[1] > zvisibilityThreshold[1]) ||
+                                     (opacity[2] > zvisibilityThreshold[2]);
 
         if (!passesThreshold)
             return false;
@@ -161,8 +162,8 @@ bool CCompositor::compositeNonComp(float *dst, const CompositeSample &sample,
     }
 
     const bool passesMatteThreshold = (1 + opacity[0] > zvisibilityThreshold[0]) ||
-                                       (1 + opacity[1] > zvisibilityThreshold[1]) ||
-                                       (1 + opacity[2] > zvisibilityThreshold[2]);
+                                      (1 + opacity[1] > zvisibilityThreshold[1]) ||
+                                      (1 + opacity[2] > zvisibilityThreshold[2]);
 
     if (!passesMatteThreshold)
         return false;
@@ -233,9 +234,7 @@ static bool passesZThresholdPerCandidate(const float *opacity, const vector zvis
            (opacity[2] > zvisibilityThreshold[2]);
 }
 
-float CCompositor::evaluateDepth(const float *zs, const float *opacities, int count,
-                                  DepthFilterMode mode, const vector zvisibilityThreshold,
-                                  bool pixelHasMatte, float zold) {
+float CCompositor::evaluateDepth(const float *zs, const float *opacities, int count, DepthFilterMode mode, const vector zvisibilityThreshold, bool pixelHasMatte, float zold) {
     int i = 0;
     float z0 = C_INFINITY;
 

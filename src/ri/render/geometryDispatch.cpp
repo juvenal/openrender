@@ -158,7 +158,8 @@ void CObject::cluster(CShadingContext *context) {
 
                     addvv(nP1, P + i * 3);
                     num1++;
-                } else {
+                }
+                else {
                     if (indices[i] != 1) {
                         done = FALSE;
                         indices[i] = 1;
@@ -200,7 +201,8 @@ void CObject::cluster(CShadingContext *context) {
             frontChildren = cObject;
             addBox(front->bmin, front->bmax, cObject->bmin);
             addBox(front->bmin, front->bmax, cObject->bmax);
-        } else {
+        }
+        else {
             cObject->sibling = backChildren;
             backChildren = cObject;
             addBox(back->bmin, back->bmax, cObject->bmin);
@@ -243,7 +245,8 @@ bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
         if (importance >= 0) {
             if (rv->jimp > importance)
                 return TRUE;
-        } else {
+        }
+        else {
             if ((1 - rv->jimp) >= -importance)
                 return TRUE;
         }
@@ -286,7 +289,8 @@ void CSurface::intersect(CShadingContext *context, CRay *cRay) {
         if (importance >= 0) {
             if (cRay->jimp > importance)
                 return;
-        } else {
+        }
+        else {
             if ((1 - cRay->jimp) >= -importance)
                 return;
         }
@@ -332,7 +336,8 @@ void CSurface::dice(CReyes *rasterizer) {
     int minSplits;
     if (attributes->minSplits > dicingStatsResult) {
         minSplits = attributes->minSplits;
-    } else {
+    }
+    else {
         minSplits = dicingStatsResult;
     }
 
@@ -466,15 +471,16 @@ void CCurve::dice(CReyes *rasterizer) {
     if (bmin[COMP_Z] < C_EPSILON) {
         if (bmax[COMP_Z] < CRenderer::clipMin) {
             // The curve is behind the screen
-
-        } else if (CRenderer::inFrustrum(bmin, bmax) == FALSE) {
+        }
+        else if (CRenderer::inFrustrum(bmin, bmax) == FALSE) {
             // The curve is out of the viewing frustrum
-
-        } else {
+        }
+        else {
             // Split the curve into two pieces
             splitToChildren(rasterizer);
         }
-    } else {
+    }
+    else {
 
         // Estimate the dicing amount
         int udiv, vdiv;
@@ -491,7 +497,8 @@ void CCurve::dice(CReyes *rasterizer) {
         // Can we render this sucker ?
         if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
             splitToChildren(rasterizer);
-        } else {
+        }
+        else {
             rasterizer->drawGrid(this, udiv, vdiv, 0, 1, vmin, vmax);
         }
     }
@@ -546,7 +553,8 @@ void CPoints::dice(CReyes *rasterizer) {
     if (numPoints < CRenderer::maxGridSize) {
         // We're small enough to render directly
         rasterizer->drawPoints(this, numPoints);
-    } else {
+    }
+    else {
 
         // We're too many, split us
         memBegin(rasterizer->threadMemory);
@@ -595,7 +603,8 @@ void CPoints::dice(CReyes *rasterizer) {
 
                     addvv(nP0, points[i]);
                     num0++;
-                } else {
+                }
+                else {
                     if (membership[i] != 1) {
                         moved = TRUE;
                         membership[i] = 1;

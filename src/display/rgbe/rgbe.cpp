@@ -68,18 +68,18 @@ enum rgbe_error_codes {
 /* default error routine.  change this to change error handling */
 static int rgbe_error(int rgbe_error_code, const char *msg) {
     switch (rgbe_error_code) {
-    case rgbe_read_error:
-        perror("RGBE read error");
-        break;
-    case rgbe_write_error:
-        perror("RGBE write error");
-        break;
-    case rgbe_format_error:
-        fprintf(stderr, "RGBE bad file format: %s\n", msg);
-        break;
-    default:
-    case rgbe_memory_error:
-        fprintf(stderr, "RGBE error: %s\n", msg);
+        case rgbe_read_error:
+            perror("RGBE read error");
+            break;
+        case rgbe_write_error:
+            perror("RGBE write error");
+            break;
+        case rgbe_format_error:
+            fprintf(stderr, "RGBE bad file format: %s\n", msg);
+            break;
+        default:
+        case rgbe_memory_error:
+            fprintf(stderr, "RGBE error: %s\n", msg);
     }
     return RGBE_RETURN_FAILURE;
 }
@@ -98,7 +98,8 @@ float2rgbe(unsigned char rgbe[4], float red, float green, float blue) {
         v = blue;
     if (v < 1e-32) {
         rgbe[0] = rgbe[1] = rgbe[2] = rgbe[3] = 0;
-    } else {
+    }
+    else {
         v = (float)(frexp(v, &e) * 256.0 / v);
         rgbe[0] = (unsigned char)(red * v);
         rgbe[1] = (unsigned char)(green * v);
@@ -119,7 +120,8 @@ rgbe2float(float *red, float *green, float *blue, unsigned char rgbe[4]) {
         *red = rgbe[0] * f;
         *green = rgbe[1] * f;
         *blue = rgbe[2] * f;
-    } else
+    }
+    else
         *red = *green = *blue = 0.0;
 }
 
@@ -163,7 +165,8 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info) {
     if ((buf[0] != '#') || (buf[1] != '?')) {
         /* if you want to require the magic token then uncomment the next line */
         /*return rgbe_error(rgbe_format_error,"bad initial token"); */
-    } else if (info) {
+    }
+    else if (info) {
         info->valid |= RGBE_VALID_PROGRAMTYPE;
         for (i = 0; i < (int)sizeof(info->programtype) - 1; i++) {
             if ((buf[i + 2] == 0) || isspace(buf[i + 2]))
@@ -182,7 +185,8 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info) {
         else if (info && (sscanf(buf, "GAMMA=%g", &tempf) == 1)) {
             info->gamma = tempf;
             info->valid |= RGBE_VALID_GAMMA;
-        } else if (info && (sscanf(buf, "EXPOSURE=%g", &tempf) == 1)) {
+        }
+        else if (info && (sscanf(buf, "EXPOSURE=%g", &tempf) == 1)) {
             info->exposure = tempf;
             info->valid |= RGBE_VALID_EXPOSURE;
         }
@@ -380,7 +384,8 @@ int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width, int num_scanl
                     }
                     while (count-- > 0)
                         *ptr++ = buf[1];
-                } else {
+                }
+                else {
                     /* a non-run */
                     count = buf[0];
                     if ((count == 0) || (count > ptr_end - ptr)) {

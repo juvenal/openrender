@@ -86,7 +86,8 @@ class CPoints : public CSurface {
         // per-hider split representation and never flows through addObject().
         void wireData(const float *&positions, int &numPoints) const {
             assert(pl != NULL);
-            positions = pl->data0; numPoints = this->numPoints;
+            positions = pl->data0;
+            numPoints = this->numPoints;
         }
 
     private:

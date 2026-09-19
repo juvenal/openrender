@@ -83,18 +83,21 @@ void COcclusionCuller::resetHierarchy(COcclusionNode *cNode) {
         float maxZ01;
         if (cNode->children[1]->zmax > cNode->children[0]->zmax) {
             maxZ01 = cNode->children[1]->zmax;
-        } else {
+        }
+        else {
             maxZ01 = cNode->children[0]->zmax;
         }
         float maxZ23;
         if (cNode->children[3]->zmax > cNode->children[2]->zmax) {
             maxZ23 = cNode->children[3]->zmax;
-        } else {
+        }
+        else {
             maxZ23 = cNode->children[2]->zmax;
         }
         if (maxZ23 > maxZ01) {
             cNode->zmax = maxZ23;
-        } else {
+        }
+        else {
             cNode->zmax = maxZ01;
         }
     }
@@ -139,8 +142,8 @@ COcclusionCuller::COcclusionNode *COcclusionCuller::newNode(COcclusionNode *p, i
         cNode->children[1] = newNode(cNode, w >> 1, d + 1, nodeOffset, (x << 1) + 1, (y << 1));
         cNode->children[2] = newNode(cNode, w >> 1, d + 1, nodeOffset, (x << 1) + 1, (y << 1) + 1);
         cNode->children[3] = newNode(cNode, w >> 1, d + 1, nodeOffset, (x << 1), (y << 1) + 1);
-
-    } else {
+    }
+    else {
         nodes[(y << depth) + x] = cNode;
 
         cNode->children[0] = NULL;

@@ -52,8 +52,8 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
             job.type = CJob::BUCKET;
             job.xBucket = netBuffer[1].integer;
             job.yBucket = netBuffer[2].integer;
-
-        } else if (netBuffer[0].integer == NET_FINISH_FRAME) {
+        }
+        else if (netBuffer[0].integer == NET_FINISH_FRAME) {
             // We have finished the frame, so terminate
             netBuffer[0].integer = NET_ACK;
             rcSend(netClient, netBuffer, 1 * sizeof(T32));
@@ -62,7 +62,8 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
             sendFrameDataChannels();
 
             job.type = CJob::TERMINATE;
-        } else {
+        }
+        else {
             error(CODE_BUG, "Unrecognized network request\n");
             job.type = CJob::TERMINATE;
         }
@@ -79,7 +80,8 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
     // If we're done, tell the hider to terminate
     if (hiderFlags & (HIDER_DONE | HIDER_BREAK)) {
         job.type = CJob::TERMINATE;
-    } else {
+    }
+    else {
         int x, y;
 
         // Find the bucket for this thread to render
@@ -100,11 +102,13 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
                 break;
 
                 // Has it been assigned to me?
-            } else if (jobAssignment[y * xBuckets + x] == thread) {
+            }
+            else if (jobAssignment[y * xBuckets + x] == thread) {
                 break;
 
                 // OK, it has been assigned to someone else ... Skip this bucket
-            } else {
+            }
+            else {
                 x++;
                 if (x >= xBuckets) {
                     x = 0;
@@ -120,7 +124,8 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
             job.type = CJob::BUCKET;
             job.xBucket = x;
             job.yBucket = y;
-        } else {
+        }
+        else {
             job.type = CJob::TERMINATE;
             numActiveThreads--;
         }
@@ -154,7 +159,8 @@ void CRenderer::dispatchPhoton(int, CJob &job) {
         int numPhotons;
         if (1000 < photonsRemaining) {
             numPhotons = 1000;
-        } else {
+        }
+        else {
             numPhotons = photonsRemaining;
         }
         job.numPhotons = numPhotons; // Shoot 1000 photons at a time
@@ -167,8 +173,8 @@ void CRenderer::dispatchPhoton(int, CJob &job) {
             else
                 info(CODE_PROGRESS, "Done %%%3.2f %d photons\r", stats.progress, currentPhoton);
         }
-
-    } else {
+    }
+    else {
 
         // We're finished, terminate
         job.type = CJob::TERMINATE;
@@ -204,7 +210,8 @@ int CRenderer::advanceBucket(int index, int &x, int &y) {
     if ((x == -1) || (y == -1)) {
         x = 0; // Begin from the start
         y = 0;
-    } else {
+    }
+    else {
         advance(x, y); // Advance the bucket by one
     }
 
@@ -218,7 +225,8 @@ int CRenderer::advanceBucket(int index, int &x, int &y) {
             int right;
             if (xBuckets < rightLimit) {
                 right = xBuckets;
-            } else {
+            }
+            else {
                 right = rightLimit;
             }
             int top = (y / netYBuckets) * netYBuckets;
@@ -226,7 +234,8 @@ int CRenderer::advanceBucket(int index, int &x, int &y) {
             int bottom;
             if (yBuckets < bottomLimit) {
                 bottom = yBuckets;
-            } else {
+            }
+            else {
                 bottom = bottomLimit;
             }
             int i, j;
@@ -243,11 +252,13 @@ int CRenderer::advanceBucket(int index, int &x, int &y) {
 
             // We found the job !!!
             return TRUE;
-        } else if (bucket(x, y) != index) {
+        }
+        else if (bucket(x, y) != index) {
 
             // This bucket has been pre-allocated to another server, skip over
             advance(x, y);
-        } else {
+        }
+        else {
 
             // This bucket has been pre-allocated to us, proceed
             return TRUE;
@@ -407,19 +418,22 @@ void CRenderer::processServerRequest(T32 req, int index) {
 
         if (locateFile(fileLocation, fileName, search)) {
             sendFile(index, fileLocation, start, size);
-        } else {
+        }
+        else {
             // Unable to find file
             T32 response;
 
             response.integer = NET_NACK;
             rcSend(netServers[index], &response, sizeof(T32));
         }
-    } else if (req.integer == NET_CREATE_CHANNEL) {
+    }
+    else if (req.integer == NET_CREATE_CHANNEL) {
         // This must be atomic
         osLock(commitMutex);
         processChannelRequest(index, netServers[index]);
         osUnlock(commitMutex);
-    } else {
+    }
+    else {
         error(CODE_BUG, "Unknown server request\n");
     }
 }

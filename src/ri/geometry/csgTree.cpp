@@ -54,11 +54,11 @@ static const float kCsgDefaultToleranceFraction = 0.001f;
 // Comments				:
 CSGTreeNode::CSGTreeNode(ECSGOperation operation, CSGTreeNode *parent) {
     this->operation = operation;
-    this->parent    = parent;
+    this->parent = parent;
 
-    operands    = new CArray<CSGTreeNode *>;
+    operands = new CArray<CSGTreeNode *>;
     leafObjects = NULL;
-    outerXform  = NULL;
+    outerXform = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -128,9 +128,9 @@ static CCSGVertex csgMakeGridVertex(const CTesselatedGrid &grid, int i, int j) {
     const int k = i * n + j;
 
     CCSGVertex v;
-    v.p[0]      = grid.P[k * 3 + 0];
-    v.p[1]      = grid.P[k * 3 + 1];
-    v.p[2]      = grid.P[k * 3 + 2];
+    v.p[0] = grid.P[k * 3 + 0];
+    v.p[1] = grid.P[k * 3 + 1];
+    v.p[2] = grid.P[k * 3 + 2];
     v.hasNormal = FALSE;
 
     if (grid.dPdu != NULL && grid.dPdv != NULL) {
@@ -139,9 +139,9 @@ static CCSGVertex csgMakeGridVertex(const CTesselatedGrid &grid, int i, int j) {
         float len = lengthv(normal);
 
         if (len > 0.0f) {
-            v.n[0]      = normal[0] / len;
-            v.n[1]      = normal[1] / len;
-            v.n[2]      = normal[2] / len;
+            v.n[0] = normal[0] / len;
+            v.n[1] = normal[1] / len;
+            v.n[2] = normal[2] / len;
             v.hasNormal = TRUE;
         }
     }
@@ -278,11 +278,11 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
     CArray<CCSGPolygon *> *soup = new CArray<CCSGPolygon *>;
 
     for (CObject *leaf = operandHead; leaf != NULL; leaf = leaf->sibling) {
-        CSurface *surf     = dynamic_cast<CSurface *>(leaf);
-        CPatchMesh *mesh   = (surf == NULL) ? dynamic_cast<CPatchMesh *>(leaf) : NULL;
+        CSurface *surf = dynamic_cast<CSurface *>(leaf);
+        CPatchMesh *mesh = (surf == NULL) ? dynamic_cast<CPatchMesh *>(leaf) : NULL;
 
         if (surf != NULL) {
-            float tolerance     = csgResolveTolerance(leaf);
+            float tolerance = csgResolveTolerance(leaf);
             CTesselatedGrid grid = tesselateQuadricAdaptive(surf, tolerance, TRUE);
 
             csgTriangulateGrid(grid, leaf->attributes, soup);
@@ -290,8 +290,9 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
             delete[] grid.P;
             delete[] grid.dPdu;
             delete[] grid.dPdv;
-        } else if (mesh != NULL) {
-            float tolerance               = csgResolveTolerance(leaf);
+        }
+        else if (mesh != NULL) {
+            float tolerance = csgResolveTolerance(leaf);
             CTesselatedPatchMeshOperand op = tesselatePatchMeshAdaptive(mesh, tolerance, TRUE);
 
             int total = op.uPatches * op.vPatches;
@@ -302,8 +303,9 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
                 delete[] op.grids[k].dPdv;
             }
             delete[] op.grids;
-        } else if (CNURBSPatchMesh *nurbsMesh = dynamic_cast<CNURBSPatchMesh *>(leaf)) {
-            float tolerance                     = csgResolveTolerance(leaf);
+        }
+        else if (CNURBSPatchMesh *nurbsMesh = dynamic_cast<CNURBSPatchMesh *>(leaf)) {
+            float tolerance = csgResolveTolerance(leaf);
             CTesselatedNURBSPatchMeshOperand op = tesselateNURBSPatchMeshAdaptive(nurbsMesh, tolerance, TRUE);
 
             for (int k = 0; k < op.count; k++) {
@@ -313,7 +315,8 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
                 delete[] op.grids[k].dPdv;
             }
             delete[] op.grids;
-        } else if (CPolygonMesh *polyMesh = dynamic_cast<CPolygonMesh *>(leaf)) {
+        }
+        else if (CPolygonMesh *polyMesh = dynamic_cast<CPolygonMesh *>(leaf)) {
             float tolerance = csgResolveTolerance(leaf);
 
             // Each CPolygonTriangle/CPolygonQuad constructed below attach()es
@@ -359,7 +362,8 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
                 delete tri;
                 tri = next;
             }
-        } else if (CLoopSubdivMesh *loopMesh = dynamic_cast<CLoopSubdivMesh *>(leaf)) {
+        }
+        else if (CLoopSubdivMesh *loopMesh = dynamic_cast<CLoopSubdivMesh *>(leaf)) {
             float tolerance = csgResolveTolerance(leaf);
 
             // buildPolygonMesh() synthesizes a brand-new CPolygonMesh each
@@ -396,7 +400,8 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
             }
 
             polyMesh->detach();
-        } else if (CSubdivMesh *subdivMesh = dynamic_cast<CSubdivMesh *>(leaf)) {
+        }
+        else if (CSubdivMesh *subdivMesh = dynamic_cast<CSubdivMesh *>(leaf)) {
             float tolerance = csgResolveTolerance(leaf);
 
             // tessellateToSurfaces() synthesizes a fresh sibling chain of
@@ -430,7 +435,8 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
             }
 
             memoryTini(subdivMem);
-        } else {
+        }
+        else {
             error(CODE_BADTOKEN, "Unsupported CSG operand type inside a SolidBegin/SolidEnd boolean block\n");
         }
 
@@ -451,8 +457,8 @@ static CArray<CCSGPolygon *> *csgTessellateOperand(CObject *operandHead, CArray<
 //							the boolean kernel) or an already boolean-
 //							resolved polygon soup. At most one is non-NULL.
 struct CCSGResolved {
-    CObject *passthrough;
-    CArray<CCSGPolygon *> *soup;
+        CObject *passthrough;
+        CArray<CCSGPolygon *> *soup;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -487,14 +493,14 @@ static CArray<CCSGPolygon *> *csgToSoup(CCSGResolved &r, CArray<CObject *> *cons
 //							-- see csgTessellateOperand.
 static CCSGResolved csgResolveNode(CSGTreeNode *node, CArray<CObject *> *consumedLeaves) {
     if (node->operation == CSG_PRIMITIVE) {
-        CCSGResolved r = { node->leafObjects, NULL };
+        CCSGResolved r = {node->leafObjects, NULL};
         return r; // FR-002: raw geometry is already one opaque leaf operand
     }
 
     CArray<CCSGResolved> operands;
 
     if (node->leafObjects != NULL) {
-        CCSGResolved r = { node->leafObjects, NULL };
+        CCSGResolved r = {node->leafObjects, NULL};
         operands.push(r);
     }
 
@@ -506,7 +512,7 @@ static CCSGResolved csgResolveNode(CSGTreeNode *node, CArray<CObject *> *consume
     }
 
     if (operands.numItems == 0) {
-        CCSGResolved empty = { NULL, NULL };
+        CCSGResolved empty = {NULL, NULL};
         return empty; // FR-016: empty solid block -> no geometry
     }
 
@@ -515,7 +521,7 @@ static CCSGResolved csgResolveNode(CSGTreeNode *node, CArray<CObject *> *consume
 
     CArray<CCSGPolygon *> *combined = csgToSoup(operands.array[0], consumedLeaves);
     for (i = 1; i < operands.numItems; i++) {
-        CArray<CCSGPolygon *> *next   = csgToSoup(operands.array[i], consumedLeaves);
+        CArray<CCSGPolygon *> *next = csgToSoup(operands.array[i], consumedLeaves);
         CArray<CCSGPolygon *> *folded = csgCombine(node->operation, combined, next);
 
         csgFreePolygons(combined);
@@ -523,7 +529,7 @@ static CCSGResolved csgResolveNode(CSGTreeNode *node, CArray<CObject *> *consume
         combined = folded;
     }
 
-    CCSGResolved result = { NULL, combined };
+    CCSGResolved result = {NULL, combined};
     return result;
 }
 
@@ -555,13 +561,13 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
     if (numTris <= 0)
         return NULL;
 
-    int numVerts  = numTris * 3;
-    int dataSize  = numVerts * 3 * 2; // P then N, 3 floats/vertex each
+    int numVerts = numTris * 3;
+    int dataSize = numVerts * 3 * 2; // P then N, 3 floats/vertex each
 
-    float *data0    = new float[dataSize];
-    int *nholes     = new int[numTris];
-    int *nvertices  = new int[numTris];
-    int *vertices   = new int[numVerts];
+    float *data0 = new float[dataSize];
+    int *nholes = new int[numTris];
+    int *nvertices = new int[numTris];
+    int *vertices = new int[numVerts];
 
     int tri = 0;
     for (int i = 0; i < polygons->numItems; i++) {
@@ -571,10 +577,10 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
 
         int n = poly->vertices.numItems;
         for (int k = 1; k + 1 < n; k++) {
-            const CCSGVertex *corners[3] = { &poly->vertices.array[0], &poly->vertices.array[k], &poly->vertices.array[k + 1] };
+            const CCSGVertex *corners[3] = {&poly->vertices.array[0], &poly->vertices.array[k], &poly->vertices.array[k + 1]};
 
             for (int c = 0; c < 3; c++) {
-                int vidx    = tri * 3 + c;
+                int vidx = tri * 3 + c;
                 float *pDst = data0 + vidx * 3;
                 float *nDst = data0 + numVerts * 3 + vidx * 3;
 
@@ -586,7 +592,8 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
                     nDst[0] = corners[c]->n[0];
                     nDst[1] = corners[c]->n[1];
                     nDst[2] = corners[c]->n[2];
-                } else {
+                }
+                else {
                     nDst[0] = poly->planeNormal[0];
                     nDst[1] = poly->planeNormal[1];
                     nDst[2] = poly->planeNormal[2];
@@ -595,7 +602,7 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
                 vertices[vidx] = vidx;
             }
 
-            nholes[tri]    = 1;
+            nholes[tri] = 1;
             nvertices[tri] = 3;
             tri++;
         }
@@ -605,13 +612,13 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
     CVariable *varN = CRenderer::retrieveVariable("N");
 
     CPlParameter *plParams = new CPlParameter[2];
-    plParams[0].variable  = varP;
-    plParams[0].numItems  = numVerts;
-    plParams[0].index     = 0;
+    plParams[0].variable = varP;
+    plParams[0].numItems = numVerts;
+    plParams[0].index = 0;
     plParams[0].container = CONTAINER_VERTEX;
-    plParams[1].variable  = varN;
-    plParams[1].numItems  = numVerts;
-    plParams[1].index     = numVerts * 3;
+    plParams[1].variable = varN;
+    plParams[1].numItems = numVerts;
+    plParams[1].index = numVerts * 3;
     plParams[1].container = CONTAINER_VERTEX;
 
     CPl *pl = new CPl(dataSize, 2, plParams, data0);
@@ -625,7 +632,7 @@ static CObject *csgBuildMeshForAttributeGroup(CArray<CCSGPolygon *> *polygons, C
     fragAttr->flags |= ATTRIBUTES_FLAGS_SOLID_FRAGMENT;
 
     CXform *identity = new CXform();
-    CObject *result  = new CPolygonMesh(fragAttr, identity, pl, numTris, nholes, nvertices, vertices);
+    CObject *result = new CPolygonMesh(fragAttr, identity, pl, numTris, nholes, nvertices, vertices);
 
     delete[] nholes;
     delete[] nvertices;
@@ -649,7 +656,7 @@ static CObject *csgPolygonsToFragments(CArray<CCSGPolygon *> *polygons) {
     int i;
     for (i = 0; i < polygons->numItems; i++) {
         CAttributes *attr = polygons->array[i]->attributes;
-        int seen          = FALSE;
+        int seen = FALSE;
 
         int j;
         for (j = 0; j < distinctAttrs.numItems; j++) {
@@ -670,7 +677,7 @@ static CObject *csgPolygonsToFragments(CArray<CCSGPolygon *> *polygons) {
             continue;
 
         mesh->sibling = chain;
-        chain         = mesh;
+        chain = mesh;
     }
 
     return chain;
@@ -729,7 +736,8 @@ void resolveCSGTree(CRendererContext *context, CSGTreeNode *node) {
     if (resolved.soup != NULL) {
         fragments = csgPolygonsToFragments(resolved.soup);
         csgFreePolygons(resolved.soup);
-    } else {
+    }
+    else {
         fragments = resolved.passthrough;
     }
 

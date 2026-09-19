@@ -24,8 +24,8 @@
 //  Description			:	The misc noise functions
 //
 ////////////////////////////////////////////////////////////////////////
-#include <math.h>
 #include "noise.h"
+#include <math.h>
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))
 #define FASTFLOOR(x) (((x) > 0) ? ((int)x) : ((int)x - 1))

@@ -44,8 +44,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -78,19 +78,19 @@ TEST(difference_and_intersection_partition_the_whole_sphere) {
     // produce a measurable, growing volume-conservation error -- high
     // enough to catch a reintroduced regression without paying the cost
     // of the original 8064-poly reproduction density.
-    CArray<CCSGPolygon *> *outerForDiff   = csgtest::makeSphere(0,0,0, 1.0f, 64,56, NULL);
-    CArray<CCSGPolygon *> *outerForIsect  = csgtest::makeSphere(0,0,0, 1.0f, 64,56, NULL);
-    CArray<CCSGPolygon *> *outerRef       = csgtest::makeSphere(0,0,0, 1.0f, 64,56, NULL);
-    CArray<CCSGPolygon *> *biteForDiff    = csgtest::makeSphere(0,0,0.9f, 0.6f, 64,56, NULL);
-    CArray<CCSGPolygon *> *biteForIsect   = csgtest::makeSphere(0,0,0.9f, 0.6f, 64,56, NULL);
+    CArray<CCSGPolygon *> *outerForDiff = csgtest::makeSphere(0, 0, 0, 1.0f, 64, 56, NULL);
+    CArray<CCSGPolygon *> *outerForIsect = csgtest::makeSphere(0, 0, 0, 1.0f, 64, 56, NULL);
+    CArray<CCSGPolygon *> *outerRef = csgtest::makeSphere(0, 0, 0, 1.0f, 64, 56, NULL);
+    CArray<CCSGPolygon *> *biteForDiff = csgtest::makeSphere(0, 0, 0.9f, 0.6f, 64, 56, NULL);
+    CArray<CCSGPolygon *> *biteForIsect = csgtest::makeSphere(0, 0, 0.9f, 0.6f, 64, 56, NULL);
 
     double wholeVolume = csgtest::computeVolume(outerRef);
     ASSERT(wholeVolume > 3.0); // sanity: ~4/3 pi for r=1
 
-    CArray<CCSGPolygon *> *diffResult  = csgCombine(CSG_DIFFERENCE, outerForDiff, biteForDiff);
+    CArray<CCSGPolygon *> *diffResult = csgCombine(CSG_DIFFERENCE, outerForDiff, biteForDiff);
     CArray<CCSGPolygon *> *isectResult = csgCombine(CSG_INTERSECTION, outerForIsect, biteForIsect);
 
-    double diffVolume  = csgtest::computeVolume(diffResult);
+    double diffVolume = csgtest::computeVolume(diffResult);
     double isectVolume = csgtest::computeVolume(isectResult);
 
     printf("\n  wholeVolume=%f diffVolume=%f isectVolume=%f sum=%f analyticLens=%f\n",

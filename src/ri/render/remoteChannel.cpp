@@ -87,11 +87,12 @@ int CRenderer::requestRemoteChannel(CRemoteChannel *serverChannel) {
             // let client know we initialized
             buffer[0].integer = NET_ACK;
             rcSend(netClient, buffer, sizeof(T32));
-
-        } else {
+        }
+        else {
             clientInitialized = TRUE;
         }
-    } else {
+    }
+    else {
         error(CODE_BUG, "Client refused remote channel request\n");
         delete serverChannel;
         return FALSE;
@@ -101,7 +102,8 @@ int CRenderer::requestRemoteChannel(CRemoteChannel *serverChannel) {
         // record the channel
         remoteChannels->push(serverChannel);
         declaredRemoteChannels->insert(serverChannel->name, serverChannel);
-    } else {
+    }
+    else {
         error(CODE_BUG, "Remote channel initialization failed\n");
         delete serverChannel;
         return FALSE;
@@ -155,42 +157,45 @@ int CRenderer::processChannelRequest(int, SOCKET s) {
         buffer[1].integer = NET_NACK;
         rcSend(s, buffer, 2 * sizeof(T32));
         return TRUE;
-    } else {
+    }
+    else {
         switch (channelType) {
-        case CHANNELTYPE_TSM:
-            // create a TSM channel
-            rChannel = new CRemoteTSMChannel(channelName, deepShadowFile, deepShadowIndex, xBuckets, yBuckets);
-            rChannel->remoteId = remoteChannels->numItems;
-            buffer[0].integer = rChannel->remoteId;
-            buffer[1].integer = NET_ACK;
-            break;
-        case CHANNELTYPE_ICACHE: {
-            // create an irradiancecache channel
-            CIrradianceCache *cache = (CIrradianceCache *)getCache(channelName, "w", CRenderer::fromWorld, CRenderer::toWorld);
-            rChannel = new CRemoteICacheChannel(cache);
-            rChannel->remoteId = remoteChannels->numItems;
-            buffer[0].integer = rChannel->remoteId;
-            buffer[1].integer = NET_ACK;
-            break;
-        }
-        case CHANNELTYPE_PTCLOUD: {
-            // create an pointcloud channel.
-            // Note: the channel definitions are duff
-            CPointCloud *cloud = (CPointCloud *)getTexture3d(channelName, TRUE, NULL, CRenderer::fromWorld, CRenderer::toWorld);
-            rChannel = new CRemotePtCloudChannel(cloud);
-            rChannel->remoteId = remoteChannels->numItems;
-            buffer[0].integer = rChannel->remoteId;
-            buffer[1].integer = NET_ACK;
-            break;
-        }
-        case CHANNELTYPE_INVALID:
-        default:
-            // unknown type!
-            buffer[0].integer = -1;
-            buffer[1].integer = NET_NACK;
-            rcSend(s, buffer, 2 * sizeof(T32));
-            error(CODE_BUG, "Invalid remote channel type requested\n");
-            return FALSE;
+            case CHANNELTYPE_TSM:
+                // create a TSM channel
+                rChannel = new CRemoteTSMChannel(channelName, deepShadowFile, deepShadowIndex, xBuckets, yBuckets);
+                rChannel->remoteId = remoteChannels->numItems;
+                buffer[0].integer = rChannel->remoteId;
+                buffer[1].integer = NET_ACK;
+                break;
+            case CHANNELTYPE_ICACHE:
+            {
+                // create an irradiancecache channel
+                CIrradianceCache *cache = (CIrradianceCache *)getCache(channelName, "w", CRenderer::fromWorld, CRenderer::toWorld);
+                rChannel = new CRemoteICacheChannel(cache);
+                rChannel->remoteId = remoteChannels->numItems;
+                buffer[0].integer = rChannel->remoteId;
+                buffer[1].integer = NET_ACK;
+                break;
+            }
+            case CHANNELTYPE_PTCLOUD:
+            {
+                // create an pointcloud channel.
+                // Note: the channel definitions are duff
+                CPointCloud *cloud = (CPointCloud *)getTexture3d(channelName, TRUE, NULL, CRenderer::fromWorld, CRenderer::toWorld);
+                rChannel = new CRemotePtCloudChannel(cloud);
+                rChannel->remoteId = remoteChannels->numItems;
+                buffer[0].integer = rChannel->remoteId;
+                buffer[1].integer = NET_ACK;
+                break;
+            }
+            case CHANNELTYPE_INVALID:
+            default:
+                // unknown type!
+                buffer[0].integer = -1;
+                buffer[1].integer = NET_NACK;
+                rcSend(s, buffer, 2 * sizeof(T32));
+                error(CODE_BUG, "Invalid remote channel type requested\n");
+                return FALSE;
         }
 
         // Send the accept
@@ -217,7 +222,8 @@ int CRenderer::processChannelRequest(int, SOCKET s) {
         if (buffer[0].integer == NET_ACK) {
             remoteChannels->push(rChannel);
             declaredRemoteChannels->insert(rChannel->name, rChannel);
-        } else {
+        }
+        else {
             error(CODE_BUG, "Remote channel initialization failed\n");
             delete rChannel;
             return FALSE;
@@ -258,7 +264,8 @@ void CRenderer::sendBucketDataChannels(int x, int y) {
                     delete channels[i];
                     channels[i] = NULL;
                 }
-            } else {
+            }
+            else {
                 error(CODE_BUG, "Client refused update for remote channel\n");
 
                 CRemoteChannel *val;
@@ -302,12 +309,14 @@ void CRenderer::recvBucketDataChannels(SOCKET s, int x, int y) {
                 if (channels[remoteId]->recvRemoteBucket(s, x, y) == FALSE) {
                     error(CODE_BUG, "Remote channel communication error\n");
                 }
-            } else {
+            }
+            else {
                 error(CODE_BUG, "Update received for unknown remote channel\n");
                 buffer[0].integer = NET_NACK;
                 rcSend(s, buffer, 1 * sizeof(T32));
             }
-        } else {
+        }
+        else {
             // No pending updates - we are done
             break;
         }
@@ -347,7 +356,8 @@ void CRenderer::sendFrameDataChannels() {
                     delete channels[i];
                     channels[i] = NULL;
                 }
-            } else {
+            }
+            else {
                 error(CODE_BUG, "Client refused update for remote channel\n");
 
                 CRemoteChannel *val;
@@ -391,12 +401,14 @@ void CRenderer::recvFrameDataChannels(SOCKET s) {
                 if (channels[remoteId]->recvRemoteFrame(s) == FALSE) {
                     error(CODE_BUG, "Remote channel communication error\n");
                 }
-            } else {
+            }
+            else {
                 error(CODE_BUG, "Update received for unknown remote channel\n");
                 buffer[0].integer = NET_NACK;
                 rcSend(s, buffer, 1 * sizeof(T32));
             }
-        } else {
+        }
+        else {
             // No pending updates - we are done
             break;
         }
@@ -438,7 +450,8 @@ int CRemoteTSMChannel::sendRemoteBucket(SOCKET s, int, int) {
     char buf[NETWORK_BUFFER_LENGTH];
     while (sz > 0) {
         int nn = (int)((sz > (NETWORK_BUFFER_LENGTH)) ? (NETWORK_BUFFER_LENGTH) : sz);
-        if (fread(buf, nn, 1, tsmFile) != 1) { /* read error */ }
+        if (fread(buf, nn, 1, tsmFile) != 1) { /* read error */
+        }
         rcSend(s, buf, nn, FALSE);
         sz -= nn;
     }
@@ -587,7 +600,8 @@ int CRemoteICacheChannel::recvRemoteFrame(SOCKET s) {
                     for (i = 0; i < 3; i++) {
                         if (P[i] > cNode->center[i]) {
                             nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
-                        } else {
+                        }
+                        else {
                             nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
                         }
                     }

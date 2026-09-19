@@ -18,10 +18,10 @@
 #include <sstream>
 
 #include "includes/logging.hpp"
-#include "ri/state/options.h"
+#include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
-#include "ri/parse/ri.h"
+#include "ri/state/options.h"
 
 // ---------------------------------------------------------------------------
 // Minimal test harness
@@ -30,17 +30,19 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
-        g_failed++; \
-    } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            g_passed++;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            g_failed++;                                                        \
+        }                                                                      \
+    } while (0)
 
 #define EXPECT_EQ(a, b) EXPECT_TRUE((a) == (b))
-#define EXPECT_NULL(p)  EXPECT_TRUE((p) == nullptr)
+#define EXPECT_NULL(p) EXPECT_TRUE((p) == nullptr)
 #define EXPECT_NONNULL(p) EXPECT_TRUE((p) != nullptr)
 
 // ---------------------------------------------------------------------------

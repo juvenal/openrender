@@ -23,13 +23,15 @@
 class CShaderInstance;
 
 class CImagerExecutor {
-  public:
-    // Execute the imager shader over one pixel tile.
-    // pixels: flat buffer, sampleStride floats per pixel.
-    // Base layout: [Ci.r, Ci.g, Ci.b, alpha, Z, ...AOV...]
-    void execute(CShaderInstance &shader,
-                 int left, int top,
-                 int width, int height,
-                 float *pixels,
-                 int sampleStride) noexcept;
+    public:
+        // Execute the imager shader over one pixel tile.
+        // pixels: flat buffer, sampleStride floats per pixel.
+        // Base layout: [Ci.r, Ci.g, Ci.b, alpha, Z, ...AOV...]
+        void execute(CShaderInstance &shader,
+                     int left,
+                     int top,
+                     int width,
+                     int height,
+                     float *pixels,
+                     int sampleStride) noexcept;
 };

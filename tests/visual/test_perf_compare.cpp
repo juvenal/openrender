@@ -45,39 +45,42 @@ static double median(std::vector<double> v) {
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr,
-            "Usage: %s <orender> <rib_rslo> <rib_slo> [max_ratio=0.90] [runs=3]\n",
-            argv[0]);
+                "Usage: %s <orender> <rib_rslo> <rib_slo> [max_ratio=0.90] [runs=3]\n",
+                argv[0]);
         return 1;
     }
 
     const char *orenderPath = argv[1];
-    const char *ribRslo     = argv[2];
-    const char *ribSlo      = argv[3];
-    const double maxRatio   = (argc >= 5) ? atof(argv[4]) : 0.90;
-    const int    runs       = (argc >= 6) ? atoi(argv[5]) : 3;
+    const char *ribRslo = argv[2];
+    const char *ribSlo = argv[3];
+    const double maxRatio = (argc >= 5) ? atof(argv[4]) : 0.90;
+    const int runs = (argc >= 6) ? atoi(argv[5]) : 3;
 
     std::vector<double> rsloTimes, sloTimes;
     for (int i = 0; i < runs; ++i) {
         double t = renderOnceSeconds(orenderPath, ribRslo);
-        if (t < 0) return 1;
+        if (t < 0)
+            return 1;
         rsloTimes.push_back(t);
     }
     for (int i = 0; i < runs; ++i) {
         double t = renderOnceSeconds(orenderPath, ribSlo);
-        if (t < 0) return 1;
+        if (t < 0)
+            return 1;
         sloTimes.push_back(t);
     }
 
     double rsloMedian = median(rsloTimes);
-    double sloMedian  = median(sloTimes);
-    double ratio      = (rsloMedian > 0.0) ? (sloMedian / rsloMedian) : 0.0;
+    double sloMedian = median(sloTimes);
+    double ratio = (rsloMedian > 0.0) ? (sloMedian / rsloMedian) : 0.0;
 
     printf("  rslo median: %.4fs  slo median: %.4fs  ratio: %.3f  (max allowed: %.3f)\n",
            rsloMedian, sloMedian, ratio, maxRatio);
 
     if (rsloMedian < 0.05) {
         printf("  NOTE: rslo median render time is very small (%.4fs) -- process-startup "
-               "overhead may dominate; treat this result as a weak signal only.\n", rsloMedian);
+               "overhead may dominate; treat this result as a weak signal only.\n",
+               rsloMedian);
     }
 
     if (ratio > maxRatio) {

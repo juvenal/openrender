@@ -32,8 +32,8 @@
 #define OSHADER_IR_H
 
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 // -------------------------------------------------------------------------
 // IRVarInfo — type and container information for one shader variable.
@@ -42,23 +42,23 @@
 // coupling the IR to the compiler's live object graph.
 // -------------------------------------------------------------------------
 struct IRVarInfo {
-    std::string cName;        // unique code name (e.g. "temporary_0")
-    std::string symbolName;   // RSL source name (e.g. "Ks")
-    int         slcType;      // SLC_xxx bit flags from rslo.h (type + qualifiers)
-    int         numItems;     // 1 for scalars; >1 for arrays
-    std::string defaultValue; // parameter default, or "" if none
+        std::string cName;        // unique code name (e.g. "temporary_0")
+        std::string symbolName;   // RSL source name (e.g. "Ks")
+        int slcType;              // SLC_xxx bit flags from rslo.h (type + qualifiers)
+        int numItems;             // 1 for scalars; >1 for arrays
+        std::string defaultValue; // parameter default, or "" if none
 
-    // Convenience predicates
-    bool isUniform()   const;
-    bool isVarying()   const;
-    bool isParameter() const;
-    bool isGlobal()    const;
-    bool isOutput()    const;
-    bool isArray()     const;
-    bool isFloat()     const;
-    bool isVector()    const;
-    bool isMatrix()    const;
-    bool isString()    const;
+        // Convenience predicates
+        bool isUniform() const;
+        bool isVarying() const;
+        bool isParameter() const;
+        bool isGlobal() const;
+        bool isOutput() const;
+        bool isArray() const;
+        bool isFloat() const;
+        bool isVector() const;
+        bool isMatrix() const;
+        bool isString() const;
 };
 
 // -------------------------------------------------------------------------
@@ -68,11 +68,11 @@ struct IRVarInfo {
 // (number, quoted string, "#!LabelN", etc.).
 // -------------------------------------------------------------------------
 struct IROperand {
-    std::string token; // raw token as it appears in the .rslo stream
+        std::string token; // raw token as it appears in the .rslo stream
 
-    bool isLabel()   const { return !token.empty() && token[0] == '#'; }
-    bool isQuoted()  const { return !token.empty() && token[0] == '"'; }
-    bool isLiteral() const; // true if the token parses as a number
+        bool isLabel() const { return !token.empty() && token[0] == '#'; }
+        bool isQuoted() const { return !token.empty() && token[0] == '"'; }
+        bool isLiteral() const; // true if the token parses as a number
 };
 
 // -------------------------------------------------------------------------
@@ -88,12 +88,12 @@ struct IROperand {
 // forbegin) it is empty.
 // -------------------------------------------------------------------------
 struct IRInstr {
-    std::string              opcode;    // opcode token
-    std::string              proto;     // type signature e.g. "v=v", or ""
-    std::string              result;    // destination variable name, or ""
-    std::vector<IROperand>   operands;  // remaining operand tokens
+        std::string opcode;              // opcode token
+        std::string proto;               // type signature e.g. "v=v", or ""
+        std::string result;              // destination variable name, or ""
+        std::vector<IROperand> operands; // remaining operand tokens
 
-    bool hasResult() const { return !result.empty(); }
+        bool hasResult() const { return !result.empty(); }
 };
 
 // -------------------------------------------------------------------------
@@ -103,25 +103,25 @@ struct IRInstr {
 // at the first branch/return or at the start of the next block.
 // -------------------------------------------------------------------------
 struct IRBlock {
-    std::string          label;   // "#!LabelN" or "" for the entry block
-    std::vector<IRInstr> instrs;
+        std::string label; // "#!LabelN" or "" for the entry block
+        std::vector<IRInstr> instrs;
 };
 
 // -------------------------------------------------------------------------
 // IRFunction — one shader function (init section or code section).
 // -------------------------------------------------------------------------
 struct IRFunction {
-    std::string           name;     // "Init" or "Code"
-    std::vector<IRBlock>  blocks;   // basic blocks in order
+        std::string name;            // "Init" or "Code"
+        std::vector<IRBlock> blocks; // basic blocks in order
 
-    // Convenience: append an instruction to the last block.
-    void append(const IRInstr &instr);
+        // Convenience: append an instruction to the last block.
+        void append(const IRInstr &instr);
 
-    // Convenience: start a new labelled block.
-    void beginBlock(const std::string &label);
+        // Convenience: start a new labelled block.
+        void beginBlock(const std::string &label);
 
-    // Iteration helpers.
-    IRBlock &entryBlock() { return blocks.front(); }
+        // Iteration helpers.
+        IRBlock &entryBlock() { return blocks.front(); }
 };
 
 // -------------------------------------------------------------------------
@@ -131,24 +131,24 @@ struct IRFunction {
 // The variable table is shared across both functions.
 // -------------------------------------------------------------------------
 struct IRModule {
-    std::string shaderType;   // "surface", "light", "displacement", etc.
-    std::string version;      // e.g. "1.0.0"
+        std::string shaderType; // "surface", "light", "displacement", etc.
+        std::string version;    // e.g. "1.0.0"
 
-    // Variable table: ordered list (preserves original declaration order).
-    std::vector<IRVarInfo>   vars;
+        // Variable table: ordered list (preserves original declaration order).
+        std::vector<IRVarInfo> vars;
 
-    // Fast name lookup (name → index into vars).
-    std::unordered_map<std::string, int> varIndex;
+        // Fast name lookup (name → index into vars).
+        std::unordered_map<std::string, int> varIndex;
 
-    IRFunction initFn;  // #!Init: section
-    IRFunction codeFn;  // #!Code: section
+        IRFunction initFn; // #!Init: section
+        IRFunction codeFn; // #!Code: section
 
-    // Add a variable to the table; returns its index.
-    int addVar(const IRVarInfo &v);
+        // Add a variable to the table; returns its index.
+        int addVar(const IRVarInfo &v);
 
-    // Look up a variable by cName; returns nullptr if not found.
-    const IRVarInfo *findVar(const std::string &name) const;
-    IRVarInfo       *findVar(const std::string &name);
+        // Look up a variable by cName; returns nullptr if not found.
+        const IRVarInfo *findVar(const std::string &name) const;
+        IRVarInfo *findVar(const std::string &name);
 };
 
 #endif // OSHADER_IR_H

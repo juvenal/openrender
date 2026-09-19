@@ -38,7 +38,6 @@
 #include "stats.h"
 #include "surface.h"
 
-
 ///////////////////////////////////////////////////////////////////////
 // Function				:	minCocPixels
 // Description			:	return the minimum circle of confusion
@@ -49,7 +48,8 @@ static inline float minCocPixels(float z1, float z2) {
     float coc2 = cocPixels(z2);
     if (coc2 < coc1) {
         return coc2;
-    } else {
+    }
+    else {
         return coc1;
     }
 }
@@ -114,7 +114,8 @@ static inline int cull(float *bmin, float *bmax, const float *P, const float *N,
                 N += 3;
                 P += 3;
             }
-        } else {
+        }
+        else {
             for (i = k; i > 0; i--) {
                 if (N[COMP_Z] < 0)
                     break;
@@ -367,7 +368,8 @@ void CPatch::dice(CReyes *r) {
             float yDiff = bmax[COMP_Y] - bmin[COMP_Y];
             if (yDiff > xDiff) {
                 maxBound = yDiff;
-            } else {
+            }
+            else {
                 maxBound = xDiff;
             }
             float zDiff = bmax[COMP_Z] - bmin[COMP_Z];
@@ -406,7 +408,8 @@ void CPatch::dice(CReyes *r) {
                     float cocRate = 0.5f * coc;
                     if (1 > cocRate) {
                         maxRate = 1;
-                    } else {
+                    }
+                    else {
                         maxRate = cocRate;
                     }
                     shadingRate *= maxRate;
@@ -435,8 +438,8 @@ void CPatch::dice(CReyes *r) {
 
                 // Estimate the grid size
                 estimateDicing(varying[VARIABLE_P], numUprobes - 1, numVprobes - 1, udiv, vdiv, shadingRate, nonrasterorient);
-
-            } else {
+            }
+            else {
 
                 // Are we making too many splits ?
                 if (depth >= CRenderer::maxEyeSplits) {
@@ -479,21 +482,25 @@ void CPatch::dice(CReyes *r) {
 
         // Finally record the surface with the rasterizer
         r->drawObject(this);
-
-    } else {
+    }
+    else {
         if (udiv == 0) {
             // We're spanning the eye plane
             splitToChildren(r, 2);
-        } else if (((udiv + 1) * (vdiv + 1)) > CRenderer::maxGridSize) {
+        }
+        else if (((udiv + 1) * (vdiv + 1)) > CRenderer::maxGridSize) {
             // We're too big, split the surface further
             if (udiv == vdiv) {
                 splitToChildren(r, 2);
-            } else if (udiv > vdiv) {
+            }
+            else if (udiv > vdiv) {
                 splitToChildren(r, 0);
-            } else {
+            }
+            else {
                 splitToChildren(r, 1);
             }
-        } else {
+        }
+        else {
             // We're small enough, just dispatch the grid
             r->drawGrid(object, udiv, vdiv, umin, umax, vmin, vmax);
         }
@@ -511,75 +518,75 @@ void CPatch::splitToChildren(CReyes *r, int dir) {
     float umid, vmid;
 
     switch (dir) {
-    case 0:
-        if (umax <= umin)
+        case 0:
+            if (umax <= umin)
+                break;
+
+            // Split along one direction
+            umid = (umin + umax) * 0.5f;
+            p1 = new CPatch(attributes, xform, object, umin, umid, vmin, vmax, depth + 1, minDepth);
+            p2 = new CPatch(attributes, xform, object, umid, umax, vmin, vmax, depth + 1, minDepth);
+            p1->attach();
+            p2->attach();
+
+            p1->dice(r);
+            p2->dice(r);
+
+            p1->detach();
+            p2->detach();
+            stats.numSplits++;
+            stats.numUsplits++;
             break;
+        case 1:
+            if (vmax <= vmin)
+                break;
 
-        // Split along one direction
-        umid = (umin + umax) * 0.5f;
-        p1 = new CPatch(attributes, xform, object, umin, umid, vmin, vmax, depth + 1, minDepth);
-        p2 = new CPatch(attributes, xform, object, umid, umax, vmin, vmax, depth + 1, minDepth);
-        p1->attach();
-        p2->attach();
+            // Split along one direction
+            vmid = (vmin + vmax) * 0.5f;
+            p1 = new CPatch(attributes, xform, object, umin, umax, vmin, vmid, depth + 1, minDepth);
+            p2 = new CPatch(attributes, xform, object, umin, umax, vmid, vmax, depth + 1, minDepth);
+            p1->attach();
+            p2->attach();
 
-        p1->dice(r);
-        p2->dice(r);
+            p1->dice(r);
+            p2->dice(r);
 
-        p1->detach();
-        p2->detach();
-        stats.numSplits++;
-        stats.numUsplits++;
-        break;
-    case 1:
-        if (vmax <= vmin)
+            p1->detach();
+            p2->detach();
+            stats.numSplits++;
+            stats.numVsplits++;
             break;
+        case 2:
+            if (vmax <= vmin)
+                break;
+            if (umax <= umin)
+                break;
 
-        // Split along one direction
-        vmid = (vmin + vmax) * 0.5f;
-        p1 = new CPatch(attributes, xform, object, umin, umax, vmin, vmid, depth + 1, minDepth);
-        p2 = new CPatch(attributes, xform, object, umin, umax, vmid, vmax, depth + 1, minDepth);
-        p1->attach();
-        p2->attach();
+            // Split along one direction
+            vmid = (vmin + vmax) * 0.5f;
+            umid = (umin + umax) * 0.5f;
+            p1 = new CPatch(attributes, xform, object, umin, umid, vmin, vmid, depth + 1, minDepth);
+            p2 = new CPatch(attributes, xform, object, umid, umax, vmin, vmid, depth + 1, minDepth);
+            p3 = new CPatch(attributes, xform, object, umin, umid, vmid, vmax, depth + 1, minDepth);
+            p4 = new CPatch(attributes, xform, object, umid, umax, vmid, vmax, depth + 1, minDepth);
+            p1->attach();
+            p2->attach();
+            p3->attach();
+            p4->attach();
 
-        p1->dice(r);
-        p2->dice(r);
+            p1->dice(r);
+            p2->dice(r);
+            p3->dice(r);
+            p4->dice(r);
 
-        p1->detach();
-        p2->detach();
-        stats.numSplits++;
-        stats.numVsplits++;
-        break;
-    case 2:
-        if (vmax <= vmin)
+            p1->detach();
+            p2->detach();
+            p3->detach();
+            p4->detach();
+            stats.numSplits++;
+            stats.numUVsplits++;
+
             break;
-        if (umax <= umin)
-            break;
-
-        // Split along one direction
-        vmid = (vmin + vmax) * 0.5f;
-        umid = (umin + umax) * 0.5f;
-        p1 = new CPatch(attributes, xform, object, umin, umid, vmin, vmid, depth + 1, minDepth);
-        p2 = new CPatch(attributes, xform, object, umid, umax, vmin, vmid, depth + 1, minDepth);
-        p3 = new CPatch(attributes, xform, object, umin, umid, vmid, vmax, depth + 1, minDepth);
-        p4 = new CPatch(attributes, xform, object, umid, umax, vmid, vmax, depth + 1, minDepth);
-        p1->attach();
-        p2->attach();
-        p3->attach();
-        p4->attach();
-
-        p1->dice(r);
-        p2->dice(r);
-        p3->dice(r);
-        p4->dice(r);
-
-        p1->detach();
-        p2->detach();
-        p3->detach();
-        p4->detach();
-        stats.numSplits++;
-        stats.numUVsplits++;
-
-        break;
     }
 }
 
@@ -708,7 +715,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
         if (importance >= 0) {
             if (cRay->jimp > importance)
                 return;
-        } else {
+        }
+        else {
             if ((1 - cRay->jimp) >= -importance)
                 return;
         }
@@ -793,7 +801,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
             if (tesselationUsedMemory[level][thread] > tesselationMaxMemory[level]) {
                 purgeTesselations(context, this, thread, level, FALSE);
             }
-        } else {
+        }
+        else {
             /// FIXME make these context stats
             // Update stats
             atomicIncrement(stats.tesselationCacheHits);
@@ -844,8 +853,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
             else                                                                                                      \
                 t = (float)((P[COMP_Z] - r[COMP_Z]) * iq[COMP_Z]);                                                    \
                                                                                                                       \
-            if ((t > cRay->tmin) && (t < cRay->t) &&                                                                 \
-                (!objectHasTrim || object->trimAccepts(umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg))) { \
+            if ((t > cRay->tmin) && (t < cRay->t) &&                                                                  \
+                (!objectHasTrim || object->trimAccepts(umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg))) {  \
                 vector dPdu, dPdv, N;                                                                                 \
                 vector tmp1, tmp2;                                                                                    \
                 subvv(tmp1, P10, P00);                                                                                \
@@ -864,7 +873,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                     cRay->t = (float)t;                                                                               \
                     movvv(cRay->N, N);                                                                                \
                     debugHit();                                                                                       \
-                } else {                                                                                              \
+                }                                                                                                     \
+                else {                                                                                                \
                     if (dotvv(q, N) < 0) {                                                                            \
                         cRay->object = object;                                                                        \
                         cRay->u = umin + ((float)u + i) * urg;                                                        \
@@ -914,89 +924,90 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
     double roots[2];                                                                                                    \
     double u, v, t;                                                                                                     \
     switch (solveQuadric<double>(A2 * C1 - A1 * C2, A2 * D1 - A1 * D2 + B2 * C1 - B1 * C2, B2 * D1 - B1 * D2, roots)) { \
-    case 0:                                                                                                             \
-        break;                                                                                                          \
-    case 1:                                                                                                             \
-        v = roots[0];                                                                                                   \
-        solve();                                                                                                        \
-        break;                                                                                                          \
-    case 2:                                                                                                             \
-        v = roots[0];                                                                                                   \
-        solve();                                                                                                        \
-        v = roots[1];                                                                                                   \
-        solve();                                                                                                        \
-        break;                                                                                                          \
+        case 0:                                                                                                         \
+            break;                                                                                                      \
+        case 1:                                                                                                         \
+            v = roots[0];                                                                                               \
+            solve();                                                                                                    \
+            break;                                                                                                      \
+        case 2:                                                                                                         \
+            v = roots[0];                                                                                               \
+            solve();                                                                                                    \
+            v = roots[1];                                                                                               \
+            solve();                                                                                                    \
+            break;                                                                                                      \
     }
 
-#define intersectQuadsFlat()                                                                                                                                                                                                                                                                                                                                                                                                                          \
-    vector NN, tmp1, tmp2;                                                                                                                                                                                                                                                                                                                                                                                                                            \
-    subvv(tmp1, P01, P00);                                                                                                                                                                                                                                                                                                                                                                                                                            \
-    subvv(tmp2, P10, P00);                                                                                                                                                                                                                                                                                                                                                                                                                            \
-    crossvv(NN, tmp2, tmp1);                                                                                                                                                                                                                                                                                                                                                                                                                          \
-    float th = dotvv(q, NN);                                                                                                                                                                                                                                                                                                                                                                                                                          \
-    if (th != 0) {                                                                                                                                                                                                                                                                                                                                                                                                                                    \
-        const float d = dotvv(NN, P00);                                                                                                                                                                                                                                                                                                                                                                                                               \
-        const float ha = th = dotvv(q, NN);                                                                                                                                                                                                                                                                                                                                                                                                           \
-        th = (d - dotvv(r, NN)) / th;                                                                                                                                                                                                                                                                                                                                                                                                                 \
-        if ((th > cRay->tmin) && (th < cRay->t)) {                                                                                                                                                                                                                                                                                                                                                                                                    \
-            float atop, aright, abottom, aleft;                                                                                                                                                                                                                                                                                                                                                                                                       \
-            int hit = FALSE;                                                                                                                                                                                                                                                                                                                                                                                                                          \
-            vector hp;                                                                                                                                                                                                                                                                                                                                                                                                                                \
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
-            mulvf(hp, q, th);                                                                                                                                                                                                                                                                                                                                                                                                                         \
-            addvv(hp, r);                                                                                                                                                                                                                                                                                                                                                                                                                             \
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
-            int majorAxis = COMP_X;                                                                                                                                                                                                                                                                                                                                                                                                                   \
-            if (fabs(NN[COMP_Y]) > fabs(NN[COMP_X]))                                                                                                                                                                                                                                                                                                                                                                                                  \
-                majorAxis = COMP_Y;                                                                                                                                                                                                                                                                                                                                                                                                                   \
-            if (fabs(NN[COMP_Z]) > fabs(NN[majorAxis]))                                                                                                                                                                                                                                                                                                                                                                                               \
-                majorAxis = COMP_Z;                                                                                                                                                                                                                                                                                                                                                                                                                   \
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
-            switch (majorAxis) {                                                                                                                                                                                                                                                                                                                                                                                                                      \
-            case COMP_X:                                                                                                                                                                                                                                                                                                                                                                                                                              \
-                if ((NN[COMP_X] < 0.0f))                                                                                                                                                                                                                                                                                                                                                                                                              \
-                    hit = ((atop = area(hp[COMP_Y], hp[COMP_Z], P00[COMP_Y], P00[COMP_Z], P10[COMP_Y], P10[COMP_Z])) < 0.0f) && ((aright = area(hp[COMP_Y], hp[COMP_Z], P10[COMP_Y], P10[COMP_Z], P11[COMP_Y], P11[COMP_Z])) < 0.0f) && ((abottom = area(hp[COMP_Y], hp[COMP_Z], P11[COMP_Y], P11[COMP_Z], P01[COMP_Y], P01[COMP_Z])) < 0.0f) && ((aleft = area(hp[COMP_Y], hp[COMP_Z], P01[COMP_Y], P01[COMP_Z], P00[COMP_Y], P00[COMP_Z])) < 0.0f); \
-                else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-                    hit = ((atop = area(hp[COMP_Y], hp[COMP_Z], P00[COMP_Y], P00[COMP_Z], P10[COMP_Y], P10[COMP_Z])) > 0.0f) && ((aright = area(hp[COMP_Y], hp[COMP_Z], P10[COMP_Y], P10[COMP_Z], P11[COMP_Y], P11[COMP_Z])) > 0.0f) && ((abottom = area(hp[COMP_Y], hp[COMP_Z], P11[COMP_Y], P11[COMP_Z], P01[COMP_Y], P01[COMP_Z])) > 0.0f) && ((aleft = area(hp[COMP_Y], hp[COMP_Z], P01[COMP_Y], P01[COMP_Z], P00[COMP_Y], P00[COMP_Z])) > 0.0f); \
-                break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
-            case COMP_Y:                                                                                                                                                                                                                                                                                                                                                                                                                              \
-                if (NN[COMP_Y] < 0.0f)                                                                                                                                                                                                                                                                                                                                                                                                                \
-                    hit = ((atop = area(hp[COMP_Z], hp[COMP_X], P00[COMP_Z], P00[COMP_X], P10[COMP_Z], P10[COMP_X])) < 0.0f) && ((aright = area(hp[COMP_Z], hp[COMP_X], P10[COMP_Z], P10[COMP_X], P11[COMP_Z], P11[COMP_X])) < 0.0f) && ((abottom = area(hp[COMP_Z], hp[COMP_X], P11[COMP_Z], P11[COMP_X], P01[COMP_Z], P01[COMP_X])) < 0.0f) && ((aleft = area(hp[COMP_Z], hp[COMP_X], P01[COMP_Z], P01[COMP_X], P00[COMP_Z], P00[COMP_X])) < 0.0f); \
-                else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-                    hit = ((atop = area(hp[COMP_Z], hp[COMP_X], P00[COMP_Z], P00[COMP_X], P10[COMP_Z], P10[COMP_X])) > 0.0f) && ((aright = area(hp[COMP_Z], hp[COMP_X], P10[COMP_Z], P10[COMP_X], P11[COMP_Z], P11[COMP_X])) > 0.0f) && ((abottom = area(hp[COMP_Z], hp[COMP_X], P11[COMP_Z], P11[COMP_X], P01[COMP_Z], P01[COMP_X])) > 0.0f) && ((aleft = area(hp[COMP_Z], hp[COMP_X], P01[COMP_Z], P01[COMP_X], P00[COMP_Z], P00[COMP_X])) > 0.0f); \
-                break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
-            case COMP_Z:                                                                                                                                                                                                                                                                                                                                                                                                                              \
-                if (NN[COMP_Z] < 0.0f)                                                                                                                                                                                                                                                                                                                                                                                                                \
-                    hit = ((atop = area(hp[COMP_X], hp[COMP_Y], P00[COMP_X], P00[COMP_Y], P10[COMP_X], P10[COMP_Y])) < 0.0f) && ((aright = area(hp[COMP_X], hp[COMP_Y], P10[COMP_X], P10[COMP_Y], P11[COMP_X], P11[COMP_Y])) < 0.0f) && ((abottom = area(hp[COMP_X], hp[COMP_Y], P11[COMP_X], P11[COMP_Y], P01[COMP_X], P01[COMP_Y])) < 0.0f) && ((aleft = area(hp[COMP_X], hp[COMP_Y], P01[COMP_X], P01[COMP_Y], P00[COMP_X], P00[COMP_Y])) < 0.0f); \
-                else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-                    hit = ((atop = area(hp[COMP_X], hp[COMP_Y], P00[COMP_X], P00[COMP_Y], P10[COMP_X], P10[COMP_Y])) > 0.0f) && ((aright = area(hp[COMP_X], hp[COMP_Y], P10[COMP_X], P10[COMP_Y], P11[COMP_X], P11[COMP_Y])) > 0.0f) && ((abottom = area(hp[COMP_X], hp[COMP_Y], P11[COMP_X], P11[COMP_Y], P01[COMP_X], P01[COMP_Y])) > 0.0f) && ((aleft = area(hp[COMP_X], hp[COMP_Y], P01[COMP_X], P01[COMP_Y], P00[COMP_X], P00[COMP_Y])) > 0.0f); \
-                break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
-            }                                                                                                                                                                                                                                                                                                                                                                                                                                         \
-            if (hit) {                                                                                                                                                                                                                                                                                                                                                                                                                                \
-                const float u = aleft / (aleft + aright);                                                                                                                                                                                                                                                                                                                                                                                             \
-                const float v = atop / (atop + abottom);                                                                                                                                                                                                                                                                                                                                                                                              \
-                if ((u > 0.0f) && (u < 1.0f) && (v > 0.0f) && (v < 1.0f)) {                                                                                                                                                                                                                                                                                                                                                                           \
-                    t = th;                                                                                                                                                                                                                                                                                                                                                                                                                           \
-                    if ((attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ^ xform->flip)                                                                                                                                                                                                                                                                                                                                                                  \
-                        mulvf(NN, -1);                                                                                                                                                                                                                                                                                                                                                                                                                \
-                    if (attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED) {                                                                                                                                                                                                                                                                                                                                                                          \
-                        cRay->object = object;                                                                                                                                                                                                                                                                                                                                                                                                        \
-                        cRay->u = umin + ((float)u + i) * urg;                                                                                                                                                                                                                                                                                                                                                                                        \
-                        cRay->v = vmin + ((float)v + j) * vrg;                                                                                                                                                                                                                                                                                                                                                                                        \
-                        cRay->t = (float)t;                                                                                                                                                                                                                                                                                                                                                                                                           \
-                        movvv(cRay->N, NN);                                                                                                                                                                                                                                                                                                                                                                                                           \
-                    } else {                                                                                                                                                                                                                                                                                                                                                                                                                          \
-                        if (dotvv(q, NN) < 0.0f) {                                                                                                                                                                                                                                                                                                                                                                                                    \
-                            cRay->object = object;                                                                                                                                                                                                                                                                                                                                                                                                    \
-                            cRay->u = umin + ((float)u + i) * urg;                                                                                                                                                                                                                                                                                                                                                                                    \
-                            cRay->v = vmin + ((float)v + j) * vrg;                                                                                                                                                                                                                                                                                                                                                                                    \
-                            cRay->t = (float)t;                                                                                                                                                                                                                                                                                                                                                                                                       \
-                            movvv(cRay->N, NN);                                                                                                                                                                                                                                                                                                                                                                                                       \
-                        }                                                                                                                                                                                                                                                                                                                                                                                                                             \
-                    }                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-                }                                                                                                                                                                                                                                                                                                                                                                                                                                     \
-            }                                                                                                                                                                                                                                                                                                                                                                                                                                         \
-        }                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+#define intersectQuadsFlat()                                                                                                                                                                                                                                                                                                                                                                                                                              \
+    vector NN, tmp1, tmp2;                                                                                                                                                                                                                                                                                                                                                                                                                                \
+    subvv(tmp1, P01, P00);                                                                                                                                                                                                                                                                                                                                                                                                                                \
+    subvv(tmp2, P10, P00);                                                                                                                                                                                                                                                                                                                                                                                                                                \
+    crossvv(NN, tmp2, tmp1);                                                                                                                                                                                                                                                                                                                                                                                                                              \
+    float th = dotvv(q, NN);                                                                                                                                                                                                                                                                                                                                                                                                                              \
+    if (th != 0) {                                                                                                                                                                                                                                                                                                                                                                                                                                        \
+        const float d = dotvv(NN, P00);                                                                                                                                                                                                                                                                                                                                                                                                                   \
+        const float ha = th = dotvv(q, NN);                                                                                                                                                                                                                                                                                                                                                                                                               \
+        th = (d - dotvv(r, NN)) / th;                                                                                                                                                                                                                                                                                                                                                                                                                     \
+        if ((th > cRay->tmin) && (th < cRay->t)) {                                                                                                                                                                                                                                                                                                                                                                                                        \
+            float atop, aright, abottom, aleft;                                                                                                                                                                                                                                                                                                                                                                                                           \
+            int hit = FALSE;                                                                                                                                                                                                                                                                                                                                                                                                                              \
+            vector hp;                                                                                                                                                                                                                                                                                                                                                                                                                                    \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+            mulvf(hp, q, th);                                                                                                                                                                                                                                                                                                                                                                                                                             \
+            addvv(hp, r);                                                                                                                                                                                                                                                                                                                                                                                                                                 \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+            int majorAxis = COMP_X;                                                                                                                                                                                                                                                                                                                                                                                                                       \
+            if (fabs(NN[COMP_Y]) > fabs(NN[COMP_X]))                                                                                                                                                                                                                                                                                                                                                                                                      \
+                majorAxis = COMP_Y;                                                                                                                                                                                                                                                                                                                                                                                                                       \
+            if (fabs(NN[COMP_Z]) > fabs(NN[majorAxis]))                                                                                                                                                                                                                                                                                                                                                                                                   \
+                majorAxis = COMP_Z;                                                                                                                                                                                                                                                                                                                                                                                                                       \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+            switch (majorAxis) {                                                                                                                                                                                                                                                                                                                                                                                                                          \
+                case COMP_X:                                                                                                                                                                                                                                                                                                                                                                                                                              \
+                    if ((NN[COMP_X] < 0.0f))                                                                                                                                                                                                                                                                                                                                                                                                              \
+                        hit = ((atop = area(hp[COMP_Y], hp[COMP_Z], P00[COMP_Y], P00[COMP_Z], P10[COMP_Y], P10[COMP_Z])) < 0.0f) && ((aright = area(hp[COMP_Y], hp[COMP_Z], P10[COMP_Y], P10[COMP_Z], P11[COMP_Y], P11[COMP_Z])) < 0.0f) && ((abottom = area(hp[COMP_Y], hp[COMP_Z], P11[COMP_Y], P11[COMP_Z], P01[COMP_Y], P01[COMP_Z])) < 0.0f) && ((aleft = area(hp[COMP_Y], hp[COMP_Z], P01[COMP_Y], P01[COMP_Z], P00[COMP_Y], P00[COMP_Z])) < 0.0f); \
+                    else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+                        hit = ((atop = area(hp[COMP_Y], hp[COMP_Z], P00[COMP_Y], P00[COMP_Z], P10[COMP_Y], P10[COMP_Z])) > 0.0f) && ((aright = area(hp[COMP_Y], hp[COMP_Z], P10[COMP_Y], P10[COMP_Z], P11[COMP_Y], P11[COMP_Z])) > 0.0f) && ((abottom = area(hp[COMP_Y], hp[COMP_Z], P11[COMP_Y], P11[COMP_Z], P01[COMP_Y], P01[COMP_Z])) > 0.0f) && ((aleft = area(hp[COMP_Y], hp[COMP_Z], P01[COMP_Y], P01[COMP_Z], P00[COMP_Y], P00[COMP_Z])) > 0.0f); \
+                    break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
+                case COMP_Y:                                                                                                                                                                                                                                                                                                                                                                                                                              \
+                    if (NN[COMP_Y] < 0.0f)                                                                                                                                                                                                                                                                                                                                                                                                                \
+                        hit = ((atop = area(hp[COMP_Z], hp[COMP_X], P00[COMP_Z], P00[COMP_X], P10[COMP_Z], P10[COMP_X])) < 0.0f) && ((aright = area(hp[COMP_Z], hp[COMP_X], P10[COMP_Z], P10[COMP_X], P11[COMP_Z], P11[COMP_X])) < 0.0f) && ((abottom = area(hp[COMP_Z], hp[COMP_X], P11[COMP_Z], P11[COMP_X], P01[COMP_Z], P01[COMP_X])) < 0.0f) && ((aleft = area(hp[COMP_Z], hp[COMP_X], P01[COMP_Z], P01[COMP_X], P00[COMP_Z], P00[COMP_X])) < 0.0f); \
+                    else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+                        hit = ((atop = area(hp[COMP_Z], hp[COMP_X], P00[COMP_Z], P00[COMP_X], P10[COMP_Z], P10[COMP_X])) > 0.0f) && ((aright = area(hp[COMP_Z], hp[COMP_X], P10[COMP_Z], P10[COMP_X], P11[COMP_Z], P11[COMP_X])) > 0.0f) && ((abottom = area(hp[COMP_Z], hp[COMP_X], P11[COMP_Z], P11[COMP_X], P01[COMP_Z], P01[COMP_X])) > 0.0f) && ((aleft = area(hp[COMP_Z], hp[COMP_X], P01[COMP_Z], P01[COMP_X], P00[COMP_Z], P00[COMP_X])) > 0.0f); \
+                    break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
+                case COMP_Z:                                                                                                                                                                                                                                                                                                                                                                                                                              \
+                    if (NN[COMP_Z] < 0.0f)                                                                                                                                                                                                                                                                                                                                                                                                                \
+                        hit = ((atop = area(hp[COMP_X], hp[COMP_Y], P00[COMP_X], P00[COMP_Y], P10[COMP_X], P10[COMP_Y])) < 0.0f) && ((aright = area(hp[COMP_X], hp[COMP_Y], P10[COMP_X], P10[COMP_Y], P11[COMP_X], P11[COMP_Y])) < 0.0f) && ((abottom = area(hp[COMP_X], hp[COMP_Y], P11[COMP_X], P11[COMP_Y], P01[COMP_X], P01[COMP_Y])) < 0.0f) && ((aleft = area(hp[COMP_X], hp[COMP_Y], P01[COMP_X], P01[COMP_Y], P00[COMP_X], P00[COMP_Y])) < 0.0f); \
+                    else                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+                        hit = ((atop = area(hp[COMP_X], hp[COMP_Y], P00[COMP_X], P00[COMP_Y], P10[COMP_X], P10[COMP_Y])) > 0.0f) && ((aright = area(hp[COMP_X], hp[COMP_Y], P10[COMP_X], P10[COMP_Y], P11[COMP_X], P11[COMP_Y])) > 0.0f) && ((abottom = area(hp[COMP_X], hp[COMP_Y], P11[COMP_X], P11[COMP_Y], P01[COMP_X], P01[COMP_Y])) > 0.0f) && ((aleft = area(hp[COMP_X], hp[COMP_Y], P01[COMP_X], P01[COMP_Y], P00[COMP_X], P00[COMP_Y])) > 0.0f); \
+                    break;                                                                                                                                                                                                                                                                                                                                                                                                                                \
+            }                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+            if (hit) {                                                                                                                                                                                                                                                                                                                                                                                                                                    \
+                const float u = aleft / (aleft + aright);                                                                                                                                                                                                                                                                                                                                                                                                 \
+                const float v = atop / (atop + abottom);                                                                                                                                                                                                                                                                                                                                                                                                  \
+                if ((u > 0.0f) && (u < 1.0f) && (v > 0.0f) && (v < 1.0f)) {                                                                                                                                                                                                                                                                                                                                                                               \
+                    t = th;                                                                                                                                                                                                                                                                                                                                                                                                                               \
+                    if ((attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ^ xform->flip)                                                                                                                                                                                                                                                                                                                                                                      \
+                        mulvf(NN, -1);                                                                                                                                                                                                                                                                                                                                                                                                                    \
+                    if (attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED) {                                                                                                                                                                                                                                                                                                                                                                              \
+                        cRay->object = object;                                                                                                                                                                                                                                                                                                                                                                                                            \
+                        cRay->u = umin + ((float)u + i) * urg;                                                                                                                                                                                                                                                                                                                                                                                            \
+                        cRay->v = vmin + ((float)v + j) * vrg;                                                                                                                                                                                                                                                                                                                                                                                            \
+                        cRay->t = (float)t;                                                                                                                                                                                                                                                                                                                                                                                                               \
+                        movvv(cRay->N, NN);                                                                                                                                                                                                                                                                                                                                                                                                               \
+                    }                                                                                                                                                                                                                                                                                                                                                                                                                                     \
+                    else {                                                                                                                                                                                                                                                                                                                                                                                                                                \
+                        if (dotvv(q, NN) < 0.0f) {                                                                                                                                                                                                                                                                                                                                                                                                        \
+                            cRay->object = object;                                                                                                                                                                                                                                                                                                                                                                                                        \
+                            cRay->u = umin + ((float)u + i) * urg;                                                                                                                                                                                                                                                                                                                                                                                        \
+                            cRay->v = vmin + ((float)v + j) * vrg;                                                                                                                                                                                                                                                                                                                                                                                        \
+                            cRay->t = (float)t;                                                                                                                                                                                                                                                                                                                                                                                                           \
+                            movvv(cRay->N, NN);                                                                                                                                                                                                                                                                                                                                                                                                           \
+                        }                                                                                                                                                                                                                                                                                                                                                                                                                                 \
+                    }                                                                                                                                                                                                                                                                                                                                                                                                                                     \
+                }                                                                                                                                                                                                                                                                                                                                                                                                                                         \
+            }                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+        }                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
     }
 
 #define intersectQuads() \
@@ -1034,8 +1045,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                 intersectQuads();
                 return;
-
-            } else if (div <= 4) {
+            }
+            else if (div <= 4) {
                 if (subsample) {
                     // downsample 4x4 to 2x2 (not the same as above because we divided
                     // in the parametric space here we quads intersect directly
@@ -1058,7 +1069,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                         }
                         cP += (div + 1) * 3 + 3;
                     }
-                } else {
+                }
+                else {
                     // 2x2 or 4x4 quads intersect directly
 
                     const float urg = (umax - umin) / (float)div;
@@ -1079,7 +1091,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                     }
                 }
                 return;
-            } else {
+            }
+            else {
                 if (subsample) {
                     // downsample 8x8 to 4x4 or 16x16 to 8x8
                     // 8x8 or 16x16 quads (or greater if 3*maxGridSize allows)
@@ -1120,7 +1133,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                             }
                         }
                     }
-                } else {
+                }
+                else {
                     // 8x8 or 16x16 quads (or greater if 3*maxGridSize allows)
                     // we bound-intersect each 4x4 subgrid before intersecting quads
 
@@ -1161,7 +1175,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                     }
                 }
             }
-        } else {
+        }
+        else {
 
             // We're moving
 
@@ -1186,8 +1201,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                 intersectQuads();
                 return;
-
-            } else if (div <= 4) {
+            }
+            else if (div <= 4) {
                 if (subsample) {
                     // downsample 4x4 to 2x2 (not the same as above because we divided
                     // in the parametric space here we quads intersect directly
@@ -1212,7 +1227,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                         cP0 += (div + 1) * 3 + 3;
                         cP1 += (div + 1) * 3 + 3;
                     }
-                } else {
+                }
+                else {
                     // 2x2 or 4x4 quads intersect directly
 
                     const float urg = (umax - umin) / (float)div;
@@ -1235,7 +1251,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                     }
                 }
                 return;
-            } else {
+            }
+            else {
                 if (subsample) {
                     // downsample 8x8 to 4x4 or 16x16 to 8x8
                     // 8x8 or 16x16 quads (or greater if 3*maxGridSize allows)
@@ -1279,7 +1296,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                             }
                         }
                     }
-                } else {
+                }
+                else {
                     // 8x8 or 16x16 quads (or greater if 3*maxGridSize allows)
                     // we bound-intersect each 4x4 subgrid before intersecting quads
 
@@ -1324,7 +1342,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                 }
             }
         }
-    } else {
+    }
+    else {
         // We do not posess a fine enough tesselation, check if we have
         // already generated a finer set by splitting
 
@@ -1387,7 +1406,7 @@ static inline float measureLength(const float *P, int step, int num) {
 int tesselationSagittaWithinTolerance(const float *P, int div, float tolerance) {
     assert((div & 1) == 0);
 
-    const int n      = div + 1;
+    const int n = div + 1;
     const float tol2 = tolerance * tolerance;
 
     for (int i = 0; i < div; i += 2) {
@@ -1407,7 +1426,8 @@ int tesselationSagittaWithinTolerance(const float *P, int div, float tolerance) 
             vector sagitta;
             subvv(sagitta, mid, bilinear);
 
-            if (dotvv(sagitta, sagitta) > tol2) return FALSE;
+            if (dotvv(sagitta, sagitta) > tol2)
+                return FALSE;
         }
     }
 
@@ -1424,17 +1444,18 @@ int tesselationSagittaWithinTolerance(const float *P, int div, float tolerance) 
 //							sub-patch (also a CSurface) at an exact
 //							resolution, not an adaptively-chosen one.
 CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDerivatives) {
-    const int n            = div + 1;
-    const int numVertices  = n * n;
-    unsigned int up        = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG;
+    const int n = div + 1;
+    const int numVertices = n * n;
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG;
 
     float *varying[VARIABLE_CONSTANTWIDTH + 1];
-    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++) varying[k] = NULL;
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
 
-    float *u    = new float[numVertices];
-    float *v    = new float[numVertices];
+    float *u = new float[numVertices];
+    float *v = new float[numVertices];
     float *time = new float[numVertices];
-    float *P    = new float[numVertices * 3];
+    float *P = new float[numVertices * 3];
     // Always allocated, regardless of computeDerivatives: some CSurface::sample()
     // implementations (e.g. CBicubicPatch) write dPdu/dPdv/Ng unconditionally, not
     // gated on the up flags above, so these scratch buffers must exist whenever
@@ -1442,7 +1463,7 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
     // the caller); T023 derives shading normals independently via crossvv(dPdu,dPdv).
     float *dPdu = new float[numVertices * 3];
     float *dPdv = new float[numVertices * 3];
-    float *ng   = new float[numVertices * 3];
+    float *ng = new float[numVertices * 3];
     // Also scratch-only, and also unconditional: CSubdivision::sample()
     // writes dPdtime for every vertex regardless of moving()/up, so this
     // buffer must exist whenever sample() might be a subdivision patch
@@ -1459,21 +1480,21 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
     for (int i = 0; i <= div; i++) {
         for (int j = 0; j <= div; j++) {
             const int k = i * n + j;
-            u[k]        = (float)i / (float)div;
-            v[k]        = (float)j / (float)div;
-            time[k]     = 0.0f;
+            u[k] = (float)i / (float)div;
+            v[k] = (float)j / (float)div;
+            time[k] = 0.0f;
         }
     }
 
-    varying[VARIABLE_U]       = u;
-    varying[VARIABLE_V]       = v;
-    varying[VARIABLE_TIME]    = time;
-    varying[VARIABLE_P]       = P;
-    varying[VARIABLE_DPDU]    = dPdu;
-    varying[VARIABLE_DPDV]    = dPdv;
-    varying[VARIABLE_NG]      = ng;
+    varying[VARIABLE_U] = u;
+    varying[VARIABLE_V] = v;
+    varying[VARIABLE_TIME] = time;
+    varying[VARIABLE_P] = P;
+    varying[VARIABLE_DPDU] = dPdu;
+    varying[VARIABLE_DPDV] = dPdv;
+    varying[VARIABLE_NG] = ng;
     varying[VARIABLE_DPDTIME] = dPdtime;
-    varying[VARIABLE_PW]      = pw;
+    varying[VARIABLE_PW] = pw;
 
     object->sample(0, numVertices, varying, NULL, up);
 
@@ -1485,12 +1506,13 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
     delete[] pw;
 
     CTesselatedGrid grid;
-    grid.div  = div;
-    grid.P    = P;
+    grid.div = div;
+    grid.P = P;
     if (computeDerivatives) {
         grid.dPdu = dPdu;
         grid.dPdv = dPdv;
-    } else {
+    }
+    else {
         delete[] dPdu;
         delete[] dPdv;
         grid.dPdu = NULL;
@@ -1514,10 +1536,10 @@ CTesselatedGrid tesselateSurfaceGrid(CSurface *object, int div, int computeDeriv
 //							positions/derivatives.
 static void extractEvenSubgrid(const CTesselatedGrid &probe, int div, CTesselatedGrid &out) {
     const int probeN = probe.div + 1;
-    const int n       = div + 1;
+    const int n = div + 1;
 
-    out.div  = div;
-    out.P    = new float[n * n * 3];
+    out.div = div;
+    out.P = new float[n * n * 3];
     out.dPdu = probe.dPdu ? new float[n * n * 3] : NULL;
     out.dPdv = probe.dPdv ? new float[n * n * 3] : NULL;
 
@@ -1528,8 +1550,10 @@ static void extractEvenSubgrid(const CTesselatedGrid &probe, int div, CTesselate
 
             for (int c = 0; c < 3; c++) {
                 out.P[dst * 3 + c] = probe.P[src * 3 + c];
-                if (out.dPdu) out.dPdu[dst * 3 + c] = probe.dPdu[src * 3 + c];
-                if (out.dPdv) out.dPdv[dst * 3 + c] = probe.dPdv[src * 3 + c];
+                if (out.dPdu)
+                    out.dPdu[dst * 3 + c] = probe.dPdu[src * 3 + c];
+                if (out.dPdv)
+                    out.dPdv[dst * 3 + c] = probe.dPdv[src * 3 + c];
             }
         }
     }
@@ -1620,7 +1644,8 @@ void CTesselationPatch::sampleTesselation(CShadingContext *context, int div, uns
         context->displace(object, div + 1, div + 1, SHADING_2D_GRID, PARAMETER_P | sample | PARAMETER_RAYTRACE);
 
         P = varying[VARIABLE_P];
-    } else {
+    }
+    else {
         // NOTE: We are assuming here that 16x16 is the maximum size we will be asked to tesselate
         // and that all smaller grid sizes will fit within maxGridSize.  If this is not the case,
         // this code must be updated
@@ -1796,7 +1821,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                 movvv(cTesselation->P + 3, Pstorage + 6);
                 movvv(cTesselation->P + 6, Pstorage + 18);
                 movvv(cTesselation->P + 9, Pstorage + 24);
-            } else if (rdiv <= 4) {
+            }
+            else if (rdiv <= 4) {
                 // not saving bounds here
                 void *mem = allocate_untyped(sizeof(CPurgableTesselation) + (div + 1) * (div + 1) * 3 * sizeof(float));
                 cTesselation = (CPurgableTesselation *)mem;
@@ -1805,7 +1831,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                 cTesselation->size = (div + 1) * (div + 1) * 3 * sizeof(float);
 
                 memcpy(cTesselation->P, Pstorage, (div + 1) * (div + 1) * 3 * sizeof(float));
-            } else {
+            }
+            else {
                 // create bounds, but only if it saves us work later
 
                 int nb = div >> 2; // number of bounds in each direction
@@ -1852,7 +1879,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                     float maxBound;
                     if (yDiff2 > xDiff2) {
                         maxBound = yDiff2;
-                    } else {
+                    }
+                    else {
                         maxBound = xDiff2;
                     }
                     float zDiff2 = bnds[3 + COMP_Z] - bnds[COMP_Z];
@@ -1871,7 +1899,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                     bnds += 6;
                 }
             }
-        } else {
+        }
+        else {
 
             // We're moving
             if (rdiv == 1) {
@@ -1897,7 +1926,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                 movvv(cTesselation->P + 15, Pstorage + 6);
                 movvv(cTesselation->P + 18, Pstorage + 18);
                 movvv(cTesselation->P + 21, Pstorage + 24);
-            } else if (rdiv <= 4) {
+            }
+            else if (rdiv <= 4) {
                 // Not saving bounds here
                 void *mem = allocate_untyped(sizeof(CPurgableTesselation) + 2 * (div + 1) * (div + 1) * 3 * sizeof(float));
                 cTesselation = (CPurgableTesselation *)mem;
@@ -1913,7 +1943,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
 
                 // Save second sample
                 memcpy(cTesselation->P + (div + 1) * (div + 1) * 3, Pstorage, (div + 1) * (div + 1) * 3 * sizeof(float));
-            } else {
+            }
+            else {
                 // create bounds, but only if it saves us work later
 
                 int nb = div >> 2; // number of bounds in each direction
@@ -1982,7 +2013,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
                     float maxBound;
                     if (yDiff2 > xDiff2) {
                         maxBound = yDiff2;
-                    } else {
+                    }
+                    else {
                         maxBound = xDiff2;
                     }
                     float zDiff2 = bnds[3 + COMP_Z] - bnds[COMP_Z];
@@ -2103,7 +2135,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
         if (uFlat < uAvg && vFlat < vAvg) {
             flags |= OBJECT_TERMINAL_TESSELATION;
         }
-    } else {
+    }
+    else {
         // prevent tesselation beyond a level we could deal with
         if ((umax - umin) / (4 * div) < C_EPSILON)
             flags |= OBJECT_TERMINAL_TESSELATION;
@@ -2118,7 +2151,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
         if (avgValue > rmax) {
             rmax = avgValue;
         }
-    } else {
+    }
+    else {
         float avgValue2 = div * (uAvg + vAvg) / 2.0f;
         if (avgValue2 > rmax) {
             rmax = avgValue2;
@@ -2157,7 +2191,8 @@ CTesselationPatch::CPurgableTesselation *CTesselationPatch::tesselate(CShadingCo
     float maxBound;
     if (yDiff3 > xDiff3) {
         maxBound = yDiff3;
-    } else {
+    }
+    else {
         maxBound = xDiff3;
     }
     float zDiff3 = bmax[COMP_Z] - bmin[COMP_Z];

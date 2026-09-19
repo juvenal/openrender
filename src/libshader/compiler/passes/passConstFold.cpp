@@ -46,10 +46,10 @@ bool CConstFoldPass::isFoldable(const std::string &opcode) {
         "flt", "fle", "fgt", "fge", "feq", "fne",
         // Ternary
         "clampf", "mixf",
-        nullptr
-    };
+        nullptr};
     for (int i = 0; foldableOps[i] != nullptr; ++i)
-        if (opcode == foldableOps[i]) return true;
+        if (opcode == foldableOps[i])
+            return true;
     return false;
 }
 
@@ -64,76 +64,175 @@ bool CConstFoldPass::evalFloatOp(const std::string &op,
     const int n = static_cast<int>(a.size());
 
     // Unary
-    if (op == "negf")  { if (n!=1) return false; result = -a[0]; }
-    else if (op == "sin")  { if (n!=1) return false; result = std::sin(a[0]); }
-    else if (op == "cos")  { if (n!=1) return false; result = std::cos(a[0]); }
-    else if (op == "tan")  { if (n!=1) return false; result = std::tan(a[0]); }
-    else if (op == "asin") { if (n!=1) return false; result = std::asin(a[0]); }
-    else if (op == "acos") { if (n!=1) return false; result = std::acos(a[0]); }
-    else if (op == "atan") { if (n!=1) return false; result = std::atan(a[0]); }
-    else if (op == "exp")  { if (n!=1) return false; result = std::exp(a[0]); }
+    if (op == "negf") {
+        if (n != 1)
+            return false;
+        result = -a[0];
+    }
+    else if (op == "sin") {
+        if (n != 1)
+            return false;
+        result = std::sin(a[0]);
+    }
+    else if (op == "cos") {
+        if (n != 1)
+            return false;
+        result = std::cos(a[0]);
+    }
+    else if (op == "tan") {
+        if (n != 1)
+            return false;
+        result = std::tan(a[0]);
+    }
+    else if (op == "asin") {
+        if (n != 1)
+            return false;
+        result = std::asin(a[0]);
+    }
+    else if (op == "acos") {
+        if (n != 1)
+            return false;
+        result = std::acos(a[0]);
+    }
+    else if (op == "atan") {
+        if (n != 1)
+            return false;
+        result = std::atan(a[0]);
+    }
+    else if (op == "exp") {
+        if (n != 1)
+            return false;
+        result = std::exp(a[0]);
+    }
     else if (op == "log") {
-        if (n!=1 || a[0] <= 0.0) return false;
+        if (n != 1 || a[0] <= 0.0)
+            return false;
         result = std::log(a[0]);
     }
     else if (op == "sqrt") {
-        if (n!=1 || a[0] < 0.0) return false;
+        if (n != 1 || a[0] < 0.0)
+            return false;
         result = std::sqrt(a[0]);
     }
     else if (op == "inversesqrt") {
-        if (n!=1 || a[0] <= 0.0) return false;
+        if (n != 1 || a[0] <= 0.0)
+            return false;
         result = 1.0 / std::sqrt(a[0]);
     }
-    else if (op == "abs")   { if (n!=1) return false; result = std::fabs(a[0]); }
-    else if (op == "sign")  { if (n!=1) return false; result = (a[0]>0.0)?1.0:(a[0]<0.0)?-1.0:0.0; }
-    else if (op == "floor") { if (n!=1) return false; result = std::floor(a[0]); }
-    else if (op == "ceil")  { if (n!=1) return false; result = std::ceil(a[0]); }
+    else if (op == "abs") {
+        if (n != 1)
+            return false;
+        result = std::fabs(a[0]);
+    }
+    else if (op == "sign") {
+        if (n != 1)
+            return false;
+        result = (a[0] > 0.0) ? 1.0 : (a[0] < 0.0) ? -1.0
+                                                   : 0.0;
+    }
+    else if (op == "floor") {
+        if (n != 1)
+            return false;
+        result = std::floor(a[0]);
+    }
+    else if (op == "ceil") {
+        if (n != 1)
+            return false;
+        result = std::ceil(a[0]);
+    }
 
     // Binary
-    else if (op == "addf" || op == "addff") { if (n!=2) return false; result = a[0]+a[1]; }
-    else if (op == "subf" || op == "subff") { if (n!=2) return false; result = a[0]-a[1]; }
-    else if (op == "mulf" || op == "mulff") { if (n!=2) return false; result = a[0]*a[1]; }
+    else if (op == "addf" || op == "addff") {
+        if (n != 2)
+            return false;
+        result = a[0] + a[1];
+    }
+    else if (op == "subf" || op == "subff") {
+        if (n != 2)
+            return false;
+        result = a[0] - a[1];
+    }
+    else if (op == "mulf" || op == "mulff") {
+        if (n != 2)
+            return false;
+        result = a[0] * a[1];
+    }
     else if (op == "divf" || op == "divff") {
-        if (n!=2 || a[1] == 0.0) return false;
+        if (n != 2 || a[1] == 0.0)
+            return false;
         result = a[0] / a[1];
     }
     else if (op == "pow") {
-        if (n!=2) return false;
+        if (n != 2)
+            return false;
         // Avoid domain error: base negative with non-integer exponent
-        if (a[0] < 0.0 && std::fmod(a[1], 1.0) != 0.0) return false;
+        if (a[0] < 0.0 && std::fmod(a[1], 1.0) != 0.0)
+            return false;
         result = std::pow(a[0], a[1]);
     }
     else if (op == "mod") {
-        if (n!=2 || a[1] == 0.0) return false;
+        if (n != 2 || a[1] == 0.0)
+            return false;
         result = std::fmod(a[0], a[1]);
     }
-    else if (op == "atan2") { if (n!=2) return false; result = std::atan2(a[0], a[1]); }
+    else if (op == "atan2") {
+        if (n != 2)
+            return false;
+        result = std::atan2(a[0], a[1]);
+    }
 
     // Comparisons
-    else if (op == "flt") { if (n!=2) return false; result = a[0] <  a[1] ? 1.0 : 0.0; }
-    else if (op == "fle") { if (n!=2) return false; result = a[0] <= a[1] ? 1.0 : 0.0; }
-    else if (op == "fgt") { if (n!=2) return false; result = a[0] >  a[1] ? 1.0 : 0.0; }
-    else if (op == "fge") { if (n!=2) return false; result = a[0] >= a[1] ? 1.0 : 0.0; }
-    else if (op == "feq") { if (n!=2) return false; result = a[0] == a[1] ? 1.0 : 0.0; }
-    else if (op == "fne") { if (n!=2) return false; result = a[0] != a[1] ? 1.0 : 0.0; }
+    else if (op == "flt") {
+        if (n != 2)
+            return false;
+        result = a[0] < a[1] ? 1.0 : 0.0;
+    }
+    else if (op == "fle") {
+        if (n != 2)
+            return false;
+        result = a[0] <= a[1] ? 1.0 : 0.0;
+    }
+    else if (op == "fgt") {
+        if (n != 2)
+            return false;
+        result = a[0] > a[1] ? 1.0 : 0.0;
+    }
+    else if (op == "fge") {
+        if (n != 2)
+            return false;
+        result = a[0] >= a[1] ? 1.0 : 0.0;
+    }
+    else if (op == "feq") {
+        if (n != 2)
+            return false;
+        result = a[0] == a[1] ? 1.0 : 0.0;
+    }
+    else if (op == "fne") {
+        if (n != 2)
+            return false;
+        result = a[0] != a[1] ? 1.0 : 0.0;
+    }
 
     // Ternary
     else if (op == "clampf") {
         // clampf result value min max
-        if (n!=3) return false;
+        if (n != 3)
+            return false;
         result = std::min(std::max(a[0], a[1]), a[2]);
     }
     else if (op == "mixf") {
         // mixf result a b t  → a*(1-t) + b*t
-        if (n!=3) return false;
-        result = a[0]*(1.0-a[2]) + a[1]*a[2];
+        if (n != 3)
+            return false;
+        result = a[0] * (1.0 - a[2]) + a[1] * a[2];
     }
     else {
         return false; // unknown / unsupported
     }
 
     // Reject non-finite results.
-    if (!std::isfinite(result)) return false;
+    if (!std::isfinite(result))
+        return false;
 
     return true;
 }
@@ -144,10 +243,11 @@ bool CConstFoldPass::evalFloatOp(const std::string &op,
 
 // static
 bool CConstFoldPass::resolveOperand(
-        const std::string &token,
-        const std::unordered_map<std::string, double> &constMap,
-        double &out) {
-    if (token.empty()) return false;
+    const std::string &token,
+    const std::unordered_map<std::string, double> &constMap,
+    double &out) {
+    if (token.empty())
+        return false;
 
     // Numeric literal: starts with digit, '-', or '.'
     const char c0 = token[0];
@@ -200,14 +300,14 @@ bool CConstFoldPass::foldFn(IRFunction &fn,
         int depth = 0; // counts both loop and conditional nesting
         for (const IRBlock &blk : fn.blocks) {
             for (const IRInstr &instr : blk.instrs) {
-                if (instr.opcode == "forbegin"
-                    || instr.opcode == "if"
-                    || instr.opcode == "else") {
+                if (instr.opcode == "forbegin" || instr.opcode == "if" || instr.opcode == "else") {
                     ++depth;
-                } else if (instr.opcode == "forend"
-                           || instr.opcode == "endif") {
-                    if (depth > 0) --depth;
-                } else if (depth > 0 && instr.hasResult()) {
+                }
+                else if (instr.opcode == "forend" || instr.opcode == "endif") {
+                    if (depth > 0)
+                        --depth;
+                }
+                else if (depth > 0 && instr.hasResult()) {
                     cfAssignedVars.insert(instr.result);
                 }
             }
@@ -220,21 +320,19 @@ bool CConstFoldPass::foldFn(IRFunction &fn,
             // variables assigned inside control-flow blocks from the constant
             // map.  This prevents incorrect propagation of a value set in one
             // branch across the if/else/endif or loop boundary.
-            if (instr.opcode == "forbegin" || instr.opcode == "forend"
-                || instr.opcode == "if"    || instr.opcode == "else"
-                || instr.opcode == "endif") {
+            if (instr.opcode == "forbegin" || instr.opcode == "forend" || instr.opcode == "if" || instr.opcode == "else" || instr.opcode == "endif") {
                 for (const std::string &v : cfAssignedVars)
                     constMap.erase(v);
                 continue;
             }
 
-            if (!instr.hasResult()) continue;
+            if (!instr.hasResult())
+                continue;
 
             // vufloat result literal → seed the constant map, no rewrite needed.
             // If the operand is a named variable that is not a known constant,
             // erase any stale entry for result so it is not treated as constant.
-            if (instr.opcode == "vufloat"
-                && instr.operands.size() == 1) {
+            if (instr.opcode == "vufloat" && instr.operands.size() == 1) {
                 double val;
                 if (resolveOperand(instr.operands[0].token, constMap, val))
                     constMap[instr.result] = val;
@@ -283,7 +381,8 @@ bool CConstFoldPass::foldFn(IRFunction &fn,
 
             // Evaluate the operation.
             double result;
-            if (!evalFloatOp(instr.opcode, args, result)) continue;
+            if (!evalFloatOp(instr.opcode, args, result))
+                continue;
 
             // Replace instruction in place with "vufloat result <value>".
             instr.opcode = "vufloat";

@@ -7,25 +7,31 @@
 #include "ri/texture/pointCloud.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 static void writePointCloudFixture(const char *path, int count) {
     matrix from, to;
     identitym(from);
     identitym(to);
 
-    char *names[1] = { (char *)"_radiosity" };
-    char *types[1] = { (char *)"float" };
+    char *names[1] = {(char *)"_radiosity"};
+    char *types[1] = {(char *)"float"};
 
     CPointCloud *cloud = new CPointCloud(path, from, to, NULL, 1, names, types, TRUE);
 
     for (int i = 0; i < count; i++) {
-        float P[3] = { (float)(i + 1), 0, 0 };
-        float N[3] = { 0, 0, 1 };
-        float C[1] = { 0.5f };
+        float P[3] = {(float)(i + 1), 0, 0};
+        float N[3] = {0, 0, 1};
+        float C[1] = {0.5f};
         cloud->store(C, P, N, 0.1f);
     }
 
@@ -60,7 +66,8 @@ static void runCase(int count) {
             // Points were stored at x = 1..count, y = z = 0.
             CHECK(bmin[0] == 1.0f);
             CHECK(bmax[0] == (float)count);
-        } else {
+        }
+        else {
             // CPointCloud::balance() unconditionally inserts one dummy point at the origin
             // with zeroed data before writing an otherwise-empty map ("to avoid an if
             // statement during lookup", pointCloud.cpp) -- a zero-point round trip is valid

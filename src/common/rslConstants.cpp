@@ -18,8 +18,8 @@
  *
  */
 
-#include "../ri/parse/ri.h"  // RtBasis, RtFloat, EXTERN macro
-#include "algebra.h"   // C_PI
+#include "../ri/parse/ri.h" // RtBasis, RtFloat, EXTERN macro
+#include "algebra.h"        // C_PI
 #include <cmath>
 
 ////////////////////////////////////////////////////////////////////////
@@ -91,7 +91,8 @@ RiTriangleFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
 
     if (x > y) {
         return (RtFloat)(xwidth - x) / xwidth;
-    } else {
+    }
+    else {
         return (RtFloat)(ywidth - y) / ywidth;
     }
 }
@@ -103,9 +104,11 @@ RiCatmullRomFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
 
     if (r < 1.0f) {
         return 1.5f * r * r2 - 2.5f * r2 + 1.0f;
-    } else if (r < 2.0f) {
+    }
+    else if (r < 2.0f) {
         return -0.5f * r * r2 + 2.5f * r2 - 4.0f * r + 2.0f;
-    } else {
+    }
+    else {
         return 0.0f;
     }
 }
@@ -153,14 +156,16 @@ RiSincFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     if (x != 0.0) {
         x *= (float)C_PI;
         x = cosf(0.5f * x / xwidth) * sinf(x) / x;
-    } else {
+    }
+    else {
         x = 1.0;
     }
 
     if (y != 0.0) {
         y *= (float)C_PI;
         y = cosf(0.5f * y / ywidth) * sinf(y) / y;
-    } else {
+    }
+    else {
         y = 1.0;
     }
 
@@ -182,7 +187,8 @@ RiBlackmanHarrisFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
 
     if (r <= N * 0.5f) {
         return (float)(a0 - a1 * cosf(2 * ((float)C_PI) * r / N) + a2 * cosf(4 * ((float)C_PI) * r / N) - a3 * cosf(6 * ((float)C_PI) * r / N));
-    } else {
+    }
+    else {
         return 0;
     }
 }

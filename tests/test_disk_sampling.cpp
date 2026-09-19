@@ -58,79 +58,84 @@ static int tests_failed = 0;
 
 namespace {
 
-struct MT19937Sampler {
-    std::mt19937 rng;
-    std::uniform_real_distribution<float> dist{0.0f, 1.0f};
+    struct MT19937Sampler {
+            std::mt19937 rng;
+            std::uniform_real_distribution<float> dist{0.0f, 1.0f};
 
-    explicit MT19937Sampler(unsigned seed) : rng(seed) {}
+            explicit MT19937Sampler(unsigned seed) : rng(seed) {}
 
-    void operator()(float *out) {
-        out[0] = dist(rng);
-        out[1] = dist(rng);
+            void operator()(float *out) {
+                out[0] = dist(rng);
+                out[1] = dist(rng);
+            }
+    };
+
+    // Regularized upper incomplete gamma function Q(a, x) = 1 - P(a, x),
+    // via series (for x < a+1) or continued fraction (otherwise), following
+    // the standard Numerical Recipes formulation. Used to convert a chi-square
+    // statistic into a p-value without a canned statistics library dependency
+    // (Constitution Principle V — minimal dependencies).
+    double gammaSeriesP(double a, double x) {
+        const int ITMAX = 200;
+        const double EPS = 3.0e-9;
+
+        double gln = std::lgamma(a);
+        if (x <= 0.0)
+            return 0.0;
+
+        double ap = a;
+        double sum = 1.0 / a;
+        double del = sum;
+        for (int n = 1; n <= ITMAX; ++n) {
+            ap += 1.0;
+            del *= x / ap;
+            sum += del;
+            if (std::fabs(del) < std::fabs(sum) * EPS)
+                break;
+        }
+        return sum * std::exp(-x + a * std::log(x) - gln);
     }
-};
 
-// Regularized upper incomplete gamma function Q(a, x) = 1 - P(a, x),
-// via series (for x < a+1) or continued fraction (otherwise), following
-// the standard Numerical Recipes formulation. Used to convert a chi-square
-// statistic into a p-value without a canned statistics library dependency
-// (Constitution Principle V — minimal dependencies).
-double gammaSeriesP(double a, double x) {
-    const int ITMAX = 200;
-    const double EPS = 3.0e-9;
+    double gammaContinuedFractionQ(double a, double x) {
+        const int ITMAX = 200;
+        const double EPS = 3.0e-9;
+        const double FPMIN = 1.0e-300;
 
-    double gln = std::lgamma(a);
-    if (x <= 0.0) return 0.0;
-
-    double ap = a;
-    double sum = 1.0 / a;
-    double del = sum;
-    for (int n = 1; n <= ITMAX; ++n) {
-        ap += 1.0;
-        del *= x / ap;
-        sum += del;
-        if (std::fabs(del) < std::fabs(sum) * EPS) break;
+        double gln = std::lgamma(a);
+        double b = x + 1.0 - a;
+        double c = 1.0 / FPMIN;
+        double d = 1.0 / b;
+        double h = d;
+        for (int i = 1; i <= ITMAX; ++i) {
+            double an = -i * (i - a);
+            b += 2.0;
+            d = an * d + b;
+            if (std::fabs(d) < FPMIN)
+                d = FPMIN;
+            c = b + an / c;
+            if (std::fabs(c) < FPMIN)
+                c = FPMIN;
+            d = 1.0 / d;
+            double del = d * c;
+            h *= del;
+            if (std::fabs(del - 1.0) < EPS)
+                break;
+        }
+        return std::exp(-x + a * std::log(x) - gln) * h;
     }
-    return sum * std::exp(-x + a * std::log(x) - gln);
-}
 
-double gammaContinuedFractionQ(double a, double x) {
-    const int ITMAX = 200;
-    const double EPS = 3.0e-9;
-    const double FPMIN = 1.0e-300;
-
-    double gln = std::lgamma(a);
-    double b = x + 1.0 - a;
-    double c = 1.0 / FPMIN;
-    double d = 1.0 / b;
-    double h = d;
-    for (int i = 1; i <= ITMAX; ++i) {
-        double an = -i * (i - a);
-        b += 2.0;
-        d = an * d + b;
-        if (std::fabs(d) < FPMIN) d = FPMIN;
-        c = b + an / c;
-        if (std::fabs(c) < FPMIN) c = FPMIN;
-        d = 1.0 / d;
-        double del = d * c;
-        h *= del;
-        if (std::fabs(del - 1.0) < EPS) break;
+    // Q(a, x): upper tail of the regularized incomplete gamma function.
+    double gammaQ(double a, double x) {
+        if (x < a + 1.0) {
+            return 1.0 - gammaSeriesP(a, x);
+        }
+        return gammaContinuedFractionQ(a, x);
     }
-    return std::exp(-x + a * std::log(x) - gln) * h;
-}
 
-// Q(a, x): upper tail of the regularized incomplete gamma function.
-double gammaQ(double a, double x) {
-    if (x < a + 1.0) {
-        return 1.0 - gammaSeriesP(a, x);
+    // p-value for a chi-square statistic with k degrees of freedom.
+    double chiSquarePValue(double chiSquareStat, int degreesOfFreedom) {
+        return gammaQ(0.5 * degreesOfFreedom, 0.5 * chiSquareStat);
     }
-    return gammaContinuedFractionQ(a, x);
-}
-
-// p-value for a chi-square statistic with k degrees of freedom.
-double chiSquarePValue(double chiSquareStat, int degreesOfFreedom) {
-    return gammaQ(0.5 * degreesOfFreedom, 0.5 * chiSquareStat);
-}
 
 } // namespace
 
@@ -177,8 +182,10 @@ TEST(disk_sampling_area_uniformity_chisquare) {
 
         const float r2 = R[0] * R[0] + R[1] * R[1];
         int bin = static_cast<int>(r2 * BINS);
-        if (bin >= BINS) bin = BINS - 1; // r2 can equal 1.0 - epsilon at most
-        if (bin < 0) bin = 0;
+        if (bin >= BINS)
+            bin = BINS - 1; // r2 can equal 1.0 - epsilon at most
+        if (bin < 0)
+            bin = 0;
         counts[bin]++;
     }
 

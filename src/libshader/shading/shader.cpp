@@ -59,7 +59,7 @@ CShader::CShader(const char *name) : CFileResource(name) {
     flags = 0;
     data = NULL;
 #ifdef OPENRENDER_HAVE_LLVM
-    jitEntry     = nullptr;
+    jitEntry = nullptr;
     jitInitEntry = nullptr;
 #endif
 }
@@ -128,10 +128,12 @@ void CShader::analyse() {
 
                         lightData->nonDiffuseIndex = varIndex;
                         lightData->nonDiffuseStep = ((cVariable->container == CONTAINER_CONSTANT) || (cVariable->container == CONTAINER_UNIFORM)) ? 0 : 1;
-                    } else {
+                    }
+                    else {
                         warning(CODE_BADTOKEN, "warning type mismatch for expected definition of __nondiffuse in shader \"%s\"", name);
                     }
-                } else if (!strcmp(cVariable->name, "__nonspecular")) {
+                }
+                else if (!strcmp(cVariable->name, "__nonspecular")) {
                     if ((cVariable->numItems == 1) && cVariable->type == TYPE_FLOAT) {
                         flags |= SHADERFLAGS_NONSPECULAR;
 
@@ -141,7 +143,8 @@ void CShader::analyse() {
 
                         lightData->nonSpecularIndex = varIndex;
                         lightData->nonSpecularStep = ((cVariable->container == CONTAINER_CONSTANT) || (cVariable->container == CONTAINER_UNIFORM)) ? 0 : 1;
-                    } else {
+                    }
+                    else {
                         warning(CODE_BADTOKEN, "warning type mismatch for expected definition of __nonspecular in shader \"%s\"", name);
                     }
                 }
@@ -285,7 +288,7 @@ CProgrammableShaderInstance::CProgrammableShaderInstance(CShader *p, CAttributes
     // Inherit pre-compiled JIT entry points from the parent CShader.
     // These are set eagerly in parseSloShader so that jitInitEntry is
     // available when init() is called (before the first prepare()).
-    jitEntry     = parent->jitEntry;
+    jitEntry = parent->jitEntry;
     jitInitEntry = parent->jitInitEntry;
 #endif
 
@@ -302,7 +305,8 @@ CProgrammableShaderInstance::CProgrammableShaderInstance(CShader *p, CAttributes
         if (nVariable->type == TYPE_STRING) {
             nVariable->defaultValue = new char *[nVariable->numFloats];
             memcpy(nVariable->defaultValue, cVariable->defaultValue, nVariable->numFloats * sizeof(char *));
-        } else {
+        }
+        else {
             nVariable->defaultValue = new float[nVariable->numFloats];
             memcpy(nVariable->defaultValue, cVariable->defaultValue, nVariable->numFloats * sizeof(float));
         }
@@ -357,88 +361,98 @@ int CProgrammableShaderInstance::setParameter(const char *param, const void *val
 
         if (strcmp(param, cParameter->name) == 0) {
             switch (cParameter->type) {
-            case TYPE_FLOAT: {
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
-                memcpy(dest, src, cParameter->numItems * sizeof(float));
-            } break;
-            case TYPE_COLOR: {
-                int p;
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
+                case TYPE_FLOAT:
+                {
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
+                    memcpy(dest, src, cParameter->numItems * sizeof(float));
+                } break;
+                case TYPE_COLOR:
+                {
+                    int p;
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
 
-                for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
-                    movvv(dest, src);
-                }
-            } break;
-            case TYPE_VECTOR: {
-                int p;
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
+                    for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
+                        movvv(dest, src);
+                    }
+                } break;
+                case TYPE_VECTOR:
+                {
+                    int p;
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
 
-                for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
-                    mulmv(dest, xform->from, src);
-                }
-            } break;
-            case TYPE_NORMAL: {
-                int p;
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
+                    for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
+                        mulmv(dest, xform->from, src);
+                    }
+                } break;
+                case TYPE_NORMAL:
+                {
+                    int p;
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
 
-                for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
-                    mulmn(dest, xform->to, src);
-                }
-            } break;
-            case TYPE_POINT: {
-                int p;
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
+                    for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
+                        mulmn(dest, xform->to, src);
+                    }
+                } break;
+                case TYPE_POINT:
+                {
+                    int p;
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
 
-                for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
-                    mulmp(dest, xform->from, src);
-                }
-            } break;
-            case TYPE_MATRIX:
-            case TYPE_MPOINT: {
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
-                memcpy(dest, src, cParameter->numItems * sizeof(matrix));
-            } break;
-            case TYPE_QUAD: {
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
-                memcpy(dest, src, cParameter->numItems * sizeof(float) * 4);
-            } break;
-            case TYPE_DOUBLE: {
-                const float *src = (const float *)val;
-                float *dest = (float *)cParameter->defaultValue;
-                memcpy(dest, src, cParameter->numItems * sizeof(float) * 2);
-            } break;
-            case TYPE_STRING: {
-                const char **src = (const char **)val;
-                char **dest = (char **)cParameter->defaultValue;
-                int t;
-                CAllocatedString *nString;
+                    for (p = cParameter->numItems; p > 0; p--, dest += 3, src += 3) {
+                        mulmp(dest, xform->from, src);
+                    }
+                } break;
+                case TYPE_MATRIX:
+                case TYPE_MPOINT:
+                {
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
+                    memcpy(dest, src, cParameter->numItems * sizeof(matrix));
+                } break;
+                case TYPE_QUAD:
+                {
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
+                    memcpy(dest, src, cParameter->numItems * sizeof(float) * 4);
+                } break;
+                case TYPE_DOUBLE:
+                {
+                    const float *src = (const float *)val;
+                    float *dest = (float *)cParameter->defaultValue;
+                    memcpy(dest, src, cParameter->numItems * sizeof(float) * 2);
+                } break;
+                case TYPE_STRING:
+                {
+                    const char **src = (const char **)val;
+                    char **dest = (char **)cParameter->defaultValue;
+                    int t;
+                    CAllocatedString *nString;
 
-                for (t = cParameter->numItems; t > 0; t--) {
+                    for (t = cParameter->numItems; t > 0; t--) {
 
-                    nString = new CAllocatedString;
-                    nString->string = strdup(*src++);
-                    nString->next = strings;
-                    strings = nString;
+                        nString = new CAllocatedString;
+                        nString->string = strdup(*src++);
+                        nString->next = strings;
+                        strings = nString;
 
-                    *dest++ = nString->string;
-                }
-            } break;
-            case TYPE_INTEGER: {
-                // This should not be possible
-                error(CODE_BUG, "Integer shader variable in shader \"%s\"\n", parent->name);
-                const int *src = (const int *)val;
-                int *dest = (int *)cParameter->defaultValue;
-                memcpy(dest, src, cParameter->numItems * sizeof(int));
-            } break;
-            default:
-                break;
+                        *dest++ = nString->string;
+                    }
+                } break;
+                case TYPE_INTEGER:
+                {
+                    // This should not be possible
+                    error(CODE_BUG, "Integer shader variable in shader \"%s\"\n", parent->name);
+                    const int *src = (const int *)val;
+                    int *dest = (int *)cParameter->defaultValue;
+                    memcpy(dest, src, cParameter->numItems * sizeof(int));
+                } break;
+                default:
+                    break;
             }
 
             break;
@@ -466,7 +480,8 @@ void CProgrammableShaderInstance::setParameters(int np, const char **params, con
                 if (setParameter(var.name, vals[i]) == FALSE) {
                     error(CODE_BADTOKEN, "Parameter \"%s\" not found in the shader\n", var.name);
                 }
-            } else {
+            }
+            else {
                 error(CODE_BADTOKEN, "Parameter \"%s\" not found in the shader\n", params[i]);
             }
         }
@@ -516,62 +531,63 @@ int CProgrammableShaderInstance::getParameter(const char *name, void *dest, CVar
             }
 
             switch (cParameter->type) {
-            case TYPE_FLOAT:
-                destFloat = (float *)dest;
-                srcFloat = (const float *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--)
-                    *destFloat++ = *srcFloat++;
-                break;
-            case TYPE_COLOR:
-            case TYPE_VECTOR:
-            case TYPE_NORMAL:
-            case TYPE_POINT:
-                destFloat = (float *)dest;
-                srcFloat = (const float *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--, destFloat += 3, srcFloat += 3)
-                    movvv(destFloat, srcFloat);
-                break;
-            case TYPE_MATRIX:
-            case TYPE_MPOINT:
-                destFloat = (float *)dest;
-                srcFloat = (const float *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--, destFloat += 16, srcFloat += 16)
-                    movmm(destFloat, srcFloat);
-                break;
-            case TYPE_QUAD:
-                destFloat = (float *)dest;
-                srcFloat = (const float *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--, destFloat += 4, srcFloat += 4)
-                    movqq(destFloat, srcFloat);
-                break;
-            case TYPE_DOUBLE:
-                destFloat = (float *)dest;
-                srcFloat = (const float *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--) {
-                    *destFloat++ = *srcFloat++;
-                    *destFloat++ = *srcFloat++;
-                }
-                break;
-            case TYPE_STRING:
-                destString = (const char **)dest;
-                srcString = (const char **)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--)
-                    *destString++ = *srcString++;
-                break;
-            case TYPE_INTEGER:
-                // This should not be possible
-                error(CODE_BUG, "Integer shader variable in shader \"%s\"\n", name);
-                destInt = (int *)dest;
-                srcInt = (const int *)cParameter->defaultValue;
-                for (j = cParameter->numItems; j > 0; j--)
-                    *destInt++ = *srcInt++;
-                break;
-            default:
-                break;
+                case TYPE_FLOAT:
+                    destFloat = (float *)dest;
+                    srcFloat = (const float *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--)
+                        *destFloat++ = *srcFloat++;
+                    break;
+                case TYPE_COLOR:
+                case TYPE_VECTOR:
+                case TYPE_NORMAL:
+                case TYPE_POINT:
+                    destFloat = (float *)dest;
+                    srcFloat = (const float *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--, destFloat += 3, srcFloat += 3)
+                        movvv(destFloat, srcFloat);
+                    break;
+                case TYPE_MATRIX:
+                case TYPE_MPOINT:
+                    destFloat = (float *)dest;
+                    srcFloat = (const float *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--, destFloat += 16, srcFloat += 16)
+                        movmm(destFloat, srcFloat);
+                    break;
+                case TYPE_QUAD:
+                    destFloat = (float *)dest;
+                    srcFloat = (const float *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--, destFloat += 4, srcFloat += 4)
+                        movqq(destFloat, srcFloat);
+                    break;
+                case TYPE_DOUBLE:
+                    destFloat = (float *)dest;
+                    srcFloat = (const float *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--) {
+                        *destFloat++ = *srcFloat++;
+                        *destFloat++ = *srcFloat++;
+                    }
+                    break;
+                case TYPE_STRING:
+                    destString = (const char **)dest;
+                    srcString = (const char **)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--)
+                        *destString++ = *srcString++;
+                    break;
+                case TYPE_INTEGER:
+                    // This should not be possible
+                    error(CODE_BUG, "Integer shader variable in shader \"%s\"\n", name);
+                    destInt = (int *)dest;
+                    srcInt = (const int *)cParameter->defaultValue;
+                    for (j = cParameter->numItems; j > 0; j--)
+                        *destInt++ = *srcInt++;
+                    break;
+                default:
+                    break;
             }
 
             return TRUE;
-        } else {
+        }
+        else {
             if (!(storage == STORAGE_PARAMETER && parent->type == SL_LIGHTSOURCE))
                 globalNumber++;
         }
@@ -678,7 +694,8 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
         if (cVariable->storage == STORAGE_GLOBAL) {
             destf = (float *)varying[cVariable->entry];
             dests = (const char **)varying[cVariable->entry];
-        } else {
+        }
+        else {
             assert(cVariable->entry < numVariables);
             destf = (float *)locals[cVariable->entry];
             dests = (const char **)locals[cVariable->entry];
@@ -695,14 +712,16 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
                     for (i = cVariable->numFloats; i > 0; i--)
                         *dests++ = *srcs++;
                 }
-            } else {
+            }
+            else {
                 if ((srcf = (const float *)cVariable->defaultValue) != NULL) {
                     int i;
                     for (i = cVariable->numFloats; i > 0; i--)
                         *destf++ = *srcf++;
                 }
             }
-        } else {
+        }
+        else {
 
             // assert(cVariable->numFloats == parent->varyingSizes[cVariable->entry]);
 
@@ -717,7 +736,8 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
                             *dests++ = srcs[i];
                     }
                 }
-            } else {
+            }
+            else {
                 if ((srcf = (const float *)cVariable->defaultValue) != NULL) {
                     int n;
                     const int c = cVariable->numFloats;

@@ -83,7 +83,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
 
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
         const int numVertices = currentShadingState->numVertices;
-        if (numVertices == 0) return;
+        if (numVertices == 0)
+            return;
         float *Pf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *Nf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *thetaf = (float *)alloca(numVertices * sizeof(float));
@@ -388,7 +389,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
 
     if (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) {
         const int numVertices = currentShadingState->numVertices;
-        if (numVertices == 0) return;
+        if (numVertices == 0)
+            return;
         float *Pf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *Nf = (float *)alloca(numVertices * 3 * sizeof(float));
         float *thetaf = (float *)alloca(numVertices * sizeof(float));

@@ -23,41 +23,41 @@
 #define OSHADER_PASSES_PASSMANAGER_H
 
 #include "../ir.h"
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
 // -------------------------------------------------------------------------
 // CIRPass — base interface for all IR passes.
 // -------------------------------------------------------------------------
 class CIRPass {
-public:
-    virtual ~CIRPass() = default;
+    public:
+        virtual ~CIRPass() = default;
 
-    // Transform mod in place.  Returns true if the module was modified.
-    virtual bool run(IRModule &mod) = 0;
+        // Transform mod in place.  Returns true if the module was modified.
+        virtual bool run(IRModule &mod) = 0;
 
-    // Human-readable name for logging and -dump-ir output.
-    virtual const char *name() const = 0;
+        // Human-readable name for logging and -dump-ir output.
+        virtual const char *name() const = 0;
 };
 
 // -------------------------------------------------------------------------
 // CPassManager — runs a sequence of CIRPass on an IRModule.
 // -------------------------------------------------------------------------
 class CPassManager {
-public:
-    CPassManager()  = default;
-    ~CPassManager() = default;
+    public:
+        CPassManager() = default;
+        ~CPassManager() = default;
 
-    // Add a pass; the manager takes ownership.
-    void addPass(std::unique_ptr<CIRPass> pass);
+        // Add a pass; the manager takes ownership.
+        void addPass(std::unique_ptr<CIRPass> pass);
 
-    // Run all passes on mod.
-    // If dumpIR is true, print the IR to stderr before/after each pass.
-    void run(IRModule &mod, bool dumpIR = false);
+        // Run all passes on mod.
+        // If dumpIR is true, print the IR to stderr before/after each pass.
+        void run(IRModule &mod, bool dumpIR = false);
 
-private:
-    std::vector<std::unique_ptr<CIRPass>> passes_;
+    private:
+        std::vector<std::unique_ptr<CIRPass>> passes_;
 };
 
 #endif // OSHADER_PASSES_PASSMANAGER_H

@@ -64,10 +64,10 @@ class CDataView {
         CDataView() {}
         virtual ~CDataView() {}
 
-        virtual void draw() = 0;                            // The draw the data
-        virtual void bound(float *bmin, float *bmax) = 0;   // Bound the data
-        virtual int keyDown(int /*key*/) { return FALSE; }  // Called when the user presses a key
-                                                            // return TRUE if the data needs to be updated
+        virtual void draw() = 0;                           // The draw the data
+        virtual void bound(float *bmin, float *bmax) = 0;  // Bound the data
+        virtual int keyDown(int /*key*/) { return FALSE; } // Called when the user presses a key
+                                                           // return TRUE if the data needs to be updated
 
         // Structured state accessors (FR-016): replace the stdout printf()s that used to be
         // the only way to observe channel/detail-level/draw-mode state. Bases default to the

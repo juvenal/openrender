@@ -113,14 +113,16 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
         float maxDiff01;
         if (diff11 > diff01) {
             maxDiff01 = diff11;
-        } else {
+        }
+        else {
             maxDiff01 = diff01;
         }
         float diff21 = bmax[2] - bmin[2];
         float rootSide;
         if (diff21 > maxDiff01) {
             rootSide = diff21;
-        } else {
+        }
+        else {
             rootSide = maxDiff01;
         }
         root->side = rootSide;
@@ -128,7 +130,8 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
         for (int i = 0; i < 8; i++)
             root->children[i] = NULL;
 #endif
-    } else {
+    }
+    else {
 
         // Make sure we have a root
         balance();
@@ -226,7 +229,8 @@ void CPhotonMap::write(const CXform *) {
             }
 
             fclose(out);
-        } else {
+        }
+        else {
             error(CODE_BADFILE, "Failed to open \"%s\" for writing\n", name);
         }
 
@@ -353,7 +357,8 @@ void CPhotonMap::insert(const float *C, const float *P, const float *N, float dP
             for (i = 0; i < 3; i++) {
                 if (P[i] > cNode->center[i]) {
                     nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
-                } else {
+                }
+                else {
                     nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
                 }
             }
@@ -573,13 +578,15 @@ void CPhotonMap::draw() {
         float maxC01;
         if (cT->C[1] > cT->C[0]) {
             maxC01 = cT->C[1];
-        } else {
+        }
+        else {
             maxC01 = cT->C[0];
         }
         float maxChannel;
         if (cT->C[2] > maxC01) {
             maxChannel = cT->C[2];
-        } else {
+        }
+        else {
             maxChannel = maxC01;
         }
 

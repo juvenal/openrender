@@ -28,24 +28,29 @@
 #include <string>
 #include <unistd.h>
 
+#include "ri/core/shader.h"
+#include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
-#include "ri/parse/ri.h"
-#include "ri/core/shader.h"
 
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
-static bool writeFixture(const std::string &path, const std::string &shaderKind,
-                          const std::string &shaderName, const std::string &paramDecl,
-                          const std::string &body) {
+static bool writeFixture(const std::string &path, const std::string &shaderKind, const std::string &shaderName, const std::string &paramDecl, const std::string &body) {
     FILE *f = fopen(path.c_str(), "w");
-    if (!f) return false;
+    if (!f)
+        return false;
     fprintf(f, "%s %s(\n%s\n) {\n%s}\n",
             shaderKind.c_str(), shaderName.c_str(), paramDecl.c_str(), body.c_str());
     fclose(f);
@@ -54,10 +59,9 @@ static bool writeFixture(const std::string &path, const std::string &shaderKind,
 
 // Invoke the real oshader CLI (built by this project) to compile srcPath to
 // outPath, optionally with --jit. Returns true on a clean (exit 0) run.
-static bool runOshader(const char *oshaderBin, const std::string &srcPath,
-                        const std::string &outPath, bool jit) {
+static bool runOshader(const char *oshaderBin, const std::string &srcPath, const std::string &outPath, bool jit) {
     std::string cmd = std::string("\"") + oshaderBin + "\" " + (jit ? "--jit " : "") +
-                       "-o \"" + outPath + "\" \"" + srcPath + "\" >/dev/null 2>&1";
+                      "-o \"" + outPath + "\" \"" + srcPath + "\" >/dev/null 2>&1";
     int rc = system(cmd.c_str());
     return rc == 0;
 }
@@ -68,26 +72,29 @@ static bool runOshader(const char *oshaderBin, const std::string &srcPath,
 // match exactly (rendererContext.cpp:273), so this must track the fixture's
 // actual declared kind, not just always use SL_SURFACE.
 static int slTypeForShaderKind(const char *shaderKind) {
-    if (strcmp(shaderKind, "light") == 0) return SL_LIGHTSOURCE;
-    if (strcmp(shaderKind, "displacement") == 0) return SL_DISPLACEMENT;
+    if (strcmp(shaderKind, "light") == 0)
+        return SL_LIGHTSOURCE;
+    if (strcmp(shaderKind, "displacement") == 0)
+        return SL_DISPLACEMENT;
     return SL_SURFACE;
 }
 
 // Compiles the given fixture (shaderKind/paramDecl/body) to both .slo and
 // .rslo under a fresh temp dir, loads both through the real getShader()
 // runtime path, and asserts usedParameters is bit-for-bit identical.
-static void runOracleFixture(const char *label, const char *shaderKind,
-                              const char *paramDecl, const char *body) {
+static void runOracleFixture(const char *label, const char *shaderKind, const char *paramDecl, const char *body) {
     printf("%s: usedParameters bit-for-bit identical between .slo and .rslo loads\n", label);
 
     const char *oshaderBin = getenv("OSHADER_BIN");
     EXPECT_TRUE(oshaderBin != nullptr);
-    if (!oshaderBin) return;
+    if (!oshaderBin)
+        return;
 
     char tmplBuf[] = "/tmp/shading_parity_oracle_XXXXXX";
     char *tmpDir = mkdtemp(tmplBuf);
     EXPECT_TRUE(tmpDir != nullptr);
-    if (!tmpDir) return;
+    if (!tmpDir)
+        return;
 
     const std::string dir = tmpDir;
     const std::string base = std::string("parity_") + label;
@@ -140,15 +147,18 @@ static void runOracleFixture(const char *label, const char *shaderKind,
         }
     }
 
-    if (sloInstance) sloInstance->detach();
-    if (rsloInstance) rsloInstance->detach();
+    if (sloInstance)
+        sloInstance->detach();
+    if (rsloInstance)
+        rsloInstance->detach();
 
     RiEnd();
 
     // Reported rather than discarded: a silent failure here would leave every
     // later test in this binary resolving relative paths from the wrong
     // directory. (A (void) cast would not silence warn_unused_result.)
-    if (chdir(savedCwd) != 0) perror("chdir (restoring working directory)");
+    if (chdir(savedCwd) != 0)
+        perror("chdir (restoring working directory)");
 }
 
 // T010: fixture never assigns Ci or Oi, and references no other RSL
@@ -157,46 +167,46 @@ static void runOracleFixture(const char *label, const char *shaderKind,
 // .slo/.rslo runtime load path.
 static void test_never_ci_oi() {
     runOracleFixture("never_ci_oi", "surface",
-                      "    float dummy = 1.0",
-                      "    float unused = dummy * 2.0;\n");
+                     "    float dummy = 1.0",
+                     "    float unused = dummy * 2.0;\n");
 }
 
 // T015(a): a surface calling trace() -- PARAMETER_RAYTRACE.
 static void test_raytrace() {
     runOracleFixture("raytrace", "surface",
-                      "    float dummy = 1.0",
-                      "    color C = trace(P, I);\n"
-                      "    Ci = C * dummy;\n"
-                      "    Oi = Os;\n");
+                     "    float dummy = 1.0",
+                     "    color C = trace(P, I);\n"
+                     "    Ci = C * dummy;\n"
+                     "    Oi = Os;\n");
 }
 
 // T015(b): a displacement calling surface() (message passing) --
 // PARAMETER_MESSAGEPASSING.
 static void test_messagepassing() {
     runOracleFixture("messagepassing", "displacement",
-                      "    float dummy = 1.0",
-                      "    float val = 0;\n"
-                      "    float found = surface(\"Kd\", val);\n"
-                      "    P += N * (dummy * 0 * found);\n");
+                     "    float dummy = 1.0",
+                     "    float val = 0;\n"
+                     "    float found = surface(\"Kd\", val);\n"
+                     "    P += N * (dummy * 0 * found);\n");
 }
 
 // T015(c): a light calling illuminate() -- PARAMETER_NONAMBIENT.
 static void test_nonambient() {
     runOracleFixture("nonambient", "light",
-                      "    float intensity = 1.0",
-                      "    illuminate(P) {\n"
-                      "        Cl = intensity;\n"
-                      "    }\n");
+                     "    float intensity = 1.0",
+                     "    illuminate(P) {\n"
+                     "        Cl = intensity;\n"
+                     "    }\n");
 }
 
 // T015(d): a surface calling texture() with no literal du/dv token --
 // derivative-family bits set by opcode, not by variable-name scan.
 static void test_derivative_via_builtin() {
     runOracleFixture("derivative", "surface",
-                      "    string texturename = \"\";\n    float scale = 1.0",
-                      "    color C = texture(texturename);\n"
-                      "    Ci = C * scale;\n"
-                      "    Oi = Os;\n");
+                     "    string texturename = \"\";\n    float scale = 1.0",
+                     "    color C = texture(texturename);\n"
+                     "    Ci = C * scale;\n"
+                     "    Oi = Os;\n");
 }
 
 int main() {

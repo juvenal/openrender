@@ -139,7 +139,9 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     // fovDeg encloses the bounding sphere with headroom.
     float dirX = 0.5f, dirY = 0.4f, dirZ = 1.0f;
     float dirLen = std::sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-    dirX /= dirLen; dirY /= dirLen; dirZ /= dirLen;
+    dirX /= dirLen;
+    dirY /= dirLen;
+    dirZ /= dirLen;
 
     float distance = (radius * 1.5f) / std::sin(fovRad * 0.5f);
     float eyeX = cx + dirX * distance;
@@ -160,7 +162,9 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     float xy = upZ * zx - upX * zz;
     float xz = upX * zy - upY * zx;
     float xlen = std::sqrt(xx * xx + xy * xy + xz * xz);
-    xx /= xlen; xy /= xlen; xz /= xlen;
+    xx /= xlen;
+    xy /= xlen;
+    xz /= xlen;
     // y = z x x
     float yx = zy * xz - zz * xy;
     float yy = zz * xx - zx * xz;
@@ -181,10 +185,22 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     // camera export (cameraToWorldMatrix) round-trips correctly. Camera-to-world here is the
     // transpose of the look-at rotation (X/Y/Z basis rows above), with translation = eye.
     float view[16] = {
-        xx, yx, zx, eyeX,
-        xy, yy, zy, eyeY,
-        xz, yz, zz, eyeZ,
-        0, 0, 0, 1,
+        xx,
+        yx,
+        zx,
+        eyeX,
+        xy,
+        yy,
+        zy,
+        eyeY,
+        xz,
+        yz,
+        zz,
+        eyeZ,
+        0,
+        0,
+        0,
+        1,
     };
     std::memcpy(cam.viewMatrix, view, sizeof(view));
 
@@ -194,10 +210,22 @@ static PreviewCamera synthesizeCamera(const AABB &bounds) {
     float f = 1.0f / std::tan(fovRad * 0.5f);
     float nearP = cam.nearPlane, farP = cam.farPlane;
     float proj[16] = {
-        f, 0, 0, 0,
-        0, f, 0, 0,
-        0, 0, farP / (farP - nearP), -(farP * nearP) / (farP - nearP),
-        0, 0, 1, 0,
+        f,
+        0,
+        0,
+        0,
+        0,
+        f,
+        0,
+        0,
+        0,
+        0,
+        farP / (farP - nearP),
+        -(farP * nearP) / (farP - nearP),
+        0,
+        0,
+        1,
+        0,
     };
     std::memcpy(cam.projMatrix, proj, sizeof(proj));
 
@@ -259,20 +287,26 @@ void buildDataScene(CDataView *view, RibDataType documentType, DataScene &scene)
 
 static RibDataType mapDataFileType(EDataFileType t) {
     switch (t) {
-        case DATA_PHOTONMAP: return RIBDATA_TYPE_PHOTONMAP;
-        case DATA_IRRADIANCECACHE: return RIBDATA_TYPE_IRRADIANCECACHE;
-        case DATA_GATHERCACHE: return RIBDATA_TYPE_GATHERCACHE;
-        case DATA_POINTCLOUD: return RIBDATA_TYPE_POINTCLOUD;
-        case DATA_BRICKMAP: return RIBDATA_TYPE_BRICKMAP;
-        default: return RIBDATA_TYPE_DEBUGDUMP;
+        case DATA_PHOTONMAP:
+            return RIBDATA_TYPE_PHOTONMAP;
+        case DATA_IRRADIANCECACHE:
+            return RIBDATA_TYPE_IRRADIANCECACHE;
+        case DATA_GATHERCACHE:
+            return RIBDATA_TYPE_GATHERCACHE;
+        case DATA_POINTCLOUD:
+            return RIBDATA_TYPE_POINTCLOUD;
+        case DATA_BRICKMAP:
+            return RIBDATA_TYPE_BRICKMAP;
+        default:
+            return RIBDATA_TYPE_DEBUGDUMP;
     }
 }
 
 struct RibDataDocument {
-    CDataDocument doc;
-    RibDataType type;
-    DataScene scene;
-    DataSceneC sceneC{};
+        CDataDocument doc;
+        RibDataType type;
+        DataScene scene;
+        DataSceneC sceneC{};
 };
 
 static void packSnapshot(RibDataDocument *d) {

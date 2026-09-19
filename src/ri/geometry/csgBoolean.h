@@ -137,7 +137,7 @@ class CCSGBSPNode {
         int hasPlane;
         float planeNormal[3];
         float planeD;
-        float planeEpsilon; // Plane-classification tolerance, set at construction and inherited by front/back children (see csgComputeEpsilon)
+        float planeEpsilon;             // Plane-classification tolerance, set at construction and inherited by front/back children (see csgComputeEpsilon)
         CArray<CCSGPolygon *> polygons; // Coplanar with this node's splitting plane
         CCSGBSPNode *front, *back;
 };

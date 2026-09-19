@@ -28,9 +28,9 @@
 #include <string.h>
 
 #include "displayChannel.h"
+#include "error.h"
 #include "imager.h"
 #include "includes/logging.hpp"
-#include "error.h"
 #include "memory.h"
 #include "options.h"
 #include "remoteChannel.h"
@@ -69,50 +69,64 @@ void *findParameter(const char *name, ParameterType type, int numItems) {
             if (currentDisplay->quantizer[0] == -1) {
                 if (!strcmp(currentDisplay->outSamples, "z")) {
                     return CRenderer::depthQuantizer;
-                } else {
+                }
+                else {
                     return CRenderer::colorQuantizer;
                 }
-            } else {
+            }
+            else {
                 return currentDisplay->quantizer;
             }
         }
-    } else if (strcmp(name, "dither") == 0) {
+    }
+    else if (strcmp(name, "dither") == 0) {
         if ((numItems == 1) && (type == FLOAT_PARAMETER)) {
             if (currentDisplay->quantizer[0] == -1) {
                 if (!strcmp(currentDisplay->outSamples, "z")) {
                     return CRenderer::depthQuantizer + 4;
-                } else {
+                }
+                else {
                     return CRenderer::colorQuantizer + 4;
                 }
-            } else {
+            }
+            else {
                 return currentDisplay->quantizer + 4;
             }
         }
-    } else if (strcmp(name, "near") == 0) {
+    }
+    else if (strcmp(name, "near") == 0) {
         if ((numItems == 1) && (type == FLOAT_PARAMETER))
             return &CRenderer::clipMin;
-    } else if (strcmp(name, "far") == 0) {
+    }
+    else if (strcmp(name, "far") == 0) {
         if ((numItems == 1) && (type == FLOAT_PARAMETER))
             return &CRenderer::clipMax;
-    } else if (strcmp(name, "Nl") == 0) {
+    }
+    else if (strcmp(name, "Nl") == 0) {
         if ((numItems == 16) && (type == FLOAT_PARAMETER))
             return &CRenderer::fromWorld;
-    } else if (strcmp(name, "NP") == 0) {
+    }
+    else if (strcmp(name, "NP") == 0) {
         if ((numItems == 16) && (type == FLOAT_PARAMETER))
             return &CRenderer::worldToNDC;
-    } else if (strcmp(name, "screen") == 0) {
+    }
+    else if (strcmp(name, "screen") == 0) {
         if ((numItems == 16) && (type == FLOAT_PARAMETER))
             return &CRenderer::toScreen;
-    } else if (strcmp(name, "gamma") == 0) {
+    }
+    else if (strcmp(name, "gamma") == 0) {
         if ((numItems == 1) && (type == FLOAT_PARAMETER))
             return &CRenderer::gamma;
-    } else if (strcmp(name, "gain") == 0) {
+    }
+    else if (strcmp(name, "gain") == 0) {
         if ((numItems == 1) && (type == FLOAT_PARAMETER))
             return &CRenderer::gain;
-    } else if (strcmp(name, "Software") == 0) {
+    }
+    else if (strcmp(name, "Software") == 0) {
         if ((numItems == 1) && (type == STRING_PARAMETER))
             return (void *)OPENRENDER_PROJECT_NAME;
-    } else if (strcmp(name, "type") == 0 && currentDisplay) {
+    }
+    else if (strcmp(name, "type") == 0 && currentDisplay) {
         if ((numItems == 1) && (type == STRING_PARAMETER))
             return (void *)currentDisplay->outDevice;
     }
@@ -129,27 +143,38 @@ void *findParameter(const char *name, ParameterType type, int numItems) {
 int CRenderer::getAOVFilter(const char *name) {
     if (strcmp(name, RI_ZMIN) == 0) {
         return AOV_FILTER_ZMIN;
-    } else if (strcmp(name, RI_ZMAX) == 0) {
+    }
+    else if (strcmp(name, RI_ZMAX) == 0) {
         return AOV_FILTER_ZMAX;
-    } else if (strcmp(name, RI_MIN) == 0) {
+    }
+    else if (strcmp(name, RI_MIN) == 0) {
         return AOV_FILTER_MIN;
-    } else if (strcmp(name, RI_MAX) == 0) {
+    }
+    else if (strcmp(name, RI_MAX) == 0) {
         return AOV_FILTER_MAX;
-    } else if (strcmp(name, RI_AVERAGE) == 0) {
+    }
+    else if (strcmp(name, RI_AVERAGE) == 0) {
         return AOV_FILTER_AVERAGE;
-    } else if (strcmp(name, RI_GAUSSIANFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_GAUSSIANFILTER) == 0) {
         return AOV_FILTER_GAUSSIAN;
-    } else if (strcmp(name, RI_BOXFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BOXFILTER) == 0) {
         return AOV_FILTER_BOX;
-    } else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_TRIANGLEFILTER) == 0) {
         return AOV_FILTER_TRIANGLE;
-    } else if (strcmp(name, RI_SINCFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_SINCFILTER) == 0) {
         return AOV_FILTER_SINC;
-    } else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_CATMULLROMFILTER) == 0) {
         return AOV_FILTER_CATMULLROM;
-    } else if (strcmp(name, RI_BLACKMANHARRISFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_BLACKMANHARRISFILTER) == 0) {
         return AOV_FILTER_BLACKMANHARRIS;
-    } else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
+    }
+    else if (strcmp(name, RI_MITCHELLFILTER) == 0) {
         return AOV_FILTER_MITCHELL;
     }
 
@@ -271,14 +296,14 @@ void CRenderer::dispatch(int left, int top, int width, int height, float *pixels
     // Per RenderMan spec: apply exposure (gain/gamma) to color (Ci) and coverage (Oi)
     // before the imager shader.  Depth and AOV channels (index >= 4) are not affected.
     if ((CRenderer::gain != 1.0f) || (CRenderer::gamma != 1.0f)) {
-        const float inv  = 1.0f / CRenderer::gamma;
-        const int   npix = width * height;
+        const float inv = 1.0f / CRenderer::gamma;
+        const int npix = width * height;
         for (int p = 0; p < npix; p++) {
             float *px = pixels + p * numSamples;
-            px[0] = powf(CRenderer::gain * px[0], inv);  // Ci.r
-            px[1] = powf(CRenderer::gain * px[1], inv);  // Ci.g
-            px[2] = powf(CRenderer::gain * px[2], inv);  // Ci.b
-            px[3] = powf(CRenderer::gain * px[3], inv);  // Oi/coverage
+            px[0] = powf(CRenderer::gain * px[0], inv); // Ci.r
+            px[1] = powf(CRenderer::gain * px[1], inv); // Ci.g
+            px[2] = powf(CRenderer::gain * px[2], inv); // Ci.b
+            px[3] = powf(CRenderer::gain * px[3], inv); // Oi/coverage
         }
     }
 
@@ -454,62 +479,64 @@ void CRenderer::getDisplayName(char *out, const char *in, const char *displayTyp
                 widthString[width] = '\0';
                 sscanf(widthString, "%d", &width);
                 snprintf(widthString, sizeof(widthString), "%%0%dd", width);
-            } else {
+            }
+            else {
                 snprintf(widthString, sizeof(widthString), "%%d");
             }
 
             char numBuf[32];
             switch (*cIn++) {
-            case 'f':
-                snprintf(numBuf, sizeof(numBuf), widthString, (int)frame);
-                strcpy(cOut, numBuf);
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 's':
-                snprintf(numBuf, sizeof(numBuf), widthString, stats.sequenceNumber);
-                strcpy(cOut, numBuf);
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 'n':
-                snprintf(numBuf, sizeof(numBuf), widthString, stats.runningSequenceNumber);
-                strcpy(cOut, numBuf);
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 'h':
-                char hostName[1024];
-                gethostname(hostName, 1024);
-                strcpy(cOut, hostName);
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 'd':
-                strcpy(cOut, displayType);
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 'p':
-                strcpy(cOut, "0");
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case 'P':
-                strcpy(cOut, "0");
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            case '#':
-                strcpy(cOut, "#");
-                while (*cOut != '\0')
-                    cOut++;
-                break;
-            default:
-                error(CODE_BADTOKEN, "Unknown display stub %c\n", *cIn);
-                break;
+                case 'f':
+                    snprintf(numBuf, sizeof(numBuf), widthString, (int)frame);
+                    strcpy(cOut, numBuf);
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 's':
+                    snprintf(numBuf, sizeof(numBuf), widthString, stats.sequenceNumber);
+                    strcpy(cOut, numBuf);
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 'n':
+                    snprintf(numBuf, sizeof(numBuf), widthString, stats.runningSequenceNumber);
+                    strcpy(cOut, numBuf);
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 'h':
+                    char hostName[1024];
+                    gethostname(hostName, 1024);
+                    strcpy(cOut, hostName);
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 'd':
+                    strcpy(cOut, displayType);
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 'p':
+                    strcpy(cOut, "0");
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case 'P':
+                    strcpy(cOut, "0");
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                case '#':
+                    strcpy(cOut, "#");
+                    while (*cOut != '\0')
+                        cOut++;
+                    break;
+                default:
+                    error(CODE_BADTOKEN, "Unknown display stub %c\n", *cIn);
+                    break;
             }
-        } else {
+        }
+        else {
             *cOut++ = *cIn++;
         }
     }
@@ -606,14 +633,16 @@ void CRenderer::computeDisplayData() {
                         oChannel->outType = oChannel->variable->entry;
                     }
                 }
-            } else {
+            }
+            else {
                 // it's an old-style AOV
 
                 if (hiderFlags & HIDER_RGBAZ_ONLY) {
                     error(CODE_BADTOKEN, "Hider \"%s\" cannot handle arbitrary output variables\n", hider);
                     dspError = TRUE;
                     break;
-                } else {
+                }
+                else {
                     CVariable *cVar = retrieveVariable(sampleName);
 
                     // if it's an inline declaration but it's not defined yet, declare it
@@ -625,12 +654,14 @@ void CRenderer::computeDisplayData() {
                         // Make sure the variable is global
                         if (cVar->storage != STORAGE_GLOBAL) {
                             makeGlobalVariable(cVar);
-                        } else if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {
+                        }
+                        else if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {
                             error(CODE_BADTOKEN, "Failed to find output variable or display channel \"%s\"\n", sampleName);
                             dspError = TRUE;
                             break;
                         }
-                    } else {
+                    }
+                    else {
                         error(CODE_BADTOKEN, "Failed to find output variable or display channel \"%s\"\n", sampleName);
                         dspError = TRUE;
                         break;
@@ -728,16 +759,20 @@ void CRenderer::computeDisplayData() {
             // The sanity check
             if ((1 << header.tileShift) != bucketWidth) {
                 error(CODE_LIMIT, "Bucket width must be a power of 2 for TSM: %d\n", bucketWidth);
-            } else {
+            }
+            else {
                 if (bucketWidth != bucketHeight) {
                     error(CODE_LIMIT, "Bucket width and height must be same for TSM: (%d,%d)\n", bucketWidth, bucketHeight);
-                } else {
+                }
+                else {
                     if (strcmp(hider, "reyes") != 0) {
                         error(CODE_LIMIT, "Hider must be reyes (or hidden, or the deprecated stochastic alias) for TSM\n");
-                    } else {
+                    }
+                    else {
                         if (deepShadowFile != NULL) {
                             error(CODE_LIMIT, "There can only be one TSM output\n");
-                        } else {
+                        }
+                        else {
                             if (netClient != INVALID_SOCKET) {
                                 char tempTsmName[OS_MAX_PATH_LENGTH];
 
@@ -751,7 +786,8 @@ void CRenderer::computeDisplayData() {
 
                                 // register temporary for deletion
                                 registerFrameTemporary(tempTsmName, TRUE);
-                            } else {
+                            }
+                            else {
                                 deepShadowFile = ropen(displayName, "wb", fileTransparencyShadow);
                             }
 
@@ -784,7 +820,8 @@ void CRenderer::computeDisplayData() {
                     }
                 }
             }
-        } else if (netClient == INVALID_SOCKET) {
+        }
+        else if (netClient == INVALID_SOCKET) {
 
             // Is this a custom display driver?
             if (strcmp(outDevice, "custom") == 0) {
@@ -793,7 +830,8 @@ void CRenderer::computeDisplayData() {
                 datas[numDisplays].data = (TDisplayDataFunction)cDisplay->dataFunction;
                 datas[numDisplays].rawData = NULL;
                 datas[numDisplays].finish = (TDisplayFinishFunction)cDisplay->finishFunction;
-            } else {
+            }
+            else {
 
                 // Load the display driver
                 if (locateFileEx(deviceFile, outDevice, osModuleExtension, displayPath)) {
@@ -802,7 +840,8 @@ void CRenderer::computeDisplayData() {
                     datas[numDisplays].data = (TDisplayDataFunction)osResolve(datas[numDisplays].module, "displayData");
                     datas[numDisplays].rawData = (TDisplayRawDataFunction)osResolve(datas[numDisplays].module, "displayRawData");
                     datas[numDisplays].finish = (TDisplayFinishFunction)osResolve(datas[numDisplays].module, "displayFinish");
-                } else {
+                }
+                else {
                     datas[numDisplays].module = NULL;
                     error(CODE_SYSTEM, "Failed to open out device \"%s\" (error: %s)\n", cDisplay->outDevice, osModuleError());
                 }
@@ -814,19 +853,22 @@ void CRenderer::computeDisplayData() {
                 if (datas[numDisplays].module != outDevice)
                     osUnloadModule(datas[numDisplays].module);
                 datas[numDisplays].module = NULL;
-            } else {
+            }
+            else {
                 currentDisplay = cDisplay;
                 datas[numDisplays].handle = datas[numDisplays].start(displayName, xres, yres, datas[numDisplays].numSamples, cDisplay->outSamples, findParameter);
                 // GSHTODO: above sample names are now quite incorrect
                 if (datas[numDisplays].handle != NULL) {
                     numActiveDisplays++;
-                } else {
+                }
+                else {
                     if (datas[numDisplays].module != outDevice)
                         osUnloadModule(datas[numDisplays].module);
                     datas[numDisplays].module = NULL;
                 }
             }
-        } else {
+        }
+        else {
             datas[numDisplays].module = NULL;
             datas[numDisplays].handle = NULL;
         }
@@ -862,7 +904,8 @@ void CRenderer::computeDisplayData() {
             if (datas[i].channels[j].fill) {
                 for (s = 0; s < datas[i].channels[j].numSamples; s++)
                     sampleDefaults[sampleOffset + s] = datas[i].channels[j].fill[s];
-            } else {
+            }
+            else {
                 for (s = 0; s < datas[i].channels[j].numSamples; s++)
                     sampleDefaults[sampleOffset + s] = 0;
             }
@@ -882,7 +925,8 @@ void CRenderer::computeDisplayData() {
                 compChannelOrder[numExtraCompChannels * 4 + 2] = datas[i].channels[j].matteMode;
                 compChannelOrder[numExtraCompChannels * 4 + 3] = datas[i].channels[j].outType;
                 numExtraCompChannels++;
-            } else {
+            }
+            else {
                 nonCompChannelOrder[numExtraNonCompChannels * 4 + 0] = sampleOffset;
                 nonCompChannelOrder[numExtraNonCompChannels * 4 + 1] = datas[i].channels[j].numSamples;
                 nonCompChannelOrder[numExtraNonCompChannels * 4 + 2] = datas[i].channels[j].matteMode;

@@ -32,8 +32,8 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "logging.hpp"
-#include "ri/render/renderer.h"
 #include "ri/hiders/reyes.h"
+#include "ri/render/renderer.h"
 
 typedef struct {
         double *val;
@@ -89,7 +89,8 @@ static void print(FILE *out, T *a, int n, const char *outName, const char *outTy
             if (((i + 1) % 8) == 0)
                 fprintf(out, "\n\t");
         }
-    } else {
+    }
+    else {
         for (i = 0; i < n; i++) {
             if (i == 0)
                 fprintf(out, "%d", (int)a[i]);
@@ -219,7 +220,8 @@ int precomputeSubdivisionData() {
     basis[14] = 0 / 6.0;
     basis[15] = 0 / 6.0;
 
-    if (fread(&Nmax, sizeof(int), 1, f) != 1) { /* read error */ }
+    if (fread(&Nmax, sizeof(int), 1, f) != 1) { /* read error */
+    }
 
     ev = (TEvalStruct **)malloc((Nmax - 2) * sizeof(TEvalStruct *));
 
@@ -239,11 +241,16 @@ int precomputeSubdivisionData() {
         ev[i]->Phi2[1] = (double *)malloc(K * 16 * sizeof(double));
         ev[i]->Phi2[2] = (double *)malloc(K * 16 * sizeof(double));
 
-        if (fread(ev[i]->val,    sizeof(double), K,      f) != (size_t)K)      { /* read error */ }
-        if (fread(ev[i]->vecI,  sizeof(double), K * K,  f) != (size_t)(K * K)) { /* read error */ }
-        if (fread(ev[i]->Phi[0],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
-        if (fread(ev[i]->Phi[1],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
-        if (fread(ev[i]->Phi[2],sizeof(double), K * 16, f) != (size_t)(K * 16)){ /* read error */ }
+        if (fread(ev[i]->val, sizeof(double), K, f) != (size_t)K) { /* read error */
+        }
+        if (fread(ev[i]->vecI, sizeof(double), K * K, f) != (size_t)(K * K)) { /* read error */
+        }
+        if (fread(ev[i]->Phi[0], sizeof(double), K * 16, f) != (size_t)(K * 16)) { /* read error */
+        }
+        if (fread(ev[i]->Phi[1], sizeof(double), K * 16, f) != (size_t)(K * 16)) { /* read error */
+        }
+        if (fread(ev[i]->Phi[2], sizeof(double), K * 16, f) != (size_t)(K * 16)) { /* read error */
+        }
 
         {
             int oi, oj, ok;
@@ -342,7 +349,8 @@ void ouputStochasticFuntionName(FILE *out, unsigned int i) {
 
     if (i & (RASTER_DEPTHFILT_MASK << RASTER_HIGHBITS_SHIFT)) {
         fprintf(out, "Zmid");
-    } else {
+    }
+    else {
         fprintf(out, "Zmin");
     }
 
@@ -401,7 +409,8 @@ int precomputeStochasticPrimitivesH() {
                 fprintf(out, "\tbreak;\n");
                 continue;
             }
-        } else {
+        }
+        else {
             if (i & RASTER_UNDERCULL) {
                 fprintf(out, "\tbreak;\n");
                 continue;
@@ -445,7 +454,8 @@ int precomputeStochasticPrimitivesH() {
                 if ((i & RASTER_MATTE) || (i & RASTER_TRANSPARENT) || (i & RASTER_LOD)) {
                     continue;
                 }
-            } else {
+            }
+            else {
                 if (i & RASTER_UNDERCULL) {
                     continue;
                 }
@@ -497,7 +507,8 @@ int precomputeStochasticPrimitivesH() {
                 fprintf(out, "\t#define depthFilterIf()\t\tdepthFilterIfZMid()\n");
                 fprintf(out, "\t#define depthFilterElse()\tdepthFilterElseZMid()\n");
                 fprintf(out, "\t#define depthFilterTouchNode()\tdepthFilterTouchNodeZMid()\n");
-            } else {
+            }
+            else {
                 fprintf(out, "\t#define depthFilterIf()\t\tdepthFilterIfZMin()\n");
                 fprintf(out, "\t#define depthFilterElse()\tdepthFilterElseZMin()\n");
                 fprintf(out, "\t#define depthFilterTouchNode()\tdepthFilterTouchNodeZMin()\n");
@@ -505,7 +516,8 @@ int precomputeStochasticPrimitivesH() {
 
             if (i & RASTER_POINT) {
                 fprintf(out, "\n\n\t\t#include \"stochasticPoint.h\"\n");
-            } else {
+            }
+            else {
                 fprintf(out, "\n\n\t\t#include \"stochasticQuad.h\"\n\n\n");
             }
 
@@ -547,7 +559,7 @@ int precomputeStochasticPrimitivesH() {
 // Description			:	Do the thing baby
 // Return Value			:	0 on success, 1 on failure
 // Comments				:
-int main(int, char**) {
+int main(int, char **) {
 
     // Default log level is NONE for CLI-style utilities unless explicitly overridden.
     set_log_level(LogLevel::NONE);

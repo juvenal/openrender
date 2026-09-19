@@ -120,7 +120,8 @@ void CPhotonHider::renderingLoop() {
 
         if (job.type == CRenderer::CJob::TERMINATE) {
             break;
-        } else if (job.type == CRenderer::CJob::PHOTON_BUNDLE) {
+        }
+        else if (job.type == CRenderer::CJob::PHOTON_BUNDLE) {
 
             // Compute the world bounding sphere
             vector tmp;
@@ -149,7 +150,8 @@ void CPhotonHider::renderingLoop() {
                         int numVertices;
                         if (emit < CRenderer::maxGridSize) {
                             numVertices = emit;
-                        } else {
+                        }
+                        else {
                             numVertices = CRenderer::maxGridSize;
                         }
 
@@ -201,7 +203,8 @@ void CPhotonHider::renderingLoop() {
                     }
                 }
             }
-        } else {
+        }
+        else {
             error(CODE_BUG, "Unexpected job type in photon hider\n");
         }
     }
@@ -216,7 +219,8 @@ void CPhotonHider::renderingLoop() {
 void CPhotonHider::solarBegin(const float *L, const float *) {
     if (L == NULL) {
         // FIXME: Don't know how to handle this
-    } else {
+    }
+    else {
         float **varying = currentShadingState->varying;
         float *shaderL = varying[VARIABLE_L];
         float *shaderPs = varying[VARIABLE_PS];
@@ -314,7 +318,8 @@ void CPhotonHider::solarEnd() {
             mulvf(Cc, powerScale * photonPower);
             tracePhoton(Ps, L, Cc, wavelen);
         }
-    } else {
+    }
+    else {
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
             vector T;
 
@@ -359,7 +364,8 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
             normalizev(shaderL);
             addvv(shaderPs, P, shaderL);
         }
-    } else {
+    }
+    else {
         // We must be an area light source
         powerScale = (float)(2 * C_PI);
 
@@ -370,7 +376,8 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         float minDa;
         if (tanTheta < DEFAULT_RAY_DA) {
             minDa = tanTheta;
-        } else {
+        }
+        else {
             minDa = DEFAULT_RAY_DA;
         }
         varying[VARIABLE_PW][0] = minDa;
@@ -445,7 +452,8 @@ void CPhotonHider::illuminateEnd() {
             mulvf(Cc, powerScale * photonPower);
             tracePhoton(Ps, L, Cc, wavelen);
         }
-    } else {
+    }
+    else {
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
             subvv(Ps, L);
             mulvf(Cl, powerScale * photonPower);
@@ -510,246 +518,258 @@ processBounce:;
         // Process this hit
         switch (attributes->shadingModel) {
 
-        // Matte surface
-        case SM_MATTE: {
-            CPhotonMap *globalMap;
-            CPhotonMap *causticMap;
+            // Matte surface
+            case SM_MATTE:
+            {
+                CPhotonMap *globalMap;
+                CPhotonMap *causticMap;
 
-            // Compute the normalized normal vector at the intersection
-            normalizev(Nl, ray.N);
-            if (dotvv(ray.dir, Nl) > 0) {
-                mulvf(Nl, -1);
-            }
-
-            // Save the photon
-            if ((globalMap = attributes->globalMap) != NULL) {
-                if (globalMap->modifying == FALSE) {
-                    // Note: this isn't strictly thread safe, more than one
-                    // thread may end up with the map in the balance list
-                    // but the write() will take care of it
-                    globalMap->modifying = TRUE;
-                    globalMap->reset();
-                    balanceList.push(globalMap);
+                // Compute the normalized normal vector at the intersection
+                normalizev(Nl, ray.N);
+                if (dotvv(ray.dir, Nl) > 0) {
+                    mulvf(Nl, -1);
                 }
 
-                globalMap->store(Pl, Nl, ray.dir, Cl);
-            }
-
-            if ((causticMap = attributes->causticMap) != NULL) {
-                if (lastBounceSpecular) {
-                    if (causticMap->modifying == FALSE) {
-                        // Note: this isn't strictly thread safe, see above
-                        causticMap->modifying = TRUE;
-                        causticMap->reset();
-                        balanceList.push(causticMap);
+                // Save the photon
+                if ((globalMap = attributes->globalMap) != NULL) {
+                    if (globalMap->modifying == FALSE) {
+                        // Note: this isn't strictly thread safe, more than one
+                        // thread may end up with the map in the balance list
+                        // but the write() will take care of it
+                        globalMap->modifying = TRUE;
+                        globalMap->reset();
+                        balanceList.push(globalMap);
                     }
 
-                    causticMap->store(Pl, Nl, ray.dir, Cl);
-
-                    return;
+                    globalMap->store(Pl, Nl, ray.dir, Cl);
                 }
+
+                if ((causticMap = attributes->causticMap) != NULL) {
+                    if (lastBounceSpecular) {
+                        if (causticMap->modifying == FALSE) {
+                            // Note: this isn't strictly thread safe, see above
+                            causticMap->modifying = TRUE;
+                            causticMap->reset();
+                            balanceList.push(causticMap);
+                        }
+
+                        causticMap->store(Pl, Nl, ray.dir, Cl);
+
+                        return;
+                    }
+                }
+
+                // Check if we hit the maximum number of bounces
+                if (numDiffuseBounces >= attributes->maxDiffuseDepth)
+                    return;
+                numDiffuseBounces++;
+
+                // Sample the reflection direction
+                sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), gen4);
+                assert(dotvv(Nl, ray.dir) > 0);
+                normalizev(ray.dir);
+
+                // Bounce the photon
+                mulvv(Cl, surfaceColor);
+
+                // Process the current hit
+                movvv(ray.from, Pl);
+                ray.tmin = attributes->bias;
+                lastBounceSpecular = FALSE;
+
+                // We just hit a diffuse surface, so set the ray differential to something big
+
+                goto processBounce;
             }
 
-            // Check if we hit the maximum number of bounces
-            if (numDiffuseBounces >= attributes->maxDiffuseDepth)
-                return;
-            numDiffuseBounces++;
-
-            // Sample the reflection direction
-            sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), gen4);
-            assert(dotvv(Nl, ray.dir) > 0);
-            normalizev(ray.dir);
-
-            // Bounce the photon
-            mulvv(Cl, surfaceColor);
-
-            // Process the current hit
-            movvv(ray.from, Pl);
-            ray.tmin = attributes->bias;
-            lastBounceSpecular = FALSE;
-
-            // We just hit a diffuse surface, so set the ray differential to something big
-
-            goto processBounce;
-        }
-
-        break;
-
-        case SM_TRANSLUCENT:
-            // Not supported
             break;
-        case SM_CHROME: {
-            vector Ll;
 
-            // Check if we hit the maximum number of bounces
-            if (numSpecularBounces >= attributes->maxSpecularDepth)
-                return;
-            numSpecularBounces++;
+            case SM_TRANSLUCENT:
+                // Not supported
+                break;
+            case SM_CHROME:
+            {
+                vector Ll;
 
-            // Sample the reflection direction
-            normalizev(Nl, ray.N);
-            if (dotvv(ray.dir, Nl) > 0) {
-                mulvf(Nl, -1);
-            }
+                // Check if we hit the maximum number of bounces
+                if (numSpecularBounces >= attributes->maxSpecularDepth)
+                    return;
+                numSpecularBounces++;
 
-            movvv(Ll, ray.dir);
-            reflect(ray.dir, Ll, Nl);
+                // Sample the reflection direction
+                normalizev(Nl, ray.N);
+                if (dotvv(ray.dir, Nl) > 0) {
+                    mulvf(Nl, -1);
+                }
 
-            // Modulate by surface color
-            mulvv(Cl, surfaceColor);
+                movvv(Ll, ray.dir);
+                reflect(ray.dir, Ll, Nl);
 
-            // Bounce the photon
-            movvv(ray.from, Pl);
-            ray.tmin = attributes->bias;
-            lastBounceSpecular = TRUE;
-
-            // No change in the ray differentials
-            goto processBounce;
-        } break;
-
-        case SM_GLASS: {
-            float eta;
-            float Kr, Kt;
-            vector R, T;
-
-            // Check if we hit the maximum number of bounces
-            if (numSpecularBounces >= attributes->maxSpecularDepth)
-                return;
-            numSpecularBounces++;
-
-            // Sample the reflection direction
-            normalizev(Nl, ray.N);
-            if (dotvv(ray.dir, Nl) > 0) {
-                mulvf(Nl, -1);
-                eta = 1 / 1.5f;
-            } else {
-                eta = 1.5f;
-            }
-
-            assert(dotvv(ray.dir, Nl) < 0);
-            fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
-
-            // Decide on reflection or refraction
-            if (urand() <= Kr) {
-                assert(dotvv(R, R) > 0);
-                normalizev(ray.dir, R);
-            } else {
-                assert(dotvv(T, T) > 0);
-                normalizev(ray.dir, T);
-                // Modulate by surface color for transmitted photons
+                // Modulate by surface color
                 mulvv(Cl, surfaceColor);
-            }
 
-            // Bounce the photon
-            movvv(ray.from, Pl);
-            ray.tmin = attributes->bias;
-            lastBounceSpecular = TRUE;
+                // Bounce the photon
+                movvv(ray.from, Pl);
+                ray.tmin = attributes->bias;
+                lastBounceSpecular = TRUE;
 
-            // No change in the ray differential
+                // No change in the ray differentials
+                goto processBounce;
+            } break;
 
-            goto processBounce;
-        } break;
+            case SM_GLASS:
+            {
+                float eta;
+                float Kr, Kt;
+                vector R, T;
 
-        case SM_WATER: {
-            float eta;
-            float Kr, Kt;
-            vector R, T;
+                // Check if we hit the maximum number of bounces
+                if (numSpecularBounces >= attributes->maxSpecularDepth)
+                    return;
+                numSpecularBounces++;
 
-            // Check if we hit the maximum number of bounces
-            if (numSpecularBounces >= attributes->maxSpecularDepth)
-                return;
-            numSpecularBounces++;
+                // Sample the reflection direction
+                normalizev(Nl, ray.N);
+                if (dotvv(ray.dir, Nl) > 0) {
+                    mulvf(Nl, -1);
+                    eta = 1 / 1.5f;
+                }
+                else {
+                    eta = 1.5f;
+                }
 
-            // Sample the reflection direction
-            normalizev(Nl, ray.N);
-            if (dotvv(ray.dir, Nl) > 0) {
-                mulvf(Nl, -1);
-                eta = 1 / 1.3333333f;
-            } else {
-                eta = 1.3333333f;
-            }
+                assert(dotvv(ray.dir, Nl) < 0);
+                fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
 
-            assert(dotvv(ray.dir, Nl) < 0);
-            fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
+                // Decide on reflection or refraction
+                if (urand() <= Kr) {
+                    assert(dotvv(R, R) > 0);
+                    normalizev(ray.dir, R);
+                }
+                else {
+                    assert(dotvv(T, T) > 0);
+                    normalizev(ray.dir, T);
+                    // Modulate by surface color for transmitted photons
+                    mulvv(Cl, surfaceColor);
+                }
 
-            // Decide on reflection or refraction
-            if (urand() <= Kr) {
-                assert(dotvv(R, R) > 0);
-                normalizev(ray.dir, R);
-            } else {
-                assert(dotvv(T, T) > 0);
-                normalizev(ray.dir, T);
-                // Modulate by surface color for transmitted photons
-                mulvv(Cl, surfaceColor);
-            }
+                // Bounce the photon
+                movvv(ray.from, Pl);
+                ray.tmin = attributes->bias;
+                lastBounceSpecular = TRUE;
 
-            // Bounce the photon
-            movvv(ray.from, Pl);
-            ray.tmin = attributes->bias;
-            lastBounceSpecular = TRUE;
+                // No change in the ray differential
 
-            goto processBounce;
-        } break;
+                goto processBounce;
+            } break;
 
-        case SM_DIELECTRIC: {
-            float eta;
-            float Kr, Kt;
-            vector R, T;
+            case SM_WATER:
+            {
+                float eta;
+                float Kr, Kt;
+                vector R, T;
 
-            // Check if we hit the maximum number of bounces
-            if (numSpecularBounces >= attributes->maxSpecularDepth)
-                return;
-            numSpecularBounces++;
+                // Check if we hit the maximum number of bounces
+                if (numSpecularBounces >= attributes->maxSpecularDepth)
+                    return;
+                numSpecularBounces++;
 
-            // Calculate the effective ior
-            float iorR = attributes->photonIor[0];
-            float iorB = attributes->photonIor[1];
+                // Sample the reflection direction
+                normalizev(Nl, ray.N);
+                if (dotvv(ray.dir, Nl) > 0) {
+                    mulvf(Nl, -1);
+                    eta = 1 / 1.3333333f;
+                }
+                else {
+                    eta = 1.3333333f;
+                }
 
-            float ior = (wavelength * iorR + (1.0f - wavelength) * iorB);
+                assert(dotvv(ray.dir, Nl) < 0);
+                fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
 
-            // Sample the reflection direction
-            normalizev(Nl, ray.N);
-            if (dotvv(ray.dir, Nl) > 0) {
-                mulvf(Nl, -1);
-                eta = 1 / ior;
-            } else {
-                eta = ior;
-            }
+                // Decide on reflection or refraction
+                if (urand() <= Kr) {
+                    assert(dotvv(R, R) > 0);
+                    normalizev(ray.dir, R);
+                }
+                else {
+                    assert(dotvv(T, T) > 0);
+                    normalizev(ray.dir, T);
+                    // Modulate by surface color for transmitted photons
+                    mulvv(Cl, surfaceColor);
+                }
 
-            assert(dotvv(ray.dir, Nl) < 0);
-            fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
+                // Bounce the photon
+                movvv(ray.from, Pl);
+                ray.tmin = attributes->bias;
+                lastBounceSpecular = TRUE;
 
-            // Decide on reflection or refraction
-            if (urand() <= Kr) {
-                assert(dotvv(R, R) > 0);
-                normalizev(ray.dir, R);
-            } else {
-                assert(dotvv(T, T) > 0);
-                normalizev(ray.dir, T);
-                // Modulate by surface color for transmitted photons
-                mulvv(Cl, surfaceColor);
-            }
+                goto processBounce;
+            } break;
 
-            // Bounce the photon
-            movvv(ray.from, Pl);
-            ray.tmin = attributes->bias;
-            lastBounceSpecular = TRUE;
+            case SM_DIELECTRIC:
+            {
+                float eta;
+                float Kr, Kt;
+                vector R, T;
 
-            // No change in the ray differential
-            goto processBounce;
-        } break;
-        case SM_TRANSPARENT: {
-            vector tmp;
+                // Check if we hit the maximum number of bounces
+                if (numSpecularBounces >= attributes->maxSpecularDepth)
+                    return;
+                numSpecularBounces++;
 
-            // Just keep on tracing the ray
-            mulvf(tmp, ray.dir, ray.t);
-            addvv(ray.from, tmp);
-            Cl[0] *= (1 - attributes->surfaceOpacity[0]);
-            Cl[1] *= (1 - attributes->surfaceOpacity[1]);
-            Cl[2] *= (1 - attributes->surfaceOpacity[2]);
+                // Calculate the effective ior
+                float iorR = attributes->photonIor[0];
+                float iorB = attributes->photonIor[1];
 
-            // No change in the ray differential
-        } break;
+                float ior = (wavelength * iorR + (1.0f - wavelength) * iorB);
+
+                // Sample the reflection direction
+                normalizev(Nl, ray.N);
+                if (dotvv(ray.dir, Nl) > 0) {
+                    mulvf(Nl, -1);
+                    eta = 1 / ior;
+                }
+                else {
+                    eta = ior;
+                }
+
+                assert(dotvv(ray.dir, Nl) < 0);
+                fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
+
+                // Decide on reflection or refraction
+                if (urand() <= Kr) {
+                    assert(dotvv(R, R) > 0);
+                    normalizev(ray.dir, R);
+                }
+                else {
+                    assert(dotvv(T, T) > 0);
+                    normalizev(ray.dir, T);
+                    // Modulate by surface color for transmitted photons
+                    mulvv(Cl, surfaceColor);
+                }
+
+                // Bounce the photon
+                movvv(ray.from, Pl);
+                ray.tmin = attributes->bias;
+                lastBounceSpecular = TRUE;
+
+                // No change in the ray differential
+                goto processBounce;
+            } break;
+            case SM_TRANSPARENT:
+            {
+                vector tmp;
+
+                // Just keep on tracing the ray
+                mulvf(tmp, ray.dir, ray.t);
+                addvv(ray.from, tmp);
+                Cl[0] *= (1 - attributes->surfaceOpacity[0]);
+                Cl[1] *= (1 - attributes->surfaceOpacity[1]);
+                Cl[2] *= (1 - attributes->surfaceOpacity[2]);
+
+                // No change in the ray differential
+            } break;
         }
     }
 }

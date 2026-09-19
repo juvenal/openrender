@@ -10,10 +10,16 @@
 #include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 static void writeFile(const char *path, const char *content) {
     FILE *f = fopen(path, "w");
@@ -25,13 +31,13 @@ static void writePointCloudFixture(const char *path) {
     matrix from, to;
     identitym(from);
     identitym(to);
-    char *names[1] = { (char *)"_radiosity" };
-    char *types[1] = { (char *)"float" };
+    char *names[1] = {(char *)"_radiosity"};
+    char *types[1] = {(char *)"float"};
     CPointCloud *cloud = new CPointCloud(path, from, to, NULL, 1, names, types, TRUE);
     for (int i = 0; i < 4; i++) {
-        float P[3] = { (float)i, (float)i, (float)i };
-        float N[3] = { 0, 0, 1 };
-        float C[1] = { 0.5f };
+        float P[3] = {(float)i, (float)i, (float)i};
+        float N[3] = {0, 0, 1};
+        float C[1] = {0.5f};
         cloud->store(C, P, N, 0.1f);
     }
     delete cloud;
@@ -40,8 +46,8 @@ static void writePointCloudFixture(const char *path) {
 // Captures both stdout and stderr produced while `fn` runs, into two scratch files, and
 // returns them as heap strings (caller frees). Restores the real fds afterward.
 struct CapturedOutput {
-    char *out;
-    char *err;
+        char *out;
+        char *err;
 };
 
 static char *readWholeFile(const char *path) {
@@ -100,16 +106,30 @@ static bool looksLikeWellFormedJson(const char *s) {
     bool inString = false;
     for (const char *p = s; *p != '\0'; p++) {
         if (inString) {
-            if (*p == '\\') { p++; continue; }
-            if (*p == '"') inString = false;
+            if (*p == '\\') {
+                p++;
+                continue;
+            }
+            if (*p == '"')
+                inString = false;
             continue;
         }
         switch (*p) {
-            case '"': inString = true; break;
-            case '{': braces++; break;
-            case '}': braces--; break;
-            case '[': brackets++; break;
-            case ']': brackets--; break;
+            case '"':
+                inString = true;
+                break;
+            case '{':
+                braces++;
+                break;
+            case '}':
+                braces--;
+                break;
+            case '[':
+                brackets++;
+                break;
+            case ']':
+                brackets--;
+                break;
         }
         if (braces < 0 || brackets < 0)
             return false;
@@ -137,57 +157,63 @@ int main() {
     // --help and --version: exit 0, no ORENDERHOME/SHADERS/DISPLAYS required (none set here).
     {
         char argv0[] = "orender-wire", argv1[] = "--help";
-        char *argv[] = { argv0, argv1 };
+        char *argv[] = {argv0, argv1};
         int code = -1;
         CapturedOutput r = runCli(2, argv, &code);
         CHECK(code == 0);
         CHECK(contains(r.out, "Usage"));
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
     {
         char argv0[] = "orender-wire", argv1[] = "--version";
-        char *argv[] = { argv0, argv1 };
+        char *argv[] = {argv0, argv1};
         int code = -1;
         CapturedOutput r = runCli(2, argv, &code);
         CHECK(code == 0);
         CHECK(contains(r.out, "orender-wire"));
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
 
     // Usage errors -> exit 1: no file, unknown option, two positional operands.
     {
         char argv0[] = "orender-wire";
-        char *argv[] = { argv0 };
+        char *argv[] = {argv0};
         int code = -1;
         CapturedOutput r = runCli(1, argv, &code);
         CHECK(code == 1);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
     {
         char argv0[] = "orender-wire", argv1[] = "--bogus", argv2[] = "file.rib";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         CapturedOutput r = runCli(3, argv, &code);
         CHECK(code == 1);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
     {
         char argv0[] = "orender-wire", argv1[] = "a.rib", argv2[] = "b.rib";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         CapturedOutput r = runCli(3, argv, &code);
         CHECK(code == 1);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
 
     // File not found -> exit 2.
     {
         char argv0[] = "orender-wire", argv1[] = "--json", argv2[] = "does_not_exist.rib";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         CapturedOutput r = runCli(3, argv, &code);
         CHECK(code == 2);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
     }
 
     // NOTE: exit code 3 ("RIB parse failed") is specified but not currently exercised here.
@@ -204,11 +230,12 @@ int main() {
         writeFile("test_wire_cli_notdata.rib", "##RenderMan RIB-Structure 1.1\nWorldBegin\nWorldEnd\n");
         char argv0[] = "orender-wire", argv1[] = "--json", argv2[] = "--type=data",
              argv3[] = "test_wire_cli_notdata.rib";
-        char *argv[] = { argv0, argv1, argv2, argv3 };
+        char *argv[] = {argv0, argv1, argv2, argv3};
         int code = -1;
         CapturedOutput r = runCli(4, argv, &code);
         CHECK(code == 4);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
         remove("test_wire_cli_notdata.rib");
     }
 
@@ -226,11 +253,12 @@ int main() {
         fclose(f);
 
         char argv0[] = "orender-wire", argv1[] = "--json", argv2[] = "test_wire_cli_badversion.ptc";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         CapturedOutput r = runCli(3, argv, &code);
         CHECK(code == 4);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
         remove(path);
     }
 
@@ -245,7 +273,7 @@ int main() {
                   "  Sphere 1 -1 1 360\n"
                   "WorldEnd\n");
         char argv0[] = "orender-wire", argv1[] = "--json", argv2[] = "test_wire_cli_scene.rib";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         time_t t0 = time(NULL);
         CapturedOutput r = runCli(3, argv, &code);
@@ -257,7 +285,8 @@ int main() {
         CHECK(contains(r.out, "\"documentType\": \"rib\""));
         CHECK(contains(r.out, "\"scene\""));
         CHECK(contains(r.out, "\"camera\""));
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
         remove("test_wire_cli_scene.rib");
     }
 
@@ -268,7 +297,7 @@ int main() {
     {
         writePointCloudFixture("test_wire_cli_cloud.ptc");
         char argv0[] = "orender-wire", argv1[] = "--json", argv2[] = "test_wire_cli_cloud.ptc";
-        char *argv[] = { argv0, argv1, argv2 };
+        char *argv[] = {argv0, argv1, argv2};
         int code = -1;
         time_t t0 = time(NULL);
         CapturedOutput r = runCli(3, argv, &code);
@@ -291,7 +320,8 @@ int main() {
         CHECK(extractJsonNumber(r.out, "\"farPlane\"", &farP));
         CHECK(nearP > 0.0);
         CHECK((farP - nearP) > 5.196);
-        free(r.out); free(r.err);
+        free(r.out);
+        free(r.err);
         remove("test_wire_cli_cloud.ptc");
     }
 

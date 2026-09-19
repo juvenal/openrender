@@ -34,9 +34,9 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri_config.h"
+#include "rslo_code.h"
 #include "shader.h"
 #include "shading.h"
-#include "rslo_code.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //	Prototypes for shading language functions
@@ -181,7 +181,7 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
             // init results (e.g. transformed light position) persist across frames.
             // Temporary slots get transient scratch buffers (3 floats each, uniform).
             void **jitLocals = (void **)alloca(nVars * sizeof(void *));
-            float *scratch    = (float *)alloca(nVars * 3 * sizeof(float));
+            float *scratch = (float *)alloca(nVars * 3 * sizeof(float));
             memset(scratch, 0, nVars * 3 * sizeof(float));
             for (int vi = 0; vi < nVars; vi++)
                 jitLocals[vi] = scratch + vi * 3;
@@ -191,14 +191,14 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
 
             void **stuffInit[3];
             stuffInit[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries;
-            stuffInit[SL_GLOBAL_OPERAND]    = nullptr; // init section never uses globals
-            stuffInit[SL_VARYING_OPERAND]   = jitLocals;
+            stuffInit[SL_GLOBAL_OPERAND] = nullptr; // init section never uses globals
+            stuffInit[SL_VARYING_OPERAND] = jitLocals;
 
             int initTag = 0;
             // Supply the shader-space xform so op_pfrom("shader",...) in the init
             // section can convert space-qualified parameter defaults correctly.
             // activeContext() is null at bind time; jitSetInitXform provides the fallback.
-            extern void jitSetInitXform(const float*, const float*);
+            extern void jitSetInitXform(const float *, const float *);
             if (currentShaderInstance->xform) {
                 jitSetInitXform(currentShaderInstance->xform->from,
                                 currentShaderInstance->xform->to);
@@ -261,7 +261,8 @@ execStart:
 
 #define INIT_SHADING
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, param) \
-    case OPCODE_##name: {                                                           \
+    case OPCODE_##name:                                                             \
+    {                                                                               \
         expr_pre;                                                                   \
         expr;                                                                       \
         expr_post                                                                   \
@@ -270,7 +271,8 @@ execStart:
     } break;
 
 #define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, param) \
-    case OPCODE_##name: {                                                                \
+    case OPCODE_##name:                                                                  \
+    {                                                                                    \
         expr_pre;                                                                        \
         expr;                                                                            \
         expr_post                                                                        \
@@ -279,7 +281,8 @@ execStart:
     } break;
 
 #define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) \
-    case FUNCTION_##name: {                                                         \
+    case FUNCTION_##name:                                                           \
+    {                                                                               \
         expr_pre;                                                                   \
         expr;                                                                       \
         expr_post                                                                   \
@@ -288,7 +291,8 @@ execStart:
     } break;
 
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) \
-    case FUNCTION_##name: {                                                              \
+    case FUNCTION_##name:                                                                \
+    {                                                                                    \
         expr_pre;                                                                        \
         expr;                                                                            \
         expr_post                                                                        \
@@ -297,7 +301,8 @@ execStart:
     } break;
 
 #define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) \
-    case FUNCTION_##name: {                                                              \
+    case FUNCTION_##name:                                                                \
+    {                                                                                    \
         expr_pre;                                                                        \
         expr;                                                                            \
         expr_post                                                                        \
@@ -311,8 +316,8 @@ execStart:
 
 #include "scriptFunctions.h"
 
-    default:
-        goto execEnd;
+        default:
+            goto execEnd;
     }
 
     code++;

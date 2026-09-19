@@ -145,7 +145,8 @@ T toLittleEndian(T value) noexcept {
         temp = byteswap32(temp);
         std::memcpy(&result, &temp, sizeof(T));
         return result;
-    } else if constexpr (sizeof(T) == 8) {
+    }
+    else if constexpr (sizeof(T) == 8) {
         // 64-bit value (int64_p, uint64_p, float64_p)
         T result;
         uint64_p temp;
@@ -153,10 +154,12 @@ T toLittleEndian(T value) noexcept {
         temp = byteswap64(temp);
         std::memcpy(&result, &temp, sizeof(T));
         return result;
-    } else if constexpr (sizeof(T) == 1) {
+    }
+    else if constexpr (sizeof(T) == 1) {
         // Single byte, no swapping needed
         return value;
-    } else {
+    }
+    else {
         static_assert(sizeof(T) == 4 || sizeof(T) == 8 || sizeof(T) == 1,
                       "Unsupported type size for endianness conversion");
         return value;

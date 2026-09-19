@@ -97,7 +97,8 @@ char *addstr(char *old, char *limit, const char *msg, const char *new_str) {
 
         origmsg = msg;
         return (old);
-    } else {
+    }
+    else {
         origmsg = NULL; /* Clear the error condition */
         o = old;
         n = new_str;
@@ -178,7 +179,8 @@ int gettoken(int f) {
                 if (!istype(t, C_L | C_D))
                     break;
             }
-        } else if (istype(t, C_D)) {
+        }
+        else if (istype(t, C_D)) {
             if (t == '0') {
                 /* Possible octal/hex numeric token */
                 t = nextch(); /* Get next one */
@@ -206,7 +208,8 @@ int gettoken(int f) {
                     t = nextch();
                     /* Get next token for later refetch */ *++p = t;
                 }
-            } else {
+            }
+            else {
                 numstate = F_INTPART;
                 fail = FALSE;
                 for (p = &Token[1]; p < &Token[TOKENSIZE] &&
@@ -215,60 +218,62 @@ int gettoken(int f) {
                     t = nextch();
                     *p = t;
                     switch (numstate) {
-                    case F_INTPART:
-                        if (istype(t, C_D))
-                            break;
-                        else if (t == '.') {
-                            numstate = F_FRAC;
-                            break;
-                        }
-                        /*
-                         *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
-                         */
-                        __attribute__((fallthrough));
-                    case F_FRAC:
-                        if (istype(t, C_D))
-                            /* Fraction ok so far */ break;
-                        else if ((t == 'e') || (t == 'E')) {
-                            /* Test sign */ numstate = F_EXPSIGN;
-                            break;
-                        } else if ((t == 'l') || (t == 'L') ||
-                                   (t == 'f') || (t == 'F')) {
-                            numstate = F_LAST;
-                            break;
-                        }
+                        case F_INTPART:
+                            if (istype(t, C_D))
+                                break;
+                            else if (t == '.') {
+                                numstate = F_FRAC;
+                                break;
+                            }
+                            /*
+                             *	Fall thru to fraction test.  If t is not 'e|E', it will bail out.
+                             */
+                            __attribute__((fallthrough));
+                        case F_FRAC:
+                            if (istype(t, C_D))
+                                /* Fraction ok so far */ break;
+                            else if ((t == 'e') || (t == 'E')) {
+                                /* Test sign */ numstate = F_EXPSIGN;
+                                break;
+                            }
+                            else if ((t == 'l') || (t == 'L') ||
+                                     (t == 'f') || (t == 'F')) {
+                                numstate = F_LAST;
+                                break;
+                            }
 
-                        fail = TRUE; /* Failure */
-                        continue;
+                            fail = TRUE; /* Failure */
+                            continue;
 
-                    case F_EXPSIGN:
-                        if ((t == '+') || (t == '-') ||
-                            istype(t, C_D)) {
-                            numstate = F_EXP;
-                            break;
-                        }
-                        fail = TRUE;
-                        /* Error here -- loop fails */ continue;
+                        case F_EXPSIGN:
+                            if ((t == '+') || (t == '-') ||
+                                istype(t, C_D)) {
+                                numstate = F_EXP;
+                                break;
+                            }
+                            fail = TRUE;
+                            /* Error here -- loop fails */ continue;
 
-                    case F_EXP:
-                        if (istype(t, C_D))
-                            break; /* Digits ok */
+                        case F_EXP:
+                            if (istype(t, C_D))
+                                break; /* Digits ok */
 
-                        if ((t == 'f') || (t == 'F')) {
-                            numstate = F_LAST;
-                            /* Dummy state to end it */ break;
-                        }
-                        fail = TRUE;
-                        /* Error -- loop will fail */ continue;
+                            if ((t == 'f') || (t == 'F')) {
+                                numstate = F_LAST;
+                                /* Dummy state to end it */ break;
+                            }
+                            fail = TRUE;
+                            /* Error -- loop will fail */ continue;
 
-                    case F_LAST:
-                        fail = TRUE; /* Force failure */
-                        continue;    /* after an f|F|l|L */
+                        case F_LAST:
+                            fail = TRUE; /* Force failure */
+                            continue;    /* after an f|F|l|L */
                     }
                     /* Advance char pointer into Token */ ++p;
                 }
             }
-        } else {
+        }
+        else {
             /* Must be some type of whitespace */
             while (istype((t = nextch()), C_W))
                 ;
@@ -276,13 +281,15 @@ int gettoken(int f) {
                 /* Just forget we saw any of the above space */
                 p = Token; /* Reset token pointer */
                 Token[0] = '\n';
-            } else {
+            }
+            else {
                 p = Token + 1;  /* Leave only one in buffer */
                 Token[0] = ' '; /* Make it a single space */
                 /* t = token to pushback */
             }
         }
-    } else {
+    }
+    else {
         if (t == '\\') {
             if ((t = nextch()) == '\n') {
                 Token[0] = ' '; /* Generic whitespace token */
@@ -291,7 +298,8 @@ int gettoken(int f) {
             }
             pushback(t);
             t = '\\'; /* Return an escape char */
-        } else if (((t == '"') || (t == '\'')) && (f & GT_STR)) {
+        }
+        else if (((t == '"') || (t == '\'')) && (f & GT_STR)) {
             LOG_DEBUG(" in quote");
 
             for (p = &Token[1]; p < &Token[TOKENSIZE]; p++) {
@@ -303,7 +311,8 @@ int gettoken(int f) {
                      *	upon \n returns the \n as part of the string -- not as the NEXT token
                      *	fetched.  This confuses readline() among others.  26-Jul-85 GO.
                      */
-                } else {
+                }
+                else {
                     /*
                      *	Fetched a '\\', see if next char is newline, and ignore both if it is.
                      */
@@ -320,7 +329,8 @@ int gettoken(int f) {
 
             p[1] = '\0';
             return (t);
-        } else if ((t == '<') && (f == GT_ANGLE)) {
+        }
+        else if ((t == '<') && (f == GT_ANGLE)) {
             LOG_DEBUG(" in angle bracket");
 
             for (p = &Token[1]; p < &Token[TOKENSIZE]; p++) {
@@ -333,7 +343,8 @@ int gettoken(int f) {
 
             p[1] = '\0';
             return (t);
-        } else {
+        }
+        else {
             if (t == '/') {
                 /* Regular C comments */ if ((nt = nextch()) == '*') {
                     comment_level = 1;
@@ -352,7 +363,8 @@ int gettoken(int f) {
                         if ((t == '/') && (nt == '*')) {
                             if (!A_crecurse) {
                                 warning("\"/*\" found in comment", "");
-                            } else {
+                            }
+                            else {
                                 comment_level++;
                             }
                         }
@@ -373,50 +385,52 @@ int gettoken(int f) {
                         non_fatal("Comment extends to end of file", "");
 
                         return (EOF);
-                    } else
+                    }
+                    else
                         pushback(t);
 
                     t = Token[0];
-                } else
+                }
+                else
                     pushback(nt);
             }
         }
         if (istype(t, C_M)) {
             /* One of several meta token chars */
             switch (t) {
-            case LINE_TOKEN:
-                snprintf(Token, sizeof(Token), "%d", LLine);
-                break;
+                case LINE_TOKEN:
+                    snprintf(Token, sizeof(Token), "%d", LLine);
+                    break;
 
-            case FILE_TOKEN:
-                snprintf(Token, sizeof(Token), "\"%s\"",
-                         Filestack[Filelevel]->f_name);
-                break;
+                case FILE_TOKEN:
+                    snprintf(Token, sizeof(Token), "\"%s\"",
+                             Filestack[Filelevel]->f_name);
+                    break;
 
-            case TIME_TOKEN:
-                snprintf(Token, sizeof(Token), "\"%s\"", _Time);
-                break;
+                case TIME_TOKEN:
+                    snprintf(Token, sizeof(Token), "\"%s\"", _Time);
+                    break;
 
-            case DATE_TOKEN:
-                snprintf(Token, sizeof(Token), "\"%s\"", Date);
-                break;
+                case DATE_TOKEN:
+                    snprintf(Token, sizeof(Token), "\"%s\"", Date);
+                    break;
 
-            case NOW_TOKEN:
-                snprintf(Token, sizeof(Token), "%u", Unique);
-                break;
+                case NOW_TOKEN:
+                    snprintf(Token, sizeof(Token), "%u", Unique);
+                    break;
 
-            case NEXT_TOKEN:
-                snprintf(Token, sizeof(Token), "%u", ++Unique);
-                break;
+                case NEXT_TOKEN:
+                    snprintf(Token, sizeof(Token), "%u", ++Unique);
+                    break;
 
-            case PREV_TOKEN:
-                snprintf(Token, sizeof(Token), "%u", --Unique);
-                break;
+                case PREV_TOKEN:
+                    snprintf(Token, sizeof(Token), "%u", --Unique);
+                    break;
 
-            default:
-                Token[0] = t;
-                Token[1] = '\0';
-                break;
+                default:
+                    Token[0] = t;
+                    Token[1] = '\0';
+                    break;
             }
             return (type(Token[0] & 0xFF));
         }
@@ -585,10 +599,12 @@ void puttoken(const char s[]) {
                 /*
                  *	No character written if lastoutc WAS a newline.
                  */
-            } else
+            }
+            else
                 putc(lastoutc = ch, Output);
         }
-    } else {
+    }
+    else {
         while ((ch = *str++) != '\0')
             putc(ch, Output); /* if!line mode output token */
     }

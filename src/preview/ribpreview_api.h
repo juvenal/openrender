@@ -5,26 +5,26 @@ extern "C" {
 #endif
 
 typedef struct {
-    float projMatrix[16];   // column-major 4×4 projection matrix
-    float viewMatrix[16];   // column-major 4×4 view matrix
-    float nearPlane;
-    float farPlane;
-    int   projectionType;   // 0 = perspective, 1 = orthographic
-    float fov;               // vertical FOV in degrees (perspective only)
-    float frameAspectRatio;  // added for spec 016's --json camera reporting
+        float projMatrix[16]; // column-major 4×4 projection matrix
+        float viewMatrix[16]; // column-major 4×4 view matrix
+        float nearPlane;
+        float farPlane;
+        int projectionType;     // 0 = perspective, 1 = orthographic
+        float fov;              // vertical FOV in degrees (perspective only)
+        float frameAspectRatio; // added for spec 016's --json camera reporting
 } PreviewCameraC;
 
 typedef struct {
-    float sceneBoundsMin[3];  // world-space AABB minimum
-    float sceneBoundsMax[3];  // world-space AABB maximum
+        float sceneBoundsMin[3]; // world-space AABB minimum
+        float sceneBoundsMax[3]; // world-space AABB maximum
 } PreviewBoundsC;
 
 typedef struct {
-    float        *vertices;     // flat line-list: [x0,y0,z0, x1,y1,z1, …]
-    float        *colors;       // per-vertex RGB: [r0,g0,b0, r1,g1,b1, …], count == vertexCount
-    int           vertexCount;  // number of float3 vertices (pairs → line segments)
-    PreviewCameraC camera;
-    PreviewBoundsC bounds;
+        float *vertices; // flat line-list: [x0,y0,z0, x1,y1,z1, …]
+        float *colors;   // per-vertex RGB: [r0,g0,b0, r1,g1,b1, …], count == vertexCount
+        int vertexCount; // number of float3 vertices (pairs → line segments)
+        PreviewCameraC camera;
+        PreviewBoundsC bounds;
 } PreviewSceneC;
 
 // Load a RIB file. Returns NULL on fatal error (message written to stderr).
@@ -39,9 +39,9 @@ void ribpreview_free(PreviewSceneC *scene);
 // raw debug-geometry dumps), auto-detected from content.
 
 typedef struct {
-    float *verts;   // flat float3
-    float *cols;    // flat float3, parallel to verts
-    int    count;   // number of float3 elements (not floats)
+        float *verts; // flat float3
+        float *cols;  // flat float3, parallel to verts
+        int count;    // number of float3 elements (not floats)
 } PrimArrayC;
 
 typedef enum {
@@ -54,18 +54,18 @@ typedef enum {
 } RibDataType;
 
 typedef struct {
-    PrimArrayC     lines;
-    PrimArrayC     points;
-    PrimArrayC     triangles;      // includes CPU-expanded discs
-    int            sourceDiskCount;
-    int            decimatedCount;
-    PreviewBoundsC bounds;
-    PreviewCameraC camera;         // synthesized framing camera
-    RibDataType    documentType;
-    int            numChannels;
-    int            currentChannel; // -1 if numChannels == 0
-    int            detailLevel;    // -1 if not applicable (non-brick-map)
-    int            drawMode;       // meaning is per-documentType; see data-model.md
+        PrimArrayC lines;
+        PrimArrayC points;
+        PrimArrayC triangles; // includes CPU-expanded discs
+        int sourceDiskCount;
+        int decimatedCount;
+        PreviewBoundsC bounds;
+        PreviewCameraC camera; // synthesized framing camera
+        RibDataType documentType;
+        int numChannels;
+        int currentChannel; // -1 if numChannels == 0
+        int detailLevel;    // -1 if not applicable (non-brick-map)
+        int drawMode;       // meaning is per-documentType; see data-model.md
 } DataSceneC;
 
 typedef struct RibDataDocument RibDataDocument; // opaque
@@ -105,10 +105,8 @@ void ribdata_close(RibDataDocument *doc);
 // projType: 0 = perspective, 1 = orthographic.
 // fovDeg: vertical FOV in degrees (perspective only).
 // Returns 1 on success, 0 on failure (error written to stderr).
-int ribcam_write(const float *camToWorld16, int projType, float fovDeg,
-                 const char *outputPath);
-int ribcam_replace(const float *camToWorld16, int projType, float fovDeg,
-                    const char *existingPath);
+int ribcam_write(const float *camToWorld16, int projType, float fovDeg, const char *outputPath);
+int ribcam_replace(const float *camToWorld16, int projType, float fovDeg, const char *existingPath);
 
 // ─── Shared CLI entry point (spec 016 US3) ──────────────────────────────────────
 // Both platform frontends call this single implementation (src/preview/libribpreview/

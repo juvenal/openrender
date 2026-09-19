@@ -62,11 +62,13 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
                 dest = rslo->lockRegister(src->type);
                 src->getCode(out, dest);
             }
-        } else {
+        }
+        else {
             // Varying to uniform assignment
             rslo->fatal("Varying to uniform assignment\n");
         }
-    } else {
+    }
+    else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
             CVariable *nDest = rslo->lockRegister(src->type ^ SLC_UNIFORM);
@@ -80,13 +82,17 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
             // Uniform to varying assignment
             if (src->type & SLC_FLOAT) {
                 opcode = opcodeVUFloat;
-            } else if (src->type & SLC_VECTOR) {
+            }
+            else if (src->type & SLC_VECTOR) {
                 opcode = opcodeVUVector;
-            } else if (src->type & SLC_MATRIX) {
+            }
+            else if (src->type & SLC_MATRIX) {
                 opcode = opcodeVUMatrix;
-            } else if (src->type & SLC_STRING) {
+            }
+            else if (src->type & SLC_STRING) {
                 opcode = opcodeVUString;
-            } else {
+            }
+            else {
                 rslo->fatal(constantBug);
             }
 
@@ -97,7 +103,8 @@ inline void getContainer(FILE *out, int type, CVariable *&dest, CExpression *src
             }
 
             dest = nDest;
-        } else {
+        }
+        else {
             // No action required
             if (dest == nullptr) {
                 dest = rslo->lockRegister(src->type);
@@ -116,11 +123,13 @@ inline void getContainer(FILE *out, CVariable *dest, CVariable *src) {
     if (dest->type & SLC_UNIFORM) {
         if (src->type & SLC_UNIFORM) {
             rslo->fatal(constantBug);
-        } else {
+        }
+        else {
             // Varying to uniform assignment
             rslo->fatal("Varying to uniform assignment\n");
         }
-    } else {
+    }
+    else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
             const char *opcode = nullptr;
@@ -128,17 +137,22 @@ inline void getContainer(FILE *out, CVariable *dest, CVariable *src) {
             // Uniform to varying assignment
             if (src->type & SLC_FLOAT) {
                 opcode = opcodeVUFloat;
-            } else if (src->type & SLC_VECTOR) {
+            }
+            else if (src->type & SLC_VECTOR) {
                 opcode = opcodeVUVector;
-            } else if (src->type & SLC_MATRIX) {
+            }
+            else if (src->type & SLC_MATRIX) {
                 opcode = opcodeVUMatrix;
-            } else if (src->type & SLC_STRING) {
+            }
+            else if (src->type & SLC_STRING) {
                 opcode = opcodeVUString;
-            } else {
+            }
+            else {
             }
 
             out_printf(out, "%s %s %s\n", opcode, dest->codeName(), src->codeName());
-        } else {
+        }
+        else {
             rslo->fatal(constantBug);
         }
     }
@@ -153,11 +167,13 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
     if (dest->type & SLC_UNIFORM) {
         if (src->type & SLC_UNIFORM) {
             getConversion(out, dest, src);
-        } else {
+        }
+        else {
             // Varying to uniform assignment
             rslo->fatal("Varying to uniform assignment\n");
         }
-    } else {
+    }
+    else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
             const char *opcode = nullptr;
@@ -175,13 +191,17 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
             // Uniform to varying assignment
             if (exp->type & SLC_FLOAT) {
                 opcode = opcodeVUFloat;
-            } else if (exp->type & SLC_VECTOR) {
+            }
+            else if (exp->type & SLC_VECTOR) {
                 opcode = opcodeVUVector;
-            } else if (exp->type & SLC_MATRIX) {
+            }
+            else if (exp->type & SLC_MATRIX) {
                 opcode = opcodeVUMatrix;
-            } else if (exp->type & SLC_STRING) {
+            }
+            else if (exp->type & SLC_STRING) {
                 opcode = opcodeVUString;
-            } else {
+            }
+            else {
                 rslo->fatalbailout();
             }
 
@@ -190,7 +210,8 @@ inline void getContainer(FILE *out, CVariable *dest, CExpression *src) {
             if (allocated) {
                 rslo->releaseRegister(cVar);
             }
-        } else {
+        }
+        else {
             getConversion(out, dest, src);
         }
     }
@@ -211,11 +232,13 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
                 dest = rslo->lockRegister(src->type);
                 src->getCode(out, dest);
             }
-        } else {
+        }
+        else {
             // Varying to uniform assignment
             rslo->fatal("Varying to uniform assignment\n");
         }
-    } else {
+    }
+    else {
         if (src->type & SLC_UNIFORM) {
             // Uniform to varying assignment
             const char *opcode = nullptr;
@@ -233,13 +256,17 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
             // Uniform to varying assignment
             if (src->type & SLC_FLOAT) {
                 opcode = opcodeVUFloat;
-            } else if (src->type & SLC_VECTOR) {
+            }
+            else if (src->type & SLC_VECTOR) {
                 opcode = opcodeVUVector;
-            } else if (src->type & SLC_MATRIX) {
+            }
+            else if (src->type & SLC_MATRIX) {
                 opcode = opcodeVUMatrix;
-            } else if (src->type & SLC_STRING) {
+            }
+            else if (src->type & SLC_STRING) {
                 opcode = opcodeVUString;
-            } else {
+            }
+            else {
                 assert(FALSE);
             }
 
@@ -248,7 +275,8 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
             if (allocated) {
                 rslo->releaseRegister(cVar);
             }
-        } else {
+        }
+        else {
             dest = src->getVariable();
             if (dest == nullptr) {
                 (void)rslo->lockRegister(src->type);
@@ -270,19 +298,21 @@ inline CVariable *getContainer(FILE *out, int type, CExpression *src) {
             if (IIIdest##Var == nullptr) {                                       \
                 getContainer(out, type, IIIdest##Var, IIIexpression);            \
                 IIIdest = IIIdest##Var->codeName();                              \
-            } else {                                                             \
+            }                                                                    \
+            else {                                                               \
                 if ((IIIdest##Var->type & SLC_UNIFORM) ^ (type & SLC_UNIFORM)) { \
                     getContainer(out, type, IIIdest##Var, IIIexpression);        \
                     IIIdest = IIIdest##Var->codeName();                          \
-                } else {                                                         \
+                }                                                                \
+                else {                                                           \
                     IIIdest = IIIdest##Var->codeName();                          \
                     IIIdest##Var = nullptr;                                      \
                 }                                                                \
             }                                                                    \
         }
 
-#define release(IIIdest)                    \
-    if (IIIdest##Var != nullptr)            \
+#define release(IIIdest)                     \
+    if (IIIdest##Var != nullptr)             \
         rslo->releaseRegister(IIIdest##Var); \
     }
 
@@ -594,7 +624,8 @@ int CMatrixExpression::value(char *dest) {
         if (elements[i]->value(tmp)) {
             strcat(dest, tmp);
             strcat(dest, " ");
-        } else {
+        }
+        else {
             return FALSE;
         }
     }
@@ -616,7 +647,8 @@ CArrayExpression::CArrayExpression(CVariable *v, CExpression *i) : CExpression((
     item = getConversion(SLC_FLOAT | (type & SLC_UNIFORM), i);
 
     if (v->type & SLC_ARRAY) {
-    } else {
+    }
+    else {
         rslo->fatal("%s needs to be array\n", v->symbolName);
     }
 }
@@ -663,7 +695,8 @@ void CArrayExpression::getCode(FILE *out, CVariable *dest) {
         else {
             assert(FALSE);
         }
-    } else {
+    }
+    else {
         if (array->type & SLC_FLOAT)
             opcode = opcodeFFromArray;
         else if (array->type & SLC_VECTOR)
@@ -988,7 +1021,8 @@ CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : 
             rslo->error("Argument count mismatch for %s\n", function->symbolName);
             error = TRUE;
         }
-    } else {
+    }
+    else {
         // Make sure the parameters match
         CExpression *argument;
         CParameter *parameter;
@@ -997,7 +1031,8 @@ CFuncallExpression::CFuncallExpression(CFunction *f, CList<CExpression *> *p) : 
         if (p->numItems != function->parameters->numItems) {
             rslo->fatal("Argument count mismatch for %s\n", function->symbolName);
             error = TRUE;
-        } else {
+        }
+        else {
             for (argument = p->first(), parameter = function->parameters->first(); (argument != nullptr) && (parameter != nullptr); argument = p->next(), parameter = function->parameters->next()) {
                 newArguments->push(getConversion(parameter->type & SLC_TYPE_MASK, argument));
                 if (!(argument->type & SLC_UNIFORM)) {
@@ -1050,7 +1085,8 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
             temp = rslo->lockRegister(type);
             dest = temp;
         }
-    } else {
+    }
+    else {
         if (function->returnValue == nullptr) {
             rslo->error("Function %s does not have a return value\n", function->funcName);
             return;
@@ -1082,7 +1118,8 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
             if (lFunction == nullptr) {
                 rslo->error("Extern variable \"%s\" is not found\n", cVariable->symbolName);
             }
-        } else {
+        }
+        else {
             rslo->addVariable(cVariable);
         }
     }
@@ -1101,7 +1138,8 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
             if (cVar == nullptr) {
                 getContainer(out, cP->type, cVar, cParameter);
                 c[i++] = cVar;
-            } else if ((cVar->type & SLC_UNIFORM) ^ (cP->type & SLC_UNIFORM)) {
+            }
+            else if ((cVar->type & SLC_UNIFORM) ^ (cP->type & SLC_UNIFORM)) {
                 getContainer(out, cP->type, cVar, cParameter);
                 c[i++] = cVar;
             }
@@ -1109,7 +1147,8 @@ void CFuncallExpression::getCode(FILE *out, CVariable *dest) {
             assert(cVar != nullptr);
             cP->mapping = cVar;
         }
-    } else {
+    }
+    else {
         c = nullptr;
     }
 
@@ -1155,7 +1194,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
 
     if (f->nonuniform == TRUE) {
         fa = 0;
-    } else {
+    }
+    else {
         for (cEx = p->first(); cEx != nullptr; cEx = p->next()) {
             fa &= cEx->type & SLC_UNIFORM;
         }
@@ -1175,7 +1215,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
             }
 
             replacementPrototype = "c=SFff!";
-        } else if (strcmp(f->prototype, "f=SF!") == 0) {
+        }
+        else if (strcmp(f->prototype, "f=SF!") == 0) {
             arguments = new CList<CExpression *>;
             arguments->push((*p)[0]);
             arguments->push((*p)[1]);
@@ -1186,7 +1227,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
             }
 
             replacementPrototype = "f=SFff!";
-        } else if (strcmp(f->prototype, "f=SFfffffff!") == 0) {
+        }
+        else if (strcmp(f->prototype, "f=SFfffffff!") == 0) {
             arguments = new CList<CExpression *>;
             arguments->push((*p)[0]);
             arguments->push(new CConstantTerminalExpression(SLC_FLOAT | SLC_UNIFORM, strdup("0")));
@@ -1203,7 +1245,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
             }
 
             replacementPrototype = "f=SFffffffff!";
-        } else if (strcmp(f->prototype, "c=SFfffffff!") == 0) {
+        }
+        else if (strcmp(f->prototype, "c=SFfffffff!") == 0) {
             arguments = new CList<CExpression *>;
             arguments->push((*p)[0]);
             arguments->push(new CConstantTerminalExpression(SLC_FLOAT | SLC_UNIFORM, strdup("0")));
@@ -1225,8 +1268,8 @@ CBuiltinExpression::CBuiltinExpression(CFunctionPrototype *f, CList<CExpression 
         if (arguments != nullptr) {
             p = arguments;
         }
-
-    } else if (strcmp(f->symbolName, "bump") == 0) {
+    }
+    else if (strcmp(f->symbolName, "bump") == 0) {
         if (strcmp(f->prototype, "n=SFnvv!") == 0) {
             p->push(new CTerminalExpression(rslo->getVariable("s")));
             p->push(new CTerminalExpression(rslo->getVariable("t")));
@@ -1275,7 +1318,8 @@ static char getExpressionType(CExpression *e) {
             return 'c';
         else
             return 'v';
-    } else if (e->type & SLC_MATRIX)
+    }
+    else if (e->type & SLC_MATRIX)
         return 'm';
     else if (e->type & SLC_STRING)
         return 's';
@@ -1300,18 +1344,21 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
 
     if (replacementPrototype == nullptr) {
         fprototype = function->prototype;
-    } else {
+    }
+    else {
         fprototype = replacementPrototype;
     }
 
     if (dest == nullptr) {
         if (fprototype[0] == 'o') {
             d = nullptr;
-        } else {
+        }
+        else {
             temp = rslo->lockRegister(type);
             d = temp;
         }
-    } else {
+    }
+    else {
         if (fprototype[0] == 'o') {
             rslo->error("Function %s does not return anything\n", function->symbolName);
             return;
@@ -1340,43 +1387,50 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'v') {
+        }
+        else if (fprototype[cPrototype] == 'v') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VVECTOR, cParameter);
             usedPrototype[uPrototype++] = 'v';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'n') {
+        }
+        else if (fprototype[cPrototype] == 'n') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VNORMAL, cParameter);
             usedPrototype[uPrototype++] = 'n';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'p') {
+        }
+        else if (fprototype[cPrototype] == 'p') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VPOINT, cParameter);
             usedPrototype[uPrototype++] = 'p';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'c') {
+        }
+        else if (fprototype[cPrototype] == 'c') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VCOLOR, cParameter);
             usedPrototype[uPrototype++] = 'c';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'm') {
+        }
+        else if (fprototype[cPrototype] == 'm') {
             expressions[i] = getConversion(SLC_MATRIX, cParameter);
             usedPrototype[uPrototype++] = 'm';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 's') {
+        }
+        else if (fprototype[cPrototype] == 's') {
             expressions[i] = getConversion(SLC_STRING, cParameter);
             usedPrototype[uPrototype++] = 's';
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'F') {
+        }
+        else if (fprototype[cPrototype] == 'F') {
             expressions[i] = getConversion(SLC_FLOAT, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1384,7 +1438,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'V') {
+        }
+        else if (fprototype[cPrototype] == 'V') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VVECTOR, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1392,7 +1447,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'N') {
+        }
+        else if (fprototype[cPrototype] == 'N') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VNORMAL, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1400,7 +1456,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'P') {
+        }
+        else if (fprototype[cPrototype] == 'P') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VPOINT, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1408,7 +1465,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'C') {
+        }
+        else if (fprototype[cPrototype] == 'C') {
             expressions[i] = getConversion(SLC_VECTOR | SLC_VCOLOR, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1416,7 +1474,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'M') {
+        }
+        else if (fprototype[cPrototype] == 'M') {
             expressions[i] = getConversion(SLC_MATRIX, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1424,7 +1483,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if (fprototype[cPrototype] == 'S') {
+        }
+        else if (fprototype[cPrototype] == 'S') {
             expressions[i] = getConversion(SLC_STRING, cParameter);
             if (expressions[i]->getVariable() == nullptr)
                 rslo->warning("Identifier expected as return value\n");
@@ -1432,9 +1492,11 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             cPrototype++;
             i++;
             cParameter = arguments->next();
-        } else if ((fprototype[cPrototype] == '+') || (fprototype[cPrototype] == '*')) {
+        }
+        else if ((fprototype[cPrototype] == '+') || (fprototype[cPrototype] == '*')) {
             cPrototype--;
-        } else if (fprototype[cPrototype] == '.') {
+        }
+        else if (fprototype[cPrototype] == '.') {
             expressions[i] = cParameter;
             usedPrototype[uPrototype++] = getExpressionType(cParameter);
             cPrototype++;
@@ -1444,7 +1506,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
             if (usedPrototype[uPrototype - 1] == 'o') {
                 assert(FALSE);
             }
-        } else if (fprototype[cPrototype] == '!') {
+        }
+        else if (fprototype[cPrototype] == '!') {
             if (plStart == -1)
                 plStart = i;
 
@@ -1452,7 +1515,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
                 parameterList = true;
                 expressions[i] = getConversion(SLC_STRING, cParameter);
                 usedPrototype[uPrototype++] = 'S';
-            } else {
+            }
+            else {
                 expressions[i] = cParameter;
                 usedPrototype[uPrototype++] = getExpressionType(cParameter);
             }
@@ -1481,10 +1545,12 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
         if (c[i] == nullptr) {
             getContainer(out, dt, c[i], expressions[i]);
             op[i] = c[i]->codeName();
-        } else if ((c[i]->type & SLC_UNIFORM) ^ (dt & SLC_UNIFORM)) {
+        }
+        else if ((c[i]->type & SLC_UNIFORM) ^ (dt & SLC_UNIFORM)) {
             getContainer(out, type, c[i], expressions[i]);
             op[i] = c[i]->codeName();
-        } else {
+        }
+        else {
             op[i] = c[i]->codeName();
             c[i] = nullptr;
         }
@@ -1492,7 +1558,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
 
     if (function->dso == FALSE) {
         out_printf(out, "\t%s\t(\"%s\") ", function->symbolName, usedPrototype);
-    } else {
+    }
+    else {
         out_printf(out, "\tDSO %s\t(\"%s\") ", function->symbolName, usedPrototype);
     }
 
@@ -1510,7 +1577,8 @@ void CBuiltinExpression::getCode(FILE *out, CVariable *dest) {
     for (i = 0; i < arguments->numItems; i++) {
         if (c[i] != nullptr) {
             rslo->releaseRegister(c[i]);
-        } else {
+        }
+        else {
         }
     }
 
@@ -1694,13 +1762,17 @@ void CArrayAssignmentExpression::getCode(FILE *out, CVariable *dest) {
 
     if (first->type & SLC_FLOAT) {
         opcode = opcodeFToArray;
-    } else if (first->type & SLC_VECTOR) {
+    }
+    else if (first->type & SLC_VECTOR) {
         opcode = opcodeVToArray;
-    } else if (first->type & SLC_MATRIX) {
+    }
+    else if (first->type & SLC_MATRIX) {
         opcode = opcodeMToArray;
-    } else if (first->type & SLC_STRING) {
+    }
+    else if (first->type & SLC_STRING) {
         opcode = opcodeSToArray;
-    } else {
+    }
+    else {
         assert(FALSE);
     }
 
@@ -1797,10 +1869,12 @@ CArrayMove::CArrayMove(CVariable *f, CList<CExpression *> *e) : CExpression(f->t
 
     if (f->type & SLC_ARRAY) {
         if (f->numItems == numItems) {
-        } else {
+        }
+        else {
             rslo->error("Number of items mismatch for %s\n", f->symbolName);
         }
-    } else {
+    }
+    else {
         rslo->error("Array expected in assignment to %s\n", f->symbolName);
     }
 }
@@ -1838,13 +1912,17 @@ void CArrayMove::getCode(FILE *out, CVariable *dest) {
 
     if (first->type & SLC_FLOAT) {
         opcode = opcodeFToArray;
-    } else if (first->type & SLC_VECTOR) {
+    }
+    else if (first->type & SLC_VECTOR) {
         opcode = opcodeVToArray;
-    } else if (first->type & SLC_MATRIX) {
+    }
+    else if (first->type & SLC_MATRIX) {
         opcode = opcodeMToArray;
-    } else if (first->type & SLC_STRING) {
+    }
+    else if (first->type & SLC_STRING) {
         opcode = opcodeSToArray;
-    } else {
+    }
+    else {
         assert(FALSE);
     }
 
@@ -1919,18 +1997,22 @@ void CUpdateExpression::getCode(FILE *out, CVariable *dest) {
     if (first->type & SLC_FLOAT) {
         opcode = opcodeFloat;
         opcodeM = opcodeMoveFloatFloat;
-    } else if (first->type & SLC_VECTOR) {
+    }
+    else if (first->type & SLC_VECTOR) {
         opcode = opcodeVector;
         opcodeM = opcodeMoveVectorVector;
-    } else if (first->type & SLC_MATRIX) {
+    }
+    else if (first->type & SLC_MATRIX) {
         rslo->error("Bad matrix operator\n");
         opcode = "";
         opcodeM = "";
-    } else if (first->type & SLC_STRING) {
+    }
+    else if (first->type & SLC_STRING) {
         rslo->error("Bad string operator");
         opcode = "";
         opcodeM = "";
-    } else {
+    }
+    else {
         assert(FALSE);
     }
 
@@ -1941,7 +2023,8 @@ void CUpdateExpression::getCode(FILE *out, CVariable *dest) {
             assert((dest->type & SLC_ARRAY) == 0);
             out_printf(out, "%s\t%s %s\n", opcodeM, dest->codeName(), first->codeName());
         }
-    } else {
+    }
+    else {
         out_printf(out, "%s\t%s %s %s\n", opcode, first->codeName(), first->codeName(), op);
 
         if (dest != nullptr) {
@@ -2004,7 +2087,8 @@ void CIfThenElse::getCode(FILE *out, CVariable *dest) {
     out_printf(out, "%s\t%s ", opcodeIf, condition);
     if (second != nullptr) {
         out_printf(out, "%s\n", elseLabel);
-    } else {
+    }
+    else {
         out_printf(out, "%s\n", endLabel);
     }
 
@@ -2135,23 +2219,31 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
         }
         if (parameters[i + 1]->type & SLC_FLOAT) {
             *cstr++ = 'f';
-        } else if (parameters[i + 1]->type & SLC_VECTOR) {
+        }
+        else if (parameters[i + 1]->type & SLC_VECTOR) {
             if (parameters[i + 1]->type & SLC_VVECTOR) {
                 *cstr++ = 'v';
-            } else if (parameters[i + 1]->type & SLC_VNORMAL) {
+            }
+            else if (parameters[i + 1]->type & SLC_VNORMAL) {
                 *cstr++ = 'n';
-            } else if (parameters[i + 1]->type & SLC_VPOINT) {
+            }
+            else if (parameters[i + 1]->type & SLC_VPOINT) {
                 *cstr++ = 'p';
-            } else if (parameters[i + 1]->type & SLC_VCOLOR) {
+            }
+            else if (parameters[i + 1]->type & SLC_VCOLOR) {
                 *cstr++ = 'c';
-            } else {
+            }
+            else {
                 *cstr++ = 'v';
             }
-        } else if (parameters[i + 1]->type & SLC_MATRIX) {
+        }
+        else if (parameters[i + 1]->type & SLC_MATRIX) {
             *cstr++ = 'm';
-        } else if (parameters[i + 1]->type & SLC_STRING) {
+        }
+        else if (parameters[i + 1]->type & SLC_STRING) {
             *cstr++ = 's';
-        } else {
+        }
+        else {
             rslo->error("Unexpected parameter type in gather statement\n");
             return;
         }
@@ -2167,7 +2259,8 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
     for (i = 5; i < numParameters; i++) {
         if (vars[i] == nullptr) {
             out_printf(out, "%s ", varNames[i]);
-        } else {
+        }
+        else {
             out_printf(out, "%s ", vars[i]->codeName());
         }
     }
@@ -2177,7 +2270,8 @@ void CGatherThenElse::getCode(FILE *out, CVariable *dest) {
 
     if (second != nullptr) {
         out_printf(out, "%s %s\n", opcodeGather, elseLabel);
-    } else {
+    }
+    else {
         out_printf(out, "%s %s\n", opcodeGather, endLabel);
     }
 
@@ -2299,27 +2393,27 @@ CIlluminationLoop::CIlluminationLoop(CList<CExpression *> *p, CExpression *b) : 
 
     // Get the parameters
     switch (numCore) {
-    case 1:
-        this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 0]);
-        break;
-    case 2:
-        this->category = getConversion(SLC_STRING, p->array[p->numItems - 1 - 0]);
-        this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
-        break;
-    case 3:
-        this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 0]);
-        this->N = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
-        this->angle = getConversion(SLC_FLOAT, p->array[p->numItems - 1 - 2]);
-        break;
-    case 4:
-        this->category = getConversion(SLC_STRING, p->array[p->numItems - 1 - 0]);
-        this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
-        this->N = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 2]);
-        this->angle = getConversion(SLC_FLOAT, p->array[p->numItems - 1 - 3]);
-        break;
-    default:
-        rslo->error("Invalid number of parameters to the illumination loop");
-        break;
+        case 1:
+            this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 0]);
+            break;
+        case 2:
+            this->category = getConversion(SLC_STRING, p->array[p->numItems - 1 - 0]);
+            this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
+            break;
+        case 3:
+            this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 0]);
+            this->N = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
+            this->angle = getConversion(SLC_FLOAT, p->array[p->numItems - 1 - 2]);
+            break;
+        case 4:
+            this->category = getConversion(SLC_STRING, p->array[p->numItems - 1 - 0]);
+            this->P = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 1]);
+            this->N = getConversion(SLC_VECTOR, p->array[p->numItems - 1 - 2]);
+            this->angle = getConversion(SLC_FLOAT, p->array[p->numItems - 1 - 3]);
+            break;
+        default:
+            rslo->error("Invalid number of parameters to the illumination loop");
+            break;
     }
 
     // We're done with the list
@@ -2539,59 +2633,76 @@ CExpression *getOperation(CExpression *first, CExpression *second, const char *o
         if (first->type & SLC_FLOAT) {
             if (opcodeFloat == nullptr) {
                 rslo->error("This operation is not defined on floats\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_FLOAT), opcodeFloat, first, second);
             }
-        } else if (first->type & SLC_VECTOR) {
+        }
+        else if (first->type & SLC_VECTOR) {
             if (opcodeVector == nullptr) {
                 rslo->error("This operation is not defined on vectors\n");
-            } else {
+            }
+            else {
                 int subtype = (first->type | second->type) & SLC_SUB_TYPE_MASK;
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : (SLC_VECTOR | subtype)), opcodeVector, first, second);
             }
-        } else if (first->type & SLC_MATRIX) {
+        }
+        else if (first->type & SLC_MATRIX) {
             if (opcodeMatrix == nullptr) {
                 rslo->error("This operation is not defined on matrices\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_MATRIX), opcodeMatrix, first, second);
             }
-        } else if (first->type & SLC_STRING) {
+        }
+        else if (first->type & SLC_STRING) {
             if (opcodeString == nullptr) {
                 rslo->error("This operation is not defined on strings\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_STRING), opcodeString, first, second);
             }
-        } else {
+        }
+        else {
             rslo->fatalbailout();
         }
-    } else {
+    }
+    else {
         // Nop, try converting to the most general type
         if ((first->type | second->type) & SLC_STRING) {
             if (opcodeString == nullptr) {
                 rslo->error("This operation is not defined on strings\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_STRING), opcodeString, getConversion(SLC_STRING, first), getConversion(SLC_STRING, second));
             }
-        } else if ((first->type | second->type) & SLC_MATRIX) {
+        }
+        else if ((first->type | second->type) & SLC_MATRIX) {
             if (opcodeMatrix == nullptr) {
                 rslo->error("This operation is not defined on matrices\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : SLC_MATRIX), opcodeMatrix, getConversion(SLC_MATRIX, first), getConversion(SLC_MATRIX, second));
             }
-        } else if ((first->type | second->type) & SLC_VECTOR) {
+        }
+        else if ((first->type | second->type) & SLC_VECTOR) {
             if (opcodeVector == nullptr) {
                 rslo->error("This operation is not defined on vectors\n");
-            } else {
+            }
+            else {
                 int subtype = (first->type | second->type) & SLC_SUB_TYPE_MASK;
                 return new CBinaryExpression((typeOverwrite ? typeOverwrite : (SLC_VECTOR | subtype)), opcodeVector, getConversion(SLC_VECTOR, first), getConversion(SLC_VECTOR, second));
             }
-        } else if ((first->type | second->type) & SLC_FLOAT) {
+        }
+        else if ((first->type | second->type) & SLC_FLOAT) {
             if (opcodeFloat == nullptr) {
                 rslo->error("This operation is not defined on floats\n");
-            } else {
+            }
+            else {
                 return new CBinaryExpression(SLC_FLOAT, opcodeFloat, getConversion((typeOverwrite ? typeOverwrite : SLC_FLOAT), first), getConversion(SLC_FLOAT, second));
             }
-        } else {
+        }
+        else {
             rslo->fatalbailout();
         }
     }
@@ -2664,24 +2775,28 @@ CExpression *getConversion(int type, CExpression *first) {
             rslo->error(unabletocast, firsttype, desttype);
             delete first;
         }
-    } else if (type & SLC_FLOAT) {
+    }
+    else if (type & SLC_FLOAT) {
         if (first->type & SLC_FLOAT)
             return first;
         else {
             rslo->error(unabletocast, firsttype, desttype);
             delete first;
         }
-    } else if (type & SLC_VECTOR) {
+    }
+    else if (type & SLC_VECTOR) {
         if (first->type & SLC_VECTOR) {
             first->type |= (type & SLC_SUB_TYPE_MASK);
             return first;
-        } else if (first->type & SLC_FLOAT)
+        }
+        else if (first->type & SLC_FLOAT)
             return new CUnaryExpression(SLC_VECTOR | (first->type & SLC_UNIFORM) | (type & SLC_SUB_TYPE_MASK), opcodeVectorFromFloat, first);
         else {
             rslo->error(unabletocast, firsttype, desttype);
             delete first;
         }
-    } else if (type & SLC_MATRIX) {
+    }
+    else if (type & SLC_MATRIX) {
         if (first->type & SLC_MATRIX)
             return first;
         else if (first->type & SLC_FLOAT)
@@ -2743,58 +2858,76 @@ void getConversion(FILE *out, CVariable *dest, CExpression *first) {
 
             if (dest->type & SLC_STRING) {
                 rslo->error(unabletocast, firsttype, desttype);
-            } else if (dest->type & SLC_FLOAT) {
+            }
+            else if (dest->type & SLC_FLOAT) {
                 rslo->error(unabletocast, firsttype, desttype);
-            } else if (dest->type & SLC_VECTOR) {
+            }
+            else if (dest->type & SLC_VECTOR) {
                 if (first->type & SLC_FLOAT) {
                     out_printf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), tVar->codeName());
-                } else {
+                }
+                else {
                     rslo->error(unabletocast, firsttype, desttype);
                 }
-            } else if (dest->type & SLC_MATRIX) {
+            }
+            else if (dest->type & SLC_MATRIX) {
                 if (first->type & SLC_FLOAT) {
                     out_printf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), tVar->codeName());
-                } else if (first->type & SLC_VECTOR) {
+                }
+                else if (first->type & SLC_VECTOR) {
                     out_printf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), tVar->codeName());
-                } else {
+                }
+                else {
                     rslo->error(unabletocast, firsttype, desttype);
                 }
             }
 
             rslo->releaseRegister(tVar);
-        } else {
+        }
+        else {
             // Types agree, no intermediate conversion is necessary
             first->getCode(out, dest);
         }
-    } else {
+    }
+    else {
         if (dest->type & SLC_STRING) {
             if (first->type & SLC_STRING) {
                 out_printf(out, "%s\t%s %s\n", opcodeMoveStringString, dest->codeName(), cVar->codeName());
-            } else {
+            }
+            else {
                 rslo->error(unabletocast, firsttype, desttype);
             }
-        } else if (dest->type & SLC_FLOAT) {
+        }
+        else if (dest->type & SLC_FLOAT) {
             if (first->type & SLC_FLOAT) {
                 out_printf(out, "%s\t%s %s\n", opcodeMoveFloatFloat, dest->codeName(), cVar->codeName());
-            } else {
+            }
+            else {
                 rslo->error(unabletocast, firsttype, desttype);
             }
-        } else if (dest->type & SLC_VECTOR) {
+        }
+        else if (dest->type & SLC_VECTOR) {
             if (first->type & SLC_VECTOR) {
                 out_printf(out, "%s\t%s %s\n", opcodeMoveVectorVector, dest->codeName(), cVar->codeName());
-            } else if (first->type & SLC_FLOAT) {
+            }
+            else if (first->type & SLC_FLOAT) {
                 out_printf(out, "%s\t%s %s\n", opcodeVectorFromFloat, dest->codeName(), cVar->codeName());
-            } else {
+            }
+            else {
                 rslo->error(unabletocast, firsttype, desttype);
             }
-        } else if (dest->type & SLC_MATRIX) {
+        }
+        else if (dest->type & SLC_MATRIX) {
             if (first->type & SLC_MATRIX) {
                 out_printf(out, "%s\t%s %s\n", opcodeMoveMatrixMatrix, dest->codeName(), cVar->codeName());
-            } else if (first->type & SLC_FLOAT) {
+            }
+            else if (first->type & SLC_FLOAT) {
                 out_printf(out, "%s\t%s %s\n", opcodeMatrixFromFloat, dest->codeName(), cVar->codeName());
-            } else if (first->type & SLC_VECTOR) {
+            }
+            else if (first->type & SLC_VECTOR) {
                 out_printf(out, "%s\t%s %s\n", opcodeMatrixFromVector, dest->codeName(), cVar->codeName());
-            } else {
+            }
+            else {
                 rslo->error(unabletocast, firsttype, desttype);
             }
         }
@@ -2818,9 +2951,11 @@ CExpression *getConversion(int type, const char *system, CExpression *first) {
             delete first;
             rslo->error("Invalid type for system conversion\n");
         }
-    } else if (type & SLC_MATRIX) {
+    }
+    else if (type & SLC_MATRIX) {
         return new CSysConversionExpression(type, opcodeMatrixFrom, system, getConversion(SLC_MATRIX | (first->type & SLC_UNIFORM), first));
-    } else {
+    }
+    else {
         delete first;
         rslo->error("Invalid type for system conversion\n");
     }
@@ -2865,8 +3000,8 @@ CExpression *getAssignment(CList<CVariable *> *variables, CExpression *expressio
                     continue;
                 if (tmp[0] != '"')
                     continue;
-
-            } else {
+            }
+            else {
                 rslo->error("Parameter initializer for \"%s\" is incompatible\n", cVar->symbolName);
             }
         }
@@ -2928,7 +3063,8 @@ CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *
                             hasNamedSpace = TRUE;
                             break;
                         }
-                    } else {
+                    }
+                    else {
                         hasComplexRef = TRUE;
                         break;
                     }
@@ -2939,7 +3075,8 @@ CExpression *getAssignment(CList<CVariable *> *variables, CList<CExpression *> *
                     cPar->defaultValue = strdup(tmp2);
                 }
                 free(tmp2);
-            } else { // item count mismatch
+            }
+            else { // item count mismatch
                 rslo->error("Parameter initializer for \"%s\" has wrong number of items\n", cVar->symbolName);
             }
         }

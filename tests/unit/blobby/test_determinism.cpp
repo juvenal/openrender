@@ -33,226 +33,234 @@ using namespace blobbytest;
 
 // Bit-identical, not approximately equal.
 static int identical(const CBlobbyMesh *a, const CBlobbyMesh *b) {
-	if (a == NULL || b == NULL)						return FALSE;
-	if (a->numVertices  != b->numVertices)			return FALSE;
-	if (a->numTriangles != b->numTriangles)			return FALSE;
+    if (a == NULL || b == NULL)
+        return FALSE;
+    if (a->numVertices != b->numVertices)
+        return FALSE;
+    if (a->numTriangles != b->numTriangles)
+        return FALSE;
 
-	if (memcmp(a->P, b->P, sizeof(float)*3*a->numVertices) != 0)		return FALSE;
-	if (memcmp(a->N, b->N, sizeof(float)*3*a->numVertices) != 0)		return FALSE;
-	if (memcmp(a->triangles, b->triangles, sizeof(int)*3*a->numTriangles) != 0)	return FALSE;
+    if (memcmp(a->P, b->P, sizeof(float) * 3 * a->numVertices) != 0)
+        return FALSE;
+    if (memcmp(a->N, b->N, sizeof(float) * 3 * a->numVertices) != 0)
+        return FALSE;
+    if (memcmp(a->triangles, b->triangles, sizeof(int) * 3 * a->numTriangles) != 0)
+        return FALSE;
 
-	if ((a->P1 == NULL) != (b->P1 == NULL))			return FALSE;
-	if (a->P1 != NULL && memcmp(a->P1, b->P1, sizeof(float)*3*a->numVertices) != 0)	return FALSE;
+    if ((a->P1 == NULL) != (b->P1 == NULL))
+        return FALSE;
+    if (a->P1 != NULL && memcmp(a->P1, b->P1, sizeof(float) * 3 * a->numVertices) != 0)
+        return FALSE;
 
-	return TRUE;
+    return TRUE;
 }
 
 static CBuilder blendedPair() {
-	CBuilder	b;
-	const int	a	=	b.sphere(-0.5f,0.1f,0);
-	const int	c	=	b.sphere( 0.5f,0,0.2f);
-	b.add(std::vector<int>{a,c});
-	return b;
+    CBuilder b;
+    const int a = b.sphere(-0.5f, 0.1f, 0);
+    const int c = b.sphere(0.5f, 0, 0.2f);
+    b.add(std::vector<int>{a, c});
+    return b;
 }
 
 TEST(extracting_the_same_program_twice_gives_identical_geometry) {
-	beginCapture();
+    beginCapture();
 
-	CBuilder		b	=	blendedPair();
-	CBlobbyProgram	*p	=	b.build();
+    CBuilder b = blendedPair();
+    CBlobbyProgram *p = b.build();
 
-	CBlobbyMesh	*first	=	blobbyPolygonize(p,0.05f,FALSE);
-	CBlobbyMesh	*second	=	blobbyPolygonize(p,0.05f,FALSE);
+    CBlobbyMesh *first = blobbyPolygonize(p, 0.05f, FALSE);
+    CBlobbyMesh *second = blobbyPolygonize(p, 0.05f, FALSE);
 
-	ASSERT(first != NULL);
-	ASSERT(first->numTriangles > 0);
-	ASSERT(identical(first,second));
+    ASSERT(first != NULL);
+    ASSERT(first->numTriangles > 0);
+    ASSERT(identical(first, second));
 
-	delete first;
-	delete second;
-	delete p;
+    delete first;
+    delete second;
+    delete p;
 }
 
 TEST(rebuilding_the_program_from_the_same_declaration_gives_identical_geometry) {
-	beginCapture();
+    beginCapture();
 
-	// A second CBlobbyProgram over the same code array is what each render
-	// server actually constructs, so this is the case FR-023a is really
-	// about -- reusing one program object would not exercise it.
-	CBuilder		b	=	blendedPair();
-	CBlobbyProgram	*p1	=	b.build();
-	CBlobbyProgram	*p2	=	b.build();
+    // A second CBlobbyProgram over the same code array is what each render
+    // server actually constructs, so this is the case FR-023a is really
+    // about -- reusing one program object would not exercise it.
+    CBuilder b = blendedPair();
+    CBlobbyProgram *p1 = b.build();
+    CBlobbyProgram *p2 = b.build();
 
-	CBlobbyMesh	*m1	=	blobbyPolygonize(p1,0.05f,FALSE);
-	CBlobbyMesh	*m2	=	blobbyPolygonize(p2,0.05f,FALSE);
+    CBlobbyMesh *m1 = blobbyPolygonize(p1, 0.05f, FALSE);
+    CBlobbyMesh *m2 = blobbyPolygonize(p2, 0.05f, FALSE);
 
-	ASSERT(identical(m1,m2));
+    ASSERT(identical(m1, m2));
 
-	delete m1;
-	delete m2;
-	delete p1;
-	delete p2;
+    delete m1;
+    delete m2;
+    delete p1;
+    delete p2;
 }
 
 TEST(seed_order_follows_the_code_array_not_the_geometry) {
-	beginCapture();
+    beginCapture();
 
-	// Two declarations of the same shape whose primitive fields are listed
-	// in different orders are *different declarations*, so they may
-	// legitimately produce different vertex orderings. What must hold is
-	// that each is individually reproducible -- otherwise the traversal is
-	// depending on something other than its input.
-	CBuilder	forward;
-	{
-		const int	a	=	forward.sphere(-0.5f,0,0);
-		const int	c	=	forward.sphere( 0.5f,0,0);
-		forward.add(std::vector<int>{a,c});
-	}
+    // Two declarations of the same shape whose primitive fields are listed
+    // in different orders are *different declarations*, so they may
+    // legitimately produce different vertex orderings. What must hold is
+    // that each is individually reproducible -- otherwise the traversal is
+    // depending on something other than its input.
+    CBuilder forward;
+    {
+        const int a = forward.sphere(-0.5f, 0, 0);
+        const int c = forward.sphere(0.5f, 0, 0);
+        forward.add(std::vector<int>{a, c});
+    }
 
-	CBuilder	reversed;
-	{
-		const int	c	=	reversed.sphere( 0.5f,0,0);
-		const int	a	=	reversed.sphere(-0.5f,0,0);
-		reversed.add(std::vector<int>{c,a});
-	}
+    CBuilder reversed;
+    {
+        const int c = reversed.sphere(0.5f, 0, 0);
+        const int a = reversed.sphere(-0.5f, 0, 0);
+        reversed.add(std::vector<int>{c, a});
+    }
 
-	CBlobbyProgram	*pf	=	forward.build();
-	CBlobbyProgram	*pr	=	reversed.build();
+    CBlobbyProgram *pf = forward.build();
+    CBlobbyProgram *pr = reversed.build();
 
-	CBlobbyMesh	*f1	=	blobbyPolygonize(pf,0.06f,FALSE);
-	CBlobbyMesh	*f2	=	blobbyPolygonize(pf,0.06f,FALSE);
-	CBlobbyMesh	*r1	=	blobbyPolygonize(pr,0.06f,FALSE);
-	CBlobbyMesh	*r2	=	blobbyPolygonize(pr,0.06f,FALSE);
+    CBlobbyMesh *f1 = blobbyPolygonize(pf, 0.06f, FALSE);
+    CBlobbyMesh *f2 = blobbyPolygonize(pf, 0.06f, FALSE);
+    CBlobbyMesh *r1 = blobbyPolygonize(pr, 0.06f, FALSE);
+    CBlobbyMesh *r2 = blobbyPolygonize(pr, 0.06f, FALSE);
 
-	ASSERT(identical(f1,f2));
-	ASSERT(identical(r1,r2));
+    ASSERT(identical(f1, f2));
+    ASSERT(identical(r1, r2));
 
-	// Both describe the same surface, so they must at least agree on how
-	// much of it there is.
-	ASSERT(f1 != NULL && r1 != NULL);
-	ASSERT(f1->numVertices == r1->numVertices);
-	ASSERT(f1->numTriangles == r1->numTriangles);
+    // Both describe the same surface, so they must at least agree on how
+    // much of it there is.
+    ASSERT(f1 != NULL && r1 != NULL);
+    ASSERT(f1->numVertices == r1->numVertices);
+    ASSERT(f1->numTriangles == r1->numTriangles);
 
-	delete f1;
-	delete f2;
-	delete r1;
-	delete r2;
-	delete pf;
-	delete pr;
+    delete f1;
+    delete f2;
+    delete r1;
+    delete r2;
+    delete pf;
+    delete pr;
 }
 
 TEST(many_seeded_extraction_is_reproducible) {
-	beginCapture();
+    beginCapture();
 
-	// More seeds means more chances for a container's iteration order to
-	// leak into the result. Six fields, several of which merge.
-	CBuilder	b;
-	const int	x0	=	b.sphere( 0.89f,0,0);
-	const int	y0	=	b.sphere(0, 0.89f,0);
-	const int	z0	=	b.sphere(0,0, 0.89f);
-	const int	x1	=	b.sphere(-0.89f,0,0);
-	const int	y1	=	b.sphere(0,-0.89f,0);
-	const int	z1	=	b.sphere(0,0,-0.89f);
-	b.add(std::vector<int>{x0,y0,z0,x1,y1,z1});
+    // More seeds means more chances for a container's iteration order to
+    // leak into the result. Six fields, several of which merge.
+    CBuilder b;
+    const int x0 = b.sphere(0.89f, 0, 0);
+    const int y0 = b.sphere(0, 0.89f, 0);
+    const int z0 = b.sphere(0, 0, 0.89f);
+    const int x1 = b.sphere(-0.89f, 0, 0);
+    const int y1 = b.sphere(0, -0.89f, 0);
+    const int z1 = b.sphere(0, 0, -0.89f);
+    b.add(std::vector<int>{x0, y0, z0, x1, y1, z1});
 
-	CBlobbyProgram	*p	=	b.build();
+    CBlobbyProgram *p = b.build();
 
-	CBlobbyMesh	*m1	=	blobbyPolygonize(p,0.05f,FALSE);
-	CBlobbyMesh	*m2	=	blobbyPolygonize(p,0.05f,FALSE);
+    CBlobbyMesh *m1 = blobbyPolygonize(p, 0.05f, FALSE);
+    CBlobbyMesh *m2 = blobbyPolygonize(p, 0.05f, FALSE);
 
-	ASSERT(m1 != NULL);
-	ASSERT(m1->numTriangles > 100);
-	ASSERT(identical(m1,m2));
+    ASSERT(m1 != NULL);
+    ASSERT(m1->numTriangles > 100);
+    ASSERT(identical(m1, m2));
 
-	delete m1;
-	delete m2;
-	delete p;
+    delete m1;
+    delete m2;
+    delete p;
 }
 
 TEST(requesting_weights_does_not_change_the_geometry) {
-	beginCapture();
+    beginCapture();
 
-	// The weighted evaluator entry point must be called only at vertex
-	// emission and must not perturb the traversal -- if asking for weights
-	// changed which cells were visited, the two entry points would have
-	// diverged (SC-012).
-	CBuilder		b	=	blendedPair();
-	CBlobbyProgram	*p	=	b.build();
+    // The weighted evaluator entry point must be called only at vertex
+    // emission and must not perturb the traversal -- if asking for weights
+    // changed which cells were visited, the two entry points would have
+    // diverged (SC-012).
+    CBuilder b = blendedPair();
+    CBlobbyProgram *p = b.build();
 
-	CBlobbyMesh	*plain		=	blobbyPolygonize(p,0.05f,FALSE);
-	CBlobbyMesh	*weighted	=	blobbyPolygonize(p,0.05f,TRUE);
+    CBlobbyMesh *plain = blobbyPolygonize(p, 0.05f, FALSE);
+    CBlobbyMesh *weighted = blobbyPolygonize(p, 0.05f, TRUE);
 
-	ASSERT(plain != NULL && weighted != NULL);
-	ASSERT(plain->numVertices  == weighted->numVertices);
-	ASSERT(plain->numTriangles == weighted->numTriangles);
-	ASSERT(memcmp(plain->P, weighted->P, sizeof(float)*3*plain->numVertices) == 0);
-	ASSERT(memcmp(plain->triangles, weighted->triangles, sizeof(int)*3*plain->numTriangles) == 0);
-	ASSERT(weighted->weights != NULL);
-	ASSERT(plain->weights == NULL);
+    ASSERT(plain != NULL && weighted != NULL);
+    ASSERT(plain->numVertices == weighted->numVertices);
+    ASSERT(plain->numTriangles == weighted->numTriangles);
+    ASSERT(memcmp(plain->P, weighted->P, sizeof(float) * 3 * plain->numVertices) == 0);
+    ASSERT(memcmp(plain->triangles, weighted->triangles, sizeof(int) * 3 * plain->numTriangles) == 0);
+    ASSERT(weighted->weights != NULL);
+    ASSERT(plain->weights == NULL);
 
-	delete plain;
-	delete weighted;
-	delete p;
+    delete plain;
+    delete weighted;
+    delete p;
 }
 
 // ---------------------------------------------------------------------
 // T090: the motion path is covered too, not only the initial extraction
 // ---------------------------------------------------------------------
 TEST(a_moving_blobbys_second_sample_is_bit_identical_across_runs) {
-	beginCapture();
+    beginCapture();
 
-	// Determinism has to cover advection, not just extraction. A
-	// well-meaning change from a fixed step count to "iterate until
-	// converged" would leave this passing on one machine while
-	// reintroducing cross-server divergence -- worst at the vertices near a
-	// topology change, where convergence is most marginal. This asserts the
-	// consequence bit for bit; the fixed step count itself is argued for in
-	// blobbyPolygonize.cpp.
-	CBuilder	openBuilder;
-	openBuilder.sphere(0,0,0);
+    // Determinism has to cover advection, not just extraction. A
+    // well-meaning change from a fixed step count to "iterate until
+    // converged" would leave this passing on one machine while
+    // reintroducing cross-server divergence -- worst at the vertices near a
+    // topology change, where convergence is most marginal. This asserts the
+    // consequence bit for bit; the fixed step count itself is argued for in
+    // blobbyPolygonize.cpp.
+    CBuilder openBuilder;
+    openBuilder.sphere(0, 0, 0);
 
-	CBuilder	closeBuilder;
-	closeBuilder.sphere(0.25f,0.1f,0);
+    CBuilder closeBuilder;
+    closeBuilder.sphere(0.25f, 0.1f, 0);
 
-	CBlobbyProgram	*open	=	openBuilder.build();
-	CBlobbyProgram	*close	=	closeBuilder.build();
+    CBlobbyProgram *open = openBuilder.build();
+    CBlobbyProgram *close = closeBuilder.build();
 
-	CBlobbyMesh	*first	=	blobbyPolygonize(open,0.06f,FALSE,close);
-	CBlobbyMesh	*second	=	blobbyPolygonize(open,0.06f,FALSE,close);
+    CBlobbyMesh *first = blobbyPolygonize(open, 0.06f, FALSE, close);
+    CBlobbyMesh *second = blobbyPolygonize(open, 0.06f, FALSE, close);
 
-	ASSERT(first != NULL);
-	ASSERT(first->P1 != NULL);
-	ASSERT(identical(first,second));
-	ASSERT(memcmp(first->N1, second->N1, sizeof(float)*3*first->numVertices) == 0);
+    ASSERT(first != NULL);
+    ASSERT(first->P1 != NULL);
+    ASSERT(identical(first, second));
+    ASSERT(memcmp(first->N1, second->N1, sizeof(float) * 3 * first->numVertices) == 0);
 
-	// ... and rebuilt from the same declaration, which is what each render
-	// server actually does.
-	CBlobbyProgram	*openAgain	=	openBuilder.build();
-	CBlobbyProgram	*closeAgain	=	closeBuilder.build();
-	CBlobbyMesh		*third		=	blobbyPolygonize(openAgain,0.06f,FALSE,closeAgain);
+    // ... and rebuilt from the same declaration, which is what each render
+    // server actually does.
+    CBlobbyProgram *openAgain = openBuilder.build();
+    CBlobbyProgram *closeAgain = closeBuilder.build();
+    CBlobbyMesh *third = blobbyPolygonize(openAgain, 0.06f, FALSE, closeAgain);
 
-	ASSERT(identical(first,third));
+    ASSERT(identical(first, third));
 
-	delete first;
-	delete second;
-	delete third;
-	delete open;
-	delete close;
-	delete openAgain;
-	delete closeAgain;
+    delete first;
+    delete second;
+    delete third;
+    delete open;
+    delete close;
+    delete openAgain;
+    delete closeAgain;
 }
 
 int main() {
-	printf("=== Blobby Determinism Tests (T026) ===\n\n");
+    printf("=== Blobby Determinism Tests (T026) ===\n\n");
 
-	run_test_extracting_the_same_program_twice_gives_identical_geometry();
-	run_test_rebuilding_the_program_from_the_same_declaration_gives_identical_geometry();
-	run_test_seed_order_follows_the_code_array_not_the_geometry();
-	run_test_many_seeded_extraction_is_reproducible();
-	run_test_requesting_weights_does_not_change_the_geometry();
-	run_test_a_moving_blobbys_second_sample_is_bit_identical_across_runs();
+    run_test_extracting_the_same_program_twice_gives_identical_geometry();
+    run_test_rebuilding_the_program_from_the_same_declaration_gives_identical_geometry();
+    run_test_seed_order_follows_the_code_array_not_the_geometry();
+    run_test_many_seeded_extraction_is_reproducible();
+    run_test_requesting_weights_does_not_change_the_geometry();
+    run_test_a_moving_blobbys_second_sample_is_bit_identical_across_runs();
 
-	REPORT("Results");
+    REPORT("Results");
 
-	return tests_failed > 0 ? 1 : 0;
+    return tests_failed > 0 ? 1 : 0;
 }

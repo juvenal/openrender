@@ -35,11 +35,11 @@
 //                          (faceIndex, level, tagName, value) tuple
 // Comments				:
 struct CHierarchicalOverride {
-    int faceIndex;
-    int level;
-    char *tagName;
-    float value;
-    CHierarchicalOverride *next;
+        int faceIndex;
+        int level;
+        char *tagName;
+        float value;
+        CHierarchicalOverride *next;
 };
 
 CHierarchicalOverride *cloneHierarchicalOverrides(const CHierarchicalOverride *overrides);

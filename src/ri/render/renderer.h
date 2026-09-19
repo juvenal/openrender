@@ -291,7 +291,7 @@ class CRenderer {
         static CTextureInfoBase *getTextureInfo(const char *);                                                                 // Load a textureinfo
         static CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int hierarchy = FALSE); // Load a point cloud or brickmap
         static CShader *getShader(const char *, TSearchpath *search = NULL);                                                   // Load a shader
-        static CShader *getShader(const char *, TSearchpath *search, const char *preferredType);                             // Load shader with type preference
+        static CShader *getShader(const char *, TSearchpath *search, const char *preferredType);                               // Load shader with type preference
         static int getAOVFilter(const char *name);                                                                             // Get an AOV filter name
         static const char *getFilter(RtFilterFunc);                                                                            // The other way around
         static CDSO *getDSO(const char *, const char *);                                                                       // Find a DSO function
@@ -382,8 +382,8 @@ class CRenderer {
         static int shootStep;                           // The number of rays to shoot at a time
         static EDepthFilter depthFilter;                // Holds the depth filter type
 
-        static CShaderInstance *imagerShader;                   // Active imager shader for this frame (null if none)
-        static thread_local CShadingContext *activeContext;     // Per-thread context for the calling render thread
+        static CShaderInstance *imagerShader;               // Active imager shader for this frame (null if none)
+        static thread_local CShadingContext *activeContext; // Per-thread context for the calling render thread
 
         // Second, some other data structures
         static TMemCheckpoint frameCheckpoint;                  // A checkpoint in the global memory
@@ -402,10 +402,10 @@ class CRenderer {
         static matrix fromWorld1, toWorld1;                     // Camera matrices at shutter close (t=1)
         static bool cameraHasMotion;                            // True when world->next != NULL at WorldBegin
         static quaternion relRotQ;                              // Rotation quaternion of relMotion (cam_t0 -> cam_t1)
-        static vector     relTrans;                             // Translation part of relMotion (cam_t0 -> cam_t1)
-        static bool       cameraHasRotation;                   // True when relMotion contains a non-trivial rotation
-        static bool       cameraRotationOnly;                  // True when relMotion is a pure rotation (relTrans ~ 0); enables the inverse-sample fast path
-        static bool       correlatedSampleTable;                // Internal/gated (FR-027, no RIB token): OPENRENDER_CORRELATED_SAMPLE_TABLE env var set; both hiders consume CSampler::generateBucketTable() verbatim instead of their own live RNG streams (spec 008-hider-parity-convergence, R2/US9)
+        static vector relTrans;                                 // Translation part of relMotion (cam_t0 -> cam_t1)
+        static bool cameraHasRotation;                          // True when relMotion contains a non-trivial rotation
+        static bool cameraRotationOnly;                         // True when relMotion is a pure rotation (relTrans ~ 0); enables the inverse-sample fast path
+        static bool correlatedSampleTable;                      // Internal/gated (FR-027, no RIB token): OPENRENDER_CORRELATED_SAMPLE_TABLE env var set; both hiders consume CSampler::generateBucketTable() verbatim instead of their own live RNG streams (spec 008-hider-parity-convergence, R2/US9)
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;
@@ -438,8 +438,8 @@ class CRenderer {
         static float sampleClipRight, sampleClipLeft, sampleClipTop, sampleClipBottom; // The actual rendering window in samples
         static float *pixelFilterKernel;                                               // The precomputed pixel filter kernel
         static const int FILTER_MODE_PRECOMPUTED = COptions::FILTER_MODE_PRECOMPUTED;
-        static const int FILTER_MODE_CONTINUOUS  = COptions::FILTER_MODE_CONTINUOUS;
-        static int pixelFilterMode;                                                    // Active filter mode
+        static const int FILTER_MODE_CONTINUOUS = COptions::FILTER_MODE_CONTINUOUS;
+        static int pixelFilterMode; // Active filter mode
 
         static float leftX, leftZ, leftD; // The clipping plane equations
         static float rightX, rightZ, rightD;
@@ -522,7 +522,8 @@ inline void camera2pixels(float *x, float *y, const float *P) {
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         x[0] = CRenderer::imagePlane * P[COMP_X] / P[COMP_Z];
         y[0] = CRenderer::imagePlane * P[COMP_Y] / P[COMP_Z];
-    } else {
+    }
+    else {
         x[0] = P[COMP_X];
         y[0] = P[COMP_Y];
     }
@@ -542,7 +543,8 @@ inline void camera2pixels(int n, float *P) {
             P[COMP_X] = (CRenderer::imagePlane * P[COMP_X] / P[COMP_Z] - CRenderer::pixelLeft) * CRenderer::dPixeldx;
             P[COMP_Y] = (CRenderer::imagePlane * P[COMP_Y] / P[COMP_Z] - CRenderer::pixelTop) * CRenderer::dPixeldy;
         }
-    } else {
+    }
+    else {
         for (; n > 0; n--, P += 3) {
             P[COMP_X] = (P[COMP_X] - CRenderer::pixelLeft) * CRenderer::dPixeldx;
             P[COMP_Y] = (P[COMP_Y] - CRenderer::pixelTop) * CRenderer::dPixeldy;
@@ -561,7 +563,8 @@ inline void camera2screen(int n, float *P) {
             P[COMP_X] = (CRenderer::imagePlane * P[COMP_X] / P[COMP_Z] - CRenderer::pixelLeft);
             P[COMP_Y] = (CRenderer::imagePlane * P[COMP_Y] / P[COMP_Z] - CRenderer::pixelTop);
         }
-    } else {
+    }
+    else {
         for (; n > 0; n--, P += 3) {
             P[COMP_X] = (P[COMP_X] - CRenderer::pixelLeft);
             P[COMP_Y] = (P[COMP_Y] - CRenderer::pixelTop);
@@ -580,7 +583,8 @@ inline void distance2pixels(int n, float *dist, float *P) {
             float d = dist[0];
             *dist++ = CRenderer::dPixeldx * CRenderer::imagePlane * d / P[COMP_Z];
         }
-    } else {
+    }
+    else {
         for (; n > 0; n--, P += 3) {
             float d = dist[0];
             *dist++ = CRenderer::dPixeldx * d;
@@ -611,7 +615,8 @@ inline void pixels2camera(float *P, float x, float y, float z) {
         P[COMP_X] = x * z * CRenderer::invImagePlane;
         P[COMP_Y] = y * z * CRenderer::invImagePlane;
         P[COMP_Z] = z;
-    } else {
+    }
+    else {
         P[COMP_X] = x;
         P[COMP_Y] = y;
         P[COMP_Z] = z;

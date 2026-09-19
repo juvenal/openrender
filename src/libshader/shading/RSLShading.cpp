@@ -26,8 +26,8 @@
  */
 
 #include "libshader/include/openrender/RSLShading.h"
-#include "shader.h"   // CProgrammableShaderInstance
-#include "shading.h"  // CShadingContext
+#include "shader.h"  // CProgrammableShaderInstance
+#include "shading.h" // CShadingContext
 
 ///////////////////////////////////////////////////////////////////////
 // RSLShading::shade

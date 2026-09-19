@@ -31,6 +31,8 @@
 
 #include "includes/logging.hpp"
 
+#include "blobby.h"
+#include "blobbyField.h"
 #include "brickmap.h"
 #include "bundles.h"
 #include "common/algebra.h"
@@ -61,11 +63,9 @@
 #include "raytracer.h"
 #include "rendererContext.h"
 #include "ri.h"
-#include "ri_config.h"
 #include "riHooks.h"
+#include "ri_config.h"
 #include "rib.h"
-#include "blobby.h"
-#include "blobbyField.h"
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
@@ -5757,13 +5757,17 @@ void CRendererContext::RiSolidBegin(const char *type) {
     // FR-001 / FR-013: only these four operation-type strings are recognized
     if (strcmp(type, "primitive") == 0) {
         operation = CSG_PRIMITIVE;
-    } else if (strcmp(type, "union") == 0) {
+    }
+    else if (strcmp(type, "union") == 0) {
         operation = CSG_UNION;
-    } else if (strcmp(type, "intersection") == 0) {
+    }
+    else if (strcmp(type, "intersection") == 0) {
         operation = CSG_INTERSECTION;
-    } else if (strcmp(type, "difference") == 0) {
+    }
+    else if (strcmp(type, "difference") == 0) {
         operation = CSG_DIFFERENCE;
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown solid operation: %s\n", type);
         operation = CSG_UNION; // Recover permissively; the error was already reported
     }
@@ -5789,12 +5793,13 @@ void CRendererContext::RiSolidEnd(void) {
     assert(currentSolid != NULL);
 
     CSGTreeNode *closedNode = currentSolid;
-    currentSolid            = savedSolids->pop();
+    currentSolid = savedSolids->pop();
 
     if (closedNode->parent != NULL) {
         // Nested boolean node: hand it to its still-open parent as an operand
         closedNode->parent->operands->push(closedNode);
-    } else {
+    }
+    else {
         // Root node: resolve the finished CSG tree into a Resolved Solid
         // Boundary and re-enter addObject() (research.md Decision 1)
         resolveCSGTree(this, closedNode);
@@ -6257,16 +6262,16 @@ void CRendererContext::RiError(int code, int severity, const char *mes) {
 
 namespace {
 
-CRiInterface *makeDefaultRendererContext(const char *ribFile, const char *netString) {
-    return new CRendererContext(ribFile, netString);
-}
+    CRiInterface *makeDefaultRendererContext(const char *ribFile, const char *netString) {
+        return new CRendererContext(ribFile, netString);
+    }
 
-// Registers CRendererContext as RiBegin()'s "full render" implementation (see
-// riHooks.h) the moment this translation unit is linked -- ri.cpp itself never
-// names CRendererContext.
-struct CRendererContextRegistrar {
-    CRendererContextRegistrar() { RiRegisterDefaultContextFactory(&makeDefaultRendererContext); }
-};
-const CRendererContextRegistrar g_rendererContextRegistrar;
+    // Registers CRendererContext as RiBegin()'s "full render" implementation (see
+    // riHooks.h) the moment this translation unit is linked -- ri.cpp itself never
+    // names CRendererContext.
+    struct CRendererContextRegistrar {
+            CRendererContextRegistrar() { RiRegisterDefaultContextFactory(&makeDefaultRendererContext); }
+    };
+    const CRendererContextRegistrar g_rendererContextRegistrar;
 
 } // namespace

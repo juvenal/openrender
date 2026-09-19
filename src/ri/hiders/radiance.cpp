@@ -176,7 +176,8 @@ class CTriangleHash : public CMap<CTriTon> {
                     normalizev(corners + 3);
                     subvv(corners + 6, cTriangle->corners + 6, P);
                     normalizev(corners + 6);
-                } else {
+                }
+                else {
                     // Yes
                     numCorners = 0;
                     cCorner = corners;
@@ -192,7 +193,8 @@ class CTriangleHash : public CMap<CTriTon> {
 
                             if (cornerStat[plusOne[i]]) {
                                 // Nothing to output
-                            } else {
+                            }
+                            else {
                                 const float *in = src + i * 3;
                                 const float *out = src + plusOne[i] * 3;
                                 const float t = cornerDist[i] / (cornerDist[i] - cornerDist[plusOne[i]]);
@@ -206,7 +208,8 @@ class CTriangleHash : public CMap<CTriTon> {
                                 cCorner += 3;
                                 numCorners++;
                             }
-                        } else {
+                        }
+                        else {
                             if (cornerStat[plusOne[i]]) {
                                 const float *in = src + plusOne[i] * 3;
                                 const float *out = src + i * 3;
@@ -220,7 +223,8 @@ class CTriangleHash : public CMap<CTriTon> {
                                 normalizev(cCorner);
                                 cCorner += 3;
                                 numCorners++;
-                            } else {
+                            }
+                            else {
                                 // Nothing to output
                             }
                         }
@@ -248,13 +252,15 @@ class CTriangleHash : public CMap<CTriTon> {
                         float clampedAlpha;
                         if (1 < alpha) {
                             clampedAlpha = 1;
-                        } else {
+                        }
+                        else {
                             clampedAlpha = alpha;
                         }
                         float finalAlpha;
                         if (-1 > clampedAlpha) {
                             finalAlpha = -1;
-                        } else {
+                        }
+                        else {
                             finalAlpha = clampedAlpha;
                         }
                         const float alphat = (float)acos(finalAlpha);
@@ -263,17 +269,20 @@ class CTriangleHash : public CMap<CTriTon> {
                         crossvv(R, c1, c0);
                         if (dotvv(R, R) > C_EPSILON) {
                             normalizev(R);
-                        } else {
+                        }
+                        else {
                             if (alphat > 2) {
                                 movvv(R, N);
-                            } else {
+                            }
+                            else {
                                 initv(R, 0, 0, 0);
                             }
                         }
 
                         mulvf(R, alphat);
                         formFactor += dotvv(R, N);
-                    } else {
+                    }
+                    else {
                         // The function is smooth, lookup the table
                         const float alphat = sinTable[index];
                         vector R;
@@ -299,7 +308,8 @@ class CTriangleHash : public CMap<CTriTon> {
 
                         globalMap->lookup(cTriangle->C, cTriangle->P, cTriangle->N, cTriangle->attributes->photonEstimator);
                         mulvv(cTriangle->C, cTriangle->attributes->surfaceColor);
-                    } else {
+                    }
+                    else {
                         movvv(cTriangle->C, cTriangle->attributes->surfaceColor);
                     }
 
@@ -362,14 +372,16 @@ CRadianceCache::CRadianceCache(const char *name, unsigned int mode, const float 
         float maxDiff02;
         if (diff12 > diff02) {
             maxDiff02 = diff12;
-        } else {
+        }
+        else {
             maxDiff02 = diff02;
         }
         float diff22 = bmax[2] - bmin[2];
         float rootSide2;
         if (diff22 > maxDiff02) {
             rootSide2 = diff22;
-        } else {
+        }
+        else {
             rootSide2 = maxDiff02;
         }
         root->side = rootSide2;
@@ -377,7 +389,8 @@ CRadianceCache::CRadianceCache(const char *name, unsigned int mode, const float 
         for (i = 0; i < 8; i++)
             root->children[i] = NULL;
         maxDepth = 1;
-    } else {
+    }
+    else {
         // Read the samples
         hash->read(in);
 
@@ -474,7 +487,8 @@ void CRadianceCache::lookup(float *C, const float *P, const float *N, const CGlo
         C[3] = Cl[3];
 
         osUnlock(mutex);
-    } else {
+    }
+    else {
         // Just lookup the hash
         hash->lookup(C, P, N);
     }
@@ -612,7 +626,8 @@ void CRadianceCache::finalize(const CGlobalIllumLookup *l) {
                         float maxN;
                         if ((float)0.01 > n) {
                             maxN = (float)0.01;
-                        } else {
+                        }
+                        else {
                             maxN = n;
                         }
                         t = cHarmonic->dP * maxN;
@@ -663,7 +678,8 @@ void CRadianceCache::finalize(const CGlobalIllumLookup *l) {
                 float w3;
                 if (0 > wValue3) {
                     w3 = 0;
-                } else {
+                }
+                else {
                     w3 = wValue3;
                 }
                 const float w = w3;
@@ -785,7 +801,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
             M1 = L0;
             i2 = 1;
             M2 = L1;
-        } else {
+        }
+        else {
             if (L2 > L1) {
                 // L0 > L2 > L1
                 i0 = 0;
@@ -794,7 +811,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
                 M1 = L2;
                 i2 = 1;
                 M2 = L1;
-            } else {
+            }
+            else {
                 // L0 > L1 > L2
                 i0 = 0;
                 M0 = L0;
@@ -804,7 +822,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
                 M2 = L2;
             }
         }
-    } else {
+    }
+    else {
         if (L2 > L1) {
             // L2 > L1 > L0
             i0 = 2;
@@ -813,7 +832,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
             M1 = L1;
             i2 = 0;
             M2 = L0;
-        } else {
+        }
+        else {
             if (L2 > L0) {
                 // L1 > L2 > L0
                 i0 = 1;
@@ -822,7 +842,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
                 M1 = L2;
                 i2 = 0;
                 M2 = L0;
-            } else {
+            }
+            else {
                 // L1 > L0 > L2
                 i0 = 1;
                 M0 = L1;
@@ -862,7 +883,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
 
         processTriangle(P0, P01, P2);
         processTriangle(P01, P1, P2);
-    } else if (M2 < M1 / (float)(2 * 2)) {
+    }
+    else if (M2 < M1 / (float)(2 * 2)) {
         // 3 Way split
         const int c0 = i2;
         const int c1 = (c0 + 1) % 3;
@@ -879,7 +901,8 @@ void CRadianceCache::split(const float *corners, const float *N, CAttributes *at
         processTriangle(P0, P12, P20);
         processTriangle(P0, P1, P12);
         processTriangle(P12, P2, P20);
-    } else {
+    }
+    else {
         // 4 Way split
         const float *P0 = corners + 0;
         const float *P1 = corners + 3;
@@ -980,7 +1003,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
     if (numSamples > 10000) {
         dP = C_INFINITY;
         dN = -1;
-    } else {
+    }
+    else {
         // Compute the cluster center and the radius
         initv(P, 0, 0, 0);
         initv(N, 0, 0, 0);
@@ -1022,7 +1046,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
         i = partition(numSamples, points);
         compute(i, points, texLookup);
         compute(numSamples - i, points + i, texLookup);
-    } else {
+    }
+    else {
         // Shoot bunch of rays
         int numRays;
         vector C, D;
@@ -1081,7 +1106,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
 
                 if ((globalMap = attributes->globalMap) == NULL) {
                     initv(C, 1, 1, 1);
-                } else {
+                }
+                else {
                     normalizev(N, ray.N);
                     mulvf(P, ray.dir, ray.t);
                     addvv(P, ray.from);
@@ -1094,7 +1120,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
                     globalMap->lookup(C, P, N, attributes->photonEstimator);
                     mulvv(C, attributes->surfaceColor);
                 }
-            } else {
+            }
+            else {
                 if (texLookup != NULL) {
                     CEnvironment *tex = texLookup->environment;
                     vector D0, D1, D2, D3;
@@ -1108,7 +1135,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
 
                     tex->lookup(color, D0, D1, D2, D3, texLookup);
                     movvv(C, color);
-                } else {
+                }
+                else {
                     movvv(C, backgroundColor);
                 }
             }
@@ -1126,7 +1154,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
             i = partition(numSamples, points);
             compute(i, points, texLookup);
             compute(numSamples - i, points + i, texLookup);
-        } else {
+        }
+        else {
             // Save the sample
             CRadianceHarmonic *cHarmonic = (CRadianceHarmonic *)memory->alloc(sizeof(CRadianceHarmonic));
             CRadianceNode *cNode;
@@ -1163,7 +1192,8 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
                     for (i = 0; i < 3; i++) {
                         if (cHarmonic->P[i] > cNode->center[i]) {
                             nNode->center[i] = cNode->center[i] + cNode->side * (float)0.25;
-                        } else {
+                        }
+                        else {
                             nNode->center[i] = cNode->center[i] - cNode->side * (float)0.25;
                         }
                     }
@@ -1243,7 +1273,8 @@ int CRadianceCache::partition(int numRays, CShadingPoint **rays) {
     if (numRays > 1000) {
         // For large number of samples, don't wory about a very accurate split
         iteration = 1;
-    } else {
+    }
+    else {
         // For small number of samples, worry about an accurate split
         iteration = 20;
     }
@@ -1297,7 +1328,8 @@ int CRadianceCache::partition(int numRays, CShadingPoint **rays) {
                 addvv(nP1, rays[i]->P);
                 addvv(nN1, rays[i]->N);
                 j++;
-            } else {
+            }
+            else {
                 if (cPoint->next != (CShadingPoint *)2) {
                     moved = TRUE;
                     cPoint->next = (CShadingPoint *)2;
@@ -1336,7 +1368,8 @@ int CRadianceCache::partition(int numRays, CShadingPoint **rays) {
 
     if ((last == 0) || (numRays == last)) {
         return partition(numRays, rays);
-    } else {
+    }
+    else {
         return last;
     }
 }

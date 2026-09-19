@@ -25,22 +25,20 @@
 #include <tiffio.h>
 
 class CFileFramebufferTIFF : public CFileOutputBase {
-public:
-    CFileFramebufferTIFF(const char *name, int width, int height,
-                         int numSamples, const char *samples,
-                         TDisplayParameterFunction findParameter);
-    ~CFileFramebufferTIFF() override;
+    public:
+        CFileFramebufferTIFF(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter);
+        ~CFileFramebufferTIFF() override;
 
-    bool success() const override { return !!image; }
+        bool success() const override { return !!image; }
 
-protected:
-    void fillPixels(int row, int xOff, int nPx, const float *src) override;
-    void flushRow(int row) override;
+    protected:
+        void fillPixels(int row, int xOff, int nPx, const float *src) override;
+        void flushRow(int row) override;
 
-private:
-    TIFF *image        = nullptr;
-    int   bitspersample = 8;
-    int   sampleformat  = 0;
+    private:
+        TIFF *image = nullptr;
+        int bitspersample = 8;
+        int sampleformat = 0;
 };
 
 #endif // FILE_TIFF_H

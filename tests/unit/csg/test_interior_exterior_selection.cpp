@@ -51,8 +51,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \

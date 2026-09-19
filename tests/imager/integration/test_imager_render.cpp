@@ -33,14 +33,16 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
-        g_failed++; \
-    } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            g_passed++;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            g_failed++;                                                        \
+        }                                                                      \
+    } while (0)
 
 #define EXPECT_EQ(a, b) EXPECT_TRUE((a) == (b))
 
@@ -54,15 +56,14 @@ static bool fileExists(const char *path) {
 }
 
 // Patch placeholder in RIB file with actual output path, write to temp file.
-static std::string patchRib(const char *ribPath, const char *outTif,
-                              const char *placeholder = "##OUTPUT##") {
+static std::string patchRib(const char *ribPath, const char *outTif, const char *placeholder = "##OUTPUT##") {
     std::ifstream in(ribPath);
     if (!in.is_open()) {
         fprintf(stderr, "Cannot open RIB: %s\n", ribPath);
         return "";
     }
     std::string content((std::istreambuf_iterator<char>(in)),
-                         std::istreambuf_iterator<char>());
+                        std::istreambuf_iterator<char>());
 
     size_t pos = 0;
     while ((pos = content.find(placeholder, pos)) != std::string::npos) {
@@ -91,8 +92,9 @@ static int runRender(const char *orenderPath, const std::string &ribPath) {
 // We check it's non-empty and has reasonable size (> 0 bytes).
 static bool tiffHasContent(const char *path) {
     struct stat st{};
-    if (stat(path, &st) != 0) return false;
-    return st.st_size > 100;  // a 64x32 RGB TIFF is at least a few hundred bytes
+    if (stat(path, &st) != 0)
+        return false;
+    return st.st_size > 100; // a 64x32 RGB TIFF is at least a few hundred bytes
 }
 
 // Very naive check: read raw TIFF bytes and look for a run of pixels matching
@@ -111,14 +113,18 @@ static bool tiffExists(const char *path) {
 // Test 10: background imager fills non-geometry pixels
 // ---------------------------------------------------------------------------
 static void test10_background_render(const char *orenderPath,
-                                      const char *ribPath,
-                                      const char *outTif) {
+                                     const char *ribPath,
+                                     const char *outTif) {
     printf("Test 10: background imager fills non-geometry pixels\n");
 
     std::string patchedRib = patchRib(ribPath, outTif);
-    if (patchedRib.empty()) { g_failed++; return; }
+    if (patchedRib.empty()) {
+        g_failed++;
+        return;
+    }
 
-    if (fileExists(outTif)) remove(outTif);
+    if (fileExists(outTif))
+        remove(outTif);
 
     int rc = runRender(orenderPath, patchedRib);
     remove(patchedRib.c_str());
@@ -136,19 +142,28 @@ static void test10_background_render(const char *orenderPath,
 // Test 11: no-imager render is bit-identical across two runs
 // ---------------------------------------------------------------------------
 static void test11_regression_render(const char *orenderPath,
-                                      const char *ribPath,
-                                      const char *outTif) {
+                                     const char *ribPath,
+                                     const char *outTif) {
     printf("Test 11: no-imager render is bit-identical (regression)\n");
 
     std::string outTif2 = std::string(outTif) + ".run2.tif";
 
     std::string r1 = patchRib(ribPath, outTif);
-    if (r1.empty()) { g_failed++; return; }
+    if (r1.empty()) {
+        g_failed++;
+        return;
+    }
     std::string r2 = patchRib(ribPath, outTif2.c_str());
-    if (r2.empty()) { g_failed++; remove(r1.c_str()); return; }
+    if (r2.empty()) {
+        g_failed++;
+        remove(r1.c_str());
+        return;
+    }
 
-    if (fileExists(outTif))          remove(outTif);
-    if (fileExists(outTif2.c_str())) remove(outTif2.c_str());
+    if (fileExists(outTif))
+        remove(outTif);
+    if (fileExists(outTif2.c_str()))
+        remove(outTif2.c_str());
 
     int rc1 = runRender(orenderPath, r1);
     int rc2 = runRender(orenderPath, r2);
@@ -177,14 +192,18 @@ static void test11_regression_render(const char *orenderPath,
 // Test 13: parameter override — blue background
 // ---------------------------------------------------------------------------
 static void test13_param_override(const char *orenderPath,
-                                   const char *ribPath,
-                                   const char *outTif) {
+                                  const char *ribPath,
+                                  const char *outTif) {
     printf("Test 13: blue bgcolor from RIB parameter\n");
 
     std::string patchedRib = patchRib(ribPath, outTif);
-    if (patchedRib.empty()) { g_failed++; return; }
+    if (patchedRib.empty()) {
+        g_failed++;
+        return;
+    }
 
-    if (fileExists(outTif)) remove(outTif);
+    if (fileExists(outTif))
+        remove(outTif);
 
     int rc = runRender(orenderPath, patchedRib);
     remove(patchedRib.c_str());
@@ -202,23 +221,32 @@ static void test13_param_override(const char *orenderPath,
 // Test 14: dual-display — imager applied to both Display targets (FR-003)
 // ---------------------------------------------------------------------------
 static void test14_dual_display(const char *orenderPath,
-                                 const char *ribPath,
-                                 const char *outTif) {
+                                const char *ribPath,
+                                const char *outTif) {
     printf("Test 14: imager applied to both Display targets (FR-003)\n");
 
     std::string out2 = std::string(outTif) + ".d2.tif";
 
     // Patch both ##OUTPUT1## and ##OUTPUT2## placeholders
     std::string patchedRib = patchRib(ribPath, outTif, "##OUTPUT1##");
-    if (patchedRib.empty()) { g_failed++; return; }
+    if (patchedRib.empty()) {
+        g_failed++;
+        return;
+    }
 
     // Patch second placeholder in the already-patched content
     std::string patchedRib2 = patchRib(patchedRib.c_str(), out2.c_str(), "##OUTPUT2##");
-    if (patchedRib2.empty()) { remove(patchedRib.c_str()); g_failed++; return; }
+    if (patchedRib2.empty()) {
+        remove(patchedRib.c_str());
+        g_failed++;
+        return;
+    }
     remove(patchedRib.c_str());
 
-    if (fileExists(outTif))          remove(outTif);
-    if (fileExists(out2.c_str()))    remove(out2.c_str());
+    if (fileExists(outTif))
+        remove(outTif);
+    if (fileExists(out2.c_str()))
+        remove(out2.c_str());
 
     int rc = runRender(orenderPath, patchedRib2);
     remove(patchedRib2.c_str());
@@ -229,7 +257,8 @@ static void test14_dual_display(const char *orenderPath,
 
     if (rc == 0) {
         printf("  Both outputs written: %s and %s\n", outTif, out2.c_str());
-    } else {
+    }
+    else {
         fprintf(stderr, "  Render failed (rc=%d)\n", rc);
     }
 
@@ -244,9 +273,9 @@ int main(int argc, char *argv[]) {
     }
 
     const char *orenderPath = argv[1];
-    const char *ribPath     = argv[2];
-    const char *outTif      = argv[3];
-    const char *testName    = argv[4];
+    const char *ribPath = argv[2];
+    const char *outTif = argv[3];
+    const char *testName = argv[4];
 
     if (!fileExists(orenderPath)) {
         fprintf(stderr, "orender binary not found: %s\n", orenderPath);
@@ -255,13 +284,17 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(testName, "background") == 0) {
         test10_background_render(orenderPath, ribPath, outTif);
-    } else if (strcmp(testName, "regression") == 0) {
+    }
+    else if (strcmp(testName, "regression") == 0) {
         test11_regression_render(orenderPath, ribPath, outTif);
-    } else if (strcmp(testName, "param_override") == 0) {
+    }
+    else if (strcmp(testName, "param_override") == 0) {
         test13_param_override(orenderPath, ribPath, outTif);
-    } else if (strcmp(testName, "dual_display") == 0) {
+    }
+    else if (strcmp(testName, "dual_display") == 0) {
         test14_dual_display(orenderPath, ribPath, outTif);
-    } else {
+    }
+    else {
         fprintf(stderr, "Unknown test: %s\n", testName);
         return 1;
     }

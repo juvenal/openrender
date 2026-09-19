@@ -56,10 +56,12 @@
     for (int i = 0; i < numVertices; ++i, ++op, ++tags) { \
         if (*tags) {                                      \
             (*tags)++;                                    \
-        } else {                                          \
+        }                                                 \
+        else {                                            \
             if ((int)(*op)) {                             \
                 *tags = 0;                                \
-            } else {                                      \
+            }                                             \
+            else {                                        \
                 *tags = 1;                                \
                 --numActive;                              \
                 ++numPassive;                             \
@@ -84,7 +86,8 @@ DEFOPCODE(If2, "if", 2, IF2EXPR_PRE, NULL_EXPR, NULL_EXPR, IF2EXPR_POST, 0)
                 *tags = 0;                          \
                 ++numActive;                        \
                 --numPassive;                       \
-            } else {                                \
+            }                                       \
+            else {                                  \
                 *tags = 1;                          \
                 --numActive;                        \
                 ++numPassive;                       \
@@ -148,9 +151,11 @@ DEFOPCODE(Forbegin3, "forbegin", 3, FORBEGIN3EXPR_PRE, NULL_EXPR, NULL_EXPR, NUL
     for (int i = numVertices; i > 0; --i, ++op, ++tags) { \
         if (*tags) {                                      \
             (*tags)++;                                    \
-        } else {                                          \
+        }                                                 \
+        else {                                            \
             if ((int)(*op)) {                             \
-            } else {                                      \
+            }                                             \
+            else {                                        \
                 *tags = lastConditional->forExecCount;    \
                 --numActive;                              \
                 ++numPassive;                             \
@@ -170,22 +175,22 @@ DEFOPCODE(For3, "for", 1, FOR3EXPR_PRE, NULL_EXPR, NULL_EXPR, FOR3EXPR_POST, 0)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	forend
-#define FOREND3EXPR_PRE                             \
-    if (numActive > 0)                              \
-        jmp(lastConditional->forStart);             \
+#define FOREND3EXPR_PRE                                                                \
+    if (numActive > 0)                                                                 \
+        jmp(lastConditional->forStart);                                                \
     log_debug("[RSLO-forend] ec={} n={}", lastConditional->forExecCount, numVertices); \
-    numActive = 0;                                  \
-    numPassive = numVertices;                       \
-    for (int i = numVertices; i > 0; --i, ++tags) { \
-        if (*tags) {                                \
-            *tags -= lastConditional->forExecCount; \
-            if (*tags <= 0) {                       \
-                *tags = 0;                          \
-                ++numActive;                        \
-                --numPassive;                       \
-            }                                       \
-        }                                           \
-    }                                               \
+    numActive = 0;                                                                     \
+    numPassive = numVertices;                                                          \
+    for (int i = numVertices; i > 0; --i, ++tags) {                                    \
+        if (*tags) {                                                                   \
+            *tags -= lastConditional->forExecCount;                                    \
+            if (*tags <= 0) {                                                          \
+                *tags = 0;                                                             \
+                ++numActive;                                                           \
+                --numPassive;                                                          \
+            }                                                                          \
+        }                                                                              \
+    }                                                                                  \
     endConditional();
 DEFOPCODE(Forend3, "forend", 0, FOREND3EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, 0)
 

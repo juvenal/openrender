@@ -32,11 +32,11 @@
 #include <cmath>
 #include <cstdio>
 
-#include "riHooks.h"
-#include "rendererContext.h"
 #include "object.h"
-#include "surface.h"
+#include "rendererContext.h"
 #include "ri.h"
+#include "riHooks.h"
+#include "surface.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -51,8 +51,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -157,7 +157,7 @@ TEST(sampled_positions_lie_on_the_analytic_sphere) {
 
     const int n = grid.div + 1;
     for (int i = 0; i < n * n; i++) {
-        const float *p     = grid.P + i * 3;
+        const float *p = grid.P + i * 3;
         const float length = sqrtf(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
         ASSERT(fabsf(length - 1.0f) < 1e-3f);
     }
@@ -197,14 +197,15 @@ TEST(derivatives_are_radial_tangent_when_requested) {
 
     const int n = grid.div + 1;
     for (int i = 0; i < n * n; i++) {
-        const float *p    = grid.P + i * 3;
+        const float *p = grid.P + i * 3;
         const float *dpdu = grid.dPdu + i * 3;
 
-        const float pLen    = sqrtf(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+        const float pLen = sqrtf(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
         const float dpduLen = sqrtf(dpdu[0] * dpdu[0] + dpdu[1] * dpdu[1] + dpdu[2] * dpdu[2]);
 
         // Skip degenerate poles/seams where dPdu collapses to ~0.
-        if (dpduLen < 1e-4f) continue;
+        if (dpduLen < 1e-4f)
+            continue;
 
         const float cosAngle = (p[0] * dpdu[0] + p[1] * dpdu[1] + p[2] * dpdu[2]) / (pLen * dpduLen);
         ASSERT(fabsf(cosAngle) < 1e-2f);

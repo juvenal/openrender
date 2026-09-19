@@ -31,15 +31,13 @@
 
 extern "C" {
 
-void *displayStart(const char *name, int width, int height, int numSamples,
-                   const char *samples, TDisplayParameterFunction findParameter) {
+void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
     CFileOutputBase *fb = nullptr;
 
 #ifdef HAVE_LIBPNG
     const char *type = (const char *)findParameter("type", STRING_PARAMETER, 1);
     int len = (int)strlen(name);
-    if (((len > 4 && strcmp(&name[len - 4], ".png") == 0) && !(type && strcmp(type, "tiff") == 0))
-        || (type && strcmp(type, "png") == 0)) {
+    if (((len > 4 && strcmp(&name[len - 4], ".png") == 0) && !(type && strcmp(type, "tiff") == 0)) || (type && strcmp(type, "png") == 0)) {
         fb = new CFileFramebufferPNG(name, width, height, numSamples, samples, findParameter);
         if (!static_cast<CFileFramebufferPNG *>(fb)->success()) {
             delete fb;
@@ -65,8 +63,7 @@ int displayData(void *im, int x, int y, int w, int h, float *data) {
     return TRUE;
 }
 
-int displayRawData(void * /*im*/, int /*x*/, int /*y*/,
-                   int /*w*/, int /*h*/, void * /*data*/) {
+int displayRawData(void * /*im*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, void * /*data*/) {
     return TRUE;
 }
 

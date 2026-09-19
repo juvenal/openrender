@@ -18,23 +18,22 @@
  *
  */
 
+#include <cstdlib>
 #include <stdio.h>
 #include <string.h>
-#include <cstdlib>
 
 #include "common/global.h"
-#include "framebuffer.h"
 #include "dsply.h"
+#include "framebuffer.h"
 #include "logging.hpp"
-
 
 #define TRUE 1
 #define FALSE 0
 
 #ifdef _WINDOWS
-  #include "fbw.h"           // Windows: native GDI, no IPC
+#include "fbw.h" // Windows: native GDI, no IPC
 #else
-  #include "fbipc_display.h" // macOS + Linux: IPC via orender-fb helper
+#include "fbipc_display.h" // macOS + Linux: IPC via orender-fb helper
 #endif
 
 /*
@@ -133,7 +132,8 @@ void *displayStart(const char *name,
 #endif
 
     if (cWindow == NULL || cWindow->failure == TRUE) {
-        if (cWindow) delete cWindow;
+        if (cWindow)
+            delete cWindow;
         return NULL;
     }
     else {

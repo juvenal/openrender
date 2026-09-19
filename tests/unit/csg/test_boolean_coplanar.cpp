@@ -47,8 +47,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -62,11 +62,11 @@ static int tests_failed = 0;
     } while (0)
 
 static const float kVolumeTolerance = 1e-4f;
-static const float kPlaneEpsilon    = 1e-4f;
+static const float kPlaneEpsilon = 1e-4f;
 
 TEST(touching_boxes_union_merges_into_one_solid) {
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1,0,0, 2,1,1, NULL); // shares x=1 face with A
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL); // shares x=1 face with A
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_UNION, a, b);
 
@@ -90,8 +90,8 @@ TEST(touching_boxes_union_merges_into_one_solid) {
 TEST(touching_boxes_intersection_is_empty) {
     // A and B share only a zero-thickness face, so their intersection
     // (a genuine 3D overlap) must be empty.
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1,0,0, 2,1,1, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, a, b);
 
@@ -105,8 +105,8 @@ TEST(touching_boxes_intersection_is_empty) {
 TEST(touching_boxes_difference_leaves_minuend_whole) {
     // Subtracting a solid that only touches (no interior overlap) must
     // leave A's volume and face count completely unchanged.
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1,0,0, 2,1,1, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_DIFFERENCE, a, b);
 

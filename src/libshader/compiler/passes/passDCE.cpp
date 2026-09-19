@@ -16,8 +16,8 @@
  */
 
 #include "passDCE.h"
-#include <unordered_set>
 #include <algorithm>
+#include <unordered_set>
 
 // -------------------------------------------------------------------------
 // Helper: collect all variable names that appear as operands (sources)
@@ -70,10 +70,10 @@ bool CDCEPass::isSafeToRemove(const std::string &opcode) {
         "setxcomp", "setycomp", "setzcomp",
         "matfromf", "matfromv",
         "inversesqrt",
-        nullptr
-    };
+        nullptr};
     for (int i = 0; pureOpcodes[i] != nullptr; ++i) {
-        if (opcode == pureOpcodes[i]) return true;
+        if (opcode == pureOpcodes[i])
+            return true;
     }
     return false;
 }
@@ -94,12 +94,11 @@ bool CDCEPass::eliminateDeadInFn(IRFunction &fn,
             // 1. Have a result variable.
             // 2. That result is not in the live (used) set.
             // 3. The opcode is safe to remove.
-            if (instr.hasResult()
-                && live.find(instr.result) == live.end()
-                && isSafeToRemove(instr.opcode)) {
+            if (instr.hasResult() && live.find(instr.result) == live.end() && isSafeToRemove(instr.opcode)) {
                 it = blk.instrs.erase(it);
                 changed = true;
-            } else {
+            }
+            else {
                 ++it;
             }
         }

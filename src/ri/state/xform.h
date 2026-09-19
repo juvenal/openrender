@@ -44,8 +44,8 @@ class CXform : public CRefCounter {
         CXform(CXform *);
         virtual ~CXform();
 
-        CXform *next;         // points to the next xform in case of motion blur
-        bool cameraMotion;    // true when next was synthesized from camera motion (not object motion)
+        CXform *next;      // points to the next xform in case of motion blur
+        bool cameraMotion; // true when next was synthesized from camera motion (not object motion)
 
         void restore(const CXform *xform);
 

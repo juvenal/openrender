@@ -209,16 +209,18 @@ inline void transform(float *oFrom, float *oDir, const CXform *xform, CRay *ray)
             const quaternion relRotQ_inv = {-CRenderer::relRotQ[0],
                                             -CRenderer::relRotQ[1],
                                             -CRenderer::relRotQ[2],
-                                             CRenderer::relRotQ[3]};
+                                            CRenderer::relRotQ[3]};
             slerpq(Rjt, identQ, relRotQ_inv, ray->time);
             qtoR(Mjt, Rjt);
             mulmv(dir_cam_t, Mjt, ray->dir);            // rotate camera-space direction
             mulmv(oDir, CRenderer::toWorld, dir_cam_t); // transform to world space
-        } else {
+        }
+        else {
             interpolatev(tmp[4], tmp[1], tmp[3], ray->time);
             subvv(oDir, tmp[4], oFrom);
         }
-    } else {
+    }
+    else {
         vector to, tmp;
         addvv(to, ray->from, ray->dir);
 

@@ -42,46 +42,45 @@
  *      drives fillPixels() and flushRow().
  */
 class CFileOutputBase {
-public:
-    CFileOutputBase(int width, int height, int numSamples, int pixelSize,
-                    TDisplayParameterFunction findParameter, bool isDepth = false);
-    virtual ~CFileOutputBase();
+    public:
+        CFileOutputBase(int width, int height, int numSamples, int pixelSize, TDisplayParameterFunction findParameter, bool isDepth = false);
+        virtual ~CFileOutputBase();
 
-    /** Accumulate a tile and flush any newly completed scanlines. */
-    void write(int x, int y, int w, int h, float *data);
+        /** Accumulate a tile and flush any newly completed scanlines. */
+        void write(int x, int y, int w, int h, float *data);
 
-    /** Returns true if the output file was opened successfully. */
-    virtual bool success() const { return false; }
+        /** Returns true if the output file was opened successfully. */
+        virtual bool success() const { return false; }
 
-protected:
-    int width, height, numSamples;
-    int pixelSize;        // bytes per pixel in the native format
-    int lastSavedLine;
+    protected:
+        int width, height, numSamples;
+        int pixelSize; // bytes per pixel in the native format
+        int lastSavedLine;
 
-    uint8_t **scanlines;
-    int      *scanlineUsage;
-    TMutex    fileMutex;
+        uint8_t **scanlines;
+        int *scanlineUsage;
+        TMutex fileMutex;
 
-    // Quantization parameters (exposure is applied upstream in dispatch())
-    float gamma;           // retained for PNG gAMA metadata embedding only
-    float qamp;
-    float qzero, qone, qmin, qmax;
+        // Quantization parameters (exposure is applied upstream in dispatch())
+        float gamma; // retained for PNG gAMA metadata embedding only
+        float qamp;
+        float qzero, qone, qmin, qmax;
 
-    /**
-     * Convert nPx float pixels (numSamples each) from src[] into the
-     * pre-allocated scanlines[row] buffer, writing at pixel column xOff.
-     * Called under fileMutex.
-     */
-    virtual void fillPixels(int row, int xOff, int nPx, const float *src) = 0;
+        /**
+         * Convert nPx float pixels (numSamples each) from src[] into the
+         * pre-allocated scanlines[row] buffer, writing at pixel column xOff.
+         * Called under fileMutex.
+         */
+        virtual void fillPixels(int row, int xOff, int nPx, const float *src) = 0;
 
-    /**
-     * Write the completed scanline scanlines[row] to the output file.
-     * Called under fileMutex; the base class frees the buffer afterwards.
-     */
-    virtual void flushRow(int row) = 0;
+        /**
+         * Write the completed scanline scanlines[row] to the output file.
+         * Called under fileMutex; the base class frees the buffer afterwards.
+         */
+        virtual void flushRow(int row) = 0;
 
-private:
-    void applyColorPipeline(float *data, int n) const;
+    private:
+        void applyColorPipeline(float *data, int n) const;
 };
 
 #endif // FILE_BASE_H

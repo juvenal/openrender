@@ -44,9 +44,9 @@
 // ---------------------------------------------------------------------------
 
 struct TiffImage {
-    uint32_t width  = 0;
-    uint32_t height = 0;
-    std::vector<uint8_t> pixels; // RGBA, 4 bytes/pixel
+        uint32_t width = 0;
+        uint32_t height = 0;
+        std::vector<uint8_t> pixels; // RGBA, 4 bytes/pixel
 };
 
 static bool readTiff(const char *path, TiffImage &img) {
@@ -56,7 +56,7 @@ static bool readTiff(const char *path, TiffImage &img) {
         return false;
     }
 
-    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH,  &img.width);
+    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &img.width);
     TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &img.height);
 
     const size_t npix = (size_t)img.width * img.height;
@@ -73,10 +73,10 @@ static bool readTiff(const char *path, TiffImage &img) {
 
     for (size_t i = 0; i < npix; ++i) {
         uint32_t px = rgba[i];
-        img.pixels[4*i+0] = (uint8_t)(TIFFGetR(px));
-        img.pixels[4*i+1] = (uint8_t)(TIFFGetG(px));
-        img.pixels[4*i+2] = (uint8_t)(TIFFGetB(px));
-        img.pixels[4*i+3] = (uint8_t)(TIFFGetA(px));
+        img.pixels[4 * i + 0] = (uint8_t)(TIFFGetR(px));
+        img.pixels[4 * i + 1] = (uint8_t)(TIFFGetG(px));
+        img.pixels[4 * i + 2] = (uint8_t)(TIFFGetB(px));
+        img.pixels[4 * i + 3] = (uint8_t)(TIFFGetA(px));
     }
     return true;
 }
@@ -86,14 +86,13 @@ static bool readTiff(const char *path, TiffImage &img) {
 // ---------------------------------------------------------------------------
 
 struct Bin {
-    float r_lo = 0.f;
-    float r_hi = 0.f;
-    double energy = 0.0;
-    double annulusArea = 0.0;
+        float r_lo = 0.f;
+        float r_hi = 0.f;
+        double energy = 0.0;
+        double annulusArea = 0.0;
 };
 
-static std::vector<Bin> computeHistogram(const TiffImage &img, float centerX, float centerY,
-                                          float radius, int bins) {
+static std::vector<Bin> computeHistogram(const TiffImage &img, float centerX, float centerY, float radius, int bins) {
     std::vector<Bin> hist(bins);
     const float binWidth = radius / (float)bins;
 
@@ -108,16 +107,19 @@ static std::vector<Bin> computeHistogram(const TiffImage &img, float centerX, fl
             const float dx = (float)px + 0.5f - centerX;
             const float dy = (float)py + 0.5f - centerY;
             const float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist >= radius) continue;
+            if (dist >= radius)
+                continue;
 
             int bin = (int)(dist / binWidth);
-            if (bin < 0) bin = 0;
-            if (bin >= bins) bin = bins - 1;
+            if (bin < 0)
+                bin = 0;
+            if (bin >= bins)
+                bin = bins - 1;
 
             const size_t idx = (size_t)py * img.width + px;
-            const double r = img.pixels[4*idx+0];
-            const double g = img.pixels[4*idx+1];
-            const double bch = img.pixels[4*idx+2];
+            const double r = img.pixels[4 * idx + 0];
+            const double g = img.pixels[4 * idx + 1];
+            const double bch = img.pixels[4 * idx + 2];
             const double luminance = 0.299 * r + 0.587 * g + 0.114 * bch;
 
             hist[bin].energy += luminance;
@@ -142,11 +144,11 @@ static double energyDensity(const Bin &bin) {
 // ---------------------------------------------------------------------------
 
 struct Args {
-    std::string tif1;
-    std::string tif2; // empty => single-file mode
-    float centerX = 0.f, centerY = 0.f;
-    float radius = 0.f;
-    int bins = 16;
+        std::string tif1;
+        std::string tif2; // empty => single-file mode
+        float centerX = 0.f, centerY = 0.f;
+        float radius = 0.f;
+        int bins = 16;
 };
 
 static bool parseArgs(int argc, char *argv[], Args &args) {
@@ -155,33 +157,41 @@ static bool parseArgs(int argc, char *argv[], Args &args) {
     for (; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--center") {
-            if (i + 2 >= argc) return false;
+            if (i + 2 >= argc)
+                return false;
             args.centerX = (float)atof(argv[++i]);
             args.centerY = (float)atof(argv[++i]);
-        } else if (a == "--radius") {
-            if (i + 1 >= argc) return false;
+        }
+        else if (a == "--radius") {
+            if (i + 1 >= argc)
+                return false;
             args.radius = (float)atof(argv[++i]);
-        } else if (a == "--bins") {
-            if (i + 1 >= argc) return false;
+        }
+        else if (a == "--bins") {
+            if (i + 1 >= argc)
+                return false;
             args.bins = atoi(argv[++i]);
-        } else {
+        }
+        else {
             positional.push_back(a);
         }
     }
 
-    if (positional.empty() || positional.size() > 2) return false;
+    if (positional.empty() || positional.size() > 2)
+        return false;
     args.tif1 = positional[0];
-    if (positional.size() == 2) args.tif2 = positional[1];
+    if (positional.size() == 2)
+        args.tif2 = positional[1];
 
     return args.radius > 0.f && args.bins > 0;
 }
 
 static void printUsage(const char *prog) {
     fprintf(stderr,
-        "Usage:\n"
-        "  Single-file: %s <tif> --center <x> <y> --radius <r> --bins <n>\n"
-        "  Two-file:    %s <candidate.tif> <reference.tif> --center <x> <y> --radius <r> --bins <n>\n",
-        prog, prog);
+            "Usage:\n"
+            "  Single-file: %s <tif> --center <x> <y> --radius <r> --bins <n>\n"
+            "  Two-file:    %s <candidate.tif> <reference.tif> --center <x> <y> --radius <r> --bins <n>\n",
+            prog, prog);
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +206,8 @@ int main(int argc, char *argv[]) {
     }
 
     TiffImage img1;
-    if (!readTiff(args.tif1.c_str(), img1)) return 1;
+    if (!readTiff(args.tif1.c_str(), img1))
+        return 1;
 
     std::vector<Bin> hist1 = computeHistogram(img1, args.centerX, args.centerY, args.radius, args.bins);
 
@@ -211,7 +222,8 @@ int main(int argc, char *argv[]) {
 
         std::vector<double> densities;
         for (const Bin &b : hist1) {
-            if (!isInnermost(b, args.radius)) densities.push_back(energyDensity(b));
+            if (!isInnermost(b, args.radius))
+                densities.push_back(energyDensity(b));
         }
 
         if (densities.empty()) {
@@ -220,11 +232,13 @@ int main(int argc, char *argv[]) {
         }
 
         double mean = 0.0;
-        for (double d : densities) mean += d;
+        for (double d : densities)
+            mean += d;
         mean /= densities.size();
 
         double variance = 0.0;
-        for (double d : densities) variance += (d - mean) * (d - mean);
+        for (double d : densities)
+            variance += (d - mean) * (d - mean);
         variance /= densities.size();
         const double stddev = std::sqrt(variance);
         const double cov = mean > 0.0 ? (stddev / mean) * 100.0 : 0.0;
@@ -244,7 +258,8 @@ int main(int argc, char *argv[]) {
     // Two-file mode: candidate vs. ground-truth cross-check (FR-006/SC-002)
     // -------------------------------------------------------------------
     TiffImage img2;
-    if (!readTiff(args.tif2.c_str(), img2)) return 1;
+    if (!readTiff(args.tif2.c_str(), img2))
+        return 1;
 
     std::vector<Bin> hist2 = computeHistogram(img2, args.centerX, args.centerY, args.radius, args.bins);
 

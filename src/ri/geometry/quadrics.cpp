@@ -59,7 +59,8 @@
         if (up & PARAMETER_NG) {                                                                                                         \
             ntransform(&varying[VARIABLE_NG][start * 3], numVertices, xform->to, xform->next->to, &varying[VARIABLE_TIME][start]);       \
         }                                                                                                                                \
-    } else {                                                                                                                             \
+    }                                                                                                                                    \
+    else {                                                                                                                               \
         float *from = xform->from;                                                                                                       \
         float *to = xform->to;                                                                                                           \
                                                                                                                                          \
@@ -179,7 +180,8 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
         vmin = (float)(this->vmin * (1.0 - rv->time) + nextData[1] * (double)rv->time);
         vmax = (float)(this->vmax * (1.0 - rv->time) + nextData[2] * (double)rv->time);
         umax = (float)(this->umax * (1.0 - rv->time) + nextData[3] * (double)rv->time);
-    } else {
+    }
+    else {
         r = this->r;
         vmin = this->vmin;
         vmax = this->vmax;
@@ -216,7 +218,8 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
                 P[COMP_Z] = -r;
             if (P[COMP_Z] > r)
                 P[COMP_Z] = r;
-        } else {
+        }
+        else {
             u = atan2(-P[COMP_Y], -P[COMP_X]);
             if (P[COMP_Z] < r)
                 P[COMP_Z] = r;
@@ -231,7 +234,8 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
             u = u - 2 * C_PI;
             if (u < umax)
                 continue;
-        } else {
+        }
+        else {
             if (u > umax)
                 continue;
         }
@@ -344,7 +348,8 @@ void CSphere::sample(int start, int numVertices, float **varying, float ***, uns
                 dest += 3;
             }
         }
-    } else {
+    }
+    else {
         float r = this->r;
         float umax = this->umax;
         float vmin = this->vmin;
@@ -456,7 +461,8 @@ void CSphere::sample(int start, int numVertices, float **varying, float ***, uns
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -519,13 +525,15 @@ void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, 
     float vmi;
     if (vmax < vmin) {
         vmi = vmax;
-    } else {
+    }
+    else {
         vmi = vmin;
     }
     float vma;
     if (vmax > vmin) {
         vma = vmax;
-    } else {
+    }
+    else {
         vma = vmin;
     }
     float zmin;
@@ -538,22 +546,26 @@ void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, 
 
     if (vmi > 0) {
         maxRadius = (float)cos(vmi) * r;
-    } else if (vma < 0) {
+    }
+    else if (vma < 0) {
         maxRadius = (float)cos(vma) * r;
-    } else {
+    }
+    else {
         maxRadius = r;
     }
 
     float minZ;
     if (zmax < zmin) {
         minZ = zmax;
-    } else {
+    }
+    else {
         minZ = zmin;
     }
     float maxZ;
     if (zmax > zmin) {
         maxZ = zmax;
-    } else {
+    }
+    else {
         maxZ = zmin;
     }
     initv(bmin, -maxRadius, -maxRadius, minZ);
@@ -655,7 +667,8 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
         r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
         z = (float)(this->z * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
-    } else {
+    }
+    else {
         r = this->r;
         z = this->z;
         umax = this->umax;
@@ -683,7 +696,8 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
         u = u - 2 * C_PI;
         if (u < umax)
             return;
-    } else {
+    }
+    else {
         if (u > umax)
             return;
     }
@@ -704,7 +718,8 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
     rv->u = (float)(u / umax);
     if (r > 0) {
         rv->v = (float)(((r - sqrt(x * x + y * y))) / r);
-    } else {
+    }
+    else {
         rv->v = (float)(((r + sqrt(x * x + y * y))) / r);
     }
     rv->t = (float)t;
@@ -763,7 +778,8 @@ void CDisk::sample(int start, int numVertices, float **varying, float ***, unsig
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         float r = this->r;
         float z = this->z;
         float umax = this->umax;
@@ -856,7 +872,8 @@ void CDisk::sample(int start, int numVertices, float **varying, float ***, unsig
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -1019,7 +1036,8 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
         r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
         height = (float)(this->height * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
-    } else {
+    }
+    else {
         r = this->r;
         height = this->height;
         umax = this->umax;
@@ -1029,7 +1047,8 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
         // We're a disc
         ns = 1;
         s[0] = -from[COMP_Z] / dir[COMP_Z];
-    } else {
+    }
+    else {
         const double a = height * height * (dir[COMP_X] * dir[COMP_X] + dir[COMP_Y] * dir[COMP_Y]) - r * r * dir[COMP_Z] * dir[COMP_Z];
         const double b = height * height * 2 * (from[COMP_X] * dir[COMP_X] + from[COMP_Y] * dir[COMP_Y]) - r * r * 2 * (from[COMP_Z] - height) * dir[COMP_Z];
         const double c = height * height * (from[COMP_X] * from[COMP_X] + from[COMP_Y] * from[COMP_Y]) - r * r * (from[COMP_Z] - height) * (from[COMP_Z] - height);
@@ -1055,7 +1074,8 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
                 continue;
             if (P[COMP_Z] > 0)
                 continue;
-        } else if (height > 0) {
+        }
+        else if (height > 0) {
             if (P[COMP_Z] > height)
                 continue;
             if (P[COMP_Z] < 0)
@@ -1077,7 +1097,8 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
             if (u < umax) {
                 continue;
             }
-        } else {
+        }
+        else {
             if (u > umax) {
                 continue;
             }
@@ -1178,7 +1199,8 @@ void CCone::sample(int start, int numVertices, float **varying, float ***, unsig
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         float r = this->r;
         float height = this->height;
         float umax = this->umax;
@@ -1277,7 +1299,8 @@ void CCone::sample(int start, int numVertices, float **varying, float ***, unsig
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -1342,13 +1365,15 @@ void CCone::computeObjectBound(float *bmin, float *bmax, float r, float height, 
     float minHeight;
     if (0 < height) {
         minHeight = 0;
-    } else {
+    }
+    else {
         minHeight = height;
     }
     float maxHeight;
     if (0 > height) {
         maxHeight = 0;
-    } else {
+    }
+    else {
         maxHeight = height;
     }
     initv(bmin, -r, -r, minHeight);
@@ -1457,7 +1482,8 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
         zmax = (float)(this->zmax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
         r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
-    } else {
+    }
+    else {
         zmin = this->zmin;
         zmax = this->zmax;
         r = this->r;
@@ -1473,7 +1499,8 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
             return;
         s[0] = -c / b;
         ns = 1;
-    } else {
+    }
+    else {
         if ((ns = solveQuadric<double>(a, b, c, s)) == 0)
             return;
     }
@@ -1481,7 +1508,8 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
     if (zmin < zmax) {
         zmi = zmin;
         zma = zmax;
-    } else {
+    }
+    else {
         zmi = zmax;
         zma = zmin;
     }
@@ -1517,7 +1545,8 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
             u = u - 2 * C_PI;
             if (u < umax)
                 continue;
-        } else {
+        }
+        else {
             if (u > umax)
                 continue;
         }
@@ -1615,7 +1644,8 @@ void CParaboloid::sample(int start, int numVertices, float **varying, float ***,
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         float r = this->r;
         float zmin = this->zmin;
         float zmax = this->zmax;
@@ -1724,7 +1754,8 @@ void CParaboloid::sample(int start, int numVertices, float **varying, float ***,
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -1787,13 +1818,15 @@ void CParaboloid::computeObjectBound(float *bmin, float *bmax, float r, float zm
     float minZ2;
     if (zmax < zmin) {
         minZ2 = zmax;
-    } else {
+    }
+    else {
         minZ2 = zmin;
     }
     float maxZ2;
     if (zmax > zmin) {
         maxZ2 = zmax;
-    } else {
+    }
+    else {
         maxZ2 = zmin;
     }
     initv(bmin, -r, -r, minZ2);
@@ -1900,7 +1933,8 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
         zmax = (float)(this->zmax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
         r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
-    } else {
+    }
+    else {
         zmin = this->zmin;
         zmax = this->zmax;
         r = this->r;
@@ -1917,7 +1951,8 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
 
         s[0] = -c / b;
         ns = 1;
-    } else {
+    }
+    else {
         if ((ns = solveQuadric<double>(a, b, c, s)) == 0)
             return;
     }
@@ -1941,7 +1976,8 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
                 continue;
             if (P[COMP_Z] > zmax)
                 continue;
-        } else {
+        }
+        else {
             if (P[COMP_Z] < zmax)
                 continue;
             if (P[COMP_Z] > zmin)
@@ -1959,7 +1995,8 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
             u = u - 2 * C_PI;
             if (u < umax)
                 continue;
-        } else {
+        }
+        else {
             if (u > umax)
                 continue;
         }
@@ -2054,7 +2091,8 @@ void CCylinder::sample(int start, int numVertices, float **varying, float ***, u
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         float r = this->r;
         float zmin = this->zmin;
         float zmax = this->zmax;
@@ -2162,7 +2200,8 @@ void CCylinder::sample(int start, int numVertices, float **varying, float ***, u
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -2226,13 +2265,15 @@ void CCylinder::computeObjectBound(float *bmin, float *bmax, float r, float zmin
     float minZ2;
     if (zmax < zmin) {
         minZ2 = zmax;
-    } else {
+    }
+    else {
         minZ2 = zmin;
     }
     float maxZ2;
     if (zmax > zmin) {
         maxZ2 = zmax;
-    } else {
+    }
+    else {
         maxZ2 = zmin;
     }
     initv(bmin, -r, -r, minZ2);
@@ -2338,7 +2379,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
         interpolatev(p1, this->p1, &nextData[0], rv->time);
         interpolatev(p2, this->p2, &nextData[3], rv->time);
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[6] * (double)rv->time);
-    } else {
+    }
+    else {
         movvv(p1, this->p1);
         movvv(p2, this->p2);
         umax = this->umax;
@@ -2352,7 +2394,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
         // We're a disc
         ns = 1;
         ts[0] = (p1[COMP_Z] - from[COMP_Z]) / dir[COMP_Z];
-    } else {
+    }
+    else {
         double x;
         double y;
         double zmin, d, dmin;
@@ -2361,7 +2404,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
             x = p1[COMP_X];
             y = p1[COMP_Y];
             zmin = p1[COMP_Z];
-        } else {
+        }
+        else {
             double tmin = (-dx * p1[COMP_X] - dy * p1[COMP_Y]) / (dx * dx + dy * dy); // Nearest we come to the  z axis
             x = p1[COMP_X] + dx * tmin;
             y = p1[COMP_Y] + dy * tmin;
@@ -2372,7 +2416,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
 
         if (fabs(p2[COMP_Z] - zmin) > fabs(p1[COMP_Z] - zmin)) {
             d = sqrt((p2[COMP_X] * p2[COMP_X] + p2[COMP_Y] * p2[COMP_Y]) - dmin * dmin) / (p2[COMP_Z] - zmin);
-        } else {
+        }
+        else {
             d = sqrt((p1[COMP_X] * p1[COMP_X] + p1[COMP_Y] * p1[COMP_Y]) - dmin * dmin) / (p1[COMP_Z] - zmin);
         }
 
@@ -2386,7 +2431,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
 
             ns = 1;
             ts[0] = -c / b;
-        } else {
+        }
+        else {
             if ((ns = solveQuadric<double>(a, b, c, ts)) == 0)
                 return;
         }
@@ -2413,13 +2459,15 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
             if (P[COMP_Z] > p2[COMP_Z])
                 continue;
             v = (P[COMP_Z] - p1[COMP_Z]) / (p2[COMP_Z] - p1[COMP_Z]);
-        } else if (p1[COMP_Z] > p2[COMP_Z]) {
+        }
+        else if (p1[COMP_Z] > p2[COMP_Z]) {
             if (P[COMP_Z] < p2[COMP_Z])
                 continue;
             if (P[COMP_Z] > p1[COMP_Z])
                 continue;
             v = (P[COMP_Z] - p1[COMP_Z]) / (p2[COMP_Z] - p1[COMP_Z]);
-        } else {
+        }
+        else {
             const double r1 = sqrt(p1[COMP_X] * p1[COMP_X] + p1[COMP_Y] * p1[COMP_Y]);
             const double r2 = sqrt(p2[COMP_X] * p2[COMP_X] + p2[COMP_Y] * p2[COMP_Y]);
             const double r = sqrt(P[COMP_X] * P[COMP_X] + P[COMP_Y] * P[COMP_Y]);
@@ -2451,7 +2499,8 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
             u = u - 2 * C_PI;
             if (u < umax)
                 continue;
-        } else {
+        }
+        else {
             if (u > umax)
                 continue;
         }
@@ -2572,7 +2621,8 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
                 Ng += 3;
             }
         }
-    } else {
+    }
+    else {
         const float *p1 = this->p1;
         const float *p2 = this->p2;
         float umax = this->umax;
@@ -2689,7 +2739,8 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
@@ -2761,14 +2812,16 @@ void CHyperboloid::computeObjectBound(float *bmin, float *bmax, float *p1, float
     bmin[COMP_Y] = -d;
     if (p2[COMP_Z] < p1[COMP_Z]) {
         bmin[COMP_Z] = p2[COMP_Z];
-    } else {
+    }
+    else {
         bmin[COMP_Z] = p1[COMP_Z];
     }
     bmax[COMP_X] = +d;
     bmax[COMP_Y] = +d;
     if (p2[COMP_Z] > p1[COMP_Z]) {
         bmax[COMP_Z] = p2[COMP_Z];
-    } else {
+    }
+    else {
         bmax[COMP_Z] = p1[COMP_Z];
     }
 }
@@ -2872,7 +2925,8 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
         umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
         vmax = (float)(this->vmax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
         vmin = (float)(this->vmin * (1.0 - (double)rv->time) + nextData[4] * (double)rv->time);
-    } else {
+    }
+    else {
         rmin = this->rmin;
         rmax = this->rmax;
         umax = this->umax;
@@ -2953,7 +3007,8 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
             if (umax < 0) {
                 u = u - 2 * C_PI;
                 // if (u < umax) continue;
-            } else {
+            }
+            else {
                 // if (u > umax) continue;
             }
 
@@ -2969,7 +3024,8 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
             if (vmin < vmax) {
                 // if (v < vmin)	continue;
                 // if (v > vmax)	continue;
-            } else {
+            }
+            else {
                 // if (v < vmax)	continue;
                 // if (v > vmin)	continue;
             }
@@ -3068,7 +3124,8 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***, uns
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         float rmin = this->rmin;
         float rmax = this->rmax;
         float vmin = this->vmin;
@@ -3181,7 +3238,8 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***, uns
                 subvv(dest, Pend, Pstart);
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // Get the xform matrices
             const float *fromStart = xform->from + element(0, 3);
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));

@@ -45,7 +45,8 @@ inline int solveQuadric(T a, T b, T c, T *r) {
         else if (delta == 0) {
             r[0] = (T)(-b) / (2 * a);
             return 1;
-        } else {
+        }
+        else {
             double sqrtDelta = sqrt(delta);
 
             r[0] = (T)(-sqrtDelta - b) / (2 * a);
@@ -53,10 +54,12 @@ inline int solveQuadric(T a, T b, T c, T *r) {
 
             return 2;
         }
-    } else if (b != 0) {
+    }
+    else if (b != 0) {
         r[0] = -c / b;
         return 1;
-    } else {
+    }
+    else {
         return 0;
     }
 }
@@ -85,13 +88,15 @@ inline int solveCubic(T c[4], T s[3]) {
         if (q == 0) {
             sd[0] = 0;
             num = 1;
-        } else {
+        }
+        else {
             double u = (cbrt(-q));
             sd[0] = 2 * u;
             sd[1] = -u;
             num = 2;
         }
-    } else if (D < 0) {
+    }
+    else if (D < 0) {
         double phi = (1.0 / 3 * acos(-q / sqrt(-cb_p)));
         double t = (2 * sqrt(-p));
 
@@ -99,7 +104,8 @@ inline int solveCubic(T c[4], T s[3]) {
         sd[1] = -t * cos(phi + C_PI / 3);
         sd[2] = -t * cos(phi - C_PI / 3);
         num = 3;
-    } else {
+    }
+    else {
         double sqrt_D = sqrt(D);
         double u = cbrt(sqrt_D - q);
         double v = -cbrt(sqrt_D + q);
@@ -144,7 +150,8 @@ inline int solveQuartic(T c[5], T s[4]) {
         num = solveCubic<double>(coeffs, sd);
 
         sd[num++] = 0;
-    } else {
+    }
+    else {
         coeffs[0] = 1.0 / 2 * r * p - 1.0 / 8 * q * q;
         coeffs[1] = -r;
         coeffs[2] = -1.0 / 2 * p;

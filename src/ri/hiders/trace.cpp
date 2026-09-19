@@ -80,7 +80,8 @@ void CShadingContext::trace(CRayBundle *bundle) {
         // Check if we should shade these rays
         if (bundle->postTraceAction() == FALSE) {
             return;
-        } else {
+        }
+        else {
             // This struct holds a bunch of rays that can be shaded together
             typedef struct TShadingGroup {
                     CSurface *object;
@@ -119,7 +120,8 @@ void CShadingContext::trace(CRayBundle *bundle) {
 
                 if (cHash->object == cRay->object) {
                     // Hash hit
-                } else if (cHash->object == (CObject *)this) {
+                }
+                else if (cHash->object == (CObject *)this) {
                     // First entry
                     cHash->object = cRay->object;
                     cHash->numRays = 0;
@@ -127,7 +129,8 @@ void CShadingContext::trace(CRayBundle *bundle) {
                     cHash->next = NULL;
                     cHash->shadeNext = objects;
                     objects = cHash;
-                } else {
+                }
+                else {
                     // Search the hash
                     for (; cHash != NULL; cHash = cHash->next) {
                         if (cHash->object == cRay->object)
@@ -194,7 +197,8 @@ void CShadingContext::trace(CRayBundle *bundle) {
                     if (shadingGroups->object != NULL) {
                         shadingGroups->object->shade(this, numShading, shadingGroups->rays);
                         bundle->postShade(numShading, shadingGroups->rays, varying);
-                    } else {
+                    }
+                    else {
                         bundle->postShade(numShading, shadingGroups->rays);
                     }
 
@@ -256,8 +260,8 @@ void CShadingContext::traceEx(CRayBundle *bundle) {
 
         currentRayLabel = savedLabel;
         currentShadingState = savedState;
-
-    } else {
+    }
+    else {
         // GSHTODO: what about postTrace(), post() here??
         // Okan: postShade function (in this form) must take care of the rays that don't hit anything
         bundle->postShade(bundle->numRays, bundle->rays);

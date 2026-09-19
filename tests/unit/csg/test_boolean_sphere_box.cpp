@@ -54,8 +54,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -71,10 +71,10 @@ static int tests_failed = 0;
 static const float kVolumeTolerance = 1e-3f;
 
 TEST(half_space_split_conserves_volume) {
-    CArray<CCSGPolygon *> *sphere    = csgtest::makeSphere(0,0,0, 1.0f, 16,8, NULL);
-    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0,0,0, 1.0f, 16,8, NULL);
-    CArray<CCSGPolygon *> *upperBox  = csgtest::makeBox(-2,-2, 0.0f,  2,2, 2, NULL); // z in [0,2]
-    CArray<CCSGPolygon *> *lowerBox  = csgtest::makeBox(-2,-2,-2.0f,  2,2, 0, NULL); // z in [-2,0]
+    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 16, 8, NULL);
+    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0, 0, 0, 1.0f, 16, 8, NULL);
+    CArray<CCSGPolygon *> *upperBox = csgtest::makeBox(-2, -2, 0.0f, 2, 2, 2, NULL);  // z in [0,2]
+    CArray<CCSGPolygon *> *lowerBox = csgtest::makeBox(-2, -2, -2.0f, 2, 2, 0, NULL); // z in [-2,0]
 
     double wholeVolume = csgtest::computeVolume(sphereRef);
     ASSERT(wholeVolume > 0.1); // sanity: a real, non-degenerate sphere approximation
@@ -95,9 +95,9 @@ TEST(half_space_split_conserves_volume) {
 }
 
 TEST(box_fully_enclosing_sphere_leaves_volume_unchanged) {
-    CArray<CCSGPolygon *> *sphere    = csgtest::makeSphere(0,0,0, 1.0f, 12,6, NULL);
-    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0,0,0, 1.0f, 12,6, NULL);
-    CArray<CCSGPolygon *> *box       = csgtest::makeBox(-5,-5,-5, 5,5,5, NULL);
+    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
+    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
+    CArray<CCSGPolygon *> *box = csgtest::makeBox(-5, -5, -5, 5, 5, 5, NULL);
 
     double sphereVolume = csgtest::computeVolume(sphereRef);
     CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, sphere, box);
@@ -112,8 +112,8 @@ TEST(box_fully_enclosing_sphere_leaves_volume_unchanged) {
 }
 
 TEST(disjoint_sphere_and_box_intersection_is_empty) {
-    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0,0,0, 1.0f, 12,6, NULL);
-    CArray<CCSGPolygon *> *box    = csgtest::makeBox(10,10,10, 12,12,12, NULL);
+    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
+    CArray<CCSGPolygon *> *box = csgtest::makeBox(10, 10, 10, 12, 12, 12, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, sphere, box);
 
@@ -126,12 +126,12 @@ TEST(disjoint_sphere_and_box_intersection_is_empty) {
 }
 
 TEST(finer_tessellation_yields_denser_result) {
-    CArray<CCSGPolygon *> *coarseSphere = csgtest::makeSphere(0,0,0, 1.0f, 8,4, NULL);
-    CArray<CCSGPolygon *> *fineSphere   = csgtest::makeSphere(0,0,0, 1.0f, 24,12, NULL);
-    CArray<CCSGPolygon *> *box          = csgtest::makeBox(-5,-5,-5, 5,5,5, NULL);
+    CArray<CCSGPolygon *> *coarseSphere = csgtest::makeSphere(0, 0, 0, 1.0f, 8, 4, NULL);
+    CArray<CCSGPolygon *> *fineSphere = csgtest::makeSphere(0, 0, 0, 1.0f, 24, 12, NULL);
+    CArray<CCSGPolygon *> *box = csgtest::makeBox(-5, -5, -5, 5, 5, 5, NULL);
 
     CArray<CCSGPolygon *> *coarseResult = csgCombine(CSG_INTERSECTION, coarseSphere, box);
-    CArray<CCSGPolygon *> *fineResult   = csgCombine(CSG_INTERSECTION, fineSphere, box);
+    CArray<CCSGPolygon *> *fineResult = csgCombine(CSG_INTERSECTION, fineSphere, box);
 
     ASSERT(fineResult->numItems > coarseResult->numItems);
 

@@ -34,30 +34,30 @@
 //   emitter.emit(mod, out);  // writes .sdr text to FILE* out
 // -------------------------------------------------------------------------
 class CRSLObjectEmitter {
-public:
-    CRSLObjectEmitter() = default;
+    public:
+        CRSLObjectEmitter() = default;
 
-    // Emit the full .sdr file including headers and code sections.
-    // The version line and shader type line are written first, then
-    // #!parameters:, #!variables:, #!Init: and #!Code: sections.
-    // shaderName, when non-null, is written as a "#!name" line right after
-    // the version line (mirrors CScriptContext::generateCode()).
-    void emit(const IRModule &mod, FILE *out, const char *shaderName = nullptr);
+        // Emit the full .sdr file including headers and code sections.
+        // The version line and shader type line are written first, then
+        // #!parameters:, #!variables:, #!Init: and #!Code: sections.
+        // shaderName, when non-null, is written as a "#!name" line right after
+        // the version line (mirrors CScriptContext::generateCode()).
+        void emit(const IRModule &mod, FILE *out, const char *shaderName = nullptr);
 
-    // Emit only the #!Init: and #!Code: function sections to an already-open
-    // file.  Use this when the caller has already written the header sections
-    // (version, shader type, #!parameters:, #!variables:) to out.
-    void emitFunctions(const IRModule &mod, FILE *out);
+        // Emit only the #!Init: and #!Code: function sections to an already-open
+        // file.  Use this when the caller has already written the header sections
+        // (version, shader type, #!parameters:, #!variables:) to out.
+        void emitFunctions(const IRModule &mod, FILE *out);
 
-private:
-    void emitParameters(const IRModule &mod, FILE *out);
-    void emitVariables(const IRModule &mod, FILE *out);
-    void emitFunction(const IRFunction &fn, FILE *out);
-    void emitInstr(const IRInstr &instr, FILE *out);
+    private:
+        void emitParameters(const IRModule &mod, FILE *out);
+        void emitVariables(const IRModule &mod, FILE *out);
+        void emitFunction(const IRFunction &fn, FILE *out);
+        void emitInstr(const IRInstr &instr, FILE *out);
 
-    // Write the type tokens ("uniform float", "varying vector", etc.)
-    // for one variable entry in the parameters or variables section.
-    static void emitTypeTokens(const IRVarInfo &v, FILE *out);
+        // Write the type tokens ("uniform float", "varying vector", etc.)
+        // for one variable entry in the parameters or variables section.
+        static void emitTypeTokens(const IRVarInfo &v, FILE *out);
 };
 
 #endif // OSHADER_RSLOEMITTER_H

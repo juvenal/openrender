@@ -54,8 +54,8 @@ class CSGTreeNode {
         ECSGOperation operation;         // Set from the SolidBegin operation-type string
         CArray<CSGTreeNode *> *operands; // Boolean-node children, in declaration order (unused on Primitive nodes)
         CObject *leafObjects;            // Primitive-node captured objects, chained via CObject::sibling
-        CXform *outerXform;               // Root-node only: the outermost SolidBegin's local frame
-        CSGTreeNode *parent;              // Enables nested-block validity checks; NULL on the root
+        CXform *outerXform;              // Root-node only: the outermost SolidBegin's local frame
+        CSGTreeNode *parent;             // Enables nested-block validity checks; NULL on the root
 };
 
 // FR-019: report a clear diagnostic when opening a nested SolidBegin/SolidEnd

@@ -15,10 +15,10 @@
  *
  */
 
-#include <cstdio>
-#include <chrono>
-#include <vector>
 #include "../../src/display/framebuffer/fbipc_display.h"
+#include <chrono>
+#include <cstdio>
+#include <vector>
 
 int main() {
     printf("========================================\n");

@@ -100,7 +100,8 @@ class CUniformParameter : public CParameter {
                     dests = (char **)locals[variable->accessor][variable->entry];
                 else
                     dests = (char **)NULL;
-            } else {
+            }
+            else {
                 if (variable->storage == STORAGE_GLOBAL)
                     destf = varying[variable->entry];
                 else if (locals[variable->accessor] != NULL)
@@ -113,14 +114,15 @@ class CUniformParameter : public CParameter {
 
                 if ((variable->container == CONTAINER_UNIFORM) || (variable->container == CONTAINER_CONSTANT)) {
                     memcpy(destf, data, variable->numFloats * sizeof(float));
-                } else {
+                }
+                else {
                     // premote
                     for (int i = 0; i < numVertices; i++, destf += variable->numFloats) {
                         memcpy(destf, data, variable->numFloats * sizeof(float));
                     }
                 }
-
-            } else if (dests != NULL) {
+            }
+            else if (dests != NULL) {
 
                 assert(isAligned64(dests));
                 assert(isAligned64(data));
@@ -128,7 +130,8 @@ class CUniformParameter : public CParameter {
 
                 if ((variable->container == CONTAINER_UNIFORM) || (variable->container == CONTAINER_CONSTANT)) {
                     memcpy(dests, data, variable->numFloats * sizeof(char *));
-                } else {
+                }
+                else {
                     // premote
                     for (int i = 0; i < numVertices; i++, dests += variable->numFloats) {
                         memcpy(dests, data, variable->numFloats * sizeof(char *));
@@ -151,7 +154,8 @@ class CUniformParameter : public CParameter {
                     dests = (char **)locals[variable->accessor][variable->entry];
                 else
                     dests = (char **)NULL;
-            } else {
+            }
+            else {
                 if (variable->storage == STORAGE_GLOBAL)
                     destf = varying[variable->entry];
                 else if (locals[variable->accessor] != NULL)
@@ -164,14 +168,15 @@ class CUniformParameter : public CParameter {
 
                 if ((variable->container == CONTAINER_UNIFORM) || (variable->container == CONTAINER_CONSTANT)) {
                     memcpy(destf + start * variable->numFloats, data, variable->numFloats * sizeof(float));
-                } else {
+                }
+                else {
                     // premote
                     for (int i = 0; i < numVertices; i++, destf += variable->numFloats) {
                         memcpy(destf, data, variable->numFloats * sizeof(float));
                     }
                 }
-
-            } else if (dests != NULL) {
+            }
+            else if (dests != NULL) {
 
                 assert(isAligned64(dests));
                 assert(isAligned64(data));
@@ -179,7 +184,8 @@ class CUniformParameter : public CParameter {
 
                 if ((variable->container == CONTAINER_UNIFORM) || (variable->container == CONTAINER_CONSTANT)) {
                     memcpy(dests + start * variable->numFloats, data, variable->numFloats * sizeof(char *));
-                } else {
+                }
+                else {
                     // premote
                     for (int i = 0; i < numVertices; i++, dests += variable->numFloats) {
                         memcpy(dests, data, variable->numFloats * sizeof(char *));
@@ -202,7 +208,8 @@ class CUniformParameter : public CParameter {
             if (variable->type == TYPE_STRING) {
                 cUniform->data = new char *[variable->numFloats];
                 memcpy(cUniform->data, data, variable->numFloats * sizeof(char *));
-            } else {
+            }
+            else {
                 cUniform->data = new float[variable->numFloats];
                 memcpy(cUniform->data, data, variable->numFloats * sizeof(float));
             }
@@ -518,35 +525,35 @@ class CVarying2Parameter : public CParameter {
         float *data;
 };
 
-#define dispatchData(__src, __dest, __size, __numFloats, __numVertices)    \
-    int __tmp, __tmp2;                                                     \
-    switch (__numFloats) {                                                 \
-    case 0:                                                                \
-        break;                                                             \
-    case 1:                                                                \
-        for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size)   \
-            *__dest++ = *__src;                                            \
-        break;                                                             \
-    case 2:                                                                \
-        for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
-            *__dest++ = __src[0];                                          \
-            *__dest++ = __src[1];                                          \
-        }                                                                  \
-        break;                                                             \
-    case 3:                                                                \
-        for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
-            *__dest++ = __src[0];                                          \
-            *__dest++ = __src[1];                                          \
-            *__dest++ = __src[2];                                          \
-        }                                                                  \
-        break;                                                             \
-    default:                                                               \
-        for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
-            for (__tmp2 = 0; __tmp2 < __numFloats; __tmp2++) {             \
-                *__dest++ = __src[__tmp2];                                 \
-            }                                                              \
-        }                                                                  \
-        break;                                                             \
+#define dispatchData(__src, __dest, __size, __numFloats, __numVertices)        \
+    int __tmp, __tmp2;                                                         \
+    switch (__numFloats) {                                                     \
+        case 0:                                                                \
+            break;                                                             \
+        case 1:                                                                \
+            for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size)   \
+                *__dest++ = *__src;                                            \
+            break;                                                             \
+        case 2:                                                                \
+            for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
+                *__dest++ = __src[0];                                          \
+                *__dest++ = __src[1];                                          \
+            }                                                                  \
+            break;                                                             \
+        case 3:                                                                \
+            for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
+                *__dest++ = __src[0];                                          \
+                *__dest++ = __src[1];                                          \
+                *__dest++ = __src[2];                                          \
+            }                                                                  \
+            break;                                                             \
+        default:                                                               \
+            for (__tmp = __numVertices; __tmp > 0; __tmp--, __src += __size) { \
+                for (__tmp2 = 0; __tmp2 < __numFloats; __tmp2++) {             \
+                    *__dest++ = __src[__tmp2];                                 \
+                }                                                              \
+            }                                                                  \
+            break;                                                             \
     }
 
 ///////////////////////////////////////////////////////////////////////
@@ -670,7 +677,8 @@ void CPl::transform(CXform *x, float *data) {
             transform(x, data0);
         if (data1 != NULL)
             transform(x, data1);
-    } else {
+    }
+    else {
         int i, j;
         const CPlParameter *cPl = parameters;
         const float *from, *to;
@@ -679,11 +687,13 @@ void CPl::transform(CXform *x, float *data) {
             if (data == data1) {
                 from = x->next->from;
                 to = x->next->to;
-            } else {
+            }
+            else {
                 from = x->from;
                 to = x->to;
             }
-        } else {
+        }
+        else {
             from = x->from;
             to = x->to;
         }
@@ -693,44 +703,44 @@ void CPl::transform(CXform *x, float *data) {
             float *src = data + cPl->index;
 
             switch (cVar->type) {
-            case TYPE_FLOAT:
-            case TYPE_COLOR:
-                // No transformation is required
-                break;
-            case TYPE_VECTOR:
-                // Vector transform
-                for (j = cPl->numItems; j > 0; j--, src += 3) {
-                    mulmv(src, from, src);
-                }
-                break;
-            case TYPE_NORMAL:
-                // Vector transform
-                for (j = cPl->numItems; j > 0; j--, src += 3) {
-                    mulmn(src, to, src);
-                }
-                break;
-            case TYPE_POINT:
-                // Vector transform
-                for (j = cPl->numItems; j > 0; j--, src += 3) {
-                    mulmp(src, from, src);
-                }
-                break;
-            case TYPE_MATRIX:
-            case TYPE_MPOINT:
-                // Both are matrices in their own right; a transform of the
-                // primitive does not reinterpret them.
-                break;
-            case TYPE_QUAD:
-                // Vector transform
-                for (j = cPl->numItems; j > 0; j--, src += 4) {
-                    mulmp4(src, from, src);
-                }
-                break;
-            case TYPE_DOUBLE:
-            case TYPE_STRING:
-            case TYPE_INTEGER:
-                // No transformation is required
-                break;
+                case TYPE_FLOAT:
+                case TYPE_COLOR:
+                    // No transformation is required
+                    break;
+                case TYPE_VECTOR:
+                    // Vector transform
+                    for (j = cPl->numItems; j > 0; j--, src += 3) {
+                        mulmv(src, from, src);
+                    }
+                    break;
+                case TYPE_NORMAL:
+                    // Vector transform
+                    for (j = cPl->numItems; j > 0; j--, src += 3) {
+                        mulmn(src, to, src);
+                    }
+                    break;
+                case TYPE_POINT:
+                    // Vector transform
+                    for (j = cPl->numItems; j > 0; j--, src += 3) {
+                        mulmp(src, from, src);
+                    }
+                    break;
+                case TYPE_MATRIX:
+                case TYPE_MPOINT:
+                    // Both are matrices in their own right; a transform of the
+                    // primitive does not reinterpret them.
+                    break;
+                case TYPE_QUAD:
+                    // Vector transform
+                    for (j = cPl->numItems; j > 0; j--, src += 4) {
+                        mulmp4(src, from, src);
+                    }
+                    break;
+                case TYPE_DOUBLE:
+                case TYPE_STRING:
+                case TYPE_INTEGER:
+                    // No transformation is required
+                    break;
             }
         }
     }
@@ -796,14 +806,16 @@ CPl *CPl::clone(CAttributes *a) {
     if (data0 != NULL) {
         ndata0 = new float[dataSize];
         memcpy(ndata0, data0, dataSize * sizeof(float));
-    } else {
+    }
+    else {
         ndata0 = NULL;
     }
 
     if (data1 != NULL) {
         ndata1 = new float[dataSize];
         memcpy(ndata1, data1, dataSize * sizeof(float));
-    } else {
+    }
+    else {
         ndata1 = NULL;
     }
 
@@ -865,7 +877,8 @@ void CPl::collect(int &size, float *&data, EVariableClass container, CMemPage *p
 
     if (data1 != NULL) {
         size = vs * 2;
-    } else {
+    }
+    else {
         size = vs;
     }
 
@@ -948,14 +961,16 @@ CParameter *CPl::uniform(int u, CParameter *p) {
                 assert(isAligned64(((char **)cData) + u * numFloats));
 
                 memcpy(np->data, ((char **)cData) + u * numFloats, numFloats * sizeof(char *));
-            } else {
+            }
+            else {
                 np->data = new float[numFloats];
                 memcpy(np->data, cData + u * numFloats, numFloats * sizeof(float));
             }
 
             np->next = p;
             p = np;
-        } else if (cParameter->container == CONTAINER_CONSTANT) {
+        }
+        else if (cParameter->container == CONTAINER_CONSTANT) {
             CVariable *cVariable = cParameter->variable;
             CUniformParameter *np = new CUniformParameter(cVariable);
             const float *cData = data0 + cParameter->index;
@@ -968,7 +983,8 @@ CParameter *CPl::uniform(int u, CParameter *p) {
                 assert(isAligned64(cData));
 
                 memcpy(np->data, cData, numFloats * sizeof(char *));
-            } else {
+            }
+            else {
                 np->data = new float[numFloats];
                 memcpy(np->data, cData, numFloats * sizeof(float));
             }
@@ -1239,7 +1255,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                             continue;
                         }
                     }
-                } else if ((cVar->storage != STORAGE_GLOBAL) && (cVar->usageMarker != (PARAMETER_S | PARAMETER_T))) {
+                }
+                else if ((cVar->storage != STORAGE_GLOBAL) && (cVar->usageMarker != (PARAMETER_S | PARAMETER_T))) {
                     // It was a declaration, Query the shaders
                     sVar = &tmp;
                     cVar = attributes->findParameter(tmp.name);
@@ -1254,7 +1271,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 // Query the shaders
                 cVar = attributes->findParameter(params[i]);
 
@@ -1262,7 +1280,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                     container = cVar->container;
                 }
             }
-        } else if ((cVar->storage != STORAGE_GLOBAL) && (cVar->usageMarker != (PARAMETER_S | PARAMETER_T))) {
+        }
+        else if ((cVar->storage != STORAGE_GLOBAL) && (cVar->usageMarker != (PARAMETER_S | PARAMETER_T))) {
             // This is a predeclared type, but not a global, query the shaders
             sVar = cVar;
             cVar = attributes->findParameter(params[i]);
@@ -1273,7 +1292,7 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                 if (cVar->numFloats != sVar->numFloats ||
                     cVar->type != sVar->type ||
                     ((cVar->container == CONTAINER_UNIFORM || cVar->container == CONTAINER_CONSTANT) &&
-                        (sVar->container != CONTAINER_UNIFORM) && (sVar->container != CONTAINER_CONSTANT))) {
+                     (sVar->container != CONTAINER_UNIFORM) && (sVar->container != CONTAINER_CONSTANT))) {
 
                     // We used the global declaration to check the number of items, but it mismatches the shader, do not bind
                     // Don't warn either
@@ -1283,7 +1302,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
 
                 container = cVar->container;
             }
-        } else {
+        }
+        else {
             container = cVar->container;
         }
 
@@ -1317,25 +1337,25 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
 
         // Size check
         switch (container) {
-        case CONTAINER_UNIFORM:
-            numItems = numUniform;
-            break;
-        case CONTAINER_VERTEX:
-            numItems = numVertex;
-            break;
-        case CONTAINER_VARYING:
-            numItems = numVarying;
-            break;
-        case CONTAINER_FACEVARYING:
-            numItems = numFaceVarying;
-            break;
-        case CONTAINER_CONSTANT:
-            numItems = 1;
-            break;
-        default:
-            error(CODE_BUG, "Unknown container class in parameter list\n");
-            numItems = 1;
-            break;
+            case CONTAINER_UNIFORM:
+                numItems = numUniform;
+                break;
+            case CONTAINER_VERTEX:
+                numItems = numVertex;
+                break;
+            case CONTAINER_VARYING:
+                numItems = numVarying;
+                break;
+            case CONTAINER_FACEVARYING:
+                numItems = numFaceVarying;
+                break;
+            case CONTAINER_CONSTANT:
+                numItems = 1;
+                break;
+            default:
+                error(CODE_BUG, "Unknown container class in parameter list\n");
+                numItems = 1;
+                break;
         }
 
         // Treat "st" differently
@@ -1372,25 +1392,25 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                 const char *decl;
 
                 switch (container) {
-                case CONTAINER_UNIFORM:
-                    decl = "uniform float";
-                    break;
-                case CONTAINER_VERTEX:
-                    decl = "vertex float";
-                    break;
-                case CONTAINER_VARYING:
-                    decl = "varying float";
-                    break;
-                case CONTAINER_FACEVARYING:
-                    decl = "facevarying float";
-                    break;
-                case CONTAINER_CONSTANT:
-                    decl = "constant float";
-                    break;
-                default:
-                    error(CODE_BUG, "Unknown container class in parameter list\n");
-                    decl = "uniform float";
-                    break;
+                    case CONTAINER_UNIFORM:
+                        decl = "uniform float";
+                        break;
+                    case CONTAINER_VERTEX:
+                        decl = "vertex float";
+                        break;
+                    case CONTAINER_VARYING:
+                        decl = "varying float";
+                        break;
+                    case CONTAINER_FACEVARYING:
+                        decl = "facevarying float";
+                        break;
+                    case CONTAINER_CONSTANT:
+                        decl = "constant float";
+                        break;
+                    default:
+                        error(CODE_BUG, "Unknown container class in parameter list\n");
+                        decl = "uniform float";
+                        break;
                 }
                 char *sDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_S) + 2, CRenderer::globalMemory);
                 char *tDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_T) + 2, CRenderer::globalMemory);
@@ -1486,7 +1506,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
         if (cVar->type == TYPE_STRING) {
             memcpy(cData, (char **)paramvals[i], sizeof(char *) * num * cVar->numFloats / sizeof(float));
             cData += num * cVar->numFloats * sizeof(char *) / sizeof(float);
-        } else {
+        }
+        else {
             memcpy(cData, (float *)paramvals[i], sizeof(float) * num * cVar->numFloats);
             cData += num * cVar->numFloats;
         }

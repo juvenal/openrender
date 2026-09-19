@@ -6,24 +6,24 @@
 
 extern "C" {
 
-int ribcam_write(const float *camToWorld16, int projType, float fovDeg,
-                 const char *outputPath) {
+int ribcam_write(const float *camToWorld16, int projType, float fovDeg, const char *outputPath) {
     CameraExport cam{};
-    for (int i = 0; i < 16; i++) cam.cameraToWorld[i] = camToWorld16[i];
+    for (int i = 0; i < 16; i++)
+        cam.cameraToWorld[i] = camToWorld16[i];
     cam.projectionType = projType;
-    cam.fov            = fovDeg;
-    cam.outputPath     = outputPath;
+    cam.fov = fovDeg;
+    cam.outputPath = outputPath;
     cam.updateExisting = false;
     return writeRibCamera(cam) ? 1 : 0;
 }
 
-int ribcam_replace(const float *camToWorld16, int projType, float fovDeg,
-                   const char *existingPath) {
+int ribcam_replace(const float *camToWorld16, int projType, float fovDeg, const char *existingPath) {
     CameraExport cam{};
-    for (int i = 0; i < 16; i++) cam.cameraToWorld[i] = camToWorld16[i];
+    for (int i = 0; i < 16; i++)
+        cam.cameraToWorld[i] = camToWorld16[i];
     cam.projectionType = projType;
-    cam.fov            = fovDeg;
-    cam.outputPath     = existingPath;
+    cam.fov = fovDeg;
+    cam.outputPath = existingPath;
     cam.updateExisting = true;
     return replaceRibCamera(cam) ? 1 : 0;
 }
@@ -39,7 +39,8 @@ static std::string isoTimestamp() {
 
 bool writeRibCamera(const CameraExport &cam) {
     std::ofstream f(cam.outputPath);
-    if (!f) return false;
+    if (!f)
+        return false;
 
     f << "## orender-wire camera export\n";
     f << "## Exported: " << isoTimestamp() << "\n\n";
@@ -52,7 +53,8 @@ bool writeRibCamera(const CameraExport &cam) {
     f << "Transform [";
     for (int i = 0; i < 16; i++) {
         f << cam.cameraToWorld[i];
-        if (i < 15) f << " ";
+        if (i < 15)
+            f << " ";
     }
     f << "]\n";
 
@@ -61,7 +63,8 @@ bool writeRibCamera(const CameraExport &cam) {
 
 bool replaceRibCamera(const CameraExport &cam) {
     std::ifstream fin(cam.outputPath);
-    if (!fin) return false;
+    if (!fin)
+        return false;
     std::string content((std::istreambuf_iterator<char>(fin)), {});
     fin.close();
 
@@ -72,12 +75,13 @@ bool replaceRibCamera(const CameraExport &cam) {
         return writeRibCamera(cam);
     }
 
-    std::string pre  = content.substr(0, worldPos);
+    std::string pre = content.substr(0, worldPos);
     std::string post = content.substr(worldPos);
 
     auto replaceLine = [&](const std::string &keyword, const std::string &newLine) {
         size_t pos = pre.find(keyword);
-        if (pos == std::string::npos) return;
+        if (pos == std::string::npos)
+            return;
         size_t end = pre.find('\n', pos);
         pre.replace(pos, end - pos, newLine);
     };
@@ -96,13 +100,18 @@ bool replaceRibCamera(const CameraExport &cam) {
     {
         std::ostringstream ss;
         ss << "Transform [";
-        for (int i = 0; i < 16; i++) { ss << cam.cameraToWorld[i]; if (i<15) ss << " "; }
+        for (int i = 0; i < 16; i++) {
+            ss << cam.cameraToWorld[i];
+            if (i < 15)
+                ss << " ";
+        }
         ss << "]";
         replaceLine("Transform", ss.str());
     }
 
     std::ofstream fout(cam.outputPath);
-    if (!fout) return false;
+    if (!fout)
+        return false;
     fout << pre << post;
     return fout.good();
 }

@@ -88,7 +88,8 @@ void doelse(int elif, int no_flag, const char *name) {
                         IFTRUE;
                     Ifstate = Ifstack[Iflevel].i_state =
                         eval() ? IFTRUE : IFFALSE;
-                } else {
+                }
+                else {
                     Ifstate = Ifstack[Iflevel].i_state =
                         IFTRUE;
                 }
@@ -96,7 +97,8 @@ void doelse(int elif, int no_flag, const char *name) {
             /* If have seen an #else */
             Ifstack[Iflevel].i_else = !elif;
         }
-    } else {
+    }
+    else {
         if (elif)
             non_fatal("\"#elif\" outside of \"#if\"", "");
         else
@@ -143,7 +145,8 @@ void doif(int dummy, int no_flag, const char *name) {
         if (Ifstate == IFTRUE) {
             Ifstate = Ifstack[++Iflevel].i_state =
                 eval() ? IFTRUE : IFFALSE;
-        } else {
+        }
+        else {
             Ifstate = Ifstack[++Iflevel].i_state =
                 IFNEVER; /* NO #else */
             scaneol();   /* Just absorb the rest */
@@ -178,11 +181,13 @@ void doifs(int t, int no_flag, const char *name) {
                              (t ? FALSE : TRUE)
                          ? IFTRUE
                          : IFFALSE;
-        } else {
+        }
+        else {
             iftype = IFFALSE;
             illegal_symbol();
         }
-    } else
+    }
+    else
         iftype = IFNEVER; /* Inside false #if -- No #else */
 
     if (Iflevel >= IFSTACKSIZE)

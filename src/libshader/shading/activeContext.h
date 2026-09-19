@@ -12,9 +12,9 @@ class CShadingContext;
 
 namespace libshader {
 
-extern thread_local CShadingContext *g_activeCtx;
+    extern thread_local CShadingContext *g_activeCtx;
 
-inline void setActiveContext(CShadingContext *ctx) { g_activeCtx = ctx; }
-inline CShadingContext *activeContext() { return g_activeCtx; }
+    inline void setActiveContext(CShadingContext *ctx) { g_activeCtx = ctx; }
+    inline CShadingContext *activeContext() { return g_activeCtx; }
 
 } // namespace libshader

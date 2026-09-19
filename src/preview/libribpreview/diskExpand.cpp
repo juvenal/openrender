@@ -7,7 +7,7 @@ static constexpr int DISK_SEGMENTS = 20;
 static float3 add(const float3 &a, const float3 &b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 static float3 mul(const float3 &a, float s) { return {a.x * s, a.y * s, a.z * s}; }
 static float3 cross(const float3 &a, const float3 &b) {
-    return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
+    return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 static float length(const float3 &a) { return std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z); }
 

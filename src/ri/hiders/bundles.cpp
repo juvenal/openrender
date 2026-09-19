@@ -69,7 +69,8 @@ void CTraceBundle::postShade(int nr, CRay **r, float **varying) {
                 movvv(cRay->color, Ci); // Save the color and opacity as we'll need those
                 movvv(cRay->opacity, Oi);
                 rays[last++] = cRay;
-            } else {
+            }
+            else {
                 const float multiplier = cRay->multiplier;
                 // We hit an opaque surface
                 cRay->dest[0] += Ci[0] * multiplier;
@@ -77,7 +78,8 @@ void CTraceBundle::postShade(int nr, CRay **r, float **varying) {
                 cRay->dest[2] += Ci[2] * multiplier;
             }
         }
-    } else {
+    }
+    else {
         // Transparency hit
         for (i = nr; i > 0; i--, Ci += 3, Oi += 3) {
             CTraceRay *cRay = (CTraceRay *)(*r++);
@@ -99,7 +101,8 @@ void CTraceBundle::postShade(int nr, CRay **r, float **varying) {
             if (transparent) {
                 // We hit a transparent surface again, keep tracing
                 rays[last++] = cRay;
-            } else {
+            }
+            else {
                 const float multiplier = cRay->multiplier;
                 // We hit an opaque surface
                 cRay->dest[0] += cRay->color[0] * multiplier;
@@ -182,7 +185,8 @@ void CTransmissionBundle::postShade(int nr, CRay **r, float **varying) {
                 rays[last++] = cRay;
             }
         }
-    } else {
+    }
+    else {
         // Transparency hit
         for (i = nr; i > 0; i--, Oi += 3) {
             CTransmissionRay *cRay = (CTransmissionRay *)(*r++);
@@ -222,7 +226,8 @@ void CTransmissionBundle::postShade(int nr, CRay **r) {
             cRay->dest[1] += multiplier;
             cRay->dest[2] += multiplier;
         }
-    } else {
+    }
+    else {
         for (i = nr; i > 0; i--) {
             CTransmissionRay *cRay = (CTransmissionRay *)(*r++);
             const float multiplier = cRay->multiplier;

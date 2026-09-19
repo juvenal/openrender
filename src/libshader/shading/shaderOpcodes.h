@@ -28,14 +28,14 @@
 // Provide a no-op fallback for log_debug when logging.hpp has not been
 // included by the translation unit that includes this header.
 #ifndef log_debug
-#  define log_debug(...) ((void)0)
-#  define _SHADEROPCODES_LOG_FALLBACK
+#define log_debug(...) ((void)0)
+#define _SHADEROPCODES_LOG_FALLBACK
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // illumination <P> <begin> <end>  [ <category> ]
-#define ILLUMINATION1RUNLIGHT_PRE \
-    char **lightCat;              \
+#define ILLUMINATION1RUNLIGHT_PRE  \
+    char **lightCat;               \
     operand(3, lightCat, char **); \
     (void)lightCat;
 
@@ -63,7 +63,8 @@
         costheta[i] = -1;                                                             \
     }                                                                                 \
     runlightsExpr;                                                                    \
-    (void)P; (void)N;                                                                 \
+    (void)P;                                                                          \
+    (void)N;                                                                          \
     if ((*currentLight = *lights) != NULL) {                                          \
         enterLightingConditional();                                                   \
         /* copy the light's variables in */                                           \
@@ -93,8 +94,8 @@ DEFOPCODE(IlluminationCat1, "illuminance", 4, ILLUMINATION1EXPR_PRE(ILLUMINATION
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // illumination <P> <axis> <angle> <begin> <end>  [ <category> ]
-#define ILLUMINATION2RUNLIGHT_PRE \
-    char **lightCat;              \
+#define ILLUMINATION2RUNLIGHT_PRE  \
+    char **lightCat;               \
     operand(5, lightCat, char **); \
     (void)lightCat;
 
@@ -117,7 +118,8 @@ DEFOPCODE(IlluminationCat1, "illuminance", 4, ILLUMINATION1EXPR_PRE(ILLUMINATION
     for (int i = 0; i < numVertices; ++i)                                         \
         costheta[i] = (float)cos(angle[i]);                                       \
     runlightsExpr;                                                                \
-    (void)P; (void)N;                                                             \
+    (void)P;                                                                      \
+    (void)N;                                                                      \
     if ((*currentLight = *lights) != NULL) {                                      \
         enterLightingConditional();                                               \
         /* copy the light's variables in */                                       \
@@ -209,33 +211,35 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
                                                                 \
     operand(0, Pl, const float *);                              \
                                                                 \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {       \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {  \
         illuminateBegin(Pl, NULL, NULL);                        \
-    } else {                                                    \
-        float *Ps = varying[VARIABLE_PS];                                   \
-        float *L = varying[VARIABLE_L];                                     \
-        const float *Ns    = currentShadingState->Ns;                       \
-        const float *costheta = currentShadingState->costheta;              \
-                                                                            \
-        for (int i = numVertices; i > 0; --i, ++tags) {                     \
-            if (*tags) {                                                    \
-                (*tags)++;                                                  \
-            } else {                                                        \
-                subvv(L, Ps, Pl);                                           \
-                                                                            \
-                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) {            \
-                    (*tags)++;                                              \
-                    --numActive;                                            \
-                    ++numPassive;                                           \
-                }                                                           \
-            }                                                               \
-                                                                            \
-            Pl    += 3;                                                     \
-            L     += 3;                                                     \
-            Ps    += 3;                                                     \
-            Ns    += 3;                                                     \
-            ++costheta;                                                     \
-        }                                                                   \
+    }                                                           \
+    else {                                                      \
+        float *Ps = varying[VARIABLE_PS];                       \
+        float *L = varying[VARIABLE_L];                         \
+        const float *Ns = currentShadingState->Ns;              \
+        const float *costheta = currentShadingState->costheta;  \
+                                                                \
+        for (int i = numVertices; i > 0; --i, ++tags) {         \
+            if (*tags) {                                        \
+                (*tags)++;                                      \
+            }                                                   \
+            else {                                              \
+                subvv(L, Ps, Pl);                               \
+                                                                \
+                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) { \
+                    (*tags)++;                                  \
+                    --numActive;                                \
+                    ++numPassive;                               \
+                }                                               \
+            }                                                   \
+                                                                \
+            Pl += 3;                                            \
+            L += 3;                                             \
+            Ps += 3;                                            \
+            Ns += 3;                                            \
+            ++costheta;                                         \
+        }                                                       \
                                                                 \
         if (numActive == 0) {                                   \
             jmp(argument(1));                                   \
@@ -253,47 +257,49 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
 #ifdef INIT_SHADING
 #define ILLUMINATE3EXPR_PRE
 #else
-#define ILLUMINATE3EXPR_PRE                                                                     \
-    const float *Pf, *Nf, *thetaf;                                                              \
-                                                                                                \
-    operand(0, Pf, const float *);                                                              \
-    operand(1, Nf, const float *);                                                              \
-    operand(2, thetaf, const float *);                                                          \
-                                                                                                \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                       \
-        illuminateBegin(Pf, Nf, thetaf);                                                        \
-    } else {                                                                                    \
-        float *Ps = varying[VARIABLE_PS];                                                                   \
-        float *L = varying[VARIABLE_L];                                                                     \
-        const float *Ns    = currentShadingState->Ns;                                                       \
-        const float *costheta = currentShadingState->costheta;                                              \
+#define ILLUMINATE3EXPR_PRE                                                                                                  \
+    const float *Pf, *Nf, *thetaf;                                                                                           \
+                                                                                                                             \
+    operand(0, Pf, const float *);                                                                                           \
+    operand(1, Nf, const float *);                                                                                           \
+    operand(2, thetaf, const float *);                                                                                       \
+                                                                                                                             \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                                               \
+        illuminateBegin(Pf, Nf, thetaf);                                                                                     \
+    }                                                                                                                        \
+    else {                                                                                                                   \
+        float *Ps = varying[VARIABLE_PS];                                                                                    \
+        float *L = varying[VARIABLE_L];                                                                                      \
+        const float *Ns = currentShadingState->Ns;                                                                           \
+        const float *costheta = currentShadingState->costheta;                                                               \
         log_debug("[rslo-dbg] [illuminate3] numActive={} numPassive={} numVertices={}", numActive, numPassive, numVertices); \
-                                                                                                            \
-        for (int i = numVertices; i > 0; --i, ++tags) {                                                     \
-            if (*tags) {                                                                                    \
-                (*tags)++;                                                                                  \
-            } else {                                                                                        \
-                subvv(L, Ps, Pf);                                                                           \
-                const float Lm = lengthv(L);                                                                \
-                if ((dotvv(Nf, L) < cos(*thetaf) * Lm) || (dotvv(Ns, L) > -(*costheta) * Lm)) {           \
-                    (*tags)++;                                                                              \
-                    --numActive;                                                                            \
-                    ++numPassive;                                                                           \
-                }                                                                                           \
-            }                                                                                               \
-                                                                                                            \
-            Pf    += 3;                                                                                     \
-            Nf    += 3;                                                                                     \
-            ++thetaf;                                                                                       \
-            L     += 3;                                                                                     \
-            Ps    += 3;                                                                                     \
-            Ns    += 3;                                                                                     \
-            ++costheta;                                                                                     \
-        }                                                                                                   \
-                                                                                                \
-        if (numActive == 0) {                                                                   \
-            jmp(argument(3));                                                                   \
-        }                                                                                       \
+                                                                                                                             \
+        for (int i = numVertices; i > 0; --i, ++tags) {                                                                      \
+            if (*tags) {                                                                                                     \
+                (*tags)++;                                                                                                   \
+            }                                                                                                                \
+            else {                                                                                                           \
+                subvv(L, Ps, Pf);                                                                                            \
+                const float Lm = lengthv(L);                                                                                 \
+                if ((dotvv(Nf, L) < cos(*thetaf) * Lm) || (dotvv(Ns, L) > -(*costheta) * Lm)) {                              \
+                    (*tags)++;                                                                                               \
+                    --numActive;                                                                                             \
+                    ++numPassive;                                                                                            \
+                }                                                                                                            \
+            }                                                                                                                \
+                                                                                                                             \
+            Pf += 3;                                                                                                         \
+            Nf += 3;                                                                                                         \
+            ++thetaf;                                                                                                        \
+            L += 3;                                                                                                          \
+            Ps += 3;                                                                                                         \
+            Ns += 3;                                                                                                         \
+            ++costheta;                                                                                                      \
+        }                                                                                                                    \
+                                                                                                                             \
+        if (numActive == 0) {                                                                                                \
+            jmp(argument(3));                                                                                                \
+        }                                                                                                                    \
     }
 
 #endif
@@ -309,28 +315,30 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
 #ifdef INIT_SHADING
 #define ILLUMINATEEND_PRE
 #else
-#define ILLUMINATEEND_PRE                                 \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
-        illuminateEnd();                                  \
-    } else {                                              \
+#define ILLUMINATEEND_PRE                                                                                                      \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                                                 \
+        illuminateEnd();                                                                                                       \
+    }                                                                                                                          \
+    else {                                                                                                                     \
         log_debug("[rslo-dbg] [endilluminate] numActive={} numPassive={} numVertices={}", numActive, numPassive, numVertices); \
-        const float *L = varying[VARIABLE_L];             \
-        float *Lsave = nullptr;                           \
-                                                          \
-        saveLighting(Lsave);                              \
-        for (int i = 0; i < numVertices; ++i, ++tags) {   \
-            if (*tags) {                                  \
-                (*tags)--;                                \
-                if (*tags == 0) {                         \
-                    ++numActive;                          \
-                    --numPassive;                         \
-                }                                         \
-            } else {                                      \
-                mulvf(Lsave, L, -1);                      \
-            }                                             \
-            L += 3;                                       \
-            Lsave += 3;                                   \
-        }                                                 \
+        const float *L = varying[VARIABLE_L];                                                                                  \
+        float *Lsave = nullptr;                                                                                                \
+                                                                                                                               \
+        saveLighting(Lsave);                                                                                                   \
+        for (int i = 0; i < numVertices; ++i, ++tags) {                                                                        \
+            if (*tags) {                                                                                                       \
+                (*tags)--;                                                                                                     \
+                if (*tags == 0) {                                                                                              \
+                    ++numActive;                                                                                               \
+                    --numPassive;                                                                                              \
+                }                                                                                                              \
+            }                                                                                                                  \
+            else {                                                                                                             \
+                mulvf(Lsave, L, -1);                                                                                           \
+            }                                                                                                                  \
+            L += 3;                                                                                                            \
+            Lsave += 3;                                                                                                        \
+        }                                                                                                                      \
     }
 
 #endif
@@ -364,23 +372,25 @@ DEFOPCODE(EndIlluminate, "endilluminate", 0, ILLUMINATEEND_PRE, NULL_EXPR, NULL_
 #ifdef INIT_SHADING
 #define SOLAR1EXPR_PRE
 #else
-#define SOLAR1EXPR_PRE                                    \
+#define SOLAR1EXPR_PRE                                         \
     if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
-        solarBegin(NULL, NULL);                           \
-    } else {                                              \
-        const float *Ps = varying[VARIABLE_PS];           \
-        float *L = varying[VARIABLE_L];                   \
-                                                          \
-        for (int i = numVertices; i > 0; --i, ++tags) {   \
-            if (*tags) {                                  \
-                (*tags)++;                                \
-            } else {                                      \
-                movvv(L, Ps);                             \
-            }                                             \
-                                                          \
-            L += 3;                                       \
-            Ps += 3;                                      \
-        }                                                 \
+        solarBegin(NULL, NULL);                                \
+    }                                                          \
+    else {                                                     \
+        const float *Ps = varying[VARIABLE_PS];                \
+        float *L = varying[VARIABLE_L];                        \
+                                                               \
+        for (int i = numVertices; i > 0; --i, ++tags) {        \
+            if (*tags) {                                       \
+                (*tags)++;                                     \
+            }                                                  \
+            else {                                             \
+                movvv(L, Ps);                                  \
+            }                                                  \
+                                                               \
+            L += 3;                                            \
+            Ps += 3;                                           \
+        }                                                      \
     }
 
 #endif
@@ -394,41 +404,43 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
 #ifdef INIT_SHADING
 #define SOLAR2EXPR_PRE
 #else
-#define SOLAR2EXPR_PRE                                          \
-    const float *Nf, *thetaf;                                   \
-                                                                \
-    operand(0, Nf, const float *);                              \
-    operand(1, thetaf, const float *);                          \
-                                                                \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {       \
-        solarBegin(Nf, thetaf);                                 \
-    } else {                                                    \
-        vector R;                                               \
-        float worldRadius;                                      \
-        float *L = varying[VARIABLE_L];                         \
-        const float *Ns = currentShadingState->Ns;              \
-        const float *costheta = currentShadingState->costheta;  \
-                                                                \
+#define SOLAR2EXPR_PRE                                                  \
+    const float *Nf, *thetaf;                                           \
+                                                                        \
+    operand(0, Nf, const float *);                                      \
+    operand(1, thetaf, const float *);                                  \
+                                                                        \
+    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {          \
+        solarBegin(Nf, thetaf);                                         \
+    }                                                                   \
+    else {                                                              \
+        vector R;                                                       \
+        float worldRadius;                                              \
+        float *L = varying[VARIABLE_L];                                 \
+        const float *Ns = currentShadingState->Ns;                      \
+        const float *costheta = currentShadingState->costheta;          \
+                                                                        \
         subvv(R, this->rendererWorldBmax(), this->rendererWorldBmin()); \
-        worldRadius = dotvv(R, R);                              \
-                                                                \
-        for (int i = numVertices; i > 0; --i, ++tags) {         \
-            if (*tags) {                                        \
-                (*tags)++;                                      \
-            } else {                                            \
-                movvv(L, Nf);                                   \
-                mulvf(L, worldRadius);                          \
-                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) { \
-                    (*tags)++;                                  \
-                    --numActive;                                \
-                    ++numPassive;                               \
-                }                                               \
-            }                                                   \
-            Nf += 3;                                            \
-            L += 3;                                             \
-            Ns += 3;                                            \
-            ++costheta;                                         \
-        }                                                       \
+        worldRadius = dotvv(R, R);                                      \
+                                                                        \
+        for (int i = numVertices; i > 0; --i, ++tags) {                 \
+            if (*tags) {                                                \
+                (*tags)++;                                              \
+            }                                                           \
+            else {                                                      \
+                movvv(L, Nf);                                           \
+                mulvf(L, worldRadius);                                  \
+                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) {         \
+                    (*tags)++;                                          \
+                    --numActive;                                        \
+                    ++numPassive;                                       \
+                }                                                       \
+            }                                                           \
+            Nf += 3;                                                    \
+            L += 3;                                                     \
+            Ns += 3;                                                    \
+            ++costheta;                                                 \
+        }                                                               \
     }
 
 #endif
@@ -448,28 +460,30 @@ DEFOPCODE(Solar2, "solar", 3, SOLAR2EXPR_PRE, NULL_EXPR, NULL_EXPR, SOLAR2EXPR_P
 #ifdef INIT_SHADING
 #define SOLAREND_PRE
 #else
-#define SOLAREND_PRE                                      \
+#define SOLAREND_PRE                                           \
     if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
-        solarEnd();                                       \
-    } else {                                              \
-        const float *L = varying[VARIABLE_L];             \
-        float *Lsave = nullptr;                           \
-                                                          \
-        saveLighting(Lsave);                              \
-        for (int i = 0; i < numVertices; ++i, ++tags) {   \
-            if (*tags) {                                  \
-                (*tags)--;                                \
-                if (*tags == 0) {                         \
-                    ++numActive;                          \
-                    --numPassive;                         \
-                }                                         \
-            } else {                                      \
-                mulvf(Lsave, L, -1);                      \
-                normalizev(Lsave);                        \
-            }                                             \
-            L += 3;                                       \
-            Lsave += 3;                                   \
-        }                                                 \
+        solarEnd();                                            \
+    }                                                          \
+    else {                                                     \
+        const float *L = varying[VARIABLE_L];                  \
+        float *Lsave = nullptr;                                \
+                                                               \
+        saveLighting(Lsave);                                   \
+        for (int i = 0; i < numVertices; ++i, ++tags) {        \
+            if (*tags) {                                       \
+                (*tags)--;                                     \
+                if (*tags == 0) {                              \
+                    ++numActive;                               \
+                    --numPassive;                              \
+                }                                              \
+            }                                                  \
+            else {                                             \
+                mulvf(Lsave, L, -1);                           \
+                normalizev(Lsave);                             \
+            }                                                  \
+            L += 3;                                            \
+            Lsave += 3;                                        \
+        }                                                      \
     }
 
 #endif
@@ -478,22 +492,25 @@ DEFOPCODE(EndSolar, "endsolar", 0, SOLAREND_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR
 
 #undef SOLAREND_PRE
 
-#define PFROMEXPR_PRE               \
-    float *res;                     \
-    const float *op;                \
-    const char **sys;               \
-    const float *from, *to;         \
-    ECoordinateSystem cSystem;      \
-    [[maybe_unused]] bool pfromLoggedFirst = false;  \
-    operand(0, res, float *);       \
-    operand(1, sys, const char **); \
-    operand(2, op, const float *);  \
-    findCoordinateSystem(*sys, from, to, cSystem); \
+#define PFROMEXPR_PRE                               \
+    float *res;                                     \
+    const float *op;                                \
+    const char **sys;                               \
+    const float *from, *to;                         \
+    ECoordinateSystem cSystem;                      \
+    [[maybe_unused]] bool pfromLoggedFirst = false; \
+    operand(0, res, float *);                       \
+    operand(1, sys, const char **);                 \
+    operand(2, op, const float *);                  \
+    findCoordinateSystem(*sys, from, to, cSystem);  \
     log_debug("[rslo-pfrom] space='{}' in[0]=({:.4f},{:.4f},{:.4f})", *sys, op[0], op[1], op[2]);
 
-#define PFROMEXPR                                                                                                                  \
-    mulmp(res, from, op);                                                                                                         \
-    if (!pfromLoggedFirst) { log_debug("[rslo-pfrom] out[0]=({:.4f},{:.4f},{:.4f})", res[0], res[1], res[2]); pfromLoggedFirst = true; }
+#define PFROMEXPR                                                                        \
+    mulmp(res, from, op);                                                                \
+    if (!pfromLoggedFirst) {                                                             \
+        log_debug("[rslo-pfrom] out[0]=({:.4f},{:.4f},{:.4f})", res[0], res[1], res[2]); \
+        pfromLoggedFirst = true;                                                         \
+    }
 
 #define PFROMEXPR_UPDATE \
     res += 3;            \
@@ -533,6 +550,6 @@ DEFOPCODE(MFrom, "mfrom", 3, PFROMEXPR_PRE, MFROMEXPR, MFROMEXPR_UPDATE, MFROMEX
 #include "giOpcodes.h"
 
 #ifdef _SHADEROPCODES_LOG_FALLBACK
-#  undef log_debug
-#  undef _SHADEROPCODES_LOG_FALLBACK
+#undef log_debug
+#undef _SHADEROPCODES_LOG_FALLBACK
 #endif

@@ -16,10 +16,10 @@
  */
 
 #include "rsloEmitter.h"
-#include "rslo.h"      // for SLC_xxx constants
+#include "rslo.h" // for SLC_xxx constants
 
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
 
 // Version constants are declared in common/global.h via the build system.
 // Emit the version line using values from the module's version string.
@@ -73,9 +73,11 @@ void CRSLObjectEmitter::emitFunctions(const IRModule &mod, FILE *out) {
 void CRSLObjectEmitter::emitParameters(const IRModule &mod, FILE *out) {
     fprintf(out, "#!parameters:\n");
     for (const IRVarInfo &v : mod.vars) {
-        if (!v.isParameter()) continue;
+        if (!v.isParameter())
+            continue;
 
-        if (v.isOutput()) fprintf(out, "output\t");
+        if (v.isOutput())
+            fprintf(out, "output\t");
         emitTypeTokens(v, out);
 
         fprintf(out, "%s", v.symbolName.c_str());
@@ -98,9 +100,12 @@ void CRSLObjectEmitter::emitVariables(const IRModule &mod, FILE *out) {
     fprintf(out, "#!variables:\n");
     for (const IRVarInfo &v : mod.vars) {
         // Skip parameters and globals; skip SLC_NONE typed entries.
-        if (v.isParameter()) continue;
-        if (v.isGlobal())    continue;
-        if (v.slcType & SLC_NONE) continue;
+        if (v.isParameter())
+            continue;
+        if (v.isGlobal())
+            continue;
+        if (v.slcType & SLC_NONE)
+            continue;
 
         emitTypeTokens(v, out);
         fprintf(out, "%s", v.cName.c_str());
@@ -127,20 +132,29 @@ void CRSLObjectEmitter::emitTypeTokens(const IRVarInfo &v, FILE *out) {
     // Base type (with vector sub-type for parameters).
     if (v.isFloat()) {
         fprintf(out, "float\t");
-    } else if (v.isVector()) {
+    }
+    else if (v.isVector()) {
         if (v.isParameter()) {
-            if (v.slcType & SLC_VPOINT)       fprintf(out, "point\t");
-            else if (v.slcType & SLC_VVECTOR)  fprintf(out, "vector\t");
-            else if (v.slcType & SLC_VNORMAL)  fprintf(out, "normal\t");
-            else if (v.slcType & SLC_VCOLOR)   fprintf(out, "color\t");
-            else                               fprintf(out, "vector\t");
-        } else {
+            if (v.slcType & SLC_VPOINT)
+                fprintf(out, "point\t");
+            else if (v.slcType & SLC_VVECTOR)
+                fprintf(out, "vector\t");
+            else if (v.slcType & SLC_VNORMAL)
+                fprintf(out, "normal\t");
+            else if (v.slcType & SLC_VCOLOR)
+                fprintf(out, "color\t");
+            else
+                fprintf(out, "vector\t");
+        }
+        else {
             // Variables section always writes "vector" regardless of sub-type.
             fprintf(out, "vector\t");
         }
-    } else if (v.isString()) {
+    }
+    else if (v.isString()) {
         fprintf(out, "string\t");
-    } else if (v.isMatrix()) {
+    }
+    else if (v.isMatrix()) {
         fprintf(out, "matrix\t");
     }
 }

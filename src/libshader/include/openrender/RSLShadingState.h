@@ -45,25 +45,25 @@ class CShadingContext; /* forward declaration — C++ only */
 #endif
 
 struct RSLShadingState {
-    int      numVertices;   /**< Number of shading points in this batch      */
-    float  **varying;       /**< Indexed by VARIABLE_* — P, N, Cs, Ci, …    */
-    float  **locals;        /**< Shader parameter + temporary variable storage */
-    int     *tags;          /**< Per-vertex activity mask (0 = active)        */
+        int numVertices; /**< Number of shading points in this batch      */
+        float **varying; /**< Indexed by VARIABLE_* — P, N, Cs, Ci, …    */
+        float **locals;  /**< Shader parameter + temporary variable storage */
+        int *tags;       /**< Per-vertex activity mask (0 = active)        */
 
 #ifdef __cplusplus
-    /** Phase B: shading context that owns execute(). Required for shade(). */
-    CShadingContext *ctx;   /**< The active shading context                  */
+        /** Phase B: shading context that owns execute(). Required for shade(). */
+        CShadingContext *ctx; /**< The active shading context                  */
 #else
-    void *ctx;
+        void *ctx;
 #endif
 
-    /**
-     * Phase B callbacks — set to nullptr in Phase A; the library then
-     * falls back to CRenderer::* globals for lighting, texture, and tracing.
-     */
-    struct RSLLightingCallbacks *lighting; /**< nullptr until Phase B        */
-    struct RSLTextureCallbacks  *texture;  /**< nullptr until Phase B        */
-    struct RSLTraceCallbacks    *trace;    /**< nullptr until Phase B        */
+        /**
+         * Phase B callbacks — set to nullptr in Phase A; the library then
+         * falls back to CRenderer::* globals for lighting, texture, and tracing.
+         */
+        struct RSLLightingCallbacks *lighting; /**< nullptr until Phase B        */
+        struct RSLTextureCallbacks *texture;   /**< nullptr until Phase B        */
+        struct RSLTraceCallbacks *trace;       /**< nullptr until Phase B        */
 };
 
 #ifdef __cplusplus

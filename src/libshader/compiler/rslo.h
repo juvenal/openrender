@@ -350,10 +350,10 @@ class CScriptContext {
         int undesire();   // Return back to the previous desired type
         int desired();    // Return the desired type
 
-        int compileError;   // The number of compiler errors
-        int compileWarning; // The number of compiler warnings
-        int settings;       // The compiler settings
-        int legacyRSLObjectExt;      // Force .sdr output extension
+        int compileError;       // The number of compiler errors
+        int compileWarning;     // The number of compiler warnings
+        int settings;           // The compiler settings
+        int legacyRSLObjectExt; // Force .sdr output extension
 
         CFunction *rootFunction;                // The topmost function
         CFunction *shaderFunction;              // The shader function
@@ -412,8 +412,8 @@ class CScriptContext {
 
         // Set by oshader when --jit is requested.  If true, compile() retains
         // the optimized IRModule in lastCompiledModule so the caller can emit .slo.
-        bool                        emitJIT = false;
-        std::unique_ptr<IRModule>   lastCompiledModule;  // populated when emitJIT == true
+        bool emitJIT = false;
+        std::unique_ptr<IRModule> lastCompiledModule; // populated when emitJIT == true
 };
 
 // thread_local: each compiler thread owns its own context pointer.

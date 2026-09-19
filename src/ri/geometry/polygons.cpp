@@ -195,12 +195,14 @@ void CPolygonTriangle::intersect(CShadingContext *context, CRay *cRay) {
             else
                 crossvv(cRay->N, edge1, edge2);
         }
-    } else {
+    }
+    else {
 
         if ((attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ^ xform->flip) {
             if (det < 0)
                 return;
-        } else {
+        }
+        else {
             if (det > 0)
                 return;
         }
@@ -337,7 +339,8 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
             for (int i = 0; i < numVertices; i++, dest += 3)
                 interpolatev(dest, normal0, normal1, time[i]);
         }
-    } else {
+    }
+    else {
         const float *data;
 
         if (up & PARAMETER_END_SAMPLE)
@@ -446,7 +449,8 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
                 // Scale the dPdtime
                 mulvf(dest - 3, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -481,128 +485,134 @@ void CPolygonTriangle::interpolate(int numVertices, float **varying, float ***lo
             const float *data = pl->data0 + cParameter->index;
 
             switch (cParameter->container) {
-            case CONTAINER_UNIFORM:
+                case CONTAINER_UNIFORM:
 
-                if (cVariable->type != TYPE_STRING) {
+                    if (cVariable->type != TYPE_STRING) {
 
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        src = data + this->uniform * numFloats;
-                        for (j = numFloats; j > 0; j--) {
-                            *dest++ = *src++;
-                        }
-                    } else {
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
                             src = data + this->uniform * numFloats;
-                            for (k = numFloats; k > 0; k--) {
+                            for (j = numFloats; j > 0; j--) {
                                 *dest++ = *src++;
                             }
                         }
-                    }
-                } else {
-
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        const char **srcs = ((const char **)data) + this->uniform * numFloats;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        for (j = numFloats; j > 0; j--) {
-                            *dests++ = *srcs++;
-                        }
-                    } else {
-                        const char **srcs = ((const char **)data) + this->uniform * numFloats;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
-                            const char **csrcs = srcs;
-                            for (k = numFloats; k > 0; k--) {
-                                *dests++ = *csrcs++;
+                        else {
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                src = data + this->uniform * numFloats;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dest++ = *src++;
+                                }
                             }
                         }
                     }
-                }
-                break;
-            case CONTAINER_VERTEX:
-                // Ignore
-                break;
-            case CONTAINER_VARYING:
-                v0 = data + this->v0 * numFloats;
-                v1 = data + this->v1 * numFloats;
-                v2 = data + this->v2 * numFloats;
-                for (j = 0; j < numVertices; j++) {
-                    const double cu = u[j];
-                    const double cv = v[j];
+                    else {
 
-                    for (k = 0; k < numFloats; k++) {
-                        *dest++ = (float)(v0[k] * (1 - cu) + v1[k] * cu * cv + v2[k] * cu * (1 - cv));
-                    }
-                }
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
+                            const char **srcs = ((const char **)data) + this->uniform * numFloats;
+                            const char **dests = (const char **)dest;
 
-                break;
-            case CONTAINER_FACEVARYING:
-                v0 = data + this->fv0 * numFloats;
-                v1 = data + this->fv1 * numFloats;
-                v2 = data + this->fv2 * numFloats;
-                for (j = 0; j < numVertices; j++) {
-                    const double cu = u[j];
-                    const double cv = v[j];
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
 
-                    for (k = 0; k < numFloats; k++) {
-                        *dest++ = (float)(v0[k] * (1 - cu) + v1[k] * cu * cv + v2[k] * cu * (1 - cv));
-                    }
-                }
-                break;
-            case CONTAINER_CONSTANT:
-                if (cVariable->type == TYPE_STRING) {
-
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        const char **srcs = (const char **)data;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        for (j = numFloats; j > 0; j--) {
-                            *dests++ = *srcs++;
+                            for (j = numFloats; j > 0; j--) {
+                                *dests++ = *srcs++;
+                            }
                         }
-                    } else {
-                        const char **srcs = (const char **)data;
-                        const char **dests = (const char **)dest;
+                        else {
+                            const char **srcs = ((const char **)data) + this->uniform * numFloats;
+                            const char **dests = (const char **)dest;
 
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
 
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
-                            const char **csrcs = srcs;
-                            for (k = numFloats; k > 0; k--) {
-                                *dests++ = *csrcs++;
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                const char **csrcs = srcs;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dests++ = *csrcs++;
+                                }
                             }
                         }
                     }
-                } else {
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        src = data;
-                        for (j = numFloats; j > 0; j--) {
-                            *dest++ = *src++;
+                    break;
+                case CONTAINER_VERTEX:
+                    // Ignore
+                    break;
+                case CONTAINER_VARYING:
+                    v0 = data + this->v0 * numFloats;
+                    v1 = data + this->v1 * numFloats;
+                    v2 = data + this->v2 * numFloats;
+                    for (j = 0; j < numVertices; j++) {
+                        const double cu = u[j];
+                        const double cv = v[j];
+
+                        for (k = 0; k < numFloats; k++) {
+                            *dest++ = (float)(v0[k] * (1 - cu) + v1[k] * cu * cv + v2[k] * cu * (1 - cv));
                         }
-                    } else {
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
+                    }
+
+                    break;
+                case CONTAINER_FACEVARYING:
+                    v0 = data + this->fv0 * numFloats;
+                    v1 = data + this->fv1 * numFloats;
+                    v2 = data + this->fv2 * numFloats;
+                    for (j = 0; j < numVertices; j++) {
+                        const double cu = u[j];
+                        const double cv = v[j];
+
+                        for (k = 0; k < numFloats; k++) {
+                            *dest++ = (float)(v0[k] * (1 - cu) + v1[k] * cu * cv + v2[k] * cu * (1 - cv));
+                        }
+                    }
+                    break;
+                case CONTAINER_CONSTANT:
+                    if (cVariable->type == TYPE_STRING) {
+
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
+                            const char **srcs = (const char **)data;
+                            const char **dests = (const char **)dest;
+
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
+
+                            for (j = numFloats; j > 0; j--) {
+                                *dests++ = *srcs++;
+                            }
+                        }
+                        else {
+                            const char **srcs = (const char **)data;
+                            const char **dests = (const char **)dest;
+
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
+
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                const char **csrcs = srcs;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dests++ = *csrcs++;
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
                             src = data;
-                            for (k = numFloats; k > 0; k--) {
+                            for (j = numFloats; j > 0; j--) {
                                 *dest++ = *src++;
                             }
                         }
+                        else {
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                src = data;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dest++ = *src++;
+                                }
+                            }
+                        }
                     }
-                }
-                break;
+                    break;
             }
         }
     }
@@ -758,7 +768,8 @@ void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
                     cRay->v = (float)v;                                                                               \
                     cRay->t = (float)t;                                                                               \
                     movvv(cRay->N, N);                                                                                \
-                } else {                                                                                              \
+                }                                                                                                     \
+                else {                                                                                                \
                     if (dotvv(q, N) < 0) {                                                                            \
                         cRay->object = this;                                                                          \
                         cRay->u = (float)u;                                                                           \
@@ -776,18 +787,18 @@ void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
     double u, v, t;
 
     switch (i) {
-    case 0:
-        break;
-    case 1:
-        v = roots[0];
-        solve();
-        break;
-    case 2:
-        v = roots[0];
-        solve();
-        v = roots[1];
-        solve();
-        break;
+        case 0:
+            break;
+        case 1:
+            v = roots[0];
+            solve();
+            break;
+        case 2:
+            v = roots[0];
+            solve();
+            v = roots[1];
+            solve();
+            break;
     }
 }
 
@@ -893,7 +904,8 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                 dPdv += 3;
             }
         }
-    } else {
+    }
+    else {
         const float *data;
 
         if (up & PARAMETER_END_SAMPLE)
@@ -1001,7 +1013,8 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -1036,126 +1049,132 @@ void CPolygonQuad::interpolate(int numVertices, float **varying, float ***locals
             const float *data = pl->data0 + cParameter->index;
 
             switch (cParameter->container) {
-            case CONTAINER_UNIFORM:
-                if (cVariable->type != TYPE_STRING) {
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        src = data + this->uniform * numFloats;
-                        for (j = numFloats; j > 0; j--) {
-                            *dest++ = *src++;
-                        }
-                    } else {
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
+                case CONTAINER_UNIFORM:
+                    if (cVariable->type != TYPE_STRING) {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
                             src = data + this->uniform * numFloats;
-                            for (k = numFloats; k > 0; k--) {
+                            for (j = numFloats; j > 0; j--) {
                                 *dest++ = *src++;
                             }
                         }
-                    }
-                } else {
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        const char **srcs = ((const char **)data) + this->uniform * numFloats;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        for (j = numFloats; j > 0; j--) {
-                            *dests++ = *srcs++;
-                        }
-                    } else {
-                        const char **srcs = ((const char **)data) + this->uniform * numFloats;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
-                            const char **csrcs = srcs;
-                            for (k = numFloats; k > 0; k--) {
-                                *dests++ = *csrcs++;
+                        else {
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                src = data + this->uniform * numFloats;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dest++ = *src++;
+                                }
                             }
                         }
                     }
-                }
-                break;
-            case CONTAINER_VERTEX:
-                // Ignore
-                break;
-            case CONTAINER_VARYING:
-                v0 = data + this->v0 * numFloats;
-                v1 = data + this->v1 * numFloats;
-                v2 = data + this->v2 * numFloats;
-                v3 = data + this->v3 * numFloats;
-                for (j = 0; j < numVertices; j++) {
-                    const double cu = u[j];
-                    const double cv = v[j];
+                    else {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
+                            const char **srcs = ((const char **)data) + this->uniform * numFloats;
+                            const char **dests = (const char **)dest;
 
-                    for (k = 0; k < numFloats; k++) {
-                        *dest++ = (float)((v0[k] * (1.0 - cu) + v1[k] * cu) * (1.0 - cv) + (v2[k] * (1.0 - cu) + v3[k] * cu) * cv);
-                    }
-                }
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
 
-                break;
-            case CONTAINER_FACEVARYING:
-                v0 = data + this->fv0 * numFloats;
-                v1 = data + this->fv1 * numFloats;
-                v2 = data + this->fv2 * numFloats;
-                v3 = data + this->fv3 * numFloats;
-                for (j = 0; j < numVertices; j++) {
-                    const double cu = u[j];
-                    const double cv = v[j];
-
-                    for (k = 0; k < numFloats; k++) {
-                        *dest++ = (float)((v0[k] * (1.0 - cu) + v1[k] * cu) * (1.0 - cv) + (v2[k] * (1.0 - cu) + v3[k] * cu) * cv);
-                    }
-                }
-                break;
-            case CONTAINER_CONSTANT:
-                if (cVariable->type == TYPE_STRING) {
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        const char **srcs = (const char **)data;
-                        const char **dests = (const char **)dest;
-
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
-
-                        for (j = numFloats; j > 0; j--) {
-                            *dests++ = *srcs++;
+                            for (j = numFloats; j > 0; j--) {
+                                *dests++ = *srcs++;
+                            }
                         }
-                    } else {
-                        const char **srcs = (const char **)data;
-                        const char **dests = (const char **)dest;
+                        else {
+                            const char **srcs = ((const char **)data) + this->uniform * numFloats;
+                            const char **dests = (const char **)dest;
 
-                        assert(isAligned64(srcs));
-                        assert(isAligned64(dests));
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
 
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
-                            const char **csrcs = srcs;
-                            for (k = numFloats; k > 0; k--) {
-                                *dests++ = *csrcs++;
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                const char **csrcs = srcs;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dests++ = *csrcs++;
+                                }
                             }
                         }
                     }
-                } else {
-                    if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
-                        src = data;
-                        for (j = numFloats; j > 0; j--) {
-                            *dest++ = *src++;
+                    break;
+                case CONTAINER_VERTEX:
+                    // Ignore
+                    break;
+                case CONTAINER_VARYING:
+                    v0 = data + this->v0 * numFloats;
+                    v1 = data + this->v1 * numFloats;
+                    v2 = data + this->v2 * numFloats;
+                    v3 = data + this->v3 * numFloats;
+                    for (j = 0; j < numVertices; j++) {
+                        const double cu = u[j];
+                        const double cv = v[j];
+
+                        for (k = 0; k < numFloats; k++) {
+                            *dest++ = (float)((v0[k] * (1.0 - cu) + v1[k] * cu) * (1.0 - cv) + (v2[k] * (1.0 - cu) + v3[k] * cu) * cv);
                         }
-                    } else {
-                        // premote
-                        for (j = 0; j < numVertices; j++) {
+                    }
+
+                    break;
+                case CONTAINER_FACEVARYING:
+                    v0 = data + this->fv0 * numFloats;
+                    v1 = data + this->fv1 * numFloats;
+                    v2 = data + this->fv2 * numFloats;
+                    v3 = data + this->fv3 * numFloats;
+                    for (j = 0; j < numVertices; j++) {
+                        const double cu = u[j];
+                        const double cv = v[j];
+
+                        for (k = 0; k < numFloats; k++) {
+                            *dest++ = (float)((v0[k] * (1.0 - cu) + v1[k] * cu) * (1.0 - cv) + (v2[k] * (1.0 - cu) + v3[k] * cu) * cv);
+                        }
+                    }
+                    break;
+                case CONTAINER_CONSTANT:
+                    if (cVariable->type == TYPE_STRING) {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
+                            const char **srcs = (const char **)data;
+                            const char **dests = (const char **)dest;
+
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
+
+                            for (j = numFloats; j > 0; j--) {
+                                *dests++ = *srcs++;
+                            }
+                        }
+                        else {
+                            const char **srcs = (const char **)data;
+                            const char **dests = (const char **)dest;
+
+                            assert(isAligned64(srcs));
+                            assert(isAligned64(dests));
+
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                const char **csrcs = srcs;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dests++ = *csrcs++;
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {
                             src = data;
-                            for (k = numFloats; k > 0; k--) {
+                            for (j = numFloats; j > 0; j--) {
                                 *dest++ = *src++;
                             }
                         }
+                        else {
+                            // premote
+                            for (j = 0; j < numVertices; j++) {
+                                src = data;
+                                for (k = numFloats; k > 0; k--) {
+                                    *dest++ = *src++;
+                                }
+                            }
+                        }
                     }
-                }
-                break;
+                    break;
             }
         }
     }
@@ -1465,7 +1484,8 @@ static inline int orientationCheck(CTriVertex *loop, int cw, CMeshData &data) {
         if (area(pVertex->xy[0], pVertex->xy[1], minVertex->xy[0], minVertex->xy[1], nVertex->xy[0], nVertex->xy[1]) < 0) {
             reverse = TRUE;
         }
-    } else {
+    }
+    else {
         if (area(pVertex->xy[0], pVertex->xy[1], minVertex->xy[0], minVertex->xy[1], nVertex->xy[0], nVertex->xy[1]) > 0) {
             reverse = TRUE;
         }
@@ -1524,7 +1544,8 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
         data.meshFacevaryingNumber += 3;
 
         return;
-    } else if ((nloops == 1) && (nverts[0] == 4)) {
+    }
+    else if ((nloops == 1) && (nverts[0] == 4)) {
 
         // Create the quad
         createQuad(vindices, 0, 1, 2, 3, data);
@@ -1567,24 +1588,28 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
             float maxAbsYZ;
             if (absZ > absY) {
                 maxAbsYZ = absZ;
-            } else {
+            }
+            else {
                 maxAbsYZ = absY;
             }
             if (fabs(normal[COMP_X]) >= maxAbsYZ) {
                 majorAxis = COMP_Y;
                 minorAxis = COMP_Z;
-            } else {
+            }
+            else {
                 float absX = fabs(normal[COMP_X]);
                 float maxAbsXZ;
                 if (absZ > absX) {
                     maxAbsXZ = absZ;
-                } else {
+                }
+                else {
                     maxAbsXZ = absX;
                 }
                 if (fabs(normal[COMP_Y]) >= maxAbsXZ) {
                     majorAxis = COMP_X;
                     minorAxis = COMP_Z;
-                } else {
+                }
+                else {
                     majorAxis = COMP_X;
                     minorAxis = COMP_Y;
                 }
@@ -1648,14 +1673,16 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
 
         if (reverse == FALSE) {
             createTriangle(vindices, vi0, vi1, vi2, data);
-        } else {
+        }
+        else {
             createTriangle(vindices, vi0, vi2, vi1, data);
         }
         data.meshUniformNumber++;
         data.meshFacevaryingNumber += 3;
 
         return;
-    } else if ((nloops == 1) && (nverts[0] == 4)) {
+    }
+    else if ((nloops == 1) && (nverts[0] == 4)) {
         CTriVertex *nnVertex;
         cVertex = loops[0];
         pVertex = cVertex->prev;
@@ -1668,7 +1695,8 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
 
         if (reverse == FALSE) {
             createQuad(vindices, vi3, vi2, vi1, vi0, data);
-        } else {
+        }
+        else {
             createQuad(vindices, vi0, vi1, vi2, vi3, data);
         }
         data.meshUniformNumber++;
@@ -1771,7 +1799,8 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
 
                         if (reverse == FALSE) {
                             createTriangle(vindices, vi0, vi1, vi2, data);
-                        } else {
+                        }
+                        else {
                             createTriangle(vindices, vi0, vi2, vi1, data);
                         }
 
@@ -1834,27 +1863,28 @@ void CPolygonMesh::create(CShadingContext *context) {
         triangleType = 0;
         normalData0 = NULL;
         normalData1 = NULL;
-    } else {
+    }
+    else {
         switch (normal->container) {
-        case CONTAINER_UNIFORM:
-            triangleType = 0;
-            break;
-        case CONTAINER_VERTEX:
-            triangleType = 1;
-            break;
-        case CONTAINER_VARYING:
-            triangleType = 1;
-            break;
-        case CONTAINER_FACEVARYING:
-            triangleType = 2;
-            break;
-        case CONTAINER_CONSTANT:
-            triangleType = 0;
-            break;
-        default:
-            error(CODE_BUG, "Unknown container type in polygon mesh\n");
-            triangleType = 0;
-            break;
+            case CONTAINER_UNIFORM:
+                triangleType = 0;
+                break;
+            case CONTAINER_VERTEX:
+                triangleType = 1;
+                break;
+            case CONTAINER_VARYING:
+                triangleType = 1;
+                break;
+            case CONTAINER_FACEVARYING:
+                triangleType = 2;
+                break;
+            case CONTAINER_CONSTANT:
+                triangleType = 0;
+                break;
+            default:
+                error(CODE_BUG, "Unknown container type in polygon mesh\n");
+                triangleType = 0;
+                break;
         }
     }
 
@@ -1952,27 +1982,28 @@ CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh) {
         triangleType = 0;
         normalData0 = NULL;
         normalData1 = NULL;
-    } else {
+    }
+    else {
         switch (normal->container) {
-        case CONTAINER_UNIFORM:
-            triangleType = 0;
-            break;
-        case CONTAINER_VERTEX:
-            triangleType = 1;
-            break;
-        case CONTAINER_VARYING:
-            triangleType = 1;
-            break;
-        case CONTAINER_FACEVARYING:
-            triangleType = 2;
-            break;
-        case CONTAINER_CONSTANT:
-            triangleType = 0;
-            break;
-        default:
-            error(CODE_BUG, "Unknown container type in polygon mesh\n");
-            triangleType = 0;
-            break;
+            case CONTAINER_UNIFORM:
+                triangleType = 0;
+                break;
+            case CONTAINER_VERTEX:
+                triangleType = 1;
+                break;
+            case CONTAINER_VARYING:
+                triangleType = 1;
+                break;
+            case CONTAINER_FACEVARYING:
+                triangleType = 2;
+                break;
+            case CONTAINER_CONSTANT:
+                triangleType = 0;
+                break;
+            default:
+                error(CODE_BUG, "Unknown container type in polygon mesh\n");
+                triangleType = 0;
+                break;
         }
     }
 

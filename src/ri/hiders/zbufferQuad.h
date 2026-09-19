@@ -30,8 +30,7 @@ const int flags = grid->flags;
 // Squared sample-space distance threshold for a sub-pixel top edge.
 // Scales with PixelSamples so the "shorter than 1 pixel" test stays correct
 // regardless of the super-sampling rate.
-const float degenerateEdgeSq = (float)(CRenderer::pixelXsamples * CRenderer::pixelXsamples
-                                        + CRenderer::pixelYsamples * CRenderer::pixelYsamples);
+const float degenerateEdgeSq = (float)(CRenderer::pixelXsamples * CRenderer::pixelXsamples + CRenderer::pixelYsamples * CRenderer::pixelYsamples);
 
 // Iterate over every quad
 for (j = 0; j < vdiv; j++) {

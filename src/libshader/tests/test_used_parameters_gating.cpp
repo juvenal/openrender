@@ -19,8 +19,8 @@
 #include <string>
 #include <sys/stat.h>
 
-#include "rslo.h"         // CScriptContext (libshader/compiler)
-#include "llvmEmitter.h"  // computeUsedParameters()
+#include "llvmEmitter.h" // computeUsedParameters()
+#include "rslo.h"        // CScriptContext (libshader/compiler)
 
 // ---------------------------------------------------------------------------
 // Minimal test harness (same style as existing project tests)
@@ -28,10 +28,16 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
 // PARAMETER_* bit values, re-stated verbatim from src/ri/render/rendererc.h
 // (not included here -- this target is compiler-only per
@@ -57,19 +63,24 @@ static const unsigned int PARAMETER_MESSAGEPASSING = 1u << 31;
 static std::unique_ptr<IRModule> compileToIR(const char *src, const char *outPath) {
     std::string tmpSl = std::string(outPath) + ".sl";
     FILE *f = fopen(tmpSl.c_str(), "w");
-    if (!f) return nullptr;
+    if (!f)
+        return nullptr;
     fputs(src, f);
     fclose(f);
 
     CScriptContext ctx;
     ctx.emitJIT = true;
     FILE *in = fopen(tmpSl.c_str(), "r");
-    if (!in) { remove(tmpSl.c_str()); return nullptr; }
+    if (!in) {
+        remove(tmpSl.c_str());
+        return nullptr;
+    }
     bool ok = (ctx.compile(in, const_cast<char *>(outPath)) != 0);
     fclose(in);
     remove(tmpSl.c_str());
 
-    if (!ok || !ctx.lastCompiledModule) return nullptr;
+    if (!ok || !ctx.lastCompiledModule)
+        return nullptr;
     return std::move(ctx.lastCompiledModule);
 }
 
@@ -95,7 +106,8 @@ static void test_no_ci_oi_assignment_clears_bits() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_CI) == 0);
@@ -126,7 +138,8 @@ static void test_explicit_ci_oi_assignment_sets_bits() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_CI) != 0);
@@ -156,7 +169,8 @@ static void test_raytrace_call_sets_bit() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_RAYTRACE) != 0);
@@ -185,7 +199,8 @@ static void test_messagepassing_call_sets_bit() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_MESSAGEPASSING) != 0);
@@ -218,7 +233,8 @@ static void test_illuminance_only_clears_nonambient() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_NONAMBIENT) == 0);
@@ -247,7 +263,8 @@ static void test_illuminate_sets_nonambient() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_NONAMBIENT) != 0);
@@ -284,7 +301,8 @@ static void test_derivative_via_builtin_no_literal_tokens() {
     remove(out);
 
     EXPECT_TRUE(ir != nullptr);
-    if (!ir) return;
+    if (!ir)
+        return;
 
     unsigned int params = computeUsedParameters(*ir);
     EXPECT_TRUE((params & PARAMETER_DERIVATIVE) != 0);

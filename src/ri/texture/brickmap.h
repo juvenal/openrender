@@ -126,7 +126,8 @@ class CBrickMap : public CTexture3d {
                     if (cNode->brick == NULL) {
                         assert(cNode->fileIndex != -1);
                         cNode->brick = loadBrick(cNode->fileIndex);
-                    } else {
+                    }
+                    else {
                         atomicIncrement(stats.numBrickmapCacheHits);
                     }
 
@@ -154,7 +155,8 @@ class CBrickMap : public CTexture3d {
                 // Return this new brick
                 cNode->brick->referenceNumber = referenceNumber;
                 return cNode->brick;
-            } else {
+            }
+            else {
                 // No joy, the data doesn't exist
                 return NULL;
             }
@@ -186,7 +188,8 @@ class CBrickMap : public CTexture3d {
                     if (cNode->brick == NULL) {
                         assert(cNode->fileIndex != -1);
                         cNode->brick = loadBrick(cNode->fileIndex);
-                    } else {
+                    }
+                    else {
                         atomicIncrement(stats.numBrickmapCacheHits);
                     }
 

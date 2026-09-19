@@ -34,12 +34,12 @@
 ////////////////////////////////////////////////////////////////////////
 
 #ifndef log_debug
-#  define log_debug(...) ((void)0)
-#  define _SCRIPTFUNCTIONS_LOG_FALLBACK
+#define log_debug(...) ((void)0)
+#define _SCRIPTFUNCTIONS_LOG_FALLBACK
 #endif
 
-#define FUN1EXPR_PRE \
-    float *res;      \
+#define FUN1EXPR_PRE          \
+    float *res;               \
     operand(0, res, float *); \
     (void)res;
 
@@ -383,12 +383,14 @@ DEFFUNC(Distance, "distance", "f=pp", DISTANCEEXP_PRE, DISTANCEEXP, FUN3EXPR_UPD
     subvv(vtmp2, ftmp, ftmp2);                                         \
     if (dotvv(vtmp, vtmp2) <= 0) {                                     \
         l = sqrtf(dotvv(vtmp, vtmp));                                  \
-    } else {                                                           \
+    }                                                                  \
+    else {                                                             \
         mulvf(vtmp2, -1);                                              \
         subvv(vtmp, ftmp3, ftmp);                                      \
         if (dotvv(vtmp, vtmp2) <= 0) {                                 \
             l = sqrtf(dotvv(vtmp, vtmp));                              \
-        } else {                                                       \
+        }                                                              \
+        else {                                                         \
             subvv(vtmp, ftmp2, ftmp);                                  \
             subvv(vtmp2, ftmp2, ftmp3);                                \
             crossvv(vtmp3, vtmp, vtmp2);                               \
@@ -675,50 +677,58 @@ DEFFUNC(Match, "match", "f=ss", FUN3SEXPR_PRE, MATCHEXPR, FUN3EXPR_UPDATE(1, 1, 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // printf	"o=s.*"
-#define PRINTEXPR(r, s, af, as)                                                                                                                                                                                                                                                  \
-    const char *str;                                                                                                                                                                                                                                                             \
-    char *tmp;                                                                                                                                                                                                                                                                   \
-    int cp = -1;                                                                                                                                                                                                                                                                 \
-    tmp = r;                                                                                                                                                                                                                                                                     \
-    str = *s;                                                                                                                                                                                                                                                                    \
-    while (*str != '\0') {                                                                                                                                                                                                                                                       \
-        if (*str == '%') {                                                                                                                                                                                                                                                       \
-            str++;                                                                                                                                                                                                                                                               \
-            if (*str == '\0')                                                                                                                                                                                                                                                    \
-                break;                                                                                                                                                                                                                                                           \
-            if (*str == 'f') {                                                                                                                                                                                                                                                   \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%f", *af[cp]);                                                                                                                                                                                        \
-            } else if (*str == 'd') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%d", (int)*af[cp]);                                                                                                                                                                                   \
-            } else if (*str == 'c') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
-            } else if (*str == 'n') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
-            } else if (*str == 'p') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                        \
-            } else if (*str == 's') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
-                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%s", *as[cp]);                                                                                                                                                                                        \
-            } else if (*str == 'm') {                                                                                                                                                                                                                                            \
-                cp++;                                                                                                                                                                                                                                                            \
+#define PRINTEXPR(r, s, af, as)                                                                                                                                                                                                                                                                                               \
+    const char *str;                                                                                                                                                                                                                                                                                                          \
+    char *tmp;                                                                                                                                                                                                                                                                                                                \
+    int cp = -1;                                                                                                                                                                                                                                                                                                              \
+    tmp = r;                                                                                                                                                                                                                                                                                                                  \
+    str = *s;                                                                                                                                                                                                                                                                                                                 \
+    while (*str != '\0') {                                                                                                                                                                                                                                                                                                    \
+        if (*str == '%') {                                                                                                                                                                                                                                                                                                    \
+            str++;                                                                                                                                                                                                                                                                                                            \
+            if (*str == '\0')                                                                                                                                                                                                                                                                                                 \
+                break;                                                                                                                                                                                                                                                                                                        \
+            if (*str == 'f') {                                                                                                                                                                                                                                                                                                \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%f", *af[cp]);                                                                                                                                                                                                                                     \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 'd') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%d", (int)*af[cp]);                                                                                                                                                                                                                                \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 'c') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 'n') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 'p') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "(%f,%f,%f)", af[cp][0], af[cp][1], af[cp][2]);                                                                                                                                                                                                     \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 's') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
+                snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "%s", *as[cp]);                                                                                                                                                                                                                                     \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else if (*str == 'm') {                                                                                                                                                                                                                                                                                           \
+                cp++;                                                                                                                                                                                                                                                                                                         \
                 snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - r), "((%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f))", af[cp][0], af[cp][1], af[cp][2], af[cp][3], af[cp][4], af[cp][5], af[cp][6], af[cp][7], af[cp][8], af[cp][9], af[cp][10], af[cp][11], af[cp][12], af[cp][13], af[cp][14], af[cp][15]); \
-            } else {                                                                                                                                                                                                                                                             \
-                *tmp = *str;                                                                                                                                                                                                                                                     \
-                tmp++;                                                                                                                                                                                                                                                           \
-            }                                                                                                                                                                                                                                                                    \
-            str++;                                                                                                                                                                                                                                                               \
-            tmp = strchr(tmp, '\0');                                                                                                                                                                                                                                             \
-        } else {                                                                                                                                                                                                                                                                 \
-            *tmp = *str;                                                                                                                                                                                                                                                         \
-            tmp++;                                                                                                                                                                                                                                                               \
-            str++;                                                                                                                                                                                                                                                               \
-        }                                                                                                                                                                                                                                                                        \
-    }                                                                                                                                                                                                                                                                            \
+            }                                                                                                                                                                                                                                                                                                                 \
+            else {                                                                                                                                                                                                                                                                                                            \
+                *tmp = *str;                                                                                                                                                                                                                                                                                                  \
+                tmp++;                                                                                                                                                                                                                                                                                                        \
+            }                                                                                                                                                                                                                                                                                                                 \
+            str++;                                                                                                                                                                                                                                                                                                            \
+            tmp = strchr(tmp, '\0');                                                                                                                                                                                                                                                                                          \
+        }                                                                                                                                                                                                                                                                                                                     \
+        else {                                                                                                                                                                                                                                                                                                                \
+            *tmp = *str;                                                                                                                                                                                                                                                                                                      \
+            tmp++;                                                                                                                                                                                                                                                                                                            \
+            str++;                                                                                                                                                                                                                                                                                                            \
+        }                                                                                                                                                                                                                                                                                                                     \
+    }                                                                                                                                                                                                                                                                                                                         \
     *tmp = '\0';
 
 #ifndef INIT_SHADING
@@ -793,7 +803,8 @@ DEFFUNC(Printf, "printf", "o=s.*", PRINTFEXPR_PRE, PRINTFEXPR, PRINTF_UPDATE, PR
                                                                                 \
     operandSize(0, res, resStep, char **);                                      \
     operandSize(1, strArg, strStep, char **);                                   \
-    (void)resStep; (void)strStep;                                               \
+    (void)resStep;                                                              \
+    (void)strStep;                                                              \
     argumentcount(numArguments);                                                \
     numArguments--;                                                             \
     numArguments--;                                                             \
@@ -846,19 +857,24 @@ DEFFUNC(Format, "format", "s=s.*", FORMATEXPR_PRE, FORMATEXPR, FORMAT_UPDATE, FO
     ustep = 1;                                                                 \
     if (!strcmp(*splineType, "catmull-rom")) {                                 \
         /* do nothing */                                                       \
-    } else if (!strcmp(*splineType, "bezier")) {                               \
+    }                                                                          \
+    else if (!strcmp(*splineType, "bezier")) {                                 \
         ubasis = (float *)RiBezierBasis;                                       \
         ustep = 3;                                                             \
-    } else if (!strcmp(*splineType, "bspline")) {                              \
+    }                                                                          \
+    else if (!strcmp(*splineType, "bspline")) {                                \
         ubasis = (float *)RiBSplineBasis;                                      \
         ustep = 1;                                                             \
-    } else if (!strcmp(*splineType, "hermite")) {                              \
+    }                                                                          \
+    else if (!strcmp(*splineType, "hermite")) {                                \
         ubasis = (float *)RiHermiteBasis;                                      \
         ustep = 2;                                                             \
-    } else if (!strcmp(*splineType, "linear")) {                               \
+    }                                                                          \
+    else if (!strcmp(*splineType, "linear")) {                                 \
         ubasis = (float *)RiLinearBasis;                                       \
         ustep = 2;                                                             \
-    } else {                                                                   \
+    }                                                                          \
+    else {                                                                     \
         error(CODE_BADTOKEN, "Unknown spline basis \"%s\"\n", *splineType);    \
     }                                                                          \
                                                                                \
@@ -998,7 +1014,7 @@ DEFFUNC(Splinesf, "spline", "f=Sfffff*", SPLINEVEXPR_PRE, SPLINEFEXPR, SPLINEFEX
     for (int i = 0; i < numArguments; ++i) \
         op[i] += 3;
 
-#define SPLINEPEXPR_POST \
+#define SPLINEPEXPR_POST                                          \
     log_debug("[rslo-spline-c-out] Ct[0]=({:.4f},{:.4f},{:.4f})", \
               res_log_base[0], res_log_base[1], res_log_base[2]);
 

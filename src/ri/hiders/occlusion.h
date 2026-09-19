@@ -66,7 +66,8 @@ class COcclusionCuller {
                 if ((pNode = cNode->parent) == NULL) {
                     *maxOpaqueDepth = cNode->zmax = z;
                     return;
-                } else {
+                }
+                else {
 
                     if (cNode->zmax == pNode->zmax) {
                         cNode->zmax = z;
@@ -74,28 +75,33 @@ class COcclusionCuller {
                         float maxZ01_h;
                         if (pNode->children[1]->zmax > pNode->children[0]->zmax) {
                             maxZ01_h = pNode->children[1]->zmax;
-                        } else {
+                        }
+                        else {
                             maxZ01_h = pNode->children[0]->zmax;
                         }
                         float maxZ23_h;
                         if (pNode->children[3]->zmax > pNode->children[2]->zmax) {
                             maxZ23_h = pNode->children[3]->zmax;
-                        } else {
+                        }
+                        else {
                             maxZ23_h = pNode->children[2]->zmax;
                         }
                         float z;
                         if (maxZ23_h > maxZ01_h) {
                             z = maxZ23_h;
-                        } else {
+                        }
+                        else {
                             z = maxZ01_h;
                         }
 
                         if (z < pNode->zmax) {
                             cNode = pNode;
-                        } else {
+                        }
+                        else {
                             return;
                         }
-                    } else {
+                    }
+                    else {
                         cNode->zmax = z;
                         return;
                     }

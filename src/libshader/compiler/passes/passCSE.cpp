@@ -48,10 +48,10 @@ bool CCSEPass::isPure(const std::string &opcode) {
         "setxcomp", "setycomp", "setzcomp",
         "matfromf", "matfromv",
         "inversesqrt",
-        nullptr
-    };
+        nullptr};
     for (int i = 0; pure[i] != nullptr; ++i)
-        if (opcode == pure[i]) return true;
+        if (opcode == pure[i])
+            return true;
     return false;
 }
 
@@ -61,16 +61,17 @@ bool CCSEPass::isPure(const std::string &opcode) {
 
 // static
 bool CCSEPass::isLoopBegin(const std::string &opcode) {
-    return opcode == "illuminance"
-        || opcode == "illuminate"
-        || opcode == "solar";
+    return opcode == "illuminance" || opcode == "illuminate" || opcode == "solar";
 }
 
 // static
 std::string CCSEPass::loopEndOpcode(const std::string &begin) {
-    if (begin == "illuminance") return "endilluminance";
-    if (begin == "illuminate")  return "endilluminate";
-    if (begin == "solar")       return "endsolar";
+    if (begin == "illuminance")
+        return "endilluminance";
+    if (begin == "illuminate")
+        return "endilluminate";
+    if (begin == "solar")
+        return "endsolar";
     return "";
 }
 
@@ -82,9 +83,11 @@ std::string CCSEPass::loopEndOpcode(const std::string &begin) {
 bool CCSEPass::isLoopBoundVar(const std::string &cName, const IRModule &mod) {
     static const char *bound[] = {"L", "Cl", "Ol", nullptr};
     const IRVarInfo *vi = mod.findVar(cName);
-    if (!vi) return false;
+    if (!vi)
+        return false;
     for (int i = 0; bound[i] != nullptr; ++i)
-        if (vi->symbolName == bound[i]) return true;
+        if (vi->symbolName == bound[i])
+            return true;
     return false;
 }
 
@@ -94,8 +97,10 @@ bool CCSEPass::isLoopBoundVar(const std::string &cName, const IRModule &mod) {
 
 // static
 std::string CCSEPass::exprKey(const IRInstr &instr) {
-    if (!instr.hasResult())       return "";
-    if (!isPure(instr.opcode))    return "";
+    if (!instr.hasResult())
+        return "";
+    if (!isPure(instr.opcode))
+        return "";
 
     // "vufloat"/"vuvector" load constants — each occurrence loads the same
     // value, so they ARE candidates for CSE.  We include the full opcode and
@@ -122,9 +127,12 @@ std::string CCSEPass::moveOpcode(const std::string &result,
                                  const IRModule &mod) {
     const IRVarInfo *vi = mod.findVar(result);
     if (vi) {
-        if (vi->isVector()) return "movevv";
-        if (vi->isMatrix()) return "movemm";
-        if (vi->isString()) return "movess";
+        if (vi->isVector())
+            return "movevv";
+        if (vi->isMatrix())
+            return "movemm";
+        if (vi->isString())
+            return "movess";
     }
     return "moveff"; // float or unknown
 }
@@ -145,7 +153,7 @@ std::string CCSEPass::moveOpcode(const std::string &result,
 static void invalidateVar(std::unordered_map<std::string, std::string> &exprMap,
                           const std::string &def) {
     const std::string needle = "|" + def + "|";
-    for (auto it = exprMap.begin(); it != exprMap.end(); ) {
+    for (auto it = exprMap.begin(); it != exprMap.end();) {
         bool stale = (it->second == def);
         if (!stale) {
             // Fence both the key and the needle so the last operand token
@@ -188,7 +196,8 @@ bool CCSEPass::cseFn(IRFunction &fn, const IRModule &mod) {
 
             const std::string key = exprKey(instr);
             if (key.empty()) {
-                if (instr.hasResult()) defsSeen.insert(instr.result);
+                if (instr.hasResult())
+                    defsSeen.insert(instr.result);
                 continue;
             }
 
@@ -196,7 +205,7 @@ bool CCSEPass::cseFn(IRFunction &fn, const IRModule &mod) {
             if (it != exprMap.end()) {
                 // Duplicate expression: replace with a move from the first result.
                 const std::string &prev = it->second;
-                const std::string mov   = moveOpcode(instr.result, mod);
+                const std::string mov = moveOpcode(instr.result, mod);
 
                 instr.opcode = mov;
                 instr.proto.clear();
@@ -207,11 +216,13 @@ bool CCSEPass::cseFn(IRFunction &fn, const IRModule &mod) {
                 instr.operands.push_back(src);
 
                 changed = true;
-            } else {
+            }
+            else {
                 exprMap[key] = instr.result;
             }
 
-            if (instr.hasResult()) defsSeen.insert(instr.result);
+            if (instr.hasResult())
+                defsSeen.insert(instr.result);
         }
     }
     return changed;
@@ -222,7 +233,10 @@ bool CCSEPass::cseFn(IRFunction &fn, const IRModule &mod) {
 // =========================================================================
 
 // A flat position within an IRFunction's instruction stream.
-struct FlatPos { int b; int i; };
+struct FlatPos {
+        int b;
+        int i;
+};
 
 // Build a flat ordered index of all instruction positions across all blocks.
 static std::vector<FlatPos> buildFlat(const IRFunction &fn) {
@@ -250,7 +264,8 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
         for (int f = 0; f < N; ++f) {
             const IRInstr &loopBeginInstr =
                 fn.blocks[flat[f].b].instrs[flat[f].i];
-            if (!isLoopBegin(loopBeginInstr.opcode)) continue;
+            if (!isLoopBegin(loopBeginInstr.opcode))
+                continue;
 
             const std::string endOp = loopEndOpcode(loopBeginInstr.opcode);
 
@@ -260,11 +275,14 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
             while (g < N) {
                 const IRInstr &cur =
                     fn.blocks[flat[g].b].instrs[flat[g].i];
-                if (isLoopBegin(cur.opcode)) ++depth;
-                if (cur.opcode == endOp && --depth == 0) break;
+                if (isLoopBegin(cur.opcode))
+                    ++depth;
+                if (cur.opcode == endOp && --depth == 0)
+                    break;
                 ++g;
             }
-            if (g >= N) continue; // unmatched loop — leave alone
+            if (g >= N)
+                continue; // unmatched loop — leave alone
 
             // Collect the set of variables defined inside the loop body
             // (flat[f+1] to flat[g-1]).
@@ -282,8 +300,10 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
                 const FlatPos &pos = flat[h];
                 IRInstr &instr = fn.blocks[pos.b].instrs[pos.i];
 
-                if (!instr.hasResult())    continue;
-                if (!isPure(instr.opcode)) continue;
+                if (!instr.hasResult())
+                    continue;
+                if (!isPure(instr.opcode))
+                    continue;
 
                 // Do not hoist an instruction whose result variable is also
                 // defined (re-assigned) elsewhere inside the loop body.
@@ -294,12 +314,14 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
                 // not have its pre-loop definition hoisted since the loop would
                 // overwrite it on the first iteration and subsequent consumers
                 // would read the wrong value.
-                if (loopDefs.count(instr.result)) continue;
+                if (loopDefs.count(instr.result))
+                    continue;
 
                 // Also skip known light-loop output variables (Cl, L, Ol)
                 // even if they are not yet in loopDefs (they may only appear
                 // as results of the loop-end machinery outside the body range).
-                if (isLoopBoundVar(instr.result, mod)) continue;
+                if (isLoopBoundVar(instr.result, mod))
+                    continue;
 
                 // Check operand invariance.
                 bool invariant = true;
@@ -317,7 +339,8 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
                         break;
                     }
                 }
-                if (!invariant) continue;
+                if (!invariant)
+                    continue;
 
                 // Hoist: copy the instruction, then erase from loop body,
                 // then insert before the loop-begin instruction.
@@ -332,7 +355,8 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
                 // block and at a higher index, its index shifts down by one.
                 int lb = flat[f].b;
                 int li = flat[f].i;
-                if (pos.b == lb && pos.i < li) --li;
+                if (pos.b == lb && pos.i < li)
+                    --li;
 
                 fn.blocks[lb].instrs.insert(
                     fn.blocks[lb].instrs.begin() + li, copy);
@@ -342,12 +366,13 @@ bool CCSEPass::licmFn(IRFunction &fn, const IRModule &mod) {
                 // invariant for instructions that depend on it.
                 loopDefs.erase(copy.result);
 
-                hoisted     = true;
-                anyHoisted  = true;
+                hoisted = true;
+                anyHoisted = true;
                 break; // rebuild flat and rescan
             }
 
-            if (hoisted) break; // restart the outer loop-scan from the top
+            if (hoisted)
+                break; // restart the outer loop-scan from the top
         }
     } while (hoisted);
 

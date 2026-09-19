@@ -25,23 +25,21 @@
 #include <stdio.h>
 
 class CFileFramebufferPNG : public CFileOutputBase {
-public:
-    CFileFramebufferPNG(const char *name, int width, int height,
-                        int numSamples, const char *samples,
-                        TDisplayParameterFunction findParameter);
-    ~CFileFramebufferPNG() override;
+    public:
+        CFileFramebufferPNG(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter);
+        ~CFileFramebufferPNG() override;
 
-    bool success() const override { return !!fhandle; }
+        bool success() const override { return !!fhandle; }
 
-protected:
-    void fillPixels(int row, int xOff, int nPx, const float *src) override;
-    void flushRow(int row) override;
+    protected:
+        void fillPixels(int row, int xOff, int nPx, const float *src) override;
+        void flushRow(int row) override;
 
-private:
-    png_structp png_ptr  = nullptr;
-    png_infop   info_ptr = nullptr;
-    FILE       *fhandle  = nullptr;
-    int         bitspersample = 8;
+    private:
+        png_structp png_ptr = nullptr;
+        png_infop info_ptr = nullptr;
+        FILE *fhandle = nullptr;
+        int bitspersample = 8;
 };
 
 #endif // FILE_PNG_H

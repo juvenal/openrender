@@ -11,30 +11,29 @@
 #ifndef FBIPC_DISPLAY_H
 #define FBIPC_DISPLAY_H
 
-#include "framebuffer.h"
 #include "fbipc.h"
+#include "framebuffer.h"
 #include <mutex>
 #include <sys/types.h>
 
 class CIPCDisplay : public CDisplay {
-public:
-    CIPCDisplay(const char *name, const char *samples,
-                int width, int height, int numSamples);
-    ~CIPCDisplay() override;
+    public:
+        CIPCDisplay(const char *name, const char *samples, int width, int height, int numSamples);
+        ~CIPCDisplay() override;
 
-    int  data(int x, int y, int w, int h, float *d) override;
-    void finish() override;
+        int data(int x, int y, int w, int h, float *d) override;
+        void finish() override;
 
-private:
-    char       socketPath[256];
-    int        socketFd;
-    pid_t      helperPid;
-    bool       disconnected;
-    int        numSamplesVal;
-    int        tilesSent;
-    time_t     startEpoch; // wall-clock time render began, for START's "@ <time>"
-    float      startClock; // osTime() at construction, for precise duration math
-    std::mutex writeMutex;
+    private:
+        char socketPath[256];
+        int socketFd;
+        pid_t helperPid;
+        bool disconnected;
+        int numSamplesVal;
+        int tilesSent;
+        time_t startEpoch; // wall-clock time render began, for START's "@ <time>"
+        float startClock;  // osTime() at construction, for precise duration math
+        std::mutex writeMutex;
 };
 
 #endif // FBIPC_DISPLAY_H

@@ -63,8 +63,8 @@ extern const char *const kHandledOpcodes[];
  *        data-model.md "Opcode/Function Bit Table").
  */
 struct OpcodeParamEntry {
-    const char *text;
-    unsigned int params;
+        const char *text;
+        unsigned int params;
 };
 
 /**

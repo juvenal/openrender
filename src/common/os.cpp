@@ -43,11 +43,11 @@
 
 // BSD-specific headers for sysctl CPU detection
 #if defined(__APPLE__) || defined(__APPLE_CC__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(BSD)
-    #include <sys/param.h>
-    #include <sys/sysctl.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
 #else
     // Linux and other Unix systems
-    #include <limits.h>
+#include <limits.h>
 #endif
 
 // << Unix
@@ -309,12 +309,14 @@ void osEnumerate(const char *name, int (*callback)(const char *, void *), void *
     tmpp = strrchr(tmp, OS_DIR_SEPERATOR);
     if (tmpp == NULL) {
         tmpp = tmp;
-    } else {
+    }
+    else {
         tmpp++;
     }
 
     if ((hFile = _findfirst(name, &c_file)) == -1L) {
-    } else {
+    }
+    else {
         strcpy(tmpp, c_file.name);
         if (callback(tmp, userData) == TRUE) {
             while (_findnext(hFile, &c_file) == 0) {
@@ -477,20 +479,20 @@ void osProcessEscapes(char *str) {
     for (i = 0; i < n; i++) {
         if (str[i] == '\\') {
             switch (str[i + 1]) {
-            case 'n':
-                str[i] = '\n';
-                break;
-            case 't':
-                str[i] = '\t';
-                break;
-            case 'r':
-                str[i] = '\r';
-                break;
-            case '\\':
-                str[i] = '\\';
-                break;
-            default:
-                break;
+                case 'n':
+                    str[i] = '\n';
+                    break;
+                case 't':
+                    str[i] = '\t';
+                    break;
+                case 'r':
+                    str[i] = '\r';
+                    break;
+                case '\\':
+                    str[i] = '\\';
+                    break;
+                default:
+                    break;
             }
 
             j = i + 2;

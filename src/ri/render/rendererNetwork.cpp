@@ -192,7 +192,8 @@ static int netName(sockaddr_in *address, const char *orgName) {
 
     if (isalpha(name[0])) {
         hp = gethostbyname(name);
-    } else {
+    }
+    else {
         unsigned int addr = inet_addr(name);
         hp = gethostbyaddr((char *)&addr, 4, AF_INET);
     }
@@ -215,87 +216,87 @@ static int netName(sockaddr_in *address, const char *orgName) {
                                                           \
         lastErrorNumber = WSAGetLastError();              \
         switch (lastErrorNumber) {                        \
-        case WSANOTINITIALISED:                           \
-            lastError = "WSANOTINITIALISED";              \
-            break;                                        \
-        case WSAENETDOWN:                                 \
-            lastError = "WSAENETDOWN";                    \
-            break;                                        \
-        case WSAEFAULT:                                   \
-            lastError = "WSAEFAULT";                      \
-            break;                                        \
-        case WSAEINTR:                                    \
-            lastError = "WSAEINTR";                       \
-            break;                                        \
-        case WSAEINPROGRESS:                              \
-            lastError = "WSAEINPROGRESS";                 \
-            break;                                        \
-        case WSAEINVAL:                                   \
-            lastError = "WSAEINVAL";                      \
-            break;                                        \
-        case WSAEMFILE:                                   \
-            lastError = "WSAEMFILE";                      \
-            break;                                        \
-        case WSAENOBUFS:                                  \
-            lastError = "WSAENOBUFS";                     \
-            break;                                        \
-        case WSAENOTSOCK:                                 \
-            lastError = "WSAENOTSOCK";                    \
-            break;                                        \
-        case WSAEOPNOTSUPP:                               \
-            lastError = "WSAEOPNOTSUPP";                  \
-            break;                                        \
-        case WSAEWOULDBLOCK:                              \
-            lastError = "WSAEWOULDBLOCK";                 \
-            break;                                        \
-        case WSAENOTCONN:                                 \
-            lastError = "WSAENOTCONN";                    \
-            break;                                        \
-        case WSAENETRESET:                                \
-            lastError = "WSAENETRESET";                   \
-            break;                                        \
-        case WSAESHUTDOWN:                                \
-            lastError = "WSAESHUTDOWN";                   \
-            break;                                        \
-        case WSAEMSGSIZE:                                 \
-            lastError = "WSAEMSGSIZE";                    \
-            break;                                        \
-        case WSAECONNABORTED:                             \
-            lastError = "WSAECONNABORTED";                \
-            break;                                        \
-        case WSAETIMEDOUT:                                \
-            lastError = "WSAETIMEDOUT";                   \
-            break;                                        \
-        case WSAECONNRESET:                               \
-            lastError = "WSAECONNRESET";                  \
-            break;                                        \
-        case WSAEADDRINUSE:                               \
-            lastError = "WSAEADDRINUSE";                  \
-            break;                                        \
-        case WSAEALREADY:                                 \
-            lastError = "WSAEALREADY";                    \
-            break;                                        \
-        case WSAEADDRNOTAVAIL:                            \
-            lastError = "WSAEADDRNOTAVAIL";               \
-            break;                                        \
-        case WSAEAFNOSUPPORT:                             \
-            lastError = "WSAEAFNOSUPPORT";                \
-            break;                                        \
-        case WSAECONNREFUSED:                             \
-            lastError = "WSAECONNREFUSED";                \
-            break;                                        \
-        case WSAEISCONN:                                  \
-            lastError = "WSAEISCONN";                     \
-            break;                                        \
-        case WSAENETUNREACH:                              \
-            lastError = "WSAENETUNREACH";                 \
-            break;                                        \
-        case WSAEACCES:                                   \
-            lastError = "WSAEACCES";                      \
-            break;                                        \
-        default:                                          \
-            lastError = "Unknown";                        \
-            break;                                        \
+            case WSANOTINITIALISED:                       \
+                lastError = "WSANOTINITIALISED";          \
+                break;                                    \
+            case WSAENETDOWN:                             \
+                lastError = "WSAENETDOWN";                \
+                break;                                    \
+            case WSAEFAULT:                               \
+                lastError = "WSAEFAULT";                  \
+                break;                                    \
+            case WSAEINTR:                                \
+                lastError = "WSAEINTR";                   \
+                break;                                    \
+            case WSAEINPROGRESS:                          \
+                lastError = "WSAEINPROGRESS";             \
+                break;                                    \
+            case WSAEINVAL:                               \
+                lastError = "WSAEINVAL";                  \
+                break;                                    \
+            case WSAEMFILE:                               \
+                lastError = "WSAEMFILE";                  \
+                break;                                    \
+            case WSAENOBUFS:                              \
+                lastError = "WSAENOBUFS";                 \
+                break;                                    \
+            case WSAENOTSOCK:                             \
+                lastError = "WSAENOTSOCK";                \
+                break;                                    \
+            case WSAEOPNOTSUPP:                           \
+                lastError = "WSAEOPNOTSUPP";              \
+                break;                                    \
+            case WSAEWOULDBLOCK:                          \
+                lastError = "WSAEWOULDBLOCK";             \
+                break;                                    \
+            case WSAENOTCONN:                             \
+                lastError = "WSAENOTCONN";                \
+                break;                                    \
+            case WSAENETRESET:                            \
+                lastError = "WSAENETRESET";               \
+                break;                                    \
+            case WSAESHUTDOWN:                            \
+                lastError = "WSAESHUTDOWN";               \
+                break;                                    \
+            case WSAEMSGSIZE:                             \
+                lastError = "WSAEMSGSIZE";                \
+                break;                                    \
+            case WSAECONNABORTED:                         \
+                lastError = "WSAECONNABORTED";            \
+                break;                                    \
+            case WSAETIMEDOUT:                            \
+                lastError = "WSAETIMEDOUT";               \
+                break;                                    \
+            case WSAECONNRESET:                           \
+                lastError = "WSAECONNRESET";              \
+                break;                                    \
+            case WSAEADDRINUSE:                           \
+                lastError = "WSAEADDRINUSE";              \
+                break;                                    \
+            case WSAEALREADY:                             \
+                lastError = "WSAEALREADY";                \
+                break;                                    \
+            case WSAEADDRNOTAVAIL:                        \
+                lastError = "WSAEADDRNOTAVAIL";           \
+                break;                                    \
+            case WSAEAFNOSUPPORT:                         \
+                lastError = "WSAEAFNOSUPPORT";            \
+                break;                                    \
+            case WSAECONNREFUSED:                         \
+                lastError = "WSAECONNREFUSED";            \
+                break;                                    \
+            case WSAEISCONN:                              \
+                lastError = "WSAEISCONN";                 \
+                break;                                    \
+            case WSAENETUNREACH:                          \
+                lastError = "WSAENETUNREACH";             \
+                break;                                    \
+            case WSAEACCES:                               \
+                lastError = "WSAEACCES";                  \
+                break;                                    \
+            default:                                      \
+                lastError = "Unknown";                    \
+                break;                                    \
         }                                                 \
                                                           \
         error(CODE_SYSTEM, "NET ERROR: %s\n", lastError); \
@@ -342,15 +343,18 @@ void CRenderer::sendFile(int index, char *fileToSend, int start, int size) {
             int readSize_rn2;
             if (NETWORK_BUFFER_LENGTH < csize) {
                 readSize_rn2 = NETWORK_BUFFER_LENGTH;
-            } else {
+            }
+            else {
                 readSize_rn2 = csize;
             }
-            if (fread(buffer, readSize_rn2, sizeof(char), in) != (size_t)readSize_rn2) { /* read error */ }
+            if (fread(buffer, readSize_rn2, sizeof(char), in) != (size_t)readSize_rn2) { /* read error */
+            }
             rcSend(netServers[index], buffer, readSize_rn2, FALSE);
         }
 
         fclose(in);
-    } else {
+    }
+    else {
         T32 netBuffer[1];
 
         // File could not be found
@@ -390,7 +394,8 @@ int CRenderer::getFile(FILE *file, const char *inName, int start, int size) {
     rcRecv(netClient, buffer, 1 * sizeof(T32));
     if (buffer->integer == NET_NACK) {
         r = 0;
-    } else {
+    }
+    else {
         int tsize, csize;
         char buf[NETWORK_BUFFER_LENGTH];
 
@@ -402,7 +407,8 @@ int CRenderer::getFile(FILE *file, const char *inName, int start, int size) {
             int recvSize;
             if (NETWORK_BUFFER_LENGTH < csize) {
                 recvSize = NETWORK_BUFFER_LENGTH;
-            } else {
+            }
+            else {
                 recvSize = csize;
             }
             rcRecv(netClient, buf, recvSize, FALSE);
@@ -438,12 +444,14 @@ int CRenderer::getFile(char *outName, const char *inName) {
     if (out != NULL) {
         if (getFile(out, inName) > 0) {
             result = TRUE;
-        } else {
+        }
+        else {
             error(CODE_SYSTEM, "Failed to download file %s\n", inName);
         }
 
         fclose(out);
-    } else {
+    }
+    else {
         error(CODE_SYSTEM, "Failed to create file %s\n", outName);
     }
 
@@ -502,14 +510,16 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
             (netBuffer[2].integer != VERSION_MINOR)) {
             netBuffer[0].integer = NET_NACK;
             fatal(CODE_SYSTEM, "Version mismatch with the client\n");
-        } else {
+        }
+        else {
             netBuffer[0].integer = NET_ACK;
             info(CODE_LOG, "Accepted incoming connection\n");
         }
 
         // Accept or decline the connection
         rcSend(netClient, netBuffer, sizeof(T32));
-    } else if ((strncmp(tmp, "servers=", 8) == 0) || (strncmp(tmp, "killservers=", 12) == 0)) {
+    }
+    else if ((strncmp(tmp, "servers=", 8) == 0) || (strncmp(tmp, "killservers=", 12) == 0)) {
         socklen_t servLen = sizeof(sockaddr_in);
         sockaddr_in serv;
         char *marker;
@@ -525,7 +535,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
         if (*tmp == 'k') {
             tmp += (tmpOffset = 12);
             killservers = TRUE;
-        } else {
+        }
+        else {
             tmp += (tmpOffset = 8);
         }
 
@@ -587,7 +598,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
                         }
                     }
                 }
-            } else if (netName(&serv, tmp) == FALSE) {
+            }
+            else if (netName(&serv, tmp) == FALSE) {
                 if (connect(control, (sockaddr *)&serv, servLen) == 0) {
                     // Ensure there's no delay on network transactions
                     int val = 1;
@@ -610,7 +622,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
                         netServers[netNumServers++] = control;
 
                         info(CODE_LOG, "Connected to %s\n", tmp);
-                    } else {
+                    }
+                    else {
                         info(CODE_SYSTEM, "Version mismatch with server %s\n", tmp);
                         closesocket(control);
                     }
@@ -628,11 +641,13 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
                     if (bind(control, (struct sockaddr *)&me, sizeof(me)) < 0) {
                         fatal(CODE_SYSTEM, "Bind error\n");
                     }
-                } else {
+                }
+                else {
                     netError();
                     error(CODE_SYSTEM, "Failed to connect to %s\n", tmp);
                 }
-            } else {
+            }
+            else {
                 netError();
                 error(CODE_SYSTEM, "Failed to resolve %s\n", tmp);
             }
@@ -649,7 +664,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
                     control = INVALID_SOCKET;
                 }
             }
-        } else if (netName(&serv, tmp) == FALSE) {
+        }
+        else if (netName(&serv, tmp) == FALSE) {
             if (connect(control, (sockaddr *)&serv, servLen) == 0) {
                 // Ensure there's no delay on network transactions
                 int val = 1;
@@ -672,28 +688,33 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
                     netServers[netNumServers++] = control;
 
                     info(CODE_LOG, "Connected to %s\n", tmp);
-                } else {
+                }
+                else {
                     error(CODE_SYSTEM, "Version mismatch with server %s\n", tmp);
                     closesocket(control);
                 }
 
                 control = INVALID_SOCKET;
-            } else {
+            }
+            else {
                 netError();
                 error(CODE_SYSTEM, "Failed to connect to %s\n", tmp);
             }
-        } else {
+        }
+        else {
             netError();
             error(CODE_SYSTEM, "Failed to resolve %s\n", tmp);
         }
-    } else if (strncmp(tmp, "locclient=", 10) == 0) {
+    }
+    else if (strncmp(tmp, "locclient=", 10) == 0) {
         tmp += 10;
 
         // Note that we do not check the client version (it's the same binary)
 
         // Just read the client port number
         sscanf(tmp, "%d", &netClient);
-    } else if (strncmp(tmp, "locservers=", 11) == 0) {
+    }
+    else if (strncmp(tmp, "locservers=", 11) == 0) {
         char *marker;
         char *tmpStarts = tmp;
 
@@ -722,7 +743,8 @@ void CRenderer::netSetup(const char *ribFile, const char *riNetString) {
         }
         sscanf(tmp, "%d", &netServers[netNumServers]);
         netNumServers++;
-    } else {
+    }
+    else {
         error(CODE_BUG, "Unknown net string %s\n", tmp);
     }
 }

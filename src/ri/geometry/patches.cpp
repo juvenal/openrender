@@ -124,8 +124,8 @@ CBilinearPatch::CBilinearPatch(CAttributes *a, CXform *x, CVertexData *v, CParam
             for (j = vertexSize; j > 0; j--)
                 *dest++ = (float)*src++;
         }
-
-    } else {
+    }
+    else {
         int i;
         float *dest;
 
@@ -276,7 +276,8 @@ void CBilinearPatch::intersect(CShadingContext *context, CRay *cRay) {
                     cRay->v = (float)(v * vMult + vOrg);                                                              \
                     cRay->t = (float)t;                                                                               \
                     movvv(cRay->N, N);                                                                                \
-                } else {                                                                                              \
+                }                                                                                                     \
+                else {                                                                                                \
                     if (dotvv(q, N) < 0) {                                                                            \
                         cRay->object = this;                                                                          \
                         cRay->u = (float)(u * uMult + uOrg);                                                          \
@@ -294,18 +295,18 @@ void CBilinearPatch::intersect(CShadingContext *context, CRay *cRay) {
     double u, v, t;
 
     switch (i) {
-    case 0:
-        break;
-    case 1:
-        v = roots[0];
-        solve();
-        break;
-    case 2:
-        v = roots[0];
-        solve();
-        v = roots[1];
-        solve();
-        break;
+        case 0:
+            break;
+        case 1:
+            v = roots[0];
+            solve();
+            break;
+        case 2:
+            v = roots[0];
+            solve();
+            v = roots[1];
+            solve();
+            break;
     }
 }
 
@@ -325,14 +326,17 @@ void CBilinearPatch::sample(int start, int numVertices, float **varying, float *
     if (variables->moving == FALSE) {
         vertexData = vertex; // No need for interpolation
         vertexDataStep = 0;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + vertexSize * 4; // No need for interpolation
             vertexDataStep = 0;
-        } else {
+        }
+        else {
             float *interpolate;
             const float *time = varying[VARIABLE_TIME] + start;
             const float *vertex0 = vertex;
@@ -402,7 +406,8 @@ void CBilinearPatch::sample(int start, int numVertices, float **varying, float *
                     destdv += 3;
                     destn += 3;
                 }
-            } else {
+            }
+            else {
                 v0 = vertexData;
                 v1 = v0 + vertexSize;
                 v2 = v1 + vertexSize;
@@ -453,7 +458,8 @@ void CBilinearPatch::sample(int start, int numVertices, float **varying, float *
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -537,7 +543,8 @@ CBicubicPatch::CBicubicPatch(CAttributes *a, CXform *x, CVertexData *v, CParamet
 
         computeVertexData(vertex, vertexData, 0, uBasis, vBasis);
         computeVertexData(vertex + vertexSize * 16, vertexData, vertexSize, uBasis, vBasis);
-    } else {
+    }
+    else {
         vertex = new float[vertexSize * 16];
 
         computeVertexData(vertex, vertexData, 0, uBasis, vBasis);
@@ -639,14 +646,17 @@ void CBicubicPatch::sample(int start, int numVertices, float **varying, float **
     if (variables->moving == FALSE) {
         vertexData = vertex;
         vertexDataStep = 0;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + vertexSize * 16; // No need for interpolation
             vertexDataStep = 0;
-        } else {
+        }
+        else {
             float *interpolate;
             const float *time = varying[VARIABLE_TIME] + start;
             const float *vertex0 = vertex;
@@ -760,7 +770,8 @@ void CBicubicPatch::sample(int start, int numVertices, float **varying, float **
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -858,7 +869,8 @@ CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *
 
         precomputeVertexData(vertex, uCoefficients, vCoefficients, vertex0, 0);
         precomputeVertexData(vertex + uOrder * vOrder * vertexSize, uCoefficients, vCoefficients, vertex0, vertexSize);
-    } else {
+    }
+    else {
         vertex = new double[uOrder * vOrder * vertexSize];
 
         precomputeVertexData(vertex, uCoefficients, vCoefficients, vertex0, 0);
@@ -964,14 +976,17 @@ void CNURBSPatch::sample(int start, int numVertices, float **varying, float ***l
     if (variables->moving == FALSE) {
         vertexData = vertex;
         vertexDataStep = 0;
-    } else {
+    }
+    else {
         if (up & PARAMETER_BEGIN_SAMPLE) {
             vertexData = vertex; // No need for interpolation
             vertexDataStep = 0;
-        } else if (up & PARAMETER_END_SAMPLE) {
+        }
+        else if (up & PARAMETER_END_SAMPLE) {
             vertexData = vertex + vertexSize * uOrder * vOrder; // No need for interpolation
             vertexDataStep = 0;
-        } else {
+        }
+        else {
             double *interpolate;
             const float *time = varying[VARIABLE_TIME] + start;
             const double *vertex0 = vertex;
@@ -1087,117 +1102,117 @@ void CNURBSPatch::sample(int start, int numVertices, float **varying, float ***l
         }                                                                                \
     }
 
-#define compute()                         \
-    switch (uOrder) {                     \
-    case 0:                               \
-        assert(FALSE);                    \
-        break;                            \
-    case 1:                               \
-        assert(FALSE);                    \
-        break;                            \
-    case 2:                               \
-        switch (vOrder) {                 \
-        case 0:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 1:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 2:                           \
-            computeNURBS(2, 2);           \
-            break;                        \
-        case 3:                           \
-            computeNURBS(2, 3);           \
-            break;                        \
-        case 4:                           \
-            computeNURBS(2, 4);           \
-            break;                        \
-        case 5:                           \
-            computeNURBS(2, 5);           \
-            break;                        \
-        default:                          \
-            computeNURBS(uOrder, vOrder); \
-            break;                        \
-        }                                 \
-        break;                            \
-    case 3:                               \
-        switch (vOrder) {                 \
-        case 0:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 1:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 2:                           \
-            computeNURBS(3, 2);           \
-            break;                        \
-        case 3:                           \
-            computeNURBS(3, 3);           \
-            break;                        \
-        case 4:                           \
-            computeNURBS(3, 4);           \
-            break;                        \
-        case 5:                           \
-            computeNURBS(3, 5);           \
-            break;                        \
-        default:                          \
-            computeNURBS(uOrder, vOrder); \
-            break;                        \
-        }                                 \
-        break;                            \
-    case 4:                               \
-        switch (vOrder) {                 \
-        case 0:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 1:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 2:                           \
-            computeNURBS(4, 2);           \
-            break;                        \
-        case 3:                           \
-            computeNURBS(4, 3);           \
-            break;                        \
-        case 4:                           \
-            computeNURBS(4, 4);           \
-            break;                        \
-        case 5:                           \
-            computeNURBS(4, 5);           \
-            break;                        \
-        default:                          \
-            computeNURBS(uOrder, vOrder); \
-            break;                        \
-        }                                 \
-        break;                            \
-    case 5:                               \
-        switch (vOrder) {                 \
-        case 0:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 1:                           \
-            assert(FALSE);                \
-            break;                        \
-        case 2:                           \
-            computeNURBS(5, 2);           \
-            break;                        \
-        case 3:                           \
-            computeNURBS(5, 3);           \
-            break;                        \
-        case 4:                           \
-            computeNURBS(5, 4);           \
-            break;                        \
-        case 5:                           \
-            computeNURBS(5, 5);           \
-            break;                        \
-        default:                          \
-            computeNURBS(uOrder, vOrder); \
-            break;                        \
-        }                                 \
-        break;                            \
-    default:                              \
-        computeNURBS(uOrder, vOrder);     \
-        break;                            \
+#define compute()                                 \
+    switch (uOrder) {                             \
+        case 0:                                   \
+            assert(FALSE);                        \
+            break;                                \
+        case 1:                                   \
+            assert(FALSE);                        \
+            break;                                \
+        case 2:                                   \
+            switch (vOrder) {                     \
+                case 0:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 1:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 2:                           \
+                    computeNURBS(2, 2);           \
+                    break;                        \
+                case 3:                           \
+                    computeNURBS(2, 3);           \
+                    break;                        \
+                case 4:                           \
+                    computeNURBS(2, 4);           \
+                    break;                        \
+                case 5:                           \
+                    computeNURBS(2, 5);           \
+                    break;                        \
+                default:                          \
+                    computeNURBS(uOrder, vOrder); \
+                    break;                        \
+            }                                     \
+            break;                                \
+        case 3:                                   \
+            switch (vOrder) {                     \
+                case 0:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 1:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 2:                           \
+                    computeNURBS(3, 2);           \
+                    break;                        \
+                case 3:                           \
+                    computeNURBS(3, 3);           \
+                    break;                        \
+                case 4:                           \
+                    computeNURBS(3, 4);           \
+                    break;                        \
+                case 5:                           \
+                    computeNURBS(3, 5);           \
+                    break;                        \
+                default:                          \
+                    computeNURBS(uOrder, vOrder); \
+                    break;                        \
+            }                                     \
+            break;                                \
+        case 4:                                   \
+            switch (vOrder) {                     \
+                case 0:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 1:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 2:                           \
+                    computeNURBS(4, 2);           \
+                    break;                        \
+                case 3:                           \
+                    computeNURBS(4, 3);           \
+                    break;                        \
+                case 4:                           \
+                    computeNURBS(4, 4);           \
+                    break;                        \
+                case 5:                           \
+                    computeNURBS(4, 5);           \
+                    break;                        \
+                default:                          \
+                    computeNURBS(uOrder, vOrder); \
+                    break;                        \
+            }                                     \
+            break;                                \
+        case 5:                                   \
+            switch (vOrder) {                     \
+                case 0:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 1:                           \
+                    assert(FALSE);                \
+                    break;                        \
+                case 2:                           \
+                    computeNURBS(5, 2);           \
+                    break;                        \
+                case 3:                           \
+                    computeNURBS(5, 3);           \
+                    break;                        \
+                case 4:                           \
+                    computeNURBS(5, 4);           \
+                    break;                        \
+                case 5:                           \
+                    computeNURBS(5, 5);           \
+                    break;                        \
+                default:                          \
+                    computeNURBS(uOrder, vOrder); \
+                    break;                        \
+            }                                     \
+            break;                                \
+        default:                                  \
+            computeNURBS(uOrder, vOrder);         \
+            break;                                \
     }
 
         // Do the computation
@@ -1276,8 +1291,8 @@ void CNURBSPatch::sample(int start, int numVertices, float **varying, float ***l
     }
 
             compute();
-
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -1343,7 +1358,8 @@ void CNURBSPatch::precompBasisCoefficients(double *coefficients, unsigned int or
             coefficients[0] = 1;
         else
             coefficients[0] = 0;
-    } else {
+    }
+    else {
 
         double *lowerCoefficients1 = (double *)alloca((order - 1) * sizeof(double));
         double *lowerCoefficients2 = (double *)alloca((order - 1) * sizeof(double));
@@ -1409,14 +1425,16 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
                 mulmp(tmp, from, P);
                 addBox(bmin, bmax, tmp);
             }
-        } else if (xform->next != NULL) {
+        }
+        else if (xform->next != NULL) {
             const float *from = xform->next->from;
             for (P = pl->data0, i = 0; i < (uVertices * vVertices); i++, P += 3) {
                 mulmp(tmp, from, P);
                 addBox(bmin, bmax, tmp);
             }
         }
-    } else {
+    }
+    else {
         int i, j;
         int upatches, vpatches;
         const int us = attributes->uStep;
@@ -1486,10 +1504,12 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
 
                     if (xform->next != NULL) {
                         makeCubicBoundX(bmin, bmax, xg, yg, zg, xform->next);
-                    } else {
+                    }
+                    else {
                         makeCubicBoundX(bmin, bmax, xg, yg, zg, xform);
                     }
-                } else if (xform->next != NULL) {
+                }
+                else if (xform->next != NULL) {
                     makeCubicBoundX(bmin, bmax, xg, yg, zg, xform->next);
                 }
             }
@@ -1633,7 +1653,8 @@ void CPatchMesh::create(CShadingContext *context) {
                 allChildren = nObject;
             }
         }
-    } else {
+    }
+    else {
         int i, j, k;
         float uMult;
         float vMult;
@@ -1748,7 +1769,8 @@ CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int 
             mulvf(tmp, 1 / tmp[3]);
             addBox(bmin, bmax, tmp);
         }
-    } else if (xform->next != NULL) {
+    }
+    else if (xform->next != NULL) {
         const float *from = xform->next->from;
         for (P = pl->data0, i = 0; i < (uVertices * vVertices); i++, P += 4) {
             htpoint tmp;
@@ -1769,7 +1791,8 @@ CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int 
     // (possibly NULL) verbatim.
     if (eagerBuildTrim) {
         trimTest = buildTrimTestFromPending(attributes);
-    } else {
+    }
+    else {
         trimTest = suppliedTrimTest;
         if (trimTest != NULL)
             trimTest->attach();
@@ -2158,7 +2181,8 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 
             if ((uint == 0) || (vint == 0)) {
                 // The patch does not have a valid parametric space, so just skip it
-            } else {
+            }
+            else {
                 CObject *nObject;
 
                 gatherData(context, i, j, uOrder, vOrder, i, j, k, vertex, parameters);

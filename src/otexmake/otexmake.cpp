@@ -30,8 +30,8 @@
 
 #include "common/global.h"
 #include "common/os.h"
-#include "ri/parse/ri.h"
 #include "logging.hpp"
+#include "ri/parse/ri.h"
 
 // TODO: tileSize — tiled texture output was planned to allow writing mipmapped
 //   textures in tiled format (e.g. 32×32 tiles) for better cache locality during
@@ -101,70 +101,91 @@ int main(int argc, char *argv[]) {
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
             printUsage();
-        } else if (strcmp(argv[i], shadowArgument) == 0) {
+        }
+        else if (strcmp(argv[i], shadowArgument) == 0) {
             textureMode = "shadow";
-        } else if (strcmp(argv[i], envlatArgument) == 0) {
+        }
+        else if (strcmp(argv[i], envlatArgument) == 0) {
             textureMode = "envlat";
-        } else if (strcmp(argv[i], envcubeArgument) == 0) {
+        }
+        else if (strcmp(argv[i], envcubeArgument) == 0) {
             textureMode = "envcube";
-        } else if (strcmp(argv[i], texture3dArgument) == 0) {
+        }
+        else if (strcmp(argv[i], texture3dArgument) == 0) {
             textureMode = "texture3d";
-        // } else if (strcmp(argv[i], tileSizeArgument) == 0) {  // TODO: see tileSizeArgument comment above
-        //     i++;
-        //     tileSize = atoi(argv[i]);
-        } else if (strcmp(argv[i], resizeModeArgument) == 0) {
+            // } else if (strcmp(argv[i], tileSizeArgument) == 0) {  // TODO: see tileSizeArgument comment above
+            //     i++;
+            //     tileSize = atoi(argv[i]);
+        }
+        else if (strcmp(argv[i], resizeModeArgument) == 0) {
             i++;
             resizeMode = argv[i];
-        } else if (strcmp(argv[i], smodeArgument) == 0) {
+        }
+        else if (strcmp(argv[i], smodeArgument) == 0) {
             i++;
             smode = argv[i];
-        } else if (strcmp(argv[i], tmodeArgument) == 0) {
+        }
+        else if (strcmp(argv[i], tmodeArgument) == 0) {
             i++;
             tmode = argv[i];
-        } else if (strcmp(argv[i], filterArgument) == 0) {
+        }
+        else if (strcmp(argv[i], filterArgument) == 0) {
             i++;
             if (strcmp(argv[i], "box") == 0) {
                 filter = RiBoxFilter;
-            } else if (strcmp(argv[i], "triangle") == 0) {
+            }
+            else if (strcmp(argv[i], "triangle") == 0) {
                 filter = RiTriangleFilter;
-            } else if (strcmp(argv[i], "gaussian") == 0) {
+            }
+            else if (strcmp(argv[i], "gaussian") == 0) {
                 filter = RiGaussianFilter;
-            } else if (strcmp(argv[i], "catmull-rom") == 0) {
+            }
+            else if (strcmp(argv[i], "catmull-rom") == 0) {
                 filter = RiCatmullRomFilter;
-            } else if (strcmp(argv[i], "sinc") == 0) {
+            }
+            else if (strcmp(argv[i], "sinc") == 0) {
                 filter = RiSincFilter;
-            } else {
+            }
+            else {
                 fprintf(stderr, "Unknown filter: %s\n", argv[i]);
             }
-        } else if (strcmp(argv[i], filterWidthArgument) == 0) {
+        }
+        else if (strcmp(argv[i], filterWidthArgument) == 0) {
             i++;
             filterWidth = (float)atof(argv[i]);
             filterHeight = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], sfilterWidthArgument) == 0) {
+        }
+        else if (strcmp(argv[i], sfilterWidthArgument) == 0) {
             i++;
             filterWidth = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], tfilterWidthArgument) == 0) {
+        }
+        else if (strcmp(argv[i], tfilterWidthArgument) == 0) {
             i++;
             filterHeight = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], fovArgument) == 0) {
+        }
+        else if (strcmp(argv[i], fovArgument) == 0) {
             i++;
             fov = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], maxerrorArgument) == 0) {
+        }
+        else if (strcmp(argv[i], maxerrorArgument) == 0) {
             i++;
             maxerror = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], radiusscaleArgument) == 0) {
+        }
+        else if (strcmp(argv[i], radiusscaleArgument) == 0) {
             i++;
             radiusScale = (float)atof(argv[i]);
-        } else if (strcmp(argv[i], maxdepthArgument) == 0) {
+        }
+        else if (strcmp(argv[i], maxdepthArgument) == 0) {
             i++;
             maxDepth = (int)atoi(argv[i]);
-        // } else if (strcmp(argv[i], inputPathArgument) == 0) {  // TODO: see inputPathArgument/outputPathArgument comment above
-        //     i++;
-        //     inPath = argv[i];
-        // } else if (strcmp(argv[i], outputPathArgument) == 0) {
-        //     i++;
-        //     outPath = argv[i];
-        } else {
+            // } else if (strcmp(argv[i], inputPathArgument) == 0) {  // TODO: see inputPathArgument/outputPathArgument comment above
+            //     i++;
+            //     inPath = argv[i];
+            // } else if (strcmp(argv[i], outputPathArgument) == 0) {
+            //     i++;
+            //     outPath = argv[i];
+        }
+        else {
             files[currentFile++] = argv[i];
         }
     }
@@ -181,7 +202,8 @@ int main(int argc, char *argv[]) {
 
             processed = TRUE;
         }
-    } else if (strcmp(textureMode, "shadow") == 0) {
+    }
+    else if (strcmp(textureMode, "shadow") == 0) {
         if (currentFile == 2) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
@@ -191,7 +213,8 @@ int main(int argc, char *argv[]) {
 
             processed = TRUE;
         }
-    } else if (strcmp(textureMode, "envlat") == 0) {
+    }
+    else if (strcmp(textureMode, "envlat") == 0) {
         if (currentFile == 2) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
@@ -201,7 +224,8 @@ int main(int argc, char *argv[]) {
 
             processed = TRUE;
         }
-    } else if (strcmp(textureMode, "envcube") == 0) {
+    }
+    else if (strcmp(textureMode, "envcube") == 0) {
         if (currentFile == 7) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
@@ -211,7 +235,8 @@ int main(int argc, char *argv[]) {
 
             processed = TRUE;
         }
-    } else if (strcmp(textureMode, "texture3d") == 0) {
+    }
+    else if (strcmp(textureMode, "texture3d") == 0) {
         if (currentFile == 2) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = RI_MAXERROR;

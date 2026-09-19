@@ -75,8 +75,8 @@ static inline float ff(const float *rP, const float *rN, const float *oP, const 
 
             // Notice that we're computing the disk area without PI because it cancels the one in the denominator
             return -dotvv(nD, oN) * dotvv(nD, rN) * dP * dP / (dotvv(D, D) + C_EPSILON);
-
-        } else {
+        }
+        else {
             // Full occlusion
             vector nD, D;
 
@@ -211,14 +211,17 @@ int CPointHierarchy::average(int numItems, int *indices) {
             float areaValue = ((float)C_PI * item->dP * item->dP * dotvv(node.N, item->N));
             if (0 > areaValue) {
                 area = 0;
-            } else {
+            }
+            else {
                 area = areaValue;
             }
-        } else {
+        }
+        else {
             float areaValue2 = (src[areaIndex] * dotvv(node.N, item->N));
             if (0 > areaValue2) {
                 area = 0;
-            } else {
+            }
+            else {
                 area = areaValue2;
             }
         }
@@ -261,16 +264,16 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
     if (numItems == 1) {
         // Create a leaf
         return -indices[0];
-
-    } else if (numItems == 2) {
+    }
+    else if (numItems == 2) {
         // Easy case
         int nodeIndex = average(numItems, indices);
         CMapNode *node = nodes.array + nodeIndex;
         node->child0 = -indices[0];
         node->child1 = -indices[1];
         return nodeIndex;
-
-    } else {
+    }
+    else {
         // Allocate temp memory
         int *membership, *subItems;
 
@@ -336,7 +339,8 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
                 float maxDotN0;
                 if (C_EPSILON > dotN0) {
                     maxDotN0 = C_EPSILON;
-                } else {
+                }
+                else {
                     maxDotN0 = dotN0;
                 }
                 const float d0 = dotvv(D, D) / maxDotN0;
@@ -347,7 +351,8 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
                 float maxDotN1;
                 if (C_EPSILON > dotN1) {
                     maxDotN1 = C_EPSILON;
-                } else {
+                }
+                else {
                     maxDotN1 = dotN1;
                 }
                 const float d1 = dotvv(D, D) / maxDotN1;
@@ -362,7 +367,8 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
                     addvv(nC0, cItem->P);
                     addvv(nN0, cItem->N);
                     num0++;
-                } else {
+                }
+                else {
                     if (membership[i] != 1) {
                         changed = TRUE;
                         membership[i] = 1;
@@ -387,7 +393,8 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
                 initv(N1, _urand() * 2 - 1, _urand() * 2 - 1, _urand() * 2 - 1);
                 normalizevf(N0);
                 normalizevf(N1);
-            } else {
+            }
+            else {
                 if (changed == FALSE)
                     break;
 
@@ -506,8 +513,8 @@ void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const fl
                 Cl[2] += form * src[radiosityIndex + 2];
             }
             Cl[3] += form;
-
-        } else {
+        }
+        else {
             const CMapNode *node = nodes.array + currentNode;
 
             // Are we behind the node?
@@ -533,7 +540,8 @@ void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const fl
                     Cl[2] += form * node->radiosity[2];
                 }
                 Cl[3] += form;
-            } else {
+            }
+            else {
                 // Sanity check
                 assert((stack - stackBase) < (POINTHIERARCHY_STACK_SIZE - 2));
 

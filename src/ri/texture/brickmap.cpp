@@ -72,12 +72,14 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax2 = x + d;
     if (tmin2 > tmin1) {
         tmin = tmin2;
-    } else {
+    }
+    else {
         tmin = tmin1;
     }
     if (tmax2 < tmax1) {
         tmax = tmax2;
-    } else {
+    }
+    else {
         tmax = tmax1;
     }
     if (tmax <= tmin)
@@ -91,12 +93,14 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax2 = y + d;
     if (tmin2 > tmin1) {
         tmin = tmin2;
-    } else {
+    }
+    else {
         tmin = tmin1;
     }
     if (tmax2 < tmax1) {
         tmax = tmax2;
-    } else {
+    }
+    else {
         tmax = tmax1;
     }
     if (tmax <= tmin)
@@ -110,12 +114,14 @@ static inline float intersect(const float *P, float dP, float x, float y, float 
     tmax2 = z + d;
     if (tmin2 > tmin1) {
         tmin = tmin2;
-    } else {
+    }
+    else {
         tmin = tmin1;
     }
     if (tmax2 < tmax1) {
         tmax = tmax2;
-    } else {
+    }
+    else {
         tmax = tmax1;
     }
     if (tmax <= tmin)
@@ -427,12 +433,14 @@ void CBrickMap::store(const float *data, const float *cP, const float *cN, float
     float clampedDepth_bm2;
     if (0 > depth) {
         clampedDepth_bm2 = 0;
-    } else {
+    }
+    else {
         clampedDepth_bm2 = depth;
     }
     if (maxDepth < clampedDepth_bm2) {
         depth = maxDepth;
-    } else {
+    }
+    else {
         depth = clampedDepth_bm2;
     }
 
@@ -467,7 +475,8 @@ void CBrickMap::store(const float *data, const float *cP, const float *cN, float
             // numerical instability causes the first condition to fail when it should pass
             if (((tmp * tmp + 1.0e-9f) >= (normalThreshold * normalThreshold * dotvv(cVoxel->N, cVoxel->N))) && (tmp * tmp >= 0)) {
                 break;
-            } else {
+            }
+            else {
                 if (cVoxel->next == NULL) {
                     float *data;
                     int i;
@@ -487,7 +496,8 @@ void CBrickMap::store(const float *data, const float *cP, const float *cN, float
                     // Note: we will need to compact the map afterwards
                     cNode->fileIndex = -1;
                     break;
-                } else {
+                }
+                else {
                     cVoxel = cVoxel->next;
                 }
             }
@@ -675,7 +685,8 @@ void CBrickMap::finalize() {
 
                     if (cVoxel->next != NULL) {
                         cVoxel = cVoxel->next;
-                    } else {
+                    }
+                    else {
                         break;
                     }
                 }
@@ -831,7 +842,8 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
     uint32_t b;
 
     // work out which top-level voxels are present
-    if (fread(bs, sizeof(uint32_t) * BRICK_PRESENCE_LONGS, 1, file) != 1) { /* read error */ }
+    if (fread(bs, sizeof(uint32_t) * BRICK_PRESENCE_LONGS, 1, file) != 1) { /* read error */
+    }
 
     // read those that are
     for (i = 0, cVoxel = cBrick->voxels; i < BRICK_PRESENCE_LONGS; i++) {
@@ -841,7 +853,8 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
             float *vdata = (float *)(cVoxel + 1);
 
             if (b & 0x80000000L) {
-                if (fread(cVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */ }
+                if (fread(cVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */
+                }
 
                 if (cVoxel->next != NULL) {
                     cVoxel->next = NULL;
@@ -850,19 +863,22 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
                         tVoxel = (CVoxel *)new char[sizeof(CVoxel) + dataSize * sizeof(float)];
                         currentMemory += sizeof(CVoxel) + dataSize * sizeof(float);
 
-                        if (fread(tVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */ }
+                        if (fread(tVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, file) != 1) { /* read error */
+                        }
 
                         if (tVoxel->next != NULL) {
                             tVoxel->next = cVoxel->next;
                             cVoxel->next = tVoxel;
-                        } else {
+                        }
+                        else {
                             tVoxel->next = cVoxel->next;
                             cVoxel->next = tVoxel;
                             break;
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 // initialize to null any that are not
                 cVoxel->weight = 0;
                 cVoxel->next = NULL;
@@ -945,7 +961,8 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
 
                     if (cVoxel->next != NULL) {
                         cVoxel = cVoxel->next;
-                    } else {
+                    }
+                    else {
                         break;
                     }
                 }
@@ -978,7 +995,8 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
 
                     if (cVoxel->next != NULL) {
                         cVoxel = cVoxel->next;
-                    } else {
+                    }
+                    else {
                         break;
                     }
                 }
@@ -1054,7 +1072,8 @@ void CBrickMap::compact(const char *outFileName, float maxVariation) {
                     if (cVoxel->weight > 0) {
                         fwrite(cVoxel, sizeof(CVoxel) + sizeof(float) * dataSize, 1, outfile);
                         tVoxel = cVoxel;
-                    } else {
+                    }
+                    else {
                         skippedLast = TRUE;
                     }
 
@@ -1156,13 +1175,15 @@ void CBrickMap::draw() {
     int clampedLevel_bm;
     if (0 > detail) {
         clampedLevel_bm = 0;
-    } else {
+    }
+    else {
         clampedLevel_bm = detail;
     }
     int level;
     if (maxDepth < clampedLevel_bm) {
         level = maxDepth;
-    } else {
+    }
+    else {
         level = clampedLevel_bm;
     }
     int nb = 1 << level;
@@ -1273,7 +1294,8 @@ void CBrickMap::draw() {
                             if (numSamples == 1) {
                                 initv(Ctmp, DDs[0]);
                                 DDs = Ctmp;
-                            } else if (numSamples == 2) {
+                            }
+                            else if (numSamples == 2) {
                                 initv(Ctmp, DDs[0], DDs[1], 0);
                                 DDs = Ctmp;
                             }
@@ -1317,7 +1339,8 @@ void CBrickMap::draw() {
 
                                     pts += 12;
                                 }
-                            } else if (drawType == 1) {
+                            }
+                            else if (drawType == 1) {
                                 if (j == 0) {
                                     drawDisks(chunkSize, P, R, N, C);
                                     cP = P;
@@ -1337,7 +1360,8 @@ void CBrickMap::draw() {
                                 cN += 3;
                                 cR += 1;
                                 j--;
-                            } else if (drawType == 2) {
+                            }
+                            else if (drawType == 2) {
                                 if (j == 0) {
                                     drawPoints(chunkSize, P, C);
                                     cP = P;
@@ -1375,26 +1399,32 @@ int CBrickMap::keyDown(int key) {
     if ((key == 'M') || (key == 'm')) {
         detail++;
         return TRUE;
-    } else if ((key == 'L') || (key == 'l')) {
+    }
+    else if ((key == 'L') || (key == 'l')) {
         detail--;
         if (detail < 0)
             detail = 0;
         return TRUE;
-    } else if ((key == 'b') || (key == 'B')) {
+    }
+    else if ((key == 'b') || (key == 'B')) {
         drawType = 0;
         return TRUE;
-    } else if ((key == 'd') || (key == 'D')) {
+    }
+    else if ((key == 'd') || (key == 'D')) {
         drawType = 1;
         return TRUE;
-    } else if ((key == 'p') || (key == 'P')) {
+    }
+    else if ((key == 'p') || (key == 'P')) {
         drawType = 2;
         return TRUE;
-    } else if ((key == 'q') || (key == 'Q')) {
+    }
+    else if ((key == 'q') || (key == 'Q')) {
         drawChannel--;
         if (drawChannel < 0)
             drawChannel = 0;
         return TRUE;
-    } else if ((key == 'w') || (key == 'W')) {
+    }
+    else if ((key == 'w') || (key == 'W')) {
         drawChannel++;
         if (drawChannel >= channelCount)
             drawChannel = channelCount - 1;
@@ -1492,7 +1522,8 @@ void CBrickMap::flushBrickMap(int allBricks) {
                 // If this is the first time we're writing, append it to the end
                 fseek(cMap->file, 0, SEEK_END);
                 cNode->fileIndex = ftell(cMap->file);
-            } else {
+            }
+            else {
                 // Go to the correct position
                 fseek(cMap->file, cNode->fileIndex, SEEK_SET);
             }
@@ -1527,7 +1558,8 @@ void CBrickMap::flushBrickMap(int allBricks) {
 
             // Update the used memory
             currentMemory -= sizeof(CBrick) + (sizeof(CVoxel) + cMap->dataSize * sizeof(float)) * (BRICK_SIZE * BRICK_SIZE * BRICK_SIZE);
-        } else {
+        }
+        else {
             // Just free the brick
 
             for (j = BRICK_SIZE * BRICK_SIZE * BRICK_SIZE, cVoxel = cNode->brick->voxels; j > 0; j--) {
@@ -1621,9 +1653,11 @@ void makeBrickMap(int /*nb*/, const char **src, const char *dest, TSearchpath *s
     for (i = 0; i < n; i++) {
         if (!strcmp(tokens[i], "maxerror")) {
             maxVariation = ((float *)params[i])[0];
-        } else if (!strcmp(tokens[i], "radiusscale")) {
+        }
+        else if (!strcmp(tokens[i], "radiusscale")) {
             radiusScale = ((float *)params[i])[0];
-        } else if (!strcmp(tokens[i], "maxdepth")) {
+        }
+        else if (!strcmp(tokens[i], "maxdepth")) {
             maxDepth = ((int *)params[i])[0];
         }
     }
@@ -1668,10 +1702,12 @@ void makeBrickMap(int /*nb*/, const char **src, const char *dest, TSearchpath *s
             delete cPtCloud;
             // clean up
             osDeleteFile(tempName);
-        } else {
+        }
+        else {
             error(CODE_BADTOKEN, "Point cloud file \"%s\" could not be opened\n");
         }
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Point cloud file \"%s\" not found\n");
     }
 

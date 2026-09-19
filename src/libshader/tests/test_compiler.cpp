@@ -18,7 +18,7 @@
 #include <string>
 #include <sys/stat.h>
 
-#include "rslo.h"      // CScriptContext — RSL compiler (in libshader/compiler/)
+#include "rslo.h" // CScriptContext — RSL compiler (in libshader/compiler/)
 
 // ---------------------------------------------------------------------------
 // Minimal test harness (same style as existing project tests)
@@ -26,10 +26,16 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
 #define EXPECT_FALSE(expr) EXPECT_TRUE(!(expr))
 
@@ -45,15 +51,19 @@ static bool compileRSL(const char *src, const char *outPath) {
     // Write source to a temp .sl file
     std::string tmpSl = std::string(outPath) + ".sl";
     FILE *f = fopen(tmpSl.c_str(), "w");
-    if (!f) return false;
+    if (!f)
+        return false;
     fputs(src, f);
     fclose(f);
 
     // Compile
     CScriptContext ctx; // default constructor: no warning/error suppression
     FILE *in = fopen(tmpSl.c_str(), "r");
-    if (!in) { remove(tmpSl.c_str()); return false; }
-    bool ok = (ctx.compile(in, const_cast<char*>(outPath)) != 0); // returns TRUE(1)=success, FALSE(0)=failure
+    if (!in) {
+        remove(tmpSl.c_str());
+        return false;
+    }
+    bool ok = (ctx.compile(in, const_cast<char *>(outPath)) != 0); // returns TRUE(1)=success, FALSE(0)=failure
     fclose(in);
     remove(tmpSl.c_str());
     return ok;
@@ -81,8 +91,10 @@ static void test_trivial_surface() {
     EXPECT_TRUE(ok);
     EXPECT_TRUE(fileExists(out));
 
-    if (ok) printf("  Compiled to: %s\n", out);
-    else    fprintf(stderr, "  Compilation failed\n");
+    if (ok)
+        printf("  Compiled to: %s\n", out);
+    else
+        fprintf(stderr, "  Compilation failed\n");
 
     remove(out);
 }
@@ -121,7 +133,7 @@ static void test_syntax_error() {
     remove(out);
 
     bool ok = compileRSL(src, out);
-    EXPECT_FALSE(ok);  // should fail to compile
+    EXPECT_FALSE(ok); // should fail to compile
 
     printf("  Compile of broken shader: %s (expected failure)\n",
            ok ? "UNEXPECTEDLY SUCCEEDED" : "correctly failed");
@@ -131,7 +143,7 @@ static void test_syntax_error() {
 
 // ---------------------------------------------------------------------------
 int main() {
-    LOG_SET_LEVEL(LOG_LEVEL_NONE);  // suppress logging noise during tests
+    LOG_SET_LEVEL(LOG_LEVEL_NONE); // suppress logging noise during tests
 
     test_trivial_surface();
     test_missing_input();

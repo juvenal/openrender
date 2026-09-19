@@ -52,13 +52,13 @@ class CBlobbyMesh {
 
         int numVertices;
         int numTriangles;
-        float *P;         // 3 floats per vertex
-        float *N;         // 3 floats per vertex, analytic gradient (FR-024)
-        float *weights;   // numLeaves floats per vertex, or NULL
-        int *triangles;   // 3 vertex indices per triangle
-        float *P1;        // Second motion sample, or NULL (FR-026)
-        float *N1;        // Normals at the second sample, or NULL
-        int numLeaves;    // Stride of `weights`
+        float *P;       // 3 floats per vertex
+        float *N;       // 3 floats per vertex, analytic gradient (FR-024)
+        float *weights; // numLeaves floats per vertex, or NULL
+        int *triangles; // 3 vertex indices per triangle
+        float *P1;      // Second motion sample, or NULL (FR-026)
+        float *N1;      // Normals at the second sample, or NULL
+        int numLeaves;  // Stride of `weights`
 };
 
 ///////////////////////////////////////////////////////////////////////

@@ -24,33 +24,38 @@
 #include <string>
 #include <unistd.h>
 
+#include "ri/core/shader.h"
+#include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
-#include "ri/parse/ri.h"
-#include "ri/core/shader.h"
 
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
-static bool writeFixture(const std::string &path, const std::string &shaderName,
-                          const std::string &body) {
+static bool writeFixture(const std::string &path, const std::string &shaderName, const std::string &body) {
     FILE *f = fopen(path.c_str(), "w");
-    if (!f) return false;
+    if (!f)
+        return false;
     fprintf(f, "light %s(\n    float intensity = 1.0\n) {\n%s}\n",
             shaderName.c_str(), body.c_str());
     fclose(f);
     return true;
 }
 
-static bool runOshader(const char *oshaderBin, const std::string &srcPath,
-                        const std::string &outPath, bool jit) {
+static bool runOshader(const char *oshaderBin, const std::string &srcPath, const std::string &outPath, bool jit) {
     std::string cmd = std::string("\"") + oshaderBin + "\" " + (jit ? "--jit " : "") +
-                       "-o \"" + outPath + "\" \"" + srcPath + "\" >/dev/null 2>&1";
+                      "-o \"" + outPath + "\" \"" + srcPath + "\" >/dev/null 2>&1";
     int rc = system(cmd.c_str());
     return rc == 0;
 }
@@ -64,12 +69,14 @@ static void test_ol_used_parameters_bit() {
 
     const char *oshaderBin = getenv("OSHADER_BIN");
     EXPECT_TRUE(oshaderBin != nullptr);
-    if (!oshaderBin) return;
+    if (!oshaderBin)
+        return;
 
     char tmplBuf[] = "/tmp/shading_parity_ol_XXXXXX";
     char *tmpDir = mkdtemp(tmplBuf);
     EXPECT_TRUE(tmpDir != nullptr);
-    if (!tmpDir) return;
+    if (!tmpDir)
+        return;
 
     const std::string dir = tmpDir;
     const std::string sloName = "parity_ol_slo";
@@ -126,15 +133,18 @@ static void test_ol_used_parameters_bit() {
         }
     }
 
-    if (sloInstance) sloInstance->detach();
-    if (rsloInstance) rsloInstance->detach();
+    if (sloInstance)
+        sloInstance->detach();
+    if (rsloInstance)
+        rsloInstance->detach();
 
     RiEnd();
 
     // Reported rather than discarded: a silent failure here would leave every
     // later test in this binary resolving relative paths from the wrong
     // directory. (A (void) cast would not silence warn_unused_result.)
-    if (chdir(savedCwd) != 0) perror("chdir (restoring working directory)");
+    if (chdir(savedCwd) != 0)
+        perror("chdir (restoring working directory)");
 }
 
 int main() {

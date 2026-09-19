@@ -49,12 +49,12 @@ static bool fileExists(const char *path) {
 // ---------------------------------------------------------------------------
 
 struct TiffImage {
-    uint32_t width  = 0;
-    uint32_t height = 0;
-    uint32_t spp    = 0;   // samples per pixel
-    bool isDepth    = false; // true => raw single-channel float32 (see below)
-    std::vector<uint8_t> pixels; // valid when !isDepth (RGBA, 8-bit/channel)
-    std::vector<float>   depth;  // valid when isDepth (raw world-space z)
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t spp = 0;            // samples per pixel
+        bool isDepth = false;        // true => raw single-channel float32 (see below)
+        std::vector<uint8_t> pixels; // valid when !isDepth (RGBA, 8-bit/channel)
+        std::vector<float> depth;    // valid when isDepth (raw world-space z)
 };
 
 // Depth ("z" mode) Display output in this codebase is unconditionally
@@ -89,7 +89,7 @@ static bool readTiff(const char *path, TiffImage &img) {
         return false;
     }
 
-    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH,  &img.width);
+    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &img.width);
     TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &img.height);
     TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &img.spp);
 
@@ -103,7 +103,8 @@ static bool readTiff(const char *path, TiffImage &img) {
         return ok;
     }
 
-    if (img.spp == 0) img.spp = 3; // fallback for bare RGB TIFFs
+    if (img.spp == 0)
+        img.spp = 3; // fallback for bare RGB TIFFs
 
     const size_t npix = (size_t)img.width * img.height;
     img.pixels.resize(npix * 4); // always RGBA via TIFFReadRGBAImageOriented
@@ -121,10 +122,10 @@ static bool readTiff(const char *path, TiffImage &img) {
 
     for (size_t i = 0; i < npix; ++i) {
         uint32_t px = rgba[i];
-        img.pixels[4*i+0] = (uint8_t)(TIFFGetR(px));
-        img.pixels[4*i+1] = (uint8_t)(TIFFGetG(px));
-        img.pixels[4*i+2] = (uint8_t)(TIFFGetB(px));
-        img.pixels[4*i+3] = (uint8_t)(TIFFGetA(px));
+        img.pixels[4 * i + 0] = (uint8_t)(TIFFGetR(px));
+        img.pixels[4 * i + 1] = (uint8_t)(TIFFGetG(px));
+        img.pixels[4 * i + 2] = (uint8_t)(TIFFGetB(px));
+        img.pixels[4 * i + 3] = (uint8_t)(TIFFGetA(px));
     }
     return true;
 }
@@ -133,21 +134,21 @@ static bool readTiff(const char *path, TiffImage &img) {
 // Comparison — block-averaged (identical metric to test_visual_render.cpp)
 // ---------------------------------------------------------------------------
 
-static constexpr int BLOCK_SIZE = 8;  // 8x8 pixel blocks
+static constexpr int BLOCK_SIZE = 8; // 8x8 pixel blocks
 
 struct DiffResult {
-    float    maxDiff      = 0.f;
-    size_t   failBlocks   = 0;
-    size_t   totalBlocks  = 0;
-    int      worstChannel = 0;
-    uint32_t worstBlockX  = 0;  // block column
-    uint32_t worstBlockY  = 0;  // block row
+        float maxDiff = 0.f;
+        size_t failBlocks = 0;
+        size_t totalBlocks = 0;
+        int worstChannel = 0;
+        uint32_t worstBlockX = 0; // block column
+        uint32_t worstBlockY = 0; // block row
 };
 
 static DiffResult compareTiffs(const TiffImage &ref, const TiffImage &act, double threshold) {
     DiffResult result;
 
-    const uint32_t bCols = (ref.width  + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    const uint32_t bCols = (ref.width + BLOCK_SIZE - 1) / BLOCK_SIZE;
     const uint32_t bRows = (ref.height + BLOCK_SIZE - 1) / BLOCK_SIZE;
     result.totalBlocks = (size_t)bCols * bRows;
 
@@ -162,14 +163,15 @@ static DiffResult compareTiffs(const TiffImage &ref, const TiffImage &act, doubl
                      px < std::min((bx + 1) * BLOCK_SIZE, ref.width); ++px) {
                     size_t idx = (size_t)py * ref.width + px;
                     for (int c = 0; c < 3; ++c) {
-                        sumRef[c] += ref.pixels[4*idx+c];
-                        sumAct[c] += act.pixels[4*idx+c];
+                        sumRef[c] += ref.pixels[4 * idx + c];
+                        sumAct[c] += act.pixels[4 * idx + c];
                     }
                     ++count;
                 }
             }
 
-            if (count == 0) continue;
+            if (count == 0)
+                continue;
 
             bool blockFailed = false;
             for (int c = 0; c < 3; ++c) {
@@ -177,14 +179,16 @@ static DiffResult compareTiffs(const TiffImage &ref, const TiffImage &act, doubl
                 float avgAct = (float)(sumAct[c] / count);
                 float d = std::fabs(avgRef - avgAct);
                 if (d > result.maxDiff) {
-                    result.maxDiff      = d;
+                    result.maxDiff = d;
                     result.worstChannel = c;
-                    result.worstBlockX  = bx;
-                    result.worstBlockY  = by;
+                    result.worstBlockX = bx;
+                    result.worstBlockY = by;
                 }
-                if (d > (float)threshold) blockFailed = true;
+                if (d > (float)threshold)
+                    blockFailed = true;
             }
-            if (blockFailed) result.failBlocks++;
+            if (blockFailed)
+                result.failBlocks++;
         }
     }
     return result;
@@ -205,7 +209,7 @@ static DiffResult compareTiffs(const TiffImage &ref, const TiffImage &act, doubl
 // hiders, while a genuine hit-vs-no-hit mismatch (one clamped, one not)
 // still produces a large, real diff.
 static constexpr float DEPTH_BACKGROUND_THRESHOLD = 1e6f;
-static constexpr float DEPTH_BACKGROUND_CLAMP      = 1e6f;
+static constexpr float DEPTH_BACKGROUND_CLAMP = 1e6f;
 
 static float clampDepth(float z) {
     return (std::fabs(z) >= DEPTH_BACKGROUND_THRESHOLD) ? DEPTH_BACKGROUND_CLAMP : z;
@@ -218,7 +222,7 @@ static float clampDepth(float z) {
 static DiffResult compareDepth(const TiffImage &ref, const TiffImage &act, double threshold) {
     DiffResult result;
 
-    const uint32_t bCols = (ref.width  + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    const uint32_t bCols = (ref.width + BLOCK_SIZE - 1) / BLOCK_SIZE;
     const uint32_t bRows = (ref.height + BLOCK_SIZE - 1) / BLOCK_SIZE;
     result.totalBlocks = (size_t)bCols * bRows;
 
@@ -238,17 +242,19 @@ static DiffResult compareDepth(const TiffImage &ref, const TiffImage &act, doubl
                 }
             }
 
-            if (count == 0) continue;
+            if (count == 0)
+                continue;
 
             float avgRef = (float)(sumRef / count);
             float avgAct = (float)(sumAct / count);
             float d = std::fabs(avgRef - avgAct);
             if (d > result.maxDiff) {
-                result.maxDiff     = d;
+                result.maxDiff = d;
                 result.worstBlockX = bx;
                 result.worstBlockY = by;
             }
-            if (d > (float)threshold) result.failBlocks++;
+            if (d > (float)threshold)
+                result.failBlocks++;
         }
     }
     return result;
@@ -269,20 +275,22 @@ static int diffAndReport(const char *tifA, const char *tifB, double threshold) {
     }
 
     TiffImage a, b;
-    if (!readTiff(tifA, a)) return 1;
-    if (!readTiff(tifB, b)) return 1;
+    if (!readTiff(tifA, a))
+        return 1;
+    if (!readTiff(tifB, b))
+        return 1;
 
     if (a.width != b.width || a.height != b.height) {
         fprintf(stderr,
-            "  Dimension mismatch: %s=%ux%u  %s=%ux%u\n",
-            tifA, a.width, a.height, tifB, b.width, b.height);
+                "  Dimension mismatch: %s=%ux%u  %s=%ux%u\n",
+                tifA, a.width, a.height, tifB, b.width, b.height);
         return 1;
     }
 
     if (a.isDepth != b.isDepth) {
         fprintf(stderr,
-            "  Format mismatch: %s isDepth=%d  %s isDepth=%d\n",
-            tifA, a.isDepth, tifB, b.isDepth);
+                "  Format mismatch: %s isDepth=%d  %s isDepth=%d\n",
+                tifA, a.isDepth, tifB, b.isDepth);
         return 1;
     }
 
@@ -294,10 +302,10 @@ static int diffAndReport(const char *tifA, const char *tifB, double threshold) {
 
         if (diff.failBlocks > 0) {
             fprintf(stderr,
-                "  FAIL: %zu block(s) exceed depth threshold %.6f. "
-                "Worst avg diff=%.6f at block (%u,%u)\n",
-                diff.failBlocks, threshold, diff.maxDiff,
-                diff.worstBlockX, diff.worstBlockY);
+                    "  FAIL: %zu block(s) exceed depth threshold %.6f. "
+                    "Worst avg diff=%.6f at block (%u,%u)\n",
+                    diff.failBlocks, threshold, diff.maxDiff,
+                    diff.worstBlockX, diff.worstBlockY);
             return 1;
         }
 
@@ -314,10 +322,10 @@ static int diffAndReport(const char *tifA, const char *tifB, double threshold) {
 
     if (diff.failBlocks > 0) {
         fprintf(stderr,
-            "  FAIL: %zu block(s) exceed threshold %.2f. "
-            "Worst avg diff=%.2f on channel %s at block (%u,%u)\n",
-            diff.failBlocks, threshold, diff.maxDiff,
-            chNames[diff.worstChannel], diff.worstBlockX, diff.worstBlockY);
+                "  FAIL: %zu block(s) exceed threshold %.2f. "
+                "Worst avg diff=%.2f on channel %s at block (%u,%u)\n",
+                diff.failBlocks, threshold, diff.maxDiff,
+                chNames[diff.worstChannel], diff.worstBlockX, diff.worstBlockY);
         return 1;
     }
 
@@ -342,10 +350,10 @@ static bool runOrender(const char *orenderPath, const char *ribPath, const char 
 
 static void printUsage(const char *prog) {
     fprintf(stderr,
-        "Usage:\n"
-        "  Full mode:      %s <orender> <rib_A> <output_A> <rib_B> <output_B> [threshold]\n"
-        "  Diff-only mode: %s <tif_A> <tif_B> [threshold]\n",
-        prog, prog);
+            "Usage:\n"
+            "  Full mode:      %s <orender> <rib_A> <output_A> <rib_B> <output_B> [threshold]\n"
+            "  Diff-only mode: %s <tif_A> <tif_B> [threshold]\n",
+            prog, prog);
 }
 
 // ---------------------------------------------------------------------------
@@ -364,14 +372,16 @@ int main(int argc, char *argv[]) {
     // Full mode: render both scenes, then diff their fresh outputs.
     if (argc == 6 || argc == 7) {
         const char *orenderPath = argv[1];
-        const char *ribA        = argv[2];
-        const char *outputA     = argv[3];
-        const char *ribB        = argv[4];
-        const char *outputB     = argv[5];
-        const double threshold  = (argc == 7) ? atof(argv[6]) : 3.0;
+        const char *ribA = argv[2];
+        const char *outputA = argv[3];
+        const char *ribB = argv[4];
+        const char *outputB = argv[5];
+        const double threshold = (argc == 7) ? atof(argv[6]) : 3.0;
 
-        if (!runOrender(orenderPath, ribA, outputA)) return 1;
-        if (!runOrender(orenderPath, ribB, outputB)) return 1;
+        if (!runOrender(orenderPath, ribA, outputA))
+            return 1;
+        if (!runOrender(orenderPath, ribB, outputB))
+            return 1;
 
         return diffAndReport(outputA, outputB, threshold);
     }

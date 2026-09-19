@@ -14,30 +14,30 @@
  */
 
 #include "fbipc_display.h"
-#include "fbipc.h"
 #include "common/global.h"
+#include "fbipc.h"
 #include "logging.hpp"
 
-#include <cstring>
-#include <cstdio>
 #include <cerrno>
 #include <csignal>
+#include <cstdio>
+#include <cstring>
 #include <ctime>
-#include <mutex>
-#include <unistd.h>
 #include <fcntl.h>
+#include <mutex>
+#include <spawn.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/wait.h>
-#include <spawn.h>
+#include <unistd.h>
 
 #ifdef __APPLE__
-  #include <libproc.h>
+#include <libproc.h>
 #endif
 
 extern char **environ;
 
-#define TRUE  1
+#define TRUE 1
 #define FALSE 0
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,8 @@ static std::string getExePath() {
 #ifdef __APPLE__
     char buf[PROC_PIDPATHINFO_MAXSIZE];
     int ret = proc_pidpath(getpid(), buf, sizeof(buf));
-    if (ret > 0) return std::string(buf);
+    if (ret > 0)
+        return std::string(buf);
     return std::string();
 #else
     char buf[4096];
@@ -71,7 +72,8 @@ static std::string getExePath() {
 
 static void fillSunPath(struct sockaddr_un &addr, const char *path) {
     size_t n = strlen(path);
-    if (n >= sizeof(addr.sun_path)) n = sizeof(addr.sun_path) - 1;
+    if (n >= sizeof(addr.sun_path))
+        n = sizeof(addr.sun_path) - 1;
     memcpy(addr.sun_path, path, n);
     addr.sun_path[n] = '\0';
 }
@@ -85,7 +87,8 @@ static void fillSunPath(struct sockaddr_un &addr, const char *path) {
 
 static int tryConnectExisting(const char *sockPath) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) return -1;
+    if (fd < 0)
+        return -1;
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
@@ -103,19 +106,21 @@ static int tryConnectExisting(const char *sockPath) {
 
 static int connectWithTimeout(const char *sockPath, int timeoutSecs) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) return -1;
+    if (fd < 0)
+        return -1;
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
     fillSunPath(addr, sockPath);
 
-    const int sleepUsec  = 50000; // 50 ms
+    const int sleepUsec = 50000; // 50 ms
     const int maxRetries = timeoutSecs * (1000000 / sleepUsec);
 
     for (int i = 0; i < maxRetries; i++) {
         if (connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0)
             return fd;
-        if (errno != ENOENT && errno != ECONNREFUSED) break;
+        if (errno != ENOENT && errno != ECONNREFUSED)
+            break;
         usleep(sleepUsec);
     }
     close(fd);
@@ -126,13 +131,11 @@ static int connectWithTimeout(const char *sockPath, int timeoutSecs) {
 // CIPCDisplay constructor
 // ---------------------------------------------------------------------------
 
-CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
-                         int width, int height, int numSamples)
+CIPCDisplay::CIPCDisplay(const char *name, const char *samples, int width, int height, int numSamples)
     : CDisplay(name, samples, width, height, numSamples),
       socketFd(-1), helperPid(-1), disconnected(false),
       numSamplesVal(numSamples), tilesSent(0),
-      startEpoch(time(NULL)), startClock(osTime())
-{
+      startEpoch(time(NULL)), startClock(osTime()) {
     // Fixed socket path per user — shared across renders so successive orender
     // invocations reuse the same helper process and window.
     std::string sockStr = makeFixedSocketPath();
@@ -150,14 +153,14 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
         log_debug("no existing helper found; spawning orender-fb");
         unlink(socketPath);
 
-        std::string exePath    = getExePath();
+        std::string exePath = getExePath();
         std::string helperPath = makeHelperPath(exePath.c_str(), "orender-fb");
 
         char helperPathBuf[4096];
         char socketPathBuf[256];
         snprintf(helperPathBuf, sizeof(helperPathBuf), "%s", helperPath.c_str());
         snprintf(socketPathBuf, sizeof(socketPathBuf), "%s", socketPath);
-        char *helperArgv[3] = { helperPathBuf, socketPathBuf, nullptr };
+        char *helperArgv[3] = {helperPathBuf, socketPathBuf, nullptr};
 
         // Spawn in a new process group so Ctrl-C (SIGINT to orender's pgid)
         // does not also kill the helper window.
@@ -191,7 +194,8 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
                                     helperArgv, environ);
         posix_spawnattr_destroy(&attr);
         posix_spawn_file_actions_destroy(&file_actions);
-        if (devnull >= 0) close(devnull);
+        if (devnull >= 0)
+            close(devnull);
 
         if (spawnErr != 0) {
             fprintf(stderr,
@@ -208,13 +212,15 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
         if (socketFd < 0) {
             fprintf(stderr,
                     "openRender: framebuffer display unavailable — "
-                    "socket connect timed out (%s)\n", socketPath);
+                    "socket connect timed out (%s)\n",
+                    socketPath);
             kill(helperPid, SIGTERM);
             helperPid = -1;
             failure = TRUE;
             return;
         }
-    } else {
+    }
+    else {
         log_debug("reusing existing orender-fb helper");
     }
 
@@ -224,7 +230,7 @@ CIPCDisplay::CIPCDisplay(const char *name, const char *samples,
                    (uint32_t)numSamples, (uint64_t)startEpoch, name)) {
         fprintf(stderr, "openRender: framebuffer display — START send failed\n");
         close(socketFd);
-        socketFd     = -1;
+        socketFd = -1;
         disconnected = true;
     }
 }
@@ -241,7 +247,8 @@ CIPCDisplay::~CIPCDisplay() {
 // ---------------------------------------------------------------------------
 
 int CIPCDisplay::data(int x, int y, int w, int h, float *d) {
-    if (disconnected || socketFd < 0) return TRUE;
+    if (disconnected || socketFd < 0)
+        return TRUE;
 
     clampData(w, h, d); // operates on caller-owned buffer — safe before lock
 
@@ -250,7 +257,8 @@ int CIPCDisplay::data(int x, int y, int w, int h, float *d) {
     // Serialize socket writes: concurrent render threads would interleave TLV
     // header and payload bytes, corrupting the protocol.
     std::lock_guard<std::mutex> lock(writeMutex);
-    if (disconnected || socketFd < 0) return TRUE; // re-check under lock
+    if (disconnected || socketFd < 0)
+        return TRUE; // re-check under lock
 
     tilesSent++;
     if (tilesSent == 1)

@@ -1326,21 +1326,27 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                 const float ty_t = jt * CRenderer::relTrans[1];
                 const float tz = jt * CRenderer::relTrans[2];
                 for (cVertex = grid->vertices, i = grid->numVertices; i > 0; i--, cVertex += numVertexSamples) {
-                    const float _z  = cVertex[COMP_Z];
+                    const float _z = cVertex[COMP_Z];
                     // vertex buffer is in sample space; un-project to screen then camera
                     const float _sx = cVertex[COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;
                     const float _sy = cVertex[COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;
                     float _cp[3] = {_sx * _z * CRenderer::invImagePlane, _sy * _z * CRenderer::invImagePlane, _z};
                     float _rp[3];
                     mulmp(_rp, Mjt, _cp);
-                    _rp[0] += tx; _rp[1] += ty_t; _rp[2] += tz;
+                    _rp[0] += tx;
+                    _rp[1] += ty_t;
+                    _rp[2] += tz;
                     if (_rp[2] > C_EPSILON) {
                         const float rxjt = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
                         const float ryjt = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
-                        if (rxjt < xmin) xmin = rxjt;
-                        if (rxjt > xmax) xmax = rxjt;
-                        if (ryjt < ymin) ymin = ryjt;
-                        if (ryjt > ymax) ymax = ryjt;
+                        if (rxjt < xmin)
+                            xmin = rxjt;
+                        if (rxjt > xmax)
+                            xmax = rxjt;
+                        if (ryjt < ymin)
+                            ymin = ryjt;
+                        if (ryjt > ymax)
+                            ymax = ryjt;
                     }
                 }
             }
@@ -1500,7 +1506,8 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                             dst[1] = cv[COMP_Y] * (1 - jt) + cv[t1offset + COMP_Y] * jt;
                         }
                     }
-                } else {
+                }
+                else {
                     // Raster-space chord (matches the rasterizer's interpolatev);
                     // ti == 0 degenerates to a copy of the t=0 positions
                     const float *cv = grid->vertices;
@@ -1519,7 +1526,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         const bool doArcBounds = CRenderer::cameraHasRotation && (grid->flags & RASTER_MOVING);
         if (doArcBounds) {
             static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
-            static const quaternion identQ  = {0.0f, 0.0f, 0.0f, 1.0f};
+            static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
             for (int ti = 0; ti < 3; ti++) {
                 quaternion Rjt;
                 slerpq(Rjt, identQ, CRenderer::relRotQ, kArcTimes[ti]);
@@ -1535,7 +1542,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             for (i = 0; i < udiv; i++, bounds += 4) {
                 float xbound[2];
                 float ybound[2];
-                float quadCoc = 0; // The focal blur expansion applied to this quad's bounds
+                float quadCoc = 0;                                                         // The focal blur expansion applied to this quad's bounds
                 const float *cVertex = vertices + (j * (udiv + 1) + i) * numVertexSamples; // The top left vertex
                 const float *P;
 
@@ -1662,28 +1669,32 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         cVertex,
                         cVertex + numVertexSamples,
                         cVertex + numVertexSamples * (udiv + 1),
-                        cVertex + numVertexSamples * (udiv + 2)
-                    };
+                        cVertex + numVertexSamples * (udiv + 2)};
                     for (int ti = 0; ti < 3; ti++) {
                         for (int vi = 0; vi < 4; vi++) {
-                            const float _z  = qv[vi][COMP_Z];
-                            if (_z <= C_EPSILON) continue;
+                            const float _z = qv[vi][COMP_Z];
+                            if (_z <= C_EPSILON)
+                                continue;
                             const float _sx = qv[vi][COMP_X] / CRenderer::dSampledx + CRenderer::pixelLeft;
                             const float _sy = qv[vi][COMP_Y] / CRenderer::dSampledy + CRenderer::pixelTop;
                             float _cp[3] = {_sx * _z * CRenderer::invImagePlane,
                                             _sy * _z * CRenderer::invImagePlane, _z};
                             float _rp[3];
                             mulmp(_rp, arcMjt[ti], _cp);
-                            _rp[0] += arcTx[ti]; _rp[1] += arcTy[ti]; _rp[2] += arcTz[ti];
+                            _rp[0] += arcTx[ti];
+                            _rp[1] += arcTy[ti];
+                            _rp[2] += arcTz[ti];
                             if (_rp[2] > C_EPSILON) {
-                                const float rxjt = (CRenderer::imagePlane * _rp[0] / _rp[2]
-                                                    - CRenderer::pixelLeft) * CRenderer::dSampledx;
-                                const float ryjt = (CRenderer::imagePlane * _rp[1] / _rp[2]
-                                                    - CRenderer::pixelTop) * CRenderer::dSampledy;
-                                if (rxjt < xbound[0]) xbound[0] = rxjt;
-                                if (rxjt > xbound[1]) xbound[1] = rxjt;
-                                if (ryjt < ybound[0]) ybound[0] = ryjt;
-                                if (ryjt > ybound[1]) ybound[1] = ryjt;
+                                const float rxjt = (CRenderer::imagePlane * _rp[0] / _rp[2] - CRenderer::pixelLeft) * CRenderer::dSampledx;
+                                const float ryjt = (CRenderer::imagePlane * _rp[1] / _rp[2] - CRenderer::pixelTop) * CRenderer::dSampledy;
+                                if (rxjt < xbound[0])
+                                    xbound[0] = rxjt;
+                                if (rxjt > xbound[1])
+                                    xbound[1] = rxjt;
+                                if (ryjt < ybound[0])
+                                    ybound[0] = ryjt;
+                                if (ryjt > ybound[1])
+                                    ybound[1] = ryjt;
                             }
                         }
                     }
@@ -1715,10 +1726,14 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                             for (int vi = 0; vi < 4; vi++) {
                                 const float px = tp[vIdx[vi] * 2];
                                 const float py = tp[vIdx[vi] * 2 + 1];
-                                if (px < sxmin) sxmin = px;
-                                if (px > sxmax) sxmax = px;
-                                if (py < symin) symin = py;
-                                if (py > symax) symax = py;
+                                if (px < sxmin)
+                                    sxmin = px;
+                                if (px > sxmax)
+                                    sxmax = px;
+                                if (py < symin)
+                                    symin = py;
+                                if (py > symax)
+                                    symax = py;
                             }
                         }
 
@@ -1752,10 +1767,14 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                 // Samples 2k .. 2k+2 are contiguous in timePos
                 const float *tp = timePos + 2 * k * grid->numVertices * 2;
                 for (int n = 3 * grid->numVertices; n > 0; n--, tp += 2) {
-                    if (tp[0] < sxmin) sxmin = tp[0];
-                    if (tp[0] > sxmax) sxmax = tp[0];
-                    if (tp[1] < symin) symin = tp[1];
-                    if (tp[1] > symax) symax = tp[1];
+                    if (tp[0] < sxmin)
+                        sxmin = tp[0];
+                    if (tp[0] > sxmax)
+                        sxmax = tp[0];
+                    if (tp[1] < symin)
+                        symin = tp[1];
+                    if (tp[1] > symax)
+                        symax = tp[1];
                 }
 
                 grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc) - 2;

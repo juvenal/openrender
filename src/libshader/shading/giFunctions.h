@@ -183,43 +183,43 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // indirectdiffuse	"c=pnf!"
 #ifndef INIT_SHADING
-#define IDEXPR_PRE(__occlusion)                                                                                                            \
-    FUN4EXPR_PRE;                                                                                                                          \
-    plBegin(COcclusionLookup, 4);                                                                                                          \
-    CTexture3d *cache;                                                                                                                     \
-    if ((cache = lookup->map) == NULL) {                                                                                                   \
-        const float *from, *to;                                                                                                            \
-        findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                                                 \
-        const char *mode = scratch->occlusionParams.cacheMode;                                                                             \
-        if (scratch->occlusionParams.pointHierarchyName != NULL)                                                                           \
-            mode = ""; /* prevent writes */                                                                                                \
-        lookup->map = cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle, mode, from, to);                                \
-        if (scratch->occlusionParams.environmentMapName != NULL &&                                                                         \
-            scratch->occlusionParams.environmentMapName[0] != 0)                                                                           \
-            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);                               \
-        if (scratch->occlusionParams.pointHierarchyName != NULL &&                                                                         \
-            scratch->occlusionParams.pointHierarchyName[0] != 0)                                                                           \
+#define IDEXPR_PRE(__occlusion)                                                                                                               \
+    FUN4EXPR_PRE;                                                                                                                             \
+    plBegin(COcclusionLookup, 4);                                                                                                             \
+    CTexture3d *cache;                                                                                                                        \
+    if ((cache = lookup->map) == NULL) {                                                                                                      \
+        const float *from, *to;                                                                                                               \
+        findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                                                    \
+        const char *mode = scratch->occlusionParams.cacheMode;                                                                                \
+        if (scratch->occlusionParams.pointHierarchyName != NULL)                                                                              \
+            mode = ""; /* prevent writes */                                                                                                   \
+        lookup->map = cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle, mode, from, to);                                   \
+        if (scratch->occlusionParams.environmentMapName != NULL &&                                                                            \
+            scratch->occlusionParams.environmentMapName[0] != 0)                                                                              \
+            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);                                  \
+        if (scratch->occlusionParams.pointHierarchyName != NULL &&                                                                            \
+            scratch->occlusionParams.pointHierarchyName[0] != 0)                                                                              \
             lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE); \
-        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                               \
-    }                                                                                                                                      \
-    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                          \
-    float *dPdv = dPdu + numVertices * 3;                                                                                                  \
-    duVector(dPdu, op1);                                                                                                                   \
-    dvVector(dPdv, op1);                                                                                                                   \
-    const float *du = varying[VARIABLE_DU];                                                                                                \
-    const float *dv = varying[VARIABLE_DV];                                                                                                \
-    assert(cache->dataSize == 7);                                                                                                          \
-                                                                                                                                           \
-    scratch->occlusionParams.environment = lookup->environment;                                                                            \
-    scratch->occlusionParams.pointHierarchy = lookup->pointHierarchy;                                                                      \
-                                                                                                                                           \
-    float C[7];                                                                                                                            \
-    float **channelValues = (float **)ralloc(lookup->numChannels * sizeof(const float *), threadMemory);                                   \
-                                                                                                                                           \
-    for (int channel = 0; channel < lookup->numChannels; ++channel) {                                                                      \
-        operand(lookup->channelIndex[channel], channelValues[channel], float *);                                                           \
-    }                                                                                                                                      \
-    const float savedSamples = scratch->traceParams.samples;                                                                               \
+        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                                  \
+    }                                                                                                                                         \
+    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                             \
+    float *dPdv = dPdu + numVertices * 3;                                                                                                     \
+    duVector(dPdu, op1);                                                                                                                      \
+    dvVector(dPdv, op1);                                                                                                                      \
+    const float *du = varying[VARIABLE_DU];                                                                                                   \
+    const float *dv = varying[VARIABLE_DV];                                                                                                   \
+    assert(cache->dataSize == 7);                                                                                                             \
+                                                                                                                                              \
+    scratch->occlusionParams.environment = lookup->environment;                                                                               \
+    scratch->occlusionParams.pointHierarchy = lookup->pointHierarchy;                                                                         \
+                                                                                                                                              \
+    float C[7];                                                                                                                               \
+    float **channelValues = (float **)ralloc(lookup->numChannels * sizeof(const float *), threadMemory);                                      \
+                                                                                                                                              \
+    for (int channel = 0; channel < lookup->numChannels; ++channel) {                                                                         \
+        operand(lookup->channelIndex[channel], channelValues[channel], float *);                                                              \
+    }                                                                                                                                         \
+    const float savedSamples = scratch->traceParams.samples;                                                                                  \
     scratch->occlusionParams.occlusion = __occlusion;
 
 #define IDEXPR(__occlusion)                                                                            \
@@ -248,7 +248,8 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
 #define IDEXPR_POST(__occlusion)                 \
     if (__occlusion) {                           \
         expandFloat(res);                        \
-    } else {                                     \
+    }                                            \
+    else {                                       \
         expandVector(res);                       \
     }                                            \
     scratch->traceParams.samples = savedSamples; \
@@ -277,7 +278,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \
-        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                  \
+        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                    \
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2, *op3;                                                                                                                                                      \
@@ -324,7 +325,7 @@ DEFSHORTFUNC(Photonmap, "photonmap", "c=Spn!", PHOTONMAPEXPR_PRE, PHOTONMAPEXPR,
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \
-        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                  \
+        lookup->map = map = this->rendererGetPhotonMap(*op1);                                                                                                                    \
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2;                                                                                                                                                            \
@@ -368,31 +369,31 @@ DEFSHORTFUNC(Photonmap2, "photonmap", "c=Sp!", PHOTONMAP2EXPR_PRE, PHOTONMAP2EXP
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // gather	"o=spnff!"
 #ifndef INIT_SHADING
-#define GATHERHEADEREXPR_PRE                                                             \
-    plBegin(CGatherLookup, 5);                                                          \
-    const float *samples, *sampleCone;                                                  \
-    const float *P, *D;                                                                 \
-    operand(1, P, const float *);                                                       \
-    operand(2, D, const float *);                                                       \
-    operand(3, sampleCone, float *);                                                    \
-    operand(4, samples, float *);                                                       \
-                                                                                         \
-    float *dPdu, *dPdv;                                                                 \
-    lastGather = gatherHeaderBegin(lookup, P, *samples, dPdu, dPdv);                    \
-                                                                                         \
-    CGatherVariable *var;                                                               \
-    int cOutput;                                                                        \
-    for (cOutput = 0, var = lookup->outputs; var != NULL; var = var->next, cOutput++) { \
-        operand(var->destIndex, lastGather->outputs[cOutput], float *);                 \
-    }                                                                                   \
-    assert(cOutput == lookup->numOutputs);                                              \
-                                                                                         \
+#define GATHERHEADEREXPR_PRE                                                                    \
+    plBegin(CGatherLookup, 5);                                                                  \
+    const float *samples, *sampleCone;                                                          \
+    const float *P, *D;                                                                         \
+    operand(1, P, const float *);                                                               \
+    operand(2, D, const float *);                                                               \
+    operand(3, sampleCone, float *);                                                            \
+    operand(4, samples, float *);                                                               \
+                                                                                                \
+    float *dPdu, *dPdv;                                                                         \
+    lastGather = gatherHeaderBegin(lookup, P, *samples, dPdu, dPdv);                            \
+                                                                                                \
+    CGatherVariable *var;                                                                       \
+    int cOutput;                                                                                \
+    for (cOutput = 0, var = lookup->outputs; var != NULL; var = var->next, cOutput++) {         \
+        operand(var->destIndex, lastGather->outputs[cOutput], float *);                         \
+    }                                                                                           \
+    assert(cOutput == lookup->numOutputs);                                                      \
+                                                                                                \
     for (cOutput = 0, var = lookup->nonShadeOutputs; var != NULL; var = var->next, cOutput++) { \
-        operand(var->destIndex, lastGather->nonShadeOutputs[cOutput], float *);         \
-    }                                                                                   \
-                                                                                         \
-    const float *du = varying[VARIABLE_DU];                                             \
-    const float *dv = varying[VARIABLE_DV];                                             \
+        operand(var->destIndex, lastGather->nonShadeOutputs[cOutput], float *);                 \
+    }                                                                                           \
+                                                                                                \
+    const float *du = varying[VARIABLE_DU];                                                     \
+    const float *dv = varying[VARIABLE_DV];                                                     \
     CGatherRay *rays = lastGather->raysBase;
 
 #define GATHERHEADEREXPR \
@@ -442,32 +443,37 @@ DEFSHORTFUNC(GatherHeader, "gatherHeader", "o=spnff!", GATHERHEADEREXPR_PRE, GAT
     operand(2, op2f, float *);            \
     operand(2, op2s, const char **);
 
-#define RAYINFOEXPR                              \
-    if (strcmp(*op1, "label") == 0) {            \
-        *op2s = currentRayLabel;                 \
-        *res = 1;                                \
-        stepSize = 1;                            \
-    } else if (strcmp(*op1, "depth") == 0) {     \
-        *op2f = (float)currentRayDepth;          \
-        *res = 1;                                \
-        stepSize = 1;                            \
-    } else if (strcmp(*op1, "origin") == 0) {    \
-        op2f[0] = P[0] - I[0];                   \
-        op2f[1] = P[1] - I[1];                   \
-        op2f[2] = P[2] - I[2];                   \
-        *res = 1;                                \
-        stepSize = 3;                            \
-    } else if (strcmp(*op1, "direction") == 0) { \
-        normalizev(op2f, I);                     \
-        *res = 1;                                \
-        stepSize = 3;                            \
-    } else if (strcmp(*op1, "length") == 0) {    \
-        *op2f = lengthv(I);                      \
-        *res = 1;                                \
-        stepSize = 1;                            \
-    } else {                                     \
-        *res = (float)0;                         \
-        stepSize = 1;                            \
+#define RAYINFOEXPR                            \
+    if (strcmp(*op1, "label") == 0) {          \
+        *op2s = currentRayLabel;               \
+        *res = 1;                              \
+        stepSize = 1;                          \
+    }                                          \
+    else if (strcmp(*op1, "depth") == 0) {     \
+        *op2f = (float)currentRayDepth;        \
+        *res = 1;                              \
+        stepSize = 1;                          \
+    }                                          \
+    else if (strcmp(*op1, "origin") == 0) {    \
+        op2f[0] = P[0] - I[0];                 \
+        op2f[1] = P[1] - I[1];                 \
+        op2f[2] = P[2] - I[2];                 \
+        *res = 1;                              \
+        stepSize = 3;                          \
+    }                                          \
+    else if (strcmp(*op1, "direction") == 0) { \
+        normalizev(op2f, I);                   \
+        *res = 1;                              \
+        stepSize = 3;                          \
+    }                                          \
+    else if (strcmp(*op1, "length") == 0) {    \
+        *op2f = lengthv(I);                    \
+        *res = 1;                              \
+        stepSize = 1;                          \
+    }                                          \
+    else {                                     \
+        *res = (float)0;                       \
+        stepSize = 1;                          \
     }
 
 #define RAYINFOEXPR_UPDATE \

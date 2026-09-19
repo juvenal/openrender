@@ -41,8 +41,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -67,9 +67,9 @@ static std::vector<float> buildGrid(int div, F sample) {
             float x, y, z;
             sample(i, j, div, x, y, z);
             float *p = &P[((size_t)i * n + j) * 3];
-            p[0]     = x;
-            p[1]     = y;
-            p[2]     = z;
+            p[0] = x;
+            p[1] = y;
+            p[2] = z;
         }
     }
 
@@ -124,14 +124,16 @@ TEST(sagitta_shrinks_monotonically_with_refinement) {
     // pass the same tolerance (needed for an adaptive doubling loop to
     // terminate correctly instead of oscillating).
     const float tolerance = 0.05f;
-    bool sawPass          = false;
+    bool sawPass = false;
 
     for (int div = 2; div <= 64; div *= 2) {
         std::vector<float> P = buildGrid(div, sphereSample);
-        bool passes           = tesselationSagittaWithinTolerance(P.data(), div, tolerance) == TRUE;
+        bool passes = tesselationSagittaWithinTolerance(P.data(), div, tolerance) == TRUE;
 
-        if (sawPass) ASSERT(passes);
-        if (passes) sawPass = true;
+        if (sawPass)
+            ASSERT(passes);
+        if (passes)
+            sawPass = true;
     }
 
     ASSERT(sawPass);

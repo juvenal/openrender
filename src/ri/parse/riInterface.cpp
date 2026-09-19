@@ -205,10 +205,10 @@ void CRiInterface::RiSides(int) {
 void CRiInterface::RiIdentity(void) {
 }
 
-void CRiInterface::RiTransform(float [][4]) {
+void CRiInterface::RiTransform(float[][4]) {
 }
 
-void CRiInterface::RiConcatTransform(float [][4]) {
+void CRiInterface::RiConcatTransform(float[][4]) {
 }
 
 void CRiInterface::RiPerspective(float) {
@@ -263,7 +263,7 @@ void CRiInterface::RiPointsPolygonsV(int, int *, int *, int, const char *[], con
 void CRiInterface::RiPointsGeneralPolygonsV(int, int *, int *, int *, int, const char *[], const void *[]) {
 }
 
-void CRiInterface::RiBasis(float [][4], int, float [][4], int) {
+void CRiInterface::RiBasis(float[][4], int, float[][4], int) {
 }
 
 void CRiInterface::RiPatchV(const char *, int, const char *[], const void *[]) {

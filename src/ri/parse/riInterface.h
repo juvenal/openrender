@@ -33,9 +33,9 @@
 #include "ri.h"
 #include "ri_config.h"
 
-class CObject;      // forward declaration for addObject()
-class CAttributes;  // forward declaration for getAttributes()
-class COptions;     // forward declaration for getOptions()
+class CObject;     // forward declaration for addObject()
+class CAttributes; // forward declaration for getAttributes()
+class COptions;    // forward declaration for getOptions()
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRiInterface

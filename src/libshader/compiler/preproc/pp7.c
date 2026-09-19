@@ -55,9 +55,9 @@
 /*									*/
 /************************************************************************/
 
-#include <stdio.h>
 #include "pp.h"
 #include "ppext.h"
+#include <stdio.h>
 
 /************************************************************************/
 /*									*/
@@ -137,7 +137,8 @@ void prmsg(const char *s1, const char *s2, const char *s3) {
         fprintf(stderr, "%s(%u) %s%s\n",
                 Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
                 LLine, s1, s2);
-    } else {
+    }
+    else {
         fprintf(stderr, "%s(%u) %s%s \"%s\"\n",
                 Filestack[Filelevel >= 0 ? Filelevel : 0]->f_name,
                 LLine, s1, s2, s3);

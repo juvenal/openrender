@@ -11,9 +11,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 // Include the protocol header under test
 #include "display/framebuffer/fbipc.h"
@@ -25,45 +25,53 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_EQ(a, b) do { \
-    if ((a) == (b)) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected %lld == %lld\n", \
-                __FILE__, __LINE__, (long long)(a), (long long)(b)); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_EQ(a, b)                                                  \
+    do {                                                                 \
+        if ((a) == (b)) {                                                \
+            g_passed++;                                                  \
+        }                                                                \
+        else {                                                           \
+            fprintf(stderr, "FAIL [%s:%d]: expected %lld == %lld\n",     \
+                    __FILE__, __LINE__, (long long)(a), (long long)(b)); \
+            g_failed++;                                                  \
+        }                                                                \
+    } while (0)
 
-#define EXPECT_NE(a, b) do { \
-    if ((a) != (b)) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected %lld != %lld\n", \
-                __FILE__, __LINE__, (long long)(a), (long long)(b)); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_NE(a, b)                                                  \
+    do {                                                                 \
+        if ((a) != (b)) {                                                \
+            g_passed++;                                                  \
+        }                                                                \
+        else {                                                           \
+            fprintf(stderr, "FAIL [%s:%d]: expected %lld != %lld\n",     \
+                    __FILE__, __LINE__, (long long)(a), (long long)(b)); \
+            g_failed++;                                                  \
+        }                                                                \
+    } while (0)
 
-#define EXPECT_TRUE(cond) do { \
-    if (cond) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected true: %s\n", \
-                __FILE__, __LINE__, #cond); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_TRUE(cond)                                        \
+    do {                                                         \
+        if (cond) {                                              \
+            g_passed++;                                          \
+        }                                                        \
+        else {                                                   \
+            fprintf(stderr, "FAIL [%s:%d]: expected true: %s\n", \
+                    __FILE__, __LINE__, #cond);                  \
+            g_failed++;                                          \
+        }                                                        \
+    } while (0)
 
-#define EXPECT_STREQ(a, b) do { \
-    if (strcmp((a), (b)) == 0) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected \"%s\" == \"%s\"\n", \
-                __FILE__, __LINE__, (a), (b)); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_STREQ(a, b)                                               \
+    do {                                                                 \
+        if (strcmp((a), (b)) == 0) {                                     \
+            g_passed++;                                                  \
+        }                                                                \
+        else {                                                           \
+            fprintf(stderr, "FAIL [%s:%d]: expected \"%s\" == \"%s\"\n", \
+                    __FILE__, __LINE__, (a), (b));                       \
+            g_failed++;                                                  \
+        }                                                                \
+    } while (0)
 
 // ---------------------------------------------------------------------------
 // T005: makeSocketPath tests
@@ -91,9 +99,9 @@ static void test_makeSocketPath_large_pid() {
 
 static void test_opcode_values() {
     EXPECT_EQ(static_cast<uint8_t>(FBOpcode::START), 0x01);
-    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::DATA),  0x02);
-    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::DONE),  0x03);
-    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::QUIT),  0x04);
+    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::DATA), 0x02);
+    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::DONE), 0x03);
+    EXPECT_EQ(static_cast<uint8_t>(FBOpcode::QUIT), 0x04);
 }
 
 // ---------------------------------------------------------------------------
@@ -144,14 +152,14 @@ static void test_header_little_endian_length() {
 static void test_start_payload_fields() {
     FBStartPayload sp;
     memset(&sp, 0, sizeof(sp));
-    sp.width      = 1920;
-    sp.height     = 1080;
+    sp.width = 1920;
+    sp.height = 1080;
     sp.numSamples = 3;
-    sp.titleLen   = 0;
-    EXPECT_EQ(sp.width,      (uint32_t)1920);
-    EXPECT_EQ(sp.height,     (uint32_t)1080);
+    sp.titleLen = 0;
+    EXPECT_EQ(sp.width, (uint32_t)1920);
+    EXPECT_EQ(sp.height, (uint32_t)1080);
     EXPECT_EQ(sp.numSamples, (uint32_t)3);
-    EXPECT_EQ(sp.titleLen,   (uint32_t)0);
+    EXPECT_EQ(sp.titleLen, (uint32_t)0);
 }
 
 static void test_start_payload_max_title_len() {
@@ -232,9 +240,9 @@ static void test_max_tile_size() {
     // This test just verifies the max dimension constants are representable.
     const uint32_t max_dim = 16384;
     FBStartPayload sp;
-    sp.width  = max_dim;
+    sp.width = max_dim;
     sp.height = max_dim;
-    EXPECT_EQ(sp.width,  (uint32_t)16384);
+    EXPECT_EQ(sp.width, (uint32_t)16384);
     EXPECT_EQ(sp.height, (uint32_t)16384);
 }
 

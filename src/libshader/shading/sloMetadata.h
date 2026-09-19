@@ -33,12 +33,12 @@
 #include <vector>
 
 struct SLOParamInfo {
-    std::string name;
-    std::string typeName;   // "float", "vector", "normal", "point", "color", "matrix", "string"
-    std::string storage;    // "uniform" or "varying"
-    bool        writable;   // true for output parameters
-    int         arraySize;  // 1 = scalar, >1 = array
-    std::string defaultStr; // default value as a parseable string, may be empty
+        std::string name;
+        std::string typeName;   // "float", "vector", "normal", "point", "color", "matrix", "string"
+        std::string storage;    // "uniform" or "varying"
+        bool writable;          // true for output parameters
+        int arraySize;          // 1 = scalar, >1 = array
+        std::string defaultStr; // default value as a parseable string, may be empty
 };
 
 // Metadata key for shaders that have a non-trivial #!Init section.
@@ -47,15 +47,15 @@ struct SLOParamInfo {
 static constexpr const char *kMetaHasInit = "openrender.shader.hasinit";
 
 struct SLOShaderInfo {
-    std::string              name;
-    std::string              typeName;     // "surface", "light", "displacement", "volume", "imager"
-    int                      version;
-    unsigned int             usedParameters; // PARAMETER_* bitmask (see rendererc.h)
-    std::vector<SLOParamInfo> params;      // shader parameters
-    std::vector<SLOParamInfo> vars;        // local variables (temporaries)
-    bool                      hasJitEntry; // true if the module defines a callable
-                                            // JIT entry function matching `name`
+        std::string name;
+        std::string typeName; // "surface", "light", "displacement", "volume", "imager"
+        int version;
+        unsigned int usedParameters;      // PARAMETER_* bitmask (see rendererc.h)
+        std::vector<SLOParamInfo> params; // shader parameters
+        std::vector<SLOParamInfo> vars;   // local variables (temporaries)
+        bool hasJitEntry;                 // true if the module defines a callable
+                                          // JIT entry function matching `name`
 
-    SLOShaderInfo() : version(1), usedParameters(0), hasJitEntry(false) {}
-    bool valid() const { return !name.empty() && !typeName.empty(); }
+        SLOShaderInfo() : version(1), usedParameters(0), hasJitEntry(false) {}
+        bool valid() const { return !name.empty() && !typeName.empty(); }
 };

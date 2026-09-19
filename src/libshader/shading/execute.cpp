@@ -28,21 +28,21 @@
 #include <math.h>
 #include <stddef.h>
 
+#include "activeContext.h"
 #include "bundles.h"
 #include "common/colorSpace.h"
 #include "common/global.h"
 #include "error.h"
+#include "includes/logging.hpp"
 #include "irradiance.h"
 #include "memory.h"
 #include "noise.h"
 #include "photonMap.h"
 #include "ri_config.h"
+#include "rslo_code.h"
 #include "shader.h"
 #include "shaderPl.h"
 #include "shading.h"
-#include "activeContext.h"
-#include "includes/logging.hpp"
-#include "rslo_code.h"
 #include "surface.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -62,7 +62,8 @@ void debugFunction(float *);
             savedState[0] = cLight->savedState[0];                                                                                                                \
             savedState[1] = cLight->savedState[1];                                                                                                                \
             cLight->savedState = savedState;                                                                                                                      \
-        } else {                                                                                                                                                  \
+        }                                                                                                                                                         \
+        else {                                                                                                                                                    \
             cLight = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);                                                                                  \
             cLight->lightTags = (int *)ralloc(sizeof(int) * numVertices, threadMemory);                                                                           \
             cLight->savedState = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);                                                              \
@@ -85,17 +86,20 @@ void debugFunction(float *);
                     if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {                                            \
                         cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats, threadMemory);                                    \
                         memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], sizeof(float) * cVariable->numFloats);                                 \
-                    } else {                                                                                                                                      \
+                    }                                                                                                                                             \
+                    else {                                                                                                                                        \
                         cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats * numVertices, threadMemory);                      \
                         memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], sizeof(float) * cVariable->numFloats * numVertices);                   \
                     }                                                                                                                                             \
                     globNum++;                                                                                                                                    \
-                } else if (cVariable->storage == STORAGE_MUTABLEPARAMETER) {                                                                                      \
+                }                                                                                                                                                 \
+                else if (cVariable->storage == STORAGE_MUTABLEPARAMETER) {                                                                                        \
                     /* mutable parameters come from the shader varyings */                                                                                        \
                     if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {                                            \
                         cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats, threadMemory);                                    \
                         memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], sizeof(float) * cVariable->numFloats);               \
-                    } else {                                                                                                                                      \
+                    }                                                                                                                                             \
+                    else {                                                                                                                                        \
                         cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats * numVertices, threadMemory);                      \
                         memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], sizeof(float) * cVariable->numFloats * numVertices); \
                     }                                                                                                                                             \
@@ -422,21 +426,22 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 //	CShadingContext::iterateLights (shading.cpp), shared with the JIT's
 //	call*/prepare*/setupIlluminance/jitIlluminanceBegin call sites. See
 //	specs/012-jit-parity-followups contracts/light-iteration.md.
-#define runLightsTemplate(lP, lN, lT, lightCategoryPre)                                                    \
-    lightCategoryPre;                                                                                      \
+#define runLightsTemplate(lP, lN, lT, lightCategoryPre) \
+    lightCategoryPre;                                   \
     iterateLights(lP, lN, lT, numVertices, tagStart, numActive, numPassive, saveCat, inShadow, varying, cInstance)
 
 // The sign of saveCat carries the invert-match flag through to
 // CShadingContext::iterateLights (shading.cpp), which re-derives
 // invertCatMatch itself via `saveCat < 0` — no local copy needed here.
-#define CATEGORYLIGHT_PRE(lC)                                      \
-    int runCat = 0, saveCat = 0;                                   \
-    if (*(*lC) != '\0') {                                          \
-        if (*(*lC) == '-') {                                       \
+#define CATEGORYLIGHT_PRE(lC)                                   \
+    int runCat = 0, saveCat = 0;                                \
+    if (*(*lC) != '\0') {                                       \
+        if (*(*lC) == '-') {                                    \
             saveCat = -(runCat = rendererGetGlobalID(*lC + 1)); \
-        } else {                                                   \
+        }                                                       \
+        else {                                                  \
             saveCat = runCat = rendererGetGlobalID(*lC);        \
-        }                                                          \
+        }                                                       \
     }
 
 #define runCategoryLights(lP, lN, lT, lC) runLightsTemplate(lP, lN, lT, CATEGORYLIGHT_PRE(lC))
@@ -467,8 +472,8 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     // For .slo-only shaders codeArea is nullptr; compute `code` safely for the JIT path.
 #ifdef OPENRENDER_HAVE_LLVM
     const TCode *code = currentShader->codeArea
-        ? currentShader->codeArea + currentShader->codeEntryPoint
-        : nullptr;
+                            ? currentShader->codeArea + currentShader->codeEntryPoint
+                            : nullptr;
 #else
     const TCode *code = currentShader->codeArea + currentShader->codeEntryPoint;
 #endif
@@ -492,7 +497,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     // JIT dispatch: if a compiled entry point exists for this shader, call it
     // instead of the interpreter and return immediately.
     if (cInstance->jitEntry != nullptr) {
-        log_debug("[JIT-PROBE] execute: shader={} jitEntry={}", cInstance->getName(), (void*)cInstance->jitEntry);
+        log_debug("[JIT-PROBE] execute: shader={} jitEntry={}", cInstance->getName(), (void *)cInstance->jitEntry);
         // Save outer context: a surface shader's JIT may nest into a light shader's
         // JIT via callDiffuse/callAmbient → light->illuminate() → execute().
         // Without save/restore the outer context is cleared on return, breaking
@@ -509,11 +514,12 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         if (currentShader->type == SL_LIGHTSOURCE &&
             !(currentShader->usedParameters & PARAMETER_NONAMBIENT) &&
             *alights != nullptr) {
-            const float *Cl    = varying[VARIABLE_CL];
-            float *Clsave      = (*alights)->savedState[1];
-            int *tags          = tagStart;
+            const float *Cl = varying[VARIABLE_CL];
+            float *Clsave = (*alights)->savedState[1];
+            int *tags = tagStart;
             for (int i = numVertices; i > 0; --i, Cl += 3, Clsave += 3, ++tags) {
-                if (*tags == 0) addvv(Clsave, Cl);
+                if (*tags == 0)
+                    addvv(Clsave, Cl);
             }
         }
         return;
@@ -534,21 +540,24 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     // Execute
 execStart:
     const TRSLObjectCode opcode = (TRSLObjectCode)code->opcode; // Get the opcode
-    int *tags = tagStart;                         // Set the tags to the start
+    int *tags = tagStart;                                       // Set the tags to the start
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params)            \
-    case OPCODE_##name: {                                                                       \
+    case OPCODE_##name:                                                                         \
+    {                                                                                           \
         expr_pre;                                                                               \
         if (code->uniform) {                                                                    \
             expr;                                                                               \
-        } else if (numPassive != 0) {                                                           \
+        }                                                                                       \
+        else if (numPassive != 0) {                                                             \
             for (int currentVertex = numVertices; currentVertex > 0; --currentVertex, ++tags) { \
                 if (*tags == 0) {                                                               \
                     expr;                                                                       \
                 }                                                                               \
                 expr_update;                                                                    \
             }                                                                                   \
-        } else {                                                                                \
+        }                                                                                       \
+        else {                                                                                  \
             for (int currentVertex = numVertices; currentVertex > 0; --currentVertex) {         \
                 expr;                                                                           \
                 expr_update;                                                                    \
@@ -560,18 +569,21 @@ execStart:
     }
 
 #define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params)                                \
-    case OPCODE_##name: {                                                                                                \
+    case OPCODE_##name:                                                                                                  \
+    {                                                                                                                    \
         expr_pre;                                                                                                        \
         if (code->uniform) {                                                                                             \
             expr;                                                                                                        \
-        } else if (numPassive != 0) {                                                                                    \
+        }                                                                                                                \
+        else if (numPassive != 0) {                                                                                      \
             for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex, ++tags) { \
                 if (*tags == 0) {                                                                                        \
                     expr;                                                                                                \
                 }                                                                                                        \
                 expr_update;                                                                                             \
             }                                                                                                            \
-        } else {                                                                                                         \
+        }                                                                                                                \
+        else {                                                                                                           \
             for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex) {         \
                 expr;                                                                                                    \
                 expr_update;                                                                                             \
@@ -583,18 +595,21 @@ execStart:
     }
 
 #define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par)             \
-    case FUNCTION_##name: {                                                                     \
+    case FUNCTION_##name:                                                                       \
+    {                                                                                           \
         expr_pre;                                                                               \
         if (code->uniform) {                                                                    \
             expr;                                                                               \
-        } else if (numPassive != 0) {                                                           \
+        }                                                                                       \
+        else if (numPassive != 0) {                                                             \
             for (int currentVertex = numVertices; currentVertex > 0; --currentVertex, ++tags) { \
                 if (*tags == 0) {                                                               \
                     expr;                                                                       \
                 }                                                                               \
                 expr_update;                                                                    \
             }                                                                                   \
-        } else {                                                                                \
+        }                                                                                       \
+        else {                                                                                  \
             for (int currentVertex = numVertices; currentVertex > 0; --currentVertex) {         \
                 expr;                                                                           \
                 expr_update;                                                                    \
@@ -606,10 +621,12 @@ execStart:
     }
 
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par)        \
-    case FUNCTION_##name: {                                                                     \
+    case FUNCTION_##name:                                                                       \
+    {                                                                                           \
         if (code->uniform) {                                                                    \
             scripterror("Invalid uniform lighting call");                                       \
-        } else {                                                                                \
+        }                                                                                       \
+        else {                                                                                  \
             expr_pre;                                                                           \
             for (int currentVertex = numVertices; currentVertex > 0; --currentVertex, ++tags) { \
                 if (*tags == 0) {                                                               \
@@ -624,18 +641,21 @@ execStart:
     }
 
 #define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par)                                 \
-    case FUNCTION_##name: {                                                                                              \
+    case FUNCTION_##name:                                                                                                \
+    {                                                                                                                    \
         expr_pre;                                                                                                        \
         if (code->uniform) {                                                                                             \
             expr;                                                                                                        \
-        } else if (numPassive != 0) {                                                                                    \
+        }                                                                                                                \
+        else if (numPassive != 0) {                                                                                      \
             for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex, ++tags) { \
                 if (*tags == 0) {                                                                                        \
                     expr;                                                                                                \
                 }                                                                                                        \
                 expr_update;                                                                                             \
             }                                                                                                            \
-        } else {                                                                                                         \
+        }                                                                                                                \
+        else {                                                                                                           \
             for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex) {         \
                 expr;                                                                                                    \
                 expr_update;                                                                                             \
@@ -652,9 +672,9 @@ execStart:
 
 #include "scriptFunctions.h"
 
-    default:
-        error(CODE_BUG, "Opcode conflict in shader \"%s\"", cInstance->getName());
-        goto execEnd;
+        default:
+            error(CODE_BUG, "Opcode conflict in shader \"%s\"", cInstance->getName());
+            goto execEnd;
     }
 
     // Resume executing instructions

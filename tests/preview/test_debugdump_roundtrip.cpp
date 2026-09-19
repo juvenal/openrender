@@ -5,10 +5,16 @@
 #include "ri/dataviewer/debug.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 class CCountingSink : public CPrimitiveSink {
     public:
@@ -33,16 +39,16 @@ int main() {
     // show up as extra triangle vertices rather than being masked by an earlier record type.
     {
         CDebugView writer(fileName);
-        float p0[3] = { 1, 0, 0 };
+        float p0[3] = {1, 0, 0};
         writer.point(p0);
 
-        float l0[3] = { 2, 0, 0 }, l1[3] = { 3, 0, 0 };
+        float l0[3] = {2, 0, 0}, l1[3] = {3, 0, 0};
         writer.line(l0, l1);
 
-        float t0[3] = { 4, 0, 0 }, t1[3] = { 5, 0, 0 }, t2[3] = { 6, 0, 0 };
+        float t0[3] = {4, 0, 0}, t1[3] = {5, 0, 0}, t2[3] = {6, 0, 0};
         writer.triangle(t0, t1, t2);
 
-        float q0[3] = { 7, 0, 0 }, q1[3] = { 8, 0, 0 }, q2[3] = { 9, 0, 0 }, q3[3] = { 10, 0, 0 };
+        float q0[3] = {7, 0, 0}, q1[3] = {8, 0, 0}, q2[3] = {9, 0, 0}, q3[3] = {10, 0, 0};
         writer.quad(q0, q1, q2, q3);
     } // ~CDebugView() flushes the header and closes the file
 

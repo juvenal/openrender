@@ -187,185 +187,186 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
             skip = FALSE;
             while ((!skip) && (*++s != '\0')) {
                 switch ((int)*s) {
-                /* -[c 0|1|2|3|4|5|6] */
-                case 'C':
-                case 'c':
-                    s2 = getnext(s, &argc, &argv, NO);
-                    switch ((int)*s2) {
-                    case '0':
-                        s2 = "arg_string";
+                    /* -[c 0|1|2|3|4|5|6] */
+                    case 'C':
+                    case 'c':
+                        s2 = getnext(s, &argc, &argv, NO);
+                        switch ((int)*s2) {
+                            case '0':
+                                s2 = "arg_string";
+                                break;
+
+                            case '1':
+                                s2 = "asm_expand";
+                                break;
+
+                            case '2':
+                                s2 = "comment_recurse";
+                                break;
+
+                            case '3':
+                                s2 = "macro_rescan";
+                                break;
+
+                            case '4':
+                                s2 = "macro_stack";
+                                break;
+
+                            case '5':
+                                s2 = "trigraph";
+                                break;
+
+                            case '6':
+                                s2 = "eol_comment";
+                                break;
+
+                            default:
+                                usage(TRUE);
+                        }
+                        pragopt(EMPTY, FALSE, s2);
+                        skip = TRUE;
                         break;
 
-                    case '1':
-                        s2 = "asm_expand";
+                    /* -[d symbol [= value]] */
+                    case 'D':
+                    case 'd':
+                        s = getnext(s, &argc, &argv, NO);
+                        s2 = strchr(s, '='); /* Location of val */
+                        if (s2)
+                            *s2++ = '\0'; /* Terminate string */
+                        else
+                            s2 = one_string; /* Default */
+
+                        if (lookup(s, NULL) != NULL)
+                            warning("Symbol already defined", s);
+                        else
+                            sbind(s, s2, NO_PARAMS);
+
+                        skip = TRUE; /* Skip to next param */
                         break;
 
-                    case '2':
-                        s2 = "comment_recurse";
+                    /* -[e] don't abort on errors */
+                    case 'E':
+                    case 'e':
+                        Eflag = TRUE;
                         break;
 
-                    case '3':
-                        s2 = "macro_rescan";
+                    /* -iI <#include search path> */
+                    case 'I':
+                    case 'i':
+                        if (Ipcnt > NIPATHS)
+                            fatal("Too many pathnames", "");
+                        Ipath[Ipcnt++] = getnext(s, &argc, &argv, NO);
+                        skip = TRUE; /* Skip to next param */
                         break;
 
-                    case '4':
-                        s2 = "macro_stack";
-                        break;
-
-                    case '5':
-                        s2 = "trigraph";
-                        break;
-
-                    case '6':
-                        s2 = "eol_comment";
-                        break;
-
-                    default:
-                        usage(TRUE);
-                    }
-                    pragopt(EMPTY, FALSE, s2);
-                    skip = TRUE;
-                    break;
-
-                /* -[d symbol [= value]] */
-                case 'D':
-                case 'd':
-                    s = getnext(s, &argc, &argv, NO);
-                    s2 = strchr(s, '='); /* Location of val */
-                    if (s2)
-                        *s2++ = '\0'; /* Terminate string */
-                    else
-                        s2 = one_string; /* Default */
-
-                    if (lookup(s, NULL) != NULL)
-                        warning("Symbol already defined", s);
-                    else
-                        sbind(s, s2, NO_PARAMS);
-
-                    skip = TRUE; /* Skip to next param */
-                    break;
-
-                /* -[e] don't abort on errors */
-                case 'E':
-                case 'e':
-                    Eflag = TRUE;
-                    break;
-
-                /* -iI <#include search path> */
-                case 'I':
-                case 'i':
-                    if (Ipcnt > NIPATHS)
-                        fatal("Too many pathnames", "");
-                    Ipath[Ipcnt++] = getnext(s, &argc, &argv, NO);
-                    skip = TRUE; /* Skip to next param */
-                    break;
-
-                /* -[l a|l|n] Spec #line output mode */
-                case 'L':
-                case 'l':
-                    s2 = getnext(s, &argc, &argv, NO);
-                    switch ((int)*s2) {
-                    case 'A':
-                    case 'a':
-                        Lineopt = LINE_ABR;
-                        break;
-
+                    /* -[l a|l|n] Spec #line output mode */
                     case 'L':
                     case 'l':
-                        Lineopt = LINE_EXP;
+                        s2 = getnext(s, &argc, &argv, NO);
+                        switch ((int)*s2) {
+                            case 'A':
+                            case 'a':
+                                Lineopt = LINE_ABR;
+                                break;
+
+                            case 'L':
+                            case 'l':
+                                Lineopt = LINE_EXP;
+                                break;
+
+                            case 'N':
+                            case 'n':
+                                Lineopt = FALSE;
+                                break;
+
+                            default:
+                                usage(TRUE);
+                        }
+                        skip = TRUE; /* Skip to next param */
                         break;
 
-                    case 'N':
-                    case 'n':
-                        Lineopt = FALSE;
+                    /* -[o file] spec output file name */
+                    case 'O':
+                    case 'o':
+                        s2 = getnext(s, &argc, &argv, NO);
+                        snprintf(Outfile, sizeof(Outfile), "%s", s2); /* Copy filename */
+                        ofile = TRUE;
+                        skip = TRUE; /* Skip to next param */
                         break;
-
-                    default:
-                        usage(TRUE);
-                    }
-                    skip = TRUE; /* Skip to next param */
-                    break;
-
-                /* -[o file] spec output file name */
-                case 'O':
-                case 'o':
-                    s2 = getnext(s, &argc, &argv, NO);
-                    snprintf(Outfile, sizeof(Outfile), "%s", s2); /* Copy filename */
-                    ofile = TRUE;
-                    skip = TRUE; /* Skip to next param */
-                    break;
 
 #if DEBUG
-                /* -[s] give statistics at end */
-                case 'S':
-                case 's':
-                    Stats = Verbose = TRUE; /* Implies Verbose */
-                    break;
+                    /* -[s] give statistics at end */
+                    case 'S':
+                    case 's':
+                        Stats = Verbose = TRUE; /* Implies Verbose */
+                        break;
 #endif /* DEBUG */
-                    /* -[t Astr|Rstr] Add or delete chars from LETTER class */
-                case 'T':
-                case 't':
-                    s2 = getnext(s, &argc, &argv, NO);
-                    switch ((int)*s2++) {
-                    case 'a':
-                    case 'A':
-                        i = TRUE;
+                        /* -[t Astr|Rstr] Add or delete chars from LETTER class */
+                    case 'T':
+                    case 't':
+                        s2 = getnext(s, &argc, &argv, NO);
+                        switch ((int)*s2++) {
+                            case 'a':
+                            case 'A':
+                                i = TRUE;
+                                break;
+
+                            case 'r':
+                            case 'R':
+                                i = FALSE;
+                                break;
+
+                            default:
+                                usage(TRUE);
+                        }
+
+                        for (; *s2 != '\0'; s2++) {
+                            if (i)
+                                typetab[*s2 + 1] |= C_L;
+                            else
+                                typetab[*s2 + 1] &= ~C_L;
+                        }
+
+                        skip = TRUE; /* Skip to next param */
                         break;
 
-                    case 'r':
-                    case 'R':
-                        i = FALSE;
-                        break;
+                    /* -[u symbol] */
+                    case 'U':
+                    case 'u':
+                        s = getnext(s, &argc, &argv, NO);
 
-                    default:
-                        usage(TRUE);
-                    }
-
-                    for (; *s2 != '\0'; s2++) {
-                        if (i)
-                            typetab[*s2 + 1] |= C_L;
+                        if (lookup(s, NULL) == NULL)
+                            warning("Symbol not defined", s);
                         else
-                            typetab[*s2 + 1] &= ~C_L;
-                    }
+                            unsbind(s);
+                        skip = TRUE; /* Skip to next param */
+                        break;
 
-                    skip = TRUE; /* Skip to next param */
-                    break;
-
-                /* -[u symbol] */
-                case 'U':
-                case 'u':
-                    s = getnext(s, &argc, &argv, NO);
-
-                    if (lookup(s, NULL) == NULL)
-                        warning("Symbol not defined", s);
-                    else
-                        unsbind(s);
-                    skip = TRUE; /* Skip to next param */
-                    break;
-
-                /* -[v] verbose mode toggle */
-                case 'V':
-                case 'v':
-                    Verbose = !Verbose;
-                    break;
+                    /* -[v] verbose mode toggle */
+                    case 'V':
+                    case 'v':
+                        Verbose = !Verbose;
+                        break;
 
 #if DEBUG
-                /* -[z] enable debug */
-                case 'Z':
-                case 'z':
-                    Debug = TRUE;
-                    printf("Debug is on\n");
-                    break;
+                    /* -[z] enable debug */
+                    case 'Z':
+                    case 'z':
+                        Debug = TRUE;
+                        printf("Debug is on\n");
+                        break;
 #endif /* DEBUG */
-                case '?':
-                    usage(FALSE); /* Give usage info and quit */
-                    __attribute__((fallthrough));
-                default:
-                    fprintf(STDERR, "FATAL: Bad option: %s\n", s);
-                    usage(TRUE);
+                    case '?':
+                        usage(FALSE); /* Give usage info and quit */
+                        __attribute__((fallthrough));
+                    default:
+                        fprintf(STDERR, "FATAL: Bad option: %s\n", s);
+                        usage(TRUE);
                 }
             }
-        } else if (!ifile) {
+        }
+        else if (!ifile) {
             /* Try to get input file */
 #if HOST == H_CPM
             if (!inc_open(s, -1, 0)) /* Open file here */
@@ -376,7 +377,8 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
                 fatal("Failed to open input file", s);
             }
             ifile = TRUE; /* Got an input file */
-        } else {
+        }
+        else {
             /* Too many file names given */
             usage(TRUE);
         }
@@ -417,7 +419,8 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
     for (Lastnl = TRUE, t = gettoken(GT_STR); t != EOF;
          t = gettoken(GT_STR)) {
         if ((Ifstate != IFTRUE) && (t != '\n') && istype(t, C_W)) {
-        } else if (Lastnl && (t == DIRECTIVE_CHAR)) {
+        }
+        else if (Lastnl && (t == DIRECTIVE_CHAR)) {
             // Store line in temp buffer for error messages
             char buf[TOKENSIZE + 1];
             buf[0] = DIRECTIVE_CHAR;
@@ -432,16 +435,20 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
                     if (sp->pp_ifif || (Ifstate == IFTRUE)) {
                         /* Do #func */ (void)(*(sp->pp_func))(sp->pp_arg, 0, NULL);
                     }
-                } else if (Ifstate == IFTRUE)
+                }
+                else if (Ifstate == IFTRUE)
                     non_fatal("Invalid directive", buf);
 
                 scaneol(); /* Suck till EOL ('\n' next) */
-            } else if (t != '\n') {
+            }
+            else if (t != '\n') {
                 non_fatal("Invalid directive", buf);
                 scaneol();
-            } else
+            }
+            else
                 pushback('\n'); /* Leave for fetch to get */
-        } else if ((t != EOF) && (Ifstate == IFTRUE)) {
+        }
+        else if ((t != EOF) && (Ifstate == IFTRUE)) {
 #if (TARGET == T_QC) OR(TARGET == T_QCX) OR(TARGET == T_TCX)
             if (t == LETTER && Macexpand)
 #else  /* !((TARGET == T_QC) OR (TARGET == T_QCX) OR (TARGET == T_TCX)) */
@@ -450,16 +457,19 @@ int preprocess(char *inFile, FILE *outFile, int argc, char **argv) {
             {
                 if ((p = lookup(Token, NULL)) != NULL) {
                     /* Call macro */ (void)docall(p, NULL, NULL);
-                } else
+                }
+                else
                     /* Just output token if nothing */ puttoken(Token);
-            } else {
+            }
+            else {
                 puttoken(Token);
                 if (t == '\n')
                     Lastnl = TRUE; /* Turn on if '\n' */
                 else if (!istype(t, C_W))
                     Lastnl = FALSE; /* Turn off if !ws */
             }
-        } else {
+        }
+        else {
             while ((t != '\n') && (t != EOF)) {
                 /* Absorb to EOL if False #ifxx */
                 t = gettoken(GT_STR);
@@ -551,7 +561,8 @@ char *getnext(char *cp, int *argc, char ***argv, int swvalid) {
             /* Parameters remain -- use next one */
             --*argc;       /* Count it down */
             cp = *++*argv; /* Return its address */
-        } else
+        }
+        else
             usage(TRUE); /* Otherwise give usage error */
     }
 
@@ -645,8 +656,8 @@ void init(void) {
     strncpy(_Time, &str[11], 8); /* Pull time portion out of string */
     _Time[8] = '\0';
 
-    memcpy(Date, &str[4], 7);       /* Pull month and day out of string */
-    memcpy(&Date[7], &str[20], 4);  /* Pull year out of string */
+    memcpy(Date, &str[4], 7);      /* Pull month and day out of string */
+    memcpy(&Date[7], &str[20], 4); /* Pull year out of string */
     Date[11] = '\0';
 #endif /* (HOST == H_CPM) OR (HOST == H_MPW) */
 

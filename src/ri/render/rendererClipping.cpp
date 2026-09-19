@@ -38,25 +38,29 @@ void CRenderer::beginClipping() {
     float minX;
     if (pixelRight < pixelLeft) {
         minX = pixelRight;
-    } else {
+    }
+    else {
         minX = pixelLeft;
     } // The extend of the rendering window on the image
     float maxX;
     if (pixelRight > pixelLeft) {
         maxX = pixelRight;
-    } else {
+    }
+    else {
         maxX = pixelLeft;
     } // plane
     float minY;
     if (pixelBottom < pixelTop) {
         minY = pixelBottom;
-    } else {
+    }
+    else {
         minY = pixelTop;
     }
     float maxY;
     if (pixelBottom > pixelTop) {
         maxY = pixelBottom;
-    } else {
+    }
+    else {
         maxY = pixelTop;
     }
     // Compute the equations of the clipping planes
@@ -80,7 +84,8 @@ void CRenderer::beginClipping() {
         bottomY = -imagePlane;
         bottomZ = maxY;
         bottomD = 0;
-    } else {
+    }
+    else {
         leftX = 1;
         leftZ = 0;
         leftD = -minX;

@@ -130,8 +130,10 @@ class CCurveMesh : public CObject {
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
         void wireData(const float *&positions, int &numCurves, const int *&nverts, int &wrap) const {
-            positions = pl->data0; numCurves = this->numCurves;
-            nverts = this->nverts; wrap = this->wrap;
+            positions = pl->data0;
+            numCurves = this->numCurves;
+            nverts = this->nverts;
+            wrap = this->wrap;
         }
 
     private:

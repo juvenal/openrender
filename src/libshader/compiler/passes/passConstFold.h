@@ -43,39 +43,39 @@
 #define OSHADER_PASSES_PASSCONSTFOLD_H
 
 #include "passManager.h"
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 class CConstFoldPass : public CIRPass {
-public:
-    bool        run(IRModule &mod) override;
-    const char *name() const override { return "ConstFold"; }
+    public:
+        bool run(IRModule &mod) override;
+        const char *name() const override { return "ConstFold"; }
 
-private:
-    // One forward sweep over fn.
-    // constMap: cName → constant double value (mutated in place).
-    // Returns true if any instruction was replaced.
-    static bool foldFn(IRFunction &fn,
-                       std::unordered_map<std::string, double> &constMap);
+    private:
+        // One forward sweep over fn.
+        // constMap: cName → constant double value (mutated in place).
+        // Returns true if any instruction was replaced.
+        static bool foldFn(IRFunction &fn,
+                           std::unordered_map<std::string, double> &constMap);
 
-    // Attempt to resolve an operand token to a double value.
-    // Returns true and sets `out` if the token is a literal or is in constMap.
-    static bool resolveOperand(const std::string &token,
-                               const std::unordered_map<std::string, double> &constMap,
-                               double &out);
+        // Attempt to resolve an operand token to a double value.
+        // Returns true and sets `out` if the token is a literal or is in constMap.
+        static bool resolveOperand(const std::string &token,
+                                   const std::unordered_map<std::string, double> &constMap,
+                                   double &out);
 
-    // Evaluate a foldable scalar-float opcode given its argument values.
-    // Returns true and sets `result` if the opcode is supported and the
-    // result is finite.  Returns false otherwise (instruction not folded).
-    static bool evalFloatOp(const std::string &opcode,
-                            const std::vector<double> &args,
-                            double &result);
+        // Evaluate a foldable scalar-float opcode given its argument values.
+        // Returns true and sets `result` if the opcode is supported and the
+        // result is finite.  Returns false otherwise (instruction not folded).
+        static bool evalFloatOp(const std::string &opcode,
+                                const std::vector<double> &args,
+                                double &result);
 
-    // Returns true if this opcode can be constant-folded (scalar float only).
-    static bool isFoldable(const std::string &opcode);
+        // Returns true if this opcode can be constant-folded (scalar float only).
+        static bool isFoldable(const std::string &opcode);
 
-    // Format a double as a minimal precise string suitable for the .rslo stream.
-    static std::string fmtDouble(double v);
+        // Format a double as a minimal precise string suitable for the .rslo stream.
+        static std::string fmtDouble(double v);
 };
 
 #endif // OSHADER_PASSES_PASSCONSTFOLD_H

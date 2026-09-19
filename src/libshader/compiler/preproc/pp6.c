@@ -147,7 +147,8 @@ void pragasm(int asmtype, int no_flag, const char *name) {
             non_fatal("Already within \"#pragma asm\"", "");
         else
             non_fatal("Not within \"#pragma asm\"", "");
-    } else {
+    }
+    else {
         pbstr(Do_asm ? "#endasm" : "#asm");     /* For 2nd pass */
         pushback('\n');                         /* So scaneol finds the end */
         Do_asm = asmtype;                       /* Set flag and let main line handle */

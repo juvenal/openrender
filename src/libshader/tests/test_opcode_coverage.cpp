@@ -1,6 +1,6 @@
 #define LOGGING_IMPLEMENTATION
-#include "logging.h"
 #include "llvmEmitter.h"
+#include "logging.h"
 #include "opcodes.h"
 
 #include <cstdio>
@@ -9,10 +9,16 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
 // The reachable set is computed, not hand-maintained: every canonical
 // mnemonic in kAllOpcodeMnemonics (opcodes.h/.cpp) minus every mnemonic in
@@ -24,7 +30,8 @@ static int g_failed = 0;
 // specs/011-jit-opcode-parity/research.md's D3 for the full rationale.
 static bool isInSet(const char *const *set, const char *mnemonic) {
     for (int i = 0; set[i] != nullptr; ++i) {
-        if (std::strcmp(mnemonic, set[i]) == 0) return true;
+        if (std::strcmp(mnemonic, set[i]) == 0)
+            return true;
     }
     return false;
 }
@@ -41,13 +48,15 @@ static void test_reachable_opcodes_are_all_handled() {
         char mnemonic[32];
         stripOpcodeMnemonic(kAllOpcodeMnemonics[i], mnemonic, sizeof(mnemonic));
 
-        if (isInSet(kDeadOpcodes, mnemonic)) continue;
+        if (isInSet(kDeadOpcodes, mnemonic))
+            continue;
 
         bool handled = isHandled(mnemonic);
         if (!handled) {
             fprintf(stderr,
-                "JIT coverage gap: opcode '%s' is reachable but has no "
-                "emitFunction() case\n", mnemonic);
+                    "JIT coverage gap: opcode '%s' is reachable but has no "
+                    "emitFunction() case\n",
+                    mnemonic);
         }
         EXPECT_TRUE(handled);
     }

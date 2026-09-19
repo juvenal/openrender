@@ -107,8 +107,8 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
                     if (d * d < l->distances[0]) {
                         lookup(l, 2 * index, scale);
                     }
-
-                } else {
+                }
+                else {
                     lookup(l, 2 * index, scale);
 
                     if (d * d < l->distances[0]) {

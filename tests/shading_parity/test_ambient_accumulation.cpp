@@ -36,23 +36,29 @@
 #include <unistd.h>
 
 #include "libshader/include/openrender/RSLShading.h"
-#include "ri/state/attributes.h"
 #include "ri/core/memory.h"
-#include "ri/geometry/object.h"
-#include "ri/render/renderer.h"
-#include "ri/render/rendererContext.h"
-#include "ri/parse/ri.h"
 #include "ri/core/shader.h"
 #include "ri/core/shading.h"
+#include "ri/geometry/object.h"
+#include "ri/parse/ri.h"
+#include "ri/render/renderer.h"
+#include "ri/render/rendererContext.h"
+#include "ri/state/attributes.h"
 #include "ri/state/xform.h"
 
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { ++g_passed; } \
-    else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            ++g_passed;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            ++g_failed;                                                        \
+        }                                                                      \
+    } while (0)
 
 // Minimal concrete CSurface subclass -- CSurface itself is abstract
 // (CObject::instantiate() is pure virtual and CSurface never overrides
@@ -68,11 +74,10 @@ class CTestSurface : public CSurface {
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
 };
 
-static bool writeFixture(const std::string &path, const std::string &shaderKind,
-                          const std::string &shaderName, const std::string &paramDecl,
-                          const std::string &body) {
+static bool writeFixture(const std::string &path, const std::string &shaderKind, const std::string &shaderName, const std::string &paramDecl, const std::string &body) {
     FILE *f = fopen(path.c_str(), "w");
-    if (!f) return false;
+    if (!f)
+        return false;
     fprintf(f, "%s %s(\n%s\n) {\n%s}\n",
             shaderKind.c_str(), shaderName.c_str(), paramDecl.c_str(), body.c_str());
     fclose(f);
@@ -82,10 +87,9 @@ static bool writeFixture(const std::string &path, const std::string &shaderKind,
 // Invoke the real oshader CLI (built by this project) to compile srcPath to
 // outPath as .rslo (interpreter bytecode only -- neither T019 nor T020
 // touches the JIT backend). Returns true on a clean (exit 0) run.
-static bool runOshaderRslo(const char *oshaderBin, const std::string &srcPath,
-                            const std::string &outPath) {
+static bool runOshaderRslo(const char *oshaderBin, const std::string &srcPath, const std::string &outPath) {
     std::string cmd = std::string("\"") + oshaderBin + "\" -o \"" + outPath + "\" \"" +
-                       srcPath + "\" >/dev/null 2>&1";
+                      srcPath + "\" >/dev/null 2>&1";
     int rc = system(cmd.c_str());
     return rc == 0;
 }
@@ -96,12 +100,13 @@ static bool runOshaderRslo(const char *oshaderBin, const std::string &srcPath,
 // Leaves cwd changed to the temp dir on success (matching the surrounding
 // RiBegin/RiWorldBegin window); caller restores cwd after RiEnd().
 static CProgrammableShaderInstance *loadAmbientFixture(const char *oshaderBin,
-                                                         const char *label,
-                                                         std::string &savedCwdOut) {
+                                                       const char *label,
+                                                       std::string &savedCwdOut) {
     char tmplBuf[] = "/tmp/shading_parity_ambient_XXXXXX";
     char *tmpDir = mkdtemp(tmplBuf);
     EXPECT_TRUE(tmpDir != nullptr);
-    if (!tmpDir) return nullptr;
+    if (!tmpDir)
+        return nullptr;
 
     const std::string dir = tmpDir;
     const std::string name = std::string("ambient_") + label;
@@ -109,8 +114,8 @@ static CProgrammableShaderInstance *loadAmbientFixture(const char *oshaderBin,
     const std::string out = dir + "/" + name + ".rslo";
 
     EXPECT_TRUE(writeFixture(src, "light", name,
-                              "    float intensity = 1.0",
-                              "    Cl = intensity;\n    L = 0;\n"));
+                             "    float intensity = 1.0",
+                             "    Cl = intensity;\n    L = 0;\n"));
     EXPECT_TRUE(runOshaderRslo(oshaderBin, src, out));
 
     char savedCwd[4096];
@@ -121,7 +126,8 @@ static CProgrammableShaderInstance *loadAmbientFixture(const char *oshaderBin,
     CShaderInstance *instance =
         CRenderer::context->getShader(name.c_str(), SL_LIGHTSOURCE, 0, NULL, NULL);
     EXPECT_TRUE(instance != nullptr);
-    if (!instance) return nullptr;
+    if (!instance)
+        return nullptr;
 
     CProgrammableShaderInstance *light = dynamic_cast<CProgrammableShaderInstance *>(instance);
     EXPECT_TRUE(light != nullptr);
@@ -135,7 +141,8 @@ static void test_t019_no_crash_when_alights_null() {
 
     const char *oshaderBin = getenv("OSHADER_BIN");
     EXPECT_TRUE(oshaderBin != nullptr);
-    if (!oshaderBin) return;
+    if (!oshaderBin)
+        return;
 
     RiBegin(RI_NULL);
     std::string savedCwd;
@@ -195,7 +202,8 @@ static void test_t019_no_crash_when_alights_null() {
     }
 
     CShaderInstance *toDetach = light;
-    if (toDetach) toDetach->detach();
+    if (toDetach)
+        toDetach->detach();
     RiEnd();
 
     // Reported rather than discarded -- see the note in
@@ -212,7 +220,8 @@ static void test_t020_ambient_accumulates_once() {
 
     const char *oshaderBin = getenv("OSHADER_BIN");
     EXPECT_TRUE(oshaderBin != nullptr);
-    if (!oshaderBin) return;
+    if (!oshaderBin)
+        return;
 
     RiBegin(RI_NULL);
     std::string savedCwd;
@@ -267,7 +276,8 @@ static void test_t020_ambient_accumulates_once() {
     }
 
     CShaderInstance *toDetach = light;
-    if (toDetach) toDetach->detach();
+    if (toDetach)
+        toDetach->detach();
     RiEnd();
 
     // Reported rather than discarded -- see the note in

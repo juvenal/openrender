@@ -94,7 +94,7 @@ class CTexture3d : public CFileResource, public CDataView {
         matrix from, to;    // The transformation to the coordinate system
         matrix toNDC;       // The viewing transform
         float dPscale;      // The amount we need to scale dP by
-        int channelCount;    // Number of channels
+        int channelCount;   // Number of channels
         CChannel *channels; // List of channels
 
         friend class CRemotePtCloudChannel;
@@ -114,23 +114,23 @@ inline void texture3Dflatten(float *dest, int n, const float **data, int *entry,
 
         // Unroll for the common cases
         switch (size[i]) {
-        case 0:
-            // This can happen if the channel was not found
-            break;
-        case 1:
-            dest[entry[i]] = *src;
-            break;
-        case 2:
-            dest[entry[i]] = *src++;
-            dest[entry[i] + 1] = *src;
-            break;
-        case 3:
-            movvv(dest + entry[i], src);
-            break;
-        default:
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] = *src++;
-            break;
+            case 0:
+                // This can happen if the channel was not found
+                break;
+            case 1:
+                dest[entry[i]] = *src;
+                break;
+            case 2:
+                dest[entry[i]] = *src++;
+                dest[entry[i] + 1] = *src;
+                break;
+            case 3:
+                movvv(dest + entry[i], src);
+                break;
+            default:
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] = *src++;
+                break;
         }
     }
 }
@@ -149,38 +149,38 @@ inline void texture3DflattenInterpolated(float *dest, int n, const float **data,
 
         // Unroll for the common cases
         switch (size[i]) {
-        case 0:
-            // This can happen if the channel was not found
-            break;
-        case 1:
-            dest[entry[i]] = 0.25f * (src[0] + src[1] + src[uVertices] + src[uVertices + 1]);
-            break;
-        case 2:
-            dest[entry[i]] = 0.25f * (src[0] + src[1] + src[uVertices] + src[uVertices + 1]);
-            dest[entry[i] + 1] = 0.25f * (src[1] + src[2] + src[uVertices * 2 + 1] + src[uVertices * 2 + 2]);
-            break;
-        case 3:
-            initv(dest + entry[i], 0);
-            addvv(dest + entry[i], src);
-            addvv(dest + entry[i], src + 3);
-            addvv(dest + entry[i], src + uVertices * 3);
-            addvv(dest + entry[i], src + uVertices * 3 + 3);
-            mulvf(dest + entry[i], 0.25f);
-            break;
-        default:
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] = 0;
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] += src[j];
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] += src[j + size[i]];
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] += src[j + uVertices * size[i]];
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] += src[j + uVertices * size[i] + size[i]];
-            for (int j = 0; j < size[i]; j++)
-                dest[entry[i] + j] *= 0.25f;
-            break;
+            case 0:
+                // This can happen if the channel was not found
+                break;
+            case 1:
+                dest[entry[i]] = 0.25f * (src[0] + src[1] + src[uVertices] + src[uVertices + 1]);
+                break;
+            case 2:
+                dest[entry[i]] = 0.25f * (src[0] + src[1] + src[uVertices] + src[uVertices + 1]);
+                dest[entry[i] + 1] = 0.25f * (src[1] + src[2] + src[uVertices * 2 + 1] + src[uVertices * 2 + 2]);
+                break;
+            case 3:
+                initv(dest + entry[i], 0);
+                addvv(dest + entry[i], src);
+                addvv(dest + entry[i], src + 3);
+                addvv(dest + entry[i], src + uVertices * 3);
+                addvv(dest + entry[i], src + uVertices * 3 + 3);
+                mulvf(dest + entry[i], 0.25f);
+                break;
+            default:
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] = 0;
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] += src[j];
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] += src[j + size[i]];
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] += src[j + uVertices * size[i]];
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] += src[j + uVertices * size[i] + size[i]];
+                for (int j = 0; j < size[i]; j++)
+                    dest[entry[i] + j] *= 0.25f;
+                break;
         }
     }
 }
@@ -198,23 +198,23 @@ inline void texture3Dunpack(const float *src, int n, float **data, int *entry, i
 
         // Unroll for the common cases
         switch (size[i]) {
-        case 0:
-            // This can happen is the channel was not found
-            break;
-        case 1:
-            *dest = src[entry[i]];
-            break;
-        case 2:
-            dest[0] = src[entry[i]];
-            dest[1] = src[entry[i] + 1];
-            break;
-        case 3:
-            movvv(dest, src + entry[i]);
-            break;
-        default:
-            for (int j = 0; j < size[i]; j++)
-                dest[j] = src[entry[i] + j];
-            break;
+            case 0:
+                // This can happen is the channel was not found
+                break;
+            case 1:
+                *dest = src[entry[i]];
+                break;
+            case 2:
+                dest[0] = src[entry[i]];
+                dest[1] = src[entry[i] + 1];
+                break;
+            case 3:
+                movvv(dest, src + entry[i]);
+                break;
+            default:
+                for (int j = 0; j < size[i]; j++)
+                    dest[j] = src[entry[i] + j];
+                break;
         }
     }
 }

@@ -38,23 +38,28 @@ CPrimitiveSink *CDataView::sink = NULL;
 // The six forwarders. Each is a no-op when no sink is installed (mirrors CView's
 // NULL-function-pointer behavior before pglVisualize/dlopen ever ran).
 void CDataView::drawTriangles(int n, const float *P, const float *C) {
-    if (sink != NULL) sink->triangles(n, P, C);
+    if (sink != NULL)
+        sink->triangles(n, P, C);
 }
 
 void CDataView::drawTriangleMesh(int n, const int *indices, const float *P, const float *C) {
-    if (sink != NULL) sink->triangleMesh(n, indices, P, C);
+    if (sink != NULL)
+        sink->triangleMesh(n, indices, P, C);
 }
 
 void CDataView::drawLines(int n, const float *P, const float *C) {
-    if (sink != NULL) sink->lines(n, P, C);
+    if (sink != NULL)
+        sink->lines(n, P, C);
 }
 
 void CDataView::drawPoints(int n, const float *P, const float *C) {
-    if (sink != NULL) sink->points(n, P, C);
+    if (sink != NULL)
+        sink->points(n, P, C);
 }
 
 void CDataView::drawDisks(int n, const float *P, const float *dP, const float *N, const float *C) {
-    if (sink != NULL) sink->disks(n, P, dP, N, C);
+    if (sink != NULL)
+        sink->disks(n, P, dP, N, C);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -68,11 +73,18 @@ static void flushRun(int tag, int count, const float *P, const float *C) {
         return;
 
     switch (tag) {
-        case 0: CDataView::drawPoints(count, P, C); break;
-        case 1: CDataView::drawLines(count, P, C); break;
+        case 0:
+            CDataView::drawPoints(count, P, C);
+            break;
+        case 1:
+            CDataView::drawLines(count, P, C);
+            break;
         case 2:
-        case 3: CDataView::drawTriangles(count, P, C); break;
-        default: break;
+        case 3:
+            CDataView::drawTriangles(count, P, C);
+            break;
+        default:
+            break;
     }
 }
 
@@ -124,7 +136,10 @@ void CDataView::drawFile(const char *fileName) {
 
         switch (tag) {
             case 0: // Point
-                if (fread(p1, sizeof(float), 3, file) != 3) { fclose(file); return; }
+                if (fread(p1, sizeof(float), 3, file) != 3) {
+                    fclose(file);
+                    return;
+                }
                 movvv(&P[j * 3], p1);
                 initv(&C[j * 3], 1, 1, 1);
                 j++;
@@ -132,7 +147,10 @@ void CDataView::drawFile(const char *fileName) {
 
             case 1: // Line
                 if (fread(p1, sizeof(float), 3, file) != 3 ||
-                    fread(p2, sizeof(float), 3, file) != 3) { fclose(file); return; }
+                    fread(p2, sizeof(float), 3, file) != 3) {
+                    fclose(file);
+                    return;
+                }
                 movvv(&P[j * 3], p1);
                 initv(&C[j * 3], 1, 1, 1);
                 j++;
@@ -144,23 +162,47 @@ void CDataView::drawFile(const char *fileName) {
             case 2: // Triangle
                 if (fread(p1, sizeof(float), 3, file) != 3 ||
                     fread(p2, sizeof(float), 3, file) != 3 ||
-                    fread(p3, sizeof(float), 3, file) != 3) { fclose(file); return; }
-                movvv(&P[j * 3], p1); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p2); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p3); initv(&C[j * 3], 1, 1, 1); j++;
+                    fread(p3, sizeof(float), 3, file) != 3) {
+                    fclose(file);
+                    return;
+                }
+                movvv(&P[j * 3], p1);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p2);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p3);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
                 break;
 
             case 3: // Quad -> two triangles (0,1,2) and (0,2,3)
                 if (fread(p1, sizeof(float), 3, file) != 3 ||
                     fread(p2, sizeof(float), 3, file) != 3 ||
                     fread(p3, sizeof(float), 3, file) != 3 ||
-                    fread(p4, sizeof(float), 3, file) != 3) { fclose(file); return; }
-                movvv(&P[j * 3], p1); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p2); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p3); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p1); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p3); initv(&C[j * 3], 1, 1, 1); j++;
-                movvv(&P[j * 3], p4); initv(&C[j * 3], 1, 1, 1); j++;
+                    fread(p4, sizeof(float), 3, file) != 3) {
+                    fclose(file);
+                    return;
+                }
+                movvv(&P[j * 3], p1);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p2);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p3);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p1);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p3);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
+                movvv(&P[j * 3], p4);
+                initv(&C[j * 3], 1, 1, 1);
+                j++;
                 break;
 
             default:

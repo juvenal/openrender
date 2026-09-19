@@ -28,10 +28,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	gather <else>
 #ifndef INIT_SHADING
-#define GATHEREXPR_PRE                                                \
-    if (gatherSample(lastGather, tags, numActive, numPassive,         \
-                      varying[VARIABLE_N], varying[VARIABLE_TIME])) { \
-        jmp(argument(0));                                             \
+#define GATHEREXPR_PRE                                               \
+    if (gatherSample(lastGather, tags, numActive, numPassive,        \
+                     varying[VARIABLE_N], varying[VARIABLE_TIME])) { \
+        jmp(argument(0));                                            \
     }
 
 #else
@@ -45,9 +45,9 @@ DEFOPCODE(Gather, "gather", 1, GATHEREXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	gatheElse <endLabel>
 #ifndef INIT_SHADING
-#define GATHERELSEEXPR_PRE                                      \
-    if (gatherElseFlip(tags, numActive, numPassive)) {           \
-        jmp(argument(0));                                       \
+#define GATHERELSEEXPR_PRE                             \
+    if (gatherElseFlip(tags, numActive, numPassive)) { \
+        jmp(argument(0));                              \
     }
 
 #else
@@ -61,9 +61,9 @@ DEFOPCODE(GatherElse, "gatherElse", 1, GATHERELSEEXPR_PRE, NULL_EXPR, NULL_EXPR,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	gatheEnd <gatherLabel>
 #ifndef INIT_SHADING
-#define GATHERENDEXPR_PRE                                       \
+#define GATHERENDEXPR_PRE                                            \
     if (gatherEndAdvance(lastGather, tags, numActive, numPassive)) { \
-        jmp(argument(0));                                       \
+        jmp(argument(0));                                            \
     }
 
 #else

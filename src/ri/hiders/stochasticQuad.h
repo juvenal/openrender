@@ -62,7 +62,8 @@ const float importance = grid->object->attributes->lodImportance;
         if (pixel->jimp > importance) {         \
             continue;                           \
         }                                       \
-    } else {                                    \
+    }                                           \
+    else {                                      \
         if ((1 - pixel->jimp) >= -importance) { \
             continue;                           \
         }                                       \
@@ -372,33 +373,33 @@ const float importance = grid->object->attributes->lodImportance;
 // Camera pure-rotation fast path: the quad stays at its static t=0 position and
 // the sample center is the pre-rotated one from rasterBegin; the interpolated
 // static depth is scaled to the sample's time by zScale
-#define checkPixel(__op)                                                                                             \
-    const int camRotFast = CRenderer::cameraRotationOnly;                                                            \
-    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                                 \
-    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                                 \
-    float aleft, atop, aright, abottom;                                                                              \
-                                                                                                                     \
-    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                        \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                      \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {                     \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                       \
-        continue;                                                                                                    \
-    }                                                                                                                \
-                                                                                                                     \
-    const float u = aleft / (aleft + aright);                                                                        \
-    const float v = atop / (atop + abottom);                                                                         \
-    float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v;       \
-    if (camRotFast) {                                                                                                \
-        z *= pixel->zScale;                                                                                          \
-    }                                                                                                                \
-    if (z < CRenderer::clipMin) {                                                                                    \
-        continue;                                                                                                    \
+#define checkPixel(__op)                                                                                       \
+    const int camRotFast = CRenderer::cameraRotationOnly;                                                      \
+    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                           \
+    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                           \
+    float aleft, atop, aright, abottom;                                                                        \
+                                                                                                               \
+    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                  \
+        continue;                                                                                              \
+    }                                                                                                          \
+    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                \
+        continue;                                                                                              \
+    }                                                                                                          \
+    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {               \
+        continue;                                                                                              \
+    }                                                                                                          \
+    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                 \
+        continue;                                                                                              \
+    }                                                                                                          \
+                                                                                                               \
+    const float u = aleft / (aleft + aright);                                                                  \
+    const float v = atop / (atop + abottom);                                                                   \
+    float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v; \
+    if (camRotFast) {                                                                                          \
+        z *= pixel->zScale;                                                                                    \
+    }                                                                                                          \
+    if (z < CRenderer::clipMin) {                                                                              \
+        continue;                                                                                              \
     }
 
 #else
@@ -591,7 +592,8 @@ for (y = ymin; y <= ymax; y++) {
                             // A vertex landed at/behind the eye plane at this time
                             continue;
                         }
-                    } else {
+                    }
+                    else {
                         interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
                         interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
                         interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
@@ -649,7 +651,8 @@ for (y = ymin; y <= ymax; y++) {
                     v3 = v2 + numVertexSamples;
 
                     drawPixelCheck();
-                } else {
+                }
+                else {
                     // Back face culling
                     if (!shouldDrawFront()) {
                         continue;
@@ -783,7 +786,8 @@ for (j = 0; j < vdiv; j++) {
                     drawPixelCheck();
                 }
             }
-        } else {
+        }
+        else {
 
             // Back face culling
             if (!shouldDrawFront()) {
@@ -879,7 +883,8 @@ for (j = 0; j < vdiv; j++) {
                             // A vertex landed at/behind the eye plane at this time
                             continue;
                         }
-                    } else {
+                    }
+                    else {
                         interpolatev(v0movTmp, v0, v0 + displacement, pixel->jt);
                         interpolatev(v1movTmp, v1, v1 + displacement, pixel->jt);
                         interpolatev(v2movTmp, v2, v2 + displacement, pixel->jt);
@@ -938,7 +943,8 @@ for (j = 0; j < vdiv; j++) {
                     v3 = v2 + numVertexSamples;
 
                     drawPixelCheck();
-                } else {
+                }
+                else {
 
                     // Back face culling
                     if (!shouldDrawFront()) {

@@ -56,7 +56,8 @@ CDelayedObject::CDelayedObject(CAttributes *a, CXform *x, const float *bmin, con
     if (drc == NULL) {
         dataRefCount = new int;
         dataRefCount[0] = 0;
-    } else {
+    }
+    else {
         dataRefCount = drc;
     }
 

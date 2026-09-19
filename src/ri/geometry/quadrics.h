@@ -54,7 +54,8 @@ class CSphere : public CSurface {
             int clampedDepth;
             if (1 > depthValue) {
                 clampedDepth = 1;
-            } else {
+            }
+            else {
                 clampedDepth = depthValue;
             }
             minDivU = minDivV = clampedDepth;
@@ -62,7 +63,10 @@ class CSphere : public CSurface {
         }
 
         void wireData(float &r, float &umax, float &vmin, float &vmax) const {
-            r = this->r; umax = this->umax; vmin = this->vmin; vmax = this->vmax;
+            r = this->r;
+            umax = this->umax;
+            vmin = this->vmin;
+            vmax = this->vmax;
         }
 
     private:
@@ -91,7 +95,9 @@ class CDisk : public CSurface {
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
 
         void wireData(float &r, float &z, float &umax) const {
-            r = this->r; z = this->z; umax = this->umax;
+            r = this->r;
+            z = this->z;
+            umax = this->umax;
         }
 
     private:
@@ -123,7 +129,8 @@ class CCone : public CSurface {
             int depthValue2 = 3 - depth;
             if (1 > depthValue2) {
                 minDivU = 1;
-            } else {
+            }
+            else {
                 minDivU = depthValue2;
             }
             minDivV = 1;
@@ -131,7 +138,9 @@ class CCone : public CSurface {
         }
 
         void wireData(float &r, float &height, float &umax) const {
-            r = this->r; height = this->height; umax = this->umax;
+            r = this->r;
+            height = this->height;
+            umax = this->umax;
         }
 
     private:
@@ -164,7 +173,8 @@ class CParaboloid : public CSurface {
             int clampedDepth;
             if (1 > depthValue) {
                 clampedDepth = 1;
-            } else {
+            }
+            else {
                 clampedDepth = depthValue;
             }
             minDivU = minDivV = clampedDepth;
@@ -172,7 +182,10 @@ class CParaboloid : public CSurface {
         }
 
         void wireData(float &r, float &zmin, float &zmax, float &umax) const {
-            r = this->r; zmin = this->zmin; zmax = this->zmax; umax = this->umax;
+            r = this->r;
+            zmin = this->zmin;
+            zmax = this->zmax;
+            umax = this->umax;
         }
 
     private:
@@ -204,7 +217,8 @@ class CCylinder : public CSurface {
             int depthValue2 = 3 - depth;
             if (1 > depthValue2) {
                 minDivU = 1;
-            } else {
+            }
+            else {
                 minDivU = depthValue2;
             }
             minDivV = 1;
@@ -212,7 +226,10 @@ class CCylinder : public CSurface {
         }
 
         void wireData(float &r, float &zmin, float &zmax, float &umax) const {
-            r = this->r; zmin = this->zmin; zmax = this->zmax; umax = this->umax;
+            r = this->r;
+            zmin = this->zmin;
+            zmax = this->zmax;
+            umax = this->umax;
         }
 
     private:
@@ -245,7 +262,8 @@ class CHyperboloid : public CSurface {
             int clampedDepth;
             if (1 > depthValue) {
                 clampedDepth = 1;
-            } else {
+            }
+            else {
                 clampedDepth = depthValue;
             }
             minDivU = minDivV = clampedDepth;
@@ -253,7 +271,9 @@ class CHyperboloid : public CSurface {
         }
 
         void wireData(const float *&p1, const float *&p2, float &umax) const {
-            p1 = this->p1; p2 = this->p2; umax = this->umax;
+            p1 = this->p1;
+            p2 = this->p2;
+            umax = this->umax;
         }
 
     private:
@@ -287,7 +307,8 @@ class CToroid : public CSurface {
             int clampedDepth;
             if (1 > depthValue) {
                 clampedDepth = 1;
-            } else {
+            }
+            else {
                 clampedDepth = depthValue;
             }
             minDivU = minDivV = clampedDepth;
@@ -295,7 +316,11 @@ class CToroid : public CSurface {
         }
 
         void wireData(float &rmax, float &rmin, float &vmin, float &vmax, float &umax) const {
-            rmax = this->rmax; rmin = this->rmin; vmin = this->vmin; vmax = this->vmax; umax = this->umax;
+            rmax = this->rmax;
+            rmin = this->rmin;
+            vmin = this->vmin;
+            vmax = this->vmax;
+            umax = this->umax;
         }
 
     private:

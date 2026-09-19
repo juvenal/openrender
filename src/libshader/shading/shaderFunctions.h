@@ -27,8 +27,8 @@
 
 // Fallback for log_debug when logging.hpp has not been included by the TU.
 #ifndef log_debug
-#  define log_debug(...) ((void)0)
-#  define _SHADERFUNCTIONS_LOG_FALLBACK
+#define log_debug(...) ((void)0)
+#define _SHADERFUNCTIONS_LOG_FALLBACK
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,12 +267,13 @@ DEFFUNC(Derivv, "Deriv", "v=vf", DERIVVEXPR_PRE, DERIVVEXPR, DERIVVEXPR_UPDATE, 
     duVector(dPdu, op);                                                           \
     dvVector(dPdv, op);
 
-#define AREAEXPR                                    \
-    mulvf(dPdu, du[0]);                             \
-    mulvf(dPdv, dv[0]);                             \
-    crossvv(tmp, dPdu, dPdv);                       \
-    *res = lengthv(tmp);                            \
-    if (*res < C_EPSILON) *res = C_EPSILON;         \
+#define AREAEXPR              \
+    mulvf(dPdu, du[0]);       \
+    mulvf(dPdv, dv[0]);       \
+    crossvv(tmp, dPdu, dPdv); \
+    *res = lengthv(tmp);      \
+    if (*res < C_EPSILON)     \
+        *res = C_EPSILON;     \
     assert(*res >= 0);
 
 #define AREAEXPR_UPDATE \
@@ -326,17 +327,18 @@ DEFFUNC(Area, "area", "f=p", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXPR,
         dicingMeasure = TRUE;                                                                       \
     }
 
-#define AREAEXPR                                    \
-    if (dicingMeasure) {                            \
-        assert(*du >= 0);                           \
-        *res = (*du) * (*du);                       \
-    }                                               \
-    else {                                          \
-        mulvf(dPdu, du[0]);                         \
-        mulvf(dPdv, dv[0]);                         \
-        crossvv(tmp, dPdu, dPdv);                   \
-        *res = lengthv(tmp);                        \
-        if (*res < C_EPSILON) *res = C_EPSILON;     \
+#define AREAEXPR                  \
+    if (dicingMeasure) {          \
+        assert(*du >= 0);         \
+        *res = (*du) * (*du);     \
+    }                             \
+    else {                        \
+        mulvf(dPdu, du[0]);       \
+        mulvf(dPdv, dv[0]);       \
+        crossvv(tmp, dPdu, dPdv); \
+        *res = lengthv(tmp);      \
+        if (*res < C_EPSILON)     \
+            *res = C_EPSILON;     \
     }
 
 #define AREAEXPR_UPDATE           \
@@ -401,9 +403,12 @@ DEFFUNC(CalculateNormal, "calculatenormal", "p=p", CALCULATENORMALEXPR_PRE, CALC
 
 #define NOISE3D1EXPR FUNCTION(res, *op);
 #define NOISE3D2EXPR FUNCTION(res, *op1, *op2);
-#define NOISE3D3EXPR \
-    FUNCTION(res, op); \
-    if (!_n3d3LogDone) { log_debug("[rslo-noise-vp] in[0]=({:.4f},{:.4f},{:.4f}) out[0]=({:.4f},{:.4f},{:.4f})", op[0], op[1], op[2], res[0], res[1], res[2]); _n3d3LogDone = true; }
+#define NOISE3D3EXPR                                                                                                                          \
+    FUNCTION(res, op);                                                                                                                        \
+    if (!_n3d3LogDone) {                                                                                                                      \
+        log_debug("[rslo-noise-vp] in[0]=({:.4f},{:.4f},{:.4f}) out[0]=({:.4f},{:.4f},{:.4f})", op[0], op[1], op[2], res[0], res[1], res[2]); \
+        _n3d3LogDone = true;                                                                                                                  \
+    }
 #define NOISE3D4EXPR FUNCTION(res, op1, *op2);
 
 #define FUNCTION noiseFloat
@@ -425,9 +430,12 @@ DEFFUNC(Noise3D2, "noise", "v=ff", FUN3EXPR_PRE, NOISE3D2EXPR, FUN3EXPR_UPDATE(3
 DEFLINKFUNC(Noise3Dv1, "noise", "c=p", 0)
 DEFLINKFUNC(Noise3Dv2, "noise", "p=p", 0)
 DEFLINKFUNC(Noise3Dv3, "noise", "n=p", 0)
-#define NOISE3D3EXPR_PRE \
-    float *res; const float *op; bool _n3d3LogDone = false; \
-    operand(0, res, float *); operand(1, op, const float *);
+#define NOISE3D3EXPR_PRE       \
+    float *res;                \
+    const float *op;           \
+    bool _n3d3LogDone = false; \
+    operand(0, res, float *);  \
+    operand(1, op, const float *);
 DEFFUNC(Noise3D3, "noise", "v=p", NOISE3D3EXPR_PRE, NOISE3D3EXPR, FUN2EXPR_UPDATE(3, 3), NULL_EXPR, 0)
 #undef NOISE3D3EXPR_PRE
 DEFLINKFUNC(Noise4Dv1, "noise", "c=pf", 0)
@@ -755,13 +763,13 @@ DEFFUNC(NTransform4, "ntransform", "n=Smn", NTRANSFORM4EXPR_PRE, NTRANSFORM4EXPR
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // depth "f=p"
 #ifndef INIT_SHADING
-#define DEPTH_PRE  FUN2EXPR_PRE
-#define DEPTH_EXPR                                                                    \
-    {                                                                                 \
-        const float cmin = this->rendererClipMin();                                  \
-        const float cmax = this->rendererClipMax();                                  \
-        const float range = (cmax > cmin) ? (cmax - cmin) : 1.f;                     \
-        *res = (op[2] - cmin) / range;                                               \
+#define DEPTH_PRE FUN2EXPR_PRE
+#define DEPTH_EXPR                                               \
+    {                                                            \
+        const float cmin = this->rendererClipMin();              \
+        const float cmax = this->rendererClipMax();              \
+        const float range = (cmax > cmin) ? (cmax - cmin) : 1.f; \
+        *res = (op[2] - cmin) / range;                           \
     }
 #else
 #define DEPTH_PRE
@@ -1003,18 +1011,18 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
         power = powers;                                                           \
         tags = tagStart;
 
-#define SPECULAREXPR                                                    \
-    normalizev(Ltmp, L);                                                \
-    addvv(halfway, V, Ltmp);                                            \
-    if (dotvv(halfway, halfway) > 0) {                                  \
-        normalizev(halfway);                                            \
-        const float tmp = ((1.0f - ns[0]) * dotvv(N, halfway));        \
-        if (tmp > 0) {                                                  \
-            const float coefficient = (float)pow(tmp, *power);         \
-            R[COMP_R] += coefficient * Cl[COMP_R];                     \
-            R[COMP_G] += coefficient * Cl[COMP_G];                     \
-            R[COMP_B] += coefficient * Cl[COMP_B];                     \
-        }                                                               \
+#define SPECULAREXPR                                            \
+    normalizev(Ltmp, L);                                        \
+    addvv(halfway, V, Ltmp);                                    \
+    if (dotvv(halfway, halfway) > 0) {                          \
+        normalizev(halfway);                                    \
+        const float tmp = ((1.0f - ns[0]) * dotvv(N, halfway)); \
+        if (tmp > 0) {                                          \
+            const float coefficient = (float)pow(tmp, *power);  \
+            R[COMP_R] += coefficient * Cl[COMP_R];              \
+            R[COMP_G] += coefficient * Cl[COMP_G];              \
+            R[COMP_B] += coefficient * Cl[COMP_B];              \
+        }                                                       \
     }
 
 #define SPECULAREXPR_UPDATE \
@@ -1138,24 +1146,24 @@ DEFLIGHTFUNC(Phong, "phong", "c=nvf", PHONGEXPR_PRE, PHONGEXPR, PHONGEXPR_UPDATE
     operand(3, op3, const float *);     \
     operand(4, op4, const float *);
 
-#define SPECULARBRDFEXPR                                        \
-    addvv(halfway, op3, op1);                                   \
-    if (dotvv(halfway, halfway) > 0) {                          \
-        normalizev(halfway);                                    \
-        const float dotProduct = dotvv(op2, halfway);          \
-        float clampedDot;                                       \
-        if (0 > dotProduct) {                                   \
-            clampedDot = 0;                                     \
-        }                                                       \
-        else {                                                  \
-            clampedDot = dotProduct;                            \
-        }                                                       \
-        res[0] = (float)pow(clampedDot, (10.0f) / (*op4));     \
-        res[1] = res[0];                                        \
-        res[2] = res[1];                                        \
-    }                                                           \
-    else {                                                      \
-        res[0] = res[1] = res[2] = 0.0f;                       \
+#define SPECULARBRDFEXPR                                   \
+    addvv(halfway, op3, op1);                              \
+    if (dotvv(halfway, halfway) > 0) {                     \
+        normalizev(halfway);                               \
+        const float dotProduct = dotvv(op2, halfway);      \
+        float clampedDot;                                  \
+        if (0 > dotProduct) {                              \
+            clampedDot = 0;                                \
+        }                                                  \
+        else {                                             \
+            clampedDot = dotProduct;                       \
+        }                                                  \
+        res[0] = (float)pow(clampedDot, (10.0f) / (*op4)); \
+        res[1] = res[0];                                   \
+        res[2] = res[1];                                   \
+    }                                                      \
+    else {                                                 \
+        res[0] = res[1] = res[2] = 0.0f;                   \
     }
 
 #define SPECULARBRDFEXPR_UPDATE \
@@ -1391,63 +1399,63 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
 
 #ifndef INIT_SHADING
 
-#define TEXTUREINFO_PRE(_t)                                          \
-    plBegin(CMapInfoLookup, 4);                                      \
-    float *res;                                                      \
-    const char **op1;                                                \
-    const char **op2;                                                \
-    _t op3;                                                          \
-    float found;                                                     \
-    float out[16 * 2];                                               \
-    const char *outS;                                                \
-    _t src = (_t)out;                                                \
-    int op3sz;                                                       \
-                                                                     \
-    operand(0, res, float *);                                        \
-    operand(1, op1, const char **);                                  \
-    operand(2, op2, const char **);                                  \
-    operandSize(3, op3, op3sz, _t);                                  \
-    (void)op3sz;                                                     \
-                                                                     \
-    CTextureInfoBase *textureInfo;                                   \
-    if ((textureInfo = lookup->map) == NULL) {                       \
+#define TEXTUREINFO_PRE(_t)                                             \
+    plBegin(CMapInfoLookup, 4);                                         \
+    float *res;                                                         \
+    const char **op1;                                                   \
+    const char **op2;                                                   \
+    _t op3;                                                             \
+    float found;                                                        \
+    float out[16 * 2];                                                  \
+    const char *outS;                                                   \
+    _t src = (_t)out;                                                   \
+    int op3sz;                                                          \
+                                                                        \
+    operand(0, res, float *);                                           \
+    operand(1, op1, const char **);                                     \
+    operand(2, op2, const char **);                                     \
+    operandSize(3, op3, op3sz, _t);                                     \
+    (void)op3sz;                                                        \
+                                                                        \
+    CTextureInfoBase *textureInfo;                                      \
+    if ((textureInfo = lookup->map) == NULL) {                          \
         lookup->map = textureInfo = this->rendererGetTextureInfo(*op1); \
-    }                                                                \
-                                                                     \
-    if (textureInfo == NULL) {                                       \
-        found = 0;                                                   \
-        src = op3; /* prevent writing result */                      \
-    }                                                                \
-    else {                                                           \
-                                                                     \
-        for (int i = 0; i < 16 * 2; ++i)                             \
-            out[i] = 0;                                              \
-                                                                     \
-        found = 1;                                                   \
-                                                                     \
-        if (strcmp(*op2, "resolution") == 0) {                       \
-            textureInfo->getResolution(out);                         \
-        }                                                            \
-        else if (strcmp(*op2, "type") == 0) {                        \
-            outS = textureInfo->getTextureType();                    \
-            src = (_t) & outS;                                       \
-        }                                                            \
-        else if (strcmp(*op2, "channels") == 0) {                    \
-            out[0] = (float)textureInfo->getNumChannels();           \
-        }                                                            \
-        else if (strcmp(*op2, "viewingmatrix") == 0) {               \
-            found = (float)textureInfo->getViewMatrix(out);          \
-        }                                                            \
-        else if (strcmp(*op2, "projectionmatrix") == 0) {            \
-            found = (float)textureInfo->getProjectionMatrix(out);    \
-        }                                                            \
-        else if (strcmp(*op2, "exists") == 0) {                      \
-            src = op3; /* prevent writing result */                  \
-        }                                                            \
-        else {                                                       \
-            found = 0;                                               \
-            src = op3; /* prevent writing result */                  \
-        }                                                            \
+    }                                                                   \
+                                                                        \
+    if (textureInfo == NULL) {                                          \
+        found = 0;                                                      \
+        src = op3; /* prevent writing result */                         \
+    }                                                                   \
+    else {                                                              \
+                                                                        \
+        for (int i = 0; i < 16 * 2; ++i)                                \
+            out[i] = 0;                                                 \
+                                                                        \
+        found = 1;                                                      \
+                                                                        \
+        if (strcmp(*op2, "resolution") == 0) {                          \
+            textureInfo->getResolution(out);                            \
+        }                                                               \
+        else if (strcmp(*op2, "type") == 0) {                           \
+            outS = textureInfo->getTextureType();                       \
+            src = (_t) & outS;                                          \
+        }                                                               \
+        else if (strcmp(*op2, "channels") == 0) {                       \
+            out[0] = (float)textureInfo->getNumChannels();              \
+        }                                                               \
+        else if (strcmp(*op2, "viewingmatrix") == 0) {                  \
+            found = (float)textureInfo->getViewMatrix(out);             \
+        }                                                               \
+        else if (strcmp(*op2, "projectionmatrix") == 0) {               \
+            found = (float)textureInfo->getProjectionMatrix(out);       \
+        }                                                               \
+        else if (strcmp(*op2, "exists") == 0) {                         \
+            src = op3; /* prevent writing result */                     \
+        }                                                               \
+        else {                                                          \
+            found = 0;                                                  \
+            src = op3; /* prevent writing result */                     \
+        }                                                               \
     }
 
 #define TEXTUREINFOF \
@@ -1569,7 +1577,7 @@ DEFFUNC(ShaderNames, "shadername", "s=s", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     if ((tex = lookup->map) == NULL) {                                                                                       \
         const char **op1;                                                                                                    \
         operand(1, op1, const char **);                                                                                      \
-        lookup->map = tex = this->rendererGetTexture(*op1);                                                                 \
+        lookup->map = tex = this->rendererGetTexture(*op1);                                                                  \
     }                                                                                                                        \
     int i;                                                                                                                   \
     float *dsdu = (float *)ralloc(numVertices * 4 * sizeof(float), threadMemory);                                            \
@@ -1685,9 +1693,9 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
     if ((tex = lookup->map) == NULL) {                                 \
         const char **op1;                                              \
         operand(1, op1, const char **);                                \
-        lookup->map = tex = this->rendererGetTexture(*op1);           \
+        lookup->map = tex = this->rendererGetTexture(*op1);            \
     }                                                                  \
-    scratch->textureParams.filter = lookup->filter;                   \
+    scratch->textureParams.filter = lookup->filter;                    \
     (void)op2;
 
 #define TEXTUREFFULLEXPR             \
@@ -1796,7 +1804,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     CEnvironment *tex = NULL;                                                                                                \
     if ((strcmp(*op1, "raytrace") != 0) && (strcmp(*op1, __name) != 0)) {                                                    \
         if ((tex = lookup->map) == NULL) {                                                                                   \
-            lookup->map = tex = this->rendererGetEnvironment(*op1);                                                         \
+            lookup->map = tex = this->rendererGetEnvironment(*op1);                                                          \
         }                                                                                                                    \
     }                                                                                                                        \
     CTraceLocation *rays = nullptr;                                                                                          \
@@ -1826,7 +1834,9 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
                                                                                                                              \
     duVector(dDdu, D);                                                                                                       \
     dvVector(dDdv, D);                                                                                                       \
-    (void)op2; (void)N; (void)P;
+    (void)op2;                                                                                                               \
+    (void)N;                                                                                                                 \
+    (void)P;
 
 #define ENVIRONMENTEXPR(__float)                                            \
     plReady();                                                              \
@@ -2134,7 +2144,7 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
         const char **op1, **op2;                                                                                                                       \
         operand(1, op1, const char **);                                                                                                                \
         operand(2, op2, const char **);                                                                                                                \
-        lookup->map = tex = this->rendererGetTexture3d(*op1, TRUE, *op2, from, to);                                                                   \
+        lookup->map = tex = this->rendererGetTexture3d(*op1, TRUE, *op2, from, to);                                                                    \
         tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                                             \
     }                                                                                                                                                  \
     float *res;                                                                                                                                        \
@@ -2232,7 +2242,7 @@ DEFSHORTFUNC(Bake3d, "bake3d", "f=SSpn!", BAKE3DEXPR_PRE, BAKE3DEXPR, BAKE3DEXPR
         findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                 \
         const char **op1;                                                                                  \
         operand(1, op1, const char **);                                                                    \
-        lookup->map = tex = this->rendererGetTexture3d(*op1, FALSE, NULL, from, to);                      \
+        lookup->map = tex = this->rendererGetTexture3d(*op1, FALSE, NULL, from, to);                       \
         tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize); \
     }                                                                                                      \
     float *res;                                                                                            \

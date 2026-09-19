@@ -16,12 +16,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <errno.h>
+#include <libgen.h> // dirname()
 #include <string>
-#include <libgen.h>  // dirname()
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <errno.h>
+#include <unistd.h>
 
 // ---------------------------------------------------------------------------
 // Opcodes
@@ -29,9 +29,9 @@
 
 enum class FBOpcode : uint8_t {
     START = 0x01,
-    DATA  = 0x02,
-    DONE  = 0x03,
-    QUIT  = 0x04,
+    DATA = 0x02,
+    DONE = 0x03,
+    QUIT = 0x04,
 };
 
 // ---------------------------------------------------------------------------
@@ -41,29 +41,29 @@ enum class FBOpcode : uint8_t {
 #pragma pack(push, 1)
 
 struct FBHeader {
-    FBOpcode opcode;   // 1 byte
-    uint32_t length;   // 4 bytes, little-endian
+        FBOpcode opcode; // 1 byte
+        uint32_t length; // 4 bytes, little-endian
 };
 
 struct FBStartPayload {
-    uint32_t width;       // image width in pixels
-    uint32_t height;      // image height in pixels
-    uint32_t numSamples;  // 3 = RGB, 4 = RGBA
-    uint64_t startEpoch;  // unix time (seconds) render began, for title "@ <time>"
-    uint32_t titleLen;    // byte length of title string that follows (0..512)
-    // followed by titleLen bytes of UTF-8 title (no NUL terminator)
+        uint32_t width;      // image width in pixels
+        uint32_t height;     // image height in pixels
+        uint32_t numSamples; // 3 = RGB, 4 = RGBA
+        uint64_t startEpoch; // unix time (seconds) render began, for title "@ <time>"
+        uint32_t titleLen;   // byte length of title string that follows (0..512)
+        // followed by titleLen bytes of UTF-8 title (no NUL terminator)
 };
 
 struct FBDataPayload {
-    uint32_t x;  // tile origin X (0-based)
-    uint32_t y;  // tile origin Y (0-based)
-    uint32_t w;  // tile width
-    uint32_t h;  // tile height
-    // followed by w*h*numSamples*sizeof(float) bytes of float32 pixel data (LE)
+        uint32_t x; // tile origin X (0-based)
+        uint32_t y; // tile origin Y (0-based)
+        uint32_t w; // tile width
+        uint32_t h; // tile height
+        // followed by w*h*numSamples*sizeof(float) bytes of float32 pixel data (LE)
 };
 
 struct FBDonePayload {
-    uint32_t durationMillis; // wall-clock render duration, milliseconds
+        uint32_t durationMillis; // wall-clock render duration, milliseconds
 };
 
 #pragma pack(pop)
@@ -135,10 +135,11 @@ inline bool writeAll(int fd, const void *buf, size_t len) {
     while (len > 0) {
         ssize_t n = write(fd, p, len);
         if (n <= 0) {
-            if (n < 0 && errno == EINTR) continue;
+            if (n < 0 && errno == EINTR)
+                continue;
             return false;
         }
-        p   += n;
+        p += n;
         len -= (size_t)n;
     }
     return true;
@@ -155,45 +156,50 @@ inline bool sendHeader(int fd, FBOpcode opcode, uint32_t payloadLen) {
     return writeAll(fd, &hdr, sizeof(hdr));
 }
 
-inline bool sendStart(int fd, uint32_t width, uint32_t height,
-                      uint32_t numSamples, uint64_t startEpoch,
-                      const char *title) {
+inline bool sendStart(int fd, uint32_t width, uint32_t height, uint32_t numSamples, uint64_t startEpoch, const char *title) {
     uint32_t titleLen = title ? (uint32_t)strlen(title) : 0;
-    if (titleLen > 512) titleLen = 512;
+    if (titleLen > 512)
+        titleLen = 512;
     uint32_t payloadLen = sizeof(FBStartPayload) + titleLen;
 
-    if (!sendHeader(fd, FBOpcode::START, payloadLen)) return false;
+    if (!sendHeader(fd, FBOpcode::START, payloadLen))
+        return false;
 
     FBStartPayload sp;
-    sp.width      = width;
-    sp.height     = height;
+    sp.width = width;
+    sp.height = height;
     sp.numSamples = numSamples;
     sp.startEpoch = startEpoch;
-    sp.titleLen   = titleLen;
-    if (!writeAll(fd, &sp, sizeof(sp))) return false;
-    if (titleLen > 0 && !writeAll(fd, title, titleLen)) return false;
+    sp.titleLen = titleLen;
+    if (!writeAll(fd, &sp, sizeof(sp)))
+        return false;
+    if (titleLen > 0 && !writeAll(fd, title, titleLen))
+        return false;
     return true;
 }
 
-inline bool sendData(int fd, uint32_t x, uint32_t y, uint32_t w, uint32_t h,
-                     uint32_t numSamples, const float *pixels) {
+inline bool sendData(int fd, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t numSamples, const float *pixels) {
     uint32_t pixelBytes = w * h * numSamples * (uint32_t)sizeof(float);
     uint32_t payloadLen = sizeof(FBDataPayload) + pixelBytes;
 
-    if (!sendHeader(fd, FBOpcode::DATA, payloadLen)) return false;
+    if (!sendHeader(fd, FBOpcode::DATA, payloadLen))
+        return false;
 
     FBDataPayload dp;
     dp.x = x;
     dp.y = y;
     dp.w = w;
     dp.h = h;
-    if (!writeAll(fd, &dp, sizeof(dp))) return false;
-    if (!writeAll(fd, pixels, pixelBytes)) return false;
+    if (!writeAll(fd, &dp, sizeof(dp)))
+        return false;
+    if (!writeAll(fd, pixels, pixelBytes))
+        return false;
     return true;
 }
 
 inline bool sendDone(int fd, uint32_t durationMillis) {
-    if (!sendHeader(fd, FBOpcode::DONE, sizeof(FBDonePayload))) return false;
+    if (!sendHeader(fd, FBOpcode::DONE, sizeof(FBDonePayload)))
+        return false;
     FBDonePayload dp;
     dp.durationMillis = durationMillis;
     return writeAll(fd, &dp, sizeof(dp));

@@ -107,7 +107,7 @@ CMemPage *CRenderer::globalMemory = NULL;                                    // 
 CRendererContext *CRenderer::context = NULL;                                 // initialzied in beginRenderer
 CArray<CShaderInstance *> *CRenderer::allLights = NULL;                      // initialized in beginRenderer, destroyed in endRenderer
 CShaderInstance *CRenderer::imagerShader = nullptr;                          // initialized in beginFrame
-thread_local CShadingContext *CRenderer::activeContext = nullptr;             // set by each render thread at loop start
+thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by each render thread at loop start
 CTrie<CNamedCoordinateSystem *> *CRenderer::definedCoordinateSystems = NULL; // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CVariable *> *CRenderer::declaredVariables = NULL;                     // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CFileResource *> *CRenderer::globalFiles = NULL;                       // initialized in initFiles, destroyed in shutdownFiles
@@ -199,12 +199,12 @@ CObject *CRenderer::root = NULL;                                         // init
 CObject *CRenderer::offendingObject = NULL;                              // initialized in beginFrame
 matrix CRenderer::fromWorld, CRenderer::toWorld;                         // initialized in beginFrame
 matrix CRenderer::fromWorld1, CRenderer::toWorld1;                       // initialized in beginFrame
-bool CRenderer::cameraHasMotion = false;                                  // initialized in beginFrame
-quaternion CRenderer::relRotQ       = {0, 0, 0, 1};                      // initialized in beginFrame
-vector     CRenderer::relTrans      = {0, 0, 0};                          // initialized in beginFrame
-bool       CRenderer::cameraHasRotation = false;                          // initialized in beginFrame
-bool       CRenderer::cameraRotationOnly = false;                         // initialized in beginFrame
-bool       CRenderer::correlatedSampleTable = false;                      // initialized in beginFrame
+bool CRenderer::cameraHasMotion = false;                                 // initialized in beginFrame
+quaternion CRenderer::relRotQ = {0, 0, 0, 1};                            // initialized in beginFrame
+vector CRenderer::relTrans = {0, 0, 0};                                  // initialized in beginFrame
+bool CRenderer::cameraHasRotation = false;                               // initialized in beginFrame
+bool CRenderer::cameraRotationOnly = false;                              // initialized in beginFrame
+bool CRenderer::correlatedSampleTable = false;                           // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame
@@ -241,7 +241,7 @@ int CRenderer::xSampleOffset, CRenderer::ySampleOffset;      // initialized in b
 float CRenderer::sampleClipRight, CRenderer::sampleClipLeft; // initialized in beginFrame
 float CRenderer::sampleClipTop, CRenderer::sampleClipBottom; // initialized in beginFrame
 float *CRenderer::pixelFilterKernel;                         // initialized in beginFrame
-int    CRenderer::pixelFilterMode;                           // initialized in beginFrame
+int CRenderer::pixelFilterMode;                              // initialized in beginFrame
 
 float CRenderer::leftX, CRenderer::leftZ, CRenderer::leftD;       // initialized in beginClipping
 float CRenderer::rightX, CRenderer::rightZ, CRenderer::rightD;    // initialized in beginClipping

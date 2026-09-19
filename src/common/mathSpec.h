@@ -134,11 +134,12 @@ inline SCALAR_TYPE interpolatea(const SCALAR_TYPE s1, const SCALAR_TYPE s2, cons
         SCALAR_TYPE d = fmod((SCALAR_TYPE)(s2 - s1), (SCALAR_TYPE)(2 * C_PI));
         if (d > C_PI) {
             return s2 + (SCALAR_TYPE)((2 * C_PI - d) * (1 - alpha));
-        } else {
+        }
+        else {
             return s1 + (SCALAR_TYPE)(d * alpha);
         }
-
-    } else {
+    }
+    else {
         return interpolatea(s2, s1, 1 - alpha);
     }
 }
@@ -202,7 +203,8 @@ inline void mulmp(SCALAR_TYPE *result, const SCALAR_TYPE *s1, const SCALAR_TYPE 
         result[0] = (SCALAR_TYPE)(x * l);
         result[1] = (SCALAR_TYPE)(y * l);
         result[2] = (SCALAR_TYPE)(z * l);
-    } else {
+    }
+    else {
         result[0] = x;
         result[1] = y;
         result[2] = z;
@@ -277,7 +279,8 @@ inline void mulpm(SCALAR_TYPE *result, const SCALAR_TYPE *s1, const SCALAR_TYPE 
         result[0] = (SCALAR_TYPE)(x * l);
         result[1] = (SCALAR_TYPE)(y * l);
         result[2] = (SCALAR_TYPE)(z * l);
-    } else {
+    }
+    else {
         result[0] = x;
         result[1] = y;
         result[2] = z;
@@ -461,7 +464,8 @@ inline int intersectBox(const SCALAR_TYPE *bmin, const SCALAR_TYPE *bmax, const 
         if (D[i] == 0) {
             if ((F[i] > bmax[i]) || (F[i] < bmin[i]))
                 return FALSE;
-        } else {
+        }
+        else {
             t1 = (SCALAR_TYPE)((bmin[i] - F[i]) * invD[i]);
             t2 = (SCALAR_TYPE)((bmax[i] - F[i]) * invD[i]);
 
@@ -470,7 +474,8 @@ inline int intersectBox(const SCALAR_TYPE *bmin, const SCALAR_TYPE *bmax, const 
                     tnear = t1;
                 if (t2 < tfar)
                     tfar = t2;
-            } else {
+            }
+            else {
                 if (t2 > tnear)
                     tnear = t2;
                 if (t1 < tfar)
@@ -506,7 +511,8 @@ inline SCALAR_TYPE nearestBox(const SCALAR_TYPE *bmin, const SCALAR_TYPE *bmax, 
                 tnear = t1;
             if (t2 < tfar)
                 tfar = t2;
-        } else {
+        }
+        else {
             if (t2 > tnear)
                 tnear = t2;
             if (t1 < tfar)
@@ -536,7 +542,8 @@ inline void refract(SCALAR_TYPE *r, const SCALAR_TYPE *I, const SCALAR_TYPE *N, 
     if (k <= 0) {
         // initv(r,0);
         movvv(r, I);
-    } else {
+    }
+    else {
         mulvf(vtmp, N, (eta * IdotN + SQRT(k)));
         mulvf(r, I, eta);
         subvv(r, vtmp);
@@ -551,7 +558,8 @@ inline void fresnel(const SCALAR_TYPE *I, const SCALAR_TYPE *N, SCALAR_TYPE eta,
     SCALAR_TYPE clampedT;
     if (t > 0) {
         clampedT = t;
-    } else {
+    }
+    else {
         clampedT = 0;
     }
     const SCALAR_TYPE g = SQRT(clampedT);
@@ -578,12 +586,14 @@ inline SCALAR_TYPE ptlined(SCALAR_TYPE *A, SCALAR_TYPE *B, SCALAR_TYPE *P) {
     subvv(vtmp2, A, B);
     if (dotvv(vtmp, vtmp2) <= 0) {
         l = SQRT(dotvv(vtmp, vtmp));
-    } else {
+    }
+    else {
         mulvf(vtmp2, -1);
         subvv(vtmp, P, A);
         if (dotvv(vtmp, vtmp2) <= 0) {
             l = SQRT(dotvv(vtmp, vtmp));
-        } else {
+        }
+        else {
             subvv(vtmp, B, A);
             subvv(vtmp2, B, P);
             crossvv(vtmp3, vtmp, vtmp2);
@@ -785,18 +795,21 @@ inline void qfromR(SCALAR_TYPE *q, const SCALAR_TYPE *R) {
         a = (R[element(2, 1)] - R[element(1, 2)]) / (4 * d);
         b = (R[element(0, 2)] - R[element(2, 0)]) / (4 * d);
         c = (R[element(1, 0)] - R[element(0, 1)]) / (4 * d);
-    } else {
+    }
+    else {
         if ((R[element(0, 0)] > R[element(1, 1)]) && (R[element(0, 0)] > R[element(2, 2)])) {
             a = sqrt(1.0 + R[element(0, 0)] - R[element(1, 1)] - R[element(2, 2)]) * 0.5;
             b = (R[element(0, 1)] + R[element(1, 0)]) / (4 * a);
             c = (R[element(0, 2)] + R[element(2, 0)]) / (4 * a);
             d = (R[element(2, 1)] - R[element(1, 2)]) / (4 * a);
-        } else if (R[element(1, 1)] > R[element(2, 2)]) {
+        }
+        else if (R[element(1, 1)] > R[element(2, 2)]) {
             b = sqrt(1.0 + R[element(1, 1)] - R[element(0, 0)] - R[element(2, 2)]) * 0.5;
             a = (R[element(0, 1)] + R[element(1, 0)]) / (4 * b);
             c = (R[element(1, 2)] + R[element(2, 1)]) / (4 * b);
             d = (R[element(0, 2)] - R[element(2, 0)]) / (4 * b);
-        } else {
+        }
+        else {
             c = sqrt(1.0 + R[element(2, 2)] - R[element(0, 0)] - R[element(1, 1)]) * 0.5;
             a = (R[element(0, 2)] + R[element(2, 0)]) / (4 * c);
             b = (R[element(1, 2)] + R[element(2, 1)]) / (4 * c);
@@ -825,11 +838,16 @@ inline void slerpq(SCALAR_TYPE *result,
     // Ensure shortest arc: if dot < 0 the quaternions are on opposite
     // hemispheres — negate one to force the short path.
     SCALAR_TYPE q1s[4];
-    q1s[0] = q1[0]; q1s[1] = q1[1]; q1s[2] = q1[2]; q1s[3] = q1[3];
+    q1s[0] = q1[0];
+    q1s[1] = q1[1];
+    q1s[2] = q1[2];
+    q1s[3] = q1[3];
     if (dot < 0.0) {
-        dot     = -dot;
-        q1s[0]  = -q1s[0]; q1s[1] = -q1s[1];
-        q1s[2]  = -q1s[2]; q1s[3] = -q1s[3];
+        dot = -dot;
+        q1s[0] = -q1s[0];
+        q1s[1] = -q1s[1];
+        q1s[2] = -q1s[2];
+        q1s[3] = -q1s[3];
     }
 
     if (dot > 0.9995) {
@@ -838,12 +856,13 @@ inline void slerpq(SCALAR_TYPE *result,
         for (int i = 0; i < 4; i++)
             result[i] = q0[i] * (1 - t) + q1s[i] * t;
         normalizeq(result);
-    } else {
-        const double theta0    = acos(dot);          // angle between q0 and q1
-        const double theta     = theta0 * (double)t; // angle at time t
+    }
+    else {
+        const double theta0 = acos(dot);         // angle between q0 and q1
+        const double theta = theta0 * (double)t; // angle at time t
         const double sinTheta0 = sin(theta0);
-        const double s0        = cos(theta) - dot * sin(theta) / sinTheta0;
-        const double s1        = sin(theta) / sinTheta0;
+        const double s0 = cos(theta) - dot * sin(theta) / sinTheta0;
+        const double s1 = sin(theta) / sinTheta0;
         for (int i = 0; i < 4; i++)
             result[i] = (SCALAR_TYPE)(s0 * q0[i] + s1 * q1s[i]);
     }

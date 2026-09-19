@@ -217,11 +217,11 @@ const char *const kAllOpcodeMnemonics[] = {
     opcodeFFromArray, opcodeFToArray, opcodeVFromArray, opcodeVToArray,
     opcodeMFromArray, opcodeMToArray, opcodeSFromArray, opcodeSToArray,
     opcodeUFFromArray, opcodeUVFromArray, opcodeUMFromArray, opcodeUSFromArray,
-    nullptr
-};
+    nullptr};
 
 void stripOpcodeMnemonic(const char *raw, char *out, int outSize) {
-    while (*raw == '\t' || *raw == ' ') ++raw;
+    while (*raw == '\t' || *raw == ' ')
+        ++raw;
     int i = 0;
     while (*raw && *raw != '\t' && *raw != ' ' && i < outSize - 1) {
         out[i++] = *raw++;
@@ -250,5 +250,4 @@ const char *const kDeadOpcodes[] = {
     // AStringString/AMatrixMatrix; found during Phase 4's full opcodes.cpp
     // accounting, not in the original triage.
     "moveaff", "moveavv", "moveass", "moveamm",
-    nullptr
-};
+    nullptr};

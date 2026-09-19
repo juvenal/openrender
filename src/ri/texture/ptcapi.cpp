@@ -101,7 +101,8 @@ PtcPointCloud PtcOpenPointCloudFile(char *fileName, int *nvars, const char **var
 
         ptcInternal->numPoints = ptcInternal->ptc->getNumPoints() - 1;
         ptcInternal->curPoint = 1; // First point is dummy
-    } else {
+    }
+    else {
         delete ptcInternal;
         return NULL;
     }
@@ -119,27 +120,33 @@ int PtcGetPointCloudInfo(PtcPointCloud pointcloud, const char *request, void *re
 
     if (strcmp(request, "npoints") == 0) {
         ((int *)result)[0] = ptcInternal->numPoints;
-    } else if (strcmp(request, "bbox") == 0) {
+    }
+    else if (strcmp(request, "bbox") == 0) {
         float *bmin = ((float *)result);
         float *bmax = bmin + 3;
         ptcInternal->ptc->bound(bmin, bmax);
-    } else if (strcmp(request, "datasize") == 0) {
+    }
+    else if (strcmp(request, "datasize") == 0) {
         int *ds = ((int *)result);
         ds[0] = ptcInternal->ptc->getDataSize();
-    } else if (strcmp(request, "world2eye") == 0) {
+    }
+    else if (strcmp(request, "world2eye") == 0) {
         float *from = ((float *)result);
         ptcInternal->ptc->getFromMatrix(from);
-    } else if (strcmp(request, "world2ndc") == 0) {
+    }
+    else if (strcmp(request, "world2ndc") == 0) {
         float *tondc = ((float *)result);
         ptcInternal->ptc->getNDCMatrix(tondc);
-    } else if (strcmp(request, "format") == 0) {
+    }
+    else if (strcmp(request, "format") == 0) {
         float *fmt = ((float *)result);
         fmt[0] = fmt[1] = fmt[2] = 1;
 
         // warning(CODE_UNIMPLEMENT,"format request is not supported\"%s\"\n",request);
         //  Don't use warning or error as Ri may not be initialized
         fprintf(stderr, "format request is not supported\n");
-    } else {
+    }
+    else {
         // error(CODE_BADTOKEN,"Unknown PtcGetPointCloudInfo request \"%s\"\n",request);
         //  Don't use warning or error as Ri may not be initialized
         fprintf(stderr, "Unknown PtcGetPointCloudInfo request \"%s\"\n", request);

@@ -95,10 +95,12 @@ void CXform::restore(const CXform *xform) {
     if (xform->next != NULL) {
         if (next != NULL) {
             next->restore(xform->next);
-        } else {
+        }
+        else {
             next = new CXform(xform->next);
         }
-    } else {
+    }
+    else {
         if (next != NULL) {
             delete next;
             next = NULL;

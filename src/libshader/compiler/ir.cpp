@@ -18,30 +18,31 @@
 #include "ir.h"
 #include "rslo.h" // for SLC_xxx constants
 
-#include <cstdlib>
 #include <cassert>
+#include <cstdlib>
 
 // -------------------------------------------------------------------------
 // IRVarInfo
 // -------------------------------------------------------------------------
 
-bool IRVarInfo::isUniform()   const { return (slcType & SLC_UNIFORM)    != 0; }
-bool IRVarInfo::isVarying()   const { return (slcType & SLC_VARYING)    != 0; }
-bool IRVarInfo::isParameter() const { return (slcType & SLC_PARAMETER)  != 0; }
-bool IRVarInfo::isGlobal()    const { return (slcType & SLC_GLOBAL)     != 0; }
-bool IRVarInfo::isOutput()    const { return (slcType & SLC_OUTPUT)     != 0; }
-bool IRVarInfo::isArray()     const { return (slcType & SLC_ARRAY)      != 0; }
-bool IRVarInfo::isFloat()     const { return (slcType & SLC_FLOAT)      != 0; }
-bool IRVarInfo::isVector()    const { return (slcType & SLC_VECTOR)     != 0; }
-bool IRVarInfo::isMatrix()    const { return (slcType & SLC_MATRIX)     != 0; }
-bool IRVarInfo::isString()    const { return (slcType & SLC_STRING)     != 0; }
+bool IRVarInfo::isUniform() const { return (slcType & SLC_UNIFORM) != 0; }
+bool IRVarInfo::isVarying() const { return (slcType & SLC_VARYING) != 0; }
+bool IRVarInfo::isParameter() const { return (slcType & SLC_PARAMETER) != 0; }
+bool IRVarInfo::isGlobal() const { return (slcType & SLC_GLOBAL) != 0; }
+bool IRVarInfo::isOutput() const { return (slcType & SLC_OUTPUT) != 0; }
+bool IRVarInfo::isArray() const { return (slcType & SLC_ARRAY) != 0; }
+bool IRVarInfo::isFloat() const { return (slcType & SLC_FLOAT) != 0; }
+bool IRVarInfo::isVector() const { return (slcType & SLC_VECTOR) != 0; }
+bool IRVarInfo::isMatrix() const { return (slcType & SLC_MATRIX) != 0; }
+bool IRVarInfo::isString() const { return (slcType & SLC_STRING) != 0; }
 
 // -------------------------------------------------------------------------
 // IROperand
 // -------------------------------------------------------------------------
 
 bool IROperand::isLiteral() const {
-    if (token.empty()) return false;
+    if (token.empty())
+        return false;
     // A token is a numeric literal if it begins with a digit, '-', or '.'
     const char c = token[0];
     return (c >= '0' && c <= '9') || c == '-' || c == '.';
@@ -76,12 +77,14 @@ int IRModule::addVar(const IRVarInfo &v) {
 
 const IRVarInfo *IRModule::findVar(const std::string &name) const {
     auto it = varIndex.find(name);
-    if (it == varIndex.end()) return nullptr;
+    if (it == varIndex.end())
+        return nullptr;
     return &vars[it->second];
 }
 
 IRVarInfo *IRModule::findVar(const std::string &name) {
     auto it = varIndex.find(name);
-    if (it == varIndex.end()) return nullptr;
+    if (it == varIndex.end())
+        return nullptr;
     return &vars[it->second];
 }

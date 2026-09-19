@@ -6,10 +6,16 @@
 #include "diskExpand.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 static const float EPS = 1e-4f;
 
@@ -20,7 +26,7 @@ static float dist(const float3 &a, const float3 &b) {
 
 static float3 sub(const float3 &a, const float3 &b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
 static float3 crossf(const float3 &a, const float3 &b) {
-    return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
+    return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 static float lenf(const float3 &a) { return std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z); }
 
@@ -75,19 +81,19 @@ static void checkDisk(const DiskPrimitive &d, const char *label) {
 
 int main() {
     // Ordinary disk, away from the origin.
-    checkDisk(DiskPrimitive{ {5, 2, -3}, {0, 0, 1}, 1.5f, {1, 0, 0} }, "ordinary");
+    checkDisk(DiskPrimitive{{5, 2, -3}, {0, 0, 1}, 1.5f, {1, 0, 0}}, "ordinary");
 
     // P at the exact origin -- the deleted pre-016 pglDisks basis (X = P x N) is NaN here since
     // P x N == 0 x N == 0. This implementation's basis is derived from N alone, so it must not
     // reproduce that bug.
-    checkDisk(DiskPrimitive{ {0, 0, 0}, {0, 1, 0}, 2.0f, {0, 1, 0} }, "P at origin");
+    checkDisk(DiskPrimitive{{0, 0, 0}, {0, 1, 0}, 2.0f, {0, 1, 0}}, "P at origin");
 
     // P parallel to N (same direction) -- also NaN in the deleted basis (P x N == 0 whenever P
     // is parallel to N, regardless of magnitude).
-    checkDisk(DiskPrimitive{ {3, 0, 0}, {1, 0, 0}, 0.5f, {0, 0, 1} }, "P parallel to N");
+    checkDisk(DiskPrimitive{{3, 0, 0}, {1, 0, 0}, 0.5f, {0, 0, 1}}, "P parallel to N");
 
     // N along a non-axis-aligned direction, to exercise the axis-picking fallback branch.
-    checkDisk(DiskPrimitive{ {1, 1, 1}, {0, 1, 0}, 1.0f, {1, 1, 1} }, "N along +Y (ref-axis switch)");
+    checkDisk(DiskPrimitive{{1, 1, 1}, {0, 1, 0}, 1.0f, {1, 1, 1}}, "N along +Y (ref-axis switch)");
 
     printf("test_data_disk_expand: %d pass, %d fail\n", g_pass, g_fail);
     return g_fail > 0 ? 1 : 0;

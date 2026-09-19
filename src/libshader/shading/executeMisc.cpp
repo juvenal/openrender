@@ -51,69 +51,72 @@
 void CShadingContext::duFloat(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Du executing on Points or Curves (note that curves are defined along v)
-    case SHADING_0D: {
-        for (int j = currentShadingState->numVertices; j > 0; --j) {
-            *dest++ = 0;
-        }
-    } break;
+        // Du executing on Points or Curves (note that curves are defined along v)
+        case SHADING_0D:
+        {
+            for (int j = currentShadingState->numVertices; j > 0; --j) {
+                *dest++ = 0;
+            }
+        } break;
 
-    // Du executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        const float *u = currentShadingState->varying[VARIABLE_U];
+        // Du executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            const float *u = currentShadingState->varying[VARIABLE_U];
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
-        assert(u[1] > u[0]);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
+            assert(u[1] > u[0]);
 
-        // These values are constant accross a grid
-        const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
-        const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
+            // These values are constant accross a grid
+            const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
+            const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
 
-        // Compute the Du
-        for (int j = vVertices; j > 0; --j) {
+            // Compute the Du
+            for (int j = vVertices; j > 0; --j) {
 
-            // Forward differencing
-            *dest++ = (float)(((double)src[1] - (double)src[0]) * invDu1);
-            ++src;
+                // Forward differencing
+                *dest++ = (float)(((double)src[1] - (double)src[0]) * invDu1);
+                ++src;
 
-            // Central differencing
-            for (int i = uVertices - 2; i > 0; --i) {
-                *dest++ = (float)(((double)src[1] - (double)src[-1]) * invDu2);
+                // Central differencing
+                for (int i = uVertices - 2; i > 0; --i) {
+                    *dest++ = (float)(((double)src[1] - (double)src[-1]) * invDu2);
+                    ++src;
+                }
+
+                // Backward differencing
+                *dest++ = (float)(((double)src[0] - (double)src[-1]) * invDu1);
                 ++src;
             }
+        } break;
 
-            // Backward differencing
-            *dest++ = (float)(((double)src[0] - (double)src[-1]) * invDu1);
-            ++src;
-        }
-    } break;
+        // Du executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices;
+            float *ddest = dest + numRealVertices;
+            const float *du = currentShadingState->varying[VARIABLE_DU];
 
-    // Du executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices;
-        float *ddest = dest + numRealVertices;
-        const float *du = currentShadingState->varying[VARIABLE_DU];
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                assert(*du != 0);
 
-            assert(*du != 0);
+                const float val = (float)(((double)dsrc[0] - (double)src[0]) / ((double)*du++));
 
-            const float val = (float)(((double)dsrc[0] - (double)src[0]) / ((double)*du++));
+                ddest[0] = val;
+                ddest[1] = val;
+                dest[0] = val;
 
-            ddest[0] = val;
-            ddest[1] = val;
-            dest[0] = val;
-
-            dest++;
-            src++;
-            ddest += 2;
-            dsrc += 2;
-        }
-    } break;
+                dest++;
+                src++;
+                ddest += 2;
+                dsrc += 2;
+            }
+        } break;
     }
 }
 
@@ -126,60 +129,63 @@ void CShadingContext::duFloat(float *dest, const float *src) {
 void CShadingContext::DuFloat(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Du executing on Points or Curves (note that curves are defined along v)
-    case SHADING_0D: {
-        for (int j = currentShadingState->numVertices; j > 0; --j) {
-            *dest++ = 0;
-        }
-    } break;
+        // Du executing on Points or Curves (note that curves are defined along v)
+        case SHADING_0D:
+        {
+            for (int j = currentShadingState->numVertices; j > 0; --j) {
+                *dest++ = 0;
+            }
+        } break;
 
-    // Du executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
+        // Du executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
 
-        // Compute the Du
-        for (int j = vVertices; j > 0; --j) {
+            // Compute the Du
+            for (int j = vVertices; j > 0; --j) {
 
-            // Forward differencing
-            *dest++ = (float)((double)src[1] - (double)src[0]);
-            src++;
+                // Forward differencing
+                *dest++ = (float)((double)src[1] - (double)src[0]);
+                src++;
 
-            // Central differencing
-            for (int i = uVertices - 2; i > 0; --i) {
-                *dest++ = (float)(((double)src[1] - (double)src[-1]) * 0.5);
+                // Central differencing
+                for (int i = uVertices - 2; i > 0; --i) {
+                    *dest++ = (float)(((double)src[1] - (double)src[-1]) * 0.5);
+                    src++;
+                }
+
+                // Backward differencing
+                *dest++ = (float)((double)src[0] - (double)src[-1]);
                 src++;
             }
+        } break;
 
-            // Backward differencing
-            *dest++ = (float)((double)src[0] - (double)src[-1]);
-            src++;
-        }
-    } break;
+        // Du executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices;
+            float *ddest = dest + numRealVertices;
 
-    // Du executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices;
-        float *ddest = dest + numRealVertices;
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                const float val = (float)((double)dsrc[0] - (double)src[0]);
 
-            const float val = (float)((double)dsrc[0] - (double)src[0]);
+                ddest[0] = val;
+                ddest[1] = val;
+                dest[0] = val;
 
-            ddest[0] = val;
-            ddest[1] = val;
-            dest[0] = val;
-
-            dest++;
-            src++;
-            ddest += 2;
-            dsrc += 2;
-        }
-    } break;
+                dest++;
+                src++;
+                ddest += 2;
+                dsrc += 2;
+            }
+        } break;
     }
 }
 
@@ -193,73 +199,76 @@ void CShadingContext::dvFloat(float *dest, const float *src) {
 
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
-        for (int i = currentShadingState->numVertices; i > 0; --i) {
-            *dest++ = 0;
-        }
-    } break;
+        // Dv executing on Points
+        case SHADING_0D:
+        {
+            for (int i = currentShadingState->numVertices; i > 0; --i) {
+                *dest++ = 0;
+            }
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        const float *v = currentShadingState->varying[VARIABLE_V];
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            const float *v = currentShadingState->varying[VARIABLE_V];
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
-        assert(v[uVertices] > v[0]);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
+            assert(v[uVertices] > v[0]);
 
-        const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
-        const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
+            const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
+            const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
 
-        // Compute the DV
-        for (int j = 0; j < uVertices; ++j) {
-            float *cRes = dest + j;
-            const float *cOp = src + j;
+            // Compute the DV
+            for (int j = 0; j < uVertices; ++j) {
+                float *cRes = dest + j;
+                const float *cOp = src + j;
 
-            // Forward differencing
-            cRes[0] = (float)((double)(cOp[uVertices] - (double)cOp[0]) * invDv1);
-            cRes += uVertices;
-            cOp += uVertices;
-
-            // Central differencing
-            for (int i = vVertices - 2; i > 0; --i) {
-                cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * invDv2);
+                // Forward differencing
+                cRes[0] = (float)((double)(cOp[uVertices] - (double)cOp[0]) * invDv1);
                 cRes += uVertices;
                 cOp += uVertices;
+
+                // Central differencing
+                for (int i = vVertices - 2; i > 0; --i) {
+                    cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * invDv2);
+                    cRes += uVertices;
+                    cOp += uVertices;
+                }
+
+                // Backward differencing
+                cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices]) * invDv1);
             }
+        } break;
 
-            // Backward differencing
-            cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices]) * invDv1);
-        }
-    } break;
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices;
+            float *ddest = dest + numRealVertices;
+            const float *dv = currentShadingState->varying[VARIABLE_DV];
 
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices;
-        float *ddest = dest + numRealVertices;
-        const float *dv = currentShadingState->varying[VARIABLE_DV];
+            assert(currentShadingState->numVertices == numRealVertices * 3);
 
-        assert(currentShadingState->numVertices == numRealVertices * 3);
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                assert(*dv != 0);
 
-            assert(*dv != 0);
+                const float val = (float)(((double)dsrc[1] - (double)src[0]) / ((double)*dv++));
 
-            const float val = (float)(((double)dsrc[1] - (double)src[0]) / ((double)*dv++));
+                ddest[0] = val;
+                ddest[1] = val;
+                dest[0] = val;
 
-            ddest[0] = val;
-            ddest[1] = val;
-            dest[0] = val;
-
-            ++dest;
-            ++src;
-            ddest += 2;
-            dsrc += 2;
-        }
-    } break;
+                ++dest;
+                ++src;
+                ddest += 2;
+                dsrc += 2;
+            }
+        } break;
     }
 }
 
@@ -273,65 +282,68 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
 
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
-        for (int i = currentShadingState->numVertices; i > 0; --i) {
-            *dest++ = 0;
-        }
-    } break;
+        // Dv executing on Points
+        case SHADING_0D:
+        {
+            for (int i = currentShadingState->numVertices; i > 0; --i) {
+                *dest++ = 0;
+            }
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
 
-        // Compute the DV
-        for (int j = 0; j < uVertices; ++j) {
-            float *cRes = dest + j;
-            const float *cOp = src + j;
+            // Compute the DV
+            for (int j = 0; j < uVertices; ++j) {
+                float *cRes = dest + j;
+                const float *cOp = src + j;
 
-            // Forward differencing
-            cRes[0] = (float)((double)cOp[uVertices] - (double)cOp[0]);
-            cRes += uVertices;
-            cOp += uVertices;
-
-            // Central differencing
-            for (int i = vVertices - 2; i > 0; --i) {
-                cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * 0.5);
+                // Forward differencing
+                cRes[0] = (float)((double)cOp[uVertices] - (double)cOp[0]);
                 cRes += uVertices;
                 cOp += uVertices;
+
+                // Central differencing
+                for (int i = vVertices - 2; i > 0; --i) {
+                    cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * 0.5);
+                    cRes += uVertices;
+                    cOp += uVertices;
+                }
+
+                // Backward differencing
+                cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices]);
             }
+        } break;
 
-            // Backward differencing
-            cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices]);
-        }
-    } break;
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices;
+            float *ddest = dest + numRealVertices;
 
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices;
-        float *ddest = dest + numRealVertices;
+            assert(currentShadingState->numVertices == numRealVertices * 3);
 
-        assert(currentShadingState->numVertices == numRealVertices * 3);
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                const float val = (float)((double)dsrc[1] - (double)src[0]);
 
-            const float val = (float)((double)dsrc[1] - (double)src[0]);
+                ddest[0] = val;
+                ddest[1] = val;
+                dest[0] = val;
 
-            ddest[0] = val;
-            ddest[1] = val;
-            dest[0] = val;
-
-            ++dest;
-            ++src;
-            ddest += 2;
-            dsrc += 2;
-        }
-    } break;
+                ++dest;
+                ++src;
+                ddest += 2;
+                dsrc += 2;
+            }
+        } break;
     }
 }
 
@@ -344,85 +356,88 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
 void CShadingContext::duVector(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Du executing on Points or Curves (note that curves are defined along v)
-    case SHADING_0D: {
-        for (int j = currentShadingState->numVertices; j > 0; --j) {
-            initv(dest, 0);
-            dest += 3;
-        }
-    } break;
+        // Du executing on Points or Curves (note that curves are defined along v)
+        case SHADING_0D:
+        {
+            for (int j = currentShadingState->numVertices; j > 0; --j) {
+                initv(dest, 0);
+                dest += 3;
+            }
+        } break;
 
-    // Du executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        const float *u = currentShadingState->varying[VARIABLE_U];
+        // Du executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            const float *u = currentShadingState->varying[VARIABLE_U];
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
-        assert(u[1] > u[0]);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
+            assert(u[1] > u[0]);
 
-        const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
-        const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
+            const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
+            const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
 
-        for (int j = vVertices; j > 0; --j) {
+            for (int j = vVertices; j > 0; --j) {
 
-            // Use forward difference
-            *dest++ = (float)(((double)src[3] - (double)src[0]) * invDu1);
-            *dest++ = (float)(((double)src[4] - (double)src[1]) * invDu1);
-            *dest++ = (float)(((double)src[5] - (double)src[2]) * invDu1);
-            src += 3;
+                // Use forward difference
+                *dest++ = (float)(((double)src[3] - (double)src[0]) * invDu1);
+                *dest++ = (float)(((double)src[4] - (double)src[1]) * invDu1);
+                *dest++ = (float)(((double)src[5] - (double)src[2]) * invDu1);
+                src += 3;
 
-            // Use central difference
-            for (int i = uVertices - 2; i > 0; --i) {
-                *dest++ = (float)(((double)src[3] - (double)src[-3]) * invDu2);
-                *dest++ = (float)(((double)src[4] - (double)src[-2]) * invDu2);
-                *dest++ = (float)(((double)src[5] - (double)src[-1]) * invDu2);
+                // Use central difference
+                for (int i = uVertices - 2; i > 0; --i) {
+                    *dest++ = (float)(((double)src[3] - (double)src[-3]) * invDu2);
+                    *dest++ = (float)(((double)src[4] - (double)src[-2]) * invDu2);
+                    *dest++ = (float)(((double)src[5] - (double)src[-1]) * invDu2);
+                    src += 3;
+                }
+
+                // Use backward difference
+                *dest++ = (float)(((double)src[0] - (double)src[-3]) * invDu1);
+                *dest++ = (float)(((double)src[1] - (double)src[-2]) * invDu1);
+                *dest++ = (float)(((double)src[2] - (double)src[-1]) * invDu1);
                 src += 3;
             }
+        } break;
 
-            // Use backward difference
-            *dest++ = (float)(((double)src[0] - (double)src[-3]) * invDu1);
-            *dest++ = (float)(((double)src[1] - (double)src[-2]) * invDu1);
-            *dest++ = (float)(((double)src[2] - (double)src[-1]) * invDu1);
-            src += 3;
-        }
-    } break;
+        // Du executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices * 3;
+            float *ddest = dest + numRealVertices * 3;
+            const float *du = currentShadingState->varying[VARIABLE_DU];
 
-    // Du executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices * 3;
-        float *ddest = dest + numRealVertices * 3;
-        const float *du = currentShadingState->varying[VARIABLE_DU];
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                assert(*du != 0);
 
-            assert(*du != 0);
+                const double invDu = 1 / ((double)*du++);
+                const float val0 = (float)(((double)dsrc[0] - (double)src[0]) * invDu);
+                const float val1 = (float)(((double)dsrc[1] - (double)src[1]) * invDu);
+                const float val2 = (float)(((double)dsrc[2] - (double)src[2]) * invDu);
 
-            const double invDu = 1 / ((double)*du++);
-            const float val0 = (float)(((double)dsrc[0] - (double)src[0]) * invDu);
-            const float val1 = (float)(((double)dsrc[1] - (double)src[1]) * invDu);
-            const float val2 = (float)(((double)dsrc[2] - (double)src[2]) * invDu);
+                ddest[0] = val0;
+                ddest[1] = val1;
+                ddest[2] = val2;
+                ddest[3] = val0;
+                ddest[4] = val1;
+                ddest[5] = val2;
+                dest[0] = val0;
+                dest[1] = val1;
+                dest[2] = val2;
 
-            ddest[0] = val0;
-            ddest[1] = val1;
-            ddest[2] = val2;
-            ddest[3] = val0;
-            ddest[4] = val1;
-            ddest[5] = val2;
-            dest[0] = val0;
-            dest[1] = val1;
-            dest[2] = val2;
+                assert(dotvv(dest, dest) >= 0);
 
-            assert(dotvv(dest, dest) >= 0);
-
-            dest += 3;
-            src += 3;
-            ddest += 6;
-            dsrc += 6;
-        }
-    } break;
+                dest += 3;
+                src += 3;
+                ddest += 6;
+                dsrc += 6;
+            }
+        } break;
     }
 }
 
@@ -435,76 +450,79 @@ void CShadingContext::duVector(float *dest, const float *src) {
 void CShadingContext::DuVector(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Du executing on Points or Curves (note that curves are defined along v)
-    case SHADING_0D: {
-        for (int j = currentShadingState->numVertices; j > 0; --j) {
-            initv(dest, 0);
-            dest += 3;
-        }
-    } break;
+        // Du executing on Points or Curves (note that curves are defined along v)
+        case SHADING_0D:
+        {
+            for (int j = currentShadingState->numVertices; j > 0; --j) {
+                initv(dest, 0);
+                dest += 3;
+            }
+        } break;
 
-    // Du executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
+        // Du executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
 
-        for (int j = vVertices; j > 0; --j) {
+            for (int j = vVertices; j > 0; --j) {
 
-            // Use forward difference
-            *dest++ = (float)((double)src[3] - (double)src[0]);
-            *dest++ = (float)((double)src[4] - (double)src[1]);
-            *dest++ = (float)((double)src[5] - (double)src[2]);
-            src += 3;
+                // Use forward difference
+                *dest++ = (float)((double)src[3] - (double)src[0]);
+                *dest++ = (float)((double)src[4] - (double)src[1]);
+                *dest++ = (float)((double)src[5] - (double)src[2]);
+                src += 3;
 
-            // Use central difference
-            for (int i = uVertices - 2; i > 0; --i) {
-                *dest++ = (float)(((double)src[3] - (double)src[-3]) * 0.5);
-                *dest++ = (float)(((double)src[4] - (double)src[-2]) * 0.5);
-                *dest++ = (float)(((double)src[5] - (double)src[-1]) * 0.5);
+                // Use central difference
+                for (int i = uVertices - 2; i > 0; --i) {
+                    *dest++ = (float)(((double)src[3] - (double)src[-3]) * 0.5);
+                    *dest++ = (float)(((double)src[4] - (double)src[-2]) * 0.5);
+                    *dest++ = (float)(((double)src[5] - (double)src[-1]) * 0.5);
+                    src += 3;
+                }
+
+                // Use backward difference
+                *dest++ = (float)((double)src[0] - (double)src[-3]);
+                *dest++ = (float)((double)src[1] - (double)src[-2]);
+                *dest++ = (float)((double)src[2] - (double)src[-1]);
                 src += 3;
             }
+        } break;
 
-            // Use backward difference
-            *dest++ = (float)((double)src[0] - (double)src[-3]);
-            *dest++ = (float)((double)src[1] - (double)src[-2]);
-            *dest++ = (float)((double)src[2] - (double)src[-1]);
-            src += 3;
-        }
-    } break;
+        // Du executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices * 3;
+            float *ddest = dest + numRealVertices * 3;
 
-    // Du executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices * 3;
-        float *ddest = dest + numRealVertices * 3;
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                const float val0 = (float)((double)dsrc[0] - (double)src[0]);
+                const float val1 = (float)((double)dsrc[1] - (double)src[1]);
+                const float val2 = (float)((double)dsrc[2] - (double)src[2]);
 
-            const float val0 = (float)((double)dsrc[0] - (double)src[0]);
-            const float val1 = (float)((double)dsrc[1] - (double)src[1]);
-            const float val2 = (float)((double)dsrc[2] - (double)src[2]);
+                ddest[0] = val0;
+                ddest[1] = val1;
+                ddest[2] = val2;
+                ddest[3] = val0;
+                ddest[4] = val1;
+                ddest[5] = val2;
+                dest[0] = val0;
+                dest[1] = val1;
+                dest[2] = val2;
 
-            ddest[0] = val0;
-            ddest[1] = val1;
-            ddest[2] = val2;
-            ddest[3] = val0;
-            ddest[4] = val1;
-            ddest[5] = val2;
-            dest[0] = val0;
-            dest[1] = val1;
-            dest[2] = val2;
+                assert(dotvv(dest, dest) >= 0);
 
-            assert(dotvv(dest, dest) >= 0);
-
-            dest += 3;
-            src += 3;
-            ddest += 6;
-            dsrc += 6;
-        }
-    } break;
+                dest += 3;
+                src += 3;
+                ddest += 6;
+                dsrc += 6;
+            }
+        } break;
     }
 }
 
@@ -517,88 +535,91 @@ void CShadingContext::DuVector(float *dest, const float *src) {
 void CShadingContext::dvVector(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
-        for (int i = currentShadingState->numVertices; i > 0; --i) {
-            initv(dest, 0);
-            dest += 3;
-        }
-    } break;
+        // Dv executing on Points
+        case SHADING_0D:
+        {
+            for (int i = currentShadingState->numVertices; i > 0; --i) {
+                initv(dest, 0);
+                dest += 3;
+            }
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        const float *v = currentShadingState->varying[VARIABLE_V];
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            const float *v = currentShadingState->varying[VARIABLE_V];
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
-        assert(v[uVertices] > v[0]);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
+            assert(v[uVertices] > v[0]);
 
-        const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
-        const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
+            const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
+            const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
 
-        for (int j = 0; j < uVertices; ++j) {
-            float *cRes = dest + j * 3;
-            const float *cOp = src + j * 3;
+            for (int j = 0; j < uVertices; ++j) {
+                float *cRes = dest + j * 3;
+                const float *cOp = src + j * 3;
 
-            // Forward differencing
-            cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[0]) * invDv1);
-            cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[1]) * invDv1);
-            cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[2]) * invDv1);
-            cRes += uVertices * 3;
-            cOp += uVertices * 3;
-
-            // Central differencing
-            for (int i = vVertices - 2; i > 0; --i) {
-                cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * invDv2);
-                cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * invDv2);
-                cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * invDv2);
+                // Forward differencing
+                cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[0]) * invDv1);
+                cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[1]) * invDv1);
+                cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[2]) * invDv1);
                 cRes += uVertices * 3;
                 cOp += uVertices * 3;
+
+                // Central differencing
+                for (int i = vVertices - 2; i > 0; --i) {
+                    cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * invDv2);
+                    cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * invDv2);
+                    cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * invDv2);
+                    cRes += uVertices * 3;
+                    cOp += uVertices * 3;
+                }
+
+                // Backward differencing
+                cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]) * invDv1);
+                cRes[1] = (float)(((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]) * invDv1);
+                cRes[2] = (float)(((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]) * invDv1);
             }
+        } break;
 
-            // Backward differencing
-            cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]) * invDv1);
-            cRes[1] = (float)(((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]) * invDv1);
-            cRes[2] = (float)(((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]) * invDv1);
-        }
-    } break;
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices * 3;
+            float *ddest = dest + numRealVertices * 3;
+            const float *dv = currentShadingState->varying[VARIABLE_DV];
 
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices * 3;
-        float *ddest = dest + numRealVertices * 3;
-        const float *dv = currentShadingState->varying[VARIABLE_DV];
+            assert(currentShadingState->numVertices == numRealVertices * 3);
 
-        assert(currentShadingState->numVertices == numRealVertices * 3);
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                assert(*dv > 0);
 
-            assert(*dv > 0);
+                const double invDv = 1 / ((double)*dv++);
+                const float val0 = (float)(((double)dsrc[3] - (double)src[0]) * invDv);
+                const float val1 = (float)(((double)dsrc[4] - (double)src[1]) * invDv);
+                const float val2 = (float)(((double)dsrc[5] - (double)src[2]) * invDv);
 
-            const double invDv = 1 / ((double)*dv++);
-            const float val0 = (float)(((double)dsrc[3] - (double)src[0]) * invDv);
-            const float val1 = (float)(((double)dsrc[4] - (double)src[1]) * invDv);
-            const float val2 = (float)(((double)dsrc[5] - (double)src[2]) * invDv);
+                ddest[0] = val0;
+                ddest[1] = val1;
+                ddest[2] = val2;
+                ddest[3] = val0;
+                ddest[4] = val1;
+                ddest[5] = val2;
+                dest[0] = val0;
+                dest[1] = val1;
+                dest[2] = val2;
 
-            ddest[0] = val0;
-            ddest[1] = val1;
-            ddest[2] = val2;
-            ddest[3] = val0;
-            ddest[4] = val1;
-            ddest[5] = val2;
-            dest[0] = val0;
-            dest[1] = val1;
-            dest[2] = val2;
-
-            dest += 3;
-            src += 3;
-            ddest += 6;
-            dsrc += 6;
-        }
-    } break;
+                dest += 3;
+                src += 3;
+                ddest += 6;
+                dsrc += 6;
+            }
+        } break;
     }
 }
 
@@ -611,79 +632,82 @@ void CShadingContext::dvVector(float *dest, const float *src) {
 void CShadingContext::DvVector(float *dest, const float *src) {
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
-        for (int i = currentShadingState->numVertices; i > 0; --i) {
-            initv(dest, 0);
-            dest += 3;
-        }
-    } break;
+        // Dv executing on Points
+        case SHADING_0D:
+        {
+            for (int i = currentShadingState->numVertices; i > 0; --i) {
+                initv(dest, 0);
+                dest += 3;
+            }
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
 
-        assert(uVertices >= 2);
-        assert(vVertices >= 2);
+            assert(uVertices >= 2);
+            assert(vVertices >= 2);
 
-        for (int j = 0; j < uVertices; ++j) {
-            float *cRes = dest + j * 3;
-            const float *cOp = src + j * 3;
+            for (int j = 0; j < uVertices; ++j) {
+                float *cRes = dest + j * 3;
+                const float *cOp = src + j * 3;
 
-            // Forward differencing
-            cRes[0] = (float)((double)cOp[uVertices * 3 + 0] - (double)cOp[0]);
-            cRes[1] = (float)((double)cOp[uVertices * 3 + 1] - (double)cOp[1]);
-            cRes[2] = (float)((double)cOp[uVertices * 3 + 2] - (double)cOp[2]);
-            cRes += uVertices * 3;
-            cOp += uVertices * 3;
-
-            // Central differencing
-            for (int i = vVertices - 2; i > 0; --i) {
-                cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * 0.5);
-                cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * 0.5);
-                cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * 0.5);
+                // Forward differencing
+                cRes[0] = (float)((double)cOp[uVertices * 3 + 0] - (double)cOp[0]);
+                cRes[1] = (float)((double)cOp[uVertices * 3 + 1] - (double)cOp[1]);
+                cRes[2] = (float)((double)cOp[uVertices * 3 + 2] - (double)cOp[2]);
                 cRes += uVertices * 3;
                 cOp += uVertices * 3;
+
+                // Central differencing
+                for (int i = vVertices - 2; i > 0; --i) {
+                    cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * 0.5);
+                    cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * 0.5);
+                    cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * 0.5);
+                    cRes += uVertices * 3;
+                    cOp += uVertices * 3;
+                }
+
+                // Backward differencing
+                cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]);
+                cRes[1] = (float)((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]);
+                cRes[2] = (float)((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]);
             }
+        } break;
 
-            // Backward differencing
-            cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]);
-            cRes[1] = (float)((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]);
-            cRes[2] = (float)((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]);
-        }
-    } break;
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dsrc = src + numRealVertices * 3;
+            float *ddest = dest + numRealVertices * 3;
 
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dsrc = src + numRealVertices * 3;
-        float *ddest = dest + numRealVertices * 3;
+            assert(currentShadingState->numVertices == numRealVertices * 3);
 
-        assert(currentShadingState->numVertices == numRealVertices * 3);
+            for (int i = numRealVertices; i > 0; --i) {
 
-        for (int i = numRealVertices; i > 0; --i) {
+                const float val0 = (float)((double)dsrc[3] - (double)src[0]);
+                const float val1 = (float)((double)dsrc[4] - (double)src[1]);
+                const float val2 = (float)((double)dsrc[5] - (double)src[2]);
 
-            const float val0 = (float)((double)dsrc[3] - (double)src[0]);
-            const float val1 = (float)((double)dsrc[4] - (double)src[1]);
-            const float val2 = (float)((double)dsrc[5] - (double)src[2]);
+                ddest[0] = val0;
+                ddest[1] = val1;
+                ddest[2] = val2;
+                ddest[3] = val0;
+                ddest[4] = val1;
+                ddest[5] = val2;
+                dest[0] = val0;
+                dest[1] = val1;
+                dest[2] = val2;
 
-            ddest[0] = val0;
-            ddest[1] = val1;
-            ddest[2] = val2;
-            ddest[3] = val0;
-            ddest[4] = val1;
-            ddest[5] = val2;
-            dest[0] = val0;
-            dest[1] = val1;
-            dest[2] = val2;
-
-            dest += 3;
-            src += 3;
-            ddest += 6;
-            dsrc += 6;
-        }
-    } break;
+                dest += 3;
+                src += 3;
+                ddest += 6;
+                dsrc += 6;
+            }
+        } break;
     }
 }
 
@@ -757,7 +781,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         float tanConeAngle;
         if (1.0f < tanValue) {
             tanConeAngle = 1.0f;
-        } else {
+        }
+        else {
             tanConeAngle = tanValue;
         }
         const float multiplier = 1 / (float)numSamples;
@@ -787,7 +812,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 float minDist;
                 if (d < rays->maxDist) {
                     minDist = d;
-                } else {
+                }
+                else {
                     minDist = rays->maxDist;
                 }
                 cRay->t = minDist - rays->bias;
@@ -808,7 +834,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                     // No, just query an intersection and record the distance
                     trace(cRay);
                     rays->t += cRay->t * multiplier;
-                } else {
+                }
+                else {
                     *cRays++ = cRay++;
                     if (--numRemaining == 0) {
                         numTransmissionRays += shootStep;
@@ -866,7 +893,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     if (scratch->traceParams.label == NULL) {
         exteriorBundle.label = rayLabelTransmission;
         interiorBundle.label = rayLabelTransmission;
-    } else {
+    }
+    else {
         exteriorBundle.label = scratch->traceParams.label;
         interiorBundle.label = scratch->traceParams.label;
     }
@@ -891,7 +919,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         float tanConeAngle;
         if (1.0f < tanValue) {
             tanConeAngle = 1.0f;
-        } else {
+        }
+        else {
             tanConeAngle = tanValue;
         }
         const float multiplier = 1 / (float)numSamples;
@@ -939,7 +968,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                     // No, just query an intersection and record the distance
                     trace(cRay);
                     rays->t += cRay->t * multiplier;
-                } else {
+                }
+                else {
                     if (isExterior) {
                         *cExteriorRays++ = cRay;
                         cExteriorRay++;
@@ -956,7 +986,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             cExteriorRays = exteriorRaysBase;
                             numExteriorRemaining = shootStep;
                         }
-                    } else {
+                    }
+                    else {
                         *cInteriorRays++ = cRay;
                         cInteriorRay++;
 
@@ -1027,88 +1058,150 @@ float *CShadingContext::rayDiff(const float *from, const float *dir, const float
 
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
+        // Dv executing on Points
+        case SHADING_0D:
+        {
 
-        // Set anyway
-        for (int i = numVertices; i > 0; i--) {
-            *ab++ = DEFAULT_RAY_DA;
-            *ab++ = DEFAULT_RAY_DB;
-        }
+            // Set anyway
+            for (int i = numVertices; i > 0; i--) {
+                *ab++ = DEFAULT_RAY_DA;
+                *ab++ = DEFAULT_RAY_DB;
+            }
 
-        return ab - numVertices * 2;
-    } break;
+            return ab - numVertices * 2;
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        int i, j;
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            int i, j;
 
-        for (j = 0; j < vVertices; j++) {
-            for (i = 0; i < uVertices; i++) {
+            for (j = 0; j < vVertices; j++) {
+                for (i = 0; i < uVertices; i++) {
 
-                int ii;
-                if ((uVertices - 2) < i) {
-                    ii = uVertices - 2;
-                } else {
-                    ii = i;
+                    int ii;
+                    if ((uVertices - 2) < i) {
+                        ii = uVertices - 2;
+                    }
+                    else {
+                        ii = i;
+                    }
+                    int jj;
+                    if ((vVertices - 2) < j) {
+                        jj = vVertices - 2;
+                    }
+                    else {
+                        jj = j;
+                    }
+
+                    // The 4 corners of the current quad
+                    const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;
+                    const float *cFrom1 = cFrom0 + 3;
+                    const float *cFrom2 = cFrom0 + uVertices * 3;
+                    const float *cFrom3 = cFrom2 + 3;
+
+                    ab[0] = 0;
+                    ab[1] = 0;
+
+                    vector tmp;
+                    subvv(tmp, cFrom1, cFrom0);
+                    ab[1] += lengthv(tmp);
+                    subvv(tmp, cFrom2, cFrom0);
+                    ab[1] += lengthv(tmp);
+                    subvv(tmp, cFrom1, cFrom3);
+                    ab[1] += lengthv(tmp);
+                    subvv(tmp, cFrom2, cFrom3);
+                    ab[1] += lengthv(tmp);
+
+                    // The directions at 4 corners of the quad
+                    const float *cDir0 = dir + jj * uVertices * 3 + ii * 3;
+                    const float *cDir1 = cDir0 + 3;
+                    const float *cDir2 = cDir0 + uVertices * 3;
+                    const float *cDir3 = cDir2 + 3;
+
+                    float a = dotvv(cDir1, cDir0);
+                    ab[0] += acosf(sqrtf(a * a / (dotvv(cDir0, cDir0) * dotvv(cDir1, cDir1) + C_EPSILON)));
+
+                    a = dotvv(cDir2, cDir0);
+                    ab[0] += acosf(sqrtf(a * a / (dotvv(cDir0, cDir0) * dotvv(cDir2, cDir2) + C_EPSILON)));
+
+                    a = dotvv(cDir3, cDir1);
+                    ab[0] += acosf(sqrtf(a * a / (dotvv(cDir3, cDir3) * dotvv(cDir1, cDir1) + C_EPSILON)));
+
+                    a = dotvv(cDir2, cDir3);
+                    ab[0] += acosf(sqrtf(a * a / (dotvv(cDir2, cDir2) * dotvv(cDir3, cDir3) + C_EPSILON)));
+
+                    ab[0] *= 0.25f;
+                    ab[1] *= 0.25f;
+
+                    float clampedAb0;
+                    float piHalf = ((float)C_PI) * 0.5f - C_EPSILON;
+                    if (piHalf < ab[0]) {
+                        clampedAb0 = piHalf;
+                    }
+                    else {
+                        clampedAb0 = ab[0];
+                    }
+                    ab[0] = tanf(clampedAb0);
+                    if (DEFAULT_RAY_DA < ab[0]) {
+                        ab[0] = DEFAULT_RAY_DA;
+                    }
+
+                    // guard against bad differentials
+
+                    if (ab[0] != ab[0])
+                        ab[0] = DEFAULT_RAY_DA;
+
+                    assert(ab[0] >= 0);
+                    assert(ab[1] >= 0);
+
+                    ab += 2;
                 }
-                int jj;
-                if ((vVertices - 2) < j) {
-                    jj = vVertices - 2;
-                } else {
-                    jj = j;
-                }
+            }
 
-                // The 4 corners of the current quad
-                const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;
-                const float *cFrom1 = cFrom0 + 3;
-                const float *cFrom2 = cFrom0 + uVertices * 3;
-                const float *cFrom3 = cFrom2 + 3;
+            return ab - uVertices * vVertices * 2;
+        } break;
+
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dfrom = from + numRealVertices * 3;
+            const float *ddir = dir + numRealVertices * 3;
+            int i;
+
+            assert(numVertices == numRealVertices * 3);
+
+            for (i = numRealVertices; i > 0; i--) {
+                vector tmp;
 
                 ab[0] = 0;
                 ab[1] = 0;
 
-                vector tmp;
-                subvv(tmp, cFrom1, cFrom0);
+                subvv(tmp, dfrom, from);
                 ab[1] += lengthv(tmp);
-                subvv(tmp, cFrom2, cFrom0);
-                ab[1] += lengthv(tmp);
-                subvv(tmp, cFrom1, cFrom3);
-                ab[1] += lengthv(tmp);
-                subvv(tmp, cFrom2, cFrom3);
+                subvv(tmp, dfrom + 3, from);
                 ab[1] += lengthv(tmp);
 
-                // The directions at 4 corners of the quad
-                const float *cDir0 = dir + jj * uVertices * 3 + ii * 3;
-                const float *cDir1 = cDir0 + 3;
-                const float *cDir2 = cDir0 + uVertices * 3;
-                const float *cDir3 = cDir2 + 3;
+                float a;
+                a = dotvv(dir, ddir);
+                ab[0] += acosf(sqrtf(a * a / (dotvv(dir, dir) * dotvv(ddir, ddir) + C_EPSILON)));
+                a = dotvv(dir, ddir + 3);
+                ab[0] += acosf(sqrtf(a * a / (dotvv(dir, dir) * dotvv(ddir + 3, ddir + 3) + C_EPSILON)));
 
-                float a = dotvv(cDir1, cDir0);
-                ab[0] += acosf(sqrtf(a * a / (dotvv(cDir0, cDir0) * dotvv(cDir1, cDir1) + C_EPSILON)));
-
-                a = dotvv(cDir2, cDir0);
-                ab[0] += acosf(sqrtf(a * a / (dotvv(cDir0, cDir0) * dotvv(cDir2, cDir2) + C_EPSILON)));
-
-                a = dotvv(cDir3, cDir1);
-                ab[0] += acosf(sqrtf(a * a / (dotvv(cDir3, cDir3) * dotvv(cDir1, cDir1) + C_EPSILON)));
-
-                a = dotvv(cDir2, cDir3);
-                ab[0] += acosf(sqrtf(a * a / (dotvv(cDir2, cDir2) * dotvv(cDir3, cDir3) + C_EPSILON)));
-
-                ab[0] *= 0.25f;
-                ab[1] *= 0.25f;
-
-                float clampedAb0;
-                float piHalf = ((float)C_PI) * 0.5f - C_EPSILON;
-                if (piHalf < ab[0]) {
-                    clampedAb0 = piHalf;
-                } else {
-                    clampedAb0 = ab[0];
+                ab[0] *= 0.5f;
+                ab[1] *= 0.5f;
+                float clampedAb0_single;
+                float piHalf_single = ((float)C_PI) * 0.5f - C_EPSILON;
+                if (piHalf_single < ab[0]) {
+                    clampedAb0_single = piHalf_single;
                 }
-                ab[0] = tanf(clampedAb0);
+                else {
+                    clampedAb0_single = ab[0];
+                }
+                ab[0] = tanf(clampedAb0_single);
                 if (DEFAULT_RAY_DA < ab[0]) {
                     ab[0] = DEFAULT_RAY_DA;
                 }
@@ -1122,69 +1215,14 @@ float *CShadingContext::rayDiff(const float *from, const float *dir, const float
                 assert(ab[1] >= 0);
 
                 ab += 2;
-            }
-        }
-
-        return ab - uVertices * vVertices * 2;
-    } break;
-
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dfrom = from + numRealVertices * 3;
-        const float *ddir = dir + numRealVertices * 3;
-        int i;
-
-        assert(numVertices == numRealVertices * 3);
-
-        for (i = numRealVertices; i > 0; i--) {
-            vector tmp;
-
-            ab[0] = 0;
-            ab[1] = 0;
-
-            subvv(tmp, dfrom, from);
-            ab[1] += lengthv(tmp);
-            subvv(tmp, dfrom + 3, from);
-            ab[1] += lengthv(tmp);
-
-            float a;
-            a = dotvv(dir, ddir);
-            ab[0] += acosf(sqrtf(a * a / (dotvv(dir, dir) * dotvv(ddir, ddir) + C_EPSILON)));
-            a = dotvv(dir, ddir + 3);
-            ab[0] += acosf(sqrtf(a * a / (dotvv(dir, dir) * dotvv(ddir + 3, ddir + 3) + C_EPSILON)));
-
-            ab[0] *= 0.5f;
-            ab[1] *= 0.5f;
-            float clampedAb0_single;
-            float piHalf_single = ((float)C_PI) * 0.5f - C_EPSILON;
-            if (piHalf_single < ab[0]) {
-                clampedAb0_single = piHalf_single;
-            } else {
-                clampedAb0_single = ab[0];
-            }
-            ab[0] = tanf(clampedAb0_single);
-            if (DEFAULT_RAY_DA < ab[0]) {
-                ab[0] = DEFAULT_RAY_DA;
+                from += 3;
+                dir += 3;
+                dfrom += 6;
+                ddir += 6;
             }
 
-            // guard against bad differentials
-
-            if (ab[0] != ab[0])
-                ab[0] = DEFAULT_RAY_DA;
-
-            assert(ab[0] >= 0);
-            assert(ab[1] >= 0);
-
-            ab += 2;
-            from += 3;
-            dir += 3;
-            dfrom += 6;
-            ddir += 6;
-        }
-
-        return ab - numRealVertices * 2;
-    } break;
+            return ab - numRealVertices * 2;
+        } break;
     }
 
     assert(FALSE);
@@ -1205,90 +1243,95 @@ float *CShadingContext::rayDiff(const float *from) {
 
     switch (currentShadingState->shadingDim) {
 
-    // Dv executing on Points
-    case SHADING_0D: {
-        // Set anyway
-        for (int i = numVertices; i > 0; i--) {
-            *b++ = DEFAULT_RAY_DB;
-        }
+        // Dv executing on Points
+        case SHADING_0D:
+        {
+            // Set anyway
+            for (int i = numVertices; i > 0; i--) {
+                *b++ = DEFAULT_RAY_DB;
+            }
 
-        return b - numVertices;
-    } break;
+            return b - numVertices;
+        } break;
 
-    // Dv executing on a 2D grid
-    case SHADING_2D_GRID: {
-        const int uVertices = currentShadingState->numUvertices;
-        const int vVertices = currentShadingState->numVvertices;
-        int i, j;
+        // Dv executing on a 2D grid
+        case SHADING_2D_GRID:
+        {
+            const int uVertices = currentShadingState->numUvertices;
+            const int vVertices = currentShadingState->numVvertices;
+            int i, j;
 
-        for (j = 0; j < vVertices; j++) {
-            for (i = 0; i < uVertices; i++) {
+            for (j = 0; j < vVertices; j++) {
+                for (i = 0; i < uVertices; i++) {
 
-                int ii;
-                if ((uVertices - 2) < i) {
-                    ii = uVertices - 2;
-                } else {
-                    ii = i;
+                    int ii;
+                    if ((uVertices - 2) < i) {
+                        ii = uVertices - 2;
+                    }
+                    else {
+                        ii = i;
+                    }
+                    int jj;
+                    if ((vVertices - 2) < j) {
+                        jj = vVertices - 2;
+                    }
+                    else {
+                        jj = j;
+                    }
+
+                    // The 4 corners of the current quad
+                    const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;
+                    const float *cFrom1 = cFrom0 + 3;
+                    const float *cFrom2 = cFrom0 + uVertices * 3;
+                    const float *cFrom3 = cFrom2 + 3;
+
+                    b[0] = 0;
+
+                    vector tmp;
+                    subvv(tmp, cFrom1, cFrom0);
+                    b[0] += lengthv(tmp);
+                    subvv(tmp, cFrom2, cFrom0);
+                    b[0] += lengthv(tmp);
+                    subvv(tmp, cFrom1, cFrom3);
+                    b[0] += lengthv(tmp);
+                    subvv(tmp, cFrom2, cFrom3);
+                    b[0] += lengthv(tmp);
+
+                    b[0] *= 0.25f;
+                    b++;
                 }
-                int jj;
-                if ((vVertices - 2) < j) {
-                    jj = vVertices - 2;
-                } else {
-                    jj = j;
-                }
+            }
 
-                // The 4 corners of the current quad
-                const float *cFrom0 = from + jj * uVertices * 3 + ii * 3;
-                const float *cFrom1 = cFrom0 + 3;
-                const float *cFrom2 = cFrom0 + uVertices * 3;
-                const float *cFrom3 = cFrom2 + 3;
+            return b - uVertices * vVertices;
+        } break;
+
+        // Dv executing on a 2D raytraced surface
+        case SHADING_2D:
+        {
+            const int numRealVertices = currentShadingState->numRealVertices;
+            const float *dfrom = from + numRealVertices * 3;
+            int i;
+
+            assert(numVertices == numRealVertices * 3);
+
+            for (i = numRealVertices; i > 0; i--) {
+                vector tmp;
 
                 b[0] = 0;
 
-                vector tmp;
-                subvv(tmp, cFrom1, cFrom0);
+                subvv(tmp, dfrom, from);
                 b[0] += lengthv(tmp);
-                subvv(tmp, cFrom2, cFrom0);
+                subvv(tmp, dfrom + 3, from);
                 b[0] += lengthv(tmp);
-                subvv(tmp, cFrom1, cFrom3);
-                b[0] += lengthv(tmp);
-                subvv(tmp, cFrom2, cFrom3);
-                b[0] += lengthv(tmp);
+                b[0] *= 0.5f;
 
-                b[0] *= 0.25f;
                 b++;
+                from += 3;
+                dfrom += 6;
             }
-        }
 
-        return b - uVertices * vVertices;
-    } break;
-
-    // Dv executing on a 2D raytraced surface
-    case SHADING_2D: {
-        const int numRealVertices = currentShadingState->numRealVertices;
-        const float *dfrom = from + numRealVertices * 3;
-        int i;
-
-        assert(numVertices == numRealVertices * 3);
-
-        for (i = numRealVertices; i > 0; i--) {
-            vector tmp;
-
-            b[0] = 0;
-
-            subvv(tmp, dfrom, from);
-            b[0] += lengthv(tmp);
-            subvv(tmp, dfrom + 3, from);
-            b[0] += lengthv(tmp);
-            b[0] *= 0.5f;
-
-            b++;
-            from += 3;
-            dfrom += 6;
-        }
-
-        return b - numRealVertices;
-    } break;
+            return b - numRealVertices;
+        } break;
     }
 
     assert(FALSE);

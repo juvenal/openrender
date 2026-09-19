@@ -28,16 +28,19 @@
 
 #include <string.h>
 
-CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h,
-                                         int ns, const char *samples,
-                                         TDisplayParameterFunction fp)
+CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h, int ns, const char *samples, TDisplayParameterFunction fp)
     : CFileOutputBase(w, h, ns,
                       /*pixelSize placeholder — fixed below*/ ns,
                       fp,
-                      /*isDepth=*/ strcmp(samples, "z") == 0) {
+                      /*isDepth=*/strcmp(samples, "z") == 0) {
 
     // PNG can't store float; default to 8-bit when no RIB quantize is specified.
-    if (qmax == 0) { qzero = 0; qone = 255; qmin = 0; qmax = 255; }
+    if (qmax == 0) {
+        qzero = 0;
+        qone = 255;
+        qmin = 0;
+        qmax = 255;
+    }
 
     if (w < 1 || h < 1 || ns < 1 || ns > 4 || qmax > 65535 || !name || !samples)
         return;
@@ -57,8 +60,8 @@ CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h,
     if (software) {
         png_text comment;
         comment.compression = -1;
-        comment.key         = (png_charp)"Software";
-        comment.text        = software;
+        comment.key = (png_charp) "Software";
+        comment.text = software;
         comment.text_length = strlen(software);
         png_set_text(png_ptr, info_ptr, &comment, 1);
     }
@@ -66,7 +69,7 @@ CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h,
     fhandle = fopen(name, "w+");
     if (!fhandle) {
         png_destroy_write_struct(&png_ptr, &info_ptr);
-        png_ptr  = nullptr;
+        png_ptr = nullptr;
         info_ptr = nullptr;
         return;
     }
@@ -79,11 +82,21 @@ CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h,
 
     int color_type;
     switch (ns) {
-    case 1: color_type = PNG_COLOR_TYPE_GRAY;       break;
-    case 2: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
-    case 3: color_type = PNG_COLOR_TYPE_RGB;        break;
-    case 4: color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
-    default: color_type = PNG_COLOR_TYPE_RGB;       break;
+        case 1:
+            color_type = PNG_COLOR_TYPE_GRAY;
+            break;
+        case 2:
+            color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
+            break;
+        case 3:
+            color_type = PNG_COLOR_TYPE_RGB;
+            break;
+        case 4:
+            color_type = PNG_COLOR_TYPE_RGB_ALPHA;
+            break;
+        default:
+            color_type = PNG_COLOR_TYPE_RGB;
+            break;
     }
 
     png_set_IHDR(png_ptr, info_ptr, w, h, bitspersample, color_type,
@@ -108,20 +121,22 @@ CFileFramebufferPNG::~CFileFramebufferPNG() {
 
 void CFileFramebufferPNG::fillPixels(int row, int xOff, int nPx, const float *src) {
     switch (bitspersample) {
-    case 8: {
-        auto *dst = reinterpret_cast<uint8_t *>(scanlines[row]) + xOff * numSamples;
-        for (int j = nPx * numSamples; j > 0; j--)
-            *dst++ = (uint8_t)*src++;
-        break;
-    }
-    case 16: {
-        auto *dst = reinterpret_cast<uint16_t *>(scanlines[row]) + xOff * numSamples;
-        for (int j = nPx * numSamples; j > 0; j--)
-            *dst++ = (uint16_t)*src++;
-        break;
-    }
-    default:
-        break;
+        case 8:
+        {
+            auto *dst = reinterpret_cast<uint8_t *>(scanlines[row]) + xOff * numSamples;
+            for (int j = nPx * numSamples; j > 0; j--)
+                *dst++ = (uint8_t)*src++;
+            break;
+        }
+        case 16:
+        {
+            auto *dst = reinterpret_cast<uint16_t *>(scanlines[row]) + xOff * numSamples;
+            for (int j = nPx * numSamples; j > 0; j--)
+                *dst++ = (uint16_t)*src++;
+            break;
+        }
+        default:
+            break;
     }
 }
 

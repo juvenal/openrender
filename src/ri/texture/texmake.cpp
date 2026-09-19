@@ -94,12 +94,14 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
         TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, (unsigned long)(sizeof(unsigned char) * 8));
         pixelSize = numSamples * sizeof(unsigned char);
-    } else if (bitsperpixel == 16) {
+    }
+    else if (bitsperpixel == 16) {
         TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, (unsigned long)(sizeof(unsigned short) * 8));
         TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
         pixelSize = numSamples * sizeof(unsigned short);
-    } else {
+    }
+    else {
         TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, (unsigned long)(sizeof(float) * 8));
         pixelSize = numSamples * sizeof(float);
@@ -228,11 +230,14 @@ void *readLayer(TIFF *in, int *width, int *height, int *bitsperpixel, int *numSa
 
     if (bp == 8) {
         pixelSize = ns * sizeof(unsigned char);
-    } else if (bp == 16) {
+    }
+    else if (bp == 16) {
         pixelSize = ns * sizeof(unsigned short);
-    } else if (bp == 32) {
+    }
+    else if (bp == 32) {
         pixelSize = ns * sizeof(float);
-    } else {
+    }
+    else {
         error(CODE_BUG, "Unknown bits per pixel in readLayer (%d)\n", bp);
         pixelSize = 0;
     }
@@ -365,7 +370,8 @@ void filterImage(int width, int height, int numSamples, int bitspersample, float
     if (bitspersample == 8) {
         minVal = 0;
         maxVal = 255;
-    } else if (bitspersample == 16) {
+    }
+    else if (bitspersample == 16) {
         minVal = 0;
         maxVal = 65535;
     }
@@ -383,12 +389,14 @@ void filterImage(int width, int height, int numSamples, int bitspersample, float
             float clampedValue;
             if (t < minVal) {
                 clampedValue = minVal;
-            } else {
+            }
+            else {
                 clampedValue = t;
             }
             if (clampedValue > maxVal) {
                 t = maxVal;
-            } else {
+            }
+            else {
                 t = clampedValue;
             }
             dest[k] = (T)(t);
@@ -483,7 +491,8 @@ void filterScaleImage(int width, int height, int targetWidth, int targetHeight, 
     if (bitspersample == 8) {
         minVal = 0;
         maxVal = 255;
-    } else if (bitspersample == 16) {
+    }
+    else if (bitspersample == 16) {
         minVal = 0;
         maxVal = 65535;
     }
@@ -503,17 +512,20 @@ void filterScaleImage(int width, int height, int targetWidth, int targetHeight, 
                 float clampedValue;
                 if (t < minVal) {
                     clampedValue = minVal;
-                } else {
+                }
+                else {
                     clampedValue = t;
                 }
                 if (clampedValue > maxVal) {
                     t = maxVal;
-                } else {
+                }
+                else {
                     t = clampedValue;
                 }
                 dest[k] = (T)(t);
             }
-        } else {
+        }
+        else {
             // In the rescale case we may well have no value for portions of the image - zero fill them
             for (k = 0; k < numSamples; k++) {
                 dest[k] = (T)(minVal);
@@ -559,7 +571,8 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
             newWidth = newWidth >> 1;
         if (newHeight != height[0])
             newHeight = newHeight >> 1;
-    } else if (strncmp(resizemode, resizeRoundMode, resizeModeLen) == 0) {
+    }
+    else if (strncmp(resizemode, resizeRoundMode, resizeModeLen) == 0) {
         if (newWidth != width[0]) {
             int lowerWidth = newWidth >> 1;
             if (abs(width[0] - newWidth) > abs(lowerWidth - width[0])) {
@@ -586,7 +599,8 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
             // In order to preserve ratios, it might have to be larger
             while (targetHeight > newHeight)
                 newHeight = newHeight << 1;
-        } else {
+        }
+        else {
             // find new targetWidth
             float nw = (float)newHeight * width[0] / (float)height[0];
             targetWidth = (int)ceil(nw);
@@ -611,7 +625,8 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
             width[0] = newWidth;
             height[0] = newHeight;
         }
-    } else {
+    }
+    else {
         // filter the image before rescaling
         if ((filterWidth > 1.0) || (filterHeight > 1.0))
             filterImage<T>(width[0], height[0], numSamples, bitspersample, filterWidth, filterHeight, filter, data[0]);
@@ -627,23 +642,27 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
 
             if (strcmp(smode, RI_PERIODIC) == 0) {
                 copyData<T>(data[0], width[0], height[0], 0, 0, newWidth - width[0], height[0], newData, newWidth, newHeight, width[0], 0, numSamples);
-            } else if (strcmp(smode, RI_CLAMP) == 0) {
+            }
+            else if (strcmp(smode, RI_CLAMP) == 0) {
                 int i;
 
                 for (i = 0; i < newWidth - width[0]; i++)
                     copyData<T>(data[0], width[0], height[0], width[0] - 1, 0, 1, height[0], newData, newWidth, newHeight, width[0] + i, 0, numSamples);
-            } else if (strcmp(smode, RI_BLACK) == 0) {
+            }
+            else if (strcmp(smode, RI_BLACK) == 0) {
                 initData<T>(newData, newWidth, newHeight, width[0], 0, newWidth - width[0], height[0], numSamples, 0);
             }
 
             if (strcmp(tmode, RI_PERIODIC) == 0) {
                 copyData<T>(data[0], width[0], height[0], 0, 0, width[0], newHeight - height[0], newData, newWidth, newHeight, 0, height[0], numSamples);
-            } else if (strcmp(tmode, RI_CLAMP) == 0) {
+            }
+            else if (strcmp(tmode, RI_CLAMP) == 0) {
                 int i;
 
                 for (i = 0; i < newHeight - height[0]; i++)
                     copyData<T>(data[0], width[0], height[0], 0, height[0] - 1, width[0], 1, newData, newWidth, newHeight, 0, height[0] + i, numSamples);
-            } else if (strcmp(tmode, RI_BLACK) == 0) {
+            }
+            else if (strcmp(tmode, RI_BLACK) == 0) {
                 initData<T>(newData, newWidth, newHeight, 0, height[0], width[0], newHeight - height[0], numSamples, 0);
             }
 
@@ -651,9 +670,11 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
             if ((newWidth != width[0]) && (newHeight != height[0])) {
                 if ((strcmp(smode, RI_PERIODIC) == 0) && (strcmp(tmode, RI_PERIODIC) == 0)) {
                     copyData<T>(data[0], width[0], height[0], 0, 0, newWidth - width[0], newHeight - height[0], newData, newWidth, newHeight, width[0], height[0], numSamples);
-                } else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(tmode, RI_BLACK) == 0)) {
+                }
+                else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(tmode, RI_BLACK) == 0)) {
                     initData<T>(newData, newWidth, newHeight, width[0], height[0], newWidth - width[0], newHeight - height[0], numSamples, 0);
-                } else if (strcmp(smode, RI_CLAMP) == 0) {
+                }
+                else if (strcmp(smode, RI_CLAMP) == 0) {
                     // FIXME: This case is a little ambiguous
                     T *initValues = data[0] + width[0] * numSamples * (height[0] - 1) + (width[0] - 1) * numSamples;
                     initDataValues<T>(newData, newWidth, newHeight, width[0], height[0], newWidth - width[0], newHeight - height[0], numSamples, initValues);
@@ -686,7 +707,8 @@ void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples
         TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, validHeight);
 
         appendPyramid<unsigned char>(out, dstart, numSamples, bitspersample, tileSize, width, height, (unsigned char *)data);
-    } else if (bitspersample == 16) {
+    }
+    else if (bitspersample == 16) {
         adjustSize<unsigned short>((unsigned short **)&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, smode, tmode, resizemode);
 
         // write adjusted sizes
@@ -694,7 +716,8 @@ void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples
         TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, validHeight);
 
         appendPyramid<unsigned short>(out, dstart, numSamples, bitspersample, tileSize, width, height, (unsigned short *)data);
-    } else if (bitspersample == 32) {
+    }
+    else if (bitspersample == 32) {
         adjustSize<float>((float **)&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, smode, tmode, resizemode);
 
         // write adjusted sizes
@@ -726,7 +749,8 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
 
     if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
-    } else {
+    }
+    else {
         // Set the error handler so we don't crash
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
@@ -734,7 +758,8 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
         TIFF *inHandle = TIFFOpen(inputFileName, "r");
         if (inHandle == NULL) {
             error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
-        } else {
+        }
+        else {
             void *data;
             int numSamples;
             int bitspersample;
@@ -783,7 +808,8 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
 
     if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
-    } else {
+    }
+    else {
         // Set the error handler so we don't crash
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
@@ -791,7 +817,8 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
         TIFF *inHandle = TIFFOpen(inputFileName, "r");
         if (inHandle == NULL) {
             error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
-        } else {
+        }
+        else {
             void *data;
             int numSamples;
             int bitspersample;
@@ -809,14 +836,16 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
             if (TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE) {
                 error(CODE_BUG, "Failed to read the world to camera matrix\n");
                 identitym(worldToCamera);
-            } else {
+            }
+            else {
                 movmm(worldToCamera, tmp);
             }
 
             if (TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE) {
                 error(CODE_BUG, "Failed to read the world to screen matrix\n");
                 identitym(worldToScreen);
-            } else {
+            }
+            else {
                 movmm(worldToScreen, tmp);
             }
 
@@ -838,7 +867,8 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
                 appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
 
                 TIFFClose(outHandle);
-            } else {
+            }
+            else {
                 error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
             }
 
@@ -867,7 +897,8 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 
     if (CRenderer::locateFile(inputFileName, names[0], path) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", names[0]);
-    } else {
+    }
+    else {
 
         // Set the error handler so we don't crash
         TIFFSetErrorHandler(tiffErrorHandler);
@@ -897,7 +928,8 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                     if (CRenderer::locateFile(inputFileName, names[i], path) == FALSE) {
                         error(CODE_NOFILE, "Failed to find \"%s\"\n", names[i]);
                         break;
-                    } else {
+                    }
+                    else {
                         inHandle = TIFFOpen(inputFileName, "r");
                         if (inHandle == NULL)
                             break;
@@ -917,7 +949,8 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 
                 TIFFClose(outHandle);
             }
-        } else {
+        }
+        else {
             error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
         }
     }
@@ -935,7 +968,8 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
 
     if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
-    } else {
+    }
+    else {
         // Set the error handler so we don't crash
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
@@ -944,7 +978,8 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
 
         if (inHandle == NULL) {
             error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
-        } else {
+        }
+        else {
             void *data;
             int numSamples;
             int bitspersample;
@@ -992,7 +1027,8 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
 
     if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
-    } else {
+    }
+    else {
         // Set the error handler so we don't crash
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
@@ -1001,7 +1037,8 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
 
         if (inHandle == NULL) {
             error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
-        } else {
+        }
+        else {
             void *data;
             int numSamples;
             int bitspersample;

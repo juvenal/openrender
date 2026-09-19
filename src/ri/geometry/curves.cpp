@@ -147,7 +147,8 @@ void CCurve::interpolate(int numVertices, float **varying, float ***locals) cons
     if (base->sizeEntry == VARIABLE_WIDTH) {
         size = varying[VARIABLE_WIDTH];
         sizeStep = 1;
-    } else {
+    }
+    else {
         assert(base->sizeEntry == VARIABLE_CONSTANTWIDTH);
         size = varying[VARIABLE_CONSTANTWIDTH];
         sizeStep = 0;
@@ -240,7 +241,8 @@ void CCubicCurve::sample(int start, int numVertices, float **varying, float ***l
         v1 = v0 + vs;
         v2 = v1 + vs;
         v3 = v2 + vs;
-    } else {
+    }
+    else {
         // Curves can not be raytraced, so we must be sampling at the beginning or the end
         assert(up & PARAMETER_END_SAMPLE);
         v0 = base->vertex + vertexSize;
@@ -382,7 +384,8 @@ void CCubicCurve::sample(int start, int numVertices, float **varying, float ***l
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -454,7 +457,8 @@ void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **v
     if ((variables->moving == FALSE) || (up & PARAMETER_BEGIN_SAMPLE)) {
         v0 = base->vertex;
         v1 = v0 + vs;
-    } else {
+    }
+    else {
         v0 = base->vertex + vertexSize;
         v1 = v0 + vs;
     }
@@ -512,7 +516,8 @@ void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **v
                 // Scale the dPdtime
                 mulvf(dest, CRenderer::invShutterTime);
             }
-        } else {
+        }
+        else {
             // We have no motion, so dPdtime is {0,0,0}
             for (int i = 0; i < numVertices; ++i, dest += 3)
                 initv(dest, 0, 0, 0);
@@ -605,14 +610,16 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
                 mulmp(tmp, from, P);
                 addBox(bmin, bmax, tmp);
             }
-        } else if (xform->next != NULL) {
+        }
+        else if (xform->next != NULL) {
             const float *from = xform->next->from;
             for (P = pl->data0, i = numVertices; i > 0; i--, P += 3) {
                 mulmp(tmp, from, P);
                 addBox(bmin, bmax, tmp);
             }
         }
-    } else {
+    }
+    else {
         int cVertex = 0;
         matrix geometryMatrix;
 
@@ -642,10 +649,12 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
 
                     if (xform->next != NULL) {
                         makeCubicBound(bmin, bmax, v0, v1, v2, v3, geometryMatrix, xform->next);
-                    } else {
+                    }
+                    else {
                         makeCubicBound(bmin, bmax, v0, v1, v2, v3, geometryMatrix, xform);
                     }
-                } else if (xform->next != NULL) {
+                }
+                else if (xform->next != NULL) {
                     makeCubicBound(bmin, bmax, v0, v1, v2, v3, geometryMatrix, xform->next);
                 }
             }

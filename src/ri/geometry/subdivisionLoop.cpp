@@ -49,18 +49,18 @@ static const int kLoopSubdivisionLevels = 2;
 
 namespace {
 
-struct LoopVertexParam {
-    CVariable *variable;
-    int numFloats;
-    int oldIndex;
-};
+    struct LoopVertexParam {
+            CVariable *variable;
+            int numFloats;
+            int oldIndex;
+    };
 
-struct LoopEdgeInfo {
-    int v0, v1;      // canonicalized endpoint vertex indices (v0 < v1)
-    int face0, face1; // incident triangle indices (-1 if none)
-    int opp0, opp1;   // third vertex of face0/face1, opposite this edge (-1 if none)
-    bool nonManifold; // true once a third incident face is seen
-};
+    struct LoopEdgeInfo {
+            int v0, v1;       // canonicalized endpoint vertex indices (v0 < v1)
+            int face0, face1; // incident triangle indices (-1 if none)
+            int opp0, opp1;   // third vertex of face0/face1, opposite this edge (-1 if none)
+            bool nonManifold; // true once a third incident face is seen
+    };
 
 } // namespace
 
@@ -106,13 +106,15 @@ static void loopBuildEdges(const std::vector<int> &triVerts, std::vector<LoopEdg
                 e.nonManifold = false;
                 edgeIndex[key] = (int)edges.size();
                 edges.push_back(e);
-            } else {
+            }
+            else {
                 LoopEdgeInfo &e = edges[it->second];
 
                 if (e.face1 == -1) {
                     e.face1 = t;
                     e.opp1 = opp;
-                } else {
+                }
+                else {
                     e.nonManifold = true;
                 }
             }
@@ -179,7 +181,8 @@ static std::vector<float> loopSmoothParamBuffer(int numV, int nf, const std::vec
         if (edge.nonManifold || edge.face1 == -1) {
             for (int c = 0; c < nf; c++)
                 dst[c] = 0.5f * (v0[c] + v1[c]);
-        } else {
+        }
+        else {
             const float *o0 = &oldBuf[static_cast<size_t>(edge.opp0) * nf];
             const float *o1 = &oldBuf[static_cast<size_t>(edge.opp1) * nf];
 
@@ -215,7 +218,8 @@ static int loopRefineOnce(int numV, std::vector<int> &triVerts, const std::vecto
         if (edge.nonManifold) {
             vertexNonManifold[edge.v0] = true;
             vertexNonManifold[edge.v1] = true;
-        } else if (edge.face1 == -1) {
+        }
+        else if (edge.face1 == -1) {
             boundaryNeighbors[edge.v0].push_back(edge.v1);
             boundaryNeighbors[edge.v1].push_back(edge.v0);
         }

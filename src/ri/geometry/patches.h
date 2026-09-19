@@ -55,7 +55,7 @@ class CTrimTest; // Forward declaration; full definition below (after CPatchMesh
 //							grid's P/dPdu/dPdv (delete[] each, then
 //							delete[] grids).
 struct CTesselatedPatchMeshOperand {
-        int div;               // Shared grid resolution: every grid is (div+1) x (div+1)
+        int div;                // Shared grid resolution: every grid is (div+1) x (div+1)
         int uPatches, vPatches; // Sub-patch counts along u and v
         CTesselatedGrid *grids; // Row-major uPatches*vPatches grids (caller owns)
 };
@@ -154,13 +154,15 @@ class CNURBSPatch : public CSurface {
             int uOrderValue = uOrder - 1 - depth;
             if (1 > uOrderValue) {
                 minDivU = 1;
-            } else {
+            }
+            else {
                 minDivU = uOrderValue;
             }
             int vOrderValue = vOrder - 1 - depth;
             if (1 > vOrderValue) {
                 minDivV = 1;
-            } else {
+            }
+            else {
                 minDivV = vOrderValue;
             }
             return 0;
@@ -198,7 +200,9 @@ class CPatchMesh : public CObject {
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
-            positions = pl->data0; nu = uVertices; nv = vVertices;
+            positions = pl->data0;
+            nu = uVertices;
+            nv = vVertices;
         }
 
     private:
@@ -311,7 +315,9 @@ class CNURBSPatchMesh : public CObject {
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
-            positions = pl->data0; nu = uVertices; nv = vVertices;
+            positions = pl->data0;
+            nu = uVertices;
+            nv = vVertices;
         }
 
     private:

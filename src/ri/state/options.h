@@ -161,7 +161,7 @@ class COptions {
 
         float jitter; // Amount of jitter in samples
 
-        char *hider;               // Hider name
+        char *hider;                     // Hider name
         const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
 
         // Which primary source's assignment of blobby opcodes 4 and 5 is in
@@ -183,10 +183,10 @@ class COptions {
 
         float pixelFilterWidth, pixelFilterHeight; // Pixel filter data
         RtFilterFunc pixelFilter;
-        int pixelFilterMode;                       // FILTER_MODE_PRECOMPUTED or FILTER_MODE_CONTINUOUS
+        int pixelFilterMode; // FILTER_MODE_PRECOMPUTED or FILTER_MODE_CONTINUOUS
 
         static const int FILTER_MODE_PRECOMPUTED = 0;
-        static const int FILTER_MODE_CONTINUOUS  = 1;
+        static const int FILTER_MODE_CONTINUOUS = 1;
 
         float colorQuantizer[5]; // The quantization data
         float depthQuantizer[5];

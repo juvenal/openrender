@@ -64,7 +64,8 @@ class CUserAttributeDictionary {
                         free(tmp[i]);
 
                     delete[] (char **)cAttr->defaultValue;
-                } else {
+                }
+                else {
                     delete[] (float *)cAttr->defaultValue;
                 }
 
@@ -97,7 +98,8 @@ class CUserAttributeDictionary {
                     for (int i = 0; i < tAttr->numFloats; i++) {
                         ((char **)tAttr->defaultValue)[i] = strdup(src[i]);
                     }
-                } else {
+                }
+                else {
                     tAttr->defaultValue = new float[cAttr->numFloats];
                     memcpy(tAttr->defaultValue, cAttr->defaultValue, sizeof(float) * cAttr->numFloats);
                 }
@@ -142,7 +144,8 @@ class CUserAttributeDictionary {
                         for (int i = 0; i < cAttr->numFloats; i++)
                             free(tmp[i]);
                         delete[] (char **)cAttr->defaultValue;
-                    } else {
+                    }
+                    else {
                         delete[] (float *)cAttr->defaultValue;
                         delete cAttr;
                     }
@@ -168,7 +171,8 @@ class CUserAttributeDictionary {
                 // insert after pAttr
                 nAttr->next = cAttr;
                 pAttr->next = nAttr;
-            } else {
+            }
+            else {
                 // insert at the front
                 nAttr->next = attribs;
                 attribs = nAttr;
@@ -181,7 +185,8 @@ class CUserAttributeDictionary {
                 for (int i = 0; i < var->numFloats; i++) {
                     ((char **)nAttr->defaultValue)[i] = strdup(src[i]);
                 }
-            } else {
+            }
+            else {
                 nAttr->defaultValue = new float[var->numFloats];
                 memcpy(nAttr->defaultValue, value, sizeof(float) * var->numFloats);
             }

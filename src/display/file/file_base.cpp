@@ -22,8 +22,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-CFileOutputBase::CFileOutputBase(int w, int h, int ns, int pixSz,
-                                 TDisplayParameterFunction fp, bool isDepth)
+CFileOutputBase::CFileOutputBase(int w, int h, int ns, int pixSz, TDisplayParameterFunction fp, bool isDepth)
     : width(w), height(h), numSamples(ns), pixelSize(pixSz),
       lastSavedLine(0),
       gamma(1.0f), qamp(0.0f),
@@ -33,20 +32,20 @@ CFileOutputBase::CFileOutputBase(int w, int h, int ns, int pixSz,
         float *tmp;
         if ((tmp = (float *)fp("quantize", FLOAT_PARAMETER, 4))) {
             qzero = tmp[0];
-            qone  = tmp[1];
-            qmin  = tmp[2];
-            qmax  = tmp[3];
+            qone = tmp[1];
+            qmin = tmp[2];
+            qmax = tmp[3];
         }
         if ((tmp = (float *)fp("dither", FLOAT_PARAMETER, 1)))
             qamp = tmp[0];
         if ((tmp = (float *)fp("gamma", FLOAT_PARAMETER, 1)))
-            gamma = tmp[0];  // stored for PNG gAMA metadata; not used for color transform
+            gamma = tmp[0]; // stored for PNG gAMA metadata; not used for color transform
     }
 
-    scanlines     = new uint8_t *[height];
+    scanlines = new uint8_t *[height];
     scanlineUsage = new int[height];
     for (int i = 0; i < height; i++) {
-        scanlines[i]     = nullptr;
+        scanlines[i] = nullptr;
         scanlineUsage[i] = width;
     }
     osCreateMutex(fileMutex);
@@ -98,7 +97,8 @@ void CFileOutputBase::write(int x, int y, int w, int h, float *data) {
                     delete[] scanlines[lastSavedLine];
                     scanlines[lastSavedLine] = nullptr;
                 }
-            } else {
+            }
+            else {
                 break;
             }
         }

@@ -220,42 +220,42 @@ TEST(alignment) {
 TEST(platform_detection) {
     // At least one platform should be defined
     int platform_count = 0;
-    #ifdef OPENRENDER_PLATFORM_LINUX
-        platform_count++;
-        printf("\n  Detected: Linux");
-    #endif
-    #ifdef OPENRENDER_PLATFORM_UNIX
-        platform_count++;
-        printf("\n  Detected: Unix");
-    #endif
-    #ifdef OPENRENDER_PLATFORM_WINDOWS
-        platform_count++;
-        printf("\n  Detected: Windows");
-    #endif
-    #ifdef OPENRENDER_PLATFORM_MACOS
-        platform_count++;
-        printf("\n  Detected: macOS");
-    #endif
+#ifdef OPENRENDER_PLATFORM_LINUX
+    platform_count++;
+    printf("\n  Detected: Linux");
+#endif
+#ifdef OPENRENDER_PLATFORM_UNIX
+    platform_count++;
+    printf("\n  Detected: Unix");
+#endif
+#ifdef OPENRENDER_PLATFORM_WINDOWS
+    platform_count++;
+    printf("\n  Detected: Windows");
+#endif
+#ifdef OPENRENDER_PLATFORM_MACOS
+    platform_count++;
+    printf("\n  Detected: macOS");
+#endif
     ASSERT(platform_count > 0);
 
     // At least one architecture should be defined
     int arch_count = 0;
-    #ifdef OPENRENDER_ARCH_X86_64
-        arch_count++;
-        printf("\n  Detected: x86_64");
-    #endif
-    #ifdef OPENRENDER_ARCH_ARM64
-        arch_count++;
-        printf("\n  Detected: ARM64");
-    #endif
-    #ifdef OPENRENDER_ARCH_X86
-        arch_count++;
-        printf("\n  Detected: x86");
-    #endif
-    #ifdef OPENRENDER_ARCH_ARM32
-        arch_count++;
-        printf("\n  Detected: ARM32");
-    #endif
+#ifdef OPENRENDER_ARCH_X86_64
+    arch_count++;
+    printf("\n  Detected: x86_64");
+#endif
+#ifdef OPENRENDER_ARCH_ARM64
+    arch_count++;
+    printf("\n  Detected: ARM64");
+#endif
+#ifdef OPENRENDER_ARCH_X86
+    arch_count++;
+    printf("\n  Detected: x86");
+#endif
+#ifdef OPENRENDER_ARCH_ARM32
+    arch_count++;
+    printf("\n  Detected: ARM32");
+#endif
     ASSERT(arch_count > 0);
 
     printf("\n  Cache line size: %d bytes", OPENRENDER_CACHE_LINE_SIZE);

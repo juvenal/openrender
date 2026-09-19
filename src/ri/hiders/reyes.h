@@ -128,17 +128,17 @@ class CReyes : public CShadingContext {
         // Comments				:
         class CRasterGrid : public CRasterObject {
             public:
-                float *vertices;              // Array of vertices
-                int *bounds;                  // The bound of the primitive (4 numbers per primitive)
-                int *quadStratumBounds;       // Per-quad bounds per time stratum (4*timeStrata numbers per quad; NULL unless a moving quad grid)
+                float *vertices;                              // Array of vertices
+                int *bounds;                                  // The bound of the primitive (4 numbers per primitive)
+                int *quadStratumBounds;                       // Per-quad bounds per time stratum (4*timeStrata numbers per quad; NULL unless a moving quad grid)
                 int stratumBounds[RASTER_MAX_TIME_STRATA][4]; // Grid-level bounds per time stratum (moving quad grids only)
-                int timeStrata;               // Number of time strata in the stratum bounds (0 when absent)
-                float *sizes;                 // The size of the primitive (only makes sense for points)
-                EShadingDim dim;              // Dimensionality (0,1 or 2)
-                float umin, umax, vmin, vmax; // The parametric range
-                int udiv, vdiv;               // The number of division
-                int numVertices;              // The number of vertices
-                int flags;                    // The primitive flags
+                int timeStrata;                               // Number of time strata in the stratum bounds (0 when absent)
+                float *sizes;                                 // The size of the primitive (only makes sense for points)
+                EShadingDim dim;                              // Dimensionality (0,1 or 2)
+                float umin, umax, vmin, vmax;                 // The parametric range
+                int udiv, vdiv;                               // The number of division
+                int numVertices;                              // The number of vertices
+                int flags;                                    // The primitive flags
         };
 
         ///////////////////////////////////////////////////////////////////////
@@ -158,7 +158,7 @@ class CReyes : public CShadingContext {
                     delete[] allItems;
                 }
 
-                void insert(CRasterObject* cObject) {
+                void insert(CRasterObject *cObject) {
                     int i, j;
 
                     // Expand the buffer
@@ -184,7 +184,7 @@ class CReyes : public CShadingContext {
                     allItems[i] = cObject;
                 }
 
-                CRasterObject* get(TMutex &mutex) {
+                CRasterObject *get(TMutex &mutex) {
                     int i = 1, j;
                     CRasterObject *lItem, *cItem;
 
@@ -248,13 +248,13 @@ class CReyes : public CShadingContext {
 
         // The following functions must be overriden by the child rasterizer
         virtual void rasterBegin(int, int, int, int, int) = 0;
-        virtual void rasterDrawPrimitives(CRasterGrid*) = 0;
-        virtual void rasterEnd(float*, int) = 0;
+        virtual void rasterDrawPrimitives(CRasterGrid *) = 0;
+        virtual void rasterEnd(float *, int) = 0;
 
         // The following can be called from the "dice" function to insert an object into the scene
-        void drawObject(CObject*);                                      // Draw an object
-        void drawGrid(CSurface*, int, int, float, float, float, float); // Draw a grid
-        void drawPoints(CSurface*, int);                                // Draw points (RiPoints)
+        void drawObject(CObject *);                                      // Draw an object
+        void drawGrid(CSurface *, int, int, float, float, float, float); // Draw a grid
+        void drawPoints(CSurface *, int);                                // Draw points (RiPoints)
 
         // Some stats
         int numGridsRendered;
@@ -269,22 +269,22 @@ class CReyes : public CShadingContext {
         static int extraPrimitiveFlags; // These are the extra primitive flags
         static int numVertexSamples;    // The number of samples per pixel
 
-        void shadeGrid(CRasterGrid*, int); // Called by the child to force the shading of a grid
+        void shadeGrid(CRasterGrid *, int); // Called by the child to force the shading of a grid
 
-        virtual int probeArea(int* /*xbound*/, int* /*ybound*/, int /*bw*/, int /*bh*/, int /*bl*/, int /*bt*/, float /*zmin*/) {
+        virtual int probeArea(int * /*xbound*/, int * /*ybound*/, int /*bw*/, int /*bh*/, int /*bl*/, int /*bt*/, float /*zmin*/) {
             return TRUE;
         }
 
     private:
-        void copyPoints(int, float**, float*, int);  // Data movement (copy P only)
-        void copySamples(int, float**, float*, int); // Data movement (copy the color + opacity + extra samples)
+        void copyPoints(int, float **, float *, int);  // Data movement (copy P only)
+        void copySamples(int, float **, float *, int); // Data movement (copy the color + opacity + extra samples)
 
-        void insertObject(CRasterObject* object); // Add an object into the system
-        void insertGrid(CRasterGrid*, int);       // Insert a grid into the correct bucket
+        void insertObject(CRasterObject *object); // Add an object into the system
+        void insertGrid(CRasterGrid *, int);      // Insert a grid into the correct bucket
 
-        CRasterObject *newObject(CObject*);             // Create a new object
-        CRasterGrid *newGrid(CSurface*, int, int, int); // Create a new grid
-        void deleteObject(CRasterObject*);              // Delete an object (the object can also be a grid)
+        CRasterObject *newObject(CObject *);             // Create a new object
+        CRasterGrid *newGrid(CSurface *, int, int, int); // Create a new grid
+        void deleteObject(CRasterObject *);              // Delete an object (the object can also be a grid)
 
         void render(); // Render the current bucket
         void skip();   // Skip the current bucket
@@ -307,7 +307,7 @@ class CReyes : public CShadingContext {
         // Description			:	Project distances into the sample space
         // Return Value			:
         // Comments				:	(inline for speed)
-        inline void distance2samples(int n, float* dist, float* P) {
+        inline void distance2samples(int n, float *dist, float *P) {
             if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
                 for (; n > 0; n--, P += 3, dist++) {
                     *dist = CRenderer::dSampledx * CRenderer::imagePlane * dist[0] / P[COMP_Z];
@@ -326,7 +326,7 @@ class CReyes : public CShadingContext {
         // Description			:	Project from camera space into the sample space
         // Return Value			:
         // Comments				:	(inline for speed)
-        inline void camera2samples(int n, float* P) {
+        inline void camera2samples(int n, float *P) {
             if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
                 for (; n > 0; n--, P += 3) {
                     P[COMP_X] = (CRenderer::imagePlane * P[COMP_X] / P[COMP_Z] - CRenderer::pixelLeft) * CRenderer::dSampledx;
@@ -347,7 +347,7 @@ class CReyes : public CShadingContext {
         // Description			:	Project from camera space into the sample space
         // Return Value			:
         // Comments				:	(inline for speed)
-        inline void camera2samples(float* P) {
+        inline void camera2samples(float *P) {
             if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
                 P[COMP_X] = CRenderer::imagePlane * P[COMP_X] / P[COMP_Z];
                 P[COMP_Y] = CRenderer::imagePlane * P[COMP_Y] / P[COMP_Z];

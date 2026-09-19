@@ -212,7 +212,7 @@ class CRendererContext : public CRiInterface {
         void processDelayedSolid(CShadingContext *context, CSolidObject *solid);
 
         virtual void addObject(CObject *); // Add an object into the scene
-        void addInstance(const void *); // Add an instance into the scene
+        void addInstance(const void *);    // Add an instance into the scene
         void rendererThread(const void *);
 
     private:
@@ -234,14 +234,14 @@ class CRendererContext : public CRiInterface {
         CObject *delayed;                        // The current delayed object
         CArray<CInstance *> *instanceStack;      // The stack of object lists
         CArray<CInstance *> *allocatedInstances; // The list of allocated object instances
-        CSGTreeNode *currentSolid;                // The current CSG tree node (SolidBegin/SolidEnd capture)
+        CSGTreeNode *currentSolid;               // The current CSG tree node (SolidBegin/SolidEnd capture)
         CArray<CSGTreeNode *> *savedSolids;      // The stack of enclosing CSG tree nodes
         CXform *currentXform;                    // The current graphics state
         CAttributes *currentAttributes;
         COptions *currentOptions;
         CResource *currentResource;
         // Some RenderMan Interface related variables
-        bool inWorld{false};      // True between RiWorldBegin and RiWorldEnd
+        bool inWorld{false};     // True between RiWorldBegin and RiWorldEnd
         int numExpectedMotions;  // The number of expected motions in a motion block
         int numMotions;          // The number of motions so far
         float *keyTimes;         // The key times

@@ -30,23 +30,23 @@
 #define OSHADER_PASSES_PASSDCE_H
 
 #include "passManager.h"
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 
 class CDCEPass : public CIRPass {
-public:
-    bool        run(IRModule &mod) override;
-    const char *name() const override { return "DCE"; }
+    public:
+        bool run(IRModule &mod) override;
+        const char *name() const override { return "DCE"; }
 
-private:
-    // Returns true if an instruction with this opcode can be safely removed
-    // when its result is dead (i.e. has no side effects).
-    static bool isSafeToRemove(const std::string &opcode);
+    private:
+        // Returns true if an instruction with this opcode can be safely removed
+        // when its result is dead (i.e. has no side effects).
+        static bool isSafeToRemove(const std::string &opcode);
 
-    // Run one elimination sweep on fn using the live-use set from the
-    // whole module.  Returns true if any instructions were removed.
-    static bool eliminateDeadInFn(IRFunction &fn,
-                                  const std::unordered_set<std::string> &live);
+        // Run one elimination sweep on fn using the live-use set from the
+        // whole module.  Returns true if any instructions were removed.
+        static bool eliminateDeadInFn(IRFunction &fn,
+                                      const std::unordered_set<std::string> &live);
 };
 
 #endif // OSHADER_PASSES_PASSDCE_H

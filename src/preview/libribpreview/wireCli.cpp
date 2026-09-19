@@ -1,6 +1,6 @@
 #include "common/global.h"
-#include "ribpreview_api.h"
 #include "ri/dataviewer/dataLoad.h"
+#include "ribpreview_api.h"
 
 #include <cmath>
 #include <cstdio>
@@ -33,11 +33,21 @@ static void printJsonString(FILE *f, const char *s) {
     fputc('"', f);
     for (; *s != '\0'; s++) {
         switch (*s) {
-            case '"': fputs("\\\"", f); break;
-            case '\\': fputs("\\\\", f); break;
-            case '\n': fputs("\\n", f); break;
-            case '\r': fputs("\\r", f); break;
-            case '\t': fputs("\\t", f); break;
+            case '"':
+                fputs("\\\"", f);
+                break;
+            case '\\':
+                fputs("\\\\", f);
+                break;
+            case '\n':
+                fputs("\\n", f);
+                break;
+            case '\r':
+                fputs("\\r", f);
+                break;
+            case '\t':
+                fputs("\\t", f);
+                break;
             default:
                 if ((unsigned char)*s < 0x20)
                     fprintf(f, "\\u%04x", *s);
@@ -50,21 +60,30 @@ static void printJsonString(FILE *f, const char *s) {
 
 static const char *documentTypeName(RibDataType t) {
     switch (t) {
-        case RIBDATA_TYPE_PHOTONMAP: return "photonmap";
-        case RIBDATA_TYPE_IRRADIANCECACHE: return "irradiancecache";
-        case RIBDATA_TYPE_GATHERCACHE: return "gathercache";
-        case RIBDATA_TYPE_POINTCLOUD: return "pointcloud";
-        case RIBDATA_TYPE_BRICKMAP: return "brickmap";
-        default: return "debugdump";
+        case RIBDATA_TYPE_PHOTONMAP:
+            return "photonmap";
+        case RIBDATA_TYPE_IRRADIANCECACHE:
+            return "irradiancecache";
+        case RIBDATA_TYPE_GATHERCACHE:
+            return "gathercache";
+        case RIBDATA_TYPE_POINTCLOUD:
+            return "pointcloud";
+        case RIBDATA_TYPE_BRICKMAP:
+            return "brickmap";
+        default:
+            return "debugdump";
     }
 }
 
 static const char *drawModeName(RibDataType t, int mode) {
     if (t == RIBDATA_TYPE_BRICKMAP) {
         switch (mode) {
-            case 0: return "boxes";
-            case 1: return "discs";
-            default: return "points";
+            case 0:
+                return "boxes";
+            case 1:
+                return "discs";
+            default:
+                return "points";
         }
     }
     if (t == RIBDATA_TYPE_POINTCLOUD)
@@ -183,28 +202,34 @@ WireCliAction wireCliRun(int argc, char **argv, char **outPath, int *exitCode) {
         const char *a = argv[i];
         if (!endOfOptions && strcmp(a, "--") == 0) {
             endOfOptions = true;
-        } else if (!endOfOptions && (strcmp(a, "-h") == 0 || strcmp(a, "--help") == 0)) {
+        }
+        else if (!endOfOptions && (strcmp(a, "-h") == 0 || strcmp(a, "--help") == 0)) {
             fputs(USAGE, stdout);
             *exitCode = 0;
             return WIRE_CLI_EXIT;
-        } else if (!endOfOptions && strcmp(a, "--version") == 0) {
+        }
+        else if (!endOfOptions && strcmp(a, "--version") == 0) {
             printf("orender-wire %s\n", openrender_version_string());
             *exitCode = 0;
             return WIRE_CLI_EXIT;
-        } else if (!endOfOptions && strcmp(a, "--json") == 0) {
+        }
+        else if (!endOfOptions && strcmp(a, "--json") == 0) {
             jsonMode = true;
-        } else if (!endOfOptions && strncmp(a, "--type=", 7) == 0) {
+        }
+        else if (!endOfOptions && strncmp(a, "--type=", 7) == 0) {
             typeOverride = a + 7;
             if (strcmp(typeOverride, "auto") != 0 && strcmp(typeOverride, "rib") != 0 && strcmp(typeOverride, "data") != 0) {
                 fputs(USAGE, stderr);
                 *exitCode = 1;
                 return WIRE_CLI_EXIT;
             }
-        } else if (!endOfOptions && a[0] == '-' && a[1] != '\0') {
+        }
+        else if (!endOfOptions && a[0] == '-' && a[1] != '\0') {
             fputs(USAGE, stderr);
             *exitCode = 1;
             return WIRE_CLI_EXIT;
-        } else {
+        }
+        else {
             if (file != NULL) {
                 fputs(USAGE, stderr);
                 *exitCode = 1;
@@ -234,9 +259,11 @@ WireCliAction wireCliRun(int argc, char **argv, char **outPath, int *exitCode) {
     bool isData;
     if (strcmp(typeOverride, "rib") == 0) {
         isData = false;
-    } else if (strcmp(typeOverride, "data") == 0) {
+    }
+    else if (strcmp(typeOverride, "data") == 0) {
         isData = true;
-    } else {
+    }
+    else {
         // -1 == no data-file magic at all (try RIB); -2 == magic matched but the file is
         // incompatible (bad version/word-size) -- that is still a data file, and routing it to
         // the RIB path would silently "succeed" with an empty scene instead of exit code 4.

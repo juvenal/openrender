@@ -26,12 +26,12 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
-#include <llvm/IR/Module.h>
+#include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Metadata.h>
-#include <llvm/Bitcode/BitcodeReader.h>
-#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/Error.h>
+#include <llvm/Support/MemoryBuffer.h>
 #pragma GCC diagnostic pop
 
 // -------------------------------------------------------------------------
@@ -39,7 +39,8 @@
 // Returns empty string if the operand is not an MDString.
 // -------------------------------------------------------------------------
 static std::string mdStr(const llvm::MDNode *node, unsigned idx) {
-    if (!node || idx >= node->getNumOperands()) return {};
+    if (!node || idx >= node->getNumOperands())
+        return {};
     if (auto *s = llvm::dyn_cast<llvm::MDString>(node->getOperand(idx)))
         return s->getString().str();
     return {};
@@ -51,14 +52,15 @@ static std::string mdStr(const llvm::MDNode *node, unsigned idx) {
 // -------------------------------------------------------------------------
 static SLOParamInfo parseParamNode(const llvm::MDNode *node) {
     SLOParamInfo p;
-    p.name       = mdStr(node, 0);
-    p.typeName   = mdStr(node, 1);
-    p.storage    = mdStr(node, 2);
-    p.writable   = (mdStr(node, 3) == "true");
-    p.arraySize  = 1;
+    p.name = mdStr(node, 0);
+    p.typeName = mdStr(node, 1);
+    p.storage = mdStr(node, 2);
+    p.writable = (mdStr(node, 3) == "true");
+    p.arraySize = 1;
     p.defaultStr = mdStr(node, 5);
     const std::string szStr = mdStr(node, 4);
-    if (!szStr.empty()) p.arraySize = std::stoi(szStr);
+    if (!szStr.empty())
+        p.arraySize = std::stoi(szStr);
     return p;
 }
 
@@ -68,15 +70,18 @@ static SLOParamInfo parseParamNode(const llvm::MDNode *node) {
 bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info) {
     auto getFirst = [&](const char *key) -> const llvm::MDNode * {
         const llvm::NamedMDNode *nmd = mod.getNamedMetadata(key);
-        if (!nmd || nmd->getNumOperands() == 0) return nullptr;
+        if (!nmd || nmd->getNumOperands() == 0)
+            return nullptr;
         return nmd->getOperand(0);
     };
 
     // Shader name
     const llvm::MDNode *nameNode = getFirst("openrender.shader.name");
-    if (!nameNode) return false;
+    if (!nameNode)
+        return false;
     info.name = mdStr(nameNode, 0);
-    if (info.name.empty()) return false;
+    if (info.name.empty())
+        return false;
 
     // Shader type
     const llvm::MDNode *typeNode = getFirst("openrender.shader.type");
@@ -87,7 +92,8 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
     info.version = 1;
     if (verNode) {
         const std::string vs = mdStr(verNode, 0);
-        if (!vs.empty()) info.version = std::stoi(vs);
+        if (!vs.empty())
+            info.version = std::stoi(vs);
     }
 
     // Parameters
@@ -95,7 +101,8 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
     if (params) {
         for (unsigned i = 0; i < params->getNumOperands(); ++i) {
             SLOParamInfo p = parseParamNode(params->getOperand(i));
-            if (!p.name.empty()) info.params.push_back(std::move(p));
+            if (!p.name.empty())
+                info.params.push_back(std::move(p));
         }
     }
 
@@ -104,7 +111,8 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
     if (vars) {
         for (unsigned i = 0; i < vars->getNumOperands(); ++i) {
             SLOParamInfo v = parseParamNode(vars->getOperand(i));
-            if (!v.name.empty()) info.vars.push_back(std::move(v));
+            if (!v.name.empty())
+                info.vars.push_back(std::move(v));
         }
     }
 
@@ -113,8 +121,12 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
     if (upNode) {
         const std::string us = mdStr(upNode, 0);
         if (!us.empty()) {
-            try { info.usedParameters = static_cast<unsigned>(std::stoul(us)); }
-            catch (...) { info.usedParameters = 0; }
+            try {
+                info.usedParameters = static_cast<unsigned>(std::stoul(us));
+            }
+            catch (...) {
+                info.usedParameters = 0;
+            }
         }
     }
 
@@ -141,7 +153,8 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
 // =========================================================================
 bool CLLVMJitEngine::extractMetadataFromFile(const std::string &filename, SLOShaderInfo &info) {
     auto bufferOrErr = llvm::MemoryBuffer::getFile(filename);
-    if (!bufferOrErr) return false;
+    if (!bufferOrErr)
+        return false;
 
     auto ctx = std::make_unique<llvm::LLVMContext>();
     auto moduleOrErr = llvm::parseBitcodeFile(bufferOrErr.get()->getMemBufferRef(), *ctx);

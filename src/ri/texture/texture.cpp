@@ -288,10 +288,12 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
         if (bitspersample == 8) {
             bytesPerSample = sizeof(unsigned char);
             pixelSize = numSamples * sizeof(unsigned char);
-        } else if (bitspersample == 16) {
+        }
+        else if (bitspersample == 16) {
             bytesPerSample = sizeof(unsigned short);
             pixelSize = numSamples * sizeof(unsigned short);
-        } else {
+        }
+        else {
             assert(bitspersample == 32);
             bytesPerSample = sizeof(float);
             pixelSize = numSamples * sizeof(float);
@@ -325,8 +327,8 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
                 }
 
                 memEnd(context->threadMemory);
-
-            } else {
+            }
+            else {
                 uint32_t tileWidth, tileHeight;
 
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
@@ -348,11 +350,13 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
                             memcpy(cdata + (i * numSamples + c) * bytesPerSample, buffer + i * bytesPerSample, bytesPerSample);
                         }
                     }
-                } else {
+                }
+                else {
                     TIFFReadTile(in, data, x, y, 0, 0);
                 }
             }
-        } else {
+        }
+        else {
             // We need to read the entire texture
             if (tiled) {
                 uint32_t tileWidth, tileHeight;
@@ -362,7 +366,8 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
 
                 if ((x != 0) || (y != 0) || (w != (int)tileWidth) || (h != (int)tileHeight)) {
                     error(CODE_BUG, "Tiled unmade texture\n");
-                } else {
+                }
+                else {
                     unsigned short planarConfig;
                     TIFFGetFieldDefaulted(in, TIFFTAG_PLANARCONFIG, &planarConfig);
 
@@ -375,11 +380,13 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
                                 memcpy(cdata + (i * numSamples + c) * bytesPerSample, buffer + i * bytesPerSample, bytesPerSample);
                             }
                         }
-                    } else {
+                    }
+                    else {
                         TIFFReadTile(in, data, x, y, 0, 0);
                     }
                 }
-            } else {
+            }
+            else {
                 // Read the entire image
                 assert((int)(pixelSize * width) == TIFFScanlineSize(in));
                 for (int i = 0; i < (int)height; ++i) {
@@ -389,7 +396,8 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
         }
 
         TIFFClose(in);
-    } else {
+    }
+    else {
         // FIXME: Is this an error ?
     }
 
@@ -817,44 +825,44 @@ class CMadeTexture : public CTexture {
 
             // Do the s mode
             switch (layers[0]->sMode) {
-            case TEXTURE_PERIODIC:
-                s = fmodf(s, 1);
-                if (s < 0)
-                    s += 1;
-                break;
-            case TEXTURE_BLACK:
-                if ((s < 0) || (s > 1)) {
-                    initv(result, fill);
-                    return;
-                }
-                break;
-            case TEXTURE_CLAMP:
-                if (s < 0)
-                    s = 0;
-                if (s > 1)
-                    s = 1;
-                break;
+                case TEXTURE_PERIODIC:
+                    s = fmodf(s, 1);
+                    if (s < 0)
+                        s += 1;
+                    break;
+                case TEXTURE_BLACK:
+                    if ((s < 0) || (s > 1)) {
+                        initv(result, fill);
+                        return;
+                    }
+                    break;
+                case TEXTURE_CLAMP:
+                    if (s < 0)
+                        s = 0;
+                    if (s > 1)
+                        s = 1;
+                    break;
             }
 
             // Do the t mode
             switch (layers[0]->tMode) {
-            case TEXTURE_PERIODIC:
-                t = fmodf(t, 1);
-                if (t < 0)
-                    t += 1;
-                break;
-            case TEXTURE_BLACK:
-                if ((t < 0) || (t > 1)) {
-                    initv(result, fill);
-                    return;
-                }
-                break;
-            case TEXTURE_CLAMP:
-                if (t < 0)
-                    t = 0;
-                if (t > 1)
-                    t = 1;
-                break;
+                case TEXTURE_PERIODIC:
+                    t = fmodf(t, 1);
+                    if (t < 0)
+                        t += 1;
+                    break;
+                case TEXTURE_BLACK:
+                    if ((t < 0) || (t > 1)) {
+                        initv(result, fill);
+                        return;
+                    }
+                    break;
+                case TEXTURE_CLAMP:
+                    if (t < 0)
+                        t = 0;
+                    if (t > 1)
+                        t = 1;
+                    break;
             }
 
             layers[0]->lookup(result, s, t, context);
@@ -943,42 +951,42 @@ class CMadeTexture : public CTexture {
 
                 // Do the s mode
                 switch (layers[0]->sMode) {
-                case TEXTURE_PERIODIC:
-                    s = fmodf(s, 1);
-                    if (s < 0)
-                        s += 1;
-                    break;
-                case TEXTURE_BLACK:
-                    if ((s < 0) || (s > 1)) {
-                        continue;
-                    }
-                    break;
-                case TEXTURE_CLAMP:
-                    if (s < 0)
-                        s = 0;
-                    if (s > 1)
-                        s = 1;
-                    break;
+                    case TEXTURE_PERIODIC:
+                        s = fmodf(s, 1);
+                        if (s < 0)
+                            s += 1;
+                        break;
+                    case TEXTURE_BLACK:
+                        if ((s < 0) || (s > 1)) {
+                            continue;
+                        }
+                        break;
+                    case TEXTURE_CLAMP:
+                        if (s < 0)
+                            s = 0;
+                        if (s > 1)
+                            s = 1;
+                        break;
                 }
 
                 // Do the t mode
                 switch (layers[0]->tMode) {
-                case TEXTURE_PERIODIC:
-                    t = fmodf(t, 1);
-                    if (t < 0)
-                        t += 1;
-                    break;
-                case TEXTURE_BLACK:
-                    if ((t < 0) || (t > 1)) {
-                        continue;
-                    }
-                    break;
-                case TEXTURE_CLAMP:
-                    if (t < 0)
-                        t = 0;
-                    if (t > 1)
-                        t = 1;
-                    break;
+                    case TEXTURE_PERIODIC:
+                        t = fmodf(t, 1);
+                        if (t < 0)
+                            t += 1;
+                        break;
+                    case TEXTURE_BLACK:
+                        if ((t < 0) || (t > 1)) {
+                            continue;
+                        }
+                        break;
+                    case TEXTURE_CLAMP:
+                        if (t < 0)
+                            t = 0;
+                        if (t > 1)
+                            t = 1;
+                        break;
                 }
 
                 // lookup (s,t) and add it to the result
@@ -1032,44 +1040,44 @@ class CRegularTexture : public CTexture {
 
             // Do the s mode
             switch (layer->sMode) {
-            case TEXTURE_PERIODIC:
-                s = fmodf(s, 1);
-                if (s < 0)
-                    s += 1;
-                break;
-            case TEXTURE_BLACK:
-                if ((s < 0) || (s > 1)) {
-                    initv(result, fill);
-                    return;
-                }
-                break;
-            case TEXTURE_CLAMP:
-                if (s < 0)
-                    s = 0;
-                if (s > 1)
-                    s = 1;
-                break;
+                case TEXTURE_PERIODIC:
+                    s = fmodf(s, 1);
+                    if (s < 0)
+                        s += 1;
+                    break;
+                case TEXTURE_BLACK:
+                    if ((s < 0) || (s > 1)) {
+                        initv(result, fill);
+                        return;
+                    }
+                    break;
+                case TEXTURE_CLAMP:
+                    if (s < 0)
+                        s = 0;
+                    if (s > 1)
+                        s = 1;
+                    break;
             }
 
             // Do the t mode
             switch (layer->tMode) {
-            case TEXTURE_PERIODIC:
-                t = fmodf(t, 1);
-                if (t < 0)
-                    t += 1;
-                break;
-            case TEXTURE_BLACK:
-                if ((t < 0) || (t > 1)) {
-                    initv(result, fill);
-                    return;
-                }
-                break;
-            case TEXTURE_CLAMP:
-                if (t < 0)
-                    t = 0;
-                if (t > 1)
-                    t = 1;
-                break;
+                case TEXTURE_PERIODIC:
+                    t = fmodf(t, 1);
+                    if (t < 0)
+                        t += 1;
+                    break;
+                case TEXTURE_BLACK:
+                    if ((t < 0) || (t > 1)) {
+                        initv(result, fill);
+                        return;
+                    }
+                    break;
+                case TEXTURE_CLAMP:
+                    if (t < 0)
+                        t = 0;
+                    if (t > 1)
+                        t = 1;
+                    break;
             }
 
             layer->lookup(result, s, t, context);
@@ -1110,42 +1118,42 @@ class CRegularTexture : public CTexture {
 
                 // Do the s mode
                 switch (layer->sMode) {
-                case TEXTURE_PERIODIC:
-                    s = fmodf(s, 1);
-                    if (s < 0)
-                        s += 1;
-                    break;
-                case TEXTURE_BLACK:
-                    if ((s < 0) || (s > 1)) {
-                        continue;
-                    }
-                    break;
-                case TEXTURE_CLAMP:
-                    if (s < 0)
-                        s = 0;
-                    if (s > 1)
-                        s = 1;
-                    break;
+                    case TEXTURE_PERIODIC:
+                        s = fmodf(s, 1);
+                        if (s < 0)
+                            s += 1;
+                        break;
+                    case TEXTURE_BLACK:
+                        if ((s < 0) || (s > 1)) {
+                            continue;
+                        }
+                        break;
+                    case TEXTURE_CLAMP:
+                        if (s < 0)
+                            s = 0;
+                        if (s > 1)
+                            s = 1;
+                        break;
                 }
 
                 // Do the t mode
                 switch (layer->tMode) {
-                case TEXTURE_PERIODIC:
-                    t = fmodf(t, 1);
-                    if (t < 0)
-                        t += 1;
-                    break;
-                case TEXTURE_BLACK:
-                    if ((t < 0) || (t > 1)) {
-                        continue;
-                    }
-                    break;
-                case TEXTURE_CLAMP:
-                    if (t < 0)
-                        t = 0;
-                    if (t > 1)
-                        t = 1;
-                    break;
+                    case TEXTURE_PERIODIC:
+                        t = fmodf(t, 1);
+                        if (t < 0)
+                            t += 1;
+                        break;
+                    case TEXTURE_BLACK:
+                        if ((t < 0) || (t > 1)) {
+                            continue;
+                        }
+                        break;
+                    case TEXTURE_CLAMP:
+                        if (t < 0)
+                            t = 0;
+                        if (t > 1)
+                            t = 1;
+                        break;
                 }
                 // lookup (s,t) and add it to the result
                 vector C;
@@ -1682,65 +1690,71 @@ class CCubicEnvironment : public CEnvironment {
                 if (fabs(D[COMP_Y]) > fabs(D[COMP_X])) {
                     if (fabs(D[COMP_Z]) > fabs(D[COMP_Y])) {
                         order = ZYX;
-                    } else {
+                    }
+                    else {
                         if (fabs(D[COMP_Z]) > fabs(D[COMP_X]))
                             order = YZX;
                         else
                             order = YXZ;
                     }
-                } else if (fabs(D[COMP_Z]) > fabs(D[COMP_Y])) {
+                }
+                else if (fabs(D[COMP_Z]) > fabs(D[COMP_Y])) {
                     if (fabs(D[COMP_Z]) > fabs(D[COMP_X]))
                         order = ZXY;
                     else
                         order = XZY;
-                } else {
+                }
+                else {
                     order = XYZ;
                 }
 
                 switch (order) {
-                case XYZ:
-                case XZY:
-                    if (D[COMP_X] > 0) {
-                        side = sides[PX];
-                        t = 1 / D[COMP_X];
-                        u = (-D[COMP_Z] * t + 1) * 0.5f;
-                        v = (-D[COMP_Y] * t + 1) * 0.5f;
-                    } else {
-                        side = sides[NX];
-                        t = -1 / D[COMP_X];
-                        u = (D[COMP_Z] * t + 1) * 0.5f;
-                        v = (-D[COMP_Y] * t + 1) * 0.5f;
-                    }
-                    break;
-                case YXZ:
-                case YZX:
-                    if (D[COMP_Y] > 0) {
-                        side = sides[PY];
-                        t = 1 / D[COMP_Y];
-                        u = (D[COMP_X] * t + 1) * 0.5f;
-                        v = (D[COMP_Z] * t + 1) * 0.5f;
-                    } else {
-                        side = sides[NY];
-                        t = -1 / D[COMP_Y];
-                        u = (D[COMP_X] * t + 1) * 0.5f;
-                        v = (-D[COMP_Z] * t + 1) * 0.5f;
-                    }
-                    break;
-                case ZXY:
-                case ZYX:
-                    if (D[COMP_Z] > 0) {
-                        side = sides[PZ];
-                        t = 1 / D[COMP_Z];
-                        u = (D[COMP_X] * t + 1) * 0.5f;
-                        v = (-D[COMP_Y] * t + 1) * 0.5f;
-                    } else {
-                        side = sides[NZ];
-                        t = -1 / D[COMP_Z];
-                        u = (-D[COMP_X] * t + 1) * 0.5f;
-                        v = (-D[COMP_Y] * t + 1) * 0.5f;
-                    }
+                    case XYZ:
+                    case XZY:
+                        if (D[COMP_X] > 0) {
+                            side = sides[PX];
+                            t = 1 / D[COMP_X];
+                            u = (-D[COMP_Z] * t + 1) * 0.5f;
+                            v = (-D[COMP_Y] * t + 1) * 0.5f;
+                        }
+                        else {
+                            side = sides[NX];
+                            t = -1 / D[COMP_X];
+                            u = (D[COMP_Z] * t + 1) * 0.5f;
+                            v = (-D[COMP_Y] * t + 1) * 0.5f;
+                        }
+                        break;
+                    case YXZ:
+                    case YZX:
+                        if (D[COMP_Y] > 0) {
+                            side = sides[PY];
+                            t = 1 / D[COMP_Y];
+                            u = (D[COMP_X] * t + 1) * 0.5f;
+                            v = (D[COMP_Z] * t + 1) * 0.5f;
+                        }
+                        else {
+                            side = sides[NY];
+                            t = -1 / D[COMP_Y];
+                            u = (D[COMP_X] * t + 1) * 0.5f;
+                            v = (-D[COMP_Z] * t + 1) * 0.5f;
+                        }
+                        break;
+                    case ZXY:
+                    case ZYX:
+                        if (D[COMP_Z] > 0) {
+                            side = sides[PZ];
+                            t = 1 / D[COMP_Z];
+                            u = (D[COMP_X] * t + 1) * 0.5f;
+                            v = (-D[COMP_Y] * t + 1) * 0.5f;
+                        }
+                        else {
+                            side = sides[NZ];
+                            t = -1 / D[COMP_Z];
+                            u = (-D[COMP_X] * t + 1) * 0.5f;
+                            v = (-D[COMP_Y] * t + 1) * 0.5f;
+                        }
 
-                    break;
+                        break;
                 }
 
                 side->lookup(C, u, v, context);
@@ -1859,7 +1873,8 @@ class CCylindericalEnvironment : public CEnvironment {
                 v[3] = v[0] + (float)(c * D[COMP_Z]);
 
                 side->lookup4(result, u, v, context);
-            } else {
+            }
+            else {
                 initv(result, 0, 0, 0);
             }
         }
@@ -1941,22 +1956,28 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 
     if (strcmp(smode, RI_PERIODIC) == 0) {
         sMode = TEXTURE_PERIODIC;
-    } else if (strcmp(smode, RI_CLAMP) == 0) {
+    }
+    else if (strcmp(smode, RI_CLAMP) == 0) {
         sMode = TEXTURE_CLAMP;
-    } else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(smode, RI_NONPERIODIC) == 0)) {
+    }
+    else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(smode, RI_NONPERIODIC) == 0)) {
         sMode = TEXTURE_BLACK;
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown texture wrap mode (\"%s\")\n", smode);
         sMode = TEXTURE_BLACK;
     }
 
     if (strcmp(tmode, RI_PERIODIC) == 0) {
         tMode = TEXTURE_PERIODIC;
-    } else if (strcmp(tmode, RI_CLAMP) == 0) {
+    }
+    else if (strcmp(tmode, RI_CLAMP) == 0) {
         tMode = TEXTURE_CLAMP;
-    } else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(smode, RI_NONPERIODIC) == 0)) {
+    }
+    else if ((strcmp(smode, RI_BLACK) == 0) || (strcmp(smode, RI_NONPERIODIC) == 0)) {
         tMode = TEXTURE_BLACK;
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown texture wrap mode (\"%s\")\n", tmode);
         tMode = TEXTURE_BLACK;
     }
@@ -1965,7 +1986,8 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 
     if (sizeof(T) == sizeof(float)) {
         M = 1;
-    } else if (sizeof(T) == sizeof(unsigned short)) {
+    }
+    else if (sizeof(T) == sizeof(unsigned short)) {
         // This doesn't really make sense to me, but it does give correct results.
         // It seems that pixar-txmake generated textures have the photometric RGB flag
         // and they want to be dealt with by dividing the 16-bit val by 32k, not 65k.
@@ -1976,7 +1998,8 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
             M = 1.0 / 65535.0 * 2.0;
         else
             M = 1.0 / 65535.0;
-    } else {
+    }
+    else {
         M = 1.0 / 255.0;
     }
 
@@ -2032,9 +2055,11 @@ static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int 
     double M;
     if (sizeof(T) == sizeof(float)) {
         M = 1;
-    } else if (sizeof(T) == sizeof(unsigned short)) {
+    }
+    else if (sizeof(T) == sizeof(unsigned short)) {
         M = 1.0 / 65535.0;
-    } else {
+    }
+    else {
         M = 1.0 / 255.0;
     }
 
@@ -2088,18 +2113,23 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
 
                         if (bitspersample == 8) {
                             cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, width, height, smode, tmode, 1);
-                        } else if (bitspersample == 16) {
+                        }
+                        else if (bitspersample == 16) {
                             cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, width, height, smode, tmode, 1);
-                        } else {
+                        }
+                        else {
                             cTexture = readMadeTexture<float>(name, aname, in, dstart, width, height, smode, tmode, 1);
                         }
                     }
-                } else {
+                }
+                else {
                     if (bitspersample == 8) {
                         cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
-                    } else if (bitspersample == 16) {
+                    }
+                    else if (bitspersample == 16) {
                         cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
-                    } else {
+                    }
+                    else {
                         cTexture = readMadeTexture<float>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
                     }
                 }
@@ -2113,9 +2143,11 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
         // This must be an un-made texture then
         if (bitspersample == 8) {
             cTexture = readTexture<unsigned char>(name, aname, in, dstart, 1);
-        } else if (bitspersample == 16) {
+        }
+        else if (bitspersample == 16) {
             cTexture = readTexture<unsigned short>(name, aname, in, dstart, 1);
-        } else {
+        }
+        else {
             cTexture = readTexture<float>(name, aname, in, dstart, 1);
         }
     }
@@ -2156,7 +2188,8 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
             else
                 // This seems like a texture made by another software
                 cTexture = texLoad(fn, name, in, directory);
-        } else {
+        }
+        else {
             // This seems like an unmade texture
             cTexture = texLoad(fn, name, in, directory);
         }
@@ -2207,21 +2240,24 @@ CEnvironment *CRenderer::environmentLoad(const char *name, TSearchpath *path, fl
                 }
 
                 cTexture = new CCubicEnvironment(name, sides);
-            } else if (strcmp(textureFormat, TIFF_SPHERICAL_ENVIRONMENT) == 0) {
+            }
+            else if (strcmp(textureFormat, TIFF_SPHERICAL_ENVIRONMENT) == 0) {
                 int directory = 0;
                 CTexture *side;
 
                 side = texLoad(fileName, name, in, directory);
 
                 cTexture = new CSphericalEnvironment(name, side);
-            } else if (strcmp(textureFormat, TIFF_CYLINDER_ENVIRONMENT) == 0) {
+            }
+            else if (strcmp(textureFormat, TIFF_CYLINDER_ENVIRONMENT) == 0) {
                 int directory = 0;
                 CTexture *side;
 
                 side = texLoad(fileName, name, in, directory);
 
                 cTexture = new CCylindericalEnvironment(name, side);
-            } else if (strcmp(textureFormat, TIFF_SHADOW) == 0) {
+            }
+            else if (strcmp(textureFormat, TIFF_SHADOW) == 0) {
                 CTexture *side;
                 int directory = 0;
                 matrix worldToCamera, worldToScreen, localToNDC, localToCamera;

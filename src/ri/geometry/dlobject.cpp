@@ -87,7 +87,8 @@ void CDLObject::intersect(CShadingContext *, CRay *ray) {
         if (importance >= 0) {
             if (ray->jimp > importance)
                 return;
-        } else {
+        }
+        else {
             if ((1 - ray->jimp) >= -importance)
                 return;
         }

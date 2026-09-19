@@ -420,21 +420,26 @@ int main(int argc, char *argv[]) {
                     sloPath = outName;
                     // Replace or append .slo extension.
                     const char *ext = strrchr(outName, '.');
-                    if (ext) sloPath = std::string(outName, ext - outName) + ".slo";
-                    else     sloPath = std::string(outName) + ".slo";
-                } else {
+                    if (ext)
+                        sloPath = std::string(outName, ext - outName) + ".slo";
+                    else
+                        sloPath = std::string(outName) + ".slo";
+                }
+                else {
                     sloPath = std::string(currentCompiler->shaderName) + ".slo";
                 }
                 const bool ok = emitLLVMBitcode(
                     *currentCompiler->lastCompiledModule, sloPath,
                     currentCompiler->shaderName);
-                if (!ok) error = ERR_COMPILE;
+                if (!ok)
+                    error = ERR_COMPILE;
                 else {
                     snprintf(rsloName, sizeof(rsloName), "%s", sloPath.c_str());
                     compiledBasename = strrchr(rsloName, OS_DIR_SEPERATOR);
                     compiledBasename = compiledBasename ? compiledBasename + 1 : rsloName;
                 }
-            } else
+            }
+            else
 #endif
             {
                 // Default: .rslo path.

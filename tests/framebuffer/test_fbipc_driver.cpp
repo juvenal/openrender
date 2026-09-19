@@ -15,10 +15,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <signal.h>
+#include <unistd.h>
 
 #include "display/framebuffer/fbipc.h"
 
@@ -29,29 +29,39 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_EQ(a, b) do { \
-    if ((a) == (b)) { g_passed++; } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected %lld == %lld\n", \
-                __FILE__, __LINE__, (long long)(a), (long long)(b)); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_EQ(a, b)                                                  \
+    do {                                                                 \
+        if ((a) == (b)) {                                                \
+            g_passed++;                                                  \
+        }                                                                \
+        else {                                                           \
+            fprintf(stderr, "FAIL [%s:%d]: expected %lld == %lld\n",     \
+                    __FILE__, __LINE__, (long long)(a), (long long)(b)); \
+            g_failed++;                                                  \
+        }                                                                \
+    } while (0)
 
-#define EXPECT_TRUE(cond) do { \
-    if (cond) { g_passed++; } else { \
-        fprintf(stderr, "FAIL [%s:%d]: expected true: %s\n", \
-                __FILE__, __LINE__, #cond); \
-        g_failed++; \
-    } \
-} while(0)
+#define EXPECT_TRUE(cond)                                        \
+    do {                                                         \
+        if (cond) {                                              \
+            g_passed++;                                          \
+        }                                                        \
+        else {                                                   \
+            fprintf(stderr, "FAIL [%s:%d]: expected true: %s\n", \
+                    __FILE__, __LINE__, #cond);                  \
+            g_failed++;                                          \
+        }                                                        \
+    } while (0)
 
 // Read exactly n bytes from fd
 static bool readAll(int fd, void *buf, size_t n) {
     uint8_t *p = static_cast<uint8_t *>(buf);
     while (n > 0) {
         ssize_t r = read(fd, p, n);
-        if (r <= 0) return false;
-        p += r; n -= (size_t)r;
+        if (r <= 0)
+            return false;
+        p += r;
+        n -= (size_t)r;
     }
     return true;
 }
@@ -59,7 +69,8 @@ static bool readAll(int fd, void *buf, size_t n) {
 // Create a connected socketpair: sv[0] = writer (driver side), sv[1] = reader (helper side)
 static void makePair(int sv[2]) {
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) != 0) {
-        perror("socketpair"); exit(1);
+        perror("socketpair");
+        exit(1);
     }
 }
 
@@ -68,7 +79,8 @@ static void makePair(int sv[2]) {
 // ---------------------------------------------------------------------------
 
 static void test_start_packet_field_values() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     bool ok = sendStart(sv[0], 1920, 1080, 3, 1750000000ULL, "test-scene");
     EXPECT_TRUE(ok);
@@ -83,11 +95,11 @@ static void test_start_packet_field_values() {
 
     FBStartPayload sp;
     EXPECT_TRUE(readAll(sv[1], &sp, sizeof(sp)));
-    EXPECT_EQ(sp.width,      (uint32_t)1920);
-    EXPECT_EQ(sp.height,     (uint32_t)1080);
+    EXPECT_EQ(sp.width, (uint32_t)1920);
+    EXPECT_EQ(sp.height, (uint32_t)1080);
     EXPECT_EQ(sp.numSamples, (uint32_t)3);
     EXPECT_EQ(sp.startEpoch, (uint64_t)1750000000ULL);
-    EXPECT_EQ(sp.titleLen,   (uint32_t)10);
+    EXPECT_EQ(sp.titleLen, (uint32_t)10);
 
     char title[11] = {};
     EXPECT_TRUE(readAll(sv[1], title, 10));
@@ -97,7 +109,8 @@ static void test_start_packet_field_values() {
 }
 
 static void test_start_packet_zero_title() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     bool ok = sendStart(sv[0], 320, 240, 4, 0, "");
     EXPECT_TRUE(ok);
@@ -112,7 +125,7 @@ static void test_start_packet_zero_title() {
     FBStartPayload sp;
     EXPECT_TRUE(readAll(sv[1], &sp, sizeof(sp)));
     EXPECT_EQ(sp.numSamples, (uint32_t)4);
-    EXPECT_EQ(sp.titleLen,   (uint32_t)0);
+    EXPECT_EQ(sp.titleLen, (uint32_t)0);
 
     close(sv[1]);
 }
@@ -122,10 +135,11 @@ static void test_start_packet_zero_title() {
 // ---------------------------------------------------------------------------
 
 static void test_data_packet_encoding() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
-    float pixels[12] = {1.0f, 0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
-                         0.0f, 0.0f, 1.0f,  0.5f, 0.5f, 0.5f};
+    float pixels[12] = {1.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.5f};
     bool ok = sendData(sv[0], 10, 20, 2, 2, 3, pixels);
     EXPECT_TRUE(ok);
     close(sv[0]);
@@ -152,7 +166,8 @@ static void test_data_packet_encoding() {
 }
 
 static void test_data_packet_rgba() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     float pixels[4] = {0.1f, 0.2f, 0.3f, 1.0f}; // 1x1 RGBA
     bool ok = sendData(sv[0], 0, 0, 1, 1, 4, pixels);
@@ -169,13 +184,15 @@ static void test_data_packet_rgba() {
 }
 
 static void test_data_packet_large_tile() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     // 16×16 tile fits in socket buffer (3072 bytes of pixel data)
     int w = 16, h = 16, ch = 3;
     int n = w * h * ch;
     float *pixels = new float[n];
-    for (int i = 0; i < n; ++i) pixels[i] = 0.5f;
+    for (int i = 0; i < n; ++i)
+        pixels[i] = 0.5f;
 
     bool ok = sendData(sv[0], 0, 0, w, h, ch, pixels);
     EXPECT_TRUE(ok);
@@ -196,7 +213,8 @@ static void test_data_packet_large_tile() {
 // ---------------------------------------------------------------------------
 
 static void test_done_packet() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     bool ok = sendDone(sv[0], 1234);
     EXPECT_TRUE(ok);
@@ -215,7 +233,8 @@ static void test_done_packet() {
 }
 
 static void test_done_packet_eof() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     bool ok = sendDone(sv[0], 1234);
     EXPECT_TRUE(ok);
@@ -242,7 +261,8 @@ static void test_done_packet_eof() {
 // ---------------------------------------------------------------------------
 
 static void test_write_to_closed_socket_fails() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
     close(sv[1]); // close reader end — simulates helper exit
 
     signal(SIGPIPE, SIG_IGN);
@@ -255,7 +275,8 @@ static void test_write_to_closed_socket_fails() {
 }
 
 static void test_sendDone_to_closed_fd_fails() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
     close(sv[1]);
     signal(SIGPIPE, SIG_IGN);
     bool ok = sendDone(sv[0], 0);
@@ -268,7 +289,8 @@ static void test_sendDone_to_closed_fd_fails() {
 // ---------------------------------------------------------------------------
 
 static void test_sendQuit_encoding() {
-    int sv[2]; makePair(sv);
+    int sv[2];
+    makePair(sv);
 
     bool ok = sendQuit(sv[0]);
     EXPECT_TRUE(ok);

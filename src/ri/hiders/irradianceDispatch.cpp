@@ -146,8 +146,8 @@ inline void posGradient(float *dP, int np, int nt, CHemisphereSample *h, const f
                 mag1[4] += d * (dp->envdir[0] - dp[-1].envdir[0]);
                 mag1[5] += d * (dp->envdir[1] - dp[-1].envdir[1]);
                 mag1[6] += d * (dp->envdir[2] - dp[-1].envdir[2]);
-
-            } else {
+            }
+            else {
                 assert((dp + np - 1) < h + np * nt);
 
                 d = dp[np - 1].invDepth;
@@ -244,7 +244,6 @@ inline void rotGradient(float *dP, int np, int nt, CHemisphereSample *h, const f
     }
 }
 
-
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
 // Method				:	sample
@@ -279,10 +278,12 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     if (dotvv(dPdu, dPdu) > 0) {
         normalizevf(X, dPdu);
         crossvv(Y, N, X);
-    } else if (dotvv(dPdv, dPdv) > 0) {
+    }
+    else if (dotvv(dPdv, dPdv) > 0) {
         normalizevf(X, dPdv);
         crossvv(Y, N, X);
-    } else {
+    }
+    else {
         // At this point, we're pretty screwed, so why not use the P
         normalizevf(X, P);
         crossvv(Y, N, X);
@@ -351,7 +352,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                     hemisphere->coverage = 1;
                     initv(hemisphere->envdir, 0);
                     movvv(hemisphere->irradiance, color);
-                } else {
+                }
+                else {
                     // No
                     hemisphere->coverage = 0;
                     addvv(envdir, ray.dir);
@@ -376,7 +378,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                         addvv(irradiance, color);
                         movvv(hemisphere->irradiance, color);
-                    } else {
+                    }
+                    else {
                         initv(hemisphere->irradiance, 0);
                     }
                 }
@@ -394,7 +397,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 assert(hemisphere->invDepth > 0);
             }
         }
-    } else {
+    }
+    else {
 
         // We're shading for indirectdiffuse
         context->numIndirectDiffuseRays += numSamples;
@@ -456,13 +460,15 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         float maxC01;
                         if (C[1] > C[0]) {
                             maxC01 = C[1];
-                        } else {
+                        }
+                        else {
                             maxC01 = C[0];
                         }
                         float tmp;
                         if (C[2] > maxC01) {
                             tmp = C[2];
-                        } else {
+                        }
+                        else {
                             tmp = maxC01;
                         }
                         if (tmp > scratch->occlusionParams.maxBrightness)
@@ -473,7 +479,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         movvv(hemisphere->irradiance, C);
 
                         context->numIndirectDiffusePhotonmapLookups++;
-                    } else {
+                    }
+                    else {
                         initv(hemisphere->irradiance, 0);
                     }
 
@@ -482,7 +489,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                     hemisphere->coverage = 1;
                     initv(hemisphere->envdir, 0);
-                } else {
+                }
+                else {
                     // No
                     hemisphere->coverage = 0;
                     addvv(envdir, ray.dir);
@@ -507,7 +515,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                         addvv(irradiance, color);
                         movvv(hemisphere->irradiance, color);
-                    } else {
+                    }
+                    else {
                         movvv(hemisphere->irradiance, scratch->occlusionParams.environmentColor);
                         addvv(irradiance, scratch->occlusionParams.environmentColor);
                     }
@@ -600,7 +609,8 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 for (i = 0; i < 3; i++) {
                     if (P[i] > cNode->center[i]) {
                         nNode->center[i] = cNode->center[i] + cNode->side * 0.25f;
-                    } else {
+                    }
+                    else {
                         nNode->center[i] = cNode->center[i] - cNode->side * 0.25f;
                     }
                 }

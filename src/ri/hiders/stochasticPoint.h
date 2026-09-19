@@ -61,7 +61,8 @@ const float importance = grid->object->attributes->lodImportance;
     if (importance >= 0) {                    \
         if (pixel->jimp > importance)         \
             continue;                         \
-    } else {                                  \
+    }                                         \
+    else {                                    \
         if ((1 - pixel->jimp) >= -importance) \
             continue;                         \
     }

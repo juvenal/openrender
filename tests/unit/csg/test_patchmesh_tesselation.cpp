@@ -28,11 +28,11 @@
 #include <cmath>
 #include <cstdio>
 
-#include "riHooks.h"
-#include "rendererContext.h"
 #include "object.h"
 #include "patches.h"
+#include "rendererContext.h"
 #include "ri.h"
+#include "riHooks.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -47,8 +47,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -191,7 +191,7 @@ TEST(shared_edge_matches_vertex_for_vertex_after_welding) {
     ASSERT(op.uPatches == 2);
     ASSERT(op.vPatches == 1);
 
-    const CTesselatedGrid &left  = op.grids[0]; // sub-patch (i=0,j=0)
+    const CTesselatedGrid &left = op.grids[0];  // sub-patch (i=0,j=0)
     const CTesselatedGrid &right = op.grids[1]; // sub-patch (i=0,j=1)
     ASSERT(left.div == right.div);
 
@@ -202,7 +202,7 @@ TEST(shared_edge_matches_vertex_for_vertex_after_welding) {
         // the outer/row index and v as the inner/column index -- P[(u*n+v)*3]
         // -- see tesselateSurfaceGrid's VARIABLE_U/V harness (k = i*n+j,
         // u[k]=i/div, v[k]=j/div).
-        const float *pLeft  = left.P + ((n - 1) * n + row) * 3;
+        const float *pLeft = left.P + ((n - 1) * n + row) * 3;
         const float *pRight = right.P + (0 * n + row) * 3;
 
         ASSERT(fabsf(pLeft[0] - pRight[0]) < 1e-4f);

@@ -42,11 +42,20 @@ static bool isValidDebugDump(FILE *in) {
 
         int floatCount;
         switch (tag) {
-            case 0: floatCount = 3; break;  // point
-            case 1: floatCount = 6; break;  // line
-            case 2: floatCount = 9; break;  // triangle
-            case 3: floatCount = 12; break; // quad
-            default: return false;
+            case 0:
+                floatCount = 3;
+                break; // point
+            case 1:
+                floatCount = 6;
+                break; // line
+            case 2:
+                floatCount = 9;
+                break; // triangle
+            case 3:
+                floatCount = 12;
+                break; // quad
+            default:
+                return false;
         }
 
         long recordBytes = (long)floatCount * sizeof(float);
@@ -98,11 +107,16 @@ static EDataFileType sniffHeader(FILE *in) {
     if (fread(type, sizeof(char), len + 1, in) != (size_t)(len + 1))
         return DATA_NOT_A_DATA_FILE;
 
-    if (strcmp(type, filePhotonMap) == 0) return DATA_PHOTONMAP;
-    if (strcmp(type, fileIrradianceCache) == 0) return DATA_IRRADIANCECACHE;
-    if (strcmp(type, fileGatherCache) == 0) return DATA_GATHERCACHE;
-    if (strcmp(type, filePointCloud) == 0) return DATA_POINTCLOUD;
-    if (strcmp(type, fileBrickMap) == 0) return DATA_BRICKMAP;
+    if (strcmp(type, filePhotonMap) == 0)
+        return DATA_PHOTONMAP;
+    if (strcmp(type, fileIrradianceCache) == 0)
+        return DATA_IRRADIANCECACHE;
+    if (strcmp(type, fileGatherCache) == 0)
+        return DATA_GATHERCACHE;
+    if (strcmp(type, filePointCloud) == 0)
+        return DATA_POINTCLOUD;
+    if (strcmp(type, fileBrickMap) == 0)
+        return DATA_BRICKMAP;
 
     return DATA_NOT_A_DATA_FILE; // magic + version matched, but an unrecognized type string
 }

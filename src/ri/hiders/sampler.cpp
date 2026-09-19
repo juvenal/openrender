@@ -22,13 +22,13 @@
 #include "random.h"         // sampleDisk()
 
 namespace {
-// Only needs to differ across buckets within a frame, not be cryptographic.
-unsigned int bucketSeed(int left, int top) {
-    unsigned int h = 2166136261u; // FNV-1a
-    h = (h ^ (unsigned int)left) * 16777619u;
-    h = (h ^ (unsigned int)top) * 16777619u;
-    return h;
-}
+    // Only needs to differ across buckets within a frame, not be cryptographic.
+    unsigned int bucketSeed(int left, int top) {
+        unsigned int h = 2166136261u; // FNV-1a
+        h = (h ^ (unsigned int)left) * 16777619u;
+        h = (h ^ (unsigned int)top) * 16777619u;
+        return h;
+    }
 } // namespace
 
 CSampleValue CSampler::nextSample(int timeLinearIndex, int importanceLinearIndex, bool wantLens) {
@@ -46,7 +46,8 @@ CSampleValue CSampler::nextSample(int timeLinearIndex, int importanceLinearIndex
         sampleDisk(lens, lensFn);
         sample.lensU = lens[0];
         sample.lensV = lens[1];
-    } else {
+    }
+    else {
         sample.lensU = 0.0f;
         sample.lensV = 0.0f;
     }
@@ -54,8 +55,7 @@ CSampleValue CSampler::nextSample(int timeLinearIndex, int importanceLinearIndex
     return sample;
 }
 
-std::vector<CSampleValue> CSampler::generateBucketTable(int left, int top, int sampleWidth, int sampleHeight,
-                                                          int xSampleOffset, int ySampleOffset, bool wantLens) {
+std::vector<CSampleValue> CSampler::generateBucketTable(int left, int top, int sampleWidth, int sampleHeight, int xSampleOffset, int ySampleOffset, bool wantLens) {
     std::mt19937 rng(bucketSeed(left, top));
     auto detUrand = [&rng]() -> float {
         // mt19937's range is exactly [0, 2^32) per the C++ standard.

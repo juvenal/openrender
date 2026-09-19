@@ -92,7 +92,8 @@ static float getDisp(const float *mat, float) {
         float abs1 = absf(tmp2[1]);
         if (abs1 > abs0) {
             alpha = abs1;
-        } else {
+        }
+        else {
             alpha = abs0;
         }
         float abs2 = absf(tmp2[2]);
@@ -252,13 +253,15 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 vMin = total;
             }
         }
-    } else { // non raster oriented
+    }
+    else { // non raster oriented
         vector tmp;
 
         float maxDim;
         if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
             maxDim = CRenderer::dPixeldy;
-        } else {
+        }
+        else {
             maxDim = CRenderer::dPixeldx;
         }
         if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
@@ -271,7 +274,8 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
                 P[j * 3 + COMP_Y] = y * maxDim;
                 P[j * 3 + COMP_Z] = lengthv(tmp) * maxDim;
             }
-        } else {
+        }
+        else {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
                 P[j * 3 + COMP_X] = P[j * 3 + COMP_X] * CRenderer::dPixeldx;
                 P[j * 3 + COMP_Y] = P[j * 3 + COMP_Y] * CRenderer::dPixeldy;
@@ -342,7 +346,8 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
 
         nudiv = 1 << (unsigned int)(ceil(log(udivf) / log2));
         nvdiv = 1 << (unsigned int)(ceil(log(vdivf) / log2));
-    } else {
+    }
+    else {
         nudiv = (int)ceil(udivf);
         nvdiv = (int)ceil(vdivf);
     }
@@ -413,4 +418,3 @@ void CSurface::interpolate(int, float **, float ***) const {
     error(CODE_BUG, "An object is missing the \"interpolate\" function\n");
     assert(FALSE);
 }
-

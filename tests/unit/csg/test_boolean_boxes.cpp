@@ -42,8 +42,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -57,11 +57,11 @@ static int tests_failed = 0;
     } while (0)
 
 static const float kVolumeTolerance = 1e-4f;
-static const float kPlaneEpsilon    = 1e-4f;
+static const float kPlaneEpsilon = 1e-4f;
 
 TEST(union_volume_and_face_count) {
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f,0.5f,0.5f, 1.5f,1.5f,1.5f, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f, 0.5f, 0.5f, 1.5f, 1.5f, 1.5f, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_UNION, a, b);
 
@@ -77,8 +77,8 @@ TEST(union_volume_and_face_count) {
 }
 
 TEST(intersection_volume_and_face_count) {
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f,0.5f,0.5f, 1.5f,1.5f,1.5f, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f, 0.5f, 0.5f, 1.5f, 1.5f, 1.5f, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, a, b);
 
@@ -94,8 +94,8 @@ TEST(intersection_volume_and_face_count) {
 }
 
 TEST(difference_volume_and_face_count) {
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f,0.5f,0.5f, 1.5f,1.5f,1.5f, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f, 0.5f, 0.5f, 1.5f, 1.5f, 1.5f, NULL);
 
     CArray<CCSGPolygon *> *result = csgCombine(CSG_DIFFERENCE, a, b);
 
@@ -112,8 +112,8 @@ TEST(difference_volume_and_face_count) {
 
 TEST(difference_is_not_commutative) {
     // B - A must differ from A - B (sanity check on operand order, FR-005).
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0,0,0, 1,1,1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f,0.5f,0.5f, 1.5f,1.5f,1.5f, NULL);
+    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
+    CArray<CCSGPolygon *> *b = csgtest::makeBox(0.5f, 0.5f, 0.5f, 1.5f, 1.5f, 1.5f, NULL);
 
     CArray<CCSGPolygon *> *bMinusA = csgCombine(CSG_DIFFERENCE, b, a);
 

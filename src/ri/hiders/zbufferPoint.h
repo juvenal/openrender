@@ -81,7 +81,8 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
                         sample[0] = z;
                         if (CRenderer::flags & RASTER_MATTE) {
                             initv(sample, 0);
-                        } else {
+                        }
+                        else {
                             sample[1] = vertices[3];
                             sample[2] = vertices[4];
                             sample[3] = vertices[5];

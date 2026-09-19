@@ -158,13 +158,13 @@ class CSVertex {
         }
 
         CSubdivData &data;
-        CVertexFace *faces;           // Incident faces
-        CVertexEdge *edges;           // Incident edges
-        int valence;                  // Edge valence
-        int fvalence;                 // Face valence i.e., the number of faces incident on the vertex
-        float *vertex;                // The vertex coordinates
-        float *varying;               // The varying coordinates
-        CSVertex *parentv;            // The parent simplex
+        CVertexFace *faces; // Incident faces
+        CVertexEdge *edges; // Incident edges
+        int valence;        // Edge valence
+        int fvalence;       // Face valence i.e., the number of faces incident on the vertex
+        float *vertex;      // The vertex coordinates
+        float *varying;     // The varying coordinates
+        CSVertex *parentv;  // The parent simplex
         CSEdge *parente;
         CSFace *parentf;
         CSVertex *childVertex; // Child vertex
@@ -187,7 +187,8 @@ class CSVertex {
                 int sharpnessValue = sharpness - 1;
                 if (0 > sharpnessValue) {
                     childVertex->sharpness = 0;
-                } else {
+                }
+                else {
                     childVertex->sharpness = sharpnessValue;
                 }
             }
@@ -457,7 +458,8 @@ class CSFace {
                     if ((vertices[i]->childVertex == edges[i]->children[0]->vertices[0]) ||
                         (vertices[i]->childVertex == edges[i]->children[0]->vertices[1])) {
                         children[i]->edges[0] = edges[i]->children[0];
-                    } else {
+                    }
+                    else {
                         assert((vertices[i]->childVertex == edges[i]->children[1]->vertices[0]) ||
                                (vertices[i]->childVertex == edges[i]->children[1]->vertices[1]));
                         children[i]->edges[0] = edges[i]->children[1];
@@ -471,7 +473,8 @@ class CSFace {
                     if ((vertices[i]->childVertex == edges[t]->children[0]->vertices[0]) ||
                         (vertices[i]->childVertex == edges[t]->children[0]->vertices[1])) {
                         children[i]->edges[3] = edges[t]->children[0];
-                    } else {
+                    }
+                    else {
                         assert((vertices[i]->childVertex == edges[t]->children[1]->vertices[0]) ||
                                (vertices[i]->childVertex == edges[t]->children[1]->vertices[1]));
                         children[i]->edges[3] = edges[t]->children[1];
@@ -522,7 +525,8 @@ class CSFace {
 
             if (numEdges != 4) {
                 split = TRUE; // If we're not a quad, we must split (vanilla, no funny patch treatment)
-            } else {
+            }
+            else {
                 // Count the extraordinary vertices
                 for (i = 0; i < numEdges; i++) {
 
@@ -538,7 +542,8 @@ class CSFace {
                         if (!(data.currentFlags & FACE_INTEPOLATEBOUNDARY)) {
                             // We're a face adjacent to a boundary and the interpolate boundary flag is not set
                             return;
-                        } else {
+                        }
+                        else {
                             funny = TRUE;
                             funnyBorder = TRUE;
                         }
@@ -625,7 +630,8 @@ class CSFace {
                         CObject *nObject = new CSubdivision(data.currentAttributes, data.currentXform, data.vd, parameters, N, 0.0f, 0.0f, 1.0f, 1.0f, vertex);
                         nObject->sibling = children;
                         children = nObject;
-                    } else {
+                    }
+                    else {
                         // This is an ordinary patch
                         CSVertex *v[16], *va[4];
                         CSVertex *ring[8];
@@ -671,7 +677,8 @@ class CSFace {
                         nObject->sibling = children;
                         children = nObject;
                     }
-                } else {
+                }
+                else {
                     // Damn, we're a funny patch, deal with it
                     int nv = (1 << data.irregularDepth) + 1;
                     float *vertex;
@@ -725,7 +732,8 @@ class CSFace {
                         CObject *nObject = new CPatchGrid(data.currentAttributes, data.currentXform, data.vd, parameters, nv, nv, bTop, bRgt, bBot, bLft, vertex);
                         nObject->sibling = children;
                         children = nObject;
-                    } else {
+                    }
+                    else {
                         if ((numExtraordinary > 0) && (vertices[(extraordinary + 0) & 3]->valence >= 3)) {
                             // We're have an extraordinary patch
                             // divide main patch into two side strips which are adjacent
@@ -798,7 +806,8 @@ class CSFace {
                             nObject = new CSubdivision(data.currentAttributes, data.currentXform, data.vd, parameters, N, 0.0f, 0.0f, mult, mult, vertex);
                             nObject->sibling = children;
                             children = nObject;
-                        } else {
+                        }
+                        else {
                             // No extraordinary patch, use the a bicubic b-spline patch
 
                             // Gather the data
@@ -811,7 +820,8 @@ class CSFace {
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 for (i = 0; i < numEdges; i++) {
                     vertices[i]->splitIncidentFaces();
                 }
@@ -847,7 +857,8 @@ class CSFace {
                 }
 
                 assert(i != 4);
-            } else {
+            }
+            else {
                 int i;
 
                 for (i = 0; i < 4; i++) {
@@ -908,7 +919,8 @@ class CSFace {
                             if (((vertices[(i + 0) & 3]->valence != 4) && (vertices[(i + 0) & 3]->valence >= 3) && (vertices[(i + 0) & 3]->valence == vertices[(i + 0) & 3]->fvalence))) {
                                 // We're an extraordinary point and not at the border
                                 vertices[(i + 0) & 3]->sort(data.irregularRing, edges[(i + 0) & 3], this, 2 * vertices[(i + 0) & 3]->valence);
-                            } else {
+                            }
+                            else {
                                 CSVertex *v = data.irregularVertices[(y + mt) * ((1 << data.irregularDepth) + 3) + x + ml];
                                 if (!findCornerVertex((i + 0) & 3, (i + 0) & 3, v))
                                     findCornerVertex((i + 3) & 3, (i + 0) & 3, v);
@@ -1100,7 +1112,8 @@ char CSFace::findEdgeVertices(int eOrg, int vOrg, CSVertex *&v1, CSVertex *&v2) 
                 if (cFace->vertices[i] == cVert) {
                     v1 = cFace->vertices[(i + 2) & 3];
                     v2 = cFace->vertices[(i + 3) & 3];
-                } else {
+                }
+                else {
                     v1 = cFace->vertices[(i + 3) & 3];
                     v2 = cFace->vertices[(i + 2) & 3];
                     // assert(cFace->vertices[(i+1)&3] != cVert);
@@ -1109,7 +1122,8 @@ char CSFace::findEdgeVertices(int eOrg, int vOrg, CSVertex *&v1, CSVertex *&v2) 
             }
         }
         assert(i != 4);
-    } else {
+    }
+    else {
         return 1;
     }
     return 0;
@@ -1144,7 +1158,8 @@ int CSFace::findCornerVertex(int eOrg, int vOrg, CSVertex *&v) {
                         v = cFace->vertices[(i + 2) & 3];
                         return TRUE;
                     }
-                } else {
+                }
+                else {
                     cEdge = cFace->edges[(i + 1) & 3];
                     assert(cFace->vertices[(i + 1) & 3] == cVert);
                     if (!j && (cEdge->faces[0] != this) && (cEdge->faces[1] != this)) {
@@ -1242,7 +1257,8 @@ void CSVertex::compute(float *vertex) {
 
     if ((numSharp > 2) || (valence == 2)) { // We're a corner vertex
         memcpy(vertex, this->vertex, data.vertexSize * sizeof(float));
-    } else { // We're not a corner vertex
+    }
+    else { // We're not a corner vertex
         float *sharpVertex = (float *)ralloc(data.vertexSize * sizeof(float), data.mem);
         float *smoothVertex = (float *)ralloc(data.vertexSize * sizeof(float), data.mem);
 
@@ -1287,14 +1303,17 @@ void CSVertex::compute(float *vertex) {
             // We're a crease vertex
             if (sharpness >= 1) {
                 memcpy(vertex, sharpVertex, data.vertexSize * sizeof(float));
-            } else if (sharpness <= 0) {
+            }
+            else if (sharpness <= 0) {
                 memcpy(vertex, smoothVertex, data.vertexSize * sizeof(float));
-            } else {
+            }
+            else {
                 initVertex(data, vertex);
                 accumVertex(data, vertex, smoothVertex, 1 - sharpness);
                 accumVertex(data, vertex, sharpVertex, sharpness);
             }
-        } else {
+        }
+        else {
             // We're a dart or a non-crease vertex
             memcpy(vertex, smoothVertex, data.vertexSize * sizeof(float));
         }
@@ -1302,7 +1321,8 @@ void CSVertex::compute(float *vertex) {
 
     if (this->sharpness >= 1) { // sharp corner rule
         memcpy(vertex, this->vertex, data.vertexSize * sizeof(float));
-    } else if (this->sharpness > 0) { // smooth corner rule
+    }
+    else if (this->sharpness > 0) { // smooth corner rule
         scaleVertex(data, vertex, 1 - this->sharpness);
         accumVertex(data, vertex, this->vertex, this->sharpness);
     }
@@ -1355,15 +1375,16 @@ void CSVertex::computeVarying(float *varying, float *facevarying, int requesting
 
         if (isSeam) {
             int boundaryMode = ((requestingCFace != NULL) && (requestingCFace->face->fvarBoundaryModeOverride >= 0))
-                                    ? requestingCFace->face->fvarBoundaryModeOverride
-                                    : data.fvarBoundaryMode;
+                                   ? requestingCFace->face->fvarBoundaryModeOverride
+                                   : data.fvarBoundaryMode;
             int propagateCorners = ((requestingCFace != NULL) && (requestingCFace->face->fvarPropagateCornersOverride >= 0))
-                                        ? requestingCFace->face->fvarPropagateCornersOverride
-                                        : data.fvarPropagateCorners;
+                                       ? requestingCFace->face->fvarPropagateCornersOverride
+                                       : data.fvarPropagateCorners;
             if (boundaryMode == 0) {
                 // "none": smooth every facevarying seam away.
                 preserve = FALSE;
-            } else if (boundaryMode == 1) {
+            }
+            else if (boundaryMode == 1) {
                 // "edges only": seam corners smooth unless this is a true
                 // topological boundary corner and propagation is requested.
                 preserve = propagateCorners && (valence != fvalence);
@@ -1380,7 +1401,8 @@ void CSVertex::computeVarying(float *varying, float *facevarying, int requesting
                     break;
                 }
             }
-        } else {
+        }
+        else {
             // Smooth the seam: average every distinct incident facevarying value.
             int i, count = 0;
 
@@ -1445,7 +1467,8 @@ void CSVertex::computeLimit(float *vertex) {
 
     if ((numSharp > 2) || (valence == 2)) { // We're a corner vertex
         memcpy(vertex, this->vertex, data.vertexSize * sizeof(float));
-    } else { // We're not a corner vertex
+    }
+    else { // We're not a corner vertex
         float *sharpVertex = (float *)ralloc(data.vertexSize * sizeof(float), data.mem);
         float *smoothVertex = (float *)ralloc(data.vertexSize * sizeof(float), data.mem);
 
@@ -1477,14 +1500,17 @@ void CSVertex::computeLimit(float *vertex) {
             // We're a crease vertex
             if (sharpness >= 1) {
                 memcpy(vertex, sharpVertex, data.vertexSize * sizeof(float));
-            } else if (sharpness <= 0) {
+            }
+            else if (sharpness <= 0) {
                 memcpy(vertex, smoothVertex, data.vertexSize * sizeof(float));
-            } else {
+            }
+            else {
                 initVertex(data, vertex);
                 accumVertex(data, vertex, smoothVertex, 1 - sharpness);
                 accumVertex(data, vertex, sharpVertex, sharpness);
             }
-        } else {
+        }
+        else {
             // We're a dart or a non-crease vertex
             memcpy(vertex, smoothVertex, data.vertexSize * sizeof(float));
         }
@@ -1492,7 +1518,8 @@ void CSVertex::computeLimit(float *vertex) {
 
     if (this->sharpness >= 1) { // sharp corner rule
         memcpy(vertex, this->vertex, data.vertexSize * sizeof(float));
-    } else if (this->sharpness > 0) { // smooth corner rule
+    }
+    else if (this->sharpness > 0) { // smooth corner rule
         scaleVertex(data, vertex, 1 - this->sharpness);
         accumVertex(data, vertex, this->vertex, this->sharpness);
     }
@@ -1569,7 +1596,8 @@ float CSEdge::childSharpness(CSVertex *v) {
     int effectiveCreaseMethod = data.creaseMethod;
     if ((faces[0] != NULL) && (faces[0]->creaseMethodOverride >= 0)) {
         effectiveCreaseMethod = faces[0]->creaseMethodOverride;
-    } else if ((faces[1] != NULL) && (faces[1]->creaseMethodOverride >= 0)) {
+    }
+    else if ((faces[1] != NULL) && (faces[1]->creaseMethodOverride >= 0)) {
         effectiveCreaseMethod = faces[1]->creaseMethodOverride;
     }
 
@@ -1990,7 +2018,8 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
             for (j = 0; j < cnargs[0]; j++) {
                 faces[cintargs[j]]->hole = TRUE;
             }
-        } else if (strcmp(tags[i], RI_CREASE) == 0) {
+        }
+        else if (strcmp(tags[i], RI_CREASE) == 0) {
             for (j = 0; j < cnargs[0] - 1; j++) {
                 CSVertex *v0 = vertices[cintargs[j]];
                 CSVertex *v1 = vertices[cintargs[j + 1]];
@@ -2001,52 +2030,65 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
                 if (cEdge != NULL) {
                     if (10 < cfloatargs[0]) {
                         cEdge->sharpness = 10;
-                    } else {
+                    }
+                    else {
                         cEdge->sharpness = cfloatargs[0];
                     }
-                } else {
+                }
+                else {
                     error(CODE_RANGE, "The edge between vertices %d-%d not found\n", cintargs[j], cintargs[j + 1]);
                 }
             }
             if (cnargs[1] != 1) {
                 error(CODE_RANGE, "Creases expect exactly 1 float argument\n");
             }
-        } else if (strcmp(tags[i], RI_INTERPOLATEBOUNDARY) == 0) {
+        }
+        else if (strcmp(tags[i], RI_INTERPOLATEBOUNDARY) == 0) {
             data.currentFlags |= FACE_INTEPOLATEBOUNDARY;
-        } else if (strcmp(tags[i], RI_CORNER) == 0) {
+        }
+        else if (strcmp(tags[i], RI_CORNER) == 0) {
             if (cnargs[1] == cnargs[0]) {
                 for (j = 0; j < cnargs[0]; j++) {
                     vertices[cintargs[j]]->sharpness = cfloatargs[j];
                 }
-            } else if (cnargs[1] == 1) {
+            }
+            else if (cnargs[1] == 1) {
                 for (j = 0; j < cnargs[0]; j++) {
                     vertices[cintargs[j]]->sharpness = cfloatargs[0];
                 }
-            } else {
+            }
+            else {
                 error(CODE_RANGE, "Corner has 1 or n float arguments\n");
             }
-        } else if (strcmp(tags[i], RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
+        }
+        else if (strcmp(tags[i], RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
             if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 2)) {
                 warning(CODE_BADTOKEN, "facevaryinginterpolateboundary expects 1 integer argument in [0,2]; using default (2)\n");
                 data.fvarBoundaryMode = 2;
-            } else {
+            }
+            else {
                 data.fvarBoundaryMode = cintargs[0];
             }
-        } else if (strcmp(tags[i], RI_FACEVARYINGPROPAGATECORNERS) == 0) {
+        }
+        else if (strcmp(tags[i], RI_FACEVARYINGPROPAGATECORNERS) == 0) {
             if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 1)) {
                 warning(CODE_BADTOKEN, "facevaryingpropagatecorners expects 1 boolean (0 or 1) argument; using default (0)\n");
                 data.fvarPropagateCorners = 0;
-            } else {
+            }
+            else {
                 data.fvarPropagateCorners = cintargs[0];
             }
-        } else if (strcmp(tags[i], RI_CREASEMETHOD) == 0) {
+        }
+        else if (strcmp(tags[i], RI_CREASEMETHOD) == 0) {
             if ((cnargs[0] != 1) || (cintargs[0] < 0) || (cintargs[0] > 1)) {
                 warning(CODE_BADTOKEN, "creasemethod expects 1 integer argument (0 = normal, 1 = chaikin); using default (0)\n");
                 data.creaseMethod = 0;
-            } else {
+            }
+            else {
                 data.creaseMethod = cintargs[0];
             }
-        } else {
+        }
+        else {
             error(CODE_BADTOKEN, "Unknown subdivision tag: \"%s\"\n", tags[i]);
         }
 
@@ -2083,23 +2125,30 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
 
         if (strcmp(ov->tagName, RI_HOLE) == 0) {
             cFace->hole = TRUE;
-        } else if (strcmp(ov->tagName, RI_CREASE) == 0) {
+        }
+        else if (strcmp(ov->tagName, RI_CREASE) == 0) {
             for (j = 0; j < cFace->numEdges; j++) {
                 cFace->edges[j]->sharpness = (ov->value > 10) ? 10 : ov->value;
             }
-        } else if (strcmp(ov->tagName, RI_CORNER) == 0) {
+        }
+        else if (strcmp(ov->tagName, RI_CORNER) == 0) {
             for (j = 0; j < cFace->numEdges; j++) {
                 cFace->vertices[j]->sharpness = ov->value;
             }
-        } else if (strcmp(ov->tagName, RI_INTERPOLATEBOUNDARY) == 0) {
+        }
+        else if (strcmp(ov->tagName, RI_INTERPOLATEBOUNDARY) == 0) {
             data.currentFlags |= FACE_INTEPOLATEBOUNDARY;
-        } else if (strcmp(ov->tagName, RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
-            cFace->fvarBoundaryModeOverride = (int) ov->value;
-        } else if (strcmp(ov->tagName, RI_FACEVARYINGPROPAGATECORNERS) == 0) {
-            cFace->fvarPropagateCornersOverride = (int) ov->value;
-        } else if (strcmp(ov->tagName, RI_CREASEMETHOD) == 0) {
-            cFace->creaseMethodOverride = (int) ov->value;
-        } else {
+        }
+        else if (strcmp(ov->tagName, RI_FACEVARYINGINTERPOLATEBOUNDARY) == 0) {
+            cFace->fvarBoundaryModeOverride = (int)ov->value;
+        }
+        else if (strcmp(ov->tagName, RI_FACEVARYINGPROPAGATECORNERS) == 0) {
+            cFace->fvarPropagateCornersOverride = (int)ov->value;
+        }
+        else if (strcmp(ov->tagName, RI_CREASEMETHOD) == 0) {
+            cFace->creaseMethodOverride = (int)ov->value;
+        }
+        else {
             warning(CODE_BADTOKEN, "Unknown hierarchical subdivision override tag: \"%s\"\n", ov->tagName);
         }
     }

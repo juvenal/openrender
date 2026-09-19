@@ -32,7 +32,7 @@
 #include "common/algebra.h"
 #include "common/global.h" // The global header file
 #include "common/os.h"
-#include "common/sobolTables.h"  // SOBOL_MAX_DIMENSION, Sobol sequence tables
+#include "common/sobolTables.h" // SOBOL_MAX_DIMENSION, Sobol sequence tables
 
 ////////////////////////////////////////////////////////////////////////////
 //

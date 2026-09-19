@@ -4,30 +4,36 @@
 #include <unistd.h>
 
 #include "common/algebra.h"
+#include "ri/parse/riInterface.h"
 #include "ri/texture/brickmap.h"
 #include "ri/texture/pointCloud.h"
-#include "ri/parse/riInterface.h"
 #include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
 
 static void writePointCloudFixture(const char *path) {
     matrix from, to;
     identitym(from);
     identitym(to);
 
-    char *names[2] = { (char *)"_radiosity", (char *)"_extra" };
-    char *types[2] = { (char *)"float", (char *)"float" };
+    char *names[2] = {(char *)"_radiosity", (char *)"_extra"};
+    char *types[2] = {(char *)"float", (char *)"float"};
 
     CPointCloud *cloud = new CPointCloud(path, from, to, NULL, 2, names, types, TRUE);
     for (int i = 0; i < 8; i++) {
-        float P[3] = { (float)i, 0, 0 };
-        float N[3] = { 0, 0, 1 };
-        float C[2] = { 0.5f, 0.25f };
+        float P[3] = {(float)i, 0, 0};
+        float N[3] = {0, 0, 1};
+        float C[2] = {0.5f, 0.25f};
         cloud->store(C, P, N, 0.1f);
     }
     delete cloud;
@@ -44,7 +50,7 @@ static void writeBrickMapFixture(const char *ptcPath, const char *brkPath) {
     CRiInterface *saved = renderMan;
     renderMan = new CRiInterface();
 
-    const char *src[1] = { ptcPath };
+    const char *src[1] = {ptcPath};
     makeBrickMap(1, src, brkPath, NULL, 0, NULL, NULL);
 
     delete renderMan;

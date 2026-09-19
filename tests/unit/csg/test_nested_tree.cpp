@@ -66,11 +66,11 @@
 #include <cmath>
 #include <cstdio>
 
-#include "riHooks.h"
-#include "rendererContext.h"
 #include "object.h"
-#include "solidObject.h"
+#include "rendererContext.h"
 #include "ri.h"
+#include "riHooks.h"
+#include "solidObject.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -85,8 +85,8 @@ static int tests_failed = 0;
         if (tests_failed == failedBefore) {     \
             tests_passed++;                     \
             printf("PASSED\n");                 \
-        }                                        \
-    }                                            \
+        }                                       \
+    }                                           \
     void test_##name()
 
 #define ASSERT(condition)                                          \
@@ -99,15 +99,15 @@ static int tests_failed = 0;
         }                                                          \
     } while (0)
 
-#define ASSERT_NEAR(a, b, tol)                                                       \
-    do {                                                                             \
-        if (fabsf((float)(a) - (float)(b)) > (tol)) {                                \
-            printf("\nAssertion failed: %s ~= %s (tol %g)\nGot: %g, Expected: %g\n"  \
-                   "File: %s, Line: %d\n",                                           \
+#define ASSERT_NEAR(a, b, tol)                                                           \
+    do {                                                                                 \
+        if (fabsf((float)(a) - (float)(b)) > (tol)) {                                    \
+            printf("\nAssertion failed: %s ~= %s (tol %g)\nGot: %g, Expected: %g\n"      \
+                   "File: %s, Line: %d\n",                                               \
                    #a, #b, (double)(tol), (double)(a), (double)(b), __FILE__, __LINE__); \
-            tests_failed++;                                                          \
-            return;                                                                  \
-        }                                                                            \
+            tests_failed++;                                                              \
+            return;                                                                      \
+        }                                                                                \
     } while (0)
 
 // Intercepts the single addObject(CSolidObject*) call made by
@@ -142,8 +142,7 @@ static CRiInterface *makeCaptureContext() {
 }
 
 // Emits one quad face via RiPolygon.
-static void emitFace(float x0, float y0, float z0, float x1, float y1, float z1,
-                      float x2, float y2, float z2, float x3, float y3, float z3) {
+static void emitFace(float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3) {
     float P[12] = {x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3};
     RiPolygon(4, RI_P, P, RI_NULL);
 }
@@ -224,8 +223,7 @@ TEST(nested_union_then_difference_matches_expected_bbox) {
 // returns TRUE if the result is geometrically non-empty (a CSolidObject
 // was captured), FALSE if it is empty (no CSolidObject captured at all
 // -- resolveCSGTree only calls addObject() when fragments != NULL).
-static int probeDifferenceResult(float pxlo, float pylo, float pzlo,
-                                  float pxhi, float pyhi, float pzhi) {
+static int probeDifferenceResult(float pxlo, float pylo, float pzlo, float pxhi, float pyhi, float pzhi) {
     RiSetContextFactory(makeCaptureContext);
 
     RiBegin(RI_NULL);

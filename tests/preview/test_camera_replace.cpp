@@ -7,16 +7,23 @@
 #include <string>
 
 static int g_pass = 0, g_fail = 0;
-#define CHECK(expr) do { \
-    if (expr) { ++g_pass; } \
-    else { ++g_fail; fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); } \
-} while(0)
-#define CHECK_NEAR(a, b, eps) CHECK(std::fabs((float)(a)-(float)(b)) < (eps))
+#define CHECK(expr)                                                         \
+    do {                                                                    \
+        if (expr) {                                                         \
+            ++g_pass;                                                       \
+        }                                                                   \
+        else {                                                              \
+            ++g_fail;                                                       \
+            fprintf(stderr, "FAIL %s:%d  %s\n", __FILE__, __LINE__, #expr); \
+        }                                                                   \
+    } while (0)
+#define CHECK_NEAR(a, b, eps) CHECK(std::fabs((float)(a) - (float)(b)) < (eps))
 
 // Helper: write a sample RIB with camera block
 static bool writeTestRib(const char *path, float origFov, float origTz) {
     std::ofstream f(path);
-    if (!f) return false;
+    if (!f)
+        return false;
     f << "# Test RIB\n";
     f << "Display \"out.tif\" \"file\" \"rgba\"\n";
     f << "Projection \"perspective\" \"fov\" [" << origFov << "]\n";
@@ -32,13 +39,15 @@ static bool writeTestRib(const char *path, float origFov, float origTz) {
 // replaceRibCamera: locate Projection+Transform before WorldBegin, replace them
 static bool replaceRibCamera(const char *path, float newFov, const float newMat[16]) {
     std::ifstream fin(path);
-    if (!fin) return false;
+    if (!fin)
+        return false;
     std::string content((std::istreambuf_iterator<char>(fin)), {});
     fin.close();
 
     // Find WorldBegin boundary
     size_t worldPos = content.find("WorldBegin");
-    if (worldPos == std::string::npos) return false;
+    if (worldPos == std::string::npos)
+        return false;
 
     std::string pre = content.substr(0, worldPos);
     std::string post = content.substr(worldPos);
@@ -49,8 +58,8 @@ static bool replaceRibCamera(const char *path, float newFov, const float newMat[
         if (pos != std::string::npos) {
             size_t end = pre.find('\n', pos);
             std::string newLine = "Projection \"perspective\" \"fov\" [" +
-                std::to_string(newFov) + "]";
-            pre.replace(pos, end-pos, newLine);
+                                  std::to_string(newFov) + "]";
+            pre.replace(pos, end - pos, newLine);
         }
     }
     // Replace Transform line
@@ -60,14 +69,19 @@ static bool replaceRibCamera(const char *path, float newFov, const float newMat[
             size_t end = pre.find('\n', pos);
             std::ostringstream ss;
             ss << "Transform [";
-            for (int i=0;i<16;++i) { ss << newMat[i]; if(i<15) ss << " "; }
+            for (int i = 0; i < 16; ++i) {
+                ss << newMat[i];
+                if (i < 15)
+                    ss << " ";
+            }
             ss << "]";
-            pre.replace(pos, end-pos, ss.str());
+            pre.replace(pos, end - pos, ss.str());
         }
     }
 
     std::ofstream fout(path);
-    if (!fout) return false;
+    if (!fout)
+        return false;
     fout << pre << post;
     return true;
 }
@@ -89,7 +103,7 @@ int main() {
     CHECK(orig.find("Display") != std::string::npos);
 
     // Replace camera
-    float newMat[16] = {1,0,0,0, 0,1,0,0, 0,0,1,10, 0,0,0,1};
+    float newMat[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 10, 0, 0, 0, 1};
     CHECK(replaceRibCamera(tmpPath, 30.0f, newMat));
 
     std::string updated = readFile(tmpPath);

@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "blobbyRepeller.h"
 #include "atomic.h"
+#include "blobbyRepeller.h"
 #include "error.h"
 #include "stats.h"
 
@@ -920,7 +920,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
 
         switch (instruction->resolvedOp) {
             case BLOBBY_OP_ADD:
-            case BLOBBY_OP_MULTIPLY: {
+            case BLOBBY_OP_MULTIPLY:
+            {
                 const int isAdd = (instruction->resolvedOp == BLOBBY_OP_ADD);
                 float total = isAdd ? 0.0f : 1.0f;
 
@@ -1002,7 +1003,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
             }
 
             case BLOBBY_OP_MAXIMUM:
-            case BLOBBY_OP_MINIMUM: {
+            case BLOBBY_OP_MINIMUM:
+            {
                 const int wantMax = (instruction->resolvedOp == BLOBBY_OP_MAXIMUM);
                 int winner = operands[0];
 
@@ -1032,7 +1034,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
                 break;
             }
 
-            case BLOBBY_RESOLVED_SUBTRACT: {
+            case BLOBBY_RESOLVED_SUBTRACT:
+            {
                 // operand0 - operand1. Both primary sources name these
                 // "subtrahend, minuend", which reads the other way round;
                 // AppNote #31's own dent.rib subtracts a small blob
@@ -1058,7 +1061,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
                 break;
             }
 
-            case BLOBBY_RESOLVED_DIVIDE: {
+            case BLOBBY_RESOLVED_DIVIDE:
+            {
                 const float numerator = BLOBBY_VALUE(operands[0]);
                 const float divisor = BLOBBY_VALUE(operands[1]);
 
@@ -1093,7 +1097,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
                 break;
             }
 
-            case BLOBBY_OP_NEGATE: {
+            case BLOBBY_OP_NEGATE:
+            {
                 const float *ga = BLOBBY_GRADIENT(operands[0]);
 
                 *value = -BLOBBY_VALUE(operands[0]);
@@ -1106,7 +1111,8 @@ float CBlobbyProgram::evaluateInternal(const float *P, float *gradient, float *l
                 break;
             }
 
-            default: { // BLOBBY_OP_IDENTITY
+            default:
+            { // BLOBBY_OP_IDENTITY
                 *value = BLOBBY_VALUE(operands[0]);
                 movvv(grad, BLOBBY_GRADIENT(operands[0]));
 

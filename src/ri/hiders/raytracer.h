@@ -100,14 +100,14 @@ class CPrimaryRay : public CRay {
         std::vector<CBufferedNonCompSample> pendingNonComp;
         std::vector<CDepthCandidate> pendingDepth;
         bool nonCompLatched;
-        float *samples;  // The extra samples that need to be saved
-        float x, y;      // The x,y location of the ray on the screen
+        float *samples;     // The extra samples that need to be saved
+        float x, y;         // The x,y location of the ray on the screen
         float lensU, lensV; // Correlated-table lens sample (US9), carried from
-                             // sample() to computeSamples() so a DOF ray reads
-                             // the same table entry its jitter/time came from
-                             // instead of drawing a second, uncorrelated lens
-                             // sample -- only populated/consumed when
-                             // CRenderer::correlatedSampleTable is set.
+                            // sample() to computeSamples() so a DOF ray reads
+                            // the same table entry its jitter/time came from
+                            // instead of drawing a second, uncorrelated lens
+                            // sample -- only populated/consumed when
+                            // CRenderer::correlatedSampleTable is set.
 };
 
 ///////////////////////////////////////////////////////////////////////

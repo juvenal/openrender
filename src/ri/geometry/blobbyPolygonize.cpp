@@ -146,8 +146,14 @@ static const int blobbyTetrahedra[6][4] = {
 
 // Corner offsets, indexed the same way.
 static const int blobbyCornerOffset[8][3] = {
-    {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
-    {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1},
+    {0, 0, 0},
+    {1, 0, 0},
+    {0, 1, 0},
+    {1, 1, 0},
+    {0, 0, 1},
+    {1, 0, 1},
+    {0, 1, 1},
+    {1, 1, 1},
 };
 
 // The four corners of each of the six faces, and the neighbour direction
@@ -162,9 +168,12 @@ static const int blobbyFaceCorners[6][4] = {
 };
 
 static const int blobbyFaceDirection[6][3] = {
-    {-1, 0, 0}, {1, 0, 0},
-    {0, -1, 0}, {0, 1, 0},
-    {0, 0, -1}, {0, 0, 1},
+    {-1, 0, 0},
+    {1, 0, 0},
+    {0, -1, 0},
+    {0, 1, 0},
+    {0, 0, -1},
+    {0, 0, 1},
 };
 
 ///////////////////////////////////////////////////////////////////////

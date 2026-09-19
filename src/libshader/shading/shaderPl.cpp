@@ -130,22 +130,29 @@ void CTextureLookup::bind(const char *name, int &opIndex, int step, void *data, 
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
         else filter = CRenderer::getFilter(((const char **)data)[0]);
-    } else if (strcmp(name, "blur") == 0) {
+    }
+    else if (strcmp(name, "blur") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.blur));
-    } else if (strcmp(name, "width") == 0) {
+    }
+    else if (strcmp(name, "width") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.width));
-    } else if (strcmp(name, "swidth") == 0) {
+    }
+    else if (strcmp(name, "swidth") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.swidth));
-    } else if (strcmp(name, "twidth") == 0) {
+    }
+    else if (strcmp(name, "twidth") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.twidth));
-    } else if (strcmp(name, "fill") == 0) {
+    }
+    else if (strcmp(name, "fill") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.fill));
-    } else if (strcmp(name, "samples") == 0) {
+    }
+    else if (strcmp(name, "samples") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.samples));
-    } else
+    }
+    else
         CPLLookup::bind(name, opIndex, step, data, shader);
 }
 
@@ -210,18 +217,24 @@ void CTraceLookup::bind(const char *name, int &opIndex, int step, void *data, CS
     // Find the parameter and bind it
     if (strcmp(name, "samples") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.samples));
-    } else if (strcmp(name, "bias") == 0) {
+    }
+    else if (strcmp(name, "bias") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.bias));
-    } else if (strcmp(name, "samplecone") == 0) {
+    }
+    else if (strcmp(name, "samplecone") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.coneAngle));
-    } else if (strcmp(name, "sampleBase") == 0) {
+    }
+    else if (strcmp(name, "sampleBase") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.sampleBase));
-    } else if (strcmp(name, "maxdist") == 0) {
+    }
+    else if (strcmp(name, "maxdist") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.maxDist));
-    } else if (strcmp(name, "label") == 0) {
+    }
+    else if (strcmp(name, "label") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.label));
-    } else
+    }
+    else
         CPLLookup::bind(name, opIndex, step, data, shader);
 }
 
@@ -273,20 +286,26 @@ void CEnvironmentLookup::bind(const char *name, int &opIndex, int step, void *da
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
         else filter = CRenderer::getFilter(((const char **)data)[0]);
-    } else if (strcmp(name, "blur") == 0) {
+    }
+    else if (strcmp(name, "blur") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.blur));
-    } else if (strcmp(name, "width") == 0) {
+    }
+    else if (strcmp(name, "width") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.width));
-    } else if (strcmp(name, "swidth") == 0) {
+    }
+    else if (strcmp(name, "swidth") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.swidth));
-    } else if (strcmp(name, "twidth") == 0) {
+    }
+    else if (strcmp(name, "twidth") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.twidth));
-    } else if (strcmp(name, "fill") == 0) {
+    }
+    else if (strcmp(name, "fill") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.fill));
-    } else
+    }
+    else
         CTraceLookup::bind(name, opIndex, step, data, shader);
 }
 
@@ -340,10 +359,12 @@ void CPhotonMapLookup::bind(const char *name, int &opIndex, int step, void *data
         if (strcmp(type, "irradiance") != 0) {
             error(CODE_BADTOKEN, "Photonmap lookup type \"%s\" is not supported in shader %s\n", type, shader->getName());
         }
-    } else if (strcmp(name, "estimator") == 0) {
+    }
+    else if (strcmp(name, "estimator") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, photonmapParams.estimator));
-    } else
+    }
+    else
         CPLLookup::bind(name, opIndex, step, data, shader);
 }
 
@@ -408,14 +429,18 @@ void CTexture3dLookup::bind(const char *name, int &opIndex, int step, void *data
     if (strcmp(name, "coordsystem") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, texture3dParams.coordsys));
-    } else if (strcmp(name, "interpolate") == 0) {
+    }
+    else if (strcmp(name, "interpolate") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, texture3dParams.interpolate));
-    } else if (strcmp(name, "radius") == 0) {
+    }
+    else if (strcmp(name, "radius") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, texture3dParams.radius));
-    } else if (strcmp(name, "radiusscale") == 0) {
+    }
+    else if (strcmp(name, "radiusscale") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, texture3dParams.radiusScale));
-    } else {
+    }
+    else {
         if (data == NULL) {
             // The data has to be varying
 
@@ -423,7 +448,8 @@ void CTexture3dLookup::bind(const char *name, int &opIndex, int step, void *data
             channelSize[numChannels] = step;
             channelName[numChannels] = name;
             numChannels++;
-        } else {
+        }
+        else {
             warning(CODE_BADTOKEN, "warning, uniform texture3d parameter \"%s\" ignored\n", name);
         }
     }
@@ -486,45 +512,61 @@ void COcclusionLookup::bind(const char *name, int &opIndex, int step, void *data
     if (strcmp(name, "coordsystem") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, texture3dParams.coordsys));
-    } else if (strcmp(name, "maxdist") == 0) {
+    }
+    else if (strcmp(name, "maxdist") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.maxDist));
-    } else if (strcmp(name, "coneangle") == 0) {
+    }
+    else if (strcmp(name, "coneangle") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.coneAngle));
-    } else if (strcmp(name, "samplebase") == 0) {
+    }
+    else if (strcmp(name, "samplebase") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.sampleBase));
-    } else if (strcmp(name, "label") == 0) {
+    }
+    else if (strcmp(name, "label") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.label));
-    } else if (strcmp(name, "bias") == 0) {
+    }
+    else if (strcmp(name, "bias") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.bias));
-    } else if (strcmp(name, "maxerror") == 0) {
+    }
+    else if (strcmp(name, "maxerror") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.maxError));
-    } else if (strcmp(name, "pointbased") == 0) {
+    }
+    else if (strcmp(name, "pointbased") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.pointbased));
-    } else if (strcmp(name, "environmentmap") == 0) {
+    }
+    else if (strcmp(name, "environmentmap") == 0) {
         expectUniform(name);
         // This is a uniform parameter
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.environmentMapName));
-    } else if (strcmp(name, "filename") == 0) {
+    }
+    else if (strcmp(name, "filename") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.pointHierarchyName));
-    } else if (strcmp(name, "maxpixeldist") == 0) {
+    }
+    else if (strcmp(name, "maxpixeldist") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.maxPixelDist));
-    } else if (strcmp(name, "maxsolidangle") == 0) {
+    }
+    else if (strcmp(name, "maxsolidangle") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.maxSolidAngle));
-    } else if (strcmp(name, "environmentcolor") == 0) {
+    }
+    else if (strcmp(name, "environmentcolor") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.environmentColor));
-    } else if (strcmp(name, "maxBrightness") == 0) {
+    }
+    else if (strcmp(name, "maxBrightness") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.maxBrightness));
-    } else if (strcmp(name, "handle") == 0) {
+    }
+    else if (strcmp(name, "handle") == 0) {
         expectUniform(name);
         // This is a uniform parameter
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.cacheHandle));
-    } else if (strcmp(name, "filemode") == 0) {
+    }
+    else if (strcmp(name, "filemode") == 0) {
         expectUniform(name);
         // This is a uniform parameter
         add(name, opIndex, step, data, offsetof(CShadingScratch, occlusionParams.cacheMode));
-    } else {
+    }
+    else {
         if (data == NULL) {
             // The data has to be varying
 
@@ -532,7 +574,8 @@ void COcclusionLookup::bind(const char *name, int &opIndex, int step, void *data
             channelSize[numChannels] = step;
             channelName[numChannels] = name;
             numChannels++;
-        } else {
+        }
+        else {
             warning(CODE_BADTOKEN, "Warning, uniform occlusion / indirectdiffuse parameter \"%s\" ignored\n", name);
         }
     }
@@ -612,10 +655,12 @@ void CFilterLookup::bind(const char *name, int &opIndex, int step, void *data, C
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
         else filter = CRenderer::getStepFilter(((const char **)data)[0]);
-    } else if (strcmp(name, "width") == 0) {
+    }
+    else if (strcmp(name, "width") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.width));
-    } else
+    }
+    else
         CPLLookup::bind(name, opIndex, step, data, shader);
 }
 
@@ -772,7 +817,8 @@ void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance
                 outVar->next = outputs;
                 outputs = outVar;
                 numOutputs++;
-            } else if (var->type == TYPE_FLOAT) {
+            }
+            else if (var->type == TYPE_FLOAT) {
                 CShaderFloatVariable *outVar = new CShaderFloatVariable;
                 outVar->shade = TRUE;
                 outVar->entry = var->entry;
@@ -780,29 +826,34 @@ void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance
                 outVar->next = outputs;
                 outputs = outVar;
                 numOutputs++;
-            } else {
+            }
+            else {
                 error(CODE_BADTOKEN, "Unknown output variable type for gather in shader %s\n", shader->getName());
             }
         }
-    } else if (strcmp(output, "ray:origin") == 0) {
+    }
+    else if (strcmp(output, "ray:origin") == 0) {
         CRayOriginVariable *outVar = new CRayOriginVariable;
         outVar->destIndex = destIndex;
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-    } else if (strcmp(output, "ray:direction") == 0) {
+    }
+    else if (strcmp(output, "ray:direction") == 0) {
         CRayDirVariable *outVar = new CRayDirVariable;
         outVar->destIndex = destIndex;
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-    } else if (strcmp(output, "ray:length") == 0) {
+    }
+    else if (strcmp(output, "ray:length") == 0) {
         CRayLengthVariable *outVar = new CRayLengthVariable;
         outVar->destIndex = destIndex;
         outVar->next = nonShadeOutputs;
         nonShadeOutputs = outVar;
         numNonShadeOutputs++;
-    } else {
+    }
+    else {
         error(CODE_BADTOKEN, "Unknown output variable for gather in shader %s\n", shader->getName());
     }
 }
@@ -817,17 +868,22 @@ void CGatherLookup::bind(const char *name, int &opIndex, int step, void *data, C
     // Find the parameter and bind it
     if (strcmp(name, "bias") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.bias));
-    } else if (strcmp(name, "maxdist") == 0) {
+    }
+    else if (strcmp(name, "maxdist") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.maxDist));
-    } else if (strcmp(name, "samplebase") == 0) {
+    }
+    else if (strcmp(name, "samplebase") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.sampleBase));
-    } else if (strcmp(name, "distribution") == 0) {
+    }
+    else if (strcmp(name, "distribution") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, gatherParams.distribution));
-    } else if (strcmp(name, "label") == 0) {
+    }
+    else if (strcmp(name, "label") == 0) {
         expectUniform(name);
         add(name, opIndex, step, data, offsetof(CShadingScratch, traceParams.label));
-    } else {
+    }
+    else {
         addOutput(name, opIndex, shader);
     }
 }

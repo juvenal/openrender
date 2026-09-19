@@ -23,11 +23,11 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "ri/core/shader.h"
+#include "ri/parse/ri.h"
 #include "ri/render/imager.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
-#include "ri/parse/ri.h"
-#include "ri/core/shader.h"
 
 // ---------------------------------------------------------------------------
 // Minimal test harness
@@ -36,18 +36,20 @@
 static int g_passed = 0;
 static int g_failed = 0;
 
-#define EXPECT_TRUE(expr) do { \
-    if (expr) { \
-        g_passed++; \
-    } else { \
-        fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
-        g_failed++; \
-    } \
-} while (0)
+#define EXPECT_TRUE(expr)                                                      \
+    do {                                                                       \
+        if (expr) {                                                            \
+            g_passed++;                                                        \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            g_failed++;                                                        \
+        }                                                                      \
+    } while (0)
 
 #define EXPECT_NEAR(a, b, eps) EXPECT_TRUE(fabsf((float)(a) - (float)(b)) < (float)(eps))
 #define EXPECT_EQ(a, b) EXPECT_TRUE((a) == (b))
-#define EXPECT_NULL(p)  EXPECT_TRUE((p) == nullptr)
+#define EXPECT_NULL(p) EXPECT_TRUE((p) == nullptr)
 
 // 5 floats per pixel: r g b alpha z
 static const int SAMPLE_STRIDE = 5;
@@ -56,7 +58,8 @@ static const int SAMPLE_STRIDE = 5;
 // Helper: load a shader instance from the renderer context
 // ---------------------------------------------------------------------------
 static CShaderInstance *loadImagerShader(const char *name,
-                                         int n, const char **toks,
+                                         int n,
+                                         const char **toks,
                                          const void **vals) {
     return CRenderer::context->getShader(name, SL_IMAGER, n, toks, vals);
 }
@@ -77,7 +80,7 @@ static void test6_execute_sets_ci() {
 
     if (shader == nullptr) {
         fprintf(stderr, "  SKIP: background shader not found on shader path\n");
-        g_passed++;  // skip counts as pass when shader is unavailable
+        g_passed++; // skip counts as pass when shader is unavailable
         RiEnd();
         return;
     }
@@ -89,7 +92,7 @@ static void test6_execute_sets_ci() {
     float pixels[SAMPLE_STRIDE] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
     CImagerExecutor ex;
-    ex.execute(*shader, /*left*/0, /*top*/0, /*width*/1, /*height*/1, pixels, SAMPLE_STRIDE);
+    ex.execute(*shader, /*left*/ 0, /*top*/ 0, /*width*/ 1, /*height*/ 1, pixels, SAMPLE_STRIDE);
 
     // background shader: Ci += (1 - alpha) * bgcolor  → Ci = (1,0,0)
     EXPECT_NEAR(pixels[0], 1.0f, 0.001f);

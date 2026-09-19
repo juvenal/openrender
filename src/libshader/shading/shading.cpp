@@ -32,6 +32,7 @@
 #include "brickmap.h"
 #include "bundles.h"
 #include "error.h"
+#include "includes/logging.hpp"
 #include "irradiance.h"
 #include "memory.h"
 #include "object.h"
@@ -44,7 +45,6 @@
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
-#include "includes/logging.hpp"
 #include "stats.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -137,7 +137,8 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
                                 (s1[3] * (1.0 - ctime) + s2[3] * ctime) * cu) *
                                    cv);
             }
-        } else {
+        }
+        else {
             memcpy(s, u, num * sizeof(float));
         }
     }
@@ -167,7 +168,8 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
                 v++;
                 time++;
             }
-        } else {
+        }
+        else {
             memcpy(t, v, num * sizeof(float));
         }
     }
@@ -214,9 +216,11 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         memcpy(varying[VARIABLE_N], varying[VARIABLE_NG], 3 * num * sizeof(float));
         float *nPtr = varying[VARIABLE_N];
         for (int k = 0; k < num; k++, nPtr += 3) {
-            if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+            if (nPtr[0] * nPtr[0] + nPtr[1] * nPtr[1] + nPtr[2] * nPtr[2] < C_EPSILON * C_EPSILON) {
                 info(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
-                nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+                nPtr[0] = 0.0f;
+                nPtr[1] = 1.0f;
+                nPtr[2] = 0.0f;
             }
         }
     }
@@ -257,7 +261,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 
         float *time = varying[VARIABLE_TIME];
         const float idtime = svc ? svc->invShutterTime() : 1.0f;
-        const float t0     = svc ? svc->shutterOpen()    : 0.0f;
+        const float t0 = svc ? svc->shutterOpen() : 0.0f;
 
         for (i = num; i > 0; i--) {
             time[0] = (time[0] * idtime + t0);
@@ -296,7 +300,8 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
                 u++;
                 v++;
             }
-        } else {
+        }
+        else {
             memcpy(s, u, num * sizeof(float));
         }
     }
@@ -316,7 +321,8 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
                 u++;
                 v++;
             }
-        } else {
+        }
+        else {
             memcpy(t, v, num * sizeof(float));
         }
     }
@@ -354,9 +360,11 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         memcpy(varying[VARIABLE_N], varying[VARIABLE_NG], 3 * num * sizeof(float));
         float *nPtr = varying[VARIABLE_N];
         for (int k = 0; k < num; k++, nPtr += 3) {
-            if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+            if (nPtr[0] * nPtr[0] + nPtr[1] * nPtr[1] + nPtr[2] * nPtr[2] < C_EPSILON * C_EPSILON) {
                 info(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
-                nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+                nPtr[0] = 0.0f;
+                nPtr[1] = 1.0f;
+                nPtr[2] = 0.0f;
             }
         }
     }
@@ -391,7 +399,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 
         float *time = varying[VARIABLE_TIME];
         const float idtime = svc ? svc->invShutterTime() : 1.0f;
-        const float t0     = svc ? svc->shutterOpen()    : 0.0f;
+        const float t0 = svc ? svc->shutterOpen() : 0.0f;
 
         for (i = num; i > 0; i--) {
             time[0] = (time[0] * idtime + t0);
@@ -430,7 +438,8 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     // (globalMemory is checkpointed)
     if (s_defaultServices) {
         CMemPage *gMem = s_defaultServices->globalMemory();
-        if (gMem) traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, gMem);
+        if (gMem)
+            traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, gMem);
     }
 
     // Fill the object pointers with impossible data
@@ -537,27 +546,26 @@ CShadingContext::~CShadingContext() {
 
 #define SVC (currentShadingState->services)
 
-unsigned int      CShadingContext::rendererHiderFlags() const                    { return SVC ? SVC->hiderFlags()  : 0; }
-const float *     CShadingContext::rendererWorldBmin()  const                    { return SVC ? SVC->worldBmin()   : nullptr; }
-const float *     CShadingContext::rendererWorldBmax()  const                    { return SVC ? SVC->worldBmax()   : nullptr; }
-float             CShadingContext::rendererClipMin()    const                    { return SVC ? SVC->clipMin()     : 0.f; }
-float             CShadingContext::rendererClipMax()    const                    { return SVC ? SVC->clipMax()     : 1.f; }
-CTexture *        CShadingContext::rendererGetTexture(const char *n)             { return SVC ? SVC->getTexture(n)     : nullptr; }
-CEnvironment *    CShadingContext::rendererGetEnvironment(const char *n)         { return SVC ? SVC->getEnvironment(n) : nullptr; }
-CPhotonMap *      CShadingContext::rendererGetPhotonMap(const char *n)           { return SVC ? SVC->getPhotonMap(n)   : nullptr; }
-CTexture3d *      CShadingContext::rendererGetCache(const char *h, const char *m,
-                                                    const float *f, const float *t){ return SVC ? SVC->getCache(h,m,f,t) : nullptr; }
-CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *n)         { return SVC ? SVC->getTextureInfo(n) : nullptr; }
-CTexture3d *      CShadingContext::rendererGetTexture3d(const char *n, int w,
-                                                        const char *ch,
-                                                        const float *f, const float *t,
-                                                        int hier)                { return SVC ? SVC->getTexture3d(n,w,ch,f,t,hier) : nullptr; }
-void              CShadingContext::rendererSetOffendingObject(CObject *obj)      { if (SVC) SVC->setOffendingObject(obj); }
-int               CShadingContext::rendererGetGlobalID(const char *n)            { return SVC ? SVC->getGlobalID(n) : 0; }
-int               CShadingContext::rendererShootStep()    const                  { return SVC ? SVC->shootStep()    : 1; }
-RtFilterFunc      CShadingContext::rendererGetFilter(const char *n)    const     { return SVC ? SVC->getFilter(n)     : nullptr; }
-RtStepFilterFunc  CShadingContext::rendererGetStepFilter(const char *n) const   { return SVC ? SVC->getStepFilter(n) : nullptr; }
-CVariable *       CShadingContext::rendererRetrieveVariable(const char *n) const { return SVC ? SVC->retrieveVariable(n) : nullptr; }
+unsigned int CShadingContext::rendererHiderFlags() const { return SVC ? SVC->hiderFlags() : 0; }
+const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worldBmin() : nullptr; }
+const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
+float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
+float CShadingContext::rendererClipMax() const { return SVC ? SVC->clipMax() : 1.f; }
+CTexture *CShadingContext::rendererGetTexture(const char *n) { return SVC ? SVC->getTexture(n) : nullptr; }
+CEnvironment *CShadingContext::rendererGetEnvironment(const char *n) { return SVC ? SVC->getEnvironment(n) : nullptr; }
+CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
+CTexture3d *CShadingContext::rendererGetCache(const char *h, const char *m, const float *f, const float *t) { return SVC ? SVC->getCache(h, m, f, t) : nullptr; }
+CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *n) { return SVC ? SVC->getTextureInfo(n) : nullptr; }
+CTexture3d *CShadingContext::rendererGetTexture3d(const char *n, int w, const char *ch, const float *f, const float *t, int hier) { return SVC ? SVC->getTexture3d(n, w, ch, f, t, hier) : nullptr; }
+void CShadingContext::rendererSetOffendingObject(CObject *obj) {
+    if (SVC)
+        SVC->setOffendingObject(obj);
+}
+int CShadingContext::rendererGetGlobalID(const char *n) { return SVC ? SVC->getGlobalID(n) : 0; }
+int CShadingContext::rendererShootStep() const { return SVC ? SVC->shootStep() : 1; }
+RtFilterFunc CShadingContext::rendererGetFilter(const char *n) const { return SVC ? SVC->getFilter(n) : nullptr; }
+RtStepFilterFunc CShadingContext::rendererGetStepFilter(const char *n) const { return SVC ? SVC->getStepFilter(n) : nullptr; }
+CVariable *CShadingContext::rendererRetrieveVariable(const char *n) const { return SVC ? SVC->retrieveVariable(n) : nullptr; }
 
 #undef SVC
 
@@ -622,8 +630,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             displacement = NULL; // currentAttributes->displacement;	// We probably don't need to execute the displacement shader
             surface = currentAttributes->surface;
             atmosphere = NULL;
-
-        } else {
+        }
+        else {
             // check the hit mode
 
             // If we're raytracing, are we supposed to shade hit rays?
@@ -649,7 +657,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 displacement = currentAttributes->displacement;
                 surface = currentAttributes->surface; // execute the surface shader for the output opacity
                 atmosphere = NULL;
-            } else {
+            }
+            else {
                 displacement = currentAttributes->displacement;
                 surface = currentAttributes->surface;
                 atmosphere = currentAttributes->atmosphere;
@@ -662,7 +671,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         // Prepare the locals
         for (int a = 0; a < NUM_ACCESSORS; a++)
             locals[a] = NULL;
-    } else {
+    }
+    else {
 
         // We are only interested in the surface position, not the color
 #ifdef IGNORE_DISPLACEMENTS_FOR_DICING
@@ -705,9 +715,11 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 {
                     float *nPtr = varying[VARIABLE_N];
                     for (int k = 0; k < numVertices; k++, nPtr += 3) {
-                        if (nPtr[0]*nPtr[0] + nPtr[1]*nPtr[1] + nPtr[2]*nPtr[2] < C_EPSILON * C_EPSILON) {
+                        if (nPtr[0] * nPtr[0] + nPtr[1] * nPtr[1] + nPtr[2] * nPtr[2] < C_EPSILON * C_EPSILON) {
                             info(CODE_MATH, "Degenerate surface normal (zero Ng) at vertex %d; using default (0,1,0)\n", k);
-                            nPtr[0] = 0.0f; nPtr[1] = 1.0f; nPtr[2] = 0.0f;
+                            nPtr[0] = 0.0f;
+                            nPtr[1] = 1.0f;
+                            nPtr[2] = 0.0f;
                         }
                     }
                 }
@@ -812,14 +824,16 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
                 float dud;
                 if (1.0f < computedDud) {
                     dud = 1.0f;
-                } else {
+                }
+                else {
                     dud = computedDud;
                 }
                 float computedDvd = kv * dest * isqrtf(lengthv) + C_EPSILON;
                 float dvd;
                 if (1.0f < computedDvd) {
                     dvd = 1.0f;
-                } else {
+                }
+                else {
                     dvd = computedDvd;
                 }
 
@@ -849,8 +863,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
             // Interpolate the various variables defined on the object
             object->interpolate(numVertices, varying, locals);
-
-        } else {
+        }
+        else {
             // We're shading a regular grid, so take the shortcut while computing the surface derivatives
             int i;
             const float shadingRate = currentAttributes->shadingRate;
@@ -875,7 +889,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             if (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE) {
                 // For perspective: I = P (camera-space position is the ray direction * t)
                 memcpy(varying[VARIABLE_I], varying[VARIABLE_P], numVertices * 3 * sizeof(float));
-            } else {
+            }
+            else {
                 float *I = varying[VARIABLE_I];
                 const float *P = varying[VARIABLE_P];
                 for (i = numVertices; i > 0; i--, I += 3, P += 3)
@@ -888,12 +903,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             // screen-projection approach, which was tessellation-dependent and lacked
             // the sin(angle) correction for oblique surfaces.
             {
-                float *du           = varying[VARIABLE_DU];
-                float *dv           = varying[VARIABLE_DV];
+                float *du = varying[VARIABLE_DU];
+                float *dv = varying[VARIABLE_DV];
                 const float *dPdu_p = varying[VARIABLE_DPDU];
                 const float *dPdv_p = varying[VARIABLE_DPDV];
-                const float *I_p    = varying[VARIABLE_I];
-                const bool isPersp  = (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE);
+                const float *I_p = varying[VARIABLE_I];
+                const bool isPersp = (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE);
 
                 for (i = 0; i < numVertices; i++, I_p += 3, dPdu_p += 3, dPdv_p += 3) {
                     const float lengthu = dotvv(dPdu_p, dPdu_p);
@@ -902,26 +917,29 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
                     // Ray footprint in camera space at depth t, scaled by shadingRate
                     const float dest = isPersp
-                        ? shadingRate * currentShadingState->services->dxdPixel() / currentShadingState->services->imagePlane() * sqrtf(lengthi)
-                        : shadingRate * (currentShadingState->services ? currentShadingState->services->dxdPixel() : 1.0f);
+                                           ? shadingRate * currentShadingState->services->dxdPixel() / currentShadingState->services->imagePlane() * sqrtf(lengthi)
+                                           : shadingRate * (currentShadingState->services ? currentShadingState->services->dxdPixel() : 1.0f);
 
                     // ku = sin(angle between I and dPdu): perpendicular component
                     float ku = dotvv(I_p, dPdu_p);
                     ku = isqrtf((lengthu * lengthi - ku * ku) / (lengthu * lengthi + C_EPSILON));
                     float dud = ku * dest * isqrtf(lengthu) + C_EPSILON;
-                    if (dud > 1.0f) dud = 1.0f;
+                    if (dud > 1.0f)
+                        dud = 1.0f;
 
                     float kv = dotvv(I_p, dPdv_p);
                     kv = isqrtf((lengthv * lengthi - kv * kv) / (lengthv * lengthi + C_EPSILON));
                     float dvd = kv * dest * isqrtf(lengthv) + C_EPSILON;
-                    if (dvd > 1.0f) dvd = 1.0f;
+                    if (dvd > 1.0f)
+                        dvd = 1.0f;
 
                     du[i] = dud;
                     dv[i] = dvd;
                 }
             }
         }
-    } else {
+    }
+    else {
         // No derivative information is needed
         currentShadingState->shadingDim = dim;
         currentShadingState->numRealVertices = numVertices;
@@ -938,7 +956,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         if (currentRayDepth == 0) {
             if (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE) {
                 memcpy(varying[VARIABLE_I], varying[VARIABLE_P], numVertices * 3 * sizeof(float));
-            } else {
+            }
+            else {
                 float *I = varying[VARIABLE_I];
                 const float *P = varying[VARIABLE_P];
                 for (i = numVertices; i > 0; i--, I += 3, P += 3)
@@ -954,7 +973,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     CRendererServices *svc = currentShadingState->services;
     if (currentAttributes->next != NULL) {
         complete(numVertices, varying, usedParameters, currentAttributes, currentAttributes->next, svc);
-    } else {
+    }
+    else {
         complete(numVertices, varying, usedParameters, currentAttributes, svc);
     }
 
@@ -997,7 +1017,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         // interior/exterior shader could leak onto this hit.
         {
             const bool isSolidFragment = (currentAttributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) != 0;
-            const bool isExterior      = dotvv(varying[VARIABLE_I], varying[VARIABLE_N]) < 0;
+            const bool isExterior = dotvv(varying[VARIABLE_I], varying[VARIABLE_N]) < 0;
             currentShadingState->postShader = selectVolumeShader(currentAttributes, isSolidFragment, isExterior);
         }
 
@@ -1005,7 +1025,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         if (surface != NULL) {
             numShaded += numVertices;
             surface->execute(this, locals[ACCESSOR_SURFACE]);
-        } else {
+        }
+        else {
             // No surface shader eh, make up a color
 
             // Overwrite the colors if not specified by the primitives
@@ -1119,15 +1140,18 @@ CShadingState *CShadingContext::newState() {
                 if (var->type == TYPE_STRING) {
                     newState->varying[j] = (float *)new char *[var->numFloats];
                     vertexMemory += var->numFloats * sizeof(char *);
-                } else {
+                }
+                else {
                     newState->varying[j] = new float[var->numFloats];
                     vertexMemory += var->numFloats * sizeof(float);
                 }
-            } else {
+            }
+            else {
                 if (var->type == TYPE_STRING) {
                     newState->varying[j] = (float *)new char *[var->numFloats * mgs * 3];
                     vertexMemory += var->numFloats * mgs * 3 * sizeof(char *);
-                } else {
+                }
+                else {
                     newState->varying[j] = new float[var->numFloats * mgs * 3];
                     vertexMemory += var->numFloats * mgs * 3 * sizeof(float);
                 }
@@ -1144,7 +1168,8 @@ CShadingState *CShadingContext::newState() {
 
         newState->next = NULL;
         return newState;
-    } else {
+    }
+    else {
         CShadingState *newState = freeStates;
         freeStates = newState->next;
 
@@ -1181,7 +1206,8 @@ void CShadingContext::freeState(CShadingState *cState) {
         if ((var->container == CONTAINER_UNIFORM) || (var->container == CONTAINER_CONSTANT)) {
             delete[] cState->varying[j];
             vertexMemory -= var->numFloats * sizeof(float);
-        } else {
+        }
+        else {
             delete[] cState->varying[j];
             vertexMemory -= var->numFloats * mgs * 3 * sizeof(float);
         }
@@ -1334,77 +1360,118 @@ int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable *
 // Comments				:
 int CShadingContext::options(void *dest, const char *name, CVariable **, int *) {
     CRendererServices *svc = currentShadingState->services;
-    if (!svc) return FALSE;
+    if (!svc)
+        return FALSE;
 
     if (strcmp(name, optionsFormat) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)svc->xres(); d[1] = (float)svc->yres(); d[2] = 1.f;
+        d[0] = (float)svc->xres();
+        d[1] = (float)svc->yres();
+        d[2] = 1.f;
         return TRUE;
-    } else if (strcmp(name, optionsDeviceFrame) == 0) {
+    }
+    else if (strcmp(name, optionsDeviceFrame) == 0) {
         ((float *)dest)[0] = (float)svc->frame();
         return TRUE;
-    } else if (strcmp(name, optionsDeviceResolution) == 0) {
+    }
+    else if (strcmp(name, optionsDeviceResolution) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)svc->xres(); d[1] = (float)svc->yres(); d[2] = 1.f;
+        d[0] = (float)svc->xres();
+        d[1] = (float)svc->yres();
+        d[2] = 1.f;
         return TRUE;
-    } else if (strcmp(name, optionsFrameAspectRatio) == 0) {
+    }
+    else if (strcmp(name, optionsFrameAspectRatio) == 0) {
         ((float *)dest)[0] = svc->frameAR();
         return TRUE;
-    } else if (strcmp(name, optionsCropWindow) == 0) {
+    }
+    else if (strcmp(name, optionsCropWindow) == 0) {
         float *d = (float *)dest;
-        d[0] = svc->cropLeft(); d[1] = svc->cropTop();
-        d[2] = svc->cropRight(); d[3] = svc->cropBottom();
+        d[0] = svc->cropLeft();
+        d[1] = svc->cropTop();
+        d[2] = svc->cropRight();
+        d[3] = svc->cropBottom();
         return TRUE;
-    } else if (strcmp(name, optionsDepthOfField) == 0) {
+    }
+    else if (strcmp(name, optionsDepthOfField) == 0) {
         float *d = (float *)dest;
-        d[0] = svc->fstop(); d[1] = svc->focallength(); d[2] = svc->focaldistance();
+        d[0] = svc->fstop();
+        d[1] = svc->focallength();
+        d[2] = svc->focaldistance();
         return TRUE;
-    } else if (strcmp(name, optionsShutter) == 0) {
+    }
+    else if (strcmp(name, optionsShutter) == 0) {
         float *d = (float *)dest;
-        d[0] = svc->shutterOpen(); d[1] = svc->shutterClose();
+        d[0] = svc->shutterOpen();
+        d[1] = svc->shutterClose();
         return TRUE;
-    } else if (strcmp(name, optionsClipping) == 0) {
+    }
+    else if (strcmp(name, optionsClipping) == 0) {
         float *d = (float *)dest;
-        d[0] = svc->clipMin(); d[1] = svc->clipMax();
+        d[0] = svc->clipMin();
+        d[1] = svc->clipMax();
         return TRUE;
-    } else if (strcmp(name, optionsBucketSize) == 0) {
+    }
+    else if (strcmp(name, optionsBucketSize) == 0) {
         float *d = (float *)dest;
-        d[0] = svc->bucketWidth(); d[1] = svc->bucketHeight();
+        d[0] = svc->bucketWidth();
+        d[1] = svc->bucketHeight();
         return TRUE;
-    } else if (strcmp(name, optionsColorQuantizer) == 0) {
-        const float *q = svc->colorQuantizer(); float *d = (float *)dest;
-        d[0] = q[0]; d[1] = q[1]; d[2] = q[2]; d[3] = q[3];
-        return TRUE;
-    } else if (strcmp(name, optionsDepthQuantizer) == 0) {
-        const float *q = svc->depthQuantizer(); float *d = (float *)dest;
-        d[0] = q[0]; d[1] = q[1]; d[2] = q[2]; d[3] = q[3];
-        return TRUE;
-    } else if (strcmp(name, optionsPixelFilter) == 0) {
+    }
+    else if (strcmp(name, optionsColorQuantizer) == 0) {
+        const float *q = svc->colorQuantizer();
         float *d = (float *)dest;
-        d[0] = svc->pixelFilterWidth(); d[1] = svc->pixelFilterHeight();
+        d[0] = q[0];
+        d[1] = q[1];
+        d[2] = q[2];
+        d[3] = q[3];
         return TRUE;
-    } else if (strcmp(name, optionsGamma) == 0) {
+    }
+    else if (strcmp(name, optionsDepthQuantizer) == 0) {
+        const float *q = svc->depthQuantizer();
         float *d = (float *)dest;
-        d[0] = svc->gamma(); d[1] = svc->gain();
+        d[0] = q[0];
+        d[1] = q[1];
+        d[2] = q[2];
+        d[3] = q[3];
         return TRUE;
-    } else if (strcmp(name, optionsMaxRayDepth) == 0) {
+    }
+    else if (strcmp(name, optionsPixelFilter) == 0) {
+        float *d = (float *)dest;
+        d[0] = svc->pixelFilterWidth();
+        d[1] = svc->pixelFilterHeight();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsGamma) == 0) {
+        float *d = (float *)dest;
+        d[0] = svc->gamma();
+        d[1] = svc->gain();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsMaxRayDepth) == 0) {
         ((float *)dest)[0] = (float)svc->maxRayDepth();
         return TRUE;
-    } else if (strcmp(name, optionsRelativeDetail) == 0) {
+    }
+    else if (strcmp(name, optionsRelativeDetail) == 0) {
         ((float *)dest)[0] = svc->relativeDetail();
         return TRUE;
-    } else if (strcmp(name, optionsPixelSamples) == 0) {
+    }
+    else if (strcmp(name, optionsPixelSamples) == 0) {
         float *d = (float *)dest;
-        d[0] = (float)svc->pixelXsamples(); d[1] = (float)svc->pixelYsamples();
+        d[0] = (float)svc->pixelXsamples();
+        d[1] = (float)svc->pixelYsamples();
         return TRUE;
-    } else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
+    }
+    else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
         CVariable *var;
         if (svc->lookupUserOption(name + strlen(attributesUser), var)) {
             if (var->type == TYPE_STRING) {
                 char **d = (char **)dest;
                 char **s = (char **)var->defaultValue;
-                for (int i = 0; i < var->numFloats; i++) d[i] = s[i];
-            } else {
+                for (int i = 0; i < var->numFloats; i++)
+                    d[i] = s[i];
+            }
+            else {
                 memcpy(dest, var->defaultValue, sizeof(float) * var->numFloats);
             }
             return TRUE;
@@ -1427,27 +1494,33 @@ int CShadingContext::attributes(void *dest, const char *name, CVariable **, int 
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->shadingRate;
         return TRUE;
-    } else if (strcmp(name, attributesSides) == 0) {
+    }
+    else if (strcmp(name, attributesSides) == 0) {
         float *d = (float *)dest;
         d[0] = (float)(currentAttributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED ? 2 : 1);
         return TRUE;
-    } else if (strcmp(name, attributesMatte) == 0) {
+    }
+    else if (strcmp(name, attributesMatte) == 0) {
         float *d = (float *)dest;
         d[0] = (float)((currentAttributes->flags & ATTRIBUTES_FLAGS_MATTE) != 0);
         return TRUE;
-    } else if (strcmp(name, attributesMotionfactor) == 0) {
+    }
+    else if (strcmp(name, attributesMotionfactor) == 0) {
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->motionFactor;
         return TRUE;
-    } else if (strcmp(name, attributesDisplacementBnd) == 0) {
+    }
+    else if (strcmp(name, attributesDisplacementBnd) == 0) {
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->maxDisplacement;
         return TRUE;
-    } else if (strcmp(name, attributesDisplacementSys) == 0) {
+    }
+    else if (strcmp(name, attributesDisplacementSys) == 0) {
         char **d = (char **)dest;
         d[0] = currentAttributes->maxDisplacementSpace;
         return TRUE;
-    } else if (strcmp(name, attributesName) == 0) {
+    }
+    else if (strcmp(name, attributesName) == 0) {
         char **d = (char **)dest;
         d[0] = currentAttributes->name;
         return TRUE;
@@ -1457,11 +1530,13 @@ int CShadingContext::attributes(void *dest, const char *name, CVariable **, int 
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->bias;
         return TRUE;
-    } else if (strcmp(name, attributesTraceMaxDiffuse) == 0) {
+    }
+    else if (strcmp(name, attributesTraceMaxDiffuse) == 0) {
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->maxDiffuseDepth;
         return TRUE;
-    } else if (strcmp(name, attributesTraceMaxSpecular) == 0) {
+    }
+    else if (strcmp(name, attributesTraceMaxSpecular) == 0) {
         float *d = (float *)dest;
         d[0] = (float)currentAttributes->maxSpecularDepth;
         return TRUE;
@@ -1477,7 +1552,8 @@ int CShadingContext::attributes(void *dest, const char *name, CVariable **, int 
                 for (int i = 0; i < var->numFloats; i++) {
                     d[i] = s[i];
                 }
-            } else {
+            }
+            else {
                 float *d = (float *)dest;
                 memcpy(d, var->defaultValue, sizeof(float) * var->numFloats);
             }
@@ -1500,7 +1576,8 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
         char **d = (char **)dest;
         d[0] = (char *)OPENRENDER_PROJECT_NAME;
         return TRUE;
-    } else if (strcmp(name, rendererinfoVersion) == 0) {
+    }
+    else if (strcmp(name, rendererinfoVersion) == 0) {
         float *d = (float *)dest;
         d[0] = (float)VERSION_MAJOR;
         d[1] = (float)VERSION_MINOR;
@@ -1564,10 +1641,15 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                 if (!validLight) {
                     if (light->categories != NULL) {
                         for (const int *cCat = light->categories; (*cCat != 0); cCat++) {
-                            if (*cCat == runCat) { validLight = TRUE; break; }
+                            if (*cCat == runCat) {
+                                validLight = TRUE;
+                                break;
+                            }
                         }
-                        if (invertCatMatch) validLight = !validLight;
-                    } else {
+                        if (invertCatMatch)
+                            validLight = !validLight;
+                    }
+                    else {
                         validLight = invertCatMatch;
                     }
                 }
@@ -1593,9 +1675,9 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
 
 void CShadingContext::callAmbient(float *result) {
     CShadingState *ss = currentShadingState;
-    const int n      = ss->numVertices;
-    const int *tags  = ss->tags;
-    float **varying  = ss->varying;
+    const int n = ss->numVertices;
+    const int *tags = ss->tags;
+    float **varying = ss->varying;
     CShaderInstance *cInst = ss->currentShaderInstance;
     const CAttributes *attr = ss->currentObject->attributes;
 
@@ -1606,11 +1688,13 @@ void CShadingContext::callAmbient(float *result) {
             ss->alights->savedState = (float **)ralloc(2 * sizeof(float *), threadMemory);
             ss->alights->savedState[1] = (float *)ralloc(3 * sizeof(float) * n, threadMemory);
             ss->alights->savedState[0] = NULL;
-            ss->alights->lightTags     = NULL;
-            ss->alights->instance      = NULL;
-            ss->alights->next          = NULL;
+            ss->alights->lightTags = NULL;
+            ss->alights->instance = NULL;
+            ss->alights->next = NULL;
             float *Cl = ss->alights->savedState[1];
-            for (int i = 0; i < n; ++i, Cl += 3) { Cl[0] = Cl[1] = Cl[2] = 0.0f; }
+            for (int i = 0; i < n; ++i, Cl += 3) {
+                Cl[0] = Cl[1] = Cl[2] = 0.0f;
+            }
         }
         if (!inShadow) {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
@@ -1631,93 +1715,110 @@ void CShadingContext::callAmbient(float *result) {
     const float *Clsave = ss->alights ? ss->alights->savedState[1] : nullptr;
     for (int i = 0; i < n; ++i) {
         if (tags[i] == 0 && Clsave) {
-            result[3*i]   = Clsave[3*i];
-            result[3*i+1] = Clsave[3*i+1];
-            result[3*i+2] = Clsave[3*i+2];
-        } else {
-            result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f;
+            result[3 * i] = Clsave[3 * i];
+            result[3 * i + 1] = Clsave[3 * i + 1];
+            result[3 * i + 2] = Clsave[3 * i + 2];
+        }
+        else {
+            result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
         }
     }
 }
 
 void CShadingContext::callDiffuse(float *result, const float *Nf) {
-    CShadingState *ss  = currentShadingState;
-    const int n        = ss->numVertices;
-    const int *tags    = ss->tags;
-    float **varying    = ss->varying;
+    CShadingState *ss = currentShadingState;
+    const int n = ss->numVertices;
+    const int *tags = ss->tags;
+    float **varying = ss->varying;
     CShaderInstance *cInst = ss->currentShaderInstance;
 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
-    for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
+    for (int i = 0; i < n; ++i)
+        costheta[i] = 0.0f;
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
-              ss->numActive, ss->numPassive, inShadow, varying, cInst);
+                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
     log_debug("[JIT-DBG] callDiffuse: lights={} n={}", (void *)ss->lights, n);
 
     // Zero ALL vertices unconditionally (original behavior)
     for (int i = 0; i < n; ++i) {
-        result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f;
+        result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
     }
     for (CShadedLight *light = ss->lights; light; light = light->next) {
-        const int   *ltags = light->lightTags;
-        const float *L  = light->savedState[0];
+        const int *ltags = light->lightTags;
+        const float *L = light->savedState[0];
         const float *Cl = light->savedState[1];
         for (int i = 0; i < n; ++i) {
-            if (tags[i] != 0) continue;
+            if (tags[i] != 0)
+                continue;
             // Mirror interpreter's enterFastLightingConditional: skip vertices
             // not illuminated by this light (savedState[0] is uninitialized for them).
-            if (ltags != nullptr && ltags[i] != 0) continue;
-            float lx = L[3*i], ly = L[3*i+1], lz = L[3*i+2];
-            float lm = sqrtf(lx*lx + ly*ly + lz*lz);
-            if (lm < 1e-8f) continue;
-            lx /= lm; ly /= lm; lz /= lm;
-            float coeff = Nf[3*i]*lx + Nf[3*i+1]*ly + Nf[3*i+2]*lz;
+            if (ltags != nullptr && ltags[i] != 0)
+                continue;
+            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
+            float lm = sqrtf(lx * lx + ly * ly + lz * lz);
+            if (lm < 1e-8f)
+                continue;
+            lx /= lm;
+            ly /= lm;
+            lz /= lm;
+            float coeff = Nf[3 * i] * lx + Nf[3 * i + 1] * ly + Nf[3 * i + 2] * lz;
             if (coeff > 0.0f) {
-                result[3*i]   += coeff * Cl[3*i];
-                result[3*i+1] += coeff * Cl[3*i+1];
-                result[3*i+2] += coeff * Cl[3*i+2];
+                result[3 * i] += coeff * Cl[3 * i];
+                result[3 * i + 1] += coeff * Cl[3 * i + 1];
+                result[3 * i + 2] += coeff * Cl[3 * i + 2];
             }
         }
     }
 }
 
 void CShadingContext::callSpecular(float *result, const float *Nf, const float *V, float roughness) {
-    CShadingState *ss  = currentShadingState;
-    const int n        = ss->numVertices;
-    const int *tags    = ss->tags;
-    float **varying    = ss->varying;
+    CShadingState *ss = currentShadingState;
+    const int n = ss->numVertices;
+    const int *tags = ss->tags;
+    float **varying = ss->varying;
     CShaderInstance *cInst = ss->currentShaderInstance;
 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
-    for (int i = 0; i < n; ++i) costheta[i] = 0.0f;
+    for (int i = 0; i < n; ++i)
+        costheta[i] = 0.0f;
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
-              ss->numActive, ss->numPassive, inShadow, varying, cInst);
+                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
 
     // Zero ALL vertices unconditionally (original behavior)
     for (int i = 0; i < n; ++i) {
-        result[3*i] = result[3*i+1] = result[3*i+2] = 0.0f;
+        result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
     }
     const float power = (roughness > 1e-6f) ? 10.0f / roughness : 1e6f;
     for (CShadedLight *light = ss->lights; light; light = light->next) {
-        const int   *ltags = light->lightTags;
-        const float *L  = light->savedState[0];
+        const int *ltags = light->lightTags;
+        const float *L = light->savedState[0];
         const float *Cl = light->savedState[1];
         for (int i = 0; i < n; ++i) {
-            if (tags[i] != 0) continue;
-            if (ltags != nullptr && ltags[i] != 0) continue;
-            float lx = L[3*i], ly = L[3*i+1], lz = L[3*i+2];
-            float lm = sqrtf(lx*lx + ly*ly + lz*lz);
-            if (lm < 1e-8f) continue;
-            lx /= lm; ly /= lm; lz /= lm;
-            float hx = V[3*i] + lx, hy = V[3*i+1] + ly, hz = V[3*i+2] + lz;
-            float hlen = sqrtf(hx*hx + hy*hy + hz*hz);
-            if (hlen < 1e-8f) continue;
-            hx /= hlen; hy /= hlen; hz /= hlen;
-            float ndoth = Nf[3*i]*hx + Nf[3*i+1]*hy + Nf[3*i+2]*hz;
-            if (ndoth <= 0.0f) continue;
+            if (tags[i] != 0)
+                continue;
+            if (ltags != nullptr && ltags[i] != 0)
+                continue;
+            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
+            float lm = sqrtf(lx * lx + ly * ly + lz * lz);
+            if (lm < 1e-8f)
+                continue;
+            lx /= lm;
+            ly /= lm;
+            lz /= lm;
+            float hx = V[3 * i] + lx, hy = V[3 * i + 1] + ly, hz = V[3 * i + 2] + lz;
+            float hlen = sqrtf(hx * hx + hy * hy + hz * hz);
+            if (hlen < 1e-8f)
+                continue;
+            hx /= hlen;
+            hy /= hlen;
+            hz /= hlen;
+            float ndoth = Nf[3 * i] * hx + Nf[3 * i + 1] * hy + Nf[3 * i + 2] * hz;
+            if (ndoth <= 0.0f)
+                continue;
             float coeff = powf(ndoth, power);
-            result[3*i]   += coeff * Cl[3*i];
-            result[3*i+1] += coeff * Cl[3*i+1];
-            result[3*i+2] += coeff * Cl[3*i+2];
+            result[3 * i] += coeff * Cl[3 * i];
+            result[3 * i + 1] += coeff * Cl[3 * i + 1];
+            result[3 * i + 2] += coeff * Cl[3 * i + 2];
         }
     }
 }
@@ -1737,10 +1838,12 @@ void CShadingContext::prepareAmbient() {
             ss->alights->savedState[1] = (float *)ralloc(3 * sizeof(float) * ss->numVertices, threadMemory);
             ss->alights->savedState[0] = NULL;
             ss->alights->lightTags = NULL;
-            ss->alights->instance  = NULL;
-            ss->alights->next      = NULL;
+            ss->alights->instance = NULL;
+            ss->alights->next = NULL;
             float *Cl = ss->alights->savedState[1];
-            for (int i = 0; i < ss->numVertices; ++i, Cl += 3) { Cl[0] = Cl[1] = Cl[2] = 0.0f; }
+            for (int i = 0; i < ss->numVertices; ++i, Cl += 3) {
+                Cl[0] = Cl[1] = Cl[2] = 0.0f;
+            }
         }
         if (!inShadow) {
             CShaderInstance *cInst = ss->currentShaderInstance;
@@ -1768,9 +1871,9 @@ void CShadingContext::prepareDiffuse() {
         float *costheta = (float *)ralloc(ss->numVertices * sizeof(float), threadMemory);
         memset(costheta, 0, ss->numVertices * sizeof(float));
         iterateLights(ss->varying[VARIABLE_P], ss->varying[VARIABLE_N],
-                  costheta, ss->numVertices, ss->tags,
-                  ss->numActive, ss->numPassive, inShadow,
-                  ss->varying, ss->currentShaderInstance);
+                      costheta, ss->numVertices, ss->tags,
+                      ss->numActive, ss->numPassive, inShadow,
+                      ss->varying, ss->currentShaderInstance);
     }
 }
 
@@ -1778,10 +1881,11 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
     CShadingState *ss = currentShadingState;
     float *costheta = (float *)ralloc(numVertices * sizeof(float), threadMemory);
     const float cosAngle = cosf(angle);
-    for (int i = 0; i < numVertices; ++i) costheta[i] = cosAngle;
+    for (int i = 0; i < numVertices; ++i)
+        costheta[i] = cosAngle;
     iterateLights(P, N, costheta, numVertices, tags,
-              ss->numActive, ss->numPassive, inShadow,
-              ss->varying, ss->currentShaderInstance);
+                  ss->numActive, ss->numPassive, inShadow,
+                  ss->varying, ss->currentShaderInstance);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1789,13 +1893,12 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
 // Mirrors ILLUMINATE1EXPR_PRE for the JIT light-shader path.
 // Computes L = Ps - from for each active vertex, increments tag for vertices
 // outside the illumination cone (gating them passive for the body).
-void CShadingContext::jitIlluminateBegin(const float* from, int sf,
-                                         int* tags, int n,
-                                         int* numActive, int* numPassive) {
+void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return;
+    if (!ss)
+        return;
 
-    float       *L  = ss->varying[VARIABLE_L];
+    float *L = ss->varying[VARIABLE_L];
     const float *Ps = ss->varying[VARIABLE_PS];
     const float *Ns = ss->Ns;
     const float *ct = ss->costheta;
@@ -1803,15 +1906,16 @@ void CShadingContext::jitIlluminateBegin(const float* from, int sf,
     for (int i = 0; i < n; ++i, ++tags, L += 3, Ps += 3, Ns += 3, ++ct) {
         if (*tags) {
             (*tags)++;
-        } else {
+        }
+        else {
             // from_i is the light position for this vertex (stride 0 = uniform)
             const float *fri = from + sf * i;
             L[0] = Ps[0] - fri[0];
             L[1] = Ps[1] - fri[1];
             L[2] = Ps[2] - fri[2];
             // dot(Ns, L) > -costheta * |L| means outside the cone
-            const float lLen = sqrtf(L[0]*L[0] + L[1]*L[1] + L[2]*L[2]);
-            const float dot  = Ns[0]*L[0] + Ns[1]*L[1] + Ns[2]*L[2];
+            const float lLen = sqrtf(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+            const float dot = Ns[0] * L[0] + Ns[1] * L[1] + Ns[2] * L[2];
             if (dot > -(*ct) * lLen) {
                 (*tags)++;
                 --(*numActive);
@@ -1827,15 +1931,13 @@ void CShadingContext::jitIlluminateBegin(const float* from, int sf,
 // Computes L = Ps - from; gates vertex if outside cone (dot(axis,L) < cos(angle)*|L|)
 // or if back-facing (dot(Ns,L) > -costheta*|L|).
 void CShadingContext::jitIlluminate3Begin(
-        const float* from, int sf,
-        const float* axis, int sa,
-        const float* angle, int st,
-        int* tags, int n, int* numActive, int* numPassive) {
+    const float *from, int sf, const float *axis, int sa, const float *angle, int st, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return;
+    if (!ss)
+        return;
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
-    float       *L  = ss->varying[VARIABLE_L];
+    float *L = ss->varying[VARIABLE_L];
     const float *Ps = ss->varying[VARIABLE_PS];
     const float *Ns = ss->Ns;
     const float *ct = ss->costheta;
@@ -1843,18 +1945,19 @@ void CShadingContext::jitIlluminate3Begin(
     for (int i = 0; i < n; ++i, L += 3, Ps += 3, Ns += 3, ++ct, ++tags) {
         if (*tags) {
             (*tags)++;
-        } else {
-            const float *fri  = from + sf * i;
+        }
+        else {
+            const float *fri = from + sf * i;
             const float *axsi = axis + sa * i;
-            const float  angi = (angle + st * i)[0];
+            const float angi = (angle + st * i)[0];
 
             L[0] = Ps[0] - fri[0];
             L[1] = Ps[1] - fri[1];
             L[2] = Ps[2] - fri[2];
-            const float lLen     = sqrtf(L[0]*L[0] + L[1]*L[1] + L[2]*L[2]);
-            const float dotNfL   = axsi[0]*L[0] + axsi[1]*L[1] + axsi[2]*L[2];
+            const float lLen = sqrtf(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+            const float dotNfL = axsi[0] * L[0] + axsi[1] * L[1] + axsi[2] * L[2];
             const float cosAngle = cosf(angi);
-            const float dotNsL   = Ns[0]*L[0] + Ns[1]*L[1] + Ns[2]*L[2];
+            const float dotNsL = Ns[0] * L[0] + Ns[1] * L[1] + Ns[2] * L[2];
             // Gate: outside spotlight cone OR surface facing away from light
             if (dotNfL < cosAngle * lLen || dotNsL > -(*ct) * lLen) {
                 (*tags)++;
@@ -1870,15 +1973,15 @@ void CShadingContext::jitIlluminate3Begin(
 // Mirrors ILLUMINATEEND_PRE for the JIT light-shader path.
 // Allocates/recycles a CShadedLight, saves L negated into savedState[0],
 // saves Cl into savedState[1], restores tags decremented.
-void CShadingContext::jitIlluminateEnd(int* tags, int n,
-                                       int* numActive, int* numPassive) {
+void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return;
+    if (!ss)
+        return;
     log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
     CProgrammableShaderInstance *cInst =
         static_cast<CProgrammableShaderInstance *>(ss->currentShaderInstance);
-    const int numVertices  = ss->numVertices;
+    const int numVertices = ss->numVertices;
 
     // saveLighting: save (L, Cl) into a new/recycled CShadedLight entry
     if (*numActive != 0) {
@@ -1886,29 +1989,32 @@ void CShadingContext::jitIlluminateEnd(int* tags, int n,
         const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
 
         if (ss->freeLights) {
-            cLight              = ss->freeLights;
-            ss->freeLights      = ss->freeLights->next;
-            float **savedState  = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
-            savedState[0]       = cLight->savedState[0];
-            savedState[1]       = cLight->savedState[1];
-            cLight->savedState  = savedState;
-        } else {
-            cLight              = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
-            cLight->lightTags   = (int *)ralloc(sizeof(int) * numVertices, threadMemory);
-            cLight->savedState  = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
+            cLight = ss->freeLights;
+            ss->freeLights = ss->freeLights->next;
+            float **savedState = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
+            savedState[0] = cLight->savedState[0];
+            savedState[1] = cLight->savedState[1];
+            cLight->savedState = savedState;
+        }
+        else {
+            cLight = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
+            cLight->lightTags = (int *)ralloc(sizeof(int) * numVertices, threadMemory);
+            cLight->savedState = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
             cLight->savedState[0] = (float *)ralloc(3 * sizeof(float) * numVertices, threadMemory);
             cLight->savedState[1] = (float *)ralloc(3 * sizeof(float) * numVertices, threadMemory);
-            cLight->instance    = cInst;
+            cLight->instance = cInst;
         }
-        cLight->next    = ss->lights;
-        ss->lights      = cLight;
-        memcpy(cLight->lightTags,    ss->tags,                  sizeof(int)   * numVertices);
+        cLight->next = ss->lights;
+        ss->lights = cLight;
+        memcpy(cLight->lightTags, ss->tags, sizeof(int) * numVertices);
         memcpy(cLight->savedState[1], ss->varying[VARIABLE_CL], sizeof(float) * 3 * numVertices);
         // Copy -L into savedState[0] (mirrors interpreter: mulvf(Lsave, L, -1))
-        const float *L  = ss->varying[VARIABLE_L];
-        float       *Ls = cLight->savedState[0];
+        const float *L = ss->varying[VARIABLE_L];
+        float *Ls = cLight->savedState[0];
         for (int i = 0; i < numVertices; ++i, L += 3, Ls += 3) {
-            Ls[0] = -L[0]; Ls[1] = -L[1]; Ls[2] = -L[2];
+            Ls[0] = -L[0];
+            Ls[1] = -L[1];
+            Ls[2] = -L[2];
         }
     }
 
@@ -1932,35 +2038,34 @@ void CShadingContext::jitIlluminateEnd(int* tags, int n,
 // Mirrors SOLAR2EXPR_PRE for the JIT directional-light path.
 // Sets L = Nf * worldRadius for each active vertex, then gates vertices
 // where Ns·L > -costheta*|L| (back-facing relative to the light direction).
-void CShadingContext::jitSolarBegin(const float* Nf, int sf,
-                                    const float* /*thetaf*/, int /*st*/,
-                                    int* tags, int n,
-                                    int* numActive, int* numPassive) {
+void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float * /*thetaf*/, int /*st*/, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return;
+    if (!ss)
+        return;
 
     const float *bmin = rendererWorldBmin();
     const float *bmax = rendererWorldBmax();
     float worldRadius = 1.f;
     if (bmin && bmax) {
-        float R[3] = {bmax[0]-bmin[0], bmax[1]-bmin[1], bmax[2]-bmin[2]};
-        worldRadius = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+        float R[3] = {bmax[0] - bmin[0], bmax[1] - bmin[1], bmax[2] - bmin[2]};
+        worldRadius = R[0] * R[0] + R[1] * R[1] + R[2] * R[2];
     }
 
-    float       *L        = ss->varying[VARIABLE_L];
-    const float *Ns       = ss->Ns;
+    float *L = ss->varying[VARIABLE_L];
+    const float *Ns = ss->Ns;
     const float *costheta = ss->costheta;
 
     for (int i = 0; i < n; ++i, ++tags, L += 3, Ns += 3, ++costheta) {
         if (*tags) {
             (*tags)++;
-        } else {
+        }
+        else {
             const float *nfi = Nf + sf * i;
             L[0] = nfi[0] * worldRadius;
             L[1] = nfi[1] * worldRadius;
             L[2] = nfi[2] * worldRadius;
-            const float lLen = sqrtf(L[0]*L[0] + L[1]*L[1] + L[2]*L[2]);
-            const float dot  = Ns[0]*L[0] + Ns[1]*L[1] + Ns[2]*L[2];
+            const float lLen = sqrtf(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+            const float dot = Ns[0] * L[0] + Ns[1] * L[1] + Ns[2] * L[2];
             if (dot > -(*costheta) * lLen) {
                 (*tags)++;
                 --(*numActive);
@@ -1974,10 +2079,10 @@ void CShadingContext::jitSolarBegin(const float* Nf, int sf,
 // CShadingContext::jitSolarEnd
 // Mirrors SOLAREND_PRE for the JIT directional-light path.
 // Allocates/recycles a CShadedLight, saves -normalize(L) and Cl, restores tags.
-void CShadingContext::jitSolarEnd(int* tags, int n,
-                                  int* numActive, int* numPassive) {
+void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return;
+    if (!ss)
+        return;
 
     CProgrammableShaderInstance *cInst =
         static_cast<CProgrammableShaderInstance *>(ss->currentShaderInstance);
@@ -1988,36 +2093,41 @@ void CShadingContext::jitSolarEnd(int* tags, int n,
         const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
 
         if (ss->freeLights) {
-            cLight             = ss->freeLights;
-            ss->freeLights     = ss->freeLights->next;
+            cLight = ss->freeLights;
+            ss->freeLights = ss->freeLights->next;
             float **savedState = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
-            savedState[0]      = cLight->savedState[0];
-            savedState[1]      = cLight->savedState[1];
+            savedState[0] = cLight->savedState[0];
+            savedState[1] = cLight->savedState[1];
             cLight->savedState = savedState;
-        } else {
-            cLight                = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
-            cLight->lightTags     = (int *)ralloc(sizeof(int) * numVertices, threadMemory);
-            cLight->savedState    = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
+        }
+        else {
+            cLight = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
+            cLight->lightTags = (int *)ralloc(sizeof(int) * numVertices, threadMemory);
+            cLight->savedState = (float **)ralloc((2 + numGlobals) * sizeof(float *), threadMemory);
             cLight->savedState[0] = (float *)ralloc(3 * sizeof(float) * numVertices, threadMemory);
             cLight->savedState[1] = (float *)ralloc(3 * sizeof(float) * numVertices, threadMemory);
-            cLight->instance      = cInst;
+            cLight->instance = cInst;
         }
         cLight->next = ss->lights;
-        ss->lights   = cLight;
-        memcpy(cLight->lightTags,     ss->tags,                  sizeof(int)   * numVertices);
-        memcpy(cLight->savedState[1], ss->varying[VARIABLE_CL],  sizeof(float) * 3 * numVertices);
+        ss->lights = cLight;
+        memcpy(cLight->lightTags, ss->tags, sizeof(int) * numVertices);
+        memcpy(cLight->savedState[1], ss->varying[VARIABLE_CL], sizeof(float) * 3 * numVertices);
 
         // Save -normalize(L) into savedState[0] for active vertices (mirrors SOLAREND_PRE)
-        const float *L  = ss->varying[VARIABLE_L];
-        float       *Ls = cLight->savedState[0];
-        const int   *lt = cLight->lightTags;
+        const float *L = ss->varying[VARIABLE_L];
+        float *Ls = cLight->savedState[0];
+        const int *lt = cLight->lightTags;
         for (int i = 0; i < numVertices; ++i, L += 3, Ls += 3, ++lt) {
             if (*lt == 0) {
-                Ls[0] = -L[0]; Ls[1] = -L[1]; Ls[2] = -L[2];
-                const float lenSq = Ls[0]*Ls[0] + Ls[1]*Ls[1] + Ls[2]*Ls[2];
+                Ls[0] = -L[0];
+                Ls[1] = -L[1];
+                Ls[2] = -L[2];
+                const float lenSq = Ls[0] * Ls[0] + Ls[1] * Ls[1] + Ls[2] * Ls[2];
                 if (lenSq > 0.f) {
                     const float inv = 1.f / sqrtf(lenSq);
-                    Ls[0] *= inv; Ls[1] *= inv; Ls[2] *= inv;
+                    Ls[0] *= inv;
+                    Ls[1] *= inv;
+                    Ls[2] *= inv;
                 }
             }
         }
@@ -2043,34 +2153,50 @@ void CShadingContext::jitSolarEnd(int* tags, int n,
 // copy L/Cl from savedState into varying[VARIABLE_L/CL].
 // -----------------------------------------------------------------------
 static void enterLight(CShadedLight *cLight,
-                       int* tags, int n, int* numActive, int* numPassive,
+                       int *tags,
+                       int n,
+                       int *numActive,
+                       int *numPassive,
                        float **varying) {
     const int *lt = cLight->lightTags;
     for (int i = 0; i < n; ++i) {
         const int wasActive = (tags[i] == 0);
         tags[i] += lt[i];
-        if (wasActive && tags[i]) { --(*numActive); ++(*numPassive); }
+        if (wasActive && tags[i]) {
+            --(*numActive);
+            ++(*numPassive);
+        }
     }
     // Copy L and Cl only for newly-active vertices (tags[i] == 0 after update)
-    float       *L  = varying[VARIABLE_L];
-    float       *Cl = varying[VARIABLE_CL];
+    float *L = varying[VARIABLE_L];
+    float *Cl = varying[VARIABLE_CL];
     const float *Ls = cLight->savedState[0];
-    const float *Cls= cLight->savedState[1];
-    for (int i = 0; i < n; ++i, L+=3, Cl+=3, Ls+=3, Cls+=3) {
+    const float *Cls = cLight->savedState[1];
+    for (int i = 0; i < n; ++i, L += 3, Cl += 3, Ls += 3, Cls += 3) {
         if (tags[i] == 0) {
-            L[0]=Ls[0]; L[1]=Ls[1]; L[2]=Ls[2];
-            Cl[0]=Cls[0]; Cl[1]=Cls[1]; Cl[2]=Cls[2];
+            L[0] = Ls[0];
+            L[1] = Ls[1];
+            L[2] = Ls[2];
+            Cl[0] = Cls[0];
+            Cl[1] = Cls[1];
+            Cl[2] = Cls[2];
         }
     }
 }
 
 static void exitLight(CShadedLight *cLight,
-                      int* tags, int n, int* numActive, int* numPassive) {
+                      int *tags,
+                      int n,
+                      int *numActive,
+                      int *numPassive) {
     const int *lt = cLight->lightTags;
     for (int i = 0; i < n; ++i) {
         const int wasPassive = (tags[i] != 0);
         tags[i] -= lt[i];
-        if (wasPassive && tags[i] == 0) { ++(*numActive); --(*numPassive); }
+        if (wasPassive && tags[i] == 0) {
+            ++(*numActive);
+            --(*numPassive);
+        }
     }
 }
 
@@ -2080,12 +2206,10 @@ static void exitLight(CShadedLight *cLight,
 // Runs all lights, enters the first active light's conditional.
 // Returns 1 if the body should execute, 0 if no lights to iterate.
 int CShadingContext::jitIlluminanceBegin(
-    const float* P, int sp, const float* N, int sn,
-    const float* angle, int sa,
-    int* tags, int n, int* numActive, int* numPassive)
-{
+    const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return 0;
+    if (!ss)
+        return 0;
 
     // Build costheta[i] = cos(angle[i]).  angle may be uniform (sa=0) or varying (sa=1).
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
@@ -2096,23 +2220,32 @@ int CShadingContext::jitIlluminanceBegin(
     const float *lP = P, *lN = N;
     if (sp == 0) {
         float *bP = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
-        for (int i = 0; i < n; ++i) { bP[3*i]=P[0]; bP[3*i+1]=P[1]; bP[3*i+2]=P[2]; }
+        for (int i = 0; i < n; ++i) {
+            bP[3 * i] = P[0];
+            bP[3 * i + 1] = P[1];
+            bP[3 * i + 2] = P[2];
+        }
         lP = bP;
     }
     if (sn == 0) {
         float *bN = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
-        for (int i = 0; i < n; ++i) { bN[3*i]=N[0]; bN[3*i+1]=N[1]; bN[3*i+2]=N[2]; }
+        for (int i = 0; i < n; ++i) {
+            bN[3 * i] = N[0];
+            bN[3 * i + 1] = N[1];
+            bN[3 * i + 2] = N[2];
+        }
         lN = bN;
     }
 
     iterateLights(lP, lN, costheta, n, tags, *numActive, *numPassive,
-              inShadow, ss->varying, ss->currentShaderInstance);
+                  inShadow, ss->varying, ss->currentShaderInstance);
 
     // Advance through lights until one has active vertices.
     ss->currentLight = ss->lights;
     while (ss->currentLight) {
         enterLight(ss->currentLight, tags, n, numActive, numPassive, ss->varying);
-        if (*numActive > 0) return 1;
+        if (*numActive > 0)
+            return 1;
         exitLight(ss->currentLight, tags, n, numActive, numPassive);
         ss->currentLight = ss->currentLight->next;
     }
@@ -2125,10 +2258,10 @@ int CShadingContext::jitIlluminanceBegin(
 // to the next light and enters it. Returns 1 if the body should iterate
 // again, 0 when all lights have been visited.
 int CShadingContext::jitIlluminanceNext(
-    int* tags, int n, int* numActive, int* numPassive)
-{
+    int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss || !ss->currentLight) return 0;
+    if (!ss || !ss->currentLight)
+        return 0;
 
     // Exit the current light's conditional.
     exitLight(ss->currentLight, tags, n, numActive, numPassive);
@@ -2137,7 +2270,8 @@ int CShadingContext::jitIlluminanceNext(
     // Advance until we find a light with active vertices (skipping empty ones).
     while (ss->currentLight) {
         enterLight(ss->currentLight, tags, n, numActive, numPassive, ss->varying);
-        if (*numActive > 0) return 1;
+        if (*numActive > 0)
+            return 1;
         exitLight(ss->currentLight, tags, n, numActive, numPassive);
         ss->currentLight = ss->currentLight->next;
     }
@@ -2157,25 +2291,30 @@ int CShadingContext::jitIlluminanceNext(
 // currentShadingState->currentGather must already be populated by
 // op_gatherHeader (the GATHEREXPR allocation/PL-binding counterpart, not yet
 // implemented) before jitGatherBegin fires; until then this returns 0.
-int CShadingContext::jitGatherBegin(int* numActive, int* numPassive) {
+int CShadingContext::jitGatherBegin(int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss || !ss->currentGather) return 0;
+    if (!ss || !ss->currentGather)
+        return 0;
 
     return gatherSample(ss->currentGather, ss->tags, *numActive, *numPassive,
-                         ss->varying[VARIABLE_N], ss->varying[VARIABLE_TIME]) ? 1 : 0;
+                        ss->varying[VARIABLE_N], ss->varying[VARIABLE_TIME])
+               ? 1
+               : 0;
 }
 
-int CShadingContext::jitGatherElse(int* numActive, int* numPassive) {
+int CShadingContext::jitGatherElse(int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss) return 0;
+    if (!ss)
+        return 0;
 
     int *tags = ss->tags;
     return gatherElseFlip(tags, *numActive, *numPassive) ? 1 : 0;
 }
 
-int CShadingContext::jitGatherEnd(int* numActive, int* numPassive) {
+int CShadingContext::jitGatherEnd(int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
-    if (!ss || !ss->currentGather) return 0;
+    if (!ss || !ss->currentGather)
+        return 0;
 
     int *tags = ss->tags;
     return gatherEndAdvance(ss->currentGather, tags, *numActive, *numPassive) ? 1 : 0;
@@ -2205,19 +2344,24 @@ const char *CShadingContext::shaderName(const char *type) {
     if (strcmp(type, "surface") == 0) {
         if (currentAttributes->surface != NULL)
             return currentAttributes->surface->getName();
-    } else if (strcmp(type, "displacement") == 0) {
+    }
+    else if (strcmp(type, "displacement") == 0) {
         if (currentAttributes->displacement != NULL)
             return currentAttributes->displacement->getName();
-    } else if (strcmp(type, "atmosphere") == 0) {
+    }
+    else if (strcmp(type, "atmosphere") == 0) {
         if (currentAttributes->atmosphere != NULL)
             return currentAttributes->atmosphere->getName();
-    } else if (strcmp(type, "interior") == 0) {
+    }
+    else if (strcmp(type, "interior") == 0) {
         if (currentAttributes->interior != NULL)
             return currentAttributes->interior->getName();
-    } else if (strcmp(type, "exterior") == 0) {
+    }
+    else if (strcmp(type, "exterior") == 0) {
         if (currentAttributes->exterior != NULL)
             return currentAttributes->exterior->getName();
-    } else if (strcmp(type, "lightsource") == 0) {
+    }
+    else if (strcmp(type, "lightsource") == 0) {
         if (currentShadingState->currentLight != NULL)
             return currentShadingState->currentLight->instance->getName();
     }
@@ -2247,61 +2391,63 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
     if (svc && svc->findCoordinateSystemWithType(name, from, to, cSystem)) {
 
         switch (cSystem) {
-        case COORDINATE_OBJECT:
-            if (currentShadingState->currentObject == NULL) {
-                error(CODE_SYSTEM, "Object system reference without an object\n");
+            case COORDINATE_OBJECT:
+                if (currentShadingState->currentObject == NULL) {
+                    error(CODE_SYSTEM, "Object system reference without an object\n");
+                    from = identityMatrix;
+                    to = identityMatrix;
+                }
+                else {
+                    from = currentShadingState->currentObject->xform->from;
+                    to = currentShadingState->currentObject->xform->to;
+                }
+                break;
+            case COORDINATE_CAMERA:
                 from = identityMatrix;
                 to = identityMatrix;
-            } else {
-                from = currentShadingState->currentObject->xform->from;
-                to = currentShadingState->currentObject->xform->to;
-            }
-            break;
-        case COORDINATE_CAMERA:
-            from = identityMatrix;
-            to = identityMatrix;
-            break;
-        case COORDINATE_WORLD:
-            // from/to already set by findCoordinateSystemWithType
-            break;
-        case COORDINATE_SHADER:
-            assert(currentShadingState->currentShaderInstance != NULL);
-            from = currentShadingState->currentShaderInstance->xform->from;
-            to = currentShadingState->currentShaderInstance->xform->to;
-            break;
-        case COORDINATE_LIGHT:
-            assert(currentShadingState->currentLightInstance != NULL);
-            from = currentShadingState->currentLightInstance->xform->from;
-            to = currentShadingState->currentLightInstance->xform->to;
-            break;
-        case COORDINATE_NDC:
-        case COORDINATE_RASTER:
-        case COORDINATE_SCREEN:
-            // from/to already set by findCoordinateSystemWithType
-            break;
-        case COORDINATE_CURRENT:
-            from = identityMatrix;
-            to = identityMatrix;
-            break;
-        case COLOR_RGB:
-        case COLOR_HSL:
-        case COLOR_HSV:
-        case COLOR_XYZ:
-        case COLOR_CIE:
-        case COLOR_YIQ:
-        case COLOR_XYY:
-            // Don't handle color, the custom must have been handled
-            break;
-        case COORDINATE_CUSTOM:
-            // from/to already set by findCoordinateSystemWithType
-            break;
-        default:
-            warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
-            from = identityMatrix;
-            to = identityMatrix;
-            break;
+                break;
+            case COORDINATE_WORLD:
+                // from/to already set by findCoordinateSystemWithType
+                break;
+            case COORDINATE_SHADER:
+                assert(currentShadingState->currentShaderInstance != NULL);
+                from = currentShadingState->currentShaderInstance->xform->from;
+                to = currentShadingState->currentShaderInstance->xform->to;
+                break;
+            case COORDINATE_LIGHT:
+                assert(currentShadingState->currentLightInstance != NULL);
+                from = currentShadingState->currentLightInstance->xform->from;
+                to = currentShadingState->currentLightInstance->xform->to;
+                break;
+            case COORDINATE_NDC:
+            case COORDINATE_RASTER:
+            case COORDINATE_SCREEN:
+                // from/to already set by findCoordinateSystemWithType
+                break;
+            case COORDINATE_CURRENT:
+                from = identityMatrix;
+                to = identityMatrix;
+                break;
+            case COLOR_RGB:
+            case COLOR_HSL:
+            case COLOR_HSV:
+            case COLOR_XYZ:
+            case COLOR_CIE:
+            case COLOR_YIQ:
+            case COLOR_XYY:
+                // Don't handle color, the custom must have been handled
+                break;
+            case COORDINATE_CUSTOM:
+                // from/to already set by findCoordinateSystemWithType
+                break;
+            default:
+                warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
+                from = identityMatrix;
+                to = identityMatrix;
+                break;
         }
-    } else {
+    }
+    else {
         warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
         from = identityMatrix;
         to = identityMatrix;
@@ -2404,45 +2550,46 @@ void CShadingContext::next_state() {
 // Local stride-indexed access — mirrors the IDX macro in rslOps.cpp.
 #define JIT_IDX(base, str, i) ((base) + (str) * (i))
 
-void CShadingContext::jitDuFloat(float* dst, const float* src, int /*n*/) {
+void CShadingContext::jitDuFloat(float *dst, const float *src, int /*n*/) {
     duFloat(dst, src);
 }
 
-void CShadingContext::jitDvFloat(float* dst, const float* src, int /*n*/) {
+void CShadingContext::jitDvFloat(float *dst, const float *src, int /*n*/) {
     dvFloat(dst, src);
 }
 
-void CShadingContext::jitDuVector(float* dst, const float* src, int /*n*/) {
+void CShadingContext::jitDuVector(float *dst, const float *src, int /*n*/) {
     duVector(dst, src);
 }
 
-void CShadingContext::jitDvVector(float* dst, const float* src, int /*n*/) {
+void CShadingContext::jitDvVector(float *dst, const float *src, int /*n*/) {
     dvVector(dst, src);
 }
 
-void CShadingContext::jitArea(float* dst, int sd, const float* P, int n, const int* tags) {
-    float *dPdu_buf = (float*)ralloc(n * 6 * sizeof(float), threadMemory);
+void CShadingContext::jitArea(float *dst, int sd, const float *P, int n, const int *tags) {
+    float *dPdu_buf = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
     float *dPdv_buf = dPdu_buf + n * 3;
     duVector(dPdu_buf, P);
     dvVector(dPdv_buf, P);
 
-    const float *du = (const float*)currentShadingState->varying[VARIABLE_DU];
-    const float *dv = (const float*)currentShadingState->varying[VARIABLE_DV];
+    const float *du = (const float *)currentShadingState->varying[VARIABLE_DU];
+    const float *dv = (const float *)currentShadingState->varying[VARIABLE_DV];
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             float dpdu[3], dpdv[3];
-            mulvf(dpdu, dPdu_buf + 3*i, du[i]);
-            mulvf(dpdv, dPdv_buf + 3*i, dv[i]);
+            mulvf(dpdu, dPdu_buf + 3 * i, du[i]);
+            mulvf(dpdv, dPdv_buf + 3 * i, dv[i]);
             float tmp[3];
             crossvv(tmp, dpdu, dpdv);
             float len = lengthv(tmp);
-            JIT_IDX(dst,sd,i)[0] = (len < C_EPSILON) ? C_EPSILON : len;
+            JIT_IDX(dst, sd, i)
+            [0] = (len < C_EPSILON) ? C_EPSILON : len;
         }
     }
 }
 
-void CShadingContext::jitCalculateNormal(float* dst, int sd, const float* P, int n, const int* tags) {
-    float *dPdu_buf = (float*)ralloc(n * 6 * sizeof(float), threadMemory);
+void CShadingContext::jitCalculateNormal(float *dst, int sd, const float *P, int n, const int *tags) {
+    float *dPdu_buf = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
     float *dPdv_buf = dPdu_buf + n * 3;
     duVector(dPdu_buf, P);
     dvVector(dPdv_buf, P);
@@ -2450,102 +2597,109 @@ void CShadingContext::jitCalculateNormal(float* dst, int sd, const float* P, int
     const float mult = (currentShadingState && currentShadingState->currentObject &&
                         currentShadingState->currentObject->attributes &&
                         (currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE))
-                       ? -1.f : 1.f;
+                           ? -1.f
+                           : 1.f;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             float *r = JIT_IDX(dst, sd, i);
-            crossvv(r, dPdu_buf + 3*i, dPdv_buf + 3*i);
+            crossvv(r, dPdu_buf + 3 * i, dPdv_buf + 3 * i);
             mulvf(r, mult);
         }
     }
 }
 
-void CShadingContext::jitDepth(float* dst, int sd, const float* P, int sp, int n, const int* tags) {
+void CShadingContext::jitDepth(float *dst, int sd, const float *P, int sp, int n, const int *tags) {
     const float cmin = rendererClipMin();
     const float cmax = rendererClipMax();
     const float range = (cmax > cmin) ? (cmax - cmin) : 1.f;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
-            JIT_IDX(dst,sd,i)[0] = (JIT_IDX(P,sp,i)[2] - cmin) / range;
+            JIT_IDX(dst, sd, i)
+            [0] = (JIT_IDX(P, sp, i)[2] - cmin) / range;
         }
     }
 }
 
-void CShadingContext::jitTextureF(float* dst, int sd, const char* name, int channel,
-                                   const float* s, int ss, const float* t, int st,
-                                   int n, const int* tags) {
-    if (!name || !name[0]) return;
+void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags) {
+    if (!name || !name[0])
+        return;
     CTexture *tex = rendererGetTexture(name);
-    if (!tex) return;
+    if (!tex)
+        return;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
-            tex->lookup(tmp, JIT_IDX(s,ss,i)[0], JIT_IDX(t,st,i)[0], this);
-            JIT_IDX(dst,sd,i)[0] = tmp[channel & 3];
+            tex->lookup(tmp, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
+            JIT_IDX(dst, sd, i)
+            [0] = tmp[channel & 3];
         }
     }
 }
 
-void CShadingContext::jitTextureC(float* dst, int sd, const char* name,
-                                   const float* s, int ss, const float* t, int st,
-                                   int n, const int* tags) {
-    if (!name || !name[0]) return;
+void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags) {
+    if (!name || !name[0])
+        return;
     CTexture *tex = rendererGetTexture(name);
-    if (!tex) return;
+    if (!tex)
+        return;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
-            tex->lookup(JIT_IDX(dst,sd,i), JIT_IDX(s,ss,i)[0], JIT_IDX(t,st,i)[0], this);
+            tex->lookup(JIT_IDX(dst, sd, i), JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
         }
     }
 }
 
-void CShadingContext::jitEnvironmentF(float* dst, int sd, const char* name, int channel,
-                                      const float* D, int sD, int n, const int* tags) {
-    if (!name || !name[0]) return;
+void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags) {
+    if (!name || !name[0])
+        return;
     CEnvironment *env = rendererGetEnvironment(name);
-    if (!env) return;
+    if (!env)
+        return;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
             env->lookup(tmp, d, d, d, d, this);
-            JIT_IDX(dst,sd,i)[0] = tmp[channel & 3];
+            JIT_IDX(dst, sd, i)
+            [0] = tmp[channel & 3];
         }
     }
 }
 
-void CShadingContext::jitEnvironmentC(float* dst, int sd, const char* name,
-                                      const float* D, int sD, int n, const int* tags) {
-    if (!name || !name[0]) return;
+void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags) {
+    if (!name || !name[0])
+        return;
     CEnvironment *env = rendererGetEnvironment(name);
-    if (!env) return;
+    if (!env)
+        return;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
-            env->lookup(JIT_IDX(dst,sd,i), d, d, d, d, this);
+            env->lookup(JIT_IDX(dst, sd, i), d, d, d, d, this);
         }
     }
 }
 
-void CShadingContext::jitShadowF(float* dst, int sd, const char* name,
-                                  const float* Ps, int sPs, int n, const int* tags) {
-    if (!name || !name[0]) return;
+void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags) {
+    if (!name || !name[0])
+        return;
     CEnvironment *env = rendererGetEnvironment(name);
-    if (!env) return;
+    if (!env)
+        return;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *p = JIT_IDX(Ps, sPs, i);
             env->lookup(tmp, p, p, p, p, this);
-            JIT_IDX(dst,sd,i)[0] = (tmp[0] + tmp[1] + tmp[2]) / 3.f;
+            JIT_IDX(dst, sd, i)
+            [0] = (tmp[0] + tmp[1] + tmp[2]) / 3.f;
         }
     }
 }
 
-void CShadingContext::jitFindCoordinateSystem(const char* name, const float*& from,
-                                               const float*& to, ECoordinateSystem& type) {
+void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type) {
     from = nullptr;
-    to   = nullptr;
+    to = nullptr;
     findCoordinateSystem(name, from, to, type);
 }
 
@@ -2554,8 +2708,7 @@ void CShadingContext::jitFindCoordinateSystem(const char* name, const float*& fr
 // jmp(argument(0)) call itself left in the caller's macro -- these return the jump
 // condition instead of jumping directly, so both the .rslo interpreter and the JIT
 // wrappers share the exact same computation while each keeps its own control flow.
-bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive,
-                                    const float *normalN, const float *time) {
+bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive, const float *normalN, const float *time) {
     const int numRealVertices = currentShadingState->numRealVertices;
     CGatherRay *raysBase = lastGather->raysBase;
     CGatherRay **rays = (CGatherRay **)lastGather->raysStorage;
@@ -2570,8 +2723,8 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
         }
         else {
             vector tmp0, tmp1;
-            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase *(urand() - 0.5f));
-            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase *(urand() - 0.5f));
+            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase * (urand() - 0.5f));
+            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase * (urand() - 0.5f));
             addvv(raysBase->from, tmp0, tmp1);
             addvv(raysBase->from, raysBase->gatherP);
 
@@ -2686,8 +2839,7 @@ bool CShadingContext::gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, i
 // and have no meaning outside the interpreter, so they stay in the caller. The
 // caller passes an already-bound CGatherLookup and fills the returned bundle's
 // outputs/nonShadeOutputs arrays (pre-allocated here) itself.
-CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, const float *P,
-                                                    float samplesCount, float *&dPduOut, float *&dPdvOut) {
+CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, const float *P, float samplesCount, float *&dPduOut, float *&dPdvOut) {
     const int numVertices = currentShadingState->numVertices;
     CShadingScratch *scratch = &(currentShadingState->scratch);
 
@@ -2732,9 +2884,7 @@ CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, c
 // output-variable rebind, meaningless outside the interpreter -- the caller
 // invokes plReady() itself, independently, since it has no effect on the ray
 // math computed here).
-void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const float *D,
-                                       float sampleConeVal, float *dPdu, float *dPdv,
-                                       float duVal, float dvVal) {
+void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal) {
     CShadingScratch *scratch = &(currentShadingState->scratch);
 
     mulvf(dPdu, duVal);
@@ -2744,12 +2894,14 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
         float clampedTan;
         if (0.0f > tanCone) {
             clampedTan = 0.0f;
-        } else {
+        }
+        else {
             clampedTan = tanCone;
         }
         if (1.0f < clampedTan) {
             ray->da = 1.0f;
-        } else {
+        }
+        else {
             ray->da = clampedTan;
         }
     }
@@ -2772,12 +2924,7 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
 // gatherHeaderBegin()/gatherHeaderRay() the interpreter uses; the bind-loop ->
 // init() -> apply-uniform-overrides ordering below mirrors plBegin() exactly
 // (execute.cpp).
-void CShadingContext::jitGatherHeaderBegin(const char* const* names, void* const* valuePtrs,
-                                           const int* steps, const int* isVarying, int numPairs,
-                                           const float* P, int strideP,
-                                           const float* D, int strideD,
-                                           const float* sampleCone, int strideSampleCone,
-                                           float samplesCount) {
+void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount) {
     CShadingState *ss = currentShadingState;
     CShaderInstance *shader = ss->currentShaderInstance;
     CShadingScratch *scratch = &(ss->scratch);
@@ -2792,10 +2939,10 @@ void CShadingContext::jitGatherHeaderBegin(const char* const* names, void* const
     lookup->varyings = lookup->uniforms + numPairs;
 
     struct COverride {
-        size_t dest;
-        const void *valuePtr;
-        int step;
-        bool varying;
+            size_t dest;
+            const void *valuePtr;
+            int step;
+            bool varying;
     };
     COverride overrides[5];
     int numOverrides = 0;
@@ -2814,7 +2961,7 @@ void CShadingContext::jitGatherHeaderBegin(const char* const* names, void* const
         const bool grewV = lookup->numVaryings > beforeV;
         if (grewU || grewV) {
             const CPLLookup::TParamBinding &b = grewU ? lookup->uniforms[lookup->numUniforms - 1]
-                                                        : lookup->varyings[lookup->numVaryings - 1];
+                                                      : lookup->varyings[lookup->numVaryings - 1];
             overrides[numOverrides].dest = b.dest;
             overrides[numOverrides].valuePtr = valuePtrs[i];
             overrides[numOverrides].step = steps[i];

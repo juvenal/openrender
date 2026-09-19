@@ -75,21 +75,21 @@ typedef union UDefaultVal {
 
 // Linked list of shader parameters
 typedef struct TRSLObjectParameter {
-        char *name;                 // Name of the parameter
-        ERSLObjectType type;        // Type of the parameter
-        ERSLObjectContainer container; // Container class of the parameter
-        int writable;               // Is it an output
-        int numItems;               // Number of items (the number of items if an array, 1 otherwise)
-        char *space;                // The space that the default value is expressed in
-        UDefaultVal defaultValue;   // The default value
+        char *name;                       // Name of the parameter
+        ERSLObjectType type;              // Type of the parameter
+        ERSLObjectContainer container;    // Container class of the parameter
+        int writable;                     // Is it an output
+        int numItems;                     // Number of items (the number of items if an array, 1 otherwise)
+        char *space;                      // The space that the default value is expressed in
+        UDefaultVal defaultValue;         // The default value
         struct TRSLObjectParameter *next; // The next parameter
 
 } TRSLObjectParameter;
 
 // Shader class
 typedef struct TRSLObjectShader {
-        char *name;                       // Name of the shader
-        ERSLObjectShaderType type;        // Type of the shader
+        char *name;                             // Name of the shader
+        ERSLObjectShaderType type;              // Type of the shader
         struct TRSLObjectParameter *parameters; // A linked list of parameters to the shader
 } TRSLObjectShader;
 

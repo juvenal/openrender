@@ -134,7 +134,8 @@ void do_line(char at_bol) /* TRUE if already at BOL */
     {
         while (n-- > 0)
             putc('\n', Output); /* Write newlines to synch */
-    } else {
+    }
+    else {
         fprintf(Output, "%s", buf);
     }
 
@@ -212,7 +213,8 @@ void doinclude(int dummy, int no_flag, const char *name) {
         if (incf >= &incfile[FILENAMESIZE]) {
             non_fatal("Include filename too long", "");
             return;
-        } else
+        }
+        else
             *incf++ = c;
     }
 
@@ -272,7 +274,8 @@ void doinclude(int dummy, int no_flag, const char *name) {
                     return;
                 }
             }
-        } else {
+        }
+        else {
             non_fatal("Invalid disk drive specifier", "");
             return;
         }
@@ -361,12 +364,14 @@ void doline(int dummy, int no_flag, const char *name) {
                 strcpy(Filestack[Filelevel]->f_name, Token + 1);
                 /* Need filename on "output" #line */
                 Do_name = TRUE;
-            } else {
+            }
+            else {
                 pushback(c);
                 c = '\0';
             }
         }
-    } else {
+    }
+    else {
         pushback(c);
         c = '\0';
     }
@@ -439,7 +444,8 @@ int gchfile(void) {
     if (Filelevel < 0) {
         Bufc = 0;
         return (EOF);
-    } else if ((Filestack[Filelevel]->f_eof) && popfile())
+    }
+    else if ((Filestack[Filelevel]->f_eof) && popfile())
         return (A_trigraph ? trigraph() : gchbuf());
 
     if (Filelevel < 0) {
@@ -498,7 +504,8 @@ int gchpb(void) {
                 /* Get nxt real pushback buf */ Pbbufp--;
                 /* Try again to get input */ continue;
             }
-        } else {
+        }
+        else {
             /* Assume PB_TOS and pop to file input */
             /* Next char source */ Nextch = A_trigraph ? trigraph : gchbuf;
             return (A_trigraph ? trigraph() : gchbuf());
@@ -600,7 +607,8 @@ int inc_open(const char *incfile)
         f->f_disk = d;
         f->f_user = u;
 #endif /* HOST == H_CPM */
-    } else
+    }
+    else
         free((char *)f); /* Return the memory used */
 
 #if HOST == H_CPM
@@ -611,7 +619,8 @@ int inc_open(const char *incfile)
     if (v) {
         Do_name = TRUE;
         return (TRUE);
-    } else
+    }
+    else
         return (FALSE);
 }
 
@@ -644,9 +653,11 @@ void init_path(void) {
             if (fgets(pb, TOKENSIZE, pf) != NULL) {
                 if ((Ipath[inum] = malloc((unsigned)(strlen(pb) + 1))) == NULL) {
                     out_of_memory();
-                } else
+                }
+                else
                     /* Copy the default path */ strcpy(Ipath[inum], pb);
-            } else {
+            }
+            else {
                 if (inum == Ipcnt) {
                     /* Didn't find any -- give error msg */
                     warning("Bad format on include path file",
@@ -663,7 +674,8 @@ void init_path(void) {
             non_fatal("Failed to close include path file",
                       PATHFILE);
         }
-    } else
+    }
+    else
         Ipath[Ipcnt++] = DFLT_PATH; /* The default path list */
 
     cur_user(); /* Restore user/disk defaults */
@@ -691,7 +703,8 @@ void init_path(void) {
         if ((Ipath[Ipcnt] = malloc((unsigned)(strlen(cptr1) + 1))) ==
             NULL) {
             out_of_memory();
-        } else
+        }
+        else
             strcpy(Ipath[Ipcnt++], cptr1);
     }
 #endif /* HOST != H_CPM */
@@ -768,7 +781,8 @@ char *readline(char *buf, int bufsize, int flags, int doexpand) {
         if ((t == LETTER) && ((sy = lookup(Token, NULL)) != NULL) &&
             (sy->disable != TRUE) && (doexpand == TRUE)) {
             bufp = docall(sy, bufp, &buf[bufsize - 1]);
-        } else
+        }
+        else
             bufp = addstr(bufp, &buf[bufsize - 1], rbo, Token);
     }
     pushback('\n');
@@ -833,41 +847,41 @@ int trigraph(void) {
             q_count = 0; /* Extra '?' encountered */
             for (;;) {
                 switch ((int)(c = gchbuf())) {
-                case '=':
-                    c = '#';
-                    break;
-                case '(':
-                    c = '[';
-                    break;
-                case '/':
-                    c = '\\';
-                    break;
-                case ')':
-                    c = ']';
-                    break;
-                case '\'':
-                    c = '^';
-                    break;
-                case '<':
-                    c = '{';
-                    break;
-                case '!':
-                    c = '|';
-                    break;
-                case '>':
-                    c = '}';
-                    break;
-                case '-':
-                    c = '~';
-                    break;
-                case '?':
-                    q_count++;
-                    continue;
-                default:
-                    pushback(c);
-                    pushback('?');
-                    c = '?';
-                    break;
+                    case '=':
+                        c = '#';
+                        break;
+                    case '(':
+                        c = '[';
+                        break;
+                    case '/':
+                        c = '\\';
+                        break;
+                    case ')':
+                        c = ']';
+                        break;
+                    case '\'':
+                        c = '^';
+                        break;
+                    case '<':
+                        c = '{';
+                        break;
+                    case '!':
+                        c = '|';
+                        break;
+                    case '>':
+                        c = '}';
+                        break;
+                    case '-':
+                        c = '~';
+                        break;
+                    case '?':
+                        q_count++;
+                        continue;
+                    default:
+                        pushback(c);
+                        pushback('?');
+                        c = '?';
+                        break;
                 }
                 /*
                  *	Handle stuff like "????????????#" correctly.
@@ -880,7 +894,8 @@ int trigraph(void) {
                 }
                 break;
             }
-        } else {
+        }
+        else {
             pushback(c);
             c = '?';
         }

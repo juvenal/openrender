@@ -168,7 +168,7 @@ CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float t
         vvaryings = vvertices;
 
         subPatches = new CSurface *[upatches * vpatches];
-        grids      = new CTesselatedGrid[upatches * vpatches];
+        grids = new CTesselatedGrid[upatches * vpatches];
 
         for (k = 0, i = 0; i < vpatches; i++) {
             for (j = 0; j < upatches; j++, k++) {
@@ -182,10 +182,12 @@ CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float t
                 subPatches[k] = sub;
 
                 grids[k] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
-                if (grids[k].div > maxDiv) maxDiv = grids[k].div;
+                if (grids[k].div > maxDiv)
+                    maxDiv = grids[k].div;
             }
         }
-    } else {
+    }
+    else {
         float uMult;
         float vMult;
         float *vertex = NULL;
@@ -212,7 +214,7 @@ CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float t
         vvaryings = (vpatches + 1 - mesh->vWrap);
 
         subPatches = new CSurface *[upatches * vpatches];
-        grids      = new CTesselatedGrid[upatches * vpatches];
+        grids = new CTesselatedGrid[upatches * vpatches];
 
         for (k = 0, i = 0; i < vpatches; i++) {
             for (j = 0; j < upatches; j++, k++) {
@@ -226,7 +228,8 @@ CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float t
                 subPatches[k] = sub;
 
                 grids[k] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
-                if (grids[k].div > maxDiv) maxDiv = grids[k].div;
+                if (grids[k].div > maxDiv)
+                    maxDiv = grids[k].div;
             }
         }
     }
@@ -257,10 +260,10 @@ CTesselatedPatchMeshOperand tesselatePatchMeshAdaptive(CPatchMesh *mesh, float t
     mesh->pl = NULL;
 
     CTesselatedPatchMeshOperand result;
-    result.div      = maxDiv;
+    result.div = maxDiv;
     result.uPatches = upatches;
     result.vPatches = vpatches;
-    result.grids    = grids;
+    result.grids = grids;
     return result;
 }
 
@@ -299,13 +302,13 @@ CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh
 
     const int uvertices = mesh->uVertices;
     const int vvertices = mesh->vVertices;
-    const int uvaryings  = mesh->uVertices - mesh->uOrder + 2;
-    const int vvaryings  = mesh->vVertices - mesh->vOrder + 2;
+    const int uvaryings = mesh->uVertices - mesh->uOrder + 2;
+    const int vvaryings = mesh->vVertices - mesh->vOrder + 2;
 
     CSurface **subPatches = new CSurface *[uPatches * vPatches];
     CTesselatedGrid *grids = new CTesselatedGrid[uPatches * vPatches];
     int maxDiv = 0;
-    int count  = 0;
+    int count = 0;
 
     CMemPage *localMemory = NULL;
     memoryInit(localMemory);
@@ -335,7 +338,8 @@ CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh
 
             if ((uint == 0) || (vint == 0)) {
                 // The patch does not have a valid parametric space, so just skip it
-            } else {
+            }
+            else {
                 gatherData(memCtxPtr, i, j, mesh->uOrder, mesh->vOrder, i, j, k, vertex, parameters);
 
                 CNURBSPatch *sub = new CNURBSPatch(mesh->attributes, mesh->xform, vertexData, parameters, mesh->uOrder, mesh->vOrder, mesh->uKnots + i, mesh->vKnots + j, vertex, mesh->trimTest);
@@ -343,7 +347,8 @@ CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh
                 subPatches[count] = sub;
 
                 grids[count] = tesselateQuadricAdaptive(sub, tolerance, computeDerivatives);
-                if (grids[count].div > maxDiv) maxDiv = grids[count].div;
+                if (grids[count].div > maxDiv)
+                    maxDiv = grids[count].div;
 
                 count++;
             }
@@ -376,7 +381,7 @@ CTesselatedNURBSPatchMeshOperand tesselateNURBSPatchMeshAdaptive(CNURBSPatchMesh
 
     CTesselatedNURBSPatchMeshOperand result;
     result.count = count;
-    result.div   = maxDiv;
+    result.div = maxDiv;
     result.grids = grids;
     return result;
 }

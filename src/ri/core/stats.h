@@ -49,7 +49,7 @@ class CStats {
         int peakZoneMemory;          // The peak zone memeory size
         float rendererStartTime;     // The time when the renderer was started
         float rendererStartOverhead; // The time it took to initialize the renderer
-        atomic_int32 numAttributes;   // The number of objects allocated of each type
+        atomic_int32 numAttributes;  // The number of objects allocated of each type
         atomic_int32 numXforms;
         atomic_int32 numOptions;
         atomic_int32 numShaders;
@@ -99,14 +99,14 @@ class CStats {
         int numSplits; // The stats that come from CPatch
         int numVsplits, numUsplits, numUVsplits;
 
-        atomic_int32 numBlobbies;          // The stats that come from RiBlobby (spec 015)
-        atomic_int32 numBlobbyLeaves;      // Total primitive fields across all blobbies
-        atomic_int32 numBlobbyFieldEvals;  // Field evaluations performed
-        atomic_int32 numBlobbyWeightedEvals;// Of those, the ones that also produced per-leaf weights
-        atomic_int32 numBlobbyCellsVisited;// Cells the continuation walk examined
-        atomic_int32 numBlobbySurfaceCells;// Cells that actually straddled the surface
-        int numBlobbyLatticeCells;// Cells a dense grid over the extent would have had
-        atomic_int32 numBlobbyTriangles;   // Triangles emitted
+        atomic_int32 numBlobbies;            // The stats that come from RiBlobby (spec 015)
+        atomic_int32 numBlobbyLeaves;        // Total primitive fields across all blobbies
+        atomic_int32 numBlobbyFieldEvals;    // Field evaluations performed
+        atomic_int32 numBlobbyWeightedEvals; // Of those, the ones that also produced per-leaf weights
+        atomic_int32 numBlobbyCellsVisited;  // Cells the continuation walk examined
+        atomic_int32 numBlobbySurfaceCells;  // Cells that actually straddled the surface
+        int numBlobbyLatticeCells;           // Cells a dense grid over the extent would have had
+        atomic_int32 numBlobbyTriangles;     // Triangles emitted
 
         int numTextureMisses;                   // The number of texture misses
         int transferredTextureData;             // The amount the texture data transmitted
@@ -119,7 +119,7 @@ class CStats {
         int numIndirectDiffuseRays;             // The number of final gather samples taken
         int numOcclusionRays;                   // The number of final gather samples taken
         int numIndirectDiffusePhotonmapLookups; // The number of final gather photonmap lookups
-        atomic_int32 numBrickmapLookups;         // The number of brickmap lookups
+        atomic_int32 numBrickmapLookups;        // The number of brickmap lookups
         atomic_int32 numBrickmapCacheHits;      // The number of brickmap cache hits
         int numBrickmapCachePageouts;           // The number of bricks paged out
         atomic_int32 numBrickmapCachePageins;   // The number of bricks paged in

@@ -30,8 +30,8 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "ri/parse/ri.h"
 #include "logging.hpp"
+#include "ri/parse/ri.h"
 
 #ifdef _WINDOWS
 #include <process.h>
@@ -782,13 +782,16 @@ int main(int argc, char *argv[]) {
     if (logLevelArg == 1) {
         set_log_level(LogLevel::ERROR);
         setenv("ORENDER_LOG_LEVEL", "1", 1);
-    } else if (logLevelArg == 2) {
+    }
+    else if (logLevelArg == 2) {
         set_log_level(LogLevel::WARN);
         setenv("ORENDER_LOG_LEVEL", "2", 1);
-    } else if (logLevelArg == 3) {
+    }
+    else if (logLevelArg == 3) {
         set_log_level(LogLevel::INFO);
         setenv("ORENDER_LOG_LEVEL", "3", 1);
-    } else if (logLevelArg == 4) {
+    }
+    else if (logLevelArg == 4) {
         set_log_level(LogLevel::DEBUG);
         setenv("ORENDER_LOG_LEVEL", "4", 1);
     }

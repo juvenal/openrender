@@ -55,19 +55,22 @@ CImplicit::CImplicit(CAttributes *a, CXform *x, int frame, const char *name, flo
             error(CODE_BADFILE, "Implicit file \"%s\" is missing some functions\n", name);
             osUnloadModule(handle);
             handle = NULL;
-        } else {
+        }
+        else {
             data = initFunction(frame, bmin, bmax);
 
             if (data != NULL) {
                 xform->transformBound(bmin, bmax);
                 stepSize = ss;
-            } else {
+            }
+            else {
                 error(CODE_BADFILE, "Implicit \"%s\" failed to initialize\n", name);
                 osUnloadModule(handle);
                 handle = NULL;
             }
         }
-    } else {
+    }
+    else {
         error(CODE_BADFILE, "Failed to load implicit \"%s\": %s\n", name, osModuleError());
     }
 
@@ -114,7 +117,8 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         if (importance >= 0) {
             if (ray->jimp > importance)
                 return;
-        } else {
+        }
+        else {
             if ((1 - ray->jimp) >= -importance)
                 return;
         }
@@ -154,7 +158,8 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
             dt *= 0.5f;
 
             goto martchLoop;
-        } else if (dt > C_EPSILON) { // Are we still going ?
+        }
+        else if (dt > C_EPSILON) { // Are we still going ?
             dt = absf(F) * scaleFactor;
 
             movvv(lastP, P);
@@ -163,7 +168,8 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
             lastF = F;
 
             goto martchLoop;
-        } else {
+        }
+        else {
             // We found an intersection
             ray->object = this;
             if (evalNormalFunction != NULL)

@@ -30,9 +30,9 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
+#include "libshader/shading/rendererServices.h"
 #include "random.h"
 #include "shader.h"
-#include "libshader/shading/rendererServices.h"
 
 // Some forward definitions
 class CShaderInstance;
@@ -291,8 +291,7 @@ class CShadingContext {
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
         // interpreter (giOpcodes.h) and the LLVM JIT op_gather_* wrappers (rslOps.cpp).
         // Each returns true iff the caller should take its bytecode jmp/branch.
-        bool gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive,
-                           const float *normalN, const float *time);
+        bool gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive, const float *normalN, const float *time);
         bool gatherElseFlip(int *&tags, int &numActive, int &numPassive);
         bool gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, int &numActive, int &numPassive);
 
@@ -302,16 +301,13 @@ class CShadingContext {
         // computation, excluding the operand()-based output-variable binding,
         // which is bytecode-specific and stays in the interpreter macro. The
         // caller fills in the returned bundle's outputs/nonShadeOutputs arrays.
-        CGatherBundle *gatherHeaderBegin(const CGatherLookup *lookup, const float *P,
-                                          float samplesCount, float *&dPduOut, float *&dPdvOut);
+        CGatherBundle *gatherHeaderBegin(const CGatherLookup *lookup, const float *P, float samplesCount, float *&dPduOut, float *&dPdvOut);
 
         // gatherHeader() per-vertex ray setup, called from both the interpreter
         // (giFunctions.h GATHERHEADEREXPR) and the LLVM JIT op_gatherHeader
         // wrapper. Byte-faithful transcription of the EXPR macro body,
         // excluding plReady() (PL-cache/bytecode-specific, stays in the caller).
-        void gatherHeaderRay(CGatherRay *ray, const float *P, const float *D,
-                              float sampleConeVal, float *dPdu, float *dPdv,
-                              float duVal, float dvVal);
+        void gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal);
 
         // Shading state management functions
         void updateState();                // Add a variable into the shading state
@@ -392,15 +388,15 @@ class CShadingContext {
         }
 
         // ---> Query wrappers (used by rslBuiltins / JIT runtime)
-        int queryAttribute(void *dest, const char *name)   { return attributes(dest, name, nullptr, nullptr); }
-        int queryOption(void *dest, const char *name)       { return options(dest, name, nullptr, nullptr); }
+        int queryAttribute(void *dest, const char *name) { return attributes(dest, name, nullptr, nullptr); }
+        int queryOption(void *dest, const char *name) { return options(dest, name, nullptr, nullptr); }
         int queryRendererInfo(void *dest, const char *name) { return rendererInfo(dest, name, nullptr, nullptr); }
 
         // ---> Illuminate/solar hook dispatchers (called from JIT rslBuiltins)
         void callIlluminateBegin(const float *P, const float *N, const float *theta) { illuminateBegin(P, N, theta); }
-        void callIlluminateEnd()                                                      { illuminateEnd(); }
-        void callSolarBegin(const float *N, const float *theta)                       { solarBegin(N, theta); }
-        void callSolarEnd()                                                           { solarEnd(); }
+        void callIlluminateEnd() { illuminateEnd(); }
+        void callSolarBegin(const float *N, const float *theta) { solarBegin(N, theta); }
+        void callSolarEnd() { solarEnd(); }
 
         // ---> Lighting batch operations for JIT path (same semantics as interpreter)
         void callAmbient(float *result);
@@ -409,12 +405,8 @@ class CShadingContext {
 
         // ---> Converged light-iteration entry point (used by call* above and by the
         // interpreter's runLights/runCategoryLights macro wrappers in execute.cpp)
-        void iterateLights(const float *lP, const float *lN, const float *lT,
-                            int numVertices, int *tags, int &numActive, int &numPassive,
-                            int inShadow, float **varying, CShaderInstance *cInstance);
-        void iterateLights(const float *lP, const float *lN, const float *lT,
-                            int numVertices, int *tags, int &numActive, int &numPassive,
-                            int saveCat, int inShadow, float **varying, CShaderInstance *cInstance);
+        void iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance);
+        void iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int saveCat, int inShadow, float **varying, CShaderInstance *cInstance);
 
         // ---> JIT per-vertex prepare helpers (called from rslBuiltins C wrappers)
         void prepareAmbient();
@@ -425,37 +417,30 @@ class CShadingContext {
         // jitIlluminateBegin: compute L = Ps - from for each active vertex, gate
         //   vertices outside the cone by incrementing their tag (mark passive).
         //   from[sf*i] is the light position (sf=0 for uniform, 3 for varying).
-        void jitIlluminateBegin(const float* from, int sf,
-                                int* tags, int n, int* numActive, int* numPassive);
+        void jitIlluminateBegin(const float *from, int sf, int *tags, int n, int *numActive, int *numPassive);
         // jitIlluminate3Begin: ILLUMINATE3 form — spotlight cone + back-face gate.
         //   L = Ps - from; gates if dot(axis,L) < cos(angle)*|L| (cone) or back-facing.
-        void jitIlluminate3Begin(const float* from, int sf,
-                                 const float* axis, int sa,
-                                 const float* angle, int st,
-                                 int* tags, int n, int* numActive, int* numPassive);
+        void jitIlluminate3Begin(const float *from, int sf, const float *axis, int sa, const float *angle, int st, int *tags, int n, int *numActive, int *numPassive);
         // jitIlluminateEnd: save (L, Cl) into a CShadedLight, restore tags.
-        void jitIlluminateEnd(int* tags, int n, int* numActive, int* numPassive);
+        void jitIlluminateEnd(int *tags, int n, int *numActive, int *numPassive);
 
         // ---> JIT solar/endsolar (directional light shaders with LLVM .slo path)
         // jitSolarBegin: set L = Nf * worldRadius for each active vertex, gate
         //   back-facing vertices (Ns·L > -costheta*|L|) as passive.
         //   Nf[sf*i] is the normalized direction; thetaf[st*i] is the cone angle.
-        void jitSolarBegin(const float* Nf, int sf, const float* thetaf, int st,
-                           int* tags, int n, int* numActive, int* numPassive);
+        void jitSolarBegin(const float *Nf, int sf, const float *thetaf, int st, int *tags, int n, int *numActive, int *numPassive);
         // jitSolarEnd: save (-normalize(L), Cl) into a CShadedLight, restore tags.
-        void jitSolarEnd(int* tags, int n, int* numActive, int* numPassive);
+        void jitSolarEnd(int *tags, int n, int *numActive, int *numPassive);
 
         // ---> JIT illuminance loop (surface shaders with LLVM .slo path)
         // jitIlluminanceBegin: runs all lights for (P,N,angle), enters the first
         //   light's conditional and loads L/Cl.  Returns 1 if any light is active.
         //   P[sp*i], N[sn*i] (sp/sn = 0 for uniform, 3 for varying).
         //   angle[sa*i] in radians (sa = 0 for uniform, 1 for varying float).
-        int jitIlluminanceBegin(const float* P, int sp, const float* N, int sn,
-                                const float* angle, int sa,
-                                int* tags, int n, int* numActive, int* numPassive);
+        int jitIlluminanceBegin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive);
         // jitIlluminanceNext: exit current light's cond, advance to next, enter it.
         //   Returns 1 if the next light exists and has active vertices, else 0.
-        int jitIlluminanceNext(int* tags, int n, int* numActive, int* numPassive);
+        int jitIlluminanceNext(int *tags, int n, int *numActive, int *numPassive);
 
         // ---> JIT gather loop (surface shaders with LLVM .slo path)
         // Delegate to gatherSample/gatherElseFlip/gatherEndAdvance (shared with
@@ -466,12 +451,12 @@ class CShadingContext {
         // jitGatherBegin: requires currentShadingState->currentGather to already
         //   be populated by op_gatherHeader (returns 0 if null, since gatherSample
         //   dereferences it unconditionally).  Returns 1 if the caller should jmp.
-        int jitGatherBegin(int* numActive, int* numPassive);
+        int jitGatherBegin(int *numActive, int *numPassive);
         // jitGatherElse: returns 1 if the caller should jmp (gatherElse taken).
-        int jitGatherElse(int* numActive, int* numPassive);
+        int jitGatherElse(int *numActive, int *numPassive);
         // jitGatherEnd: returns 1 if more samples remain (caller should jmp back
         //   to repeat the body); frees and nulls currentGather on the last sample.
-        int jitGatherEnd(int* numActive, int* numPassive);
+        int jitGatherEnd(int *numActive, int *numPassive);
 
         // jitGatherHeaderBegin: JIT equivalent of GATHERHEADEREXPR_PRE plus the
         // per-vertex GATHERHEADEREXPR/_UPDATE loop (giFunctions.h), using a
@@ -497,66 +482,48 @@ class CShadingContext {
         // promote a literal sampleCone expression to a single-element uniform
         // slot). A blind fixed advance here would walk a uniform source's
         // pointer past its one-element allocation.
-        void jitGatherHeaderBegin(const char* const* names, void* const* valuePtrs,
-                                  const int* steps, const int* isVarying, int numPairs,
-                                  const float* P, int strideP,
-                                  const float* D, int strideD,
-                                  const float* sampleCone, int strideSampleCone,
-                                  float samplesCount);
+        void jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount);
 
         // ---> JIT wrappers for derivative and geometric built-ins (Layer G)
         // These call CShadingContext::duFloat/dvFloat/duVector/dvVector which
         // already hold the full-array derivative infrastructure.
-        void jitDuFloat(float* dst, const float* src, int n);
-        void jitDvFloat(float* dst, const float* src, int n);
-        void jitDuVector(float* dst, const float* src, int n);
-        void jitDvVector(float* dst, const float* src, int n);
-        void jitArea(float* dst, int sd, const float* P, int n, const int* tags);
-        void jitCalculateNormal(float* dst, int sd, const float* P, int n, const int* tags);
-        void jitDepth(float* dst, int sd, const float* P, int sp, int n, const int* tags);
-        void jitTextureF(float* dst, int sd, const char* name, int channel,
-                         const float* s, int ss, const float* t, int st,
-                         int n, const int* tags);
-        void jitTextureC(float* dst, int sd, const char* name,
-                         const float* s, int ss, const float* t, int st,
-                         int n, const int* tags);
-        void jitEnvironmentF(float* dst, int sd, const char* name, int channel,
-                             const float* D, int sD, int n, const int* tags);
-        void jitEnvironmentC(float* dst, int sd, const char* name,
-                             const float* D, int sD, int n, const int* tags);
-        void jitShadowF(float* dst, int sd, const char* name,
-                        const float* Ps, int sPs, int n, const int* tags);
-        void jitFindCoordinateSystem(const char* name, const float*& from, const float*& to,
-                                     ECoordinateSystem& type);
+        void jitDuFloat(float *dst, const float *src, int n);
+        void jitDvFloat(float *dst, const float *src, int n);
+        void jitDuVector(float *dst, const float *src, int n);
+        void jitDvVector(float *dst, const float *src, int n);
+        void jitArea(float *dst, int sd, const float *P, int n, const int *tags);
+        void jitCalculateNormal(float *dst, int sd, const float *P, int n, const int *tags);
+        void jitDepth(float *dst, int sd, const float *P, int sp, int n, const int *tags);
+        void jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags);
+        void jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags);
+        void jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags);
+        void jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags);
+        void jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags);
+        void jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type);
 
     protected:
-
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
         // in the renderer context, nullptr in standalone libshader use).
         // These methods are called from macro headers (B3) and from shading.cpp.
-        unsigned int        rendererHiderFlags() const;
-        const float *       rendererWorldBmin() const;
-        const float *       rendererWorldBmax() const;
-        float               rendererClipMin() const;
-        float               rendererClipMax() const;
-        CTexture *          rendererGetTexture(const char *name);
-        CEnvironment *      rendererGetEnvironment(const char *name);
-        CPhotonMap *        rendererGetPhotonMap(const char *name);
-        CTexture3d *        rendererGetCache(const char *handle, const char *mode,
-                                             const float *from, const float *to);
-        CTextureInfoBase *  rendererGetTextureInfo(const char *name);
-        CTexture3d *        rendererGetTexture3d(const char *name, int write,
-                                                 const char *channels,
-                                                 const float *from, const float *to,
-                                                 int hierarchy = FALSE);
+        unsigned int rendererHiderFlags() const;
+        const float *rendererWorldBmin() const;
+        const float *rendererWorldBmax() const;
+        float rendererClipMin() const;
+        float rendererClipMax() const;
+        CTexture *rendererGetTexture(const char *name);
+        CEnvironment *rendererGetEnvironment(const char *name);
+        CPhotonMap *rendererGetPhotonMap(const char *name);
+        CTexture3d *rendererGetCache(const char *handle, const char *mode, const float *from, const float *to);
+        CTextureInfoBase *rendererGetTextureInfo(const char *name);
+        CTexture3d *rendererGetTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
-        void                rendererSetOffendingObject(CObject *obj);
-        int                 rendererGetGlobalID(const char *name);
-        int                 rendererShootStep() const;
-        RtFilterFunc        rendererGetFilter(const char *name) const;
-        RtStepFilterFunc    rendererGetStepFilter(const char *name) const;
-        CVariable *         rendererRetrieveVariable(const char *name) const;
+        void rendererSetOffendingObject(CObject *obj);
+        int rendererGetGlobalID(const char *name);
+        int rendererShootStep() const;
+        RtFilterFunc rendererGetFilter(const char *name) const;
+        RtStepFilterFunc rendererGetStepFilter(const char *name) const;
+        CVariable *rendererRetrieveVariable(const char *name) const;
 
         // Hiders can hook into the following functions
         virtual void solarBegin(const float *, const float *) {}
