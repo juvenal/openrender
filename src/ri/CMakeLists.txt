@@ -358,6 +358,102 @@ if(APPLE)
     endif()
 endif()
 
+# ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
+# and final CRiInterface implementation, needing even less than ribVector.
+# CRibOut (output/ribOut.cpp) never constructs a single geometry class: it
+# just re-serializes every Ri*() call it receives as RIB text, using its own
+# internal CRibAttributes for uStep/vStep tracking rather than the real
+# CAttributes/CXform state ribVector's CRibGeometryContext needs. So unlike
+# ribVector (built by excluding a handful of files from the full ri_sources
+# list), ribOut_sources is a small explicit whitelist -- deriving it by
+# exclusion would mean excluding nearly everything (all of geometry/,
+# texture/, hiders/, plus dlobject/hcshader/imager/implicitSurface/
+# remoteChannel/state/*) to reach the same handful of files.
+#
+# ribOut needs the shared RIB-parsing grammar (parse/ri.cpp's RiBegin/RiEnd
+# dispatch and factory-hook system in riHooks.h, parse/riInterface.cpp for
+# the CRiInterface base, parse/error.cpp, and the bison/flex-generated
+# parsers) because orender's "-ribout" mode works by parsing an input RIB
+# file through the exact same grammar ribRender/ribVector use, with a
+# CRibOut installed as the active renderMan instead of a CRendererContext/
+# CPreviewContext -- riHooks.h's own header comment documents this
+# self-registration design goal explicitly (CRibOut registers its factory
+# via a static initializer in ribOut.cpp itself; ri.cpp never names
+# CRendererContext or CRibOut directly, precisely so a consumer that links
+# only one of them never pulls in the others' dependencies).
+#
+# ifexpr_generated.cpp is excluded for the same reason it is for ribVector:
+# it defines CRendererContext::ifParse(), called only from the two
+# RiIfBeginV/RiElseIfV sites in rendererContext.cpp, which ribOut doesn't
+# link either.
+#
+# Note: CRibOut doesn't override getAttributes()/getOptions()/getXform() (it
+# has no real CAttributes/COptions/CXform to return), so it inherits
+# CRiInterface's NULL-returning defaults -- meaning rib.y's getBasisSteps()
+# falls back to the RISpec default basis (bezier, step 3) while parsing
+# through a CRibOut, same as ribVector, rather than reading back whatever
+# RiBasis() the input RIB actually set. That's a pre-existing gap (the
+# NULL-deref this session fixed for PatchMesh/Curves parsing existed for
+# "-ribout" mode too, before today), not something this target-creation
+# step introduces or fixes -- flagged as a follow-up, not fixed here.
+set(ribOut_sources
+    output/ribOut.cpp
+    parse/error.cpp
+    parse/ri.cpp
+    parse/riInterface.cpp
+    memory.cpp
+    render/rendererDeclarations.cpp
+    render/rendererFileSearch.cpp
+    render/rendererMutexes.cpp
+    render/rendererNetwork.cpp
+    render/rendererStatics.cpp
+    state/displayChannel.cpp
+    stats.cpp
+    vector/rendererDeclarationsDispatchStub.cpp
+    dso_generated.cpp
+    rib_generated.cpp
+    variable_generated.cpp
+)
+
+add_library(ribOut_obj OBJECT ${ribOut_sources} ${ri_headers})
+set_target_properties(ribOut_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(ribOut_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
+target_link_libraries(ribOut_obj PRIVATE openrendercommon ${openrendertiff_libs})
+
+# Deliberately no libshader_shading, no LLVM, no geometry/texture/hiders: same
+# rationale as ribVector.
+add_library(ribOut SHARED $<TARGET_OBJECTS:ribOut_obj>)
+target_include_directories(ribOut PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/parse>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
+)
+target_link_libraries(ribOut PRIVATE ${openrendertiff_libs} openrendercommon)
+if(WIN32)
+    target_link_libraries(ribOut PRIVATE zlib ws2_32)
+endif()
+if(UNIX)
+    target_link_libraries(ribOut PRIVATE z)
+endif()
+set_target_properties(ribOut PROPERTIES
+    VERSION   ${PROJECT_VERSION}
+    SOVERSION ${OPENRENDER_COMPAT_SOVERSION}
+)
+if(APPLE)
+    if(INSTALL_SELFCONTAINED)
+        set_target_properties(ribOut PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+        set_target_properties(ribOut PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
+endif()
+
 # libri compatibility alias: a symlink next to the real libRIBRender artifact
 # (both in the build tree and once installed), for anything not yet updated
 # to the new name. Points at the unversioned dev name, which itself resolves
