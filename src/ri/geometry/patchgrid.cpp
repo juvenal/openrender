@@ -53,7 +53,7 @@ CPatchGrid::CPatchGrid(CAttributes *a, CXform *x, CVertexData *var, CParameter *
     float *dest;
     const int vertexSize = var->vertexSize;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     variables = var;
     variables->attach();
@@ -195,7 +195,7 @@ CPatchGrid::~CPatchGrid() {
     if (parameters != NULL)
         delete parameters;
 
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 }
 
 ///////////////////////////////////////////////////////////////////////

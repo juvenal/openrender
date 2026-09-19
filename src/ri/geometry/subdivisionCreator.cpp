@@ -1717,7 +1717,7 @@ CSubdivMesh::CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *n
     int i, j, ias, fas;
     const float *P;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->pl = c;
     this->numFaces = numFaces;
@@ -1792,7 +1792,7 @@ CSubdivMesh::CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *n
 CSubdivMesh::~CSubdivMesh() {
     int i;
 
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     delete pl;
     delete[] numVerticesPerFace;

@@ -39,13 +39,23 @@ class CRefCounter {
         CRefCounter();
         virtual ~CRefCounter();
 
-        void attach() { atomicIncrement(&refCount); }
+        // A copy never inherits the source's reference count -- refCount is
+        // per-instance state, not part of an object's logical value. The
+        // copy ctor starts fresh at 0 (matching the default ctor); the copy
+        // assignment leaves the target's own refCount untouched (it may
+        // already have live references). Needed explicitly now that
+        // atomic_int32's implicit copy operations are deleted, which would
+        // otherwise make every CRefCounter-derived class non-copyable.
+        CRefCounter(const CRefCounter &) : refCount(0) {}
+        CRefCounter &operator=(const CRefCounter &) { return *this; }
+
+        void attach() { atomicIncrement(refCount); }
         void detach() {
-            if (atomicDecrement(&refCount) == 0)
+            if (atomicDecrement(refCount) == 0)
                 delete this;
         }
 
-        int refCount;
+        atomic_int32 refCount;
 };
 
 #endif

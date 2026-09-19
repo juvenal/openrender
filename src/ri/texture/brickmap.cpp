@@ -544,8 +544,8 @@ void CBrickMap::lookup(float *data, const float *cP, const float *cN, float dP) 
 
     // Perform the lookup
     osLock(mutex);
-    atomicIncrement(&stats.numBrickmapLookups);
-    atomicIncrement(&stats.numBrickmapLookups);
+    atomicIncrement(stats.numBrickmapLookups);
+    atomicIncrement(stats.numBrickmapLookups);
     lookup(P, N, dP, data0, depth, normalFactor);
     lookup(P, N, dP, data1, depth + 1, normalFactor);
     osUnlock(mutex);
@@ -820,7 +820,7 @@ CBrickMap::CBrick *CBrickMap::loadBrick(int fileIndex) {
     CVoxel *cVoxel, *tVoxel;
     int i, j;
 
-    atomicIncrement(&stats.numBrickmapCachePageins);
+    atomicIncrement(stats.numBrickmapCachePageins);
 
     // Seek to the right position in file
     if (file == NULL)

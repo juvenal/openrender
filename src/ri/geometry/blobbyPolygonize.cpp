@@ -460,7 +460,7 @@ void CBlobbyWalk::emitTriangle(int a, int b, int c) {
     triangles.push_back(b);
     triangles.push_back(c);
 
-    atomicIncrement(&stats.numBlobbyTriangles);
+    atomicIncrement(stats.numBlobbyTriangles);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -729,7 +729,7 @@ CBlobbyMesh *CBlobbyWalk::run() {
             break;
         }
 
-        atomicIncrement(&stats.numBlobbyCellsVisited);
+        atomicIncrement(stats.numBlobbyCellsVisited);
 
         CBlobbyLattice corners[8];
         float values[8];
@@ -748,7 +748,7 @@ CBlobbyMesh *CBlobbyWalk::run() {
         if (numInside == 0 || numInside == 8)
             continue;
 
-        atomicIncrement(&stats.numBlobbySurfaceCells);
+        atomicIncrement(stats.numBlobbySurfaceCells);
 
         for (int t = 0; t < 6; t++)
             marchTetrahedron(corners, values, blobbyTetrahedra[t]);

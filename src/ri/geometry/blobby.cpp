@@ -234,12 +234,12 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     if (program == NULL || !program->isValid())
         return NULL;
 
-    atomicIncrement(&stats.numBlobbies);
+    atomicIncrement(stats.numBlobbies);
 
     const int numLeaves = program->getNumLeaves();
 
     for (int i = 0; i < numLeaves; i++)
-        atomicIncrement(&stats.numBlobbyLeaves);
+        atomicIncrement(stats.numBlobbyLeaves);
 
     const float cellSize = blobbyCellSizeFromTolerance(program, attributes != NULL ? attributes->blobbyTolerance : -1);
 

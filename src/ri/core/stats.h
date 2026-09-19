@@ -27,6 +27,7 @@
 #ifndef STATS_H
 #define STATS_H
 
+#include "atomic.h"
 #include "common/global.h" // The global header file
 
 ///////////////////////////////////////////////////////////////////////
@@ -48,21 +49,21 @@ class CStats {
         int peakZoneMemory;          // The peak zone memeory size
         float rendererStartTime;     // The time when the renderer was started
         float rendererStartOverhead; // The time it took to initialize the renderer
-        int numAttributes;           // The number of objects allocated of each type
-        int numXforms;
-        int numOptions;
-        int numShaders;
-        int numShaderInstances;
-        int numVertexDatas;
-        int numParameters;
-        int numPls;
-        int numObjects;
-        int numGprims;
-        int numSurfaces;
+        atomic_int32 numAttributes;   // The number of objects allocated of each type
+        atomic_int32 numXforms;
+        atomic_int32 numOptions;
+        atomic_int32 numShaders;
+        atomic_int32 numShaderInstances;
+        atomic_int32 numVertexDatas;
+        atomic_int32 numParameters;
+        atomic_int32 numPls;
+        atomic_int32 numObjects;
+        atomic_int32 numGprims;
+        atomic_int32 numSurfaces;
         int numPeakSurfaces;
-        int numDelayeds;
-        int numTextures;
-        int numEnvironments;
+        atomic_int32 numDelayeds;
+        atomic_int32 numTextures;
+        atomic_int32 numEnvironments;
         int textureMemory;
         int sequenceNumber;        // The sequence number
         int runningSequenceNumber; // The running sequence number
@@ -87,8 +88,8 @@ class CStats {
         int numGatherRays;
         int numPhotonRays;
 
-        int numRasterGrids; // The following stats come from the CReyes
-        int numRasterObjects;
+        atomic_int32 numRasterGrids; // The following stats come from the CReyes
+        atomic_int32 numRasterObjects;
         int numRasterGridsCreated;
         int numRasterVerticesCreated;
         int numRasterGridsShaded;
@@ -98,14 +99,14 @@ class CStats {
         int numSplits; // The stats that come from CPatch
         int numVsplits, numUsplits, numUVsplits;
 
-        int numBlobbies;          // The stats that come from RiBlobby (spec 015)
-        int numBlobbyLeaves;      // Total primitive fields across all blobbies
-        int numBlobbyFieldEvals;  // Field evaluations performed
-        int numBlobbyWeightedEvals;// Of those, the ones that also produced per-leaf weights
-        int numBlobbyCellsVisited;// Cells the continuation walk examined
-        int numBlobbySurfaceCells;// Cells that actually straddled the surface
+        atomic_int32 numBlobbies;          // The stats that come from RiBlobby (spec 015)
+        atomic_int32 numBlobbyLeaves;      // Total primitive fields across all blobbies
+        atomic_int32 numBlobbyFieldEvals;  // Field evaluations performed
+        atomic_int32 numBlobbyWeightedEvals;// Of those, the ones that also produced per-leaf weights
+        atomic_int32 numBlobbyCellsVisited;// Cells the continuation walk examined
+        atomic_int32 numBlobbySurfaceCells;// Cells that actually straddled the surface
         int numBlobbyLatticeCells;// Cells a dense grid over the extent would have had
-        int numBlobbyTriangles;   // Triangles emitted
+        atomic_int32 numBlobbyTriangles;   // Triangles emitted
 
         int numTextureMisses;                   // The number of texture misses
         int transferredTextureData;             // The amount the texture data transmitted
@@ -118,15 +119,15 @@ class CStats {
         int numIndirectDiffuseRays;             // The number of final gather samples taken
         int numOcclusionRays;                   // The number of final gather samples taken
         int numIndirectDiffusePhotonmapLookups; // The number of final gather photonmap lookups
-        int numBrickmapLookups;                 // The number of brickmap lookups
-        int numBrickmapCacheHits;               // The number of brickmap cache hits
+        atomic_int32 numBrickmapLookups;         // The number of brickmap lookups
+        atomic_int32 numBrickmapCacheHits;      // The number of brickmap cache hits
         int numBrickmapCachePageouts;           // The number of bricks paged out
-        int numBrickmapCachePageins;            // The number of bricks paged in
+        atomic_int32 numBrickmapCachePageins;   // The number of bricks paged in
         int brickmapPeakMem;                    // The peak memory usage for brickmaps
         int tesselationMemory;                  // The total memory usage for tesselations
         int tesselationPeakMemory;              // The peak total memory usage for tesselations
-        int tesselationCacheMisses;             // The number of tesselation cache misses
-        int tesselationCacheHits;               // The number of tesselation cache hits
+        atomic_int32 tesselationCacheMisses;    // The number of tesselation cache misses
+        atomic_int32 tesselationCacheHits;      // The number of tesselation cache hits
         int tesselationOverhead;                // The memory overhead of tesselation patches
 };
 

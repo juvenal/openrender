@@ -98,7 +98,7 @@ static inline void makeCubicBound(float *bmin, float *bmax, const float *v0, con
 // Return Value			:	-
 // Comments				:
 CCurve::CCurve(CAttributes *a, CXform *x, CBase *b, float vmi, float vma, float gvmi, float gvma) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     vmin = vmi;
     vmax = vma;
@@ -115,7 +115,7 @@ CCurve::CCurve(CAttributes *a, CXform *x, CBase *b, float vmi, float vma, float 
 // Return Value			:	-
 // Comments				:
 CCurve::~CCurve() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     base->detach();
 }
@@ -540,7 +540,7 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
     int i, j;
     const float *P;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     // Attach to the PL
     pl = c;
@@ -674,7 +674,7 @@ CCurveMesh::CCurveMesh(CAttributes *a, CXform *x, CPl *c, int d, int nv, int nc,
 // Return Value			:	Dtor
 // Comments				:	-
 CCurveMesh::~CCurveMesh() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     delete pl;
     delete[] nverts;

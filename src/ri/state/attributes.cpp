@@ -46,7 +46,7 @@
 CAttributes::CAttributes() {
     next = NULL;
 
-    atomicIncrement(&stats.numAttributes);
+    atomicIncrement(stats.numAttributes);
 
     surface = NULL;
     displacement = NULL;
@@ -218,7 +218,7 @@ static void freeTrimLoops(CTrimLoop *loops, int numLoops) {
 CAttributes::CAttributes(const CAttributes *a) {
     CActiveLight *cLight, *nLight;
 
-    atomicIncrement(&stats.numAttributes);
+    atomicIncrement(stats.numAttributes);
 
     this[0] = a[0];
 
@@ -288,7 +288,7 @@ CAttributes::CAttributes(const CAttributes *a) {
 CAttributes::~CAttributes() {
     CActiveLight *cLight;
 
-    atomicDecrement(&stats.numAttributes);
+    atomicDecrement(stats.numAttributes);
 
     if (surface != NULL)
         surface->detach();

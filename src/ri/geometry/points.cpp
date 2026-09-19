@@ -42,7 +42,7 @@
 CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
     int i, j;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->numPoints = np;
     this->pl = pl;
@@ -147,7 +147,7 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPl *pl, int np) : CSurface(a, x) {
 CPoints::CPoints(CAttributes *a, CXform *x, CPointBase *b, int np, const float **pi) : CSurface(a, x) {
     int i;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     pl = NULL;
     base = b;
@@ -175,7 +175,7 @@ CPoints::CPoints(CAttributes *a, CXform *x, CPointBase *b, int np, const float *
 // Return Value			:	-
 // Comments				:
 CPoints::~CPoints() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (base != NULL)
         base->detach();

@@ -94,7 +94,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
 // Comments				:	-
 CBilinearPatch::CBilinearPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *p, float uOrg, float vOrg, float uMult, float vMult, float *vertex0) : CSurface(a, x) {
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->variables = v;
     this->variables->attach();
@@ -175,7 +175,7 @@ CBilinearPatch::CBilinearPatch(CAttributes *a, CXform *x, CVertexData *v, CParam
 // Return Value			:	-
 // Comments				:	-
 CBilinearPatch::~CBilinearPatch() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -513,7 +513,7 @@ void CBilinearPatch::interpolate(int numVertices, float **varying, float ***loca
 CBicubicPatch::CBicubicPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *p, float uOrg, float vOrg, float uMult, float vMult, float *vertexData, const float *uBasis, const float *vBasis) : CSurface(a, x) {
     const unsigned int vertexSize = v->vertexSize;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     variables = v;
     variables->attach();
@@ -553,7 +553,7 @@ CBicubicPatch::CBicubicPatch(CAttributes *a, CXform *x, CVertexData *v, CParamet
 // Return Value			:	-
 // Comments				:	-
 CBicubicPatch::~CBicubicPatch() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -819,7 +819,7 @@ CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *
     int j;
     const int vertexSize = v->vertexSize;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->variables = v;
     this->variables->attach();
@@ -874,7 +874,7 @@ CNURBSPatch::CNURBSPatch(CAttributes *a, CXform *x, CVertexData *v, CParameter *
 // Return Value			:	-
 // Comments				:	-
 CNURBSPatch::~CNURBSPatch() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -1382,7 +1382,7 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
     int i;
     const float *P;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     pl = c;
     degree = d;
@@ -1508,7 +1508,7 @@ CPatchMesh::CPatchMesh(CAttributes *a, CXform *x, CPl *c, int d, int nu, int nv,
 // Return Value			:	Dtor
 // Comments				:	-
 CPatchMesh::~CPatchMesh() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (pl != NULL)
         delete pl;
@@ -1715,7 +1715,7 @@ CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int 
     int i;
     const float *P;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     pl = c;
 
@@ -1785,7 +1785,7 @@ CNURBSPatchMesh::CNURBSPatchMesh(CAttributes *a, CXform *x, CPl *c, int nu, int 
 // Return Value			:	Dtor
 // Comments				:	-
 CNURBSPatchMesh::~CNURBSPatchMesh() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     delete[] uKnots;
     delete[] vKnots;

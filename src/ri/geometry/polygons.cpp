@@ -77,7 +77,7 @@ class CMeshData {
 // Return Value			:	-
 // Comments				:
 CPolygonTriangle::CPolygonTriangle(CAttributes *a, CXform *x, CPolygonMesh *mesh, int iv0, int iv1, int iv2, int ifv0, int ifv1, int ifv2, int iuniform) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     // Save the parameters
     this->mesh = mesh;
@@ -125,7 +125,7 @@ CPolygonTriangle::CPolygonTriangle(CAttributes *a, CXform *x, CPolygonMesh *mesh
 // Return Value			:	-
 // Comments				:
 CPolygonTriangle::~CPolygonTriangle() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
     mesh->detach();
 }
 
@@ -615,7 +615,7 @@ void CPolygonTriangle::interpolate(int numVertices, float **varying, float ***lo
 // Return Value			:	-
 // Comments				:
 CPolygonQuad::CPolygonQuad(CAttributes *a, CXform *x, CPolygonMesh *mesh, int iv0, int iv1, int iv2, int iv3, int ifv0, int ifv1, int ifv2, int ifv3, int iuniform) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     // Save the parameters
     this->mesh = mesh;
@@ -662,7 +662,7 @@ CPolygonQuad::CPolygonQuad(CAttributes *a, CXform *x, CPolygonMesh *mesh, int iv
 // Return Value			:	-
 // Comments				:
 CPolygonQuad::~CPolygonQuad() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
     mesh->detach();
 }
 
@@ -1171,7 +1171,7 @@ CPolygonMesh::CPolygonMesh(CAttributes *a, CXform *x, CPl *pl, int npoly, int *n
     int i, mVertex;
     float *P;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->pl = pl;
     this->npoly = npoly;
@@ -1229,7 +1229,7 @@ CPolygonMesh::CPolygonMesh(CAttributes *a, CXform *x, CPl *pl, int npoly, int *n
 // Return Value			:	-
 // Comments				:
 CPolygonMesh::~CPolygonMesh() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     delete pl;
     delete[] nholes;

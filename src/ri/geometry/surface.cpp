@@ -61,8 +61,8 @@ static inline float minCocPixels(float z1, float z2) {
 // Return Value			:	-
 // Comments				:
 CPatch::CPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, float vmin, float vmax, int depth, int minDepth) : CObject(a, x) {
-    atomicIncrement(&stats.numGprims);
-    atomicIncrement(&stats.numSurfaces);
+    atomicIncrement(stats.numGprims);
+    atomicIncrement(stats.numSurfaces);
     if (stats.numSurfaces > stats.numPeakSurfaces)
         stats.numPeakSurfaces = stats.numSurfaces;
 
@@ -88,8 +88,8 @@ CPatch::CPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, f
 // Return Value			:	-
 // Comments				:
 CPatch::~CPatch() {
-    atomicDecrement(&stats.numGprims);
-    atomicDecrement(&stats.numSurfaces);
+    atomicDecrement(stats.numGprims);
+    atomicDecrement(stats.numSurfaces);
 
     object->detach();
 }
@@ -785,7 +785,7 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                 stats.tesselationPeakMemory = stats.tesselationMemory;
             }
             // Update stats
-            atomicIncrement(&stats.tesselationCacheMisses);
+            atomicIncrement(stats.tesselationCacheMisses);
 
             tesselationUsedMemory[level][thread] += levels[level].threadTesselation[thread]->size;
 
@@ -796,7 +796,7 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
         } else {
             /// FIXME make these context stats
             // Update stats
-            atomicIncrement(&stats.tesselationCacheHits);
+            atomicIncrement(stats.tesselationCacheHits);
         }
 
         // Bump the tesselation refCount

@@ -47,7 +47,7 @@
 // Return Value			:	-
 // Comments				:
 CShader::CShader(const char *name) : CFileResource(name) {
-    atomicIncrement(&stats.numShaders);
+    atomicIncrement(stats.numShaders);
 
     name = NULL;
     memory = NULL;
@@ -74,7 +74,7 @@ CShader::~CShader() {
     int i;
     CVariable *cParameter;
 
-    atomicDecrement(&stats.numShaders);
+    atomicDecrement(stats.numShaders);
 
     // Ditch the parameters
     while ((cParameter = parameters) != NULL) {
@@ -161,7 +161,7 @@ void CShader::analyse() {
 // Return Value			:	-
 // Comments				:
 CShaderInstance::CShaderInstance(CAttributes *, CXform *x) {
-    atomicIncrement(&stats.numShaderInstances);
+    atomicIncrement(stats.numShaderInstances);
 
     attach();
 
@@ -179,7 +179,7 @@ CShaderInstance::CShaderInstance(CAttributes *, CXform *x) {
 // Return Value			:	-
 // Comments				:
 CShaderInstance::~CShaderInstance() {
-    atomicDecrement(&stats.numShaderInstances);
+    atomicDecrement(stats.numShaderInstances);
 
     xform->detach();
 

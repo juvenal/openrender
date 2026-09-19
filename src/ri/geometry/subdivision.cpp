@@ -44,7 +44,7 @@
 CSubdivision::CSubdivision(CAttributes *a, CXform *x, CVertexData *var, CParameter *p, int N, float uOrg, float vOrg, float uMult, float vMult, float *vertex) : CSurface(a, x) {
     const int K = 2 * N + 8;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     vertexData = var;
     vertexData->attach();
@@ -89,7 +89,7 @@ CSubdivision::~CSubdivision() {
 
     vertexData->detach();
 
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 }
 
 ///////////////////////////////////////////////////////////////////////

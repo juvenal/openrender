@@ -233,7 +233,7 @@ COptions::CClipPlane::CClipPlane(const CClipPlane *other) {
 // Return Value			:	-
 // Comments				:
 COptions::COptions() {
-    atomicIncrement(&stats.numOptions);
+    atomicIncrement(stats.numOptions);
 
     xres = 640;
     yres = 480;
@@ -375,7 +375,7 @@ COptions::COptions() {
 // Return Value			:	-
 // Comments				:
 COptions::COptions(const COptions *o) {
-    atomicIncrement(&stats.numOptions);
+    atomicIncrement(stats.numOptions);
 
     this[0] = o[0];
 
@@ -456,7 +456,7 @@ COptions::COptions(const COptions *o) {
 // Return Value			:	-
 // Comments				:
 COptions::~COptions() {
-    atomicDecrement(&stats.numOptions);
+    atomicDecrement(stats.numOptions);
 
     if (fromRGB != NULL)
         delete[] fromRGB;

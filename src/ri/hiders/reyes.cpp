@@ -1165,7 +1165,7 @@ CReyes::CRasterObject *CReyes::newObject(CObject *cObject) {
 
     cObject->attach();
 
-    atomicIncrement(&stats.numRasterObjects);
+    atomicIncrement(stats.numRasterObjects);
 
     return nObject;
 }
@@ -1205,7 +1205,7 @@ CReyes::CRasterGrid *CReyes::newGrid(CSurface *object, int points, int numVertic
 
     object->attach();
 
-    atomicIncrement(&stats.numRasterGrids);
+    atomicIncrement(stats.numRasterGrids);
     numGridsCreated++;
     numVerticesCreated += numVertices;
 
@@ -1232,7 +1232,7 @@ void CReyes::deleteObject(CRasterObject *dObject) {
         CRasterGrid *grid = (CRasterGrid *)dObject;
 
         // Decrement the active grid counter
-        atomicDecrement(&stats.numRasterGrids);
+        atomicDecrement(stats.numRasterGrids);
 
         // Delete the grid data
         osUnlock(dObject->mutex);      // Unlock the mutex
@@ -1249,7 +1249,7 @@ void CReyes::deleteObject(CRasterObject *dObject) {
     else {
 
         // Decrement the active object counter
-        atomicDecrement(&stats.numRasterObjects);
+        atomicDecrement(stats.numRasterObjects);
 
         // Delete the object data
         osUnlock(dObject->mutex);      // Unlock the mutex

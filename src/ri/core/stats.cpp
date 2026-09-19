@@ -140,11 +140,11 @@ void CStats::printStats(int level) {
     info(CODE_STATS, "              Time:  %.2f seconds\n", frameTime);
 
     info(CODE_STATS, "->Memory\n");
-    info(CODE_STATS, "             Xform: %d (instances)\n", numXforms);
-    info(CODE_STATS, "        Attributes: %d (instances)\n", numAttributes);
-    info(CODE_STATS, "             Gprim: %d (instances)\n", numGprims);
-    info(CODE_STATS, "           Options: %d (instances)\n", numOptions);
-    info(CODE_STATS, "          Textures: %d(%d) (bytes(instances))\n", textureMemory, numTextures);
+    info(CODE_STATS, "             Xform: %d (instances)\n", numXforms.load());
+    info(CODE_STATS, "        Attributes: %d (instances)\n", numAttributes.load());
+    info(CODE_STATS, "             Gprim: %d (instances)\n", numGprims.load());
+    info(CODE_STATS, "           Options: %d (instances)\n", numOptions.load());
+    info(CODE_STATS, "          Textures: %d(%d) (bytes(instances))\n", textureMemory, numTextures.load());
     info(CODE_STATS, "         Zone Peak: %d (bytes)\n", peakZoneMemory);
 
     if (level >= 2) {
@@ -166,13 +166,13 @@ void CStats::printStats(int level) {
 
         if (numBlobbies > 0) {
             info(CODE_STATS, "->Blobby\n");
-            info(CODE_STATS, "        Primitives: %d\n", numBlobbies);
-            info(CODE_STATS, "   Primitive fields: %d\n", numBlobbyLeaves);
-            info(CODE_STATS, "       Field evals: %d\n", numBlobbyFieldEvals);
-            info(CODE_STATS, "     Weighted evals: %d\n", numBlobbyWeightedEvals);
-            info(CODE_STATS, "     Cells visited: %d\n", numBlobbyCellsVisited);
-            info(CODE_STATS, "     Surface cells: %d\n", numBlobbySurfaceCells);
-            info(CODE_STATS, "         Triangles: %d\n", numBlobbyTriangles);
+            info(CODE_STATS, "        Primitives: %d\n", numBlobbies.load());
+            info(CODE_STATS, "   Primitive fields: %d\n", numBlobbyLeaves.load());
+            info(CODE_STATS, "       Field evals: %d\n", numBlobbyFieldEvals.load());
+            info(CODE_STATS, "     Weighted evals: %d\n", numBlobbyWeightedEvals.load());
+            info(CODE_STATS, "     Cells visited: %d\n", numBlobbyCellsVisited.load());
+            info(CODE_STATS, "     Surface cells: %d\n", numBlobbySurfaceCells.load());
+            info(CODE_STATS, "         Triangles: %d\n", numBlobbyTriangles.load());
 
             // Two ratios, because they catch different failures.
             //
@@ -232,16 +232,16 @@ void CStats::printStats(int level) {
 
         info(CODE_STATS, "->3D Textures\n");
         info(CODE_STATS, "       Peak memory: %d (bytes)\n", brickmapPeakMem);
-        info(CODE_STATS, "           lookups: %d (times)\n", numBrickmapLookups);
-        info(CODE_STATS, "        Cache Hits: %d (times)\n", numBrickmapCacheHits);
-        info(CODE_STATS, "   Bricks paged in: %d (bricks)\n", numBrickmapCachePageins);
+        info(CODE_STATS, "           lookups: %d (times)\n", numBrickmapLookups.load());
+        info(CODE_STATS, "        Cache Hits: %d (times)\n", numBrickmapCacheHits.load());
+        info(CODE_STATS, "   Bricks paged in: %d (bricks)\n", numBrickmapCachePageins.load());
         info(CODE_STATS, "  Bricks paged out: %d (bricks)\n", numBrickmapCachePageouts);
 
         info(CODE_STATS, "->Tessellation Cache\n");
         info(CODE_STATS, "       Peak memory: %d (bytes)\n", tesselationPeakMemory);
         info(CODE_STATS, "            memory: %d (bytes)\n", tesselationMemory);
-        info(CODE_STATS, "        Cache hits: %d (times)\n", tesselationCacheHits);
-        info(CODE_STATS, "      Cache misses: %d (times)\n", tesselationCacheMisses);
+        info(CODE_STATS, "        Cache hits: %d (times)\n", tesselationCacheHits.load());
+        info(CODE_STATS, "      Cache misses: %d (times)\n", tesselationCacheMisses.load());
         info(CODE_STATS, "    Tess. Overhead: %d (bytes)\n", tesselationOverhead);
     }
 }

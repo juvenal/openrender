@@ -127,7 +127,7 @@ class CBrickMap : public CTexture3d {
                         assert(cNode->fileIndex != -1);
                         cNode->brick = loadBrick(cNode->fileIndex);
                     } else {
-                        atomicIncrement(&stats.numBrickmapCacheHits);
+                        atomicIncrement(stats.numBrickmapCacheHits);
                     }
 
                     if (n != NULL)
@@ -187,7 +187,7 @@ class CBrickMap : public CTexture3d {
                         assert(cNode->fileIndex != -1);
                         cNode->brick = loadBrick(cNode->fileIndex);
                     } else {
-                        atomicIncrement(&stats.numBrickmapCacheHits);
+                        atomicIncrement(stats.numBrickmapCacheHits);
                     }
 
                     if (n != NULL)

@@ -41,7 +41,7 @@
 // Return Value			:	-
 // Comments				:
 CDLObject::CDLObject(CAttributes *a, CXform *x, void *handle, void *data, const float *bmi, const float *bma, dloInitFunction initFunction, dloIntersectFunction intersectFunction, dloTiniFunction tiniFunction) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     this->handle = handle;
     this->initFunction = initFunction;
@@ -62,7 +62,7 @@ CDLObject::CDLObject(CAttributes *a, CXform *x, void *handle, void *data, const 
 // Return Value			:	-
 // Comments				:
 CDLObject::~CDLObject() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     tiniFunction(data);
     osUnloadModule(handle);

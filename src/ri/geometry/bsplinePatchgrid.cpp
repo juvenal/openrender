@@ -46,7 +46,7 @@ static matrix invBezier = {0, 0, 0, 1.0f,
 // Return Value			:	-
 // Comments				:
 CBSplinePatchGrid::CBSplinePatchGrid(CAttributes *a, CXform *x, CVertexData *var, CParameter *p, int nu, int nv, float uOrg, float vOrg, float uMult, float vMult, float *ve) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     variables = var;
     variables->attach();
@@ -159,7 +159,7 @@ CBSplinePatchGrid::~CBSplinePatchGrid() {
     if (parameters != NULL)
         delete parameters;
 
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 }
 
 ///////////////////////////////////////////////////////////////////////

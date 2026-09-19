@@ -4,7 +4,7 @@
  * File: atomic.h
  *
  * Description:
- *   This file defines the interface for atomic.
+ *   Modern C++20 atomic operations using std::atomic
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -20,137 +20,115 @@
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	atomic.h
-//  Classes				:	-
-//  Description			:	This file contains the atomic increment and decrement
-//							to ensure consistency in multi-threaded environments
-//							without kernel synchronization.
+//  Description			:	Modern C++20 atomic operations
+//							Replaces platform-specific inline assembly
+//							with standard std::atomic
 //
-//							The Windoze and Apple implementations are pretty standard
-//							but this file gets pretty messy for other platforms.
+//	Created				:	2025 (C++20 modernization; migration to
+//							atomic_int32& completed and old atomic.h
+//							retired the same year -- see git history for
+//							the previous platform-specific implementation)
+//	Purpose				:	Provide thread-safe atomic operations using
+//							C++20 std::atomic instead of:
+//							  - Windows InterlockedIncrement/Decrement
+//							  - macOS OSAtomic (deprecated since 10.12)
+//							  - GCC x86/x86_64 inline assembly
+//							  - GCC PowerPC inline assembly
+//							  - Generic mutex fallback
+//
+//	Benefits			:	- Native ARM64 support (no mutex fallback)
+//							- Explicit memory ordering semantics
+//							- Cross-platform by default
+//							- Better compiler optimization opportunities
+//							- Removes ~140 lines of platform-specific code
 //
 ////////////////////////////////////////////////////////////////////////
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
-////////////////////////////////////////////////////////////////////////
-// Atomic increment/decrement functions
-
-///////////////////////////////////////////////////////////////
-// Windoze
-#if defined(_WINDOWS)
-
-// Include the mighty (crappy) windoze header
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-
-// Ugly workaround the stuping LONG definition
-// This is one of the reasons why Windoze is written by monkeys
-inline int atomicIncrement(volatile int *pointer) {
-    return InterlockedIncrement((volatile LONG *)pointer);
-}
-
-inline int atomicDecrement(volatile int *pointer) {
-    return InterlockedDecrement((volatile LONG *)pointer);
-}
-
-///////////////////////////////////////////////////////////////
-// Apple
-#elif defined(__APPLE__) || defined(__APPLE_CC__)
-
 #include <atomic>
+#include <cstdint>
 
-inline int atomicIncrement(volatile int32_t *ptr) {
-    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t> *>(ptr);
-    return atomic_ptr->fetch_add(1) + 1;
+////////////////////////////////////////////////////////////////////////
+// Modern C++20 Atomic Types
+//
+// Use std::atomic<T> for all atomic operations
+// Provides lock-free atomic operations on all modern platforms
+////////////////////////////////////////////////////////////////////////
+
+// Primary atomic type for reference counting
+using atomic_int32 = std::atomic<std::int32_t>;
+
+////////////////////////////////////////////////////////////////////////
+// Atomic Increment Operation
+//
+// Atomically increments the value and returns the NEW value (post-increment)
+//
+// Memory Ordering: acquire-release
+//   - Acquire: Subsequent reads/writes cannot be reordered before this operation
+//   - Release: Previous reads/writes cannot be reordered after this operation
+//   - This ensures proper synchronization for reference counting
+//
+// Return: The value AFTER incrementing
+//
+// Example:
+//   std::atomic<int32_t> refCount{0};
+//   int32_t newCount = atomicIncrement(refCount);  // Returns 1
+////////////////////////////////////////////////////////////////////////
+inline std::int32_t atomicIncrement(atomic_int32 &counter) noexcept {
+    // fetch_add returns the OLD value, so we add 1 to get the NEW value
+    // This matches the behavior of the old atomic.h implementation
+    return counter.fetch_add(1, std::memory_order_acq_rel) + 1;
 }
 
-inline int atomicDecrement(volatile int32_t *ptr) {
-    volatile std::atomic<int32_t> *atomic_ptr = reinterpret_cast<volatile std::atomic<int32_t> *>(ptr);
-    return atomic_ptr->fetch_sub(1) - 1;
+////////////////////////////////////////////////////////////////////////
+// Atomic Decrement Operation
+//
+// Atomically decrements the value and returns the NEW value (post-decrement)
+//
+// Memory Ordering: acquire-release
+//   - Same synchronization guarantees as atomicIncrement
+//
+// Return: The value AFTER decrementing
+//
+// Example:
+//   std::atomic<int32_t> refCount{5};
+//   int32_t newCount = atomicDecrement(refCount);  // Returns 4
+//   if (newCount == 0) {
+//       // Safe to delete - no other threads have a reference
+//   }
+////////////////////////////////////////////////////////////////////////
+inline std::int32_t atomicDecrement(atomic_int32 &counter) noexcept {
+    // fetch_sub returns the OLD value, so we subtract 1 to get the NEW value
+    // This matches the behavior of the old atomic.h implementation
+    return counter.fetch_sub(1, std::memory_order_acq_rel) - 1;
 }
 
-///////////////////////////////////////////////////////////////
-// GCC (i386 or x86_64)
-#elif (defined(__i386__) && defined(__GNUC__) || defined(__x86_64__) && defined(__GNUC__))
+////////////////////////////////////////////////////////////////////////
+// Memory Ordering Notes
+//
+// We use memory_order_acq_rel (acquire-release) for reference counting:
+//
+// Acquire semantics (on read):
+//   - Prevents reordering of subsequent reads/writes before this operation
+//   - Ensures we see all writes made by the releasing thread
+//
+// Release semantics (on write):
+//   - Prevents reordering of previous reads/writes after this operation
+//   - Ensures our writes are visible to threads that acquire
+//
+// For reference counting, this guarantees:
+//   - When incrementing: We see the object in a valid state
+//   - When decrementing to 0: All our modifications are visible before deletion
+//
+// Alternative memory orders (not used here):
+//   - memory_order_relaxed: No synchronization (fastest, but unsafe for refcounts)
+//   - memory_order_seq_cst: Sequential consistency (strongest, unnecessary here)
+//   - memory_order_consume: Deprecated in C++17, use acquire instead
+//
+// Performance: acq_rel is typically as fast as relaxed on modern CPUs with
+// strong memory models (x86/x64), while providing necessary guarantees on
+// weaker memory models (ARM, PowerPC).
+////////////////////////////////////////////////////////////////////////
 
-inline int atomicIncrement(volatile int *ptr) {
-    unsigned char ret;
-    asm volatile("lock\n"
-                 "incl %0\n"
-                 "setne %1"
-                 : "=m"(*ptr), "=qm"(ret)
-                 : "m"(*ptr)
-                 : "memory");
-    return ret;
-}
-
-inline int atomicDecrement(volatile int *ptr) {
-    unsigned char ret;
-    asm volatile("lock\n"
-                 "decl %0\n"
-                 "setne %1"
-                 : "=m"(*ptr), "=qm"(ret)
-                 : "m"(*ptr)
-                 : "memory");
-    return ret;
-}
-
-///////////////////////////////////////////////////////////////
-// GCC (MIPS)
-#elif defined(__GNUC__) && defined(__PPC__)
-
-inline int atomicIncrement(volatile int *ptr) {
-    register int ret;
-    register int one = 1;
-    asm volatile("lwarx  %0, 0, %2\n"
-                 "add    %0, %3, %0\n"
-                 "stwcx. %0, 0, %2\n"
-                 "bne-   $-12\n"
-                 : "=&r"(ret), "=m"(*ptr)
-                 : "r"(ptr), "r"(one)
-                 : "cc", "memory");
-    return ret;
-}
-
-inline int atomicDecrement(volatile int *ptr) {
-    register int ret;
-    register int one = -1;
-    asm volatile("lwarx  %0, 0, %2\n"
-                 "add    %0, %3, %0\n"
-                 "stwcx. %0, 0, %2\n"
-                 "bne-   $-12\n"
-                 : "=&r"(ret), "=m"(*ptr)
-                 : "r"(ptr), "r"(one)
-                 : "cc", "memory");
-    return ret;
-}
-
-///////////////////////////////////////////////////////////////
-// Generic
-#else
-
-#define ATOMIC_UNSUPPORTED
-#warning Atomic Instructions are not supported on this platform, defaulting to generic implementation
-
-// Have a cross platform solution here
-inline int atomicIncrement(volatile int *ptr) {
-    int value;
-    osLock(CRenderer::atomicMutex);
-    value = ++(*ptr);
-    osUnlock(CRenderer::atomicMutex);
-    return value;
-}
-
-inline int atomicDecrement(volatile int *ptr) {
-    int value;
-    osLock(CRenderer::atomicMutex);
-    value = --(*ptr);
-    osUnlock(CRenderer::atomicMutex);
-    return value;
-}
-
-#endif
-
-#endif
+#endif // ATOMIC_H

@@ -92,7 +92,7 @@
 // Return Value			:	-
 // Comments				:
 CSphere::CSphere(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra, float vmina, float vmaxa, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = ra;
     vmin = vmina;
@@ -118,7 +118,7 @@ CSphere::CSphere(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, floa
 CSphere::CSphere(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0, float vmin0, float vmax0, float angle0, float r1, float vmin1, float vmax1, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = r0;
     vmin = vmin0;
@@ -149,7 +149,7 @@ CSphere::CSphere(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, floa
 // Return Value			:	-
 // Comments				:
 CSphere::~CSphere() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -569,7 +569,7 @@ void CSphere::computeObjectBound(float *bmin, float *bmax, float r, float vmin, 
 // Return Value			:	-
 // Comments				:
 CDisk::CDisk(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra, float za, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = ra;
     z = za;
@@ -594,7 +594,7 @@ CDisk::CDisk(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra
 CDisk::CDisk(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0, float z0, float angle0, float r1, float z1, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = r0;
     z = z0;
@@ -623,7 +623,7 @@ CDisk::CDisk(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0
 // Return Value			:	-
 // Comments				:
 CDisk::~CDisk() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -930,7 +930,7 @@ void CDisk::computeObjectBound(float *bmin, float *bmax, float r, float z, float
 // Return Value			:	-
 // Comments				:
 CCone::CCone(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra, float heighta, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = ra;
     height = heighta;
@@ -955,7 +955,7 @@ CCone::CCone(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra
 CCone::CCone(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0, float height0, float angle0, float r1, float height1, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = r0;
     height = height0;
@@ -984,7 +984,7 @@ CCone::CCone(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0
 // Return Value			:	-
 // Comments				:
 CCone::~CCone() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -1364,7 +1364,7 @@ void CCone::computeObjectBound(float *bmin, float *bmax, float r, float height, 
 // Return Value			:	-
 // Comments				:
 CParaboloid::CParaboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra, float zmina, float zmaxa, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = ra;
     zmin = zmina;
@@ -1390,7 +1390,7 @@ CParaboloid::CParaboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int 
 CParaboloid::CParaboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0, float zmin0, float zmax0, float angle0, float r1, float zmin1, float zmax1, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = r0;
     zmin = zmin0;
@@ -1421,7 +1421,7 @@ CParaboloid::CParaboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int 
 // Return Value			:	-
 // Comments				:
 CParaboloid::~CParaboloid() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -1809,7 +1809,7 @@ void CParaboloid::computeObjectBound(float *bmin, float *bmax, float r, float zm
 // Return Value			:	-
 // Comments				:
 CCylinder::CCylinder(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float ra, float zmina, float zmaxa, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = ra;
     zmin = zmina;
@@ -1835,7 +1835,7 @@ CCylinder::CCylinder(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, 
 CCylinder::CCylinder(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float r0, float zmin0, float zmax0, float angle0, float r1, float zmin1, float zmax1, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     r = r0;
     zmin = zmin0;
@@ -1866,7 +1866,7 @@ CCylinder::CCylinder(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, 
 // Return Value			:	-
 // Comments				:
 CCylinder::~CCylinder() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -2248,7 +2248,7 @@ void CCylinder::computeObjectBound(float *bmin, float *bmax, float r, float zmin
 // Return Value			:	-
 // Comments				:
 CHyperboloid::CHyperboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, const float *p1a, const float *p2a, float anglea) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     umax = anglea;
     movvv(p1, p1a);
@@ -2273,7 +2273,7 @@ CHyperboloid::CHyperboloid(CAttributes *a, CXform *x, CParameter *c, unsigned in
 CHyperboloid::CHyperboloid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, const float *p10, const float *p20, float angle0, const float *p11, const float *p21, float angle1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     umax = angle0;
     movvv(p1, p10);
@@ -2302,7 +2302,7 @@ CHyperboloid::CHyperboloid(CAttributes *a, CXform *x, CParameter *c, unsigned in
 // Return Value			:	-
 // Comments				:
 CHyperboloid::~CHyperboloid() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;
@@ -2782,7 +2782,7 @@ void CHyperboloid::computeObjectBound(float *bmin, float *bmax, float *p1, float
 // Return Value			:	-
 // Comments				:
 CToroid::CToroid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float rmina, float rmaxa, float vmina, float vmaxa, float umaxa) : CSurface(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     rmin = rmina;
     rmax = rmaxa;
@@ -2809,7 +2809,7 @@ CToroid::CToroid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, floa
 CToroid::CToroid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, float rmin0, float rmax0, float vmin0, float vmax0, float umax0, float rmin1, float rmax1, float vmin1, float vmax1, float umax1) : CSurface(a, x) {
     vector tbmin, tbmax;
 
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     rmin = rmin0;
     rmax = rmax0;
@@ -2842,7 +2842,7 @@ CToroid::CToroid(CAttributes *a, CXform *x, CParameter *c, unsigned int pf, floa
 // Return Value			:	-
 // Comments				:
 CToroid::~CToroid() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     if (parameters != NULL)
         delete parameters;

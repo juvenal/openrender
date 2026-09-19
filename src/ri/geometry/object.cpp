@@ -46,7 +46,7 @@
 // Return Value			:	-
 // Comments				:
 CObject::CObject(CAttributes *a, CXform *x) {
-    atomicIncrement(&stats.numObjects);
+    atomicIncrement(stats.numObjects);
 
     flags = 0;
     attributes = a;
@@ -66,7 +66,7 @@ CObject::CObject(CAttributes *a, CXform *x) {
 // Return Value			:	-
 // Comments				:
 CObject::~CObject() {
-    atomicDecrement(&stats.numObjects);
+    atomicDecrement(stats.numObjects);
 
     attributes->detach();
     xform->detach();

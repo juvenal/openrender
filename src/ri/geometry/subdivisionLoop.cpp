@@ -269,7 +269,7 @@ static CObject *loopMakeEmptyFallback(CAttributes *attributes, CXform *xform, CP
 // Return Value			:	-
 // Comments				:
 CLoopSubdivMesh::CLoopSubdivMesh(CAttributes *a, CXform *x, CPl *c, int nf, int *numVerticesPerFace, int *vertexIndices) : CObject(a, x) {
-    atomicIncrement(&stats.numGprims);
+    atomicIncrement(stats.numGprims);
 
     pl = c;
     numFaces = nf;
@@ -317,7 +317,7 @@ CLoopSubdivMesh::CLoopSubdivMesh(CAttributes *a, CXform *x, CPl *c, int nf, int 
 // Return Value			:	-
 // Comments				:
 CLoopSubdivMesh::~CLoopSubdivMesh() {
-    atomicDecrement(&stats.numGprims);
+    atomicDecrement(stats.numGprims);
 
     delete pl;
     delete[] numVerticesPerFace;

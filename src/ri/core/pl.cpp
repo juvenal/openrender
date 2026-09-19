@@ -46,7 +46,7 @@
 // Return Value			:
 // Comments				:
 CParameter::CParameter(CVariable *v) {
-    atomicIncrement(&stats.numParameters);
+    atomicIncrement(stats.numParameters);
 
     assert(v != NULL);
 
@@ -61,7 +61,7 @@ CParameter::CParameter(CVariable *v) {
 // Return Value			:
 // Comments				:
 CParameter::~CParameter() {
-    atomicDecrement(&stats.numParameters);
+    atomicDecrement(stats.numParameters);
 
     if (next != NULL)
         delete next;
@@ -556,7 +556,7 @@ class CVarying2Parameter : public CParameter {
 // Return Value			:
 // Comments				:
 CVertexData::CVertexData() {
-    atomicIncrement(&stats.numVertexDatas);
+    atomicIncrement(stats.numVertexDatas);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -566,7 +566,7 @@ CVertexData::CVertexData() {
 // Return Value			:
 // Comments				:
 CVertexData::~CVertexData() {
-    atomicDecrement(&stats.numVertexDatas);
+    atomicDecrement(stats.numVertexDatas);
 
     delete[] variables;
 }
@@ -608,7 +608,7 @@ void CVertexData::dispatch(const float *data, int start, int numVertices, float 
 // Return Value			:
 // Comments				:
 CPl::CPl(int dataSize, int numParameters, CPlParameter *p, float *d0, float *d1) {
-    atomicIncrement(&stats.numPls);
+    atomicIncrement(stats.numPls);
 
     this->dataSize = dataSize;
     this->numParameters = numParameters;
@@ -624,7 +624,7 @@ CPl::CPl(int dataSize, int numParameters, CPlParameter *p, float *d0, float *d1)
 // Return Value			:
 // Comments				:
 CPl::~CPl() {
-    atomicDecrement(&stats.numPls);
+    atomicDecrement(stats.numPls);
 
     if (parameters != NULL) {
         delete[] parameters;

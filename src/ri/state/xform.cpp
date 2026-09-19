@@ -38,7 +38,7 @@
 // Return Value			:	-
 // Comments				:	Identity at the beginning
 CXform::CXform() {
-    atomicIncrement(&stats.numXforms);
+    atomicIncrement(stats.numXforms);
 
     next = NULL;
     cameraMotion = false;
@@ -55,7 +55,7 @@ CXform::CXform() {
 // Return Value			:	-
 // Comments				:
 CXform::CXform(CXform *a) {
-    atomicIncrement(&stats.numXforms);
+    atomicIncrement(stats.numXforms);
 
     if (a->next != NULL)
         next = new CXform(a->next);
@@ -75,7 +75,7 @@ CXform::CXform(CXform *a) {
 // Return Value			:	-
 // Comments				:
 CXform::~CXform() {
-    atomicDecrement(&stats.numXforms);
+    atomicDecrement(stats.numXforms);
 
     if (next != NULL)
         delete next;
