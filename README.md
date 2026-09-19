@@ -71,26 +71,6 @@ make -j$(nproc || sysctl -n hw.ncpu)
 sudo make install
 ```
 
-### Windows
-
-Using Visual Studio or similar IDE:
-
-1. Open CMake GUI or use command line
-2. Set source directory to openrender root
-3. Set build directory (e.g., `openrender/build`)
-4. Click "Configure" and select your generator (Visual Studio, Ninja, etc.)
-5. Click "Generate"
-6. Build using your IDE or run `cmake --build . --config Release`
-
-Alternatively, using command line:
-
-```cmd
-mkdir build
-cd build
-cmake .. -G "Visual Studio 16 2019" -A x64
-cmake --build . --config Release
-```
-
 ### CMake Options
 
 - `USE_FLEX_BISON`: Use flex and bison to regenerate parsers (default: ON)
