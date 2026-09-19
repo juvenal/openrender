@@ -1,7 +1,7 @@
-## RenderMan RIB-Structure 1.0 Entity
+##RenderMan RIB-Structure 1.0 Entity
 # cube.rib
 ObjectBegin "cube"
-  AttributeBegin 
+  AttributeBegin
     Attribute "identifier" "name" ["cube"]
     Bound -0.5 0.5 -0.5 0.5 -0.5 0.5
     TransformBegin
@@ -11,6 +11,6 @@ ObjectBegin "cube"
       Polygon "P" [0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5]
       Polygon "P" [0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 0.5]
       Polygon "P" [-0.5 0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 -0.5 -0.5 -0.5 -0.5]
-    TransformEnd 
+    TransformEnd
   AttributeEnd
 ObjectEnd
