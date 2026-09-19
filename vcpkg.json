@@ -1,0 +1,12 @@
+{
+  "name": "openrender",
+  "version": "0.1.0",
+  "description": "Vendored release-build dependencies for openRender's macOS release pipeline (CI only -- local dev builds keep using Homebrew, see CMake/vcpkg-triplets/arm64-osx-openrender.cmake).",
+  "builtin-baseline": "319504a5326aa870edde46438c5455fa76305a56",
+  "dependencies": [
+    "zlib",
+    "libpng",
+    "tiff",
+    "openexr"
+  ]
+}

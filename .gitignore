@@ -122,3 +122,7 @@ $RECYCLE.BIN/
 src/**/*.tab.c
 src/**/*_generated.cpp
 src/**/lex.*.cpp
+
+# vcpkg (release-build dependency vendoring, see vcpkg.json) -- local
+# manifest-mode installs land here when no --x-install-root is given
+vcpkg_installed/

@@ -27,6 +27,21 @@ the repo, so there is nothing to fall back to; the old `USE_FLEX_BISON=OFF`
 option promised a fallback that could only ever fail and has been removed.
 macOS needs Homebrew's bison (the system one is 2.3); the system flex is fine.
 
+**Local macOS dev builds link Homebrew's libpng/libtiff/zlib/OpenEXR —
+release builds don't.** Homebrew's bottles are pre-built for whatever macOS
+SDK Homebrew's own CI happened to run on, not for this project's actual
+`CMAKE_OSX_DEPLOYMENT_TARGET` (13.3), so a Homebrew-linked binary silently
+can't honor that floor (`ld` warns about this at link time — that's the
+warning to trust, not dismiss). The self-contained macOS release build in
+`.github/workflows/release.yml` sidesteps this by vendoring those four
+libraries via vcpkg instead, pinned to the correct deployment target —
+see `vcpkg.json` and `CMake/vcpkg-triplets/*.cmake` for the manifest/triplet,
+and that workflow's "Checkout and bootstrap vcpkg" steps for how it's wired
+in. LLVM/the JIT still come from Homebrew even in release builds (vendoring
+LLVM from source is 45+ minutes, a separate undertaking). The FHS build
+variant deliberately keeps linking Homebrew, since an FHS package is meant
+to depend on the target system's own package manager for its runtime libs.
+
 **CMake floor is a flat 3.19** (what the JIT and a future OSL integration
 target). `-DOPENRENDER_ENABLE_JIT=OFF` skips LLVM detection entirely and builds
 the interpreter alone; it no longer affects the CMake floor. **Supported
