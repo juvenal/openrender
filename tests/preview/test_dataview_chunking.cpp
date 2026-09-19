@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cstdio>
 
-#include "ri/dataView.h"
+#include "ri/dataviewer/dataView.h"
 #include "ri/hiders/photonMap.h"
 
 static int g_pass = 0, g_fail = 0;

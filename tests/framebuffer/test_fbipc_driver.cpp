@@ -20,7 +20,7 @@
 #include <sys/un.h>
 #include <signal.h>
 
-#include "framebuffer/fbipc.h"
+#include "display/framebuffer/fbipc.h"
 
 // ---------------------------------------------------------------------------
 // Test harness

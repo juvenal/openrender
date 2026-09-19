@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <chrono>
 #include <vector>
-#include "../../src/framebuffer/fbipc_display.h"
+#include "../../src/display/framebuffer/fbipc_display.h"
 
 int main() {
     printf("========================================\n");

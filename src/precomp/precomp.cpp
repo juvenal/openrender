@@ -373,9 +373,9 @@ void ouputStochasticFuntionName(FILE *out, unsigned int i) {
 // Comments				:
 int precomputeStochasticPrimitivesH() {
 #ifdef _WINDOWS
-    FILE *out = fopen("..\\src\\ri\\stochasticPrimitives.h", "w");
+    FILE *out = fopen("..\\src\\ri\\hiders\\stochasticPrimitives.h", "w");
 #else
-    FILE *out = fopen("../ri/stochasticPrimitives.h", "w");
+    FILE *out = fopen("../ri/hiders/stochasticPrimitives.h", "w");
 #endif
     int i;
 

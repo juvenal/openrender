@@ -34,7 +34,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "file/file_base.h"
-#include "ri/dsply.h"
+#include "dsply.h"
 
 using namespace Imf;
 using namespace Imath;

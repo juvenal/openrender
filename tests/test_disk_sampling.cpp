@@ -23,7 +23,7 @@
 #include <random>
 #include <vector>
 
-#include "../src/ri/random.h"
+#include "../src/ri/core/random.h"
 
 // Test counter
 static int tests_passed = 0;

@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "common/algebra.h"
-#include "ri/dataLoad.h"
+#include "ri/dataviewer/dataLoad.h"
 #include "ri/hiders/photonMap.h"
 #include "ri/render/renderer.h"
 

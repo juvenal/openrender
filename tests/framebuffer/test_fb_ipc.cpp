@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <vector>
-#include "../../src/framebuffer/fbipc_display.h"
+#include "../../src/display/framebuffer/fbipc_display.h"
 
 // Test counter
 static int tests_passed = 0;

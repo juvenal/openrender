@@ -301,7 +301,7 @@ endif()
 # ########## OpenEXR (optional) — supports both 2.x and 3.x packaging
 # ###########################################################################
 # The 2.x -> 3.x transition changed how the library is *packaged*, not its API.
-# src/openexr/openexr.cpp compiles unmodified against both: it uses only the
+# src/display/openexr/openexr.cpp compiles unmodified against both: it uses only the
 # `Imf` and `Imath` namespace aliases and unqualified `half`, all of which
 # exist in either major version. Only the CMake targets differ:
 #

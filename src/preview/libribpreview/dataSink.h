@@ -1,6 +1,6 @@
 #pragma once
 #include "dataScene.h"
-#include "ri/dataView.h"
+#include "ri/dataviewer/dataView.h"
 
 // Adapts CDataView's static sink protocol (dataView.h) into a DataScene, applying the
 // deterministic even-stride decimation cap decided in spec clarification (research.md §6).

@@ -37,13 +37,13 @@
 
 #include "libshader/include/openrender/RSLShading.h"
 #include "ri/state/attributes.h"
-#include "ri/memory.h"
+#include "ri/core/memory.h"
 #include "ri/geometry/object.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 #include "ri/parse/ri.h"
-#include "ri/shader.h"
-#include "ri/shading.h"
+#include "ri/core/shader.h"
+#include "ri/core/shading.h"
 #include "ri/state/xform.h"
 
 static int g_passed = 0;

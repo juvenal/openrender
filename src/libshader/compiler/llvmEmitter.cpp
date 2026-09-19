@@ -273,7 +273,7 @@ unsigned int computeUsedParameters(const IRModule &ir) {
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 //
 // Indices reference the interpreter's own VARIABLE_* constants
-// (src/ri/rendererc.h, already #include'd above at line 115 for
+// (src/ri/render/rendererc.h, already #include'd above at line 115 for
 // kOpcodeParamTable's `params` macro expansions) instead of hand-transcribed
 // literals (spec 014-jit-shading-parity, research.md D7a) -- a future
 // addition/removal in rendererc.h now either compiles or fails to compile

@@ -30,7 +30,7 @@
 #ifndef COLORSPACE_H
 #define COLORSPACE_H
 
-#include "ri/rendererc.h" // ECoordinateSystem -- header-only, compile-time-only reference
+#include "ri/render/rendererc.h" // ECoordinateSystem -- header-only, compile-time-only reference
 
 // Convert a color from the given space into RGB.
 void convertColorFrom(float *out, const float *in, ECoordinateSystem s);

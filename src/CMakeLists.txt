@@ -18,14 +18,18 @@ include_directories(ri/parse)
 include_directories(ri/geometry)
 include_directories(ri/texture)
 include_directories(ri/output)
+include_directories(ri/core)
+include_directories(ri/dataviewer)
 include_directories(libshader/shading)
+# display/ holds the display-driver plugins (file/, framebuffer/, openexr/,
+# rgbe/) plus dsply.h at its root. Flat alongside ri/'s own domains so
+# #include "dsply.h" and the plugins' own #include "file/file_base.h" /
+# #include "framebuffer/fbipc.h" keep resolving unqualified.
+include_directories(display)
 
 add_subdirectory(common)
-add_subdirectory(file)
-add_subdirectory(framebuffer)
-add_subdirectory(openexr)
+add_subdirectory(display)
 add_subdirectory(precomp)
-add_subdirectory(rgbe)
 add_subdirectory(libshader)  # RSL shader library (compiler + runtime + shading engine)
 add_subdirectory(ri)
 # Phase C: libshader_shading is a real target; ribRender links against it.

@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
-#include "../../src/framebuffer/framebuffer.h"
+#include "../../src/display/framebuffer/framebuffer.h"
 
 // Test counter
 static int tests_passed = 0;

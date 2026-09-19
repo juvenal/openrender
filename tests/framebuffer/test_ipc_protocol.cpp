@@ -16,7 +16,7 @@
 #include <sys/un.h>
 
 // Include the protocol header under test
-#include "framebuffer/fbipc.h"
+#include "display/framebuffer/fbipc.h"
 
 // ---------------------------------------------------------------------------
 // Minimal test harness

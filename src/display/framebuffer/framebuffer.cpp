@@ -24,7 +24,7 @@
 
 #include "common/global.h"
 #include "framebuffer.h"
-#include "ri/dsply.h"
+#include "dsply.h"
 #include "logging.hpp"
 
 

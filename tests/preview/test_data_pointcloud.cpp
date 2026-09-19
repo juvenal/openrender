@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "common/algebra.h"
-#include "ri/dataLoad.h"
+#include "ri/dataviewer/dataLoad.h"
 #include "ri/texture/pointCloud.h"
 
 static int g_pass = 0, g_fail = 0;

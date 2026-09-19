@@ -1,7 +1,7 @@
 #include "dataSink.h"
 
 #include "diskExpand.h"
-#include "ri/dataLoad.h"
+#include "ri/dataviewer/dataLoad.h"
 
 #include <cmath>
 #include <cstring>

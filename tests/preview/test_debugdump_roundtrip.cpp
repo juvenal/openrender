@@ -1,8 +1,8 @@
 #include <cassert>
 #include <cstdio>
 
-#include "ri/dataView.h"
-#include "ri/debug.h"
+#include "ri/dataviewer/dataView.h"
+#include "ri/dataviewer/debug.h"
 
 static int g_pass = 0, g_fail = 0;
 #define CHECK(expr) do { \

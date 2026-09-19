@@ -1,6 +1,6 @@
 #include "common/global.h"
 #include "ribpreview_api.h"
-#include "ri/dataLoad.h"
+#include "ri/dataviewer/dataLoad.h"
 
 #include <cmath>
 #include <cstdio>
@@ -77,7 +77,7 @@ static bool fileExists(const char *path) {
     return stat(path, &st) == 0;
 }
 
-// Version/major.minor.patch from src/ri/dataLoad.h's EDataFileType, mapped to a fixed-width
+// Version/major.minor.patch from src/ri/dataviewer/dataLoad.h's EDataFileType, mapped to a fixed-width
 // array for the "fileVersion" JSON field. openRender's own project version is unrelated to a
 // data file's on-disk format version, which dataSniff()/CDataDocument don't currently surface
 // per-field -- report the tool's own version here, consistent with "fileVersion" describing

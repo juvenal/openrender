@@ -58,9 +58,9 @@ struct TiffImage {
 };
 
 // Depth ("z" mode) Display output in this codebase is unconditionally
-// 32-bit IEEE float, single sample per pixel (src/file/file_base.cpp skips
+// 32-bit IEEE float, single sample per pixel (src/display/file/file_base.cpp skips
 // reading the "quantize" Display parameter entirely when isDepth, so
-// src/file/file_tiff.cpp's qmax==0 default always selects
+// src/display/file/file_tiff.cpp's qmax==0 default always selects
 // SAMPLEFORMAT_IEEEFP/32bpp for z output) — TIFFReadRGBAImageOriented
 // cannot read that, so such files are detected here and read as raw
 // scanlines instead of via the 8-bit RGBA convenience path below.

@@ -79,7 +79,7 @@ typedef struct RibDataDocument RibDataDocument; // opaque
 int ribdata_sniff(const char *path);
 
 // Open a data file. Returns NULL on failure (message written to stderr); *err receives one of
-// the EDataFileType codes from src/ri/dataLoad.h so the caller can map
+// the EDataFileType codes from src/ri/dataviewer/dataLoad.h so the caller can map
 // DATA_BAD_VERSION/DATA_BAD_WORDSIZE to CLI exit code 4, and DATA_NOT_A_DATA_FILE to "try
 // ribpreview_load() instead".
 RibDataDocument *ribdata_open(const char *path, int *err);

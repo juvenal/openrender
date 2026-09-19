@@ -22,7 +22,7 @@
 #define FILE_BASE_H
 
 #include "common/os.h"
-#include "ri/dsply.h"
+#include "dsply.h"
 
 #include <stdint.h>
 

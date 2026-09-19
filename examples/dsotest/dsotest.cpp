@@ -32,7 +32,7 @@
 
 #include "common/algebra.h"
 #include "common/global.h"
-#include "ri/shadeop.h"
+#include "ri/render/shadeop.h"
 
 // Just returns a red color
 SHADEOP_TABLE(red) = {

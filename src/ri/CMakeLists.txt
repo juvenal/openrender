@@ -1,4 +1,4 @@
-file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
@@ -28,8 +28,19 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geometry)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/texture)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/output)
+# core/ (memory, refCounter, stats, random, pl, fileResource, atomic,
+# ray/map/noise, ri_config, and the Phase C1 shader/shading/shaderPl
+# forwarding shims) and dataviewer/ (dataLoad/dataView/debug -- the
+# orender-wire data-file inspection helpers) are two more domains split out
+# of the historically flat src/ri/ tree, same flat-include treatment as the
+# rest.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dataviewer)
 # Allow ri/ files to include shading engine headers from their new location.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
+# dsply.h (the Display-driver ABI) lives in the sibling src/display/ tree
+# (see src/display/CMakeLists.txt); state/options.h includes it unqualified.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../display)
 
 set(ri_sources
 	state/attributes.cpp
@@ -38,22 +49,22 @@ set(ri_sources
 	geometry/blobbyPolygonize.cpp
 	geometry/blobbyRepeller.cpp
 	texture/brickmap.cpp
-	bundles.cpp
-	compositor.cpp
+	hiders/bundles.cpp
+	hiders/compositor.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
 	geometry/csgBoolean.cpp
 	geometry/csgTesselationDispatch.cpp
 	geometry/csgTree.cpp
-	dataLoad.cpp
-	dataView.cpp
-	debug.cpp
+	dataviewer/dataLoad.cpp
+	dataviewer/dataView.cpp
+	dataviewer/debug.cpp
 	geometry/delayed.cpp
 	state/displayChannel.cpp
-	dlobject.cpp
+	geometry/dlobject.cpp
 #	dso.cpp
 	parse/error.cpp
-	fileResource.cpp
+	core/fileResource.cpp
 	hcshader.cpp
 	hiders/irradiance.cpp
 	hiders/irradianceDispatch.cpp
@@ -67,25 +78,25 @@ set(ri_sources
 	hiders/trace.cpp
 	hiders/zbuffer.cpp
 #	ifexpr.cpp
-	imager.cpp
+	render/imager.cpp
 	geometry/implicitSurface.cpp
-	init.cpp
-	linsys.cpp
-	memory.cpp
+	render/init.cpp
+	hiders/linsys.cpp
+	core/memory.cpp
 	geometry/object.cpp
 	state/options.cpp
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
-	pl.cpp
+	core/pl.cpp
 	geometry/points.cpp
 	texture/pointCloud.cpp
 	texture/pointHierarchy.cpp
 	geometry/polygons.cpp
-	ptcapi.cpp
+	texture/ptcapi.cpp
 	geometry/quadrics.cpp
-	random.cpp
-	refCounter.cpp
-	remoteChannel.cpp
+	core/random.cpp
+	core/refCounter.cpp
+	render/remoteChannel.cpp
 	render/geometryDispatch.cpp
 	render/renderer.cpp
 	render/rendererClipping.cpp
@@ -100,14 +111,14 @@ set(ri_sources
 	render/rendererNetwork.cpp
 	render/rendererShadingServices.cpp
 	render/rendererStatics.cpp
-	resource.cpp
+	render/resource.cpp
 	parse/ri.cpp
 #	rib.cpp
 	parse/riInterface.cpp
 	output/ribOut.cpp
 #	sl.cpp
 	geometry/solidObject.cpp
-	stats.cpp
+	core/stats.cpp
 	geometry/subdivision.cpp
 	geometry/subdivisionCreator.cpp
 	geometry/subdivisionHierarchical.cpp
@@ -182,7 +193,10 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/dataviewer>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(WIN32)
@@ -285,7 +299,7 @@ set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
     geometry/csgTesselationDispatch.cpp
     geometry/csgTree.cpp
-    dlobject.cpp
+    geometry/dlobject.cpp
     hcshader.cpp
     hiders/irradianceDispatch.cpp
     hiders/occlusion.cpp
@@ -297,10 +311,10 @@ list(REMOVE_ITEM ribVector_sources
     hiders/trace.cpp
     hiders/zbuffer.cpp
     ifexpr_generated.cpp
-    imager.cpp
+    render/imager.cpp
     geometry/implicitSurface.cpp
-    init.cpp
-    remoteChannel.cpp
+    render/init.cpp
+    render/remoteChannel.cpp
     render/geometryDispatch.cpp
     render/renderer.cpp
     render/rendererContext.cpp
@@ -337,7 +351,10 @@ target_include_directories(ribVector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/dataviewer>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribVector PRIVATE ${openrendertiff_libs} openrendercommon)
 if(WIN32)
@@ -401,14 +418,14 @@ set(ribOut_sources
     parse/error.cpp
     parse/ri.cpp
     parse/riInterface.cpp
-    memory.cpp
+    core/memory.cpp
     render/rendererDeclarations.cpp
     render/rendererFileSearch.cpp
     render/rendererMutexes.cpp
     render/rendererNetwork.cpp
     render/rendererStatics.cpp
     state/displayChannel.cpp
-    stats.cpp
+    core/stats.cpp
     vector/rendererDeclarationsDispatchStub.cpp
     dso_generated.cpp
     rib_generated.cpp
@@ -433,7 +450,10 @@ target_include_directories(ribOut PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/dataviewer>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribOut PRIVATE ${openrendertiff_libs} openrendercommon)
 if(WIN32)
@@ -480,7 +500,14 @@ install(TARGETS ribRender
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(TARGETS ribRender_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-install(FILES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(FILES
+    geometry/dlo.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../display/dsply.h
+    geometry/implicit.h
+    texture/ptcapi.h
+    parse/ri.h
+    render/shadeop.h
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 # Recreate the libri alias at install time too -- install(TARGETS) only installs
 # the real files CMake generated for ribRender/ribRender_static (including its

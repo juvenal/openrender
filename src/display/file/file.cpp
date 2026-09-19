@@ -19,7 +19,7 @@
  */
 
 #include "common/global.h"
-#include "ri/dsply.h"
+#include "dsply.h"
 
 #include <string.h>
 

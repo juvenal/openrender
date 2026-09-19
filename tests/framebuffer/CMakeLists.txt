@@ -6,8 +6,8 @@ if(UNIX AND NOT APPLE)
     # at the driver level — windowing lives entirely in the orender-fb-linux helper.
     add_executable(test_fb_ipc
         test_fb_ipc.cpp
-        ${CMAKE_SOURCE_DIR}/src/framebuffer/fbipc_display.cpp
-        ${CMAKE_SOURCE_DIR}/src/framebuffer/framebuffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/display/framebuffer/fbipc_display.cpp
+        ${CMAKE_SOURCE_DIR}/src/display/framebuffer/framebuffer.cpp
     )
     target_link_libraries(test_fb_ipc PRIVATE openrender_common_flags openrendercommon pthread)
     target_include_directories(test_fb_ipc PRIVATE

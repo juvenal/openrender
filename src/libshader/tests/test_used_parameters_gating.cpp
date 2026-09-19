@@ -33,7 +33,7 @@ static int g_failed = 0;
     else { fprintf(stderr, "FAIL: %s  (%s:%d)\n", #expr, __FILE__, __LINE__); ++g_failed; } \
 } while (0)
 
-// PARAMETER_* bit values, re-stated verbatim from src/ri/rendererc.h
+// PARAMETER_* bit values, re-stated verbatim from src/ri/render/rendererc.h
 // (not included here -- this target is compiler-only per
 // gating-condition-contract.md, no src/ri dependency).
 static const unsigned int PARAMETER_CI = 1u << 18;

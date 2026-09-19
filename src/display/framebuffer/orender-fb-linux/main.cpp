@@ -43,7 +43,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "framebuffer/fbipc.h"
+#include "display/framebuffer/fbipc.h"
 
 // ---------------------------------------------------------------------------
 // Global state shared between the accept loop and window threads

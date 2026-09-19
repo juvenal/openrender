@@ -161,7 +161,7 @@ macro(add_visual_test SCENE_NAME RIB_FILE OUTPUT_TIF REF_TIF)
     # build has no LLVM JIT.  Those scenes set
     #   Attribute "shade" "shaderformat" ["slo"]
     # and compare against their .rslo counterpart's reference image.  Without
-    # the JIT, getShader() (src/ri/rendererFiles.cpp) falls back to .rslo, so
+    # the JIT, getShader() (src/ri/render/rendererFiles.cpp) falls back to .rslo, so
     # the test renders through the interpreter and matches that same reference
     # exactly -- a guaranteed pass that exercises no JIT code at all.  Keyed off
     # the name suffix rather than a hand-kept list so a newly added -slo scene

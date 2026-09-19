@@ -36,7 +36,7 @@
 #include "passes/passManager.h"
 #include "passes/passUniformLifting.h"
 #include "ri/parse/dso.h"
-#include "ri/shadeop.h"
+#include "ri/render/shadeop.h"
 #include "rslo.h"
 #include "rsloEmitter.h"
 
