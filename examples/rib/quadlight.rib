@@ -1,0 +1,38 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# quadlight.rib -- demonstrates the quadlight area light shader
+# (shaders/quadlight.sl), the RSL replacement for the old hardcoded
+# CQuadLight. Needs the raytrace hider: quadlight uses visibility() for
+# its per-sample soft-shadow test.
+#
+# P0..P3 are given directly in world space here rather than positioned via
+# a Translate/Rotate around the LightSource call: LightSource declarations
+# in this engine do not persist past the end of an enclosing
+# AttributeBegin/AttributeEnd block, so a light meant to affect later
+# geometry must either be declared at WorldBegin scope (as here) or have
+# its positioning transform left in effect (never closed) for the rest of
+# WorldBegin/WorldEnd.
+Hider "raytrace"
+Display "quadlight.tif" "file" "rgba"
+Projection "perspective" "fov" 40
+Format 320 240 1
+Clipping 0.1 1000
+Translate 0 0 12
+WorldBegin
+    LightSource "quadlight" 1 "P0" [3 5 -2] "P1" [5 5 -2]
+                "P2" [3 7 -2] "P3" [5 7 -2]
+                "intensity" [200] "numSamples" [16]
+    AttributeBegin
+        Color [0.8 0.8 0.8]
+        Surface "matte"
+        Translate 0 0 3
+        Sphere 1.5 -1.5 1.5 360
+    AttributeEnd
+    AttributeBegin
+        Color [0.7 0.7 0.7]
+        Surface "matte"
+        Translate 0 -3 0
+        Rotate -90 1 0 0
+        Disk 0 20 360
+    AttributeEnd
+WorldEnd
