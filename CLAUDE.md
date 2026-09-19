@@ -27,20 +27,31 @@ the repo, so there is nothing to fall back to; the old `USE_FLEX_BISON=OFF`
 option promised a fallback that could only ever fail and has been removed.
 macOS needs Homebrew's bison (the system one is 2.3); the system flex is fine.
 
-**Local macOS dev builds link Homebrew's libpng/libtiff/zlib/OpenEXR —
-release builds don't.** Homebrew's bottles are pre-built for whatever macOS
-SDK Homebrew's own CI happened to run on, not for this project's actual
+**macOS builds vendor libpng/libtiff/zlib/OpenEXR via vcpkg when `VCPKG_ROOT`
+is set — Homebrew otherwise.** Homebrew's bottles are pre-built for whatever
+macOS SDK Homebrew's own CI happened to run on, not for this project's actual
 `CMAKE_OSX_DEPLOYMENT_TARGET` (13.3), so a Homebrew-linked binary silently
 can't honor that floor (`ld` warns about this at link time — that's the
-warning to trust, not dismiss). The self-contained macOS release build in
-`.github/workflows/release.yml` sidesteps this by vendoring those four
-libraries via vcpkg instead, pinned to the correct deployment target —
-see `vcpkg.json` and `CMake/vcpkg-triplets/*.cmake` for the manifest/triplet,
-and that workflow's "Checkout and bootstrap vcpkg" steps for how it's wired
-in. LLVM/the JIT still come from Homebrew even in release builds (vendoring
-LLVM from source is 45+ minutes, a separate undertaking). The FHS build
-variant deliberately keeps linking Homebrew, since an FHS package is meant
-to depend on the target system's own package manager for its runtime libs.
+warning to trust, not dismiss). Run `scripts/setup-vcpkg-macos.sh` once to
+clone+bootstrap a shared vcpkg checkout (default `~/.vcpkg`) and get the
+`export VCPKG_ROOT=...` / `export VCPKG_INSTALLED_DIR=...` lines to add to
+your shell profile yourself — the script never edits it for you. With those
+set, the root `CMakeLists.txt` auto-detects the toolchain file, host triplet
+(`arm64-osx-openrender`/`x64-osx-openrender`), and overlay triplets before
+`project()`, so a bare `cmake -B build -S .` picks up vcpkg with zero extra
+flags; every worktree pointed at the same `VCPKG_INSTALLED_DIR` shares one
+compiled tree (~13MB) instead of paying for its own. Leaving `VCPKG_ROOT`
+unset falls back to Homebrew exactly as before. See `vcpkg.json` and
+`CMake/vcpkg-triplets/*.cmake` for the manifest/triplet definitions.
+
+CI (`.github/workflows/release.yml`) uses the same mechanism for the
+self-contained release build, bootstrapping its own ephemeral `VCPKG_ROOT`
+per job (scoped to that step's own output, never `GITHUB_ENV`, so it can't
+leak into the FHS build step that follows in the same job). LLVM/the JIT
+still come from Homebrew even in release builds (vendoring LLVM from source
+is 45+ minutes, a separate undertaking). The FHS build variant deliberately
+keeps linking Homebrew, since an FHS package is meant to depend on the
+target system's own package manager for its runtime libs.
 
 **CMake floor is a flat 3.19** (what the JIT and a future OSL integration
 target). `-DOPENRENDER_ENABLE_JIT=OFF` skips LLVM detection entirely and builds

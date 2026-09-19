@@ -108,13 +108,18 @@ jobs:
       # CMake/vcpkg-triplets/x64-osx-openrender.cmake for the full rationale.
       # LLVM/the JIT still come from Homebrew either way; vendoring LLVM from
       # source is a much larger undertaking left for later.
+      # Deliberately scoped to this step's own output (not GITHUB_ENV): the
+      # root CMakeLists.txt now auto-detects VCPKG_ROOT from the environment
+      # for every build, so leaking it job-wide here would silently pull the
+      # FHS build below onto vcpkg too, which must stay Homebrew-linked.
       - name: Checkout and bootstrap vcpkg
+        id: bootstrap-vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git "$RUNNER_TEMP/vcpkg"
           cd "$RUNNER_TEMP/vcpkg"
           git checkout 319504a5326aa870edde46438c5455fa76305a56
           ./bootstrap-vcpkg.sh -disableMetrics
-          echo "VCPKG_ROOT=$RUNNER_TEMP/vcpkg" >> "$GITHUB_ENV"
+          echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
 
       - name: Cache vcpkg binary archives
         uses: actions/cache@v4
@@ -125,6 +130,8 @@ jobs:
             vcpkg-x64-osx-openrender-
 
       - name: Build self-contained version (x86_64)
+        env:
+          VCPKG_ROOT: ${{ steps.bootstrap-vcpkg.outputs.vcpkg_root }}
         run: |
           export PATH="/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
           mkdir build-sc && cd build-sc
@@ -199,13 +206,18 @@ jobs:
       # See the matching step in build-macos-x86_64 for the full rationale:
       # this vendors zlib/libpng/tiff/openexr at a pinned deployment target
       # for the self-contained build only, leaving the FHS build on Homebrew.
+      # Scoped to this step's own output, not GITHUB_ENV -- see the matching
+      # comment in build-macos-x86_64: leaking VCPKG_ROOT job-wide would pull
+      # the FHS build below onto vcpkg too, now that the root CMakeLists.txt
+      # auto-detects it from the environment for every build.
       - name: Checkout and bootstrap vcpkg
+        id: bootstrap-vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git "$RUNNER_TEMP/vcpkg"
           cd "$RUNNER_TEMP/vcpkg"
           git checkout 319504a5326aa870edde46438c5455fa76305a56
           ./bootstrap-vcpkg.sh -disableMetrics
-          echo "VCPKG_ROOT=$RUNNER_TEMP/vcpkg" >> "$GITHUB_ENV"
+          echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
 
       - name: Cache vcpkg binary archives
         uses: actions/cache@v4
@@ -216,6 +228,8 @@ jobs:
             vcpkg-arm64-osx-openrender-
 
       - name: Build self-contained version (arm64)
+        env:
+          VCPKG_ROOT: ${{ steps.bootstrap-vcpkg.outputs.vcpkg_root }}
         run: |
           export PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
           mkdir build-sc && cd build-sc
