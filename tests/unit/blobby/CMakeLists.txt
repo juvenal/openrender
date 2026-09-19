@@ -16,6 +16,9 @@ macro(add_blobby_test target source testname)
         ${CMAKE_SOURCE_DIR}/src/ri/render
         ${CMAKE_SOURCE_DIR}/src/ri/state
         ${CMAKE_SOURCE_DIR}/src/ri/parse
+        ${CMAKE_SOURCE_DIR}/src/ri/geometry
+        ${CMAKE_SOURCE_DIR}/src/ri/texture
+        ${CMAKE_SOURCE_DIR}/src/ri/output
         ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(${target} PRIVATE ribRender openrendercommon)
     add_test(NAME ${testname} COMMAND ${target})

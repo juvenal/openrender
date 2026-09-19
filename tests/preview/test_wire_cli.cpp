@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "common/algebra.h"
-#include "ri/pointCloud.h"
+#include "ri/texture/pointCloud.h"
 #include "ribpreview_api.h"
 
 static int g_pass = 0, g_fail = 0;

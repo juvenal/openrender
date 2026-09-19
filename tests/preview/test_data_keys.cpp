@@ -4,8 +4,8 @@
 #include <unistd.h>
 
 #include "common/algebra.h"
-#include "ri/brickmap.h"
-#include "ri/pointCloud.h"
+#include "ri/texture/brickmap.h"
+#include "ri/texture/pointCloud.h"
 #include "ri/parse/riInterface.h"
 #include "ribpreview_api.h"
 

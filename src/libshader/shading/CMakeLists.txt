@@ -87,6 +87,9 @@ target_include_directories(libshader_shading PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry
+    ${CMAKE_SOURCE_DIR}/src/ri/texture
+    ${CMAKE_SOURCE_DIR}/src/ri/output
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )

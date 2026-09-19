@@ -6,14 +6,14 @@
 
 add_executable(test_csg_boolean_boxes test_boolean_boxes.cpp)
 target_compile_features(test_csg_boolean_boxes PRIVATE cxx_std_20)
-target_include_directories(test_csg_boolean_boxes PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_boolean_boxes PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_boolean_boxes PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_BooleanBoxes COMMAND test_csg_boolean_boxes)
 set_tests_properties(CSG_BooleanBoxes PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
 add_executable(test_csg_multi_primitive_leaf test_multi_primitive_leaf.cpp)
 target_compile_features(test_csg_multi_primitive_leaf PRIVATE cxx_std_20)
-target_include_directories(test_csg_multi_primitive_leaf PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_multi_primitive_leaf PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_multi_primitive_leaf PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_MultiPrimitiveLeaf COMMAND test_csg_multi_primitive_leaf)
 set_tests_properties(CSG_MultiPrimitiveLeaf PROPERTIES TIMEOUT 30 LABELS "csg;unit"
@@ -21,35 +21,35 @@ set_tests_properties(CSG_MultiPrimitiveLeaf PROPERTIES TIMEOUT 30 LABELS "csg;un
 
 add_executable(test_csg_boolean_sphere_box test_boolean_sphere_box.cpp)
 target_compile_features(test_csg_boolean_sphere_box PRIVATE cxx_std_20)
-target_include_directories(test_csg_boolean_sphere_box PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_boolean_sphere_box PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_boolean_sphere_box PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_BooleanSphereBox COMMAND test_csg_boolean_sphere_box)
 set_tests_properties(CSG_BooleanSphereBox PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
 add_executable(test_csg_boolean_sphere_sphere test_boolean_sphere_sphere.cpp)
 target_compile_features(test_csg_boolean_sphere_sphere PRIVATE cxx_std_20)
-target_include_directories(test_csg_boolean_sphere_sphere PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_boolean_sphere_sphere PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_boolean_sphere_sphere PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_BooleanSphereSphere COMMAND test_csg_boolean_sphere_sphere)
 set_tests_properties(CSG_BooleanSphereSphere PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
 add_executable(test_csg_boolean_coplanar test_boolean_coplanar.cpp)
 target_compile_features(test_csg_boolean_coplanar PRIVATE cxx_std_20)
-target_include_directories(test_csg_boolean_coplanar PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_boolean_coplanar PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_boolean_coplanar PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_BooleanCoplanar COMMAND test_csg_boolean_coplanar)
 set_tests_properties(CSG_BooleanCoplanar PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
 add_executable(test_csg_tesselation_flatness test_tesselation_flatness.cpp)
 target_compile_features(test_csg_tesselation_flatness PRIVATE cxx_std_20)
-target_include_directories(test_csg_tesselation_flatness PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_tesselation_flatness PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_tesselation_flatness PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_TesselationFlatness COMMAND test_csg_tesselation_flatness)
 set_tests_properties(CSG_TesselationFlatness PROPERTIES TIMEOUT 30 LABELS "csg;unit")
 
 add_executable(test_csg_quadric_tesselation test_quadric_tesselation.cpp)
 target_compile_features(test_csg_quadric_tesselation PRIVATE cxx_std_20)
-target_include_directories(test_csg_quadric_tesselation PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_quadric_tesselation PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_quadric_tesselation PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_QuadricTesselation COMMAND test_csg_quadric_tesselation)
 set_tests_properties(CSG_QuadricTesselation PROPERTIES TIMEOUT 30 LABELS "csg;unit"
@@ -57,7 +57,7 @@ set_tests_properties(CSG_QuadricTesselation PROPERTIES TIMEOUT 30 LABELS "csg;un
 
 add_executable(test_csg_patchmesh_tesselation test_patchmesh_tesselation.cpp)
 target_compile_features(test_csg_patchmesh_tesselation PRIVATE cxx_std_20)
-target_include_directories(test_csg_patchmesh_tesselation PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_patchmesh_tesselation PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_patchmesh_tesselation PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_PatchMeshTesselation COMMAND test_csg_patchmesh_tesselation)
 set_tests_properties(CSG_PatchMeshTesselation PROPERTIES TIMEOUT 30 LABELS "csg;unit"
@@ -65,7 +65,7 @@ set_tests_properties(CSG_PatchMeshTesselation PROPERTIES TIMEOUT 30 LABELS "csg;
 
 add_executable(test_csg_nested_tree test_nested_tree.cpp)
 target_compile_features(test_csg_nested_tree PRIVATE cxx_std_20)
-target_include_directories(test_csg_nested_tree PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_nested_tree PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_nested_tree PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_NestedTree COMMAND test_csg_nested_tree)
 set_tests_properties(CSG_NestedTree PROPERTIES TIMEOUT 30 LABELS "csg;unit"
@@ -73,7 +73,7 @@ set_tests_properties(CSG_NestedTree PROPERTIES TIMEOUT 30 LABELS "csg;unit"
 
 add_executable(test_csg_interior_exterior_selection test_interior_exterior_selection.cpp)
 target_compile_features(test_csg_interior_exterior_selection PRIVATE cxx_std_20)
-target_include_directories(test_csg_interior_exterior_selection PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(test_csg_interior_exterior_selection PRIVATE ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_csg_interior_exterior_selection PRIVATE ribRender openrendercommon)
 add_test(NAME CSG_InteriorExteriorSelection COMMAND test_csg_interior_exterior_selection)
 set_tests_properties(CSG_InteriorExteriorSelection PROPERTIES TIMEOUT 30 LABELS "csg;unit")

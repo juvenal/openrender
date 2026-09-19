@@ -1,41 +1,54 @@
-file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
-# hiders/, render/, state/ and parse/ are domains split out of the
-# historically flat src/ri/ tree (see the domain-split plan) -- kept on the
-# same flat include path as "." so every #include "reyes.h"/"renderer.h"/
-# "attributes.h"/"ri.h" style reference elsewhere in the tree keeps working
-# unqualified, exactly like "." itself already does. state/ (attributes,
-# options, xform, displayChannel) and parse/ (RIB/DSO/variable/ifexpr
-# grammars, ri.cpp's Ri*() dispatch, CRiInterface, error reporting) are not
-# ribRender-only the way hiders/render are -- both are shared foundation
-# future ribVector/ribOut will also need.
+# hiders/, render/, state/, parse/, geometry/, texture/ and output/ are
+# domains split out of the historically flat src/ri/ tree (see the
+# domain-split plan) -- kept on the same flat include path as "." so every
+# #include "reyes.h"/"renderer.h"/"attributes.h"/"ri.h" style reference
+# elsewhere in the tree keeps working unqualified, exactly like "." itself
+# already does. state/ (attributes, options, xform, displayChannel) and
+# parse/ (RIB/DSO/variable/ifexpr grammars, ri.cpp's Ri*() dispatch,
+# CRiInterface, error reporting) are not ribRender-only the way hiders/
+# render are -- both are shared foundation ribVector also needs. geometry/
+# (object/curves/points/polygons/quadrics/patches/patchgrid/
+# bsplinePatchgrid/surface/implicitSurface/delayed/solidObject/csgTree/
+# csgBoolean/csgTesselationDispatch/subdivision family/blobby family) and
+# texture/ (texture/texture3d/texmake/brickmap/pointCloud/pointHierarchy)
+# are shared foundation too -- both ribRender and ribVector need most of
+# this content, just not always the same methods (see the real/stub
+# extractions above). output/ (ribOut) has no CMake target of its own yet;
+# it's still compiled as a plain source file into both ribRender and
+# ribVector -- carving out a real, minimal ribOut target is a separate,
+# larger undertaking left for later.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hiders)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geometry)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/texture)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/output)
 # Allow ri/ files to include shading engine headers from their new location.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 
 set(ri_sources
 	state/attributes.cpp
-	blobby.cpp
-	blobbyField.cpp
-	blobbyPolygonize.cpp
-	blobbyRepeller.cpp
-	brickmap.cpp
+	geometry/blobby.cpp
+	geometry/blobbyField.cpp
+	geometry/blobbyPolygonize.cpp
+	geometry/blobbyRepeller.cpp
+	texture/brickmap.cpp
 	bundles.cpp
 	compositor.cpp
-	curves.cpp
-	bsplinePatchgrid.cpp
-	csgBoolean.cpp
-	csgTesselationDispatch.cpp
-	csgTree.cpp
+	geometry/curves.cpp
+	geometry/bsplinePatchgrid.cpp
+	geometry/csgBoolean.cpp
+	geometry/csgTesselationDispatch.cpp
+	geometry/csgTree.cpp
 	dataLoad.cpp
 	dataView.cpp
 	debug.cpp
-	delayed.cpp
+	geometry/delayed.cpp
 	state/displayChannel.cpp
 	dlobject.cpp
 #	dso.cpp
@@ -55,21 +68,21 @@ set(ri_sources
 	hiders/zbuffer.cpp
 #	ifexpr.cpp
 	imager.cpp
-	implicitSurface.cpp
+	geometry/implicitSurface.cpp
 	init.cpp
 	linsys.cpp
 	memory.cpp
-	object.cpp
+	geometry/object.cpp
 	state/options.cpp
-	patches.cpp
-	patchgrid.cpp
+	geometry/patches.cpp
+	geometry/patchgrid.cpp
 	pl.cpp
-	points.cpp
-	pointCloud.cpp
-	pointHierarchy.cpp
-	polygons.cpp
+	geometry/points.cpp
+	texture/pointCloud.cpp
+	texture/pointHierarchy.cpp
+	geometry/polygons.cpp
 	ptcapi.cpp
-	quadrics.cpp
+	geometry/quadrics.cpp
 	random.cpp
 	refCounter.cpp
 	remoteChannel.cpp
@@ -91,18 +104,18 @@ set(ri_sources
 	parse/ri.cpp
 #	rib.cpp
 	parse/riInterface.cpp
-	ribOut.cpp
+	output/ribOut.cpp
 #	sl.cpp
-	solidObject.cpp
+	geometry/solidObject.cpp
 	stats.cpp
-	subdivision.cpp
-	subdivisionCreator.cpp
-	subdivisionHierarchical.cpp
-	subdivisionLoop.cpp
-	surface.cpp
-	texmake.cpp
-	texture.cpp
-	texture3d.cpp
+	geometry/subdivision.cpp
+	geometry/subdivisionCreator.cpp
+	geometry/subdivisionHierarchical.cpp
+	geometry/subdivisionLoop.cpp
+	geometry/surface.cpp
+	texture/texmake.cpp
+	texture/texture.cpp
+	texture/texture3d.cpp
 #	variable.cpp
 	state/xform.cpp
 )
@@ -166,6 +179,9 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/parse>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
@@ -267,8 +283,8 @@ endif()
 # since there's nothing shading-specific to swap out.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
-    csgTesselationDispatch.cpp
-    csgTree.cpp
+    geometry/csgTesselationDispatch.cpp
+    geometry/csgTree.cpp
     dlobject.cpp
     hcshader.cpp
     hiders/irradianceDispatch.cpp
@@ -282,7 +298,7 @@ list(REMOVE_ITEM ribVector_sources
     hiders/zbuffer.cpp
     ifexpr_generated.cpp
     imager.cpp
-    implicitSurface.cpp
+    geometry/implicitSurface.cpp
     init.cpp
     remoteChannel.cpp
     render/geometryDispatch.cpp
@@ -293,8 +309,8 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererFiles.cpp
     render/rendererJobs.cpp
     render/rendererShadingServices.cpp
-    solidObject.cpp
-    surface.cpp
+    geometry/solidObject.cpp
+    geometry/surface.cpp
 )
 list(APPEND ribVector_sources
     vector/csgTesselationDispatchStub.cpp
@@ -318,6 +334,9 @@ target_include_directories(ribVector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/render>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/state>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/parse>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geometry>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/texture>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/output>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
 )
 target_link_libraries(ribVector PRIVATE ${openrendertiff_libs} openrendercommon)

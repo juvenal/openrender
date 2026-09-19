@@ -38,7 +38,7 @@
 #include "libshader/include/openrender/RSLShading.h"
 #include "ri/state/attributes.h"
 #include "ri/memory.h"
-#include "ri/object.h"
+#include "ri/geometry/object.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 #include "ri/parse/ri.h"

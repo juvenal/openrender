@@ -28,6 +28,9 @@ target_include_directories(ribpreview PUBLIC
     ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry
+    ${CMAKE_SOURCE_DIR}/src/ri/texture
+    ${CMAKE_SOURCE_DIR}/src/ri/output
     ${CMAKE_BINARY_DIR}
 )
 

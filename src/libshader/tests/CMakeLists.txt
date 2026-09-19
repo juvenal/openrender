@@ -96,6 +96,9 @@ target_include_directories(test_libshader_used_parameters_table PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry
+    ${CMAKE_SOURCE_DIR}/src/ri/texture
+    ${CMAKE_SOURCE_DIR}/src/ri/output
     ${CMAKE_SOURCE_DIR}/src/libshader/shading    # scriptFunctions.h/scriptOpcodes.h
 )
 

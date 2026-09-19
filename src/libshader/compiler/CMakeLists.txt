@@ -11,6 +11,9 @@ include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/hiders)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/render)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/state)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/parse)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/geometry)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/texture)
+include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/output)
 
 flex_file(rslo.l lex.rslo.cpp rslo)
 flex_file(../../ri/parse/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
