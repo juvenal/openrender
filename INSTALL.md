@@ -28,6 +28,44 @@ Required:
   sources are kept in the repository. On macOS you need Homebrew's bison, as
   the system one is 2.3; the system flex is fine.
 
+### macOS: Homebrew vs. vcpkg for libtiff/libpng/zlib/OpenEXR
+
+By default these come from Homebrew. Homebrew's bottles are prebuilt for
+whatever macOS SDK Homebrew's own CI happened to run on, which can be newer
+than this project's `CMAKE_OSX_DEPLOYMENT_TARGET` (13.3) — usually harmless
+for local development, but not something a distributable binary should rely
+on (see the release workflow, which vendors these instead).
+
+To use the same vendored dependencies locally — recommended if you maintain
+multiple worktrees and want one shared, version-pinned copy instead of
+depending on whatever Homebrew currently has installed:
+
+```bash
+scripts/setup-vcpkg-macos.sh
+```
+
+This clones and bootstraps a shared vcpkg checkout (default `~/.vcpkg`,
+pinned to the same commit as `vcpkg.json`) and prints two `export` lines to
+add to your shell profile yourself:
+
+```bash
+export VCPKG_ROOT=~/.vcpkg
+export VCPKG_INSTALLED_DIR=~/.cache/vcpkg-installed/openrender
+```
+
+With those set, `cmake -B build -S .` picks up vcpkg automatically — no
+extra flags — and every worktree pointed at the same `VCPKG_INSTALLED_DIR`
+shares one compiled tree (~13MB) rather than each paying for its own.
+Leaving `VCPKG_ROOT` unset keeps using Homebrew exactly as before; nothing
+else about the build changes either way.
+
+**Switching modes on an existing build directory doesn't work — delete it
+first.** `CMAKE_TOOLCHAIN_FILE` is only honored on a build directory's first
+configure; setting or unsetting `VCPKG_ROOT` and re-running `cmake -B build`
+on the same directory leaves it silently linked against whichever backend it
+started with. Run `rm -rf build` (or use a fresh build directory) whenever
+you flip `VCPKG_ROOT` for a worktree that already has one configured.
+
 Optional, each enabling a component:
 
 - **LLVM** 15 or newer: the JIT (`.slo`) shader backend. Skip with

@@ -96,21 +96,67 @@ jobs:
         run: |
           brew install libtiff libpng flex bison openexr pkg-config
 
+      # zlib/libpng/tiff/openexr/LLVM for the SELF-CONTAINED build only:
+      # Homebrew's bottles are pre-built for whatever macOS version Homebrew's
+      # own CI happened to run on, not for the -DCMAKE_OSX_DEPLOYMENT_TARGET
+      # this build claims -- linking them into a "self-contained" tarball
+      # makes that floor a lie. Building the same libraries from source,
+      # pinned to this triplet's deployment target, makes it a real guarantee
+      # instead. LLVM is vendored core-only (no clang/lld/tools -- see
+      # vcpkg.json's llvm feature list); it's the most expensive thing in this
+      # manifest by far, ~110 min from scratch (cached by the step below after
+      # that). Not used for the FHS build below: an FHS package is supposed to
+      # depend on the target system's own package manager for these, exactly
+      # like a .deb/.rpm does on Linux -- see
+      # CMake/vcpkg-triplets/x64-osx-openrender.cmake for the full rationale.
+      # Deliberately scoped to this step's own output (not GITHUB_ENV): the
+      # root CMakeLists.txt now auto-detects VCPKG_ROOT from the environment
+      # for every build, so leaking it job-wide here would silently pull the
+      # FHS build below onto vcpkg too, which must stay Homebrew-linked.
+      - name: Checkout and bootstrap vcpkg
+        id: bootstrap-vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$RUNNER_TEMP/vcpkg"
+          cd "$RUNNER_TEMP/vcpkg"
+          git checkout 319504a5326aa870edde46438c5455fa76305a56
+          ./bootstrap-vcpkg.sh -disableMetrics
+          echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binary archives
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-x64-osx-openrender-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-x64-osx-openrender-
+
       - name: Build self-contained version (x86_64)
+        env:
+          VCPKG_ROOT: ${{ steps.bootstrap-vcpkg.outputs.vcpkg_root }}
         run: |
           export PATH="/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
           mkdir build-sc && cd build-sc
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=ON \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-            -DCMAKE_INSTALL_PREFIX=/opt/openrender
+            -DCMAKE_INSTALL_PREFIX=/opt/openrender \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=x64-osx-openrender \
+            -DVCPKG_OVERLAY_TRIPLETS="${{ github.workspace }}/CMake/vcpkg-triplets"
           cmake --build . -j$(sysctl -n hw.ncpu)
           ctest
           DESTDIR=staging_dir cmake --install .
           tar -czf ../openrender-macos-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
 
+      # 13.3 (bumped from a stale 12.0 alongside the vcpkg change above) is
+      # not a vcpkg/Homebrew concern here: openRender's own logging.hpp uses
+      # std::format on floating-point values, and libc++ backs that with
+      # std::to_chars(long double), only available from macOS 13.3. 12.0
+      # fails to compile libshader_shading regardless of where TIFF/PNG/
+      # OpenEXR come from -- confirmed by a local build at 12.0 failing
+      # before this fix.
       - name: Build FHS version (x86_64)
         run: |
           export PATH="/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
@@ -118,7 +164,7 @@ jobs:
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=OFF \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=x86_64 \
             -DCMAKE_INSTALL_PREFIX=/usr/local
           cmake --build . -j$(sysctl -n hw.ncpu)
@@ -158,21 +204,54 @@ jobs:
         run: |
           brew install libtiff libpng flex bison openexr pkg-config
 
+      # See the matching step in build-macos-x86_64 for the full rationale:
+      # this vendors zlib/libpng/tiff/openexr/LLVM at a pinned deployment
+      # target for the self-contained build only, leaving the FHS build on
+      # Homebrew.
+      # Scoped to this step's own output, not GITHUB_ENV -- see the matching
+      # comment in build-macos-x86_64: leaking VCPKG_ROOT job-wide would pull
+      # the FHS build below onto vcpkg too, now that the root CMakeLists.txt
+      # auto-detects it from the environment for every build.
+      - name: Checkout and bootstrap vcpkg
+        id: bootstrap-vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$RUNNER_TEMP/vcpkg"
+          cd "$RUNNER_TEMP/vcpkg"
+          git checkout 319504a5326aa870edde46438c5455fa76305a56
+          ./bootstrap-vcpkg.sh -disableMetrics
+          echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg binary archives
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-arm64-osx-openrender-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-arm64-osx-openrender-
+
       - name: Build self-contained version (arm64)
+        env:
+          VCPKG_ROOT: ${{ steps.bootstrap-vcpkg.outputs.vcpkg_root }}
         run: |
           export PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
           mkdir build-sc && cd build-sc
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=ON \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_INSTALL_PREFIX=/opt/openrender
+            -DCMAKE_INSTALL_PREFIX=/opt/openrender \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=arm64-osx-openrender \
+            -DVCPKG_OVERLAY_TRIPLETS="${{ github.workspace }}/CMake/vcpkg-triplets"
           cmake --build . -j$(sysctl -n hw.ncpu)
           ctest
           DESTDIR=staging_dir cmake --install .
           tar -czf ../openrender-macos-selfcontained-arm64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
 
+      # See the matching comment in build-macos-x86_64: 13.3 here is a
+      # project-wide std::to_chars(long double) requirement, not a
+      # vcpkg/Homebrew concern -- applies equally to this FHS build.
       - name: Build FHS version (arm64)
         run: |
           export PATH="/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$PATH"
@@ -180,7 +259,7 @@ jobs:
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=OFF \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_INSTALL_PREFIX=/opt/homebrew
           cmake --build . -j$(sysctl -n hw.ncpu)

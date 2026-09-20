@@ -33,6 +33,50 @@ if(APPLE)
     endif()
 endif()
 
+# vcpkg auto-detection (opt-in via VCPKG_ROOT), same pre-project() requirement
+# as CMAKE_OSX_DEPLOYMENT_TARGET above: CMAKE_TOOLCHAIN_FILE is only read
+# during project()'s own bootstrap, so this has to run before it or it's a
+# silent no-op. Unset VCPKG_ROOT (the default) leaves CMAKE_TOOLCHAIN_FILE
+# untouched and every existing find_package(TIFF/PNG/ZLIB/OpenEXR CONFIG) call
+# resolves Homebrew exactly as before -- opting in changes nothing for anyone
+# who hasn't run scripts/setup-vcpkg-macos.sh.
+#
+# Only takes effect on a build directory's FIRST configure: CMake accepts a
+# later change to CMAKE_TOOLCHAIN_FILE into the cache without acting on it,
+# so flipping VCPKG_ROOT on/off for an existing build directory silently
+# keeps linking whichever backend it started with. `rm -rf build` and
+# reconfigure when switching.
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(APPLE)
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "Vcpkg toolchain file")
+
+        execute_process(COMMAND uname -m OUTPUT_VARIABLE OPENRENDER_HOST_ARCH
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(OPENRENDER_HOST_ARCH STREQUAL "arm64")
+            set(VCPKG_TARGET_TRIPLET "arm64-osx-openrender" CACHE STRING "Vcpkg target triplet")
+        else()
+            set(VCPKG_TARGET_TRIPLET "x64-osx-openrender" CACHE STRING "Vcpkg target triplet")
+        endif()
+        unset(OPENRENDER_HOST_ARCH)
+
+        set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}/CMake/vcpkg-triplets"
+            CACHE STRING "Vcpkg overlay triplets")
+
+        # Shared across worktrees when set (see scripts/setup-vcpkg-macos.sh).
+        # Left unset, vcpkg falls back to its own manifest-relative default
+        # (vcpkg_installed/<triplet>/ next to this file) -- still correct,
+        # just not shared.
+        if(DEFINED ENV{VCPKG_INSTALLED_DIR})
+            set(VCPKG_INSTALLED_DIR "$ENV{VCPKG_INSTALLED_DIR}" CACHE STRING "Vcpkg installed tree")
+        endif()
+    else()
+        message(WARNING "VCPKG_ROOT is set but no vcpkg triplet exists yet for this "
+            "platform (only macOS is vendored so far) -- ignoring it, falling back to "
+            "system find_package().")
+    endif()
+endif()
+
 # 3.19 is what the LLVM JIT path targets, and what a future OpenShadingLanguage
 # integration requires of its own accord (OSL: CMake >= 3.19, LLVM >= 14).
 #

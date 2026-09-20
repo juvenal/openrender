@@ -27,6 +27,51 @@ the repo, so there is nothing to fall back to; the old `USE_FLEX_BISON=OFF`
 option promised a fallback that could only ever fail and has been removed.
 macOS needs Homebrew's bison (the system one is 2.3); the system flex is fine.
 
+**macOS builds vendor libpng/libtiff/zlib/OpenEXR/LLVM via vcpkg when
+`VCPKG_ROOT` is set — Homebrew otherwise.** Homebrew's bottles are pre-built
+for whatever macOS SDK Homebrew's own CI happened to run on, not for this
+project's actual `CMAKE_OSX_DEPLOYMENT_TARGET` (13.3), so a Homebrew-linked
+binary silently can't honor that floor (`ld` warns about this at link time —
+that's the warning to trust, not dismiss). Run `scripts/setup-vcpkg-macos.sh`
+once to clone+bootstrap a shared vcpkg checkout (default `~/.vcpkg`) and get
+the `export VCPKG_ROOT=...` / `export VCPKG_INSTALLED_DIR=...` lines to add
+to your shell profile yourself — the script never edits it for you. With
+those set, the root `CMakeLists.txt` auto-detects the toolchain file, host
+triplet (`arm64-osx-openrender`/`x64-osx-openrender`), and overlay triplets
+before `project()`, so a bare `cmake -B build -S .` picks up vcpkg with zero
+extra flags; every worktree pointed at the same `VCPKG_INSTALLED_DIR` shares
+one compiled tree instead of each paying for its own. Leaving `VCPKG_ROOT`
+unset falls back to Homebrew exactly as before. See `vcpkg.json` and
+`CMake/vcpkg-triplets/*.cmake` for the manifest/triplet definitions.
+
+**LLVM is vendored core-only** (`default-features: false`, `features:
+["default-targets"]` in `vcpkg.json`) — no clang/lld/mlir/tools/bindings,
+just the component libraries `llvm_map_components_to_libnames` needs (core,
+orcjit, native, bit{reader,writer}, support) plus the host's native codegen
+backend. That trims a lot off the default vcpkg `llvm` port's build (which
+pulls in clang+lld+tools by default), but it's still by far the most
+expensive thing in this manifest: measured at **~110 minutes** for a from-
+scratch build on Apple Silicon, versus low single-digit minutes for the four
+image/format libs combined. It's a one-time cost per baseline bump (vcpkg's
+binary cache reuses it after that), but budget for it — don't `rm -rf
+~/.vcpkg` or bump `builtin-baseline` without expecting to pay it again.
+Building LLVM pins every core near 100% for that whole stretch; if that's a
+problem (thermal, sharing the machine), throttle the actual build processes
+with `renice`/`taskpolicy -b`, not `-j1` — vcpkg has already fixed the
+parallelism for that invocation by the time `cmake -B` returns control to
+you, so there is no flag to pass in after the fact.
+
+CI (`.github/workflows/release.yml`) uses the same mechanism for the
+self-contained release build, bootstrapping its own ephemeral `VCPKG_ROOT`
+per job (scoped to that step's own output, never `GITHUB_ENV`, so it can't
+leak into the FHS build step that follows in the same job) — LLVM builds
+there too, adding real minutes to a first build after any baseline bump
+(cached afterward via the existing `actions/cache` step, keyed on
+`hashFiles('vcpkg.json')`). The FHS build variant deliberately keeps linking
+Homebrew for everything including LLVM, since an FHS package is meant to
+depend on the
+target system's own package manager for its runtime libs.
+
 **CMake floor is a flat 3.19** (what the JIT and a future OSL integration
 target). `-DOPENRENDER_ENABLE_JIT=OFF` skips LLVM detection entirely and builds
 the interpreter alone; it no longer affects the CMake floor. **Supported
