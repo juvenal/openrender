@@ -1,0 +1,19 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US5) regression: surface()/displacement()/
+# atmosphere()/incident()/opposite() silently no-op under the JIT. Not
+# raytraced/stochastic (deterministic parameter table lookups), so no
+# numthreads 1 requirement.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sphere-shader-parameter-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Interior "param_query_volume"
+  Exterior "param_query_volume"
+  Displacement "param_query_displacement"
+  Surface "shader_parameter_probe"
+  Sphere 1 -1 1 360
+WorldEnd

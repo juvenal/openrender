@@ -65,12 +65,28 @@ CShader *parseShader(const char *, const char *);
 #include <cstring>
 
 // Map SLOShaderInfo typeName to SL_* constant.
+//
+// "volume" (spec 017-jit-builtin-function-coverage, US5): confirmed missing
+// here while testing incident()/opposite() -- rslo.y's grammar accepts the
+// `volume NAME(...)` shader-type keyword (SL_VOLUME token) and the emitter
+// faithfully embeds typeName="volume" into the .slo's metadata (confirmed
+// via sloinfo), but this function never checked for it, silently falling
+// through to the SL_SURFACE default. There is no distinct SL_VOLUME runtime
+// constant (shader.h only defines SURFACE/LIGHTSOURCE/DISPLACEMENT/
+// ATMOSPHERE/IMAGER) -- RiAtmosphereV/RiInteriorV/RiExteriorV all bind
+// against SL_ATMOSPHERE (rendererContext.cpp), so "volume" maps there too,
+// same as the already-handled "atmosphere" typeName string. Every other
+// .slo shader type happened to already have a matching branch here; a
+// volume-class .slo shader was the one combination nothing had exercised
+// before (no shipped .sl file uses the `volume` keyword) -- .rslo loading
+// never went through this function at all, so the interpreter path was
+// silently unaffected the whole time.
 static unsigned int sloShaderType(const std::string &n) {
     if (n == "light")
         return SL_LIGHTSOURCE;
     if (n == "displacement")
         return SL_DISPLACEMENT;
-    if (n == "atmosphere")
+    if (n == "atmosphere" || n == "volume")
         return SL_ATMOSPHERE;
     if (n == "imager")
         return SL_IMAGER;

@@ -1,10 +1,10 @@
 # Contract: JIT-callable `op_*` wrapper ABI
 
 This is the internal contract every new `op_*` function this feature adds
-(across US1/US3/US4) must satisfy. It is the "interface" a library feature
-like this exposes — not a network/CLI contract, but the calling convention
-between JIT-generated code (`llvmEmitter.cpp`) and the runtime wrapper
-(`rslOps.cpp`).
+(across US1/US3/US4/US5) must satisfy. It is the "interface" a library
+feature like this exposes — not a network/CLI contract, but the calling
+convention between JIT-generated code (`llvmEmitter.cpp`) and the runtime
+wrapper (`rslOps.cpp`).
 
 ## Signature convention
 
@@ -21,19 +21,23 @@ between JIT-generated code (`llvmEmitter.cpp`) and the runtime wrapper
   void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int sn, int n, const int *tags);
   ```
 - **Context-needing, non-raytracing functions** (`raylabel`, `raydepth`,
-  `rayinfo`): fetch `CShadingContext *ctx = libshader::activeContext();`
-  and delegate. Template: `op_shadow_f` (`rslOps.cpp:1583-1588`):
+  `rayinfo`, and US5's `shadername`/`clearlighting`/`phong`/`surface`/
+  `displacement`/`atmosphere`/`incident`/`opposite`/`attribute`/`option`/
+  `rendererinfo`/`textureinfo`): fetch `CShadingContext *ctx =
+  libshader::activeContext();` and delegate. Template: `op_shadow_f`
+  (`rslOps.cpp:1583-1588`):
   ```c
   void op_shadow_f(float *dst, int sd, ..., int n, const int *tags) {
       CShadingContext *ctx = libshader::activeContext();
       if (ctx) ctx->jitShadowF(...);
   }
   ```
-- **Raytracing-tier functions** (`visibility`, `transmission`, `trace`,
-  `occlusion`, `indirectdiffuse`, `photonmap`): same `activeContext()`
-  delegation shape, but the wrapper ALSO receives `du`/`dv`/`N`/`time`
-  grid pointers (loaded by the emitter via `resolveVar`+`loadVarPtr`, see
-  `research.md` D2) to pass through to the `CShadingContext` method:
+- **Raytracing/point-cloud-tier functions** (`visibility`, `transmission`,
+  `trace`, `occlusion`, `indirectdiffuse`, `photonmap`, and US5's
+  `texture3d`/`bake3d`): same `activeContext()` delegation shape, but the
+  wrapper ALSO receives `du`/`dv`/`N`/`time` grid pointers (loaded by the
+  emitter via `resolveVar`+`loadVarPtr`, see `research.md` D2) to pass
+  through to the `CShadingContext` method:
   ```c
   void op_visibility(float *dst, int sd, const float *P, int sp,
                       const float *D, int sD, const float *du,
@@ -49,24 +53,35 @@ between JIT-generated code (`llvmEmitter.cpp`) and the runtime wrapper
 
 ## Delegation requirement (FR-016)
 
-The wrapper (and, for raytracing-tier functions, the `CShadingContext`
-method it delegates to) MUST:
-1. For US4's pure-math/string functions: call the identified
-   `mathSpec.h` free function (or, for `match`, alias directly to the
-   existing `op_seql`) — see `research.md` D5's table for each function's
-   specific target.
-2. For US1's raytracing tier and `photonmap`: transcribe the corresponding
-   `giFunctions.h` macro family byte-faithfully inside a new
-   `CShadingContext` member method (`research.md` D2), including the
-   `numRealVertices`-bounded-then-replicate loop discipline (`research.md`
-   D1) — this is new code by necessity (no existing function to call), but
-   its *behavior* must match the interpreter's macro exactly, not
-   approximate it.
+The wrapper (and, for raytracing/point-cloud-tier functions, the
+`CShadingContext` method it delegates to) MUST:
+1. For US4's pure-math/string functions, and US5's `specularbrdf`/
+   `pnoise`/`debug`/`Deriv`: call the identified `mathSpec.h`/`noise.h`
+   free function (or, for `match`, alias directly to the existing
+   `op_seql`) — see `research.md` D5's table (US4) and D12's table (US5)
+   for each function's specific target.
+2. For US1's raytracing tier, `photonmap`, and US5's `texture3d`/
+   `bake3d`/the `PARAMETEREXPR` family/`textureinfo`/`phong`: transcribe
+   the corresponding `giFunctions.h`/`shaderFunctions.h` macro family
+   byte-faithfully inside a new `CShadingContext` member method
+   (`research.md` D2, D10, D11), including the `numRealVertices`-bounded-
+   then-replicate loop discipline (`research.md` D1) for every
+   `DEFSHORTFUNC` entry among them (`occlusion`/`indirectdiffuse`/
+   `photonmap`/`bake3d` — NOT the plain-`DEFFUNC` `PARAMETEREXPR` family
+   or `texture3d`, which loop the full `numVertices` and need no
+   tail-replication) — this is new code by necessity (no existing function
+   to call), but its *behavior* must match the interpreter's macro
+   exactly, not approximate it. **Do not copy `op_lightsource_f` as a
+   template for the `PARAMETEREXPR` family** — `research.md` D10 confirms
+   it is an intentionally incomplete (float-only, uniform-only)
+   precedent, adequate for `lightsource()`'s own call shape but not a
+   faithful transcription of `PARAMETEREXPR_PRE`'s full V/F/S/M behavior.
 3. MUST NOT contain any new arithmetic/shading/raytracing logic beyond
    what's required to reproduce the interpreter's exact behavior — no
    "improved" or "corrected" semantics (see `research.md` D5's `match`/
-   `round`/`min` notes — mirror the interpreter's current behavior exactly,
-   quirks included, per spec.md FR-017).
+   `round`/`min` notes and D12's `debug()`-is-a-true-no-op note — mirror
+   the interpreter's current behavior exactly, quirks included, per
+   spec.md FR-017).
 
 ## Emitter-side pairing
 

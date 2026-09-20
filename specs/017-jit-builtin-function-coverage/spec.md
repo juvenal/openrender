@@ -19,6 +19,34 @@
 - Q: Should this feature require the new JIT implementations (especially the P1 raytracing tier) to be measurably faster than the interpreter, mirroring spec 011's precedent? → A: No — correctness parity only. Spec 011's equivalent bar (JIT ≥10% faster than interpreter) is documented as never actually met project-wide; this feature's `FR-007` (avoid ~3× redundant ray tracing via the `numRealVertices` discipline) already prevents the most obvious performance regression as a correctness requirement, without gating the fix on a historically-unmet wall-clock target.
 - Q: Should `quadlight.rib`/`spherelight.rib` (currently unregistered example scenes, not part of `ctest -L visual`) become permanent, CI-visible regression tests, or is a one-time manual verification sufficient? → A: Register them permanently — they are the real-world scenes that motivated issues #1 and #3; leaving them unregistered would let a future regression in `visibility()`/`transmission()`'s JIT path silently reopen the exact defect this feature exists to close, with nothing in CI to catch it.
 
+### Session 2026-09-20 (mid-implementation scope extension)
+
+While implementing User Story 2's `kAllFunctionMnemonics[]` coverage guard,
+running it for real (not just reading its own code) surfaced **18
+previously-uninventoried unhandled builtin functions** — `surface`,
+`displacement`, `atmosphere`, `incident`, `opposite`, `attribute`,
+`option`, `rendererinfo`, `textureinfo`, `bake3d`, `texture3d`,
+`shadername`, `phong`, `specularbrdf`, `pnoise`, `debug`, `Deriv`,
+`clearlighting` — on top of the 19 (of the original 25 minus Story 1's 6)
+already known from Stories 3/4. GitHub issue #3's original inventory (and
+this spec's own count) never enumerated `shaderFunctions.h` — only
+`giFunctions.h` — a genuine gap in the original investigation, not a guard
+bug. Independently confirmed (not just trusted from the guard): (a) direct
+`oshader --jit` compile attempts on minimal fixtures calling `shadername()`
+and `option()` both fail exactly as the guard predicts (nonzero exit,
+diagnostic naming the mnemonic, no `.slo` written); (b) grepping every
+shipped shader (`shaders/*.sl`) for real calls to all 18 finds none (one
+apparent hit, `phong` in `uberlight.sl`, is inside a comment, not a call).
+- Q: Now that these 18 are confirmed real and unhandled, and confirmed to
+  affect zero currently-shipped shaders, how should they be brought into
+  this feature's scope? → A: Add them as a new User Story 5, via manual
+  extension of `spec.md`/`research.md`/`tasks.md` (not a fresh
+  `/speckit.specify` pass) — picking back up with `/speckit.analyze` before
+  `/speckit.implement` proceeds into the new story, matching this feature's
+  existing per-phase review process.
+
+
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Shipped shaders using `visibility()`/`transmission()`/`trace()`/`occlusion()`/`indirectdiffuse()`/`comp()` render correctly under the JIT (Priority: P1)
@@ -116,12 +144,15 @@ full `FUNCTION_`-family builtin set.
 *class*, not just the functions this feature happens to name today — without
 it, the exact same silent-failure pattern that produced two real,
 independently-discovered bugs (`random()`/`urandom()`, then this feature's
-25) can recur indefinitely. Sequenced after Story 1 specifically: confirmed
-by direct inspection that, once Story 1's six functions are implemented,
-zero currently-shipped shaders reference any of the remaining 19 functions
-this feature also inventories — so hardening the compile-time gate at that
-point causes no build breakage, whereas hardening it before Story 1 lands
-would break the build for every shipped shader Story 1 fixes.
+25, then Story 5's further 18) can recur indefinitely. Sequenced after
+Story 1 specifically: confirmed by direct inspection that, once Story 1's
+six functions are implemented, zero currently-shipped shaders reference
+any of the remaining 37 functions this feature also inventories (19 from
+Stories 3/4, plus Story 5's 18, confirmed by the same direct-grep method
+after Story 5's mid-implementation discovery) — so hardening the
+compile-time gate at that point causes no build breakage, whereas
+hardening it before Story 1 lands would break the build for every shipped
+shader Story 1 fixes.
 
 **Independent Test**: Deliberately introduce, in a local uncommitted
 change, a call to a still-unhandled or newly-invented builtin function and
@@ -219,6 +250,92 @@ shader exercising it, once via each backend, and confirm the two match.
 
 ---
 
+### User Story 5 - Previously-uninventoried builtin functions are available under the JIT (Priority: P3)
+
+A shader author writes RSL using any of 18 builtin functions that GitHub
+issue #3's original investigation never enumerated — because it only
+inspected `giFunctions.h`, not the sibling `shaderFunctions.h` these all
+live in. Discovered mid-implementation by actually running this feature's
+own coverage guard (Story 2) rather than trusting its own code: `surface`,
+`displacement`, `atmosphere`, `incident`, `opposite` (a shader-instance
+parameter-query family, one shared mechanism); `attribute`, `option`,
+`rendererinfo` (a scene/attribute-state parameter-query family, the same
+underlying mechanism with a different accessor); `textureinfo` (texture
+file metadata query); `texture3d`, `bake3d` (point-cloud read/write,
+reusing this feature's own Story 1 `occlusion()`/`indirectdiffuse()`
+point-cloud-cache architecture); `shadername` (current/named shader-type
+lookup); `phong`, `specularbrdf` (BRDF lighting math, the same shape as
+the already-JIT-handled `diffuse()`/`specular()`); `pnoise` (periodic
+noise, reusing the already-JIT-handled `noise()`'s existing primitives);
+`debug` (a four-overload no-op — the interpreter's own implementation
+never even reads its argument); `Deriv` (general finite-difference
+derivative of a caller-supplied expression pair); `clearlighting` (a
+single-call state reset). Each silently no-ops under `--jit` exactly like
+Stories 1/3/4's functions did. This story fixes all 18 so JIT output
+matches the interpreter for shaders using them, and closes
+`LibShader_OpcodeCoverage` (Story 2's guard) to fully green.
+
+**Why this priority**: Same rationale as Stories 3/4 — confirmed, by direct
+grep of every shipped `.sl` file, that nothing currently shipped depends on
+any of these 18. Lower priority than Stories 1/2, but still real,
+silently-wrong behavior today for any shader author who uses one of them,
+and — unlike Stories 3/4 — leaving it undone means Story 2's own coverage
+guard (`ctest -L libshader`'s `LibShader_OpcodeCoverage`) cannot reach a
+passing state at this feature's close, since it now enumerates these 18
+too.
+
+**Independent Test**: For each function (or tightly-related group sharing
+one probe shader, matching Stories 1/3/4's established pattern), render a
+minimal shader exercising it, once via each backend, and confirm the two
+match. After all 18 land, `ctest -L libshader`'s `LibShader_OpcodeCoverage`
+passes with zero remaining gaps.
+
+**Acceptance Scenarios**:
+
+1. **Given** a shader that calls `surface()`, `displacement()`,
+   `atmosphere()`, `incident()`, or `opposite()` to query a named parameter
+   from the correspondingly-bound shader instance, in any of its four
+   result-type forms (float/vector/string/matrix), **When** rendered with
+   the JIT backend, **Then** the result matches the interpreter backend.
+2. **Given** a shader that calls `attribute()`, `option()`, or
+   `rendererinfo()` to query scene/attribute-level state, in any of its
+   four result-type forms, **When** rendered with the JIT backend, **Then**
+   the result matches the interpreter backend.
+3. **Given** a shader that calls `textureinfo()` for any of its supported
+   query strings (`"resolution"`, `"type"`, `"channels"`,
+   `"viewingmatrix"`, `"projectionmatrix"`, `"exists"`), **When** rendered
+   with the JIT backend, **Then** the result matches the interpreter
+   backend.
+4. **Given** a shader that calls `texture3d()` (read) or `bake3d()`
+   (write), **When** rendered with the JIT backend, **Then** the result
+   matches the interpreter backend — `bake3d()` additionally following
+   FR-007's once-per-real-vertex-then-replicate discipline under
+   derivative shading, since it is a `DEFSHORTFUNC` like Story 1's
+   raytracing-tier functions.
+5. **Given** a shader that calls `shadername()` (with or without its
+   optional shader-type-string argument), **When** rendered with the JIT
+   backend, **Then** the result matches the interpreter backend.
+6. **Given** a shader that calls `phong()` or `specularbrdf()`, **When**
+   rendered with the JIT backend, **Then** the result matches the
+   interpreter backend, including `specularbrdf()`'s anti-parallel
+   halfway-vector NaN guard (the same class of guard already applied to
+   `specular()`).
+7. **Given** a shader that calls `pnoise()` in any of its supported
+   dimensionality/result-type overloads, **When** rendered with the JIT
+   backend, **Then** the result matches the interpreter backend.
+8. **Given** a shader that calls `debug()` (in any of its four overload
+   forms), **When** rendered with the JIT backend, **Then** behavior
+   matches the interpreter backend's own no-op implementation (no crash,
+   no per-vertex output written) — not a "fixed" or more useful debug
+   output, since the interpreter itself has none.
+9. **Given** a shader that calls `Deriv()` to compute the finite-difference
+   derivative of a caller-supplied expression pair, **When** rendered with
+   the JIT backend, **Then** the result matches the interpreter backend,
+   including producing an exact-zero result (not garbage from an
+   out-of-bounds read) when either operand is uniform.
+10. **Given** a shader that calls `clearlighting()`, **When** rendered with
+    the JIT backend, **Then** behavior matches the interpreter backend.
+
 ### Edge Cases
 
 - What happens for a builtin function call that appears in a shader source
@@ -248,6 +365,18 @@ shader exercising it, once via each backend, and confirm the two match.
   explicitly out of scope for this feature — a future feature would need to
   either implement the JIT-side equivalent of the interpreter's PL-cache
   binding machinery or take a different approach.
+- What happens with `lightsource()`'s existing JIT implementation
+  (`op_lightsource_f`) as a template for Story 5's `surface`/`displacement`/
+  `atmosphere`/`incident`/`opposite`/`attribute`/`option`/`rendererinfo`
+  family, since it uses the exact same underlying `PARAMETEREXPR_PRE`/
+  `PARAMETEREXPRF/V/S/M`/`PARAMETEREXPR_UPDATE` macro mechanism and is
+  already JIT-handled? Confirmed by inspection that `op_lightsource_f` is
+  an intentionally simplified, incomplete implementation — float-result-only,
+  effectively uniform-only (always writes index 0 regardless of `n`), never
+  exercising the vector/string/matrix branches or the `cVar`/stride logic
+  `PARAMETEREXPR_PRE` actually provides for a genuinely varying result. It
+  must not be copied as-is for Story 5's family; each of that family's four
+  result-type forms needs a real, complete implementation.
 - What happens to the two `DSO` (dynamically-loaded shadeop plugin)
   dispatcher table rows that share the literal placeholder name `"XXX"` in
   issue #3's original inventory? Confirmed these are not a 27th missing
@@ -316,10 +445,11 @@ shader exercising it, once via each backend, and confirm the two match.
   interpreter backend for shaders calling any of: `degrees`, `determinant`,
   `distance`, `match`, `min`, `refract`, `rotate`, `round`, `scale`,
   `setcomp`, `step`, `translate`, `concat`, `format`.
-- **FR-016**: Every fix delivered under FR-001 through FR-006 and FR-011
-  through FR-015 MUST compute its result by invoking the same underlying
-  implementation the interpreter backend already uses for that function,
-  not by re-implementing the function's logic independently for the JIT.
+- **FR-016**: Every fix delivered under FR-001 through FR-006, FR-011
+  through FR-015, and FR-020 through FR-030 MUST compute its result by
+  invoking the same underlying implementation the interpreter backend
+  already uses for that function, not by re-implementing the function's
+  logic independently for the JIT.
 - **FR-017**: The interpreter (`.rslo`) backend remains the reference
   implementation throughout this feature and its behavior MUST NOT change,
   including any pre-existing quirk in a given function's current behavior
@@ -337,6 +467,44 @@ shader exercising it, once via each backend, and confirm the two match.
   MUST be registered as permanent, persisted `.slo`-vs-`.rslo` regression
   tests under this feature — not verified once and left unregistered —
   since they are the real-world scenes that motivated issues #1 and #3.
+- **FR-020**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `surface()`, `displacement()`,
+  `atmosphere()`, `incident()`, or `opposite()`, in all four of their
+  result-type forms (float/vector/string/matrix).
+- **FR-021**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `attribute()`, `option()`, or
+  `rendererinfo()`, in all four of their result-type forms.
+- **FR-022**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `textureinfo()`, for all of its
+  supported query strings.
+- **FR-023**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `texture3d()`.
+- **FR-024**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `bake3d()`, following FR-007's
+  once-per-real-vertex-then-replicate discipline under derivative shading.
+- **FR-025**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `shadername()`, with or without
+  its optional shader-type-string argument.
+- **FR-026**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `phong()` or `specularbrdf()`.
+- **FR-027**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `pnoise()`, in its supported
+  dimensionality/result-type overloads.
+- **FR-028**: The JIT shading backend MUST match the interpreter's own
+  no-op behavior for shaders calling `debug()` (any of its four overload
+  forms) — no crash, no per-vertex value written, since the interpreter's
+  own implementation does not read its argument either.
+- **FR-029**: The JIT shading backend MUST produce output matching the
+  interpreter backend for shaders calling `Deriv()`, including producing
+  an exact-zero (not out-of-bounds-garbage) result when either operand is
+  uniform.
+- **FR-030**: The JIT shading backend MUST match the interpreter backend
+  for shaders calling `clearlighting()`.
+- **FR-031**: Every fix delivered under FR-020 through FR-030 MUST follow
+  FR-016's delegate-to-the-interpreter's-own-implementation requirement and
+  FR-017's mirror-current-behavior-exactly requirement, and MUST have a
+  persisted regression test per FR-018 — this story does not relax any of
+  those three requirements, it only adds functions under them.
 
 ### Key Entities
 
@@ -347,7 +515,9 @@ shader exercising it, once via each backend, and confirm the two match.
 - **RSL builtin function**: A named, callable RenderMan Shading Language
   function (as distinct from a bytecode-level operator) that the compiler
   lowers into an intermediate call instruction consumed by both backends —
-  the unit this feature's inventory (25 functions) is organized around.
+  the unit this feature's inventory (43 functions: 25 from the original
+  investigation plus 18 found mid-implementation by Story 5, see
+  Clarifications) is organized around.
 - **Coverage gate**: The JIT compiler's existing single point of dispatch
   that decides, per instruction, whether JIT code is emitted for it; this
   feature extends and eventually hardens this gate rather than replacing
@@ -376,13 +546,17 @@ shader exercising it, once via each backend, and confirm the two match.
 - **SC-004**: After Story 2 lands, `cmake --build` from a clean tree
   succeeds with zero new failures — confirming the compile-time hardening
   introduced no build breakage for any currently-shipped shader.
-- **SC-005**: 100% of the 25 builtin functions this feature inventories
-  (6 in Story 1, 5 in Story 3, 14 in Story 4 — `comp` counted once, in
-  Story 1) have a passing, persisted JIT-vs-interpreter equivalence
-  regression test under `ctest -L visual`.
+- **SC-005**: 100% of the 43 builtin functions this feature inventories
+  (6 in Story 1, 5 in Story 3, 14 in Story 4, 18 in Story 5 — `comp`
+  counted once, in Story 1) have a passing, persisted JIT-vs-interpreter
+  equivalence regression test under `ctest -L visual`.
 - **SC-006**: Zero instances remain, after this feature, of a JIT-side fix
   under this feature re-implementing math or trace logic that already
   exists in the interpreter's own implementation, rather than reusing it.
+- **SC-007**: After Story 5 lands, `ctest -L libshader`'s
+  `LibShader_OpcodeCoverage` passes with zero remaining gaps — Story 2's
+  coverage guard, extended to include Story 5's 18 functions, reaches a
+  fully green state.
 
 ## Assumptions
 
@@ -395,11 +569,15 @@ shader exercising it, once via each backend, and confirm the two match.
   comparison thresholds already used to validate rendering changes; this
   feature does not change that tolerance, only adds/passes comparisons
   under it.
-- This feature's builtin-function inventory (25 functions across Stories 1,
-  3, and 4) is drawn from GitHub issue #3's original list minus `"XXX"`
-  (confirmed a DSO-dispatch placeholder, not a real function — see Edge
-  Cases) and minus `random`/`urandom` (already fixed by issue #1, merged
-  prior to this feature).
+- This feature's builtin-function inventory (43 functions across Stories 1,
+  3, 4, and 5) is drawn from two sources: GitHub issue #3's original list
+  minus `"XXX"` (confirmed a DSO-dispatch placeholder, not a real function
+  — see Edge Cases) and minus `random`/`urandom` (already fixed by issue
+  #1, merged prior to this feature) — 25 functions, Stories 1/3/4; plus 18
+  more found by actually running this feature's own Story 2 coverage guard
+  mid-implementation, confirmed real via direct `oshader --jit` compile
+  tests and confirmed to affect zero shipped shaders via direct grep — see
+  Clarifications' 2026-09-20 mid-implementation entry, Story 5.
 - Development and verification for this feature use the project's
   vcpkg-vendored toolchain (LLVM, PNG, TIFF, zlib, OpenEXR all resolved
   under `VCPKG_INSTALLED_DIR`) exclusively, not Homebrew — per Clarifications

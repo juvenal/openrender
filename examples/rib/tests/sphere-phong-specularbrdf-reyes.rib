@@ -1,0 +1,16 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US5) regression: phong()/specularbrdf()
+# silently no-op under the JIT. Deterministic light source and pure math,
+# not stochastic -- no numthreads requirement.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sphere-phong-specularbrdf-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "distantlight" 1 "intensity" [0.9] "from" [2 2 -2] "to" [0 0 0]
+  Surface "phong_specularbrdf_probe"
+  Sphere 1 -1 1 360
+WorldEnd

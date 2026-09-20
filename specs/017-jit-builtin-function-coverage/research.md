@@ -413,3 +413,178 @@ purposes) — rejected per explicit user instruction: the vcpkg toolchain is
 the correct one going forward specifically because it resolves the
 SDK-target mismatch Homebrew cannot, independent of whether that mismatch
 happens to matter for this particular feature's own code changes.
+
+## D9: Story 5 discovery — how 18 more functions surfaced, and how the finding was independently verified
+
+**Decision**: Treat the 18 functions found by actually running Story 2's
+`kAllFunctionMnemonics[]` guard (rather than only reading its source) as a
+confirmed, in-scope addition (User Story 5) — not a guard bug, and not
+something to dismiss without independent verification outside the guard's
+own code.
+
+**Rationale**: `kAllFunctionMnemonics[]` `#include`s `scriptFunctions.h`'s
+own `#include` chain, which is `scriptFunctions.h` → `shaderFunctions.h` →
+`giFunctions.h` — three files. Issue #3's original investigation (and this
+spec's own D3/original inventory) only ever enumerated `giFunctions.h`;
+`shaderFunctions.h` was never inspected. Running the built guard for real
+surfaced 37 failing mnemonics, not the expected 19 (Stories 3/4's already-
+planned remainder) — 18 more, all confirmed genuinely real and unhandled
+via two checks independent of the guard's own code:
+
+1. **Direct grep of `llvmEmitter.cpp`/`rslOps.cpp`**: none of the 18
+   mnemonics, nor their underlying `CShadingContext` methods
+   (`surfaceParameter`/`displacementParameter`/`atmosphereParameter`/
+   `incidentParameter`/`oppositeParameter`/`options`/`attributes`/
+   `rendererInfo`, all declared `shading.h`), appear anywhere in the JIT
+   emitter or its `op_*` trampolines — no hidden alias, no shared dispatch
+   path, no compile-time constant-folding that would explain the absence.
+2. **Direct empirical compile tests**, bypassing every test-guard file
+   entirely: minimal fixture shaders calling `shadername()` and `option()`
+   compiled with the real `oshader --jit` CLI both fail exactly as
+   predicted — exit code 3, diagnostic naming the specific mnemonic, no
+   `.slo` written.
+3. **Shader-usage cross-check**: grepped every shipped shader
+   (`shaders/*.sl`) for real calls to all 18 — found exactly one apparent
+   hit (`phong` in `uberlight.sl`), confirmed a false positive (the match
+   is inside a `/* ... */` comment describing what `diffuse()`/
+   `specular()`/`phong()` do generally, not an actual call). Zero shipped
+   shaders call any of these 18, mirroring the same "zero shipped impact"
+   finding that governed Stories 3/4's own priority (P3) and Story 2's
+   safe-hardening-sequencing argument (D4).
+
+**Alternatives considered**: Treating the 18 as a scope artifact of the
+guard's own construction (e.g. a case-sensitivity or duplicate-definition
+bug producing false positives) — directly ruled out by check #1 above
+(zero references anywhere, not almost-matches) and check #2 (a real CLI
+compile genuinely fails, not just the in-process test). Deferring the 18
+to a separate follow-up issue instead of this feature — considered and
+rejected per explicit user decision: fold them into this feature as User
+Story 5, closing Story 2's coverage guard to a fully green state at this
+feature's close rather than leaving it red by design indefinitely.
+
+## D10: PARAMETEREXPR family architecture (`surface`/`displacement`/`atmosphere`/`incident`/`opposite`/`attribute`/`option`/`rendererinfo`, plus `textureinfo`)
+
+**Decision**: Implement these 9 functions as one shared JIT wrapper
+mechanism, parameterized by accessor and by result type — mirroring the
+interpreter's own `PARAMETEREXPR_PRE(accessor)`/`PARAMETEREXPRF`/`V`/`S`/
+`M`/`PARAMETEREXPR_UPDATE` macro family (`shaderFunctions.h:1182-1289`),
+which all 8 of the first group already share (only the `accessor` constant
+differs: `ACCESSOR_SURFACE`/`ACCESSOR_DISPLACEMENT`/`ACCESSOR_ATMOSPHERE`/
+`ACCESSOR_EXTERIOR`(incident)/`ACCESSOR_INTERIOR`(opposite), or `0` for
+`attribute`/`option`/`rendererinfo`). `textureinfo` uses a structurally
+parallel but distinct macro family (`TEXTUREINFO_PRE(type)`/`TEXTUREINFOV`/
+`F`/`S`/`M`/`_UPDATE`/`_POST`) and needs its own wrapper, sharing only the
+V/F/S/M-branching *shape*, not the underlying accessor call.
+
+**Rationale**: `surfaceParameter`/`displacementParameter`/
+`atmosphereParameter`/`incidentParameter`/`oppositeParameter`
+(`CShadingContext` methods, `shading.h`, implemented `shading.cpp`) each
+call `getParameter(name, dest, var, globalIndex)` on a bound
+`CShaderInstance*` (`currentAttributes->surface`/`->displacement`/etc.) —
+deterministic, no raytracing, no per-thread RNG state. `attribute`/
+`option`/`rendererinfo` are hardcoded `strcmp(name, ...)` tables writing
+scene/attribute-level constants directly into `dest` — same shape, no
+bound-shader-instance lookup. All are plain `DEFFUNC` (full `numVertices`
+loop) — **no `numRealVertices`/derivative-tail discipline applies** (that
+discipline, D1, is specific to `DEFSHORTFUNC`/`DEFSHORTOPCODE` entries;
+none of these 9 are).
+
+**Precedent warning — do not copy naively**: `"lightsource"` (already
+JIT-handled, `llvmEmitter.cpp:2287-2306` → `op_lightsource_f`,
+`rslOps.cpp:772-791`) uses this *exact same* `PARAMETEREXPR_PRE`/
+`PARAMETEREXPRF/V/S/M` mechanism via its own `LIGHTPARAMETEREXPR_PRE`
+variant, but its existing JIT wrapper is an intentionally simplified,
+**incomplete** implementation: float-result-only, effectively
+uniform-only (always writes destination index 0 regardless of `n`), and
+calls `getParameter` with `cVar=nullptr, globalIndex=nullptr` — meaning it
+never exercises the vector/string/matrix branches or the real `cVar`/
+stride logic `PARAMETEREXPR_PRE` provides for a genuinely varying result.
+This is adequate for `lightsource()`'s own common call shape but would be
+a silent regression if copied as-is for Story 5's family, which needs all
+4 result types to genuinely work, not just the float/uniform case.
+
+The `DEFLINKFUNC` rows each function also has (`"f=SC"`/`"f=SN"`/`"f=SP"`
+— color/normal/point-shorthand argument coercions) share the SAME mnemonic
+text as their `DEFFUNC` siblings (e.g. every `"surface"` row, `DEFLINKFUNC`
+or `DEFFUNC`, dispatches through one `op == "surface"` case) — confirmed
+by the same shared-mnemonic-dispatch pattern already established for
+`comp`/`noise`/`lightsource` (branch internally on argument/result shape,
+not one dispatch case per overload row). One dispatch case per function
+covers every one of its overload rows.
+
+**Alternatives considered**: A separate, function-specific wrapper per
+accessor (8 independent implementations) — rejected as needless
+duplication given the shared macro mechanism; a single parameterized
+helper (accessor enum/constant + result-type branch) is both smaller and
+harder to let drift out of sync across the 8, matching this feature's
+established shared-helper precedent (`jitTraceBatch`, `jitOcclusionBatch`).
+
+## D11: `texture3d`/`bake3d` reuse this feature's own Story 1 point-cloud architecture
+
+**Decision**: Implement `texture3d()` (read) and `bake3d()` (write) as
+direct extensions of the `CTexture3d`/`rendererGetTexture3d`/
+`findCoordinateSystem`/`duVector`+uniform-stride-guard architecture this
+feature's own Story 1 already built for `occlusion()`/`indirectdiffuse()`
+(`jitOcclusionBatch`, `shading.cpp`) — not a new architecture.
+
+**Rationale**: `texture3d()` (`TEXTURE3DEXPR*`, `shaderFunctions.h:2237-
+2294`) reads via `tex->lookup(dest, op2, op3, radius)` +
+`texture3Dunpack` — structurally identical to `jitOcclusionBatch`'s
+already-written `cache->lookup(...)` pattern. `bake3d()` (`BAKE3DEXPR*`,
+`shaderFunctions.h:2138-2218`) writes via `tex->store(dest, P, op4,
+radius)` instead of reading — the new piece — plus a `texture3Dflatten`
+(the inverse of `texture3Dunpack`) to pack write-channel data; same
+underlying cache-object machinery otherwise. Both use the `"!"`-suffixed
+optional-channel extension (same as `occlusion`/`indirectdiffuse` —
+`lookup->numChannels` is 0 without it, so `resolve()`/`channelValues` are
+legitimately skippable for the plain call form, per this feature's already-
+established D2 simplification).
+
+**Correctness trap**: `bake3d` is `DEFSHORTFUNC` (`shaderFunctions.h:2227`,
+carries `PARAMETER_DERIVATIVE`) — **needs D1's numRealVertices-bound-then-
+replicate-into-tail discipline**, same as Story 1's raytracing tier.
+`texture3d` is plain `DEFFUNC` (line 2302) — full `numVertices` loop, no
+tail-replication needed. `bake3d`'s own `BAKE3DEXPR_PRE` additionally
+checks `numVertices == currentShadingState->numRealVertices` explicitly
+(a `doInterp`/`curU`/`curV` REYES-grid seam-skipping branch) — this is the
+interpreter special-casing the non-raytrace-derivative case for its own
+reasons unrelated to D1; transcribe it directly rather than assuming D1's
+generic pattern alone covers `bake3d`'s full behavior.
+
+**Alternatives considered**: A wholly new point-cloud JIT architecture,
+independent of Story 1's `jitOcclusionBatch` — rejected; Story 1 already
+proved and tested this exact mechanism (`CTexture3d`, coordinate-system
+resolution, uniform-stride-guarded derivative buffers), so extending it
+directly satisfies FR-016's delegation intent at the architecture level
+too, not just the per-function implementation level.
+
+## D12: Remaining Story 5 functions — implementation templates
+
+**Decision**: Each remaining Story 5 function copies the nearest
+already-shipped sibling or already-existing primitive as its template, per
+the following table:
+
+| Function | Interpreter macro (file:line) | Template to copy | Notes |
+|---|---|---|---|
+| `shadername` (×2) | `SHADERNAMEEXPR`/`SHADERNAMESEXPR`, `shaderFunctions.h:1535,1553` | Trivial field read / existing method call | No-arg form: `*res = currentShader->name;`. One-arg form calls the already-declared `CShadingContext::shaderName(const char*)` (`shading.h`). Both uniform, single-value — `DEFFUNC`, no `numRealVertices` concern. |
+| `phong` | `PHONGEXPR*`, `shaderFunctions.h:1046-1135` (`DEFLIGHTFUNC`) | Already-JIT-handled `"specular"` (`llvmEmitter.cpp` `op_specular_batch`-style dispatch) | Full illuminance-loop integration (`runLights`, per-light `enterFastLightingConditional`/`exitFastLightingConditional`, `SHADERFLAGS_NONSPECULAR` check) — same architectural shape as `diffuse`/`specular`/`ambient` (already handled), differing only in per-light falloff formula (`pow(dot(reflectDir,L), size)` vs. specular's Blinn-Phong halfway-vector form). Confirm `diffuse`/`specular`/`ambient`'s own loop-bound handling (their `op_*_batch` C++ bodies) before implementing, since `DEFLIGHTFUNC`'s exact `numVertices`-vs-`numRealVertices` semantics were not independently re-derived from `execute.cpp` in this investigation pass — mirror whichever discipline those three already use. |
+| `specularbrdf` | `SPECULARBRDFEXPR*`, `shaderFunctions.h:1139-1174` | `op_reflect`/`op_fresnel`'s multi-operand dispatch shape | Pure, stateless per-vertex math: `halfway = normalize(V+L)`, `pow(dot(N,halfway), 10/roughness)`. Needs the same `dotvv(halfway,halfway) > 0` anti-parallel NaN guard already applied to `specular()` (CLAUDE.md gotcha #2) — same failure mode, same fix. Plain `DEFFUNC`, no `numRealVertices` concern. |
+| `pnoise` (~20 overload rows) | `shaderFunctions.h:484-506` | Already-JIT-handled `"noise"`/`"snoise"` dispatch (`llvmEmitter.cpp` ~1824, stride-branching on `dstDesc.stride`/operand shape) | The underlying math already exists: `pnoiseFloat`/`pnoiseVector` (1D/2D/3D/4D overloads) are already-implemented free functions in `noise.h:41-48`/`noise.cpp:553-626`, alongside `noiseFloat`/`noiseVector` (which `"noise"`'s existing `op_noise_ff`/`fp`/`vf`/`vp` already call). The ~20 overload rows collapse to the same handful of distinct primitive calls as `noise` (1D/2D/3D/4D × float/vector) — the large row count is `DEFLINKFUNC` color/point/normal-shorthand aliases (same alias pattern as D10's family), not genuinely distinct implementations. New work: 4 `op_pnoise_*` trampolines threading 1-2 extra period arguments through to `pnoiseFloat`/`pnoiseVector`, plus a dispatch case mirroring `"noise"`'s existing 4-way branch shape. Plain `DEFFUNC`, no `numRealVertices` concern. |
+| `debug` (×4 overload rows) | `shaderFunctions.h:38-42` | Simpler than already-handled `"printf"` (`llvmEmitter.cpp` ~2318) | The interpreter's own `DEBUGVEXPR` calls `debugFunction()` (`shader.cpp:770`), which is a true no-op stub (`fprintf(stderr,"Debug\n")`, never reads its argument). `DebugP`/`DebugC`/`DebugN` are `DEFLINKFUNC` aliases routing to the same float/vector forms. JIT wrapper: match the stub's actual behavior exactly (FR-017) — a true no-op is correct, not a "smarter" debug facility. No per-vertex output, no destination write — same "no per-vertex effect" framing already used for `printf`/`return`/`jmp`'s no-op-opcode group (`llvmEmitter.cpp:2418-2421`). |
+| `Deriv` (~7 overload rows) | `DERIVFEXPR*`/`DERIVVEXPR*`, `shaderFunctions.h:159-247` | New, using already-established `duFloat`/`dvFloat`/`duVector`/`dvVector` primitives | General finite-difference derivative of a caller-supplied *expression pair* `Deriv(numerator, denominator)` — NOT `Du()`/`Dv()` of a builtin global. Computes `duFloat`/`dvFloat`/`duVector`/`dvVector` of BOTH operands, then `res = duTop/duBottom + dvTop/dvBottom` (chain-rule-style quotient), guarded against division by zero on the denominator's finite difference. **Must apply this session's T010-T012 uniform-stride `duVector`/`dvVector` guard** (the same out-of-bounds trap found and fixed for `trace()`'s uniform-D case) — if either operand can be uniform (stride 0), calling `duFloat`/`duVector`/`dvFloat`/`dvVector` on it directly would read out of bounds exactly like the earlier bug; the fix is the same (zero derivative for a uniform operand, which is also the mathematically correct answer). Plain `DEFFUNC`/`DEFLINKFUNC`, no `numRealVertices` concern. |
+| `clearlighting` | `CLEARLIGHTINGEXPR_PRE`, `shaderFunctions.h:788` | Trivial single-call reset | Interpreter body is exactly `clearLighting();` (an existing `CShadingContext` method) — `expr`/`update`/`post` are all `NULL_EXPR`, so the entire function is this one call, done once regardless of grid size (`"o="` prototype, zero args, no return). JIT wrapper: call the same method once per invocation. `clearLighting()`'s own implementation was not independently re-verified to confirm it needs no per-vertex iteration — worth a quick confirming read at implementation time, not assumed blind. |
+
+**Rationale**: Same as D5 — minimizes new design surface, satisfies
+FR-016 by construction wherever the template already delegates correctly,
+and keeps each function's implementation traceable to a specific,
+already-verified precedent rather than free-invented logic.
+
+**Alternatives considered**: None material, matching D5's own framing —
+each function in this table is individually too small to warrant
+considering alternative architectures; the open question for each was
+purely "which existing template or primitive is closest," resolved above.
+`phong`'s `DEFLIGHTFUNC` loop-bound semantics are flagged as needing a
+direct `execute.cpp` re-check at implementation time (not yet independently
+confirmed in this investigation pass), rather than assumed to definitely
+match `diffuse`/`specular`/`ambient` without verification — the one open
+item this table does not fully close.

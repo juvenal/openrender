@@ -47,6 +47,18 @@ Technical approach, phased by spec.md's four user stories:
 4. **US4 (P3, 14 functions)**: pure math/string functions, each a small
    mechanical `op_*` wrapper copying an already-shipped sibling template;
    every needed math primitive already exists in `src/common/mathSpec.h`.
+5. **US5 (P3, 18 functions, added mid-implementation)**: found by actually
+   running US2's coverage guard rather than only reading its code —
+   `scriptFunctions.h`'s `#include` chain is `scriptFunctions.h` →
+   `shaderFunctions.h` → `giFunctions.h`, and the original issue #3
+   investigation (and US1-US4's own planning) never enumerated
+   `shaderFunctions.h`. Confirmed real (direct `oshader --jit` compile
+   tests) and confirmed zero shipped-shader impact (direct grep), matching
+   US3/US4's own P3 rationale. See `research.md` D9-D12 for the full
+   grouping/architecture (`surface`/`displacement`/`atmosphere`/`incident`/
+   `opposite`/`attribute`/`option`/`rendererinfo` share one parameter-query
+   mechanism; `texture3d`/`bake3d` reuse US1's point-cloud architecture;
+   the rest are individually small).
 
 Every function fixed, in every story, gets its own persisted `.slo`-vs-`.rslo`
 regression test at implementation time (FR-018), following the
@@ -144,12 +156,14 @@ effect — not a benchmarked target in its own right.
   implemented yet`), `round()`'s truncating-cast semantics, and
   `min()`/`max()`'s shared two-argument-only support.
 
-**Scale/Scope**: Bounded by spec.md's confirmed 25-function inventory
-(6 + 5 + 14 = 25, `comp` counted once, in US1) plus the two build-infrastructure
-deliverables (gate-hardening, coverage-guard extension) and the two
-newly-registered example-scene regression pairs (`quadlight`/`spherelight`).
-No multi-repo or multi-service scope. `XXX` (issue #3's original list)
-confirmed NOT a 27th function — see `research.md` D7.
+**Scale/Scope**: Bounded by spec.md's confirmed 43-function inventory
+(6 + 5 + 14 + 18 = 43, `comp` counted once, in US1) plus the two
+build-infrastructure deliverables (gate-hardening, coverage-guard
+extension) and the two newly-registered example-scene regression pairs
+(`quadlight`/`spherelight`). The 18-function US5 addition was found
+mid-implementation by running the coverage-guard extension for real — see
+`research.md` D9. No multi-repo or multi-service scope. `XXX` (issue #3's
+original list) confirmed NOT a 27th function — see `research.md` D7.
 
 ## Constitution Check
 

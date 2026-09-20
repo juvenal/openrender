@@ -87,6 +87,9 @@ Thumbs.db
 /*.ico
 .attic
 
+# Point clouds written to CWD by texture3d()/bake3d() visual tests
+/*.ptc
+
 # Images stored
 .build-images
 

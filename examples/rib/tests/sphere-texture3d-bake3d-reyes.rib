@@ -1,0 +1,16 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US5) regression: texture3d()/bake3d()
+# silently no-op under the JIT. Deterministic point-cloud read/write
+# (real channel data unsupported, see shaders/texture3d_bake3d_probe.sl
+# header) -- not stochastic, no numthreads requirement.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sphere-texture3d-bake3d-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "texture3d_bake3d_probe"
+  Sphere 1 -1 1 360
+WorldEnd

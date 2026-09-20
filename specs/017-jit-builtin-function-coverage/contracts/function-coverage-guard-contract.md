@@ -32,11 +32,14 @@ spec 011's guard.
    operators vs. builtin functions).
 
 Both sets are computed fresh on every test run. A builtin function added
-to `scriptFunctions.h`/`giFunctions.h` after this feature ships, but never
-added to `kHandledOpcodes[]`, fails this test without any manual update to
-the test itself — this is what closes the exact structural gap that let
-`random()`/`urandom()` (issue #1) and this feature's 25 functions ship
-silently: `test_opcode_coverage.cpp`'s pre-this-feature guard could not see
+to `scriptFunctions.h`/`shaderFunctions.h`/`giFunctions.h` after this
+feature ships, but never added to `kHandledOpcodes[]`, fails this test
+without any manual update to the test itself — this is what closes the
+exact structural gap that let `random()`/`urandom()` (issue #1) and this
+feature's full 43-function inventory (25 originally inventoried, plus 18
+more this same guard surfaced mid-implementation by actually enumerating
+`shaderFunctions.h` for the first time — `research.md` D9) ship silently:
+`test_opcode_coverage.cpp`'s pre-this-feature guard could not see
 `FUNCTION_`-family mnemonics at all.
 
 ## Pass/fail contract

@@ -402,6 +402,7 @@ class CShadingContext {
         void callAmbient(float *result);
         void callDiffuse(float *result, const float *Nf);
         void callSpecular(float *result, const float *Nf, const float *V, float roughness);
+        void callPhong(float *result, const float *Nf, const float *V, float size);
 
         // ---> Converged light-iteration entry point (used by call* above and by the
         // interpreter's runLights/runCategoryLights macro wrappers in execute.cpp)
@@ -537,6 +538,115 @@ class CShadingContext {
                                 const float *samples, int sSamples, const float *du, const float *dv,
                                 int n, const int *tags);
 
+        // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,
+        // US5): reuse US1's occlusion/indirectdiffuse point-cloud-lookup
+        // architecture above (research.md D11), not a ray batch. Same
+        // scoping decision as occlusion/indirectdiffuse: only the base
+        // positional arguments are supported -- the "!"-suffixed
+        // extra-channel-binding extension AND the named "coordsystem"/
+        // "interpolate"/"radius"/"radiusscale" optional parameters are
+        // unsupported (CTexture3dLookup::init()'s defaults are used
+        // directly: coordsys="world", interpolate=0, radius=0,
+        // radiusScale=1). With interpolate always 0, BAKE3DEXPR_PRE's
+        // `doInterp` is always FALSE, so bake3d's curU/curV seam-averaging
+        // branch never applies here -- only its direct
+        // movvv(P,op3);tex->store(...) branch is transcribed.
+        // texture3d is a plain DEFFUNC (loops the full `n`, no
+        // numRealVertices tail-replication); bake3d is DEFSHORTFUNC (D1's
+        // numRealVertices-bound-then-replicate discipline applies).
+        void jitTexture3d(float *dst, int sd, const char *const *name,
+                          const float *P, int sP, const float *N, int sN,
+                          const float *du, const float *dv, int n, const int *tags);
+        void jitBake3d(float *dst, int sd, const char *const *name, const char *const *channels,
+                       const float *P, int sP, const float *N, int sN,
+                       const float *du, const float *dv, int n, const int *tags);
+
+        // surface()/displacement()/atmosphere()/incident()/opposite()/attribute()/
+        // option()/rendererinfo() (spec 017-jit-builtin-function-coverage, US5):
+        // byte-faithful transcription of PARAMETEREXPR_PRE/F/V/S/M/_UPDATE
+        // (shaderFunctions.h) -- a named-parameter query against a bound shader
+        // instance (surface/displacement/atmosphere/interior/exterior) or
+        // scene-level table (attribute/option/rendererinfo). Deterministic, no
+        // raytracing/RNG -- resolved once per call (name is effectively
+        // uniform), then broadcast-copied per vertex (`research.md` D10).
+        // resultKind: 1=float, 3=vector/color/point/normal, 16=matrix,
+        // -1=string. Returns the "found" boolean (0.0/1.0) into dst; dest is
+        // read AND written in place (RSL's own dual-purpose "default value in,
+        // resolved value out" convention for this call form).
+        void jitSurfaceParameter(float *dst, int sd, const char *const *name,
+                                 void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitDisplacementParameter(float *dst, int sd, const char *const *name,
+                                      void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitAtmosphereParameter(float *dst, int sd, const char *const *name,
+                                    void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitIncidentParameter(float *dst, int sd, const char *const *name,
+                                  void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitOppositeParameter(float *dst, int sd, const char *const *name,
+                                  void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitAttributeParameter(float *dst, int sd, const char *const *name,
+                                   void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitOptionParameter(float *dst, int sd, const char *const *name,
+                                void *dest, int sDest, int n, const int *tags, int resultKind);
+        void jitRendererInfoParameter(float *dst, int sd, const char *const *name,
+                                      void *dest, int sDest, int n, const int *tags, int resultKind);
+
+        // textureinfo() (spec 017-jit-builtin-function-coverage, US5):
+        // byte-faithful transcription of TEXTUREINFO_PRE/F/V/S/M
+        // (shaderFunctions.h) -- name/query are dereferenced ONCE (both
+        // effectively uniform, matching the interpreter's own
+        // `*op1`/`*op2`), found/output resolved once, then broadcast per
+        // vertex (same jitParameterFinish-style shape as T064's
+        // surface()/etc. family). `sDest` (the destination operand's own
+        // declared per-vertex float count, e.g. 2 for `float res[2]`)
+        // doubles as the exact write-count for the float overload --
+        // matches the interpreter's own op3sz-driven write bound exactly,
+        // no special-casing per query string needed. resultKind: 1=float
+        // (array, sDest-wide), 3=vector, 16=matrix, -1=string. `found`
+        // stays 0 and the destination is left untouched for "exists" and
+        // any unrecognized query string (TEXTUREINFO_PRE's own "prevent
+        // writing result" convention).
+        void jitTextureInfo(float *dst, int sd, const char *const *name,
+                            const char *const *query, void *dest, int sDest,
+                            int n, const int *tags, int resultKind);
+
+        // Deriv() (spec 017-jit-builtin-function-coverage, US5):
+        // byte-faithful transcription of DERIVFEXPR/DERIVVEXPR
+        // (shaderFunctions.h) -- chain-rule quotient of du/dv finite
+        // differences of the numerator and denominator, zero-guarded on
+        // each denominator derivative independently. Applies this
+        // feature's own T010-T012 uniform-stride guard (established by
+        // jitTexture3d/jitOcclusionBatch above): a uniform operand has no
+        // spatial derivative, so its du/dv buffers are zero-filled
+        // directly rather than calling duFloat/duVector/dvFloat/dvVector
+        // (which assume a genuine varying grid array and would read out
+        // of bounds against a stride-0 broadcast pointer).
+        void jitDerivF(float *dst, int sd, const float *num, int sNum,
+                       const float *denom, int sDenom, int n, const int *tags);
+        void jitDerivV(float *dst, int sd, const float *num, int sNum,
+                       const float *denom, int sDenom, int n, const int *tags);
+
+        // shadername() -- both overloads delegate to the already-existing
+        // CShadingContext::shaderName()/shaderName(type) members (used by the
+        // interpreter's own SHADERNAMEEXPR/SHADERNAMESEXPR macros), just
+        // broadcasting the single uniform result string per active vertex.
+        void jitShaderName(char **dst, int sd, int n, const int *tags);
+        void jitShaderNameS(char **dst, int sd, const char *const *type, int sType,
+                            int n, const int *tags);
+
+        // clearlighting() -- transcribes execute.cpp's clearLighting() macro
+        // exactly: mark lighting not-yet-executed and reset the shaded-light
+        // list, reusing its nodes as the new free list. No args, no result.
+        void jitClearLighting();
+
+        // debug() -- both overloads (float/vector) are a true no-op on
+        // shading state, matching debugFunction()'s own body exactly (it
+        // only writes to stderr, never touches `res`). Currently uncallable
+        // from any RSL shader (GitHub issue #5: "debug" has zero
+        // addBuiltInFunction registrations in rslo.cpp, same compiler-
+        // registration gap as atmosphere()) -- implemented ahead of that
+        // fix so the JIT side is ready once it lands.
+        void jitDebug(int n, const int *tags);
+
     protected:
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
@@ -631,6 +741,15 @@ class CShadingContext {
         void jitTraceBatch(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
                            int n, const int *tags, int probeOnly, bool isReflection, bool wantBoolean);
+
+        // Shared finishing logic for the parameter-query family (spec 017,
+        // US5) -- given a `found`/`cVar` pair already resolved by ONE call to
+        // the accessor method (surfaceParameter/etc.), broadcast-copies the
+        // resolved value per vertex, transcribing PARAMETEREXPR_PRE's
+        // cVar/storage/container redirect logic exactly. `numFloatsPerItem`
+        // is -1 for the string form (char* copy), else 1/3/16.
+        void jitParameterFinish(float *dst, int sd, void *dest, int sDest, int n, const int *tags,
+                                int numFloatsPerItem, float found, CVariable *cVar, int accessor);
 
         // Shared body for jitOcclusion/jitIndirectDiffuse (spec 017-jit-
         // builtin-function-coverage, US1) -- see shading.cpp.

@@ -1823,6 +1823,86 @@ void CShadingContext::callSpecular(float *result, const float *Nf, const float *
     }
 }
 
+// phong() (spec 017-jit-builtin-function-coverage, US5) -- follows
+// callSpecular's exact shape immediately above (light iteration via
+// iterateLights(), then walking ss->lights directly), byte-faithful
+// transcription of PHONGEXPR_PRE/PHONGEXPR/_UPDATE/_POST
+// (shaderFunctions.h). Two differences from callSpecular's math:
+// (a) the per-vertex reflection vector `refDir = 2*N*dot(N,V) - V` is
+// precomputed ONCE before the light loop (PHONGEXPR_PRE), not derived
+// per-light from a halfway vector; (b) a light shader flagged
+// SHADERFLAGS_NONSPECULAR contributes a `(1 - ns)` discount read from its
+// own savedState slot (PHONGEXPR_PRE's `ns`/`nsStep` -- exercised by
+// unusual light categories, not any of this feature's shipped/probe
+// lights, but transcribed rather than dropped since the data is directly
+// available on CShadedLight::instance).
+// `size` (RSL's phong() 3rd argument, "f" in the "c=nvf" prototype) is
+// treated as uniform-only -- a single scalar, not a per-vertex array --
+// matching specular()'s own already-shipped `roughness` argument
+// precedent exactly (same DEFLIGHTFUNC family, same argument position).
+void CShadingContext::callPhong(float *result, const float *Nf, const float *V, float size) {
+    CShadingState *ss = currentShadingState;
+    const int n = ss->numVertices;
+    const int *tags = ss->tags;
+    float **varying = ss->varying;
+    CShaderInstance *cInst = ss->currentShaderInstance;
+
+    float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
+    for (int i = 0; i < n; ++i)
+        costheta[i] = 0.0f;
+    iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
+                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
+
+    float *refDir = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
+    for (int i = 0; i < n; ++i) {
+        result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
+        if (tags[i] != 0)
+            continue;
+        const float nx = Nf[3 * i], ny = Nf[3 * i + 1], nz = Nf[3 * i + 2];
+        const float vx = V[3 * i], vy = V[3 * i + 1], vz = V[3 * i + 2];
+        const float d2 = 2.0f * (nx * vx + ny * vy + nz * vz);
+        refDir[3 * i] = nx * d2 - vx;
+        refDir[3 * i + 1] = ny * d2 - vy;
+        refDir[3 * i + 2] = nz * d2 - vz;
+    }
+
+    for (CShadedLight *light = ss->lights; light; light = light->next) {
+        const int *ltags = light->lightTags;
+        const float *L = light->savedState[0];
+        const float *Cl = light->savedState[1];
+        const CShaderInstance *inst = light->instance;
+        const float *ns = nullptr;
+        int nsStep = 0;
+        if (inst && (inst->flags & SHADERFLAGS_NONSPECULAR)) {
+            const CLightShaderData *lightData = (const CLightShaderData *)inst->data;
+            ns = light->savedState[2 + lightData->nonSpecularIndex];
+            nsStep = lightData->nonSpecularStep;
+        }
+        for (int i = 0; i < n; ++i) {
+            if (tags[i] != 0)
+                continue;
+            if (ltags != nullptr && ltags[i] != 0)
+                continue;
+            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
+            const float lm = sqrtf(lx * lx + ly * ly + lz * lz);
+            if (lm < 1e-8f)
+                continue;
+            lx /= lm;
+            ly /= lm;
+            lz /= lm;
+            const float dotProduct = refDir[3 * i] * lx + refDir[3 * i + 1] * ly + refDir[3 * i + 2] * lz;
+            const float clampedDot = (dotProduct > 0.0f) ? dotProduct : 0.0f;
+            const float ns_i = ns ? ns[nsStep * i] : 0.0f;
+            const float coeff = (1.0f - ns_i) * powf(clampedDot, size);
+            if (coeff > 0.0f) {
+                result[3 * i] += coeff * Cl[3 * i];
+                result[3 * i + 1] += coeff * Cl[3 * i + 1];
+                result[3 * i + 2] += coeff * Cl[3 * i + 2];
+            }
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // JIT per-vertex prepare helpers — called from rslBuiltins C wrappers
 ///////////////////////////////////////////////////////////////////////
@@ -2999,6 +3079,471 @@ void CShadingContext::jitIndirectDiffuse(float *dst, int sd, const float *P, int
                                          const float *samples, int sSamples, const float *du, const float *dv,
                                          int n, const int *tags) {
     jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/false);
+}
+
+// texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5).
+// Reuses jitOcclusionBatch's point-cloud-lookup shape above, not a ray
+// batch. Only the base positional arguments are supported -- see the
+// shading.h declaration comment for the full scoping rationale
+// (CTexture3dLookup::init()'s defaults used directly: coordsys="world",
+// interpolate=0 [so bake3d's doInterp is always FALSE], radius=0,
+// radiusScale=1; the "!"-suffixed extra-channel-binding extension is
+// unsupported, matching occlusion/indirectdiffuse's own precedent).
+void CShadingContext::jitTexture3d(float *dst, int sd, const char *const *name,
+                                   const float *P, int sP, const float *N, int sN,
+                                   const float *du, const float *dv, int n, const int *tags) {
+    if (n <= 0 || !name || !name[0])
+        return;
+
+    const float *from, *to;
+    findCoordinateSystem("world", from, to);
+    CTexture3d *tex = this->rendererGetTexture3d(name[0], FALSE, nullptr, from, to);
+    if (!tex)
+        return;
+    tex->resolve(0, nullptr, nullptr, nullptr);
+
+    float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
+    float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
+    float *dPdv = dPdu + n * 3;
+    if (sP == 3) {
+        duVector(dPdu, P);
+        dvVector(dPdv, P);
+    }
+    else {
+        memset(dPdu, 0, n * 3 * sizeof(float));
+        memset(dPdv, 0, n * 3 * sizeof(float));
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        vector PduScaled, PdvScaled;
+        mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
+        mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
+        const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
+        tex->lookup(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        JIT_IDX(dst, sd, i)[0] = 1.0f;
+    }
+}
+
+void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, const char *const *channels,
+                                const float *P, int sP, const float *N, int sN,
+                                const float *du, const float *dv, int n, const int *tags) {
+    const int numRealVertices = currentShadingState->numRealVertices;
+    if (numRealVertices <= 0 || !name || !name[0])
+        return;
+
+    const float *from, *to;
+    findCoordinateSystem("world", from, to);
+    CTexture3d *tex = this->rendererGetTexture3d(name[0], TRUE, channels ? channels[0] : nullptr, from, to);
+    if (!tex)
+        return;
+    tex->resolve(0, nullptr, nullptr, nullptr);
+
+    float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
+    float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
+    float *dPdv = dPdu + n * 3;
+    if (sP == 3) {
+        duVector(dPdu, P);
+        dvVector(dPdv, P);
+    }
+    else {
+        memset(dPdu, 0, n * 3 * sizeof(float));
+        memset(dPdv, 0, n * 3 * sizeof(float));
+    }
+
+    for (int i = 0; i < numRealVertices; ++i) {
+        if (tags && tags[i])
+            continue;
+        vector PduScaled, PdvScaled;
+        mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
+        mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
+        const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
+        tex->store(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        JIT_IDX(dst, sd, i)[0] = 1.0f;
+    }
+
+    // Derivative-offset tail: block-contiguous [real, +du, +dv] (D1/jitTraceBatch).
+    if (n > numRealVertices) {
+        for (int i = 0; i < numRealVertices; ++i) {
+            const float found = JIT_IDX(dst, sd, i)[0];
+            JIT_IDX(dst, sd, numRealVertices + i)[0] = found;
+            JIT_IDX(dst, sd, 2 * numRealVertices + i)[0] = found;
+        }
+    }
+}
+
+// =========================================================================
+// surface()/displacement()/atmosphere()/incident()/opposite()/attribute()/
+// option()/rendererinfo() (spec 017-jit-builtin-function-coverage, US5) --
+// byte-faithful transcription of PARAMETEREXPR_PRE/F/V/S/M/_UPDATE
+// (shaderFunctions.h:1182-1289). Deterministic named-parameter query, no
+// raytracing/RNG -- the accessor call (surfaceParameter/etc.) resolves
+// `found`/`cVar` ONCE (name is effectively uniform, only *name[0] is ever
+// consulted, matching the interpreter's own `*op1` dereference), then
+// jitParameterFinish broadcast-copies the resolved value per vertex.
+//
+// jitParameterFinish transcribes PARAMETEREXPR_PRE's cVar-redirect exactly:
+// if found and cVar is non-null, the source is either
+// currentShadingState->locals[accessor][cVar->entry] (a STORAGE_PARAMETER/
+// STORAGE_MUTABLEPARAMETER -- a real declared shader parameter) or
+// varying[cVar->entry] (any other storage), with stride forced to 0 for a
+// CONTAINER_UNIFORM/CONTAINER_CONSTANT source (broadcast) or the whole
+// lookup nulled out if our own destination is uniform but the resolved
+// source is genuinely varying (PARAMETEREXPR_PRE's own varying-to-uniform
+// guard). If cVar is null (incident()/opposite() always pass NULL for
+// var/globalIndex -- "skip mutable parameters" -- or the parameter simply
+// wasn't found), the interpreter's own per-vertex loop degenerates to
+// `*op2 = *src` with src==op2 (a true self-copy) -- CShaderInstance::
+// getParameter's switch-statement branch already wrote any resolved
+// default value directly into `dest` as a side effect of the single
+// accessor call itself, so no further action is needed here either;
+// jitParameterFinish's src=dest/srcStep=sDest defaults reproduce this
+// exactly (self-copy, and only ever meaningfully once when the destination
+// is uniform, matching the natural RSL declaration for a query result).
+void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDest, int n, const int *tags,
+                                         int numFloatsPerItem, float found, CVariable *cVar, int accessor) {
+    if (n <= 0)
+        return;
+
+    const bool isString = (numFloatsPerItem < 0);
+    const float *srcF = (const float *)dest;
+    const char *const *srcS = (const char *const *)dest;
+    int srcStep = sDest;
+
+    if (found != 0.0f && cVar != nullptr) {
+        if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {
+            if (isString)
+                srcS = (const char *const *)currentShadingState->locals[accessor][cVar->entry];
+            else
+                srcF = currentShadingState->locals[accessor][cVar->entry];
+        }
+        else {
+            if (isString)
+                srcS = (const char *const *)currentShadingState->varying[cVar->entry];
+            else
+                srcF = currentShadingState->varying[cVar->entry];
+        }
+        srcStep = cVar->numFloats;
+        if (cVar->container == CONTAINER_UNIFORM || cVar->container == CONTAINER_CONSTANT) {
+            srcStep = 0;
+        }
+        else if (sDest == 0) {
+            // Guard against varying->uniform assignment: nullify the copy,
+            // matching PARAMETEREXPR_PRE's own comment exactly.
+            srcStep = 0;
+            srcF = (const float *)dest;
+            srcS = (const char *const *)dest;
+            found = 0.0f;
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)[0] = found;
+        if (isString) {
+            char **destOut = (char **)JIT_IDX((float *)dest, sDest, i);
+            const char *const *srcIn = (const char *const *)JIT_IDX((const float *)srcS, srcStep, i);
+            destOut[0] = (char *)srcIn[0];
+        }
+        else {
+            float *destOut = JIT_IDX((float *)dest, sDest, i);
+            const float *srcIn = JIT_IDX(srcF, srcStep, i);
+            for (int k = 0; k < numFloatsPerItem; ++k)
+                destOut[k] = srcIn[k];
+        }
+    }
+}
+
+void CShadingContext::jitSurfaceParameter(float *dst, int sd, const char *const *name,
+                                          void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->surfaceParameter(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_SURFACE);
+}
+
+void CShadingContext::jitDisplacementParameter(float *dst, int sd, const char *const *name,
+                                               void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->displacementParameter(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_DISPLACEMENT);
+}
+
+void CShadingContext::jitAtmosphereParameter(float *dst, int sd, const char *const *name,
+                                             void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->atmosphereParameter(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_ATMOSPHERE);
+}
+
+void CShadingContext::jitIncidentParameter(float *dst, int sd, const char *const *name,
+                                           void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    // incidentParameter() always passes NULL for var/globalIndex ("skip
+    // mutable parameters") -- cVar stays null, so jitParameterFinish always
+    // takes the self-copy path (matching the interpreter exactly).
+    float found = (float)this->incidentParameter(dest, name[0], nullptr, nullptr);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_EXTERIOR);
+}
+
+void CShadingContext::jitOppositeParameter(float *dst, int sd, const char *const *name,
+                                           void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    float found = (float)this->oppositeParameter(dest, name[0], nullptr, nullptr);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_INTERIOR);
+}
+
+void CShadingContext::jitAttributeParameter(float *dst, int sd, const char *const *name,
+                                            void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->attributes(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
+}
+
+void CShadingContext::jitOptionParameter(float *dst, int sd, const char *const *name,
+                                         void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->options(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
+}
+
+void CShadingContext::jitRendererInfoParameter(float *dst, int sd, const char *const *name,
+                                               void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = (float)this->rendererInfo(dest, name[0], &cVar, &globalIndex);
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
+}
+
+// textureinfo() -- byte-faithful transcription of TEXTUREINFO_PRE/F/V/S/M
+// (shaderFunctions.h). See shading.h for the full design rationale.
+void CShadingContext::jitTextureInfo(float *dst, int sd, const char *const *name,
+                                     const char *const *query, void *dest, int sDest,
+                                     int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+
+    CTextureInfoBase *textureInfo = this->rendererGetTextureInfo(name[0]);
+
+    float found = 0.0f;
+    float out[16];
+    for (int i = 0; i < 16; ++i)
+        out[i] = 0.0f;
+    const char *outS = "";
+    bool isString = false;
+    bool writeDest = true;
+
+    if (textureInfo == nullptr) {
+        writeDest = false;
+    }
+    else {
+        found = 1.0f;
+        const char *q = query[0];
+        if (strcmp(q, "resolution") == 0) {
+            textureInfo->getResolution(out);
+        }
+        else if (strcmp(q, "type") == 0) {
+            outS = textureInfo->getTextureType();
+            isString = true;
+        }
+        else if (strcmp(q, "channels") == 0) {
+            out[0] = (float)textureInfo->getNumChannels();
+        }
+        else if (strcmp(q, "viewingmatrix") == 0) {
+            found = (float)textureInfo->getViewMatrix(out);
+        }
+        else if (strcmp(q, "projectionmatrix") == 0) {
+            found = (float)textureInfo->getProjectionMatrix(out);
+        }
+        else if (strcmp(q, "exists") == 0) {
+            writeDest = false;
+        }
+        else {
+            found = 0.0f;
+            writeDest = false;
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)[0] = found;
+        if (!writeDest)
+            continue;
+        if (resultKind < 0) {
+            char **destOut = (char **)JIT_IDX((float *)dest, sDest, i);
+            destOut[0] = (char *)(isString ? outS : "");
+        }
+        else {
+            float *destOut = JIT_IDX((float *)dest, sDest, i);
+            for (int k = 0; k < sDest; ++k)
+                destOut[k] = out[k];
+        }
+    }
+}
+
+// Deriv() -- byte-faithful transcription of DERIVFEXPR/DERIVVEXPR
+// (shaderFunctions.h). See shading.h for the uniform-stride guard
+// rationale.
+void CShadingContext::jitDerivF(float *dst, int sd, const float *num, int sNum,
+                                const float *denom, int sDenom, int n, const int *tags) {
+    if (n <= 0)
+        return;
+
+    float *duNum = (float *)ralloc(n * sizeof(float), threadMemory);
+    float *dvNum = (float *)ralloc(n * sizeof(float), threadMemory);
+    float *duDenom = (float *)ralloc(n * sizeof(float), threadMemory);
+    float *dvDenom = (float *)ralloc(n * sizeof(float), threadMemory);
+
+    if (sNum == 1) {
+        duFloat(duNum, num);
+        dvFloat(dvNum, num);
+    }
+    else {
+        memset(duNum, 0, n * sizeof(float));
+        memset(dvNum, 0, n * sizeof(float));
+    }
+    if (sDenom == 1) {
+        duFloat(duDenom, denom);
+        dvFloat(dvDenom, denom);
+    }
+    else {
+        memset(duDenom, 0, n * sizeof(float));
+        memset(dvDenom, 0, n * sizeof(float));
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        float result = 0.0f;
+        if (duDenom[i] != 0.0f)
+            result = duNum[i] / duDenom[i];
+        if (dvDenom[i] != 0.0f)
+            result += dvNum[i] / dvDenom[i];
+        JIT_IDX(dst, sd, i)[0] = result;
+    }
+}
+
+void CShadingContext::jitDerivV(float *dst, int sd, const float *num, int sNum,
+                                const float *denom, int sDenom, int n, const int *tags) {
+    if (n <= 0)
+        return;
+
+    float *duNum = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
+    float *dvNum = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
+    float *duDenom = (float *)ralloc(n * sizeof(float), threadMemory);
+    float *dvDenom = (float *)ralloc(n * sizeof(float), threadMemory);
+
+    if (sNum == 3) {
+        duVector(duNum, num);
+        dvVector(dvNum, num);
+    }
+    else {
+        memset(duNum, 0, n * 3 * sizeof(float));
+        memset(dvNum, 0, n * 3 * sizeof(float));
+    }
+    if (sDenom == 1) {
+        duFloat(duDenom, denom);
+        dvFloat(dvDenom, denom);
+    }
+    else {
+        memset(duDenom, 0, n * sizeof(float));
+        memset(dvDenom, 0, n * sizeof(float));
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        float rx = 0.0f, ry = 0.0f, rz = 0.0f;
+        if (duDenom[i] != 0.0f) {
+            rx = (float)((double)duNum[3 * i] / (double)duDenom[i]);
+            ry = (float)((double)duNum[3 * i + 1] / (double)duDenom[i]);
+            rz = (float)((double)duNum[3 * i + 2] / (double)duDenom[i]);
+        }
+        if (dvDenom[i] != 0.0f) {
+            rx += (float)((double)dvNum[3 * i] / (double)dvDenom[i]);
+            ry += (float)((double)dvNum[3 * i + 1] / (double)dvDenom[i]);
+            rz += (float)((double)dvNum[3 * i + 2] / (double)dvDenom[i]);
+        }
+        float *out = JIT_IDX(dst, sd, i);
+        out[0] = rx;
+        out[1] = ry;
+        out[2] = rz;
+    }
+}
+
+// shadername() -- both overloads (SHADERNAMEEXPR/SHADERNAMESEXPR,
+// shaderFunctions.h) delegate directly to the already-existing
+// CShadingContext::shaderName()/shaderName(type) members, so there's no
+// macro family to transcribe here -- just a per-vertex broadcast of that
+// single (effectively uniform) result string, following the "tags[i]!=0
+// means skip" convention shared by jitParameterFinish above.
+void CShadingContext::jitShaderName(char **dst, int sd, int n, const int *tags) {
+    if (n <= 0)
+        return;
+    const char *name = this->shaderName();
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)[0] = (char *)name;
+    }
+}
+
+void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type, int sType,
+                                     int n, const int *tags) {
+    if (n <= 0)
+        return;
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        const char *type_i = JIT_IDX(type, sType, i)[0];
+        const char *name = this->shaderName(type_i);
+        JIT_IDX(dst, sd, i)[0] = (char *)name;
+    }
+}
+
+// clearlighting() -- byte-faithful transcription of execute.cpp's
+// clearLighting() macro: mark lighting not-yet-executed for this grid and
+// reset the shaded-light list, reusing its nodes as the new free list
+// (the macro reassigns the freeLights pointer rather than walking/
+// appending -- transcribed exactly, not "fixed").
+void CShadingContext::jitClearLighting() {
+    currentShadingState->lightsExecuted = FALSE;
+    currentShadingState->freeLights = currentShadingState->lights;
+    currentShadingState->lights = nullptr;
+}
+
+// debug() -- both overloads (float/vector) are a true no-op on shading
+// state, matching debugFunction()'s own body exactly (shader.cpp: writes
+// "Debug\n" to stderr, never touches its argument). Transcribed with the
+// same per-active-vertex loop shape as any other DEFFUNC so the stderr
+// side effect fires the same number of times as the interpreter's.
+void CShadingContext::jitDebug(int n, const int *tags) {
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        fprintf(stderr, "Debug\n");
+    }
 }
 
 // gather()/gatherElse/gatherEnd shared computation. Byte-faithful transcriptions of

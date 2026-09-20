@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+# See sphere-shader-parameter-reyes.rib -- no numthreads requirement (not
+# stochastic).
+version 3.03
+Hider "reyes"
+Display "sphere-shader-parameter-reyes-slo.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "shade" "shaderformat" ["slo"]
+  Interior "param_query_volume"
+  Exterior "param_query_volume"
+  Displacement "param_query_displacement"
+  Surface "shader_parameter_probe"
+  Sphere 1 -1 1 360
+WorldEnd

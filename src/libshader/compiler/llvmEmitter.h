@@ -53,6 +53,25 @@ bool emitLLVMBitcode(const IRModule &mod,
 extern const char *const kHandledOpcodes[];
 
 /**
+ * @brief Every RSL builtin FUNCTION_ mnemonic (as opposed to OPCODE_
+ *        bytecode mnemonics -- see opcodes.h's kAllOpcodeMnemonics for
+ *        those), re-expanded from scriptFunctions.h's own #include chain
+ *        (-> shaderFunctions.h -> giFunctions.h) by llvmEmitter.cpp's
+ *        local DEFFUNC/DEFLINKFUNC/DEFLIGHTFUNC/DEFSHORTFUNC-family
+ *        X-macro redefinition -- the same #include-based technique
+ *        kOpcodeParamTable below already uses, filtered to just this one
+ *        chain and capturing only each entry's `text` field. Two "XXX"
+ *        DSO-placeholder rows are hand-excluded (spec 017-jit-builtin-
+ *        function-coverage, research.md D7) -- they are not real callable
+ *        mnemonics. nullptr-terminated. External linkage so the libshader
+ *        coverage-guard ctest can read it directly, alongside
+ *        kHandledOpcodes (spec 017, contracts/function-coverage-guard-
+ *        contract.md), the same way kAllOpcodeMnemonics/kHandledOpcodes
+ *        already pair up for the OPCODE_ family (spec 011).
+ */
+extern const char *const kAllFunctionMnemonics[];
+
+/**
  * @brief One (mnemonic-or-function-name, PARAMETER_* bits) row, re-expanded
  *        verbatim from the interpreter's own opcode/function tables
  *        (shaderOpcodes.h/shaderFunctions.h/giOpcodes.h/giFunctions.h via

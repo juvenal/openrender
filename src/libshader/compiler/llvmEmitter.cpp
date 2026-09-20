@@ -62,26 +62,28 @@
 extern const char *const kHandledOpcodes[] = {
     "abs", "acos", "addff", "addmm", "addvf", "addvf2", "addvv", "ambient",
     "and",
-    "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
-    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "comp", "continue",
+    "andf", "area", "asin", "atan", "atan2", "atmosphere", "attribute",
+    "bake3d", "break", "calculatenormal",
+    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "clearlighting", "comp", "continue",
     "cos", "cross", "ctransform",
-    "depth", "diffuse", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
+    "debug", "depth", "Deriv", "diffuse", "displacement", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
     "feq", "feql", "fegt", "fge", "fgt", "ffroma", "filterstep", "fle",
     "floor", "flt",
     "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa",
     "gather", "gatherElse", "gatherEnd", "gatherHeader", "if",
-    "illuminance", "illuminate", "indirectdiffuse", "inversesqrt", "jmp", "length",
+    "illuminance", "illuminate", "incident", "indirectdiffuse", "inversesqrt", "jmp", "length",
     "lightsource", "log", "max", "maxf", "mfrom", "mfromf", "mfromv",
     "mfroma", "mix", "mixf", "mixv",
     "mod", "moveff", "movemm", "movess", "movevv", "mtoa", "mulff", "mulmm",
     "mulvf", "mulvf2", "mulvv", "negf", "negm",
-    "negv", "nfrom", "noise", "normalize", "not", "ntransform", "occlusion", "or", "orf",
-    "pfrom", "pow", "printf", "radians", "random", "reflect", "return", "seql",
-    "setxcomp", "setycomp", "setzcomp", "sfroma", "shadow", "sign", "sin",
-    "smoothstep", "sneql", "snoise", "solar", "specular", "spline",
-    "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "tan", "texture",
+    "negv", "nfrom", "noise", "normalize", "not", "ntransform", "occlusion", "opposite", "option", "or", "orf",
+    "pfrom", "phong", "pnoise", "pow", "printf", "radians", "random", "reflect", "rendererinfo", "return", "seql",
+    "setxcomp", "setycomp", "setzcomp", "sfroma", "shadername", "shadow", "sign", "sin",
+    "smoothstep", "sneql", "snoise", "solar", "specular", "specularbrdf", "spline",
+    "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "surface", "tan", "texture",
+    "texture3d", "textureinfo",
     "trace", "transform", "transmission", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
     "veql", "vegt", "velt", "vfrom", "vfroma", "vfromf", "vfromfff",
     "vfromvff", "vgt", "visibility", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
@@ -171,6 +173,35 @@ extern const OpcodeParamEntry kOpcodeParamTable[] = {
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE
 #undef DEFLINKOPCODE
+#undef DEFLINKFUNC
+#undef DEFFUNC
+#undef DEFLIGHTFUNC
+#undef DEFSHORTFUNC
+
+// =========================================================================
+// kAllFunctionMnemonics — every RSL builtin FUNCTION_ mnemonic, re-expanded
+// from ONLY scriptFunctions.h's own #include chain (-> shaderFunctions.h ->
+// giFunctions.h), capturing just `text` (spec 017-jit-builtin-function-
+// coverage, research.md D3) — the FUNCTION_-family mirror of opcodes.cpp's
+// kAllOpcodeMnemonics. Confirmed via grep: zero DEFOPCODE-family macros
+// anywhere in this #include chain, so this array is exclusively builtin
+// FUNCTIONs, never OPCODE_ bytecode mnemonics (those live in
+// kAllOpcodeMnemonics/opcodes.cpp instead). Two rows carry `text == "XXX"`
+// (scriptFunctions.h:1135,1166) -- the DSO/plugin-shadeop dispatcher rows,
+// whose real name/prototype is resolved from the loaded plugin at runtime,
+// never a static mnemonic (research.md D7); the coverage-guard test
+// hand-excludes "XXX", the same way it hand-excludes kDeadOpcodes entries
+// for the OPCODE_ family.
+// =========================================================================
+#define DEFLINKFUNC(name, text, prototype, par) text,
+#define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
+#define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
+#define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
+
+extern const char *const kAllFunctionMnemonics[] = {
+#include "scriptFunctions.h"
+    nullptr};
+
 #undef DEFLINKFUNC
 #undef DEFFUNC
 #undef DEFLIGHTFUNC
@@ -506,7 +537,7 @@ static bool parseLiteralFloat(const std::string &tok, float *out) {
 //   varTbl   — variable descriptor table
 //   ctx, mod — LLVM context and module
 // =========================================================================
-static void emitFunction(const IRFunction &irFn,
+static bool emitFunction(const IRFunction &irFn,
                          llvm::Function *func, // for new BBs in loop layers
                          llvm::BasicBlock *entryBB,
                          llvm::Value *numVerts,
@@ -797,7 +828,7 @@ static void emitFunction(const IRFunction &irFn,
             if (op == "return") {
                 if (!currentBlockHasTerminator(B))
                     B.CreateRetVoid();
-                return;
+                return true;
             }
 
             // ----------------------------------------------------------------
@@ -818,13 +849,23 @@ static void emitFunction(const IRFunction &irFn,
 
             // Coverage gate: kHandledOpcodes is the single source of truth
             // the libshader coverage-guard ctest also reads (research.md
-            // D3). An opcode not in the table falls through here exactly as
-            // it always has (silent skip, zero emitted IR) — this does not
-            // change behavior for any opcode already dispatched below; it
-            // only makes that fallthrough consult the same table the guard
-            // test checks, instead of the two silently drifting apart.
-            if (!isHandledOpcode(op))
-                continue;
+            // D3). Hardened (spec 017-jit-builtin-function-coverage, US2,
+            // gate-hardening-contract.md): an opcode/function not in the
+            // table is now a hard compile failure, not a silent skip — the
+            // silent-skip behavior is exactly what let random()/urandom()
+            // (issue #1) and 26 more builtin functions ship broken under
+            // --jit with zero diagnostic. Sequencing requirement (FR-009):
+            // this MUST NOT land before every builtin function any
+            // currently-shipped shader calls has JIT support (confirmed
+            // via research.md D4 -- zero shipped shaders reference any
+            // function outside spec 017 US1's six once US1 lands).
+            if (!isHandledOpcode(op)) {
+                fprintf(stderr,
+                        "llvmEmitter: JIT coverage gap for '%s': builtin '%s' has no "
+                        "emitFunction() case (kHandledOpcodes[] is missing it)\n",
+                        std::string(func->getName()).c_str(), op.c_str());
+                return false;
+            }
 
             // ================================================================
             // Layer C: Conditional control flow
@@ -1728,6 +1769,22 @@ static void emitFunction(const IRFunction &irFn,
                 auto *fn = declareOp(mod, "op_specular_batch", ty);
                 B.CreateCall(fn, {dst, nf, v, r, numVerts, tags});
             }
+            else if (op == "phong") {
+                // phong() (spec 017-jit-builtin-function-coverage, US5):
+                // same dispatch shape as specular immediately above --
+                // `size` is uniform-only, matching specular's own
+                // `roughness` argument precedent (see callPhong's comment
+                // in shading.cpp for the full rationale).
+                auto [nf, sn] = getVar(ins, 0);
+                auto [v, sv] = getVar(ins, 1);
+                auto [size, ssize] = getVar(ins, 2);
+                if (!dst || !nf || !v || !size)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_phong_batch", ty);
+                B.CreateCall(fn, {dst, nf, v, size, numVerts, tags});
+            }
 
             // ================================================================
             // Layer G — random / urandom (stateful RNG via
@@ -1789,6 +1846,27 @@ static void emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {dst, dstStride,
                                   I, B.getInt32(si), N, B.getInt32(sn),
                                   n, tg});
+            }
+
+            // specularbrdf() (spec 017-jit-builtin-function-coverage,
+            // US5): pure math, 4 operands (L, N, V, roughness) -> color.
+            else if (op == "specularbrdf") {
+                if (ins.operands.size() < 4 || !dst)
+                    continue;
+                auto [L, sL] = getVar(ins, 0);
+                auto [N, sN] = getVar(ins, 1);
+                auto [V, sV] = getVar(ins, 2);
+                auto [R, sR] = getVar(ins, 3);
+                if (!L || !N || !V || !R)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy},
+                                                   false);
+                auto *fn = declareOp(mod, "op_specularbrdf", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sL, sN, sV, sR});
+                B.CreateCall(fn, {dst, dstStride, L, B.getInt32(sL), N, B.getInt32(sN),
+                                  V, B.getInt32(sV), R, B.getInt32(sR), n, tg});
             }
 
             // ================================================================
@@ -1903,6 +1981,57 @@ static void emitFunction(const IRFunction &irFn,
                     auto *fn = declareOp(mod, fnName, ty);
                     auto [n, tg] = collapseArgs(dstStrideVal, {sx});
                     B.CreateCall(fn, {dst, dstStride, x, B.getInt32(sx), n, tg});
+                }
+            }
+
+            // ================================================================
+            // Layer G — pnoise (spec 017-jit-builtin-function-coverage,
+            // US5): periodic noise, 4 argument shapes (1D/2D/3D/4D)
+            // disambiguated by operand count + operand[0]'s stride
+            // (point-shaped = 3D/4D, float-shaped = 1D/2D), crossed with
+            // dst stride (float vs vector result) -- same technique as
+            // "noise"/"snoise" above, extended to 4 shapes instead of 2.
+            // ================================================================
+            else if (op == "pnoise") {
+                if (ins.operands.empty() || !dst)
+                    continue;
+                bool dstIsVec = (dstDesc.stride == 3);
+                auto [a0, sa0] = getVar(ins, 0);
+                if (!a0)
+                    continue;
+                bool arg0IsPoint = (sa0 == 3);
+
+                if (ins.operands.size() == 2) {
+                    auto [a1, sa1] = getVar(ins, 1);
+                    if (!a1)
+                        continue;
+                    const char *fnName = arg0IsPoint
+                                             ? (dstIsVec ? "op_pnoise_3d_v" : "op_pnoise_3d_f")
+                                             : (dstIsVec ? "op_pnoise_1d_v" : "op_pnoise_1d_f");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy},
+                                                       false);
+                    auto *fn = declareOp(mod, fnName, ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sa0, sa1});
+                    B.CreateCall(fn, {dst, dstStride, a0, B.getInt32(sa0), a1, B.getInt32(sa1), n, tg});
+                }
+                else if (ins.operands.size() == 4) {
+                    auto [a1, sa1] = getVar(ins, 1);
+                    auto [a2, sa2] = getVar(ins, 2);
+                    auto [a3, sa3] = getVar(ins, 3);
+                    if (!a1 || !a2 || !a3)
+                        continue;
+                    const char *fnName = arg0IsPoint
+                                             ? (dstIsVec ? "op_pnoise_4d_v" : "op_pnoise_4d_f")
+                                             : (dstIsVec ? "op_pnoise_2d_v" : "op_pnoise_2d_f");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                        ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy},
+                                                       false);
+                    auto *fn = declareOp(mod, fnName, ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sa0, sa1, sa2, sa3});
+                    B.CreateCall(fn, {dst, dstStride, a0, B.getInt32(sa0), a1, B.getInt32(sa1),
+                                      a2, B.getInt32(sa2), a3, B.getInt32(sa3), n, tg});
                 }
             }
 
@@ -2218,6 +2347,198 @@ static void emitFunction(const IRFunction &irFn,
                                   samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags});
             }
 
+            // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,
+            // US5): point-cloud read/write, same "no collapseArgs"
+            // dispatch shape as occlusion/indirectdiffuse just above (only
+            // the base positional arguments are supported -- see shading.h
+            // for the full scoping rationale).
+            else if (op == "texture3d") {
+                if (ins.operands.size() < 3 || !dst)
+                    continue;
+                auto [name, sName] = getVar(ins, 0);
+                auto [P, sP] = getVar(ins, 1);
+                auto [N, sN] = getVar(ins, 2);
+                if (!name || !P || !N)
+                    continue;
+                VarDesc duDesc, dvDesc;
+                if (!resolveVar("du", duDesc) || !resolveVar("dv", dvDesc))
+                    continue;
+                llvm::Value *duPtr = loadVarPtr(duDesc);
+                llvm::Value *dvPtr = loadVarPtr(dvDesc);
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    ptrTy, ptrTy, i32Ty, ptrTy},
+                                                   false);
+                auto *fn = declareOp(mod, "op_texture3d", ty);
+                B.CreateCall(fn, {dst, dstStride, name, P, B.getInt32(sP), N, B.getInt32(sN),
+                                  duPtr, dvPtr, numVerts, tags});
+            }
+            else if (op == "bake3d") {
+                if (ins.operands.size() < 4 || !dst)
+                    continue;
+                auto [name, sName] = getVar(ins, 0);
+                auto [channels, sChannels] = getVar(ins, 1);
+                auto [P, sP] = getVar(ins, 2);
+                auto [N, sN] = getVar(ins, 3);
+                if (!name || !channels || !P || !N)
+                    continue;
+                VarDesc duDesc, dvDesc;
+                if (!resolveVar("du", duDesc) || !resolveVar("dv", dvDesc))
+                    continue;
+                llvm::Value *duPtr = loadVarPtr(duDesc);
+                llvm::Value *dvPtr = loadVarPtr(dvDesc);
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    ptrTy, ptrTy, i32Ty, ptrTy},
+                                                   false);
+                auto *fn = declareOp(mod, "op_bake3d", ty);
+                B.CreateCall(fn, {dst, dstStride, name, channels, P, B.getInt32(sP), N, B.getInt32(sN),
+                                  duPtr, dvPtr, numVerts, tags});
+            }
+
+            // surface()/displacement()/atmosphere()/incident()/opposite()/
+            // attribute()/option()/rendererinfo() (spec 017-jit-builtin-
+            // function-coverage, US5): named-parameter query against a bound
+            // shader instance or scene-level table. All 4 result-type
+            // overloads (float/vector/string/matrix) share the same "surface"
+            // (etc.) mnemonic -- disambiguated via the prototype string's
+            // LAST character ("f=SF"/"f=SV"/"f=SS"/"f=SM"), the same
+            // ins.proto convention already used for "clamp"/"mix"'s
+            // float-vs-vector dispatch above (there via proto[0], the return
+            // type; here via proto.back(), the dest-operand type -- the
+            // return itself is always 'f', the found/not-found indicator).
+            else if (op == "surface" || op == "displacement" || op == "atmosphere" ||
+                     op == "incident" || op == "opposite" ||
+                     op == "attribute" || op == "option" || op == "rendererinfo") {
+                if (ins.operands.size() < 2 || !dst)
+                    continue;
+                auto [namePtr, sNameUnused] = getVar(ins, 0);
+                auto [destPtr, sDest] = getVar(ins, 1);
+                if (!namePtr || !destPtr)
+                    continue;
+                const char resultChar = ins.proto.empty() ? 'F' : ins.proto.back();
+                const int resultKind = (resultChar == 'V') ? 3 : (resultChar == 'M') ? 16
+                                                              : (resultChar == 'S')   ? -1
+                                                                                      : 1;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty},
+                                                   false);
+                const char *fnName;
+                if (op == "surface")
+                    fnName = "op_surface_param";
+                else if (op == "displacement")
+                    fnName = "op_displacement_param";
+                else if (op == "atmosphere")
+                    fnName = "op_atmosphere_param";
+                else if (op == "incident")
+                    fnName = "op_incident_param";
+                else if (op == "opposite")
+                    fnName = "op_opposite_param";
+                else if (op == "attribute")
+                    fnName = "op_attribute_param";
+                else if (op == "option")
+                    fnName = "op_option_param";
+                else
+                    fnName = "op_rendererinfo_param";
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, namePtr, destPtr, B.getInt32(sDest),
+                                  numVerts, tags, B.getInt32(resultKind)});
+            }
+
+            // textureinfo() (spec 017-jit-builtin-function-coverage,
+            // US5): the prototype string carries a trailing "!" (e.g.
+            // "f=SSF!"), unlike surface()/etc.'s clean "f=SF" forms above
+            // -- the result-type char is the SECOND-TO-LAST character,
+            // not the last.
+            else if (op == "textureinfo") {
+                if (ins.operands.size() < 3 || !dst)
+                    continue;
+                auto [namePtr, sNameUnused] = getVar(ins, 0);
+                auto [queryPtr, sQueryUnused] = getVar(ins, 1);
+                auto [destPtr, sDest] = getVar(ins, 2);
+                if (!namePtr || !queryPtr || !destPtr)
+                    continue;
+                char resultChar = 'F';
+                if (ins.proto.size() >= 2)
+                    resultChar = ins.proto[ins.proto.size() - 2];
+                const int resultKind = (resultChar == 'V') ? 3 : (resultChar == 'M') ? 16
+                                                              : (resultChar == 'S')   ? -1
+                                                                                      : 1;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty},
+                                                   false);
+                auto *fn = declareOp(mod, "op_textureinfo", ty);
+                B.CreateCall(fn, {dst, dstStride, namePtr, queryPtr, destPtr, B.getInt32(sDest),
+                                  numVerts, tags, B.getInt32(resultKind)});
+            }
+
+            // Deriv() (spec 017-jit-builtin-function-coverage, US5): 2
+            // overloads ("f=ff"/"v=vf") disambiguated by dst stride, same
+            // as most other float-vs-vector dispatches above. A plain
+            // DEFFUNC -- loops the full numVerts, no numRealVertices
+            // replication needed.
+            else if (op == "Deriv") {
+                if (ins.operands.size() < 2 || !dst)
+                    continue;
+                auto [num, sNum] = getVar(ins, 0);
+                auto [denom, sDenom] = getVar(ins, 1);
+                if (!num || !denom)
+                    continue;
+                bool dstIsVec = (dstDesc.stride == 3);
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy},
+                                                   false);
+                auto *fn = declareOp(mod, dstIsVec ? "op_deriv_v" : "op_deriv_f", ty);
+                B.CreateCall(fn, {dst, dstStride, num, B.getInt32(sNum), denom, B.getInt32(sDenom),
+                                  numVerts, tags});
+            }
+
+            // shadername() (spec 017-jit-builtin-function-coverage, US5):
+            // two overloads distinguished by ARITY (0 vs 1 operands), not
+            // result type -- both always return a string. A plain DEFFUNC
+            // (shaderFunctions.h), so no numRealVertices-replicate
+            // discipline is needed -- loops the full numVerts like any
+            // other already-handled simple opcode.
+            else if (op == "shadername") {
+                if (!dst)
+                    continue;
+                if (ins.operands.empty()) {
+                    auto *ty = llvm::FunctionType::get(voidTy, {ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_shadername", ty);
+                    B.CreateCall(fn, {dst, dstStride, numVerts, tags});
+                }
+                else {
+                    auto [typePtr, sType] = getVar(ins, 0);
+                    if (!typePtr)
+                        continue;
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_shadername_s", ty);
+                    B.CreateCall(fn, {dst, dstStride, typePtr, B.getInt32(sType), numVerts, tags});
+                }
+            }
+
+            // clearlighting() (spec 017-jit-builtin-function-coverage,
+            // US5): pure side-effect call, no operands, no dst, no result.
+            else if (op == "clearlighting") {
+                auto *ty = llvm::FunctionType::get(voidTy, {}, false);
+                auto *fn = declareOp(mod, "op_clearlighting", ty);
+                B.CreateCall(fn, {});
+            }
+
+            // debug() (spec 017-jit-builtin-function-coverage, US5): both
+            // overloads (float/vector) are a true no-op on shading state
+            // (matches debugFunction()'s own body, which only writes to
+            // stderr) -- one dispatch branch handles both, no operand
+            // resolution needed. Currently uncallable from any RSL shader
+            // (GitHub issue #5: "debug" has zero addBuiltInFunction
+            // registrations in rslo.cpp), implemented ahead of that fix.
+            else if (op == "debug") {
+                auto *ty = llvm::FunctionType::get(voidTy, {i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_debug", ty);
+                B.CreateCall(fn, {numVerts, tags});
+            }
+
             // ================================================================
             // Layer G — vfrom aliases used by some shader variants
             // vtransform alias 'vfrom' (point transform); 'ntransform' alias 'nfrom'
@@ -2427,6 +2748,7 @@ static void emitFunction(const IRFunction &irFn,
     // Ensure a terminator exists.
     if (!currentBlockHasTerminator(B))
         B.CreateRetVoid();
+    return true;
 }
 
 // =========================================================================
@@ -2456,7 +2778,10 @@ bool emitLLVMBitcode(const IRModule &mod,
     auto varTbl = buildVarTable(mod);
 
     // Helper: build and emit one function with the standard shader signature.
-    auto buildAndEmit = [&](const std::string &fnName, const IRFunction &irFn) {
+    // Returns false if emitFunction() hit the hardened coverage gate (US2) —
+    // the diagnostic naming the unhandled mnemonic is already printed by
+    // emitFunction() itself at the point of failure.
+    auto buildAndEmit = [&](const std::string &fnName, const IRFunction &irFn) -> bool {
         auto *funcTy = llvm::FunctionType::get(voidTy, {i32Ty, ptrTy, ptrTy}, false);
         auto *func = llvm::Function::Create(
             funcTy, llvm::Function::ExternalLinkage, fnName, llvmMod.get());
@@ -2476,7 +2801,7 @@ bool emitLLVMBitcode(const IRModule &mod,
         llvm::Value *slot2 = B.CreateLoad(ptrTy, slot2_pp, "locals");
 
         // Continue appending to entry (after the slot loads).
-        emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, ctx, *llvmMod);
+        return emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, ctx, *llvmMod);
     };
 
     // -----------------------------------------------------------------------
@@ -2484,13 +2809,15 @@ bool emitLLVMBitcode(const IRModule &mod,
     // -----------------------------------------------------------------------
     bool hasInit = isFnNonTrivial(mod.initFn);
     if (hasInit) {
-        buildAndEmit(shaderName + "_init", mod.initFn);
+        if (!buildAndEmit(shaderName + "_init", mod.initFn))
+            return false;
     }
 
     // -----------------------------------------------------------------------
     // Compile #!Code section as the main shader entry function.
     // -----------------------------------------------------------------------
-    buildAndEmit(shaderName, mod.codeFn);
+    if (!buildAndEmit(shaderName, mod.codeFn))
+        return false;
 
     // -----------------------------------------------------------------------
     // Embed metadata (including hasinit flag).

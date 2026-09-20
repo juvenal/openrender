@@ -572,6 +572,121 @@ add_visual_test(sphere-indirectdiffuse-reyes-slo
     examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
     sphere-indirectdiffuse-reyes-slo.tif  sphere-indirectdiffuse-reyes.tif)
 
+# --- User Story 5 (GitHub issue #3, spec 017-jit-builtin-function-coverage):
+# 18 previously-uninventoried builtin functions, found by actually running
+# US2's coverage guard mid-implementation (research.md D9). Not
+# raytraced/stochastic (deterministic table/parameter lookups), so none of
+# these need numthreads 1 unless individually noted otherwise.
+add_visual_test(sphere-shader-parameter-reyes
+    examples/rib/tests/sphere-shader-parameter-reyes.rib
+    sphere-shader-parameter-reyes.tif  sphere-shader-parameter-reyes.tif)
+
+add_visual_test(sphere-shader-parameter-reyes-slo
+    examples/rib/tests/sphere-shader-parameter-reyes-slo.rib
+    sphere-shader-parameter-reyes-slo.tif  sphere-shader-parameter-reyes.tif)
+
+add_visual_test(sphere-scene-state-reyes
+    examples/rib/tests/sphere-scene-state-reyes.rib
+    sphere-scene-state-reyes.tif  sphere-scene-state-reyes.tif)
+
+add_visual_test(sphere-scene-state-reyes-slo
+    examples/rib/tests/sphere-scene-state-reyes-slo.rib
+    sphere-scene-state-reyes-slo.tif  sphere-scene-state-reyes.tif)
+
+# shadername() (T057/T069): both overloads, disambiguated by ARITY not
+# result type (both return a string). Uses `if` rather than `?:` to turn
+# the string-equality results into floats -- ternary conditions built from
+# a string comparison silently evaluate false under --jit, a separate
+# pre-existing JIT bug found while writing this probe (GitHub issue #6),
+# unrelated to shadername() coverage itself and worked around here rather
+# than fixed (out of scope for this spec).
+add_visual_test(sphere-shadername-reyes
+    examples/rib/tests/sphere-shadername-reyes.rib
+    sphere-shadername-reyes.tif  sphere-shadername-reyes.tif)
+
+add_visual_test(sphere-shadername-reyes-slo
+    examples/rib/tests/sphere-shadername-reyes-slo.rib
+    sphere-shadername-reyes-slo.tif  sphere-shadername-reyes.tif)
+
+# clearlighting() (T062/T073): forces a full light-loop re-execution
+# between two diffuse() calls; deterministic light source (distantlight)
+# so this mainly proves memory safety of the JIT wrapper, not the exact
+# cache-bypass semantic (see shaders/debug_clearlighting_probe.sl header).
+# debug() is exercised by this same probe file's comment but not callable
+# from RSL yet (GitHub issue #5, a compiler-registration gap) -- its JIT
+# side (jitDebug/op_debug) is implemented ahead of that fix regardless.
+add_visual_test(sphere-clearlighting-reyes
+    examples/rib/tests/sphere-clearlighting-reyes.rib
+    sphere-clearlighting-reyes.tif  sphere-clearlighting-reyes.tif)
+
+add_visual_test(sphere-clearlighting-reyes-slo
+    examples/rib/tests/sphere-clearlighting-reyes-slo.rib
+    sphere-clearlighting-reyes-slo.tif  sphere-clearlighting-reyes.tif)
+
+# texture3d()/bake3d() (T058/T067/T068): reuses US1's occlusion/
+# indirectdiffuse point-cloud architecture; only the base positional
+# arguments are supported (no user-bound channels), so both calls just
+# report their fixed success flag -- see shaders/texture3d_bake3d_probe.sl
+# header for the full scoping rationale. Writes a small .ptc point-cloud
+# file into the CWD at render time (017_texture3d_bake3d_probe.ptc,
+# gitignored/untracked, harmless to regenerate on every run).
+add_visual_test(sphere-texture3d-bake3d-reyes
+    examples/rib/tests/sphere-texture3d-bake3d-reyes.rib
+    sphere-texture3d-bake3d-reyes.tif  sphere-texture3d-bake3d-reyes.tif)
+
+add_visual_test(sphere-texture3d-bake3d-reyes-slo
+    examples/rib/tests/sphere-texture3d-bake3d-reyes-slo.rib
+    sphere-texture3d-bake3d-reyes-slo.tif  sphere-texture3d-bake3d-reyes.tif)
+
+# phong()/specularbrdf() (T060/T070/T071): phong's JIT wrapper
+# (callPhong) reuses callSpecular's already-shipped light-iteration
+# shape; specularbrdf is pure math with the same halfway-vector NaN guard
+# specular() already needed. Deterministic light + math, not stochastic.
+add_visual_test(sphere-phong-specularbrdf-reyes
+    examples/rib/tests/sphere-phong-specularbrdf-reyes.rib
+    sphere-phong-specularbrdf-reyes.tif  sphere-phong-specularbrdf-reyes.tif)
+
+add_visual_test(sphere-phong-specularbrdf-reyes-slo
+    examples/rib/tests/sphere-phong-specularbrdf-reyes-slo.rib
+    sphere-phong-specularbrdf-reyes-slo.tif  sphere-phong-specularbrdf-reyes.tif)
+
+# pnoise() (T061/T072): exercises the 1D and 3D float forms; the 2D/4D
+# and vector-result forms share the same dispatch mechanism (operand
+# count + stride) and are implemented but not separately probed.
+add_visual_test(sphere-pnoise-reyes
+    examples/rib/tests/sphere-pnoise-reyes.rib
+    sphere-pnoise-reyes.tif  sphere-pnoise-reyes.tif)
+
+add_visual_test(sphere-pnoise-reyes-slo
+    examples/rib/tests/sphere-pnoise-reyes-slo.rib
+    sphere-pnoise-reyes-slo.tif  sphere-pnoise-reyes.tif)
+
+# textureinfo() (T057/T066): queries a NONEXISTENT texture file, not a
+# real one -- loading a real otexmake-produced .tex currently hits an
+# unrelated, separately-filed fatal-warning bug (GitHub issue #7). Uses a
+# sentinel-preset-then-overwrite pattern to still distinguish "correctly
+# computed not-found" from "opcode silently no-op'd" -- see
+# shaders/textureinfo_probe.sl header for the full rationale.
+add_visual_test(sphere-textureinfo-reyes
+    examples/rib/tests/sphere-textureinfo-reyes.rib
+    sphere-textureinfo-reyes.tif  sphere-textureinfo-reyes.tif)
+
+add_visual_test(sphere-textureinfo-reyes-slo
+    examples/rib/tests/sphere-textureinfo-reyes-slo.rib
+    sphere-textureinfo-reyes-slo.tif  sphere-textureinfo-reyes.tif)
+
+# Deriv() (T063/T074): float form with a genuinely varying numerator
+# (real gradient across the grid) and a uniform-numerator case exercising
+# the uniform-stride guard (T010-T012) -- a uniform operand's du/dv must
+# come out exactly zero, not read out of bounds.
+add_visual_test(sphere-deriv-reyes
+    examples/rib/tests/sphere-deriv-reyes.rib
+    sphere-deriv-reyes.tif  sphere-deriv-reyes.tif)
+
+add_visual_test(sphere-deriv-reyes-slo
+    examples/rib/tests/sphere-deriv-reyes-slo.rib
+    sphere-deriv-reyes-slo.tif  sphere-deriv-reyes.tif)
+
 # --- Show-stopper closure (GitHub issue #3, spec 017-jit-builtin-function-
 # coverage, US1, FR-019): quadlight.sl/spherelight.sl (the RSL area-light
 # replacements for the old hardcoded CQuadLight/CSphereLight) use

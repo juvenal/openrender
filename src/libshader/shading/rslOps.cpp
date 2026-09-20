@@ -736,6 +736,14 @@ void op_specular_batch(float *result, const float *Nf, const float *V, const flo
         ctx->callSpecular(result, Nf, V, roughness ? roughness[0] : 0.1f);
 }
 
+void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {
+    (void)n;
+    (void)tags;
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->callPhong(result, Nf, V, size ? size[0] : 10.0f);
+}
+
 // =========================================================================
 // random() / urandom() — stateful RNG (mirrors RANDOMFEXP/RANDOMVEXP in
 // scriptFunctions.h: same CShadingContext::urand() calls, same x/y/z draw
@@ -763,6 +771,69 @@ void op_random_v(float *dst, int sd, int n, const int *tags) {
             p[1] = ctx->urand();
             p[2] = ctx->urand();
         }
+}
+
+// =========================================================================
+// pnoise() -- 4 argument shapes x 2 result kinds, each a thin per-vertex
+// loop over the matching pnoiseFloat/pnoiseVector overload (byte-faithful
+// to PNOISE1D1EXPR/PNOISE1D2EXPR/PNOISE1D3EXPR/PNOISE1D4EXPR and their
+// PNOISE3D* vector siblings, shaderFunctions.h).
+// =========================================================================
+
+void op_pnoise_1d_f(float *dst, int sd, const float *x, int sx, const float *p, int sp, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = pnoiseFloat(IDX(x, sx, i)[0], IDX(p, sp, i)[0]);
+}
+
+void op_pnoise_1d_v(float *dst, int sd, const float *x, int sx, const float *p, int sp, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            pnoiseVector(IDX(dst, sd, i), IDX(x, sx, i)[0], IDX(p, sp, i)[0]);
+}
+
+void op_pnoise_2d_f(float *dst, int sd, const float *x, int sx, const float *px, int spx,
+                    const float *y, int sy, const float *py, int spy, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = pnoiseFloat(IDX(x, sx, i)[0], IDX(px, spx, i)[0], IDX(y, sy, i)[0], IDX(py, spy, i)[0]);
+}
+
+void op_pnoise_2d_v(float *dst, int sd, const float *x, int sx, const float *px, int spx,
+                    const float *y, int sy, const float *py, int spy, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            pnoiseVector(IDX(dst, sd, i), IDX(x, sx, i)[0], IDX(px, spx, i)[0], IDX(y, sy, i)[0], IDX(py, spy, i)[0]);
+}
+
+void op_pnoise_3d_f(float *dst, int sd, const float *P, int sP, const float *pp, int spp, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = pnoiseFloat(IDX(P, sP, i), IDX(pp, spp, i));
+}
+
+void op_pnoise_3d_v(float *dst, int sd, const float *P, int sP, const float *pp, int spp, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            pnoiseVector(IDX(dst, sd, i), IDX(P, sP, i), IDX(pp, spp, i));
+}
+
+void op_pnoise_4d_f(float *dst, int sd, const float *P, int sP, const float *t, int st,
+                    const float *pp, int spp, const float *pt, int spt, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = pnoiseFloat(IDX(P, sP, i), IDX(t, st, i)[0], IDX(pp, spp, i), IDX(pt, spt, i)[0]);
+}
+
+void op_pnoise_4d_v(float *dst, int sd, const float *P, int sP, const float *t, int st,
+                    const float *pp, int spp, const float *pt, int spt, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            pnoiseVector(IDX(dst, sd, i), IDX(P, sP, i), IDX(t, st, i)[0], IDX(pp, spp, i), IDX(pt, spt, i)[0]);
 }
 
 // =========================================================================
@@ -1341,6 +1412,29 @@ void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int 
             reflect(IDX(dst, sd, i), IDX(I, si, i), IDX(N, sn, i));
 }
 
+void op_specularbrdf(float *dst, int sd, const float *L, int sL, const float *N, int sN,
+                     const float *V, int sV, const float *roughness, int sR, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            const float hx = IDX(V, sV, i)[0] + IDX(L, sL, i)[0];
+            const float hy = IDX(V, sV, i)[1] + IDX(L, sL, i)[1];
+            const float hz = IDX(V, sV, i)[2] + IDX(L, sL, i)[2];
+            const float hlen2 = hx * hx + hy * hy + hz * hz;
+            float *out = IDX(dst, sd, i);
+            if (hlen2 > 0.0f) {
+                const float inv = 1.0f / sqrtf(hlen2);
+                const float nhx = hx * inv, nhy = hy * inv, nhz = hz * inv;
+                const float dotProduct = IDX(N, sN, i)[0] * nhx + IDX(N, sN, i)[1] * nhy + IDX(N, sN, i)[2] * nhz;
+                const float clampedDot = (dotProduct > 0.0f) ? dotProduct : 0.0f;
+                const float val = powf(clampedDot, 10.0f / IDX(roughness, sR, i)[0]);
+                out[0] = out[1] = out[2] = val;
+            }
+            else {
+                out[0] = out[1] = out[2] = 0.0f;
+            }
+        }
+}
+
 void op_fresnel(const float *I, int si, const float *N, int sn, const float *eta, int se, float *Kr, int skr, float *Kt, int skt, float *R, int sr, float *T, int st, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i)) {
@@ -1656,6 +1750,125 @@ void op_indirectdiffuse(float *dst, int sd, const float *P, int sP, const float 
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags);
+}
+
+void op_texture3d(float *dst, int sd, const char *const *name,
+                  const float *P, int sP, const float *N, int sN,
+                  const float *du, const float *dv, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitTexture3d(dst, sd, name, P, sP, N, sN, du, dv, n, tags);
+}
+
+void op_bake3d(float *dst, int sd, const char *const *name, const char *const *channels,
+              const float *P, int sP, const float *N, int sN,
+              const float *du, const float *dv, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitBake3d(dst, sd, name, channels, P, sP, N, sN, du, dv, n, tags);
+}
+
+void op_surface_param(float *dst, int sd, const char *const *name,
+                      void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitSurfaceParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_displacement_param(float *dst, int sd, const char *const *name,
+                           void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitDisplacementParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_atmosphere_param(float *dst, int sd, const char *const *name,
+                         void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitAtmosphereParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_incident_param(float *dst, int sd, const char *const *name,
+                       void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitIncidentParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_opposite_param(float *dst, int sd, const char *const *name,
+                       void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitOppositeParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_attribute_param(float *dst, int sd, const char *const *name,
+                        void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitAttributeParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_option_param(float *dst, int sd, const char *const *name,
+                     void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitOptionParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_rendererinfo_param(float *dst, int sd, const char *const *name,
+                           void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitRendererInfoParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
+}
+
+void op_textureinfo(float *dst, int sd, const char *const *name,
+                    const char *const *query, void *dest, int sDest,
+                    int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitTextureInfo(dst, sd, name, query, dest, sDest, n, tags, resultKind);
+}
+
+void op_deriv_f(float *dst, int sd, const float *num, int sNum,
+                const float *denom, int sDenom, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitDerivF(dst, sd, num, sNum, denom, sDenom, n, tags);
+}
+
+void op_deriv_v(float *dst, int sd, const float *num, int sNum,
+                const float *denom, int sDenom, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitDerivV(dst, sd, num, sNum, denom, sDenom, n, tags);
+}
+
+void op_shadername(char **dst, int sd, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitShaderName(dst, sd, n, tags);
+}
+
+void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
+                     int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitShaderNameS(dst, sd, type, sType, n, tags);
+}
+
+void op_clearlighting() {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitClearLighting();
+}
+
+void op_debug(int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitDebug(n, tags);
 }
 
 // =========================================================================

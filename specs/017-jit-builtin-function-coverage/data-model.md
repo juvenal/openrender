@@ -56,7 +56,7 @@ Each new JIT-callable delegation trampoline this feature adds.
 | `needs_context` | boolean | True for every US1 raytracing-tier function, `photonmap`, `rayinfo`/`raylabel`/`raydepth` (all reach `CShadingContext` state via `libshader::activeContext()`); false for `comp`/`ptlined`/all of US4 (pure operand functions, matching `op_reflect`'s existing pattern of not needing context). |
 | `delegates_to` | reference | The `RSL Builtin Function.interpreter_body`'s target — a `mathSpec.h` free function (US4), a new `CShadingContext` member method transcribing a `giFunctions.h` macro family (US1's raytracing tier, `photonmap`), or a direct alias to an existing `op_*` (`match`→`op_seql`). |
 
-## New `CShadingContext` Member Methods (`shading.h`/`.cpp`, US1 + `rayinfo`)
+## New `CShadingContext` Member Methods (`shading.h`/`.cpp`, US1 + `rayinfo` + US5)
 
 | Method | Delegates to (interpreter macro family) | Uses private `CTraceLocation`/`traceTransmission`/`traceReflection`? |
 |---|---|---|
@@ -66,9 +66,18 @@ Each new JIT-callable delegation trampoline this feature adds.
 | `jitOcclusion` | `IDEXPR*` | No — uses `rendererGetCache`/`rendererGetTexture3d`/`rendererGetEnvironment` (protected) instead |
 | `jitIndirectDiffuse` | `IDEXPR*` | No — same as `jitOcclusion` |
 | `jitRayInfo` | `RAYINFOEXPR*` | No — reads private `currentRayDepth`/`currentRayLabel` + `varying[VARIABLE_P/I]` |
+| `jitSurfaceParameter`/`jitDisplacementParameter`/`jitAtmosphereParameter`/`jitIncidentParameter`/`jitOppositeParameter` (US5, one parameterized method or five thin ones) | `PARAMETEREXPR_PRE(accessor)`/`PARAMETEREXPRF/V/S/M`/`PARAMETEREXPR_UPDATE` | No — bound-`CShaderInstance*`/`getParameter()` lookup, no raytracing |
+| `jitAttributes`/`jitOptions`/`jitRendererInfo` (US5) | Same `PARAMETEREXPR*` family, accessor `0` | No — hardcoded `strcmp` table lookup |
+| `jitTextureInfo` (US5) | `TEXTUREINFO_PRE`/`TEXTUREINFOV/F/S/M`/`_UPDATE`/`_POST` | No — uses `rendererGetTextureInfo` (protected) |
+| `jitTexture3d` (US5) | `TEXTURE3DEXPR*` | No — uses `rendererGetTexture3d` (protected), same architecture as `jitOcclusion` |
+| `jitBake3d` (US5, `DEFSHORTFUNC` — needs D1's tail-replication) | `BAKE3DEXPR*` | No — same `CTexture3d` architecture, `store()` instead of `lookup()` |
 
 All are new `public` methods, added alongside the existing `jitShadowF`
-(`shading.h:501`) — no access-level change to any existing member.
+(`shading.h:501`) — no access-level change to any existing member. US5's
+`phong`/`specularbrdf`/`pnoise`/`debug`/`Deriv`/`clearlighting`/
+`shadername` are not listed here — each is small enough to be a plain
+`rslOps.cpp` free-function trampoline (like `op_radians`/`op_reflect`)
+rather than needing a new `CShadingContext` member method.
 
 ## Regression Test Pair (new, per function fixed — FR-018)
 

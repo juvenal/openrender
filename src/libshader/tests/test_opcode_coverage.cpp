@@ -62,23 +62,45 @@ static void test_reachable_opcodes_are_all_handled() {
     }
 }
 
-// random()/urandom() are FUNCTION_-family builtins (DEFFUNC in
-// scriptFunctions.h), not OPCODE_-family bytecode instructions, so they are
-// structurally outside kAllOpcodeMnemonics' coverage above (opcodes.cpp only
-// enumerates OPCODE_*). Hand-checked here as a targeted regression guard for
-// GitHub issue #1 (random() silently no-op'd under the JIT because it was
-// simply missing from kHandledOpcodes, with zero test coverage anywhere to
-// catch it). See the follow-up GitHub issue for extending this guard to the
-// full FUNCTION_ mnemonic set instead of one-off hand-written checks.
-static void test_random_builtins_are_handled() {
-    EXPECT_TRUE(isHandled("random"));
-    EXPECT_TRUE(isHandled("urandom"));
+// FUNCTION_-family builtins (DEFFUNC/DEFLINKFUNC/DEFLIGHTFUNC/DEFSHORTFUNC
+// in scriptFunctions.h -> shaderFunctions.h -> giFunctions.h), not
+// OPCODE_-family bytecode instructions, so they are structurally outside
+// kAllOpcodeMnemonics' coverage above (opcodes.cpp only enumerates
+// OPCODE_*). This supersedes issue #1's original narrow, hand-written
+// random()/urandom()-only check (spec 017-jit-builtin-function-coverage,
+// contracts/function-coverage-guard-contract.md's Supersession note) --
+// that check was an explicitly-flagged stopgap pending exactly this
+// general extension. Every builtin function reachable from
+// kAllFunctionMnemonics is now checked, not just those two, closing the
+// same structural gap that let random()/urandom() and 26 more functions
+// ship silently broken under --jit with zero test coverage to catch it.
+static void test_reachable_functions_are_all_handled() {
+    for (int i = 0; kAllFunctionMnemonics[i] != nullptr; ++i) {
+        const char *mnemonic = kAllFunctionMnemonics[i];
+
+        // The two DSO/plugin-shadeop dispatcher rows share the literal
+        // placeholder text "XXX" -- their real name/prototype is resolved
+        // from the loaded plugin at runtime, never a static mnemonic
+        // (research.md D7). Never a real callable function; would
+        // otherwise be a permanent, unclosable false-positive gap.
+        if (std::strcmp(mnemonic, "XXX") == 0)
+            continue;
+
+        bool handled = isHandled(mnemonic);
+        if (!handled) {
+            fprintf(stderr,
+                    "JIT coverage gap: builtin function '%s' is reachable but has no "
+                    "emitFunction() case\n",
+                    mnemonic);
+        }
+        EXPECT_TRUE(handled);
+    }
 }
 
 int main() {
     LOG_SET_LEVEL(LOG_LEVEL_NONE);
     test_reachable_opcodes_are_all_handled();
-    test_random_builtins_are_handled();
+    test_reachable_functions_are_all_handled();
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;
 }

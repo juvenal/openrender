@@ -1535,7 +1535,20 @@ DEFFUNC(TextureinfoM, "textureinfo", "f=SSM!", TEXTUREINFO_PRE(float *), TEXTURE
 DEFFUNC(ShaderName, "shadername", "s=", SHADERNAMEEXPR_PRE, SHADERNAMEEXPR, FUN1EXPR_UPDATE(1), NULL_EXPR, 0)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// shadername	"s=s"
+// shadername	"s=S"
+// NOTE (spec 017-jit-builtin-function-coverage, US5): the query-name
+// argument here must be "S" (uppercase), matching this file's own
+// established convention for a query-name string, exactly like
+// surface/displacement/lightsource's "f=SF"/"f=SS"/etc siblings just
+// above -- and matching rslo.cpp's own addBuiltInFunction("shadername",
+// "s=S", 0) compiler-side registration. This was a lone "s=s" (lowercase)
+// typo: harmless for oshader compiling FROM .sl source (that path
+// resolves the prototype via rslo.cpp's own registration, not this
+// string), but shading/rslo.y's runtime .rslo/.slo reload path builds its
+// function table directly from this DEFFUNC prototype -- the case
+// mismatch made it silently reject shadername(<string>) as "Unknown
+// function" the first time any shader (interpreted or JIT) actually
+// called it, since nothing shipped exercised this overload before.
 #ifndef INIT_SHADING
 #define SHADERNAMESEXPR_PRE   \
     char **res, **op;         \
@@ -1550,7 +1563,7 @@ DEFFUNC(ShaderName, "shadername", "s=", SHADERNAMEEXPR_PRE, SHADERNAMEEXPR, FUN1
 #define SHADERNAMESEXPR
 #endif
 
-DEFFUNC(ShaderNames, "shadername", "s=s", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

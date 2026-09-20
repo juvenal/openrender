@@ -172,6 +172,7 @@ void op_diffuse_batch(float *result, int sr, const float *Nf, int sn, int n, con
 /* Calls ctx->callSpecular(result, Nf, V, roughness) — Phong specular highlight */
 /* roughness is always a scalar (uniform) — passed as float* and read as roughness[0] */
 void op_specular_batch(float *result, const float *Nf, const float *V, const float *roughness, int n, const int *tags);
+void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
  * Shader attribute query (used inside illuminance loops)
@@ -309,6 +310,13 @@ void op_sneql(float *dst, int sd, const char *const *a, int sa, const char *cons
 void op_filterstep(float *dst, int sd, const float *edge, int se, const float *x, int sx, int n, const int *tags);
 /* reflect / fresnel */
 void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int sn, int n, const int *tags);
+
+// specularbrdf() (spec 017-jit-builtin-function-coverage, US5): pure math,
+// byte-faithful transcription of SPECULARBRDFEXPR (shaderFunctions.h) --
+// same anti-parallel NaN guard as specular()'s halfway-vector (project
+// gotcha #2): `dotvv(halfway,halfway) > 0` before normalizing.
+void op_specularbrdf(float *dst, int sd, const float *L, int sL, const float *N, int sN,
+                     const float *V, int sV, const float *roughness, int sR, int n, const int *tags);
 void op_fresnel(const float *I, int si, const float *N, int sn, const float *eta, int se, float *Kr, int skr, float *Kt, int skt, float *R, int sr, float *T, int st, int n, const int *tags);
 /* noise */
 void op_noise_ff(float *dst, int sd, const float *x, int sx, int n, const int *tags);
@@ -328,6 +336,23 @@ void op_cellnoise_vpf(float *dst, int sd, const float *p, int sp, const float *f
 /* random / urandom (stateful RNG via the current thread's CShadingContext::urand()) */
 void op_random_f(float *dst, int sd, int n, const int *tags);
 void op_random_v(float *dst, int sd, int n, const int *tags);
+
+// pnoise() (spec 017-jit-builtin-function-coverage, US5): periodic noise,
+// 4 argument shapes (1D/2D/3D/4D) x 2 result kinds (float/vector), each
+// a thin per-vertex loop over the matching pnoiseFloat/pnoiseVector
+// overload (noise.h).
+void op_pnoise_1d_f(float *dst, int sd, const float *x, int sx, const float *p, int sp, int n, const int *tags);
+void op_pnoise_1d_v(float *dst, int sd, const float *x, int sx, const float *p, int sp, int n, const int *tags);
+void op_pnoise_2d_f(float *dst, int sd, const float *x, int sx, const float *px, int spx,
+                    const float *y, int sy, const float *py, int spy, int n, const int *tags);
+void op_pnoise_2d_v(float *dst, int sd, const float *x, int sx, const float *px, int spx,
+                    const float *y, int sy, const float *py, int spy, int n, const int *tags);
+void op_pnoise_3d_f(float *dst, int sd, const float *P, int sP, const float *pp, int spp, int n, const int *tags);
+void op_pnoise_3d_v(float *dst, int sd, const float *P, int sP, const float *pp, int spp, int n, const int *tags);
+void op_pnoise_4d_f(float *dst, int sd, const float *P, int sP, const float *t, int st,
+                    const float *pp, int spp, const float *pt, int spt, int n, const int *tags);
+void op_pnoise_4d_v(float *dst, int sd, const float *P, int sP, const float *t, int st,
+                    const float *pp, int spp, const float *pt, int spt, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
  * Layer G — context-dependent geometric built-ins (call via activeContext())
@@ -386,6 +411,60 @@ void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, in
 void op_indirectdiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                         const float *samples, int sSamples, const float *du, const float *dv,
                         int n, const int *tags);
+
+// texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5):
+// point-cloud read/write trampolines. See shading.h for scoping notes.
+void op_texture3d(float *dst, int sd, const char *const *name,
+                  const float *P, int sP, const float *N, int sN,
+                  const float *du, const float *dv, int n, const int *tags);
+void op_bake3d(float *dst, int sd, const char *const *name, const char *const *channels,
+              const float *P, int sP, const float *N, int sN,
+              const float *du, const float *dv, int n, const int *tags);
+
+// surface()/displacement()/atmosphere()/incident()/opposite()/attribute()/
+// option()/rendererinfo() (spec 017-jit-builtin-function-coverage, US5):
+// named-parameter query trampolines. `resultKind`: 1=float, 3=vector,
+// 16=matrix, -1=string.
+void op_surface_param(float *dst, int sd, const char *const *name,
+                      void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_displacement_param(float *dst, int sd, const char *const *name,
+                           void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_atmosphere_param(float *dst, int sd, const char *const *name,
+                         void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_incident_param(float *dst, int sd, const char *const *name,
+                       void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_opposite_param(float *dst, int sd, const char *const *name,
+                       void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_attribute_param(float *dst, int sd, const char *const *name,
+                        void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_option_param(float *dst, int sd, const char *const *name,
+                     void *dest, int sDest, int n, const int *tags, int resultKind);
+void op_rendererinfo_param(float *dst, int sd, const char *const *name,
+                           void *dest, int sDest, int n, const int *tags, int resultKind);
+
+// textureinfo() (spec 017-jit-builtin-function-coverage, US5). resultKind:
+// 1=float (sDest-wide), 3=vector, 16=matrix, -1=string.
+void op_textureinfo(float *dst, int sd, const char *const *name,
+                    const char *const *query, void *dest, int sDest,
+                    int n, const int *tags, int resultKind);
+
+// Deriv() (spec 017-jit-builtin-function-coverage, US5).
+void op_deriv_f(float *dst, int sd, const float *num, int sNum,
+                const float *denom, int sDenom, int n, const int *tags);
+void op_deriv_v(float *dst, int sd, const float *num, int sNum,
+                const float *denom, int sDenom, int n, const int *tags);
+
+// shadername() -- both overloads (spec 017-jit-builtin-function-coverage,
+// US5). No-arg form ("s="): op_shadername. One-string-arg form ("s=s"):
+// op_shadername_s.
+void op_shadername(char **dst, int sd, int n, const int *tags);
+void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
+                     int n, const int *tags);
+
+// clearlighting() / debug() (spec 017-jit-builtin-function-coverage, US5).
+// Both are pure side-effect calls -- no dst, no result.
+void op_clearlighting();
+void op_debug(int n, const int *tags);
 
 /* -----------------------------------------------------------------------
  * Spline interpolation (Catmull-Rom, default basis, no basis-string variant)

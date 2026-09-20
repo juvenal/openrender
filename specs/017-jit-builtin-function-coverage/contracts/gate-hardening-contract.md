@@ -68,10 +68,12 @@ Story 1's six functions (`visibility`/`transmission`/`trace`/`occlusion`/
 `indirectdiffuse`/`comp`) are implemented and verified. Confirmed by
 direct grep (`research.md` D4) that hardening strictly after User Story 1
 causes zero build breakage, both immediately and for the entire duration
-User Stories 3/4 remain unimplemented (zero shipped shaders reference any
-of the remaining 19 functions). `tasks.md` MUST NOT reorder this — the
-gate-hardening task is the last task of User Story 2, which itself is
-sequenced after User Story 1 completes.
+User Stories 3/4/5 remain unimplemented (zero shipped shaders reference
+any of the remaining 37 functions — 19 from Stories 3/4, plus 18 more from
+Story 5, discovered mid-implementation and confirmed zero-shipped-impact
+by the same direct-grep method, `research.md` D9). `tasks.md` MUST NOT
+reorder this — the gate-hardening task is the last task of User Story 2,
+which itself is sequenced after User Story 1 completes.
 
 ## Verification obligations
 
