@@ -96,18 +96,19 @@ jobs:
         run: |
           brew install libtiff libpng flex bison openexr pkg-config
 
-      # zlib/libpng/tiff/openexr for the SELF-CONTAINED build only: Homebrew's
-      # bottles are pre-built for whatever macOS version Homebrew's own CI
-      # happened to run on, not for the -DCMAKE_OSX_DEPLOYMENT_TARGET this
-      # build claims -- linking them into a "self-contained" tarball makes
-      # that floor a lie. Building the same libraries from source, pinned to
-      # this triplet's deployment target, makes it a real guarantee instead.
-      # Not used for the FHS build below: an FHS package is supposed to
+      # zlib/libpng/tiff/openexr/LLVM for the SELF-CONTAINED build only:
+      # Homebrew's bottles are pre-built for whatever macOS version Homebrew's
+      # own CI happened to run on, not for the -DCMAKE_OSX_DEPLOYMENT_TARGET
+      # this build claims -- linking them into a "self-contained" tarball
+      # makes that floor a lie. Building the same libraries from source,
+      # pinned to this triplet's deployment target, makes it a real guarantee
+      # instead. LLVM is vendored core-only (no clang/lld/tools -- see
+      # vcpkg.json's llvm feature list); it's the most expensive thing in this
+      # manifest by far, ~110 min from scratch (cached by the step below after
+      # that). Not used for the FHS build below: an FHS package is supposed to
       # depend on the target system's own package manager for these, exactly
       # like a .deb/.rpm does on Linux -- see
       # CMake/vcpkg-triplets/x64-osx-openrender.cmake for the full rationale.
-      # LLVM/the JIT still come from Homebrew either way; vendoring LLVM from
-      # source is a much larger undertaking left for later.
       # Deliberately scoped to this step's own output (not GITHUB_ENV): the
       # root CMakeLists.txt now auto-detects VCPKG_ROOT from the environment
       # for every build, so leaking it job-wide here would silently pull the
@@ -204,8 +205,9 @@ jobs:
           brew install libtiff libpng flex bison openexr pkg-config
 
       # See the matching step in build-macos-x86_64 for the full rationale:
-      # this vendors zlib/libpng/tiff/openexr at a pinned deployment target
-      # for the self-contained build only, leaving the FHS build on Homebrew.
+      # this vendors zlib/libpng/tiff/openexr/LLVM at a pinned deployment
+      # target for the self-contained build only, leaving the FHS build on
+      # Homebrew.
       # Scoped to this step's own output, not GITHUB_ENV -- see the matching
       # comment in build-macos-x86_64: leaking VCPKG_ROOT job-wide would pull
       # the FHS build below onto vcpkg too, now that the root CMakeLists.txt

@@ -1,12 +1,19 @@
 {
   "name": "openrender",
   "version": "0.1.0",
-  "description": "Vendored release-build dependencies for openRender's macOS release pipeline (CI only -- local dev builds keep using Homebrew, see CMake/vcpkg-triplets/arm64-osx-openrender.cmake).",
+  "description": "Vendored macOS dependencies (CI/release and, opt-in via VCPKG_ROOT, local dev too -- see CMake/vcpkg-triplets/arm64-osx-openrender.cmake and scripts/setup-vcpkg-macos.sh). flex/bison and LLVM's clang/lld/tools stay off -- see the llvm feature list below.",
   "builtin-baseline": "319504a5326aa870edde46438c5455fa76305a56",
   "dependencies": [
     "zlib",
     "libpng",
     "tiff",
-    "openexr"
+    "openexr",
+    {
+      "name": "llvm",
+      "default-features": false,
+      "features": [
+        "default-targets"
+      ]
+    }
   ]
 }
