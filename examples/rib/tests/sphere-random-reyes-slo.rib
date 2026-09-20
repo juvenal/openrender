@@ -1,0 +1,16 @@
+##RenderMan RIB-Structure 1.0
+# See sphere-random-reyes.rib for why numthreads 1 is required for this
+# scene specifically (random()'s output is thread-scheduling-sensitive,
+# unlike the other spec-011/012 -slo probes).
+version 3.03
+Hider "reyes"
+Option "limits" "numthreads" [1]
+Display "sphere-random-reyes-slo.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "shade" "shaderformat" ["slo"]
+  Surface "random_probe"
+  Sphere 1 -1 1 360
+WorldEnd

@@ -737,6 +737,35 @@ void op_specular_batch(float *result, const float *Nf, const float *V, const flo
 }
 
 // =========================================================================
+// random() / urandom() — stateful RNG (mirrors RANDOMFEXP/RANDOMVEXP in
+// scriptFunctions.h: same CShadingContext::urand() calls, same x/y/z draw
+// order, same DEFFUNC numVertices loop bound).
+// =========================================================================
+
+void op_random_f(float *dst, int sd, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx)
+        return;
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = ctx->urand();
+}
+
+void op_random_v(float *dst, int sd, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx)
+        return;
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            float *p = IDX(dst, sd, i);
+            p[0] = ctx->urand();
+            p[1] = ctx->urand();
+            p[2] = ctx->urand();
+        }
+}
+
+// =========================================================================
 // Shader attribute query
 // =========================================================================
 

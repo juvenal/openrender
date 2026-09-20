@@ -325,6 +325,9 @@ void op_cellnoise_fff(float *dst, int sd, const float *x, int sx, const float *y
 void op_cellnoise_fpf(float *dst, int sd, const float *p, int sp, const float *f, int sf, int n, const int *tags);
 void op_cellnoise_vff(float *dst, int sd, const float *x, int sx, const float *y, int sy, int n, const int *tags);
 void op_cellnoise_vpf(float *dst, int sd, const float *p, int sp, const float *f, int sf, int n, const int *tags);
+/* random / urandom (stateful RNG via the current thread's CShadingContext::urand()) */
+void op_random_f(float *dst, int sd, int n, const int *tags);
+void op_random_v(float *dst, int sd, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
  * Layer G — context-dependent geometric built-ins (call via activeContext())

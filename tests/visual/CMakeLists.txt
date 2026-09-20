@@ -479,6 +479,23 @@ add_visual_test(sphere-usfroma-reyes-slo
     examples/rib/tests/sphere-usfroma-reyes-slo.rib
     sphere-usfroma-reyes-slo.tif  sphere-usfroma-reyes.tif)
 
+# --- random()/urandom() coverage (GitHub issue #1): random"/"urandom" were
+# missing from kHandledOpcodes, so emitFunction()'s coverage gate silently
+# skipped the call -- zero IR emitted, destination buffer never written.
+# CShadingContext::urand() is seeded purely from the thread index
+# (randomInit(5489 * (thread + 1)), shading.cpp), no time/entropy component,
+# and both backends draw the exact same urand() sequence in the same
+# per-vertex, per-instruction order for this probe, so the .slo render is
+# expected to match the .rslo reference at the same tight threshold as the
+# other spec-011/012 probes above, not a loosened/statistical one.
+add_visual_test(sphere-random-reyes
+    examples/rib/tests/sphere-random-reyes.rib
+    sphere-random-reyes.tif  sphere-random-reyes.tif)
+
+add_visual_test(sphere-random-reyes-slo
+    examples/rib/tests/sphere-random-reyes-slo.rib
+    sphere-random-reyes-slo.tif  sphere-random-reyes.tif)
+
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
 # a varying conditional (`if (u > 0.05)`) that is false at the sphere's

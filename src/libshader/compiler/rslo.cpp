@@ -856,11 +856,11 @@ CScriptContext::CScriptContext(int s) {
     addBuiltInFunction("random", "n=", 0, TRUE);
     addBuiltInFunction("random", "p=", 0, TRUE);
     addBuiltInFunction("random", "c=", 0, TRUE);
-    addBuiltInFunction("urandom", "f=", 0);
-    addBuiltInFunction("urandom", "v=", 0);
-    addBuiltInFunction("urandom", "n=", 0);
-    addBuiltInFunction("urandom", "p=", 0);
-    addBuiltInFunction("urandom", "c=", 0);
+    addBuiltInFunction("urandom", "f=", 0, TRUE);
+    addBuiltInFunction("urandom", "v=", 0, TRUE);
+    addBuiltInFunction("urandom", "n=", 0, TRUE);
+    addBuiltInFunction("urandom", "p=", 0, TRUE);
+    addBuiltInFunction("urandom", "c=", 0, TRUE);
     addBuiltInFunction("checkers", "f=", 0, TRUE);
     addBuiltInFunction("noise", "f=f", 0);
     addBuiltInFunction("noise", "f=ff", 0);

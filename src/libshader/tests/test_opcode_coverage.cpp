@@ -62,9 +62,23 @@ static void test_reachable_opcodes_are_all_handled() {
     }
 }
 
+// random()/urandom() are FUNCTION_-family builtins (DEFFUNC in
+// scriptFunctions.h), not OPCODE_-family bytecode instructions, so they are
+// structurally outside kAllOpcodeMnemonics' coverage above (opcodes.cpp only
+// enumerates OPCODE_*). Hand-checked here as a targeted regression guard for
+// GitHub issue #1 (random() silently no-op'd under the JIT because it was
+// simply missing from kHandledOpcodes, with zero test coverage anywhere to
+// catch it). See the follow-up GitHub issue for extending this guard to the
+// full FUNCTION_ mnemonic set instead of one-off hand-written checks.
+static void test_random_builtins_are_handled() {
+    EXPECT_TRUE(isHandled("random"));
+    EXPECT_TRUE(isHandled("urandom"));
+}
+
 int main() {
     LOG_SET_LEVEL(LOG_LEVEL_NONE);
     test_reachable_opcodes_are_all_handled();
+    test_random_builtins_are_handled();
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;
 }

@@ -78,11 +78,11 @@ extern const char *const kHandledOpcodes[] = {
     "mod", "moveff", "movemm", "movess", "movevv", "mtoa", "mulff", "mulmm",
     "mulvf", "mulvf2", "mulvv", "negf", "negm",
     "negv", "nfrom", "noise", "normalize", "not", "ntransform", "or", "orf",
-    "pfrom", "pow", "printf", "radians", "reflect", "return", "seql",
+    "pfrom", "pow", "printf", "radians", "random", "reflect", "return", "seql",
     "setxcomp", "setycomp", "setzcomp", "sfroma", "shadow", "sign", "sin",
     "smoothstep", "sneql", "snoise", "solar", "specular", "spline",
     "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "tan", "texture",
-    "transform", "uffroma", "umfroma", "usfroma", "uvfroma",
+    "transform", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
     "veql", "vegt", "velt", "vfrom", "vfroma", "vfromf", "vfromfff",
     "vfromvff", "vgt", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
     "vumatrix", "vustring", "vuvector", "while", "whilebegin", "xcomp",
@@ -1696,6 +1696,22 @@ static void emitFunction(const IRFunction &irFn,
                                                    {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_specular_batch", ty);
                 B.CreateCall(fn, {dst, nf, v, r, numVerts, tags});
+            }
+
+            // ================================================================
+            // Layer G — random / urandom (stateful RNG via
+            // libshader::activeContext()->urand()). Variant selected by
+            // dstDesc.stride exactly like the noise/snoise case below.
+            // ================================================================
+            else if (op == "random" || op == "urandom") {
+                if (!dst)
+                    continue;
+                bool dstIsVec = (dstDesc.stride == 3);
+                const char *fnName = dstIsVec ? "op_random_v" : "op_random_f";
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, numVerts, tags});
             }
 
             // ================================================================

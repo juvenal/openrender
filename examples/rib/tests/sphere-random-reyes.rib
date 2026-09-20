@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #1 regression: random()/urandom() were missing from the JIT
+# emitter's kHandledOpcodes dispatch table, so calls silently no-op'd under
+# --jit/.slo (see random_probe.sl). numthreads 1 is required here, unlike
+# the other spec-011/012 probes: those compute a deterministic function of
+# (u,v), so which thread services a given micropolygon never matters, but
+# this probe's *output is itself* raw random() draws -- with multiple
+# threads, run-to-run bucket-to-thread scheduling is not fixed, so a given
+# shading point can be serviced by a different thread (and therefore a
+# different independently-seeded urand() stream) on each run. Confirmed
+# empirically: two interpreter-only renders of this scene with the default
+# thread count differed by MaxBlockAvgDiff 163 against each other; forced
+# to a single thread, two runs are bit-identical (diff 0.00).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "sphere-random-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "random_probe"
+  Sphere 1 -1 1 360
+WorldEnd
