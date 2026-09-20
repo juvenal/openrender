@@ -12,14 +12,24 @@
  * `if` statement computes correctly. Confirmed via a minimal repro outside
  * this probe (and confirmed pre-existing on a clean checkout, unrelated to
  * this session's shadername() work) before working around it here.
+ *
+ * `selfMatch`/`surfIsSelf` are declared `varying` (not `uniform`) even
+ * though their values are uniform in practice: GitHub issue #8 (see
+ * determinant_distance_probe.sl's header comment) makes an assignment
+ * inside an `if` body execute unconditionally whenever both the
+ * condition and the assigned variable are uniform -- which would make
+ * these checks pass regardless of whether shadername() actually
+ * returned the right string. A varying destination routes around that.
+ * String equality itself can't be replaced with a raw-value comparison
+ * the way degrees_round_probe.sl was, so this is the workaround here.
  */
 surface shadername_probe()
 {
     uniform string selfName = shadername();
     uniform string surfName = shadername("surface");
 
-    uniform float selfMatch = 0;
-    uniform float surfIsSelf = 0;
+    varying float selfMatch = 0;
+    varying float surfIsSelf = 0;
     if (selfName == "shadername_probe") selfMatch = 1;
     if (surfName == selfName)           surfIsSelf = 1;
 

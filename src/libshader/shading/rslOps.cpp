@@ -336,6 +336,21 @@ void op_ceil(float *dst, int sd, const float *a, int sa, int n, const int *tags)
             IDX(dst, sd, i)
             [0] = ceilf(IDX(a, sa, i)[0]);
 }
+
+void op_degrees(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
+    constexpr float kRadToDeg = 180.f / 3.14159265358979323846f;
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = IDX(a, sa, i)[0] * kRadToDeg;
+}
+
+void op_round(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = (float)(int)IDX(a, sa, i)[0];
+}
 void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
@@ -467,6 +482,65 @@ void op_cross(float *dst, int sd, const float *a, int sa, const float *b, int sb
             [2] = ax * by - ay * bx;
         }
 }
+
+void op_determinant(float *dst, int sd, const float *m, int sm, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = determinantm(IDX(m, sm, i));
+}
+
+void op_distance(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            const float *pa = IDX(a, sa, i);
+            const float *pb = IDX(b, sb, i);
+            const float dx = pa[0] - pb[0], dy = pa[1] - pb[1], dz = pa[2] - pb[2];
+            IDX(dst, sd, i)
+            [0] = sqrtf(dx * dx + dy * dy + dz * dz);
+        }
+}
+
+void op_ptlined(float *dst, int sd, const float *pt, int sPt,
+                const float *lineA, int sA, const float *lineB, int sB,
+                int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            const float *P = IDX(pt, sPt, i);
+            const float *A = IDX(lineA, sA, i);
+            const float *B = IDX(lineB, sB, i);
+
+            const float ab[3] = {B[0] - A[0], B[1] - A[1], B[2] - A[2]};
+            const float ap[3] = {P[0] - A[0], P[1] - A[1], P[2] - A[2]};
+            const float dot1 = ab[0] * ap[0] + ab[1] * ap[1] + ab[2] * ap[2];
+
+            float l;
+            if (dot1 <= 0.0f) {
+                l = sqrtf(ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2]);
+            }
+            else {
+                const float pa[3] = {A[0] - P[0], A[1] - P[1], A[2] - P[2]};
+                const float bp[3] = {B[0] - P[0], B[1] - P[1], B[2] - P[2]};
+                const float dot2 = bp[0] * pa[0] + bp[1] * pa[1] + bp[2] * pa[2];
+                if (dot2 <= 0.0f) {
+                    l = sqrtf(bp[0] * bp[0] + bp[1] * bp[1] + bp[2] * bp[2]);
+                }
+                else {
+                    const float ap2[3] = {A[0] - P[0], A[1] - P[1], A[2] - P[2]};
+                    const float ba[3] = {A[0] - B[0], A[1] - B[1], A[2] - B[2]};
+                    const float cr[3] = {
+                        ap2[1] * ba[2] - ap2[2] * ba[1],
+                        ap2[2] * ba[0] - ap2[0] * ba[2],
+                        ap2[0] * ba[1] - ap2[1] * ba[0]};
+                    l = sqrtf(cr[0] * cr[0] + cr[1] * cr[1] + cr[2] * cr[2]) /
+                        sqrtf(ap2[0] * ap2[0] + ap2[1] * ap2[1] + ap2[2] * ap2[2]);
+                }
+            }
+            IDX(dst, sd, i)
+            [0] = l;
+        }
+}
+
 void op_clampv(float *dst, int sd, const float *v, int sv, const float *lo, int sl, const float *hi, int sh, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
@@ -1357,6 +1431,18 @@ void op_maxf(float *dst, int sd, const float *a, int sa, const float *b, int sb,
             [0] = (IDX(a, sa, i)[0] > IDX(b, sb, i)[0]) ? IDX(a, sa, i)[0] : IDX(b, sb, i)[0];
 }
 
+// min() (spec 017-jit-builtin-function-coverage, US4): copy of op_maxf,
+// comparison sense flipped. Float 2-argument form only, matching the
+// already-shipped max/maxf dispatch's own coverage level (max has no
+// vector-form or >2-argument dispatch under the JIT either, a separately-
+// scoped pre-existing gap this task does not fix, FR-017).
+void op_minf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = (IDX(a, sa, i)[0] < IDX(b, sb, i)[0]) ? IDX(a, sa, i)[0] : IDX(b, sb, i)[0];
+}
+
 void op_andf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
@@ -1410,6 +1496,14 @@ void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int 
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
             reflect(IDX(dst, sd, i), IDX(I, si, i), IDX(N, sn, i));
+}
+
+// refract() (spec 017-jit-builtin-function-coverage, US4): same shape as
+// op_reflect, plus a 4th scalar eta operand (REFRACTEXP, scriptFunctions.h).
+void op_refract(float *dst, int sd, const float *I, int si, const float *N, int sn, const float *eta, int se, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            refract(IDX(dst, sd, i), IDX(I, si, i), IDX(N, sn, i), IDX(eta, se, i)[0]);
 }
 
 void op_specularbrdf(float *dst, int sd, const float *L, int sL, const float *N, int sN,
@@ -1736,6 +1830,70 @@ void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int
         }
 }
 
+void op_setcomp(float *v, int sv, const float *idx, int si, const float *val, int sf,
+                int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            int k = (int)IDX(idx, si, i)[0];
+            IDX(v, sv, i)[k] = IDX(val, sf, i)[0];
+        }
+}
+
+// NOTE: this deliberately uses `r + c*4` (element(), algebra.h), NOT
+// `r*4+c` like op_mcomp above -- the interpreter's own SETMCOMPEXP
+// (scriptFunctions.h) uses `res[element(r,c)]` while its sibling
+// MCOMPEXP (comp's matrix-reading form) uses raw `op1[r*4+c]`, an
+// existing inconsistency between setcomp() and comp() for the matrix
+// form (comp() reads the transpose of where setcomp() writes) --
+// confirmed pre-existing in the interpreter, filed as GitHub issue #9,
+// out of scope for this spec (JIT coverage, not general interpreter
+// correctness). Mirrored here exactly, not "fixed" (FR-017).
+void op_setmcomp(float *m, int sm, const float *ridx, int sr, const float *cidx, int sc,
+                 const float *val, int sf, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            int r = (int)IDX(ridx, sr, i)[0];
+            int c = (int)IDX(cidx, sc, i)[0];
+            IDX(m, sm, i)[r + c * 4] = IDX(val, sf, i)[0];
+        }
+}
+
+void op_translate(float *dst, int sd, const float *m, int sm, const float *p, int sp,
+                  int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            matrix mtmp, result;
+            const float *pi = IDX(p, sp, i);
+            translatem(mtmp, pi[0], pi[1], pi[2]);
+            mulmm(result, IDX(m, sm, i), mtmp);
+            movmm(IDX(dst, sd, i), result);
+        }
+}
+
+void op_scale(float *dst, int sd, const float *m, int sm, const float *p, int sp,
+              int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            matrix mtmp, result;
+            const float *pi = IDX(p, sp, i);
+            scalem(mtmp, pi[0], pi[1], pi[2]);
+            mulmm(result, IDX(m, sm, i), mtmp);
+            movmm(IDX(dst, sd, i), result);
+        }
+}
+
+void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, int sa,
+               const float *axis, int sax, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            matrix mtmp, result;
+            const float *ax = IDX(axis, sax, i);
+            rotatem(mtmp, ax[0], ax[1], ax[2], IDX(angle, sa, i)[0]);
+            mulmm(result, IDX(m, sm, i), mtmp);
+            movmm(IDX(dst, sd, i), result);
+        }
+}
+
 void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                   const float *samples, int sSamples, const float *du, const float *dv,
                   int n, const int *tags) {
@@ -1846,6 +2004,32 @@ void op_deriv_v(float *dst, int sd, const float *num, int sNum,
         ctx->jitDerivV(dst, sd, num, sNum, denom, sDenom, n, tags);
 }
 
+void op_rayinfo(float *dst, int sd, const char *const *query, int sQuery,
+                void *dest, int sDest, int n, const int *tags, int isStringDest) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitRayInfo(dst, sd, query, sQuery, dest, sDest, n, tags, isStringDest != 0);
+}
+
+void op_raylabel(char **dst, int sd, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitRayLabel(dst, sd, n, tags);
+}
+
+void op_raydepth(float *dst, int sd, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitRayDepth(dst, sd, n, tags);
+}
+
+void op_photonmap(float *dst, int sd, const char *const *name,
+                  const float *P, int sP, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitPhotonMap(dst, sd, name, P, sP, n, tags);
+}
+
 void op_shadername(char **dst, int sd, int n, const int *tags) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
@@ -1857,6 +2041,21 @@ void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitShaderNameS(dst, sd, type, sType, n, tags);
+}
+
+void op_concat(char **dst, int sd, const char *const *const *operands,
+               const int *strides, int numOperands, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitConcat(dst, sd, operands, strides, numOperands, n, tags);
+}
+
+void op_format(char **dst, int sd, const char *const *fmt, int sf,
+               void *const *operands, const int *strides, int numOperands,
+               int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitFormat(dst, sd, fmt, sf, operands, strides, numOperands, n, tags);
 }
 
 void op_clearlighting() {

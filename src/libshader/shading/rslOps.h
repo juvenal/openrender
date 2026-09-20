@@ -88,6 +88,12 @@ void op_abs(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_sign(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_floor(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_ceil(float *dst, int sd, const float *a, int sa, int n, const int *tags);
+
+// degrees()/round() (spec 017-jit-builtin-function-coverage, US4).
+// round() truncates via (int)x, NOT real rounding -- mirrors the
+// interpreter's own `#define FUNCTION(x) (int)x` exactly (FR-017).
+void op_degrees(float *dst, int sd, const float *a, int sa, int n, const int *tags);
+void op_round(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_log(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_sin(float *dst, int sd, const float *a, int sa, int n, const int *tags);
@@ -109,6 +115,17 @@ void op_normalize(float *dst, int sd, const float *a, int sa, int n, const int *
 void op_length(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_dot(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_cross(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
+
+// determinant()/distance() (spec 017-jit-builtin-function-coverage, US4).
+void op_determinant(float *dst, int sd, const float *m, int sm, int n, const int *tags);
+void op_distance(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
+
+// ptlined() (spec 017-jit-builtin-function-coverage, US3): point-to-
+// line-segment distance, byte-faithful transcription of PTLINEDEXP
+// (scriptFunctions.h). Pure geometry, zero CShadingContext state.
+void op_ptlined(float *dst, int sd, const float *pt, int sPt,
+                const float *lineA, int sA, const float *lineB, int sB,
+                int n, const int *tags);
 void op_clampv(float *dst, int sd, const float *v, int sv, const float *lo, int sl, const float *hi, int sh, int n, const int *tags);
 void op_mixv(float *dst, int sd, const float *a, int sa, const float *b, int sb, const float *t, int st, int n, const int *tags);
 
@@ -297,8 +314,9 @@ void op_mfromf16(float *dst, int sd, const float *const *e, const int *se, int n
 /* -----------------------------------------------------------------------
  * Layer G — additional math / comparison ops
  * ----------------------------------------------------------------------- */
-/* max / logical */
+/* max / min / logical */
 void op_maxf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
+void op_minf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_andf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_orf(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 /* degrees → radians */
@@ -310,6 +328,7 @@ void op_sneql(float *dst, int sd, const char *const *a, int sa, const char *cons
 void op_filterstep(float *dst, int sd, const float *edge, int se, const float *x, int sx, int n, const int *tags);
 /* reflect / fresnel */
 void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int sn, int n, const int *tags);
+void op_refract(float *dst, int sd, const float *I, int si, const float *N, int sn, const float *eta, int se, int n, const int *tags);
 
 // specularbrdf() (spec 017-jit-builtin-function-coverage, US5): pure math,
 // byte-faithful transcription of SPECULARBRDFEXPR (shaderFunctions.h) --
@@ -403,6 +422,31 @@ void op_comp(float *dst, int sd, const float *v, int sv, const float *idx, int s
 void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int sr,
               const float *cidx, int sc, int n, const int *tags);
 
+// setcomp()/setmcomp() (spec 017-jit-builtin-function-coverage, US4):
+// runtime-indexed writes, generalizing the fixed-index setxcomp/setycomp/
+// setzcomp shape above. op_setcomp = vector form (SetComp, "o=Vff");
+// op_setmcomp = matrix form (SetMComp, "o=Mfff"), same element(row,col)
+// convention as op_mcomp. `v`/`m` double as both the value written AND
+// the value read back afterward (write-in-place, matching setxcomp's
+// shape) -- there is no separate destination.
+void op_setcomp(float *v, int sv, const float *idx, int si, const float *val, int sf,
+                int n, const int *tags);
+void op_setmcomp(float *m, int sm, const float *ridx, int sr, const float *cidx, int sc,
+                 const float *val, int sf, int n, const int *tags);
+
+// rotate()/scale()/translate() matrix-builder overloads (spec 017-jit-
+// builtin-function-coverage, US4): share the `helper(mtmp,...);
+// mulmm(res,op1,mtmp);` shape (TRANSLATEEXP/ROTATEEXPR/SCALEEXPR,
+// scriptFunctions.h). Only the matrix-transform overloads (Translatem
+// "m=mp", Rotatem "m=mfv", Scalem "m=mp") -- NOT Rotatep ("p=pfpp",
+// point-about-axis rotation), which is a separate, unscoped overload.
+void op_translate(float *dst, int sd, const float *m, int sm, const float *p, int sp,
+                  int n, const int *tags);
+void op_scale(float *dst, int sd, const float *m, int sm, const float *p, int sp,
+              int n, const int *tags);
+void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, int sa,
+               const float *axis, int sax, int n, const int *tags);
+
 // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
 // US1): point-cloud/irradiance-cache lookup trampolines.
 void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
@@ -454,12 +498,41 @@ void op_deriv_f(float *dst, int sd, const float *num, int sNum,
 void op_deriv_v(float *dst, int sd, const float *num, int sNum,
                 const float *denom, int sDenom, int n, const int *tags);
 
+// rayinfo()/raylabel()/raydepth() (spec 017-jit-builtin-function-coverage,
+// US3).
+void op_rayinfo(float *dst, int sd, const char *const *query, int sQuery,
+                void *dest, int sDest, int n, const int *tags, int isStringDest);
+void op_raylabel(char **dst, int sd, int n, const int *tags);
+void op_raydepth(float *dst, int sd, int n, const int *tags);
+
+// photonmap() (spec 017-jit-builtin-function-coverage, US3): both
+// overloads share this trampoline -- the 3rd (N) argument is unused.
+void op_photonmap(float *dst, int sd, const char *const *name,
+                  const float *P, int sP, int n, const int *tags);
+
 // shadername() -- both overloads (spec 017-jit-builtin-function-coverage,
 // US5). No-arg form ("s="): op_shadername. One-string-arg form ("s=s"):
 // op_shadername_s.
 void op_shadername(char **dst, int sd, int n, const int *tags);
 void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
                      int n, const int *tags);
+
+// concat() (spec 017-jit-builtin-function-coverage, US4): N-ary string
+// concatenation, delegating to CShadingContext::jitConcat -- unlike a
+// plain free function, it needs threadMemory for its result allocation.
+// `operands`/`strides` are parallel arrays of `numOperands` entries.
+void op_concat(char **dst, int sd, const char *const *const *operands,
+               const int *strides, int numOperands, int n, const int *tags);
+
+// format() (spec 017-jit-builtin-function-coverage, US4): %f/%d/%c/%n/
+// %p/%s/%m token-scanning, delegating to CShadingContext::jitFormat for
+// the same threadMemory reason as concat. `operands[k]` is each trailing
+// value operand's already-type-resolved pointer (via the JIT emitter's
+// generic getVar()); `jitFormat` reinterprets it based on which
+// specifier character is actually encountered.
+void op_format(char **dst, int sd, const char *const *fmt, int sf,
+               void *const *operands, const int *strides, int numOperands,
+               int n, const int *tags);
 
 // clearlighting() / debug() (spec 017-jit-builtin-function-coverage, US5).
 // Both are pure side-effect calls -- no dst, no result.

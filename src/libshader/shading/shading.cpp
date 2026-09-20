@@ -3492,6 +3492,136 @@ void CShadingContext::jitDerivV(float *dst, int sd, const float *num, int sNum,
     }
 }
 
+// rayinfo()/raylabel()/raydepth() -- see shading.h for the loop-bound and
+// isStringDest rationale. Byte-faithful transcription of
+// RAYINFOEXPR/RAYLABELEXPR/RAYDEPTHEXPR (giFunctions.h).
+void CShadingContext::jitRayInfo(float *dst, int sd, const char *const *query, int sQuery,
+                                 void *dest, int sDest, int n, const int *tags, bool isStringDest) {
+    const int realN = currentShadingState->numRealVertices;
+    const int loopN = (realN < n) ? realN : n;
+    const float *P = currentShadingState->varying[VARIABLE_P];
+    const float *I = currentShadingState->varying[VARIABLE_I];
+
+    for (int i = 0; i < loopN; ++i) {
+        if (tags && tags[i])
+            continue;
+        const char *q = JIT_IDX(query, sQuery, i)[0];
+        const float *pi = JIT_IDX(P, 3, i);
+        const float *ii = JIT_IDX(I, 3, i);
+        float found = 0.0f;
+
+        if (strcmp(q, "label") == 0) {
+            found = 1.0f;
+            if (isStringDest) {
+                char **out = (char **)JIT_IDX((float *)dest, sDest, i);
+                out[0] = (char *)currentRayLabel;
+            }
+        }
+        else if (strcmp(q, "depth") == 0) {
+            found = 1.0f;
+            if (!isStringDest) {
+                float *out = JIT_IDX((float *)dest, sDest, i);
+                out[0] = (float)currentRayDepth;
+            }
+        }
+        else if (strcmp(q, "origin") == 0) {
+            found = 1.0f;
+            if (!isStringDest) {
+                float *out = JIT_IDX((float *)dest, sDest, i);
+                out[0] = pi[0] - ii[0];
+                out[1] = pi[1] - ii[1];
+                out[2] = pi[2] - ii[2];
+            }
+        }
+        else if (strcmp(q, "direction") == 0) {
+            found = 1.0f;
+            if (!isStringDest) {
+                const float len2 = ii[0] * ii[0] + ii[1] * ii[1] + ii[2] * ii[2];
+                const float inv = (len2 > 1e-16f) ? 1.0f / sqrtf(len2) : 0.0f;
+                float *out = JIT_IDX((float *)dest, sDest, i);
+                out[0] = ii[0] * inv;
+                out[1] = ii[1] * inv;
+                out[2] = ii[2] * inv;
+            }
+        }
+        else if (strcmp(q, "length") == 0) {
+            found = 1.0f;
+            if (!isStringDest) {
+                float *out = JIT_IDX((float *)dest, sDest, i);
+                out[0] = sqrtf(ii[0] * ii[0] + ii[1] * ii[1] + ii[2] * ii[2]);
+            }
+        }
+        else {
+            found = 0.0f;
+        }
+
+        JIT_IDX(dst, sd, i)
+        [0] = found;
+    }
+}
+
+void CShadingContext::jitRayLabel(char **dst, int sd, int n, const int *tags) {
+    const int realN = currentShadingState->numRealVertices;
+    const int loopN = (realN < n) ? realN : n;
+    for (int i = 0; i < loopN; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)
+        [0] = (char *)currentRayLabel;
+    }
+}
+
+void CShadingContext::jitRayDepth(float *dst, int sd, int n, const int *tags) {
+    const int realN = currentShadingState->numRealVertices;
+    const int loopN = (realN < n) ? realN : n;
+    for (int i = 0; i < loopN; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)
+        [0] = (float)currentRayDepth;
+    }
+}
+
+// photonmap() -- see shading.h for the estimator/N-argument scoping
+// notes. Byte-faithful transcription of PHOTONMAPEXPR/PHOTONMAP2EXPR
+// (giFunctions.h), reusing D1's numRealVertices-bound-then-replicate
+// discipline (same shape as jitOcclusionBatch above).
+void CShadingContext::jitPhotonMap(float *dst, int sd, const char *const *name,
+                                   const float *P, int sP, int n, const int *tags) {
+    const int numRealVertices = currentShadingState->numRealVertices;
+    if (numRealVertices <= 0 || !name || !name[0])
+        return;
+
+    CPhotonMap *map = this->rendererGetPhotonMap(name[0]);
+    if (!map)
+        return;
+
+    const CAttributes *cAttributes = currentShadingState->currentObject
+                                          ? currentShadingState->currentObject->attributes
+                                          : nullptr;
+    const int estimator = cAttributes ? cAttributes->photonEstimator : 0;
+
+    for (int i = 0; i < numRealVertices; ++i) {
+        if (tags && tags[i])
+            continue;
+        float *out = JIT_IDX(dst, sd, i);
+        map->lookup(out, JIT_IDX(P, sP, i), estimator);
+    }
+
+    // Derivative-offset tail: block-contiguous [real, +du, +dv] (D1/jitOcclusionBatch).
+    if (n > numRealVertices) {
+        for (int i = 0; i < numRealVertices; ++i) {
+            const float *src = JIT_IDX(dst, sd, i);
+            float *tailDu = JIT_IDX(dst, sd, numRealVertices + i);
+            float *tailDv = JIT_IDX(dst, sd, 2 * numRealVertices + i);
+            for (int k = 0; k < 3; ++k) {
+                tailDu[k] = src[k];
+                tailDv[k] = src[k];
+            }
+        }
+    }
+}
+
 // shadername() -- both overloads (SHADERNAMEEXPR/SHADERNAMESEXPR,
 // shaderFunctions.h) delegate directly to the already-existing
 // CShadingContext::shaderName()/shaderName(type) members, so there's no
@@ -3519,6 +3649,115 @@ void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type
         const char *type_i = JIT_IDX(type, sType, i)[0];
         const char *name = this->shaderName(type_i);
         JIT_IDX(dst, sd, i)[0] = (char *)name;
+    }
+}
+
+// concat() -- transcribes CONCATEXPR (scriptFunctions.h) exactly: strcpy
+// the first operand into a scratch buffer, strcat every remaining
+// operand, then persist the result the same way the interpreter's
+// savestring() macro does (execute.cpp) -- ralloc from threadMemory so
+// the returned pointer's lifetime matches every other shader-produced
+// string. Uses strncat with an explicit bound (not present in the
+// interpreter's own macro) purely as basic memory safety for this new
+// code, not a behavior "fix" -- the interpreter's own MAX_SCRIPT_STRING_
+// SIZE-sized buffer has the same unchecked-overflow risk for pathological
+// inputs, mirrored here defensively rather than left unguarded twice.
+void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *operands,
+                                const int *strides, int numOperands, int n, const int *tags) {
+    if (n <= 0 || numOperands <= 0)
+        return;
+    char tmp[MAX_SCRIPT_STRING_SIZE];
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        tmp[0] = '\0';
+        for (int k = 0; k < numOperands; ++k) {
+            const char *s = JIT_IDX(operands[k], strides[k], i)[0];
+            strncat(tmp, s, sizeof(tmp) - strlen(tmp) - 1);
+        }
+        const int strLen = (int)strlen(tmp) + 1;
+        const int strSize = (strLen & ~3) + 4;
+        char *strmem = (char *)ralloc(strSize, threadMemory);
+        strcpy(strmem, tmp);
+        JIT_IDX(dst, sd, i)[0] = strmem;
+    }
+}
+
+// format() -- byte-faithful transcription of PRINTEXPR (scriptFunctions.h,
+// shared with printf()'s own FORMATEXPR), persisted via ralloc/threadMemory
+// the same way jitConcat's result is (savestring's equivalent).
+void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int sf,
+                                void *const *operands, const int *strides, int numOperands,
+                                int n, const int *tags) {
+    // numOperands is unused here (unlike jitConcat): the format string's
+    // own %-specifier count determines how many operands are consumed,
+    // matching the interpreter's own unchecked PRINTEXPR behavior --
+    // kept in the signature for symmetry with op_format's dispatch-side
+    // array-sizing use.
+    (void)numOperands;
+    if (n <= 0)
+        return;
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        const char *str = JIT_IDX(fmt, sf, i)[0];
+        char output[MAX_SCRIPT_STRING_SIZE];
+        char *tmp = output;
+        int cp = -1;
+        while (*str != '\0') {
+            if (*str == '%') {
+                str++;
+                if (*str == '\0')
+                    break;
+                if (*str == 'f') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%f", fv[0]);
+                }
+                else if (*str == 'd') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%d", (int)fv[0]);
+                }
+                else if (*str == 'c' || *str == 'n' || *str == 'p') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "(%f,%f,%f)",
+                            fv[0], fv[1], fv[2]);
+                }
+                else if (*str == 's') {
+                    cp++;
+                    const char *sv = JIT_IDX((const char *const *)operands[cp], strides[cp], i)[0];
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%s", sv);
+                }
+                else if (*str == 'm') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output),
+                            "((%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f))",
+                            fv[0], fv[1], fv[2], fv[3], fv[4], fv[5], fv[6], fv[7],
+                            fv[8], fv[9], fv[10], fv[11], fv[12], fv[13], fv[14], fv[15]);
+                }
+                else {
+                    *tmp = *str;
+                    tmp++;
+                }
+                str++;
+                tmp = strchr(tmp, '\0');
+            }
+            else {
+                *tmp = *str;
+                tmp++;
+                str++;
+            }
+        }
+        *tmp = '\0';
+
+        const int strLen = (int)strlen(output) + 1;
+        const int strSize = (strLen & ~3) + 4;
+        char *strmem = (char *)ralloc(strSize, threadMemory);
+        strcpy(strmem, output);
+        JIT_IDX(dst, sd, i)[0] = strmem;
     }
 }
 

@@ -64,27 +64,27 @@ extern const char *const kHandledOpcodes[] = {
     "and",
     "andf", "area", "asin", "atan", "atan2", "atmosphere", "attribute",
     "bake3d", "break", "calculatenormal",
-    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "clearlighting", "comp", "continue",
+    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "clearlighting", "comp", "concat", "continue",
     "cos", "cross", "ctransform",
-    "debug", "depth", "Deriv", "diffuse", "displacement", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
+    "debug", "degrees", "depth", "Deriv", "determinant", "diffuse", "displacement", "distance", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
     "feq", "feql", "fegt", "fge", "fgt", "ffroma", "filterstep", "fle",
     "floor", "flt",
-    "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa",
+    "fne", "fneql", "for", "forbegin", "forend", "format", "fresnel", "ftoa",
     "gather", "gatherElse", "gatherEnd", "gatherHeader", "if",
     "illuminance", "illuminate", "incident", "indirectdiffuse", "inversesqrt", "jmp", "length",
-    "lightsource", "log", "max", "maxf", "mfrom", "mfromf", "mfromv",
+    "lightsource", "log", "match", "max", "maxf", "mfrom", "mfromf", "mfromv", "min", "minf",
     "mfroma", "mix", "mixf", "mixv",
     "mod", "moveff", "movemm", "movess", "movevv", "mtoa", "mulff", "mulmm",
     "mulvf", "mulvf2", "mulvv", "negf", "negm",
     "negv", "nfrom", "noise", "normalize", "not", "ntransform", "occlusion", "opposite", "option", "or", "orf",
-    "pfrom", "phong", "pnoise", "pow", "printf", "radians", "random", "reflect", "rendererinfo", "return", "seql",
-    "setxcomp", "setycomp", "setzcomp", "sfroma", "shadername", "shadow", "sign", "sin",
-    "smoothstep", "sneql", "snoise", "solar", "specular", "specularbrdf", "spline",
+    "pfrom", "phong", "photonmap", "pnoise", "pow", "printf", "ptlined", "radians", "random", "raydepth", "rayinfo", "raylabel", "reflect", "refract", "rendererinfo", "return", "rotate", "round", "seql",
+    "scale", "setcomp", "setxcomp", "setycomp", "setzcomp", "sfroma", "shadername", "shadow", "sign", "sin",
+    "smoothstep", "sneql", "snoise", "solar", "specular", "specularbrdf", "spline", "step",
     "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "surface", "tan", "texture",
     "texture3d", "textureinfo",
-    "trace", "transform", "transmission", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
+    "trace", "translate", "transform", "transmission", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
     "veql", "vegt", "velt", "vfrom", "vfroma", "vfromf", "vfromfff",
     "vfromvff", "vgt", "visibility", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
     "vumatrix", "vustring", "vuvector", "while", "whilebegin", "xcomp",
@@ -358,6 +358,14 @@ struct VarDesc {
         int slot;   // 0=constants, 1=globals/varying, 2=locals
         int idx;    // index within the slot array
         int stride; // 0=uniform, 1=float, 3=vector, 16=matrix
+        // A string-typed variable's stride collapses to the same value as a
+        // plain float's (both "1 item"), so `stride` alone can't tell them
+        // apart -- needed by rayinfo() (spec 017-jit-builtin-function-
+        // coverage, US3), whose "f=s." wildcard destination prototype gives
+        // no static result-type hint the way surface()/etc.'s per-type
+        // DEFFUNC overloads do. Defaults false (matrix/vector/float/globals
+        // all leave it unset); safe to ignore everywhere else.
+        bool isString = false;
 };
 
 // =========================================================================
@@ -383,8 +391,8 @@ buildVarTable(const IRModule &mod) {
                                                   : 1;
         int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
-        tbl[v.cName] = {2, slot2Idx, stride};
-        tbl[v.symbolName] = {2, slot2Idx, stride};
+        tbl[v.cName] = {2, slot2Idx, stride, v.isString()};
+        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString()};
         ++slot2Idx;
     }
 
@@ -400,8 +408,8 @@ buildVarTable(const IRModule &mod) {
                                                   : 1;
         int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
-        tbl[v.cName] = {2, slot2Idx, stride};
-        tbl[v.symbolName] = {2, slot2Idx, stride};
+        tbl[v.cName] = {2, slot2Idx, stride, v.isString()};
+        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString()};
         ++slot2Idx;
     }
 
@@ -1352,6 +1360,27 @@ static bool emitFunction(const IRFunction &irFn,
             else if (op == "divmm")
                 emitBin(ins, "op_divmm", dst, dstStride, dstStrideVal);
 
+            // rotate()/scale()/translate() matrix-builder overloads
+            // (spec 017-jit-builtin-function-coverage, US4): only
+            // Translatem "m=mp"/Rotatem "m=mfv"/Scalem "m=mp" -- NOT
+            // Rotatep "p=pfpp" (point-about-axis rotation, a separate,
+            // unscoped overload).
+            else if (op == "translate")
+                emitBin(ins, "op_translate", dst, dstStride, dstStrideVal);
+            else if (op == "scale")
+                emitBin(ins, "op_scale", dst, dstStride, dstStrideVal);
+            else if (op == "rotate") {
+                auto [m, sm] = getVar(ins, 0);
+                auto [angle, sa] = getVar(ins, 1);
+                auto [axis, sax] = getVar(ins, 2);
+                if (!dst || !m || !angle || !axis)
+                    continue;
+                auto *fn = declareOp(mod, "op_rotate", ternOpTy);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sm, sa, sax});
+                B.CreateCall(fn, {dst, dstStride, m, B.getInt32(sm),
+                                  angle, B.getInt32(sa), axis, B.getInt32(sax), n, tg});
+            }
+
             // ================================================================
             // Unary arithmetic / math
             // ================================================================
@@ -1607,6 +1636,43 @@ static bool emitFunction(const IRFunction &irFn,
                 }
             }
 
+            // setcomp()/setmcomp() (spec 017-jit-builtin-function-coverage,
+            // US4): runtime-indexed write, generalizing the fixed-index
+            // setxcomp/setycomp/setzcomp shape above. Same mnemonic
+            // "setcomp" for both the 2-operand vector form (SetComp,
+            // "o=Vff") and the 3-operand matrix form (SetMComp,
+            // "o=Mfff") -- branch on operand count like comp() above.
+            // `dst` IS the vector/matrix being mutated (the IR's bytecode
+            // text lists it as the instruction's destination even though
+            // the RSL prototype's result type is 'o'/void, matching
+            // setxcomp's own dst-as-mutated-vector convention) -- no
+            // separate "v"/"m" operand to resolve.
+            else if (op == "setcomp") {
+                if (!dst)
+                    continue;
+                if (ins.operands.size() >= 3) {
+                    auto [r, sr] = getVar(ins, 0);
+                    auto [c, sc] = getVar(ins, 1);
+                    auto [val, sf] = getVar(ins, 2);
+                    if (!r || !c || !val)
+                        continue;
+                    auto *fn = declareOp(mod, "op_setmcomp", ternOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sr, sc, sf});
+                    B.CreateCall(fn, {dst, dstStride, r, B.getInt32(sr),
+                                      c, B.getInt32(sc), val, B.getInt32(sf), n, tg});
+                }
+                else {
+                    auto [idx, si] = getVar(ins, 0);
+                    auto [val, sf] = getVar(ins, 1);
+                    if (!idx || !val)
+                        continue;
+                    auto *fn = declareOp(mod, "op_setcomp", binOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {si, sf});
+                    B.CreateCall(fn, {dst, dstStride, idx, B.getInt32(si),
+                                      val, B.getInt32(sf), n, tg});
+                }
+            }
+
             // ================================================================
             // Geometry
             // ================================================================
@@ -1808,6 +1874,11 @@ static bool emitFunction(const IRFunction &irFn,
             else if (op == "max" || op == "maxf") {
                 emitBin(ins, "op_maxf", dst, dstStride, dstStrideVal);
             }
+            // min() (spec 017-jit-builtin-function-coverage, US4): float
+            // 2-argument form only, matching max/maxf's own coverage level.
+            else if (op == "min" || op == "minf") {
+                emitBin(ins, "op_minf", dst, dstStride, dstStrideVal);
+            }
             else if (op == "and" || op == "andf") {
                 emitBin(ins, "op_andf", dst, dstStride, dstStrideVal);
             }
@@ -1827,7 +1898,34 @@ static bool emitFunction(const IRFunction &irFn,
             else if (op == "radians") {
                 emitUn(ins, "op_radians", dst, dstStride, dstStrideVal);
             }
+            else if (op == "degrees") {
+                emitUn(ins, "op_degrees", dst, dstStride, dstStrideVal);
+            }
+            else if (op == "round") {
+                emitUn(ins, "op_round", dst, dstStride, dstStrideVal);
+            }
+            else if (op == "determinant") {
+                emitUn(ins, "op_determinant", dst, dstStride, dstStrideVal);
+            }
+            else if (op == "distance") {
+                emitBin(ins, "op_distance", dst, dstStride, dstStrideVal);
+            }
             else if (op == "filterstep") {
+                emitBin(ins, "op_filterstep", dst, dstStride, dstStrideVal);
+            }
+            // step() (spec 017-jit-builtin-function-coverage, US4):
+            // STEPEXP (scriptFunctions.h) is `*res = (*op2 < *op1 ? 0 : 1)`
+            // -- i.e. `(x >= edge) ? 1 : 0` for the "f=ff" (edge, x)
+            // argument order, which is EXACTLY op_filterstep's own formula
+            // (rslOps.cpp) -- op_filterstep is itself a simplified,
+            // non-antialiased JIT implementation of the interpreter's real
+            // (derivative/filter-width-based) filterstep(), a pre-existing
+            // simplification from an earlier spec, not something this task
+            // changes. No comparison-sense flip is needed (verified by
+            // reading both formulas directly, not assumed) -- step()
+            // aliases directly to op_filterstep, same as match() aliased
+            // to op_seql.
+            else if (op == "step") {
                 emitBin(ins, "op_filterstep", dst, dstStride, dstStrideVal);
             }
 
@@ -1846,6 +1944,45 @@ static bool emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {dst, dstStride,
                                   I, B.getInt32(si), N, B.getInt32(sn),
                                   n, tg});
+            }
+
+            // refract() (spec 017-jit-builtin-function-coverage, US4):
+            // same shape as reflect, plus a 4th scalar eta operand.
+            else if (op == "refract") {
+                auto [I, si] = getVar(ins, 0);
+                auto [N, sn] = getVar(ins, 1);
+                auto [eta, se] = getVar(ins, 2);
+                if (!dst || !I || !N || !eta)
+                    continue;
+                auto *ty = llvm::FunctionType::get(
+                    voidTy, {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_refract", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {si, sn, se});
+                B.CreateCall(fn, {dst, dstStride,
+                                  I, B.getInt32(si), N, B.getInt32(sn), eta, B.getInt32(se),
+                                  n, tg});
+            }
+
+            // ptlined() (spec 017-jit-builtin-function-coverage, US3):
+            // pure geometry, 3 point operands -> scalar dst, zero
+            // CShadingContext state. A plain DEFFUNC, so collapseArgs is
+            // appropriate (no numRealVertices discipline needed).
+            else if (op == "ptlined") {
+                if (ins.operands.size() < 3 || !dst)
+                    continue;
+                auto [pt, sPt] = getVar(ins, 0);
+                auto [lineA, sA] = getVar(ins, 1);
+                auto [lineB, sB] = getVar(ins, 2);
+                if (!pt || !lineA || !lineB)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    i32Ty, ptrTy},
+                                                   false);
+                auto *fn = declareOp(mod, "op_ptlined", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sPt, sA, sB});
+                B.CreateCall(fn, {dst, dstStride, pt, B.getInt32(sPt), lineA, B.getInt32(sA),
+                                  lineB, B.getInt32(sB), n, tg});
             }
 
             // specularbrdf() (spec 017-jit-builtin-function-coverage,
@@ -2039,7 +2176,15 @@ static bool emitFunction(const IRFunction &irFn,
             // Layer G — string equality
             // seql / sneql: operands are char** (string locals), not float*.
             // ================================================================
-            else if (op == "seql" || op == "sneql") {
+            // match() (spec 017-jit-builtin-function-coverage, US4):
+            // the interpreter's MATCHEXPR (scriptFunctions.h) is plain
+            // strcmp equality today (documented FIXME: "Subpattern
+            // matching is not implemented yet") -- functionally identical
+            // to seql, so it aliases directly to op_seql rather than
+            // getting its own op_* function. Do NOT implement real
+            // regex/subpattern matching here (FR-017) -- mirror the
+            // interpreter's current behavior exactly.
+            else if (op == "seql" || op == "sneql" || op == "match") {
                 if (ins.operands.size() < 2 || !dst)
                     continue;
                 const std::string &tokA = ins.operands[0].token;
@@ -2082,13 +2227,132 @@ static bool emitFunction(const IRFunction &irFn,
                     strideB = 0;
                 }
 
-                const char *fnName = (op == "seql") ? "op_seql" : "op_sneql";
+                const char *fnName = (op == "sneql") ? "op_sneql" : "op_seql"; // seql and match both alias op_seql
                 // (float* dst, int sd, const char* const* a, int sa, const char* const* b, int sb, int n, const int* tags)
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, fnName, ty);
                 auto [n, tg] = collapseArgs(dstStrideVal, {strideA, strideB});
                 B.CreateCall(fn, {dst, dstStride, ptrA, B.getInt32(strideA), ptrB, B.getInt32(strideB), n, tg});
+            }
+
+            // concat() (spec 017-jit-builtin-function-coverage, US4):
+            // N-ary string concatenation, "s=ss*" -- dst is a SEPARATE
+            // result variable (confirmed by dumping a throwaway probe's
+            // compiled .rslo: `concat ("s=ssss") c a "-" b "!"`, unlike
+            // setcomp's dst-is-the-mutated-operand shape), and every
+            // operand is a string (variable or literal). Builds two
+            // parallel runtime stack arrays (operand char** pointers,
+            // strides) the same way "spline" builds its knot-pointer
+            // array, but ALSO resolves each operand's stride via
+            // resolveVar/loadVarPtr with a string-literal fallback,
+            // mirroring "seql"/"sneql"/"match" above -- unlike spline,
+            // which ignores stride entirely (uniform-only knots).
+            else if (op == "concat") {
+                if (!dst || ins.operands.size() < 1)
+                    continue;
+                int numOperands = (int)ins.operands.size();
+                auto *ptrArrTy = llvm::ArrayType::get(ptrTy, numOperands);
+                auto *strideArrTy = llvm::ArrayType::get(i32Ty, numOperands);
+                auto *ptrArr = B.CreateAlloca(ptrArrTy, nullptr, "concat_ops");
+                auto *strideArr = B.CreateAlloca(strideArrTy, nullptr, "concat_strides");
+
+                auto makeStrLit = [&](const std::string &tok) -> llvm::Value * {
+                    std::string s = tok;
+                    if (s.size() >= 2 && s.front() == '"')
+                        s = s.substr(1, s.size() - 2);
+                    llvm::Value *sptr = B.CreateGlobalString(s, "strlit");
+                    llvm::Value *alloca = B.CreateAlloca(ptrTy, nullptr, "strlit_pp");
+                    B.CreateStore(sptr, alloca);
+                    return alloca;
+                };
+
+                // Resolve every operand once; track strides locally so the
+                // uniform-vs-varying check below (collapseArgs's own logic,
+                // inlined since collapseArgs takes a fixed initializer_list
+                // and these strides are only known at this runtime-array
+                // build time) doesn't need a second resolveVar pass.
+                bool allUniform = (dstStrideVal == 0);
+                for (int k = 0; k < numOperands; ++k) {
+                    const std::string &tok = ins.operands[k].token;
+                    VarDesc desc;
+                    llvm::Value *ptr = nullptr;
+                    int stride = 0;
+                    if (resolveVar(tok, desc)) {
+                        ptr = loadVarPtr(desc);
+                        stride = desc.stride;
+                    }
+                    if (!ptr) {
+                        ptr = makeStrLit(tok);
+                        stride = 0;
+                    }
+                    allUniform = allUniform && (stride == 0);
+                    auto *pGep = B.CreateGEP(ptrArrTy, ptrArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(ptr, pGep);
+                    auto *sGep = B.CreateGEP(strideArrTy, strideArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(B.getInt32(stride), sGep);
+                }
+
+                // (dst, sd, operands**, strides*, numOperands, n, tags)
+                auto *ty = llvm::FunctionType::get(
+                    voidTy, {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_concat", ty);
+                llvm::Value *n = allUniform ? B.getInt32(1) : numVerts;
+                llvm::Value *tg = allUniform ? llvm::ConstantPointerNull::get(ptrTy) : tags;
+                B.CreateCall(fn, {dst, dstStride, ptrArr, strideArr,
+                                  B.getInt32(numOperands), n, tg});
+            }
+
+            // format() (spec 017-jit-builtin-function-coverage, US4):
+            // "s=s.*" -- operand 0 is the format string, operands 1..N
+            // are the trailing values to substitute. Confirmed via a
+            // throwaway mixed-type probe's compiled .rslo (`format
+            // ("s=sfvs") result "%f %v %s" f v_1 s_1`) that each trailing
+            // operand is resolved with its OWN real RSL type (unlike the
+            // interpreter's dual float*/char** resolution of the same
+            // slot) -- so plain getVar() per operand already gives the
+            // correctly-typed, correctly-strided pointer; jitFormat
+            // reinterprets it based on the specifier character actually
+            // encountered, mirroring what the interpreter's dual
+            // resolution achieves.
+            else if (op == "format") {
+                if (!dst || ins.operands.size() < 1)
+                    continue;
+                auto [fmt, sf] = getVar(ins, 0);
+                if (!fmt)
+                    continue;
+                int numOperands = (int)ins.operands.size() - 1;
+                int arrLen = numOperands > 0 ? numOperands : 1;
+                auto *ptrArrTy = llvm::ArrayType::get(ptrTy, arrLen);
+                auto *strideArrTy = llvm::ArrayType::get(i32Ty, arrLen);
+                auto *ptrArr = B.CreateAlloca(ptrArrTy, nullptr, "format_ops");
+                auto *strideArr = B.CreateAlloca(strideArrTy, nullptr, "format_strides");
+
+                bool allUniform = (dstStrideVal == 0) && (sf == 0);
+                bool ok = true;
+                for (int k = 0; k < numOperands; ++k) {
+                    auto [p, s] = getVar(ins, k + 1);
+                    if (!p) {
+                        ok = false;
+                        break;
+                    }
+                    allUniform = allUniform && (s == 0);
+                    auto *pGep = B.CreateGEP(ptrArrTy, ptrArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(p, pGep);
+                    auto *sGep = B.CreateGEP(strideArrTy, strideArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(B.getInt32(s), sGep);
+                }
+                if (ok) {
+                    // (dst, sd, fmt, sf, operands**, strides*, numOperands, n, tags)
+                    auto *ty = llvm::FunctionType::get(
+                        voidTy,
+                        {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_format", ty);
+                    llvm::Value *n = allUniform ? B.getInt32(1) : numVerts;
+                    llvm::Value *tg = allUniform ? llvm::ConstantPointerNull::get(ptrTy) : tags;
+                    B.CreateCall(fn, {dst, dstStride, fmt, B.getInt32(sf), ptrArr, strideArr,
+                                      B.getInt32(numOperands), n, tg});
+                }
             }
 
             // ================================================================
@@ -2585,6 +2849,68 @@ static bool emitFunction(const IRFunction &irFn,
                                           out, B.getInt32(so), numVerts, tags});
                     }
                 }
+            }
+
+            // rayinfo()/raylabel()/raydepth() (spec 017-jit-builtin-
+            // function-coverage, US3). rayinfo's destination TYPE
+            // (string vs. numeric) is looked up separately via
+            // resolveVar/VarDesc::isString -- its "f=s." prototype's
+            // wildcard gives no static hint the way other functions'
+            // per-type DEFFUNC overloads do (VarDesc.stride alone can't
+            // distinguish a string local from a plain float, since both
+            // collapse to the same "1 item" stride).
+            else if (op == "rayinfo") {
+                if (ins.operands.size() < 2 || !dst)
+                    continue;
+                auto [queryPtr, sQuery] = getVar(ins, 0);
+                auto [destPtr, sDest] = getVar(ins, 1);
+                if (!queryPtr || !destPtr)
+                    continue;
+                bool isStringDest = false;
+                VarDesc destDesc;
+                if (resolveVar(ins.operands[1].token, destDesc))
+                    isStringDest = destDesc.isString;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty},
+                                                   false);
+                auto *fn = declareOp(mod, "op_rayinfo", ty);
+                B.CreateCall(fn, {dst, dstStride, queryPtr, B.getInt32(sQuery), destPtr, B.getInt32(sDest),
+                                  numVerts, tags, B.getInt32(isStringDest ? 1 : 0)});
+            }
+            else if (op == "raylabel") {
+                if (!dst)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy, {ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_raylabel", ty);
+                B.CreateCall(fn, {dst, dstStride, numVerts, tags});
+            }
+            else if (op == "raydepth") {
+                if (!dst)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy, {ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_raydepth", ty);
+                B.CreateCall(fn, {dst, dstStride, numVerts, tags});
+            }
+
+            // photonmap() (spec 017-jit-builtin-function-coverage, US3):
+            // both overloads (2 or 3 operands) share op_photonmap -- the
+            // 3rd (N) operand is unused even by the interpreter's own
+            // macro, so it's simply never read here. Same "no
+            // collapseArgs" dispatch shape as occlusion/indirectdiffuse
+            // above (D1's numRealVertices-bound-then-replicate discipline
+            // is applied inside jitPhotonMap itself, driven by the raw
+            // numVerts passed through).
+            else if (op == "photonmap") {
+                if (ins.operands.size() < 2 || !dst)
+                    continue;
+                auto [namePtr, sNameUnused] = getVar(ins, 0);
+                auto [P, sP] = getVar(ins, 1);
+                if (!namePtr || !P)
+                    continue;
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_photonmap", ty);
+                B.CreateCall(fn, {dst, dstStride, namePtr, P, B.getInt32(sP), numVerts, tags});
             }
 
             // ================================================================

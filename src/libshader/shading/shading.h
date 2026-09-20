@@ -625,6 +625,48 @@ class CShadingContext {
         void jitDerivV(float *dst, int sd, const float *num, int sNum,
                        const float *denom, int sDenom, int n, const int *tags);
 
+        // rayinfo()/raylabel()/raydepth() (spec 017-jit-builtin-function-
+        // coverage, US3): read the private currentRayLabel/currentRayDepth
+        // fields below. All 3 are DEFSHORTFUNC with a NULL_EXPR post-hook
+        // (giFunctions.h) -- unlike visibility/occlusion/etc., the
+        // interpreter does NOT replicate into the derivative-offset tail
+        // for these three (not meaningfully differentiable quantities), so
+        // these loop only currentShadingState->numRealVertices and leave
+        // any tail slots untouched, matching that exactly.
+        //
+        // rayinfo()'s prototype ("f=s.") gives no static result-type hint
+        // the way surface()/etc.'s per-type DEFFUNC overloads do (the "."
+        // is a true wildcard) -- `isStringDest` (resolved at JIT-compile
+        // time via VarDesc::isString, since a string-typed destination's
+        // stride is otherwise indistinguishable from a plain float's)
+        // says which of `dest`'s two writes ("label" vs.
+        // depth/origin/direction/length) is the type-correct one for this
+        // particular call site; the other simply doesn't write (a
+        // deliberately safer choice than the interpreter's own
+        // type-punning of the same operand slot as both `char**` and
+        // `float*`, which only matters for malformed RSL that mismatches
+        // the query string against the destination's declared type).
+        void jitRayInfo(float *dst, int sd, const char *const *query, int sQuery,
+                        void *dest, int sDest, int n, const int *tags, bool isStringDest);
+        void jitRayLabel(char **dst, int sd, int n, const int *tags);
+        void jitRayDepth(float *dst, int sd, int n, const int *tags);
+
+        // photonmap() (spec 017-jit-builtin-function-coverage, US3): both
+        // overloads (2-arg "c=Sp!" and 3-arg "c=Spn!") share this single
+        // method -- the 3rd (N) argument is read but discarded even by
+        // the interpreter's own macro (`(void)op3;`, giFunctions.h), so
+        // there is nothing for the JIT side to consume from it either.
+        // DEFSHORTFUNC with an `expandVector` post-hook, unlike rayinfo/
+        // raylabel/raydepth above -- applies D1's numRealVertices-bound-
+        // then-replicate-into-tail discipline. The `estimator` named
+        // parameter is unsupported (same "!" extension scoping as
+        // occlusion/texture3d/etc.) -- CPhotonMapLookup::init()'s default
+        // (`scratch->photonmapParams.estimator = 0`) always makes the
+        // macro's ternary resolve to `currentObject->attributes->
+        // photonEstimator`, used directly here.
+        void jitPhotonMap(float *dst, int sd, const char *const *name,
+                          const float *P, int sP, int n, const int *tags);
+
         // shadername() -- both overloads delegate to the already-existing
         // CShadingContext::shaderName()/shaderName(type) members (used by the
         // interpreter's own SHADERNAMEEXPR/SHADERNAMESEXPR macros), just
@@ -632,6 +674,43 @@ class CShadingContext {
         void jitShaderName(char **dst, int sd, int n, const int *tags);
         void jitShaderNameS(char **dst, int sd, const char *const *type, int sType,
                             int n, const int *tags);
+
+        // concat() (spec 017-jit-builtin-function-coverage, US4): unlike
+        // every other US1-US4 op_* trampoline, this needs a real
+        // CShadingContext member (not a bare rslOps.cpp free function)
+        // because it allocates a NEW string at runtime (CONCATEXPR's
+        // `savestring`, scriptFunctions.h) via `ralloc(..., threadMemory)`
+        // -- the same thread-local shader-execution memory pool the
+        // interpreter's own execute() uses, so the returned pointer's
+        // lifetime matches every other string the shader produces.
+        // `operands`/`strides` are parallel arrays of `numOperands` char**
+        // pointers/strides (variable or string-literal, resolved and
+        // stack-allocated by the JIT emitter, mirroring "seql"/"sneql"'s
+        // resolveVar+loadVarPtr+string-literal-fallback plumbing).
+        void jitConcat(char **dst, int sd, const char *const *const *operands,
+                       const int *strides, int numOperands, int n, const int *tags);
+
+        // format() (spec 017-jit-builtin-function-coverage, US4): the last
+        // remaining function in this spec's inventory. Transcribes
+        // PRINTEXPR (scriptFunctions.h, shared with printf()'s own
+        // FORMATEXPR/PRINTFEXPR) byte-faithfully -- %f/%d/%c/%n/%p/%s/%m
+        // token scanning -- then persists the result via `ralloc(...,
+        // threadMemory)` the same way jitConcat does (savestring's
+        // equivalent), so it's a CShadingContext member for the same
+        // reason concat() is. `operands[k]`/`strides[k]` are each
+        // resolved via the JIT emitter's generic `getVar()` (which
+        // already gives the CORRECT native pointer + type-scaled stride
+        // for that operand's REAL RSL type -- float=1 item, vector/point/
+        // color=3, matrix=16, string=1 pointer), unlike the interpreter's
+        // own dual float*/char** `operandSize()` resolution of the same
+        // slot -- this JIT version reinterprets each already-resolved
+        // pointer as `const float*` or `const char*const*` depending on
+        // which specifier character is encountered, exactly mirroring
+        // what the interpreter's dual resolution achieves, without
+        // needing two parallel operand arrays.
+        void jitFormat(char **dst, int sd, const char *const *fmt, int sf,
+                       void *const *operands, const int *strides, int numOperands,
+                       int n, const int *tags);
 
         // clearlighting() -- transcribes execute.cpp's clearLighting() macro
         // exactly: mark lighting not-yet-executed and reset the shaded-light

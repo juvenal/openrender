@@ -81,26 +81,42 @@ message(STATUS "  - LibShader_OpcodeCoverage (JIT/.rslo opcode-parity coverage g
 # test_gate_hardening — negative test for the hardened coverage gate
 # (spec 017-jit-builtin-function-coverage, US2, T018,
 # contracts/gate-hardening-contract.md's Verification Obligation #2).
-# Shells out to the real oshader --jit CLI (not a direct emitLLVMBitcode()
-# call) against a fixture .sl calling a builtin function confirmed to have
-# no JIT dispatch case, asserting nonzero exit, a diagnostic naming that
-# mnemonic, and no .slo written.
+#
+# Redesigned 2026-09-20: originally shelled out to `oshader --jit` on a
+# fixture .sl calling a real, confirmed-unhandled builtin. That approach
+# became structurally unsatisfiable once this spec's own US4 finished --
+# every mnemonic in kAllFunctionMnemonics gained a dispatch case, leaving
+# no real RSL builtin left to serve as a negative fixture. Now links
+# libshader_compiler directly and drives emitLLVMBitcode() with a
+# hand-built IRModule containing a synthetic, guaranteed-never-real
+# opcode -- tests isHandledOpcode()'s actual contract, not a proxy for
+# it, and can never go stale as coverage grows. See test_gate_hardening.cpp's
+# header comment for the full rationale, including the positive-control
+# assertion that precedes the negative one.
 # ---------------------------------------------------------------------------
 add_executable(test_libshader_gate_hardening test_gate_hardening.cpp)
 
 target_compile_features(test_libshader_gate_hardening PRIVATE cxx_std_20)
 
+target_include_directories(test_libshader_gate_hardening PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/libshader/compiler   # llvmEmitter.h, ir.h, rslo.h
+    ${CMAKE_BINARY_DIR}/src/libshader/compiler   # Flex/Bison generated headers
+    ${CMAKE_SOURCE_DIR}/src                      # common/, logging.h
+)
+
+target_link_libraries(test_libshader_gate_hardening PRIVATE
+    libshader_compiler
+    openrendercommon
+)
+
 add_test(NAME LibShader_GateHardening
     COMMAND test_libshader_gate_hardening
-            $<TARGET_FILE:oshader>
-            ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/gate_hardening_probe.sl
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set_tests_properties(LibShader_GateHardening PROPERTIES
     TIMEOUT 30
     LABELS  "libshader;compiler;unit"
-    DEPENDS oshader
 )
 
 message(STATUS "  - LibShader_GateHardening (hardened coverage-gate negative test)")

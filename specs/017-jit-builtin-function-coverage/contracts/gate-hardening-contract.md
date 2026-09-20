@@ -81,15 +81,35 @@ which itself is sequenced after User Story 1 completes.
    succeeds with zero new failures after this change lands (FR-009/SC-004)
    — proves every currently-shipped `.sl` file still compiles to `.slo`.
 2. **Negative (gate actually fires)**: a dedicated test — NOT part of the
-   normal shader build — that deliberately compiles a fixture `.sl` file
-   calling a builtin function confirmed to have no JIT handling (or a
-   synthetic/nonexistent mnemonic, for a check that remains valid even
-   after this feature eventually closes every real gap) via `oshader --jit`,
-   and asserts: nonzero exit code, a diagnostic naming that specific
-   mnemonic on stderr, and no `.slo` file produced. This is the acceptance
-   test for User Story 2's Acceptance Scenario 1 in spec.md, and should be
-   written and shown to fail against the *pre-hardening* gate (TDD red
-   phase, constitution Principle III) before the hardening change lands.
+   normal shader build — that deliberately triggers the coverage gate and
+   asserts: failure, a diagnostic naming the specific mnemonic on stderr,
+   and no `.slo` file produced. This is the acceptance test for User
+   Story 2's Acceptance Scenario 1 in spec.md, and was written and shown
+   to fail against the *pre-hardening* gate (TDD red phase, constitution
+   Principle III) before the hardening change landed.
+
+   **Implementation history**: initially built as `oshader --jit` shelled
+   out against a fixture `.sl` calling a real builtin confirmed to have
+   no JIT dispatch case yet (`fixtures/gate_hardening_probe.sl`),
+   repointed at each successive target as US3/US4 closed real gaps
+   (degrees → step → setcomp → rotate → concat → format). That approach
+   hit exactly the dead end this obligation's original wording already
+   flagged as a risk ("a check that remains valid even after this
+   feature eventually closes every real gap"): once `format()` landed as
+   the last function in `kAllFunctionMnemonics` (the full builtin-
+   function universe per `function-coverage-guard-contract.md`, not just
+   this spec's original 26-function inventory) to gain a dispatch case,
+   there was no longer any real, compilable RSL builtin left to serve as
+   the fixture. Redesigned (2026-09-20, `test_gate_hardening.cpp`) to
+   link `libshader_compiler` directly and drive `emitLLVMBitcode()` with
+   a hand-built `IRModule` containing a synthetic opcode mnemonic
+   (`"__unhandled_test_opcode__"`) that can never collide with a real
+   one — testing `isHandledOpcode()`'s actual contract instead of a
+   proxy for it, so it can never go stale as coverage grows. The fixture
+   `.sl` was deleted as unused. A positive-control assertion (the same
+   `IRModule` shape using only already-handled opcodes must compile
+   successfully and write a `.slo`) precedes the negative one, so a
+   malformed harness can't produce a false "gate fired" result.
 
 ## Non-goals
 

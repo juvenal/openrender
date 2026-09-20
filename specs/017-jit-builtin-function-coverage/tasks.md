@@ -423,28 +423,86 @@ or before US2 if preferred; presented here in spec.md's priority order.
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Create `shaders/photonmap_probe.sl` (covers both the
+- [X] T023 [P] [US3] Create `shaders/photonmap_probe.sl` (covers both the
   two- and three-argument overloads) + `sphere-photonmap-reyes{,-slo}.rib`
   (`numthreads 1` + comment — photon lookups are RNG-adjacent per
   `data-model.md`) + reference `.tif` + `ctest` registration. Confirm
   currently failing.
-- [ ] T024 [P] [US3] Create `shaders/rayinfo_probe.sl` (exercises all five
+  Correction: `numthreads 1` turned out unnecessary -- this probe queries
+  a NONEXISTENT `.pm` file (same portability reasoning as textureinfo's
+  own probe, GitHub issue #7 background), so the lookup is against a
+  deterministic empty/dummy `CPhotonMap` (`CRenderer::getPhotonMap()`
+  always constructs one, never returns null, regardless of file
+  existence -- `rendererFiles.cpp:405-431`), not real RNG-jittered photon
+  data. Used a sentinel-preset-then-overwrite pattern (two different
+  sentinel colors, each overwritten by its own call) so a genuinely
+  silently-skipped opcode is distinguished from a correctly-computed
+  "both empty-map lookups return the same (black) result" -- otherwise
+  the two would be numerically indistinguishable.
+- [X] T024 [P] [US3] Create `shaders/rayinfo_probe.sl` (exercises all five
   query strings: `"label"`, `"depth"`, `"origin"`, `"direction"`,
   `"length"`) + `sphere-rayinfo-reyes{,-slo}.rib` + reference `.tif` +
   `ctest` registration. Confirm currently failing.
-- [ ] T025 [P] [US3] Create `shaders/raylabel_probe.sl` +
+  `rayinfo()`'s prototype ("f=s.") gives NO static result-type hint the
+  way other functions' per-type DEFFUNC overloads do -- a genuine new
+  problem, since VarDesc.stride alone can't distinguish a string-typed
+  destination from a plain float (both are "1 item"). Solved by adding a
+  new `VarDesc::isString` field (populated in `buildVarTable` from
+  `IRVarInfo::isString()`, which already existed but wasn't threaded
+  through) -- a surgical, additive change (VarDesc is aggregate-
+  initialized everywhere else with 3 positional values; the 4th field's
+  default keeps all of those call sites compiling unchanged). Looked up
+  via `resolveVar` (not `getVar`, which returns a fixed `pair<Value*,int>`
+  used pervasively and would have needed touching dozens of call sites to
+  widen).
+
+  **Amended 2026-09-20** (T035's retroactive GitHub-issue-#8 audit): the
+  `labelOk`/`depthOk`/`directionOk`/`lengthOk`/`allFoundOk`/`allOk`
+  `if`-gated flags were masking-vulnerable (uniform condition + uniform
+  destination); switched to `varying` (numeric ones could not use T035's
+  raw-value-output alternative without a larger probe restructure, so
+  `varying` -- a full, not partial, fix per T035's note -- was used
+  throughout for consistency). Reference unchanged; re-verified matching.
+
+- [X] T025 [P] [US3] Create `shaders/raylabel_probe.sl` +
   `sphere-raylabel-reyes{,-slo}.rib` + reference `.tif` + `ctest`
   registration. Confirm currently failing.
-- [ ] T026 [P] [US3] Create `shaders/raydepth_probe.sl` +
+  `currentRayLabel`'s default for a primary camera ray is the constant
+  `"camera"` (`rayLabelPrimary`, `shading.cpp:98,434`), not `""` --
+  confirmed by reading the initialization site before writing the probe's
+  assertion.
+
+  **Amended 2026-09-20** (T035's retroactive GitHub-issue-#8 audit):
+  `isCamera` was `uniform`, masking-vulnerable the same way; switched to
+  `varying`. Reference unchanged; re-verified matching.
+
+- [X] T026 [P] [US3] Create `shaders/raydepth_probe.sl` +
   `sphere-raydepth-reyes{,-slo}.rib` + reference `.tif` + `ctest`
   registration. Confirm currently failing.
-- [ ] T027 [P] [US3] Create `shaders/ptlined_probe.sl` +
+
+  **Amended 2026-09-20** (T035's retroactive GitHub-issue-#8 audit): the
+  `if`-gated `isZero` flag was masking-vulnerable, *and* its expected
+  correct value (0) coincided with a plausible zero-initialized/skipped
+  default, so a boolean check here was doubly weak. Rewritten to the
+  sentinel-preset-then-overwrite + raw-value-output pattern (`depth`
+  preset to `-5`, reassigned by `raydepth()`, `depth+5` written straight
+  into `Ci`); reference regenerated and re-verified matching.
+- [X] T027 [P] [US3] Create `shaders/ptlined_probe.sl` +
   `sphere-ptlined-reyes{,-slo}.rib` + reference `.tif` + `ctest`
   registration. Confirm currently failing.
+  Found by hand-deriving PTLINEDEXP's exact arithmetic: it is NOT true
+  segment-clamped point-to-line-segment distance in general (the first
+  two branches return the full segment length / distance-to-B rather
+  than distance to the query point when it projects outside [A,B]; the
+  third branch computes distance to the INFINITE line, not clamped).
+  Confirmed by direct calculation for all 3 probe queries and matched
+  against the actual rendered pixel values. Not a defect to fix --
+  documented in the probe's header; only interpreter/JIT numeric
+  agreement matters here, and both back-ends agree exactly.
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Implement `photonmap()` (both overloads): new
+- [X] T028 [US3] Implement `photonmap()` (both overloads): new
   `jitPhotonMap` method in `shading.h`/`.cpp` (uses
   `rendererGetPhotonMap`, likely `protected` like `rendererGetCache` et
   al. — confirm access level first) transcribing `PHOTONMAPEXPR_PRE`/`PHOTONMAPEXPR`/`_UPDATE`/`_POST`
@@ -452,7 +510,18 @@ or before US2 if preferred; presented here in spec.md's priority order.
   `research.md` D5's table); `op_photonmap` trampoline in `rslOps.h`/`.cpp`;
   `"photonmap"` dispatch (branching on 2-vs-3-operand form) in
   `llvmEmitter.cpp`. Confirm T023 now passes.
-- [ ] T029 [US3] Implement `rayinfo()`: new `jitRayInfo` method in
+  `rendererGetPhotonMap` is `public` (alongside `duFloat`/`duVector`/etc.
+  in the "used in shaders" section), not `protected` -- confirmed by
+  reading `shading.h` directly, no access change needed. Both overloads
+  share one `jitPhotonMap`/`op_photonmap` -- the 3rd (N) argument is
+  discarded even by the interpreter's own macro (`(void)op3;`), so the
+  JIT dispatch simply never reads a 3rd operand for either arity.
+  `estimator` (a named parameter) is unsupported, matching the
+  established "!" extension scoping precedent (occlusion/texture3d/etc.)
+  -- `CPhotonMapLookup::init()`'s default (0) always makes the macro's
+  own ternary resolve to `currentObject->attributes->photonEstimator`,
+  used directly.
+- [X] T029 [US3] Implement `rayinfo()`: new `jitRayInfo` method in
   `shading.h`/`.cpp` (reads private `currentRayDepth`/`currentRayLabel`,
   `shading.h:548-549`, plus `varying[VARIABLE_P]`/`varying[VARIABLE_I]` via
   already-resolvable globals) transcribing `RAYINFOEXPR_PRE`/`RAYINFOEXPR`/`_UPDATE`'s
@@ -462,27 +531,46 @@ or before US2 if preferred; presented here in spec.md's priority order.
   `"rayinfo"` dispatch in `llvmEmitter.cpp`, modeled on the already-shipped
   `"lightsource"` dispatch (`llvmEmitter.cpp:2148-2167`). Confirm T024 now
   passes.
-- [ ] T030 [US3] Implement `raylabel()`: mirrors the already-shipped
+  Loops only `currentShadingState->numRealVertices` (not the passed `n`),
+  matching raylabel/raydepth's own tail-unwritten discipline (all three
+  have a `NULL_EXPR` post-hook -- no derivative-tail replication, unlike
+  occlusion/visibility/etc.). Dispatch resolves `isStringDest` via the new
+  `VarDesc::isString` field (see T024) since the "1-vs-3-float output
+  width" note undersold the real ambiguity: "label" needs a STRING write
+  (`char**`), not just a differently-sized float write, and nothing in
+  `ins.proto` can tell the two apart.
+- [X] T030 [US3] Implement `raylabel()`: mirrors the already-shipped
   `"depth"` opcode's trivial shape (`CShadingContext::jitDepth`,
   `shading.cpp:2611-2621`) — single private-field read
   (`currentRayLabel`), no derivative replication needed. `jitRayLabel` in
   `shading.h`/`.cpp` (or reuse `jitRayInfo`'s private-field access if
   simpler — implementer's choice, both are correct), `op_raylabel`
   trampoline, `"raylabel"` dispatch. Confirm T025 now passes.
-- [ ] T031 [US3] Implement `raydepth()`: same shape as T030 for
+- [X] T031 [US3] Implement `raydepth()`: same shape as T030 for
   `currentRayDepth`. `jitRayDepth`, `op_raydepth`, `"raydepth"` dispatch.
   Confirm T026 now passes.
-- [ ] T032 [US3] Implement `ptlined()`: pure free function `op_ptlined` in
+- [X] T032 [US3] Implement `ptlined()`: pure free function `op_ptlined` in
   `rslOps.cpp`/`.h` (zero `CShadingContext` state, full `numVerts` loop —
   no `numRealVertices` discipline needed, plain `DEFFUNC` per D1/D5),
   `subvv`/`dotvv`/`crossvv`/`sqrtf` only; `"ptlined"` dispatch in
   `llvmEmitter.cpp` (`emitTern`-shape or equivalent 3-operand helper).
   Confirm T027 now passes.
-- [ ] T033 [US3] Run
+  Used raw inline float arithmetic (matching `op_dot`/`op_cross`'s own
+  style) rather than calling `subvv`/`dotvv`/`crossvv` helper macros,
+  same consistency choice as T071's `specularbrdf`. Confirmed already
+  registered in the compiler's symbol table
+  (`addBuiltInFunction("ptlined", "f=ppp", 0)`, `rslo.cpp:959`) -- no
+  atmosphere()/debug()-style gap here.
+- [X] T033 [US3] Run
   `ctest --test-dir build -L "visual|libshader|shading_parity" --output-on-failure`;
   confirm zero regressions and T023–T027 all passing (`ctest -L libshader`
   still expected to show US4's 14 remaining functions as named failures,
   per T021's note).
+  244/245 passed (only `LibShader_OpcodeCoverage` red, as expected); all
+  5 of T023-T027's probes pass, zero regressions. The coverage guard's
+  failure list no longer mentions any US3 function — every remaining
+  failure is one of US4's 14 (degrees/round/determinant/distance/match/
+  min/refract/rotate/scale/setcomp/step/translate/concat/format).
 
 **Checkpoint**: User Stories 1–3 all independently functional. Only US4's
 14 pure math/string functions remain.
@@ -504,92 +592,352 @@ with either if preferred; presented here in spec.md's priority order.
 
 ### Tests for User Story 4
 
-- [ ] T034 [P] [US4] Create `shaders/degrees_round_probe.sl` (exercises
+- [X] T034 [P] [US4] Create `shaders/degrees_round_probe.sl` (exercises
   both `degrees()` and `round()` — same `SIMPLEFUNCTION` shape,
   `research.md` D5) + `sphere-degrees-round-reyes{,-slo}.rib` + reference
   `.tif` + `ctest` registration. Confirm currently failing.
-- [ ] T035 [P] [US4] Create `shaders/determinant_distance_probe.sl`
+- [X] T035 [P] [US4] Create `shaders/determinant_distance_probe.sl`
   (both `op_reflect`-shape, scalar-output functions) + paired RIB scenes +
   reference + `ctest` registration. Confirm currently failing.
-- [ ] T036 [P] [US4] Create `shaders/refract_probe.sl` + paired RIB scenes
+
+  **Two things found while writing this probe, neither a bug in
+  determinant()/distance() themselves (both independently verified
+  correct and matching between backends):**
+
+  1. `matrix(f)`'s scalar constructor (`op_mfromf`, `rslOps.cpp:1241-1263`)
+     hardcodes the 4th diagonal entry to `1`, never `f` —
+     `determinant(2*matrix(1))` is **8**, not 16 (`2*matrix(1)` compiles to
+     matrix *multiplication* of `mfromf(2)`=diag(2,2,2,**1**) and
+     `mfromf(1)`=diag(1,1,1,1), not per-element scaling). Wrong expectation
+     on the first draft of this probe, corrected during debugging.
+
+  2. **GitHub issue #8** (filed this session): assigning to a uniform
+     destination inside an `if` body with a uniform condition executes
+     unconditionally under the JIT, regardless of the condition's actual
+     truth value — root-caused to `collapseArgs`'s "uniform fast path" in
+     `llvmEmitter.cpp` (~line 722), which substitutes `nullptr` for the
+     real per-vertex `tags` array whenever destination+operands are all
+     uniform. Safe at top level; unsafe inside `if`/`else` bodies, since it
+     bypasses whatever `op_if_update` decided. Confirmed pre-existing via
+     `git stash` on clean HEAD. This probe originally used
+     `uniform float detOk = 0; if (det > 15.9 && det < 16.1) detOk = 1;` —
+     exactly the trigger pattern — so it was rewritten to write the raw
+     computed values (`det/10`, `d/10`) directly into `Ci` instead of
+     routing through an `if`-gated boolean flag, sidestepping the bug
+     entirely (and is strictly more discriminating than a boolean check).
+
+  **Retroactive audit, prompted by the above:** since several *earlier*
+  probes in US3/US5 use the same `uniform float xOk = 0; if (cond)
+  xOk = 1;` pattern, and that pattern's "pass" carries no information
+  about the tested function whenever the expected outcome is
+  `xOk == 1` (the bug forces that outcome regardless of `cond`'s real
+  value) — audited every completed probe's compiled `.rslo` `#!variables:`
+  block for which `if`-assigned flags are `uniform`. Found and fixed 4
+  more affected probes (all silently masking, not silently wrong — see
+  each task's own note for particulars): `degrees_round_probe.sl` (T034,
+  rewritten to raw-value output), `raydepth_probe.sl` (rewritten to
+  raw-value output via the sentinel-preset-then-overwrite pattern),
+  `raylabel_probe.sl` and `rayinfo_probe.sl` (`isCamera`/`labelOk` etc.
+  switched from `uniform` to `varying` — string-equality checks can't be
+  rewritten to raw-value output the way numeric ones can, so this is the
+  workaround used instead: `varying` forces the JIT to consult the real
+  per-vertex active mask rather than `collapseArgs`'s null-tags fast
+  path). `deriv_probe.sl`/`phong_specularbrdf_probe.sl`/
+  `photonmap_probe.sl`/`textureinfo_probe.sl` were already using `varying`
+  flags and needed no change. Fixing `shadername_probe.sl`'s
+  `selfMatch`/`surfIsSelf` (uniform → varying) then surfaced a **second,
+  genuine, previously-masked bug** — see T044's amended note below.
+- [X] T036 [P] [US4] Create `shaders/refract_probe.sl` + paired RIB scenes
   + reference + `ctest` registration. Confirm currently failing.
-- [ ] T037 [P] [US4] Create `shaders/match_probe.sl` (asserts current
+  Uses a raw-value probe (writes the computed vector straight into `Ci`,
+  no `if`-gated boolean flag) from the outset, per T035's now-established
+  masking-risk finding (GitHub issue #8) — not retrofitted.
+- [X] T037 [P] [US4] Create `shaders/match_probe.sl` (asserts current
   plain-strcmp-equality behavior, not real pattern matching — FR-017) +
   paired RIB scenes + reference + `ctest` registration. Confirm currently
   failing.
-- [ ] T038 [P] [US4] Create `shaders/min_probe.sl` (both `f=f+`/`v=v+`
+- [X] T038 [P] [US4] Create `shaders/min_probe.sl` (both `f=f+`/`v=v+`
   forms, 2-argument call form only per `max`'s existing precedent) +
   paired RIB scenes + reference + `ctest` registration. Confirm currently
   failing.
-- [ ] T039 [P] [US4] Create `shaders/step_probe.sl` + paired RIB scenes +
+  Float form only, per T048's amended scope note: `max`/`maxf`'s own JIT
+  dispatch has no vector-form branch either (confirmed by reading
+  `op_maxf` and its dispatch before starting) — matching that exact
+  coverage level, not the vector form, is what "match max's existing
+  precedent" means here.
+- [X] T039 [P] [US4] Create `shaders/step_probe.sl` + paired RIB scenes +
   reference + `ctest` registration. Confirm currently failing.
-- [ ] T040 [P] [US4] Create `shaders/setcomp_probe.sl` (both vector- and
+  Also repointed `src/libshader/tests/fixtures/gate_hardening_probe.sl`
+  and `test_gate_hardening.cpp` from `step()` to `setcomp()` (T040/T050's
+  function) once `step()` itself became handled — same repointing this
+  fixture already documented needing after `degrees()` landed (see T035's
+  note).
+- [X] T040 [P] [US4] Create `shaders/setcomp_probe.sl` (both vector- and
   matrix-index forms) + paired RIB scenes + reference + `ctest`
   registration. Confirm currently failing.
-- [ ] T041 [P] [US4] Create `shaders/matrixbuilder_probe.sl` (exercises
+  Found and filed **GitHub issue #9** while writing this probe: a
+  pre-existing, orthogonal interpreter defect where `SETMCOMPEXP`
+  (setcomp's matrix form) indexes via `element(r,c)=r+c*4`
+  (algebra.h's documented column-major convention) while `MCOMPEXP`
+  (comp's matrix form, already shipped from US1) indexes via raw
+  `r*4+c` — an inconsistent transpose, so `comp(m,r,c)` does not read
+  back what `setcomp(m,r,c,v)` just wrote at the same indices;
+  `comp(m,c,r)` (swapped) does. Mirrored exactly in `op_setmcomp`
+  (not "fixed", FR-017); probe's read-back swaps indices to verify the
+  JIT/interpreter parity spec 017 actually cares about, matching both
+  backends' real (transposed) behavior. Out of scope to fix here —
+  would also require updating the already-shipped `op_mcomp` in
+  lockstep.
+- [X] T041 [P] [US4] Create `shaders/matrixbuilder_probe.sl` (exercises
   `rotate()`, `scale()`, and `translate()` together — shared
   `helper(mtmp,...); mulmm(res,op1,mtmp);` shape, `research.md` D5) +
   paired RIB scenes + reference + `ctest` registration. Confirm currently
   failing.
-- [ ] T042 [P] [US4] Create `shaders/concat_probe.sl` (N-ary string
+  Found and filed **GitHub issue #10** while writing this probe (verified
+  pre-existing via an isolated minimal repro; `transform()`'s dispatch
+  code is untouched by this task's changes): the JIT's `"transform"`
+  dispatch (`llvmEmitter.cpp`) unconditionally treats operand 0 as a
+  coordinate-system NAME STRING, never checking `ins.proto` for the
+  matrix-argument overload (`Transform3`, `"p=mp"`, already registered
+  in both the interpreter and the compiler's symbol table) -- so
+  `transform(matrixVar, point)` compiles the matrix variable's own
+  identifier token as a literal space-name string, failing at runtime
+  with `"Unknown coordinate system: <var name>"`. Out of scope to fix
+  here (not in spec 017's original inventory -- `transform()`'s
+  string-space overloads were already JIT-handled from an earlier
+  spec). Probe reads results back via `comp()` (already correctly
+  JIT-handled, US1) instead of `transform()` to sidestep it entirely.
+- [X] T042 [P] [US4] Create `shaders/concat_probe.sl` (N-ary string
   concatenation, at least 3 arguments) + paired RIB scenes + reference +
   `ctest` registration. Confirm currently failing.
-- [ ] T043 [P] [US4] Create `shaders/format_probe.sl` (exercises at least
+  Uses `match()` (already-shipped, T037) to turn the result-string
+  comparison into a float flag directly assigned (not `if`-gated), so
+  it's immune to GitHub issue #8 by construction.
+- [X] T043 [P] [US4] Create `shaders/format_probe.sl` (exercises at least
   the `%f`/`%v`/`%s` token forms `printf`'s already-shipped dispatch
   supports) + paired RIB scenes + reference + `ctest` registration.
   Confirm currently failing.
 
+  **Correction to this task's own premise**: there is no `%v` specifier.
+  `PRINTEXPR` (`scriptFunctions.h`) recognizes `f`/`d`/`c`/`n`/`p`/`s`/`m`
+  only — `c`/`n`/`p` all print the identical `"(%f,%f,%f)"` triple form
+  for a vector/point/color/normal operand, and an unrecognized specifier
+  falls through to a literal-copy `else` branch without consuming an
+  operand. Probe uses `"%f %p %s"` instead. Also found and fixed a
+  self-terminating-comment bug while writing the probe's header comment
+  (a literal `*/` substring inside prose closed the block comment
+  early) and used `match()` (T037) to compare the result string as a
+  directly-assigned float flag, immune to GitHub issue #8 by
+  construction.
+
+  **Bigger correction, to this spec's own research notes**: research.md
+  claimed `format()` could reuse `printf`'s already-shipped JIT dispatch
+  machinery. Reading that dispatch in full (per this task's own
+  instruction) found `printf`'s JIT case is a silent no-op —
+  `llvmEmitter.cpp` groups `op == "printf"` with `"return"`/`"jmp"` under
+  a comment reading "Silently skip — no per-vertex output," meaning
+  `printf()` has never actually worked under `--jit`, despite being in
+  `kHandledOpcodes[]` and passing the coverage guard (which only checks
+  "does a dispatch case exist," never "does it do anything" — see T054's
+  note). `format()` was implemented instead by transcribing `PRINTEXPR`
+  directly (new `CShadingContext::jitFormat`, `shading.cpp`, byte-
+  faithful port using `JIT_IDX` + `reinterpret_cast` per specifier, same
+  `ralloc`-based persistence as `jitConcat`). research.md's format/concat
+  rows were corrected to strike the false "reuses printf" claim.
+  `printf()`'s own no-op status is out of this task's scope to fix (a
+  design question about console-output semantics under multithreaded
+  JIT execution, not a mechanical port) — filed as GitHub issue #11,
+  not fixed here.
+
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] Implement `degrees()` + `round()`: `op_degrees`
+- [X] T044 [US4] Implement `degrees()` + `round()`: `op_degrees`
   (copy of `op_radians`, `rslOps.cpp:1303-1309`, reciprocal constant) and
   `op_round` (copy of the Floor/Ceil/Sign/Abs `SIMPLEFUNCTION` shape,
   `(int)x` truncating cast — mirror exactly, do not implement real
   rounding, FR-017) in `rslOps.cpp`/`.h`; `"degrees"`/`"round"` `emitUn`
   dispatches in `llvmEmitter.cpp` (modeled on `"radians"`,
   `llvmEmitter.cpp:1739-1741`). Confirm T034 now passes.
-- [ ] T045 [US4] Implement `determinant()` + `distance()`: `op_determinant`
+  Both already registered in the compiler's symbol table
+  (`rslo.cpp:796,815`) -- no atmosphere()/debug()-style gap.
+
+  **Amended 2026-09-20** (during T035's retroactive issue-#8 audit,
+  above): `op_degrees`/`op_round` themselves were never wrong —
+  `degrees_round_probe.sl`'s `if`-gated `dOk`/`r1Ok`/`r2Ok` flags were
+  masking-vulnerable and were rewritten to raw-value output
+  (`d/360`, `(r1+5)/10`, `(r2+5)/10`); reference image regenerated.
+  Re-verified matching under both backends after the rewrite.
+
+- [X] T045 [US4] Implement `determinant()` + `distance()`: `op_determinant`
   (`determinantm()`, `mathSpec.h:617`; matrix operand stride 16, not 3) and
   `op_distance` (`subvv`+`lengthv`, `mathSpec.h:68,153`) in
   `rslOps.cpp`/`.h`, modeled on `op_reflect`'s shape (`rslOps.cpp:1338`);
   matching dispatches in `llvmEmitter.cpp`. Confirm T035 now passes.
-- [ ] T046 [US4] Implement `refract()`: `op_refract` (`::refract()`,
+
+  Both verified independently correct (matching between backends across
+  several isolated `/tmp` test shaders) before T035's probe was even
+  written — see T035's note for the two unrelated things found while
+  building the probe (a `matrix(1)`/`mfromf` diagonal-construction
+  subtlety, and GitHub issue #8).
+
+  **A third, more significant thing found via T035's retroactive audit
+  (not a determinant()/distance() bug either):** fixing
+  `shadername_probe.sl`'s `selfMatch`/`surfIsSelf` from `uniform` to
+  `varying` (to route around issue #8) caused the JIT-side render to
+  newly *fail* against its (unchanged, still-correct) reference —
+  `selfMatch` (comparing `shadername()`'s return value against the
+  string literal `"shadername_probe"`) came back false under JIT where
+  it was true under the interpreter, even though `surfIsSelf` (comparing
+  two `shadername()`-derived variables to each other) still matched.
+  Root-caused via `ORENDER_INSTR_LEVEL=debug`'s `[JIT-PROBE]` log line
+  (`execute.cpp:500`, already present from earlier JIT debugging this
+  session): under `--jit`, `shadername()`'s no-arg form was returning the
+  shader's **full `.slo` file path** (e.g.
+  `/…/build/shaders/shadername_diag.slo`) instead of its logical name
+  (`shadername_diag`). Traced to `parseSloShader()`
+  (`src/ri/render/rendererFiles.cpp:130`), which constructed
+  `new CShader(sloPath)` — the full path — where the `.rslo` loader,
+  `parseShader()` (`rslo.y:2088,2303`), constructs `new CShader(shaderName)`
+  — the logical name. `CShader::name` (via the `CFileResource` base)
+  backs both `CShader::getName()` (what `shadername()` returns) and
+  `getShader()`'s post-load shader cache key
+  (`globalFiles->insert(cShader->name, cShader)`), which must match
+  `getShader()`'s own by-logical-name lookup
+  (`globalFiles->find(name, file)`) to ever hit — so this bug likely also
+  caused every `.slo` shader load to silently re-parse+re-JIT-compile on
+  every reference instead of hitting the cache, a probable pre-existing
+  performance issue, not just a `shadername()` correctness one (not
+  independently verified/benchmarked; noted for awareness, not chased
+  further here — out of this task's scope). Fixed directly (genuinely
+  in-scope: `shadername()` JIT correctness is exactly what US5 delivers,
+  not an orthogonal bug) by using the already-available, previously
+  unused first parameter: `parseSloShader(const char *shaderName, const
+  char *sloPath)` now does `new CShader(shaderName)`, matching
+  `parseShader()`'s convention. Verified nothing else in
+  `parseSloShader()` or its caller reads `sh->name` expecting a path —
+  the JIT-compile call already takes `sloPath` as an explicit separate
+  argument. Confirmed fix via the isolated diagnostic shader
+  (`shadername_diag.sl`, scratchpad) matching interpreter output exactly
+  after the fix, then via `sphere-shadername-reyes-slo` newly passing
+  against its original (unchanged) reference. Full suite re-run
+  afterward (`ctest -L "visual|libshader|shading_parity"`): zero
+  regressions beyond the pre-existing T036-T043 gap.
+- [X] T046 [US4] Implement `refract()`: `op_refract` (`::refract()`,
   `mathSpec.h:537`, adds a 4th scalar eta operand vs. `op_reflect`) in
   `rslOps.cpp`/`.h`; `"refract"` dispatch in `llvmEmitter.cpp` modeled on
   `"reflect"` (`llvmEmitter.cpp:1749-1761`). Confirm T036 now passes.
-- [ ] T047 [US4] Implement `match()`: alias directly to the existing
+  Already registered in the compiler's symbol table (`rslo.cpp:966`) --
+  no atmosphere()/debug()-style gap. Verified matching under both
+  backends (`I=(0,0,1)`, `N=(0,0,-1)`, `eta=1.5` -> `r=(0,0,1)`, hand-
+  derived from `refract()`'s own formula and confirmed via rendered
+  pixel value).
+- [X] T047 [US4] Implement `match()`: alias directly to the existing
   `op_seql` (`rslOps.cpp:1311-1319`) — no new `op_*` function; `"match"`
   dispatch in `llvmEmitter.cpp` reusing `"seql"`'s char\*\*/`loadVarPtr`
   plumbing (`llvmEmitter.cpp:1882-1926`). Do NOT implement real
   subpattern/regex matching (FR-017). Confirm T037 now passes.
-- [ ] T048 [US4] Implement `min()` (both forms): `op_minf`/`op_minv`
+  Folded `"match"` into the existing `seql`/`sneql` dispatch branch (one
+  extra condition on the `else if`, plus fixing the `fnName` selection —
+  previously a two-way `(op=="seql") ? ... : ...` ternary that would have
+  silently routed `match` to `op_sneql` had it not been corrected to a
+  three-way-safe form). No new `op_*` function, as planned. Already
+  registered in the compiler's symbol table (`rslo.cpp:1069`).
+- [X] T048 [US4] Implement `min()` (both forms): `op_minf`/`op_minv`
   (copy of `op_maxf`, `rslOps.cpp:1282-1287`, 2-argument form only — match
   `max`'s existing precedent, do not fix its separately-scoped variadic
   gap, FR-017) in `rslOps.cpp`/`.h`; `"min"`/`"minf"` `emitBin` dispatch in
   `llvmEmitter.cpp` modeled on `"max"`/`"maxf"` (`llvmEmitter.cpp:1720-1722`).
   Confirm T038 now passes.
-- [ ] T049 [US4] Implement `step()`: `op_step` (copy of `op_filterstep`,
+
+  **Scope correction from the task text above**: only `op_minf` was
+  implemented, not `op_minv`. Checked `max`/`maxf`'s own JIT dispatch
+  (`llvmEmitter.cpp:1816-1818`) before starting: it calls only
+  `op_maxf`, which writes `dst[0]` alone (`IDX(dst,sd,i)[0] = ...`) —
+  there is no `op_maxv`/vector-form dispatch under the JIT at all today.
+  "Match max's existing precedent" therefore means matching its actual
+  current JIT coverage level (float only), not the full set of
+  interpreter overloads (`Minf "f=f+"` + `Minv "v=v+"`, both already
+  registered in the compiler's symbol table, `rslo.cpp:831-832`) the
+  task text's parenthetical suggested. A vector-form `min()`/`max()` gap
+  under `--jit` remains, matching `max()`'s own pre-existing,
+  separately-scoped gap exactly — not introduced or widened here.
+- [X] T049 [US4] Implement `step()`: `op_step` (copy of `op_filterstep`,
   `rslOps.cpp:1331-1336`, comparison sense flipped) in `rslOps.cpp`/`.h`;
   `"step"` `emitBin` dispatch in `llvmEmitter.cpp` modeled on
   `"filterstep"` (`llvmEmitter.cpp:1743`). Confirm T039 now passes.
-- [ ] T050 [US4] Implement `setcomp()`: `op_setcomp` (vector form,
+
+  **Correction from the task text above**: no new `op_step` function, and
+  no comparison flip. Read both formulas directly before implementing:
+  `STEPEXP` (scriptFunctions.h) is `*res = (*op2 < *op1 ? 0 : 1)` —
+  `(x >= edge) ? 1 : 0` for step's `(edge, x)` argument order — which is
+  EXACTLY `op_filterstep`'s own formula (`rslOps.cpp`), not its inverse.
+  (`op_filterstep` is itself a simplified, non-antialiased JIT
+  implementation of the interpreter's real derivative/filter-width-based
+  `filterstep()` — a pre-existing simplification from spec 011, unrelated
+  to and unchanged by this task.) `"step"` therefore aliases directly to
+  `op_filterstep` via `emitBin`, same pattern as T047's `match()` ->
+  `op_seql` alias — no new trampoline needed.
+- [X] T050 [US4] Implement `setcomp()`: `op_setcomp` (vector form,
   runtime index) and `op_setmcomp` (matrix form, runtime 2D index) in
   `rslOps.cpp`/`.h`, generalizing the fixed-index
   `"setxcomp"`/`"setycomp"`/`"setzcomp"` link-alias shape
   (`llvmEmitter.cpp:82`); `"setcomp"` dispatch in `llvmEmitter.cpp`
   branching on operand count (2 vs 3), same pattern as T015's `comp`.
   Confirm T040 now passes.
-- [ ] T051 [US4] Implement `rotate()`/`scale()`/`translate()`: three
+  `dst` in the IR is the vector/matrix being mutated itself (confirmed
+  by dumping a throwaway probe's compiled `.rslo` bytecode text before
+  writing the dispatch: `setcomp ("o=Cff") v_1 1 5` lists `v_1` as the
+  instruction's destination even though the RSL prototype's result type
+  is `o`/void) — same convention `setxcomp` already relies on, so no
+  separate "v"/"m" operand resolution was needed, just `dst` reused
+  directly. See T040's note for GitHub issue #9 (found here): `op_setmcomp`
+  deliberately uses `r + c*4` (`element()`), not `op_mcomp`'s `r*4+c`,
+  to mirror `SETMCOMPEXP`'s actual (transposed-from-`MCOMPEXP`) formula.
+  Already registered in the compiler's symbol table (`rslo.cpp:948-952`,
+  5 type-letter variants) -- no gap.
+- [X] T051 [US4] Implement `rotate()`/`scale()`/`translate()`: three
   `op_rotate`/`op_scale`/`op_translate` functions in `rslOps.cpp`/`.h`
   sharing the `helper(mtmp, ...); mulmm(res, op1, mtmp);` shape
   (`rotatem`/`scalem`/`translatem` + `mulmm`, `research.md` D5); matching
   `"rotate"`/`"scale"`/`"translate"` dispatches in `llvmEmitter.cpp`.
   Confirm T041 now passes.
-- [ ] T052 [US4] Implement `concat()`: new small variadic-string
+  Scoped to the matrix-transform overloads only (Translatem "m=mp",
+  Rotatem "m=mfv", Scalem "m=mp"), matching T041's own scope note --
+  NOT Rotatep ("p=pfpp", point-about-axis rotation), a separate,
+  unplanned overload. Each op_* uses a local `matrix mtmp, result;`
+  pair before writing to `dst` (mirroring `op_mulmm`'s own pattern),
+  since `dst` can alias the input matrix operand. Already registered in
+  the compiler's symbol table (`rslo.cpp:960,986-988`) -- no gap. See
+  T041's note for GitHub issue #10 (transform()'s matrix-overload JIT
+  dispatch bug, found and filed here, out of scope to fix).
+- [X] T052 [US4] Implement `concat()`: new small variadic-string
   `op_concat` in `rslOps.cpp`/`.h` (char\*\*/`loadVarPtr` plumbing from
   `"seql"`/`"sneql"`, `numArguments` loop from `Minf`/`Maxf`'s arity
   handling); `"concat"` dispatch in `llvmEmitter.cpp`. Confirm T042 now
   passes.
+
+  **Correction from the task text above** (see `research.md`'s own
+  correction on the same row): `Minf`/`Maxf`'s "`numArguments` loop" does
+  not exist as a JIT precedent — `max`/`maxf`'s actual dispatch is
+  2-argument-only via plain `emitBin`. `concat()`'s variadic-operand walk
+  (confirmed via a throwaway probe's compiled `.rslo`: `concat
+  ("s=ssss") c a "-" b "!"` — `dst` is a SEPARATE result variable, not
+  the mutated-operand shape `setcomp` uses) was written from scratch,
+  modeled on `"spline"`'s runtime stack-array-building pattern
+  (`llvmEmitter.cpp`, knot-pointer array) for the operand-array
+  construction, combined with `"seql"`/`"sneql"`'s
+  `resolveVar`/`loadVarPtr`/string-literal-fallback plumbing per operand
+  (unlike spline, which ignores operand stride entirely).
+
+  Also: `op_concat` is NOT a bare `rslOps.cpp` free function like every
+  other US4 op — `concat()` allocates a genuinely new string at runtime
+  (`CONCATEXPR`'s `savestring`, `scriptFunctions.h`), which needs
+  `ralloc(..., threadMemory)`, a `CShadingContext` member — so it's a
+  thin `op_concat` trampoline delegating to a new
+  `CShadingContext::jitConcat` method (the same shape as the
+  raytracing-tier US1-US3 functions), not a plain free function.
+  Already registered in the compiler's symbol table (`rslo.cpp:1068`) —
+  no gap.
 - [ ] T053 [US4] Implement `format()`: read the already-shipped `"printf"`
   dispatch (`llvmEmitter.cpp:2318`) in full first (`research.md` D5 flags
   this as needing more investigation than the rest of this tier); reuse
@@ -597,9 +945,72 @@ with either if preferred; presented here in spec.md's priority order.
   redirecting the output to a string buffer instead of stdout —
   `op_format` in `rslOps.cpp`/`.h`, `"format"` dispatch in
   `llvmEmitter.cpp`. Confirm T043 now passes.
-- [ ] T054 [US4] Run
+- [X] T054 [US4] Run
   `ctest --test-dir build -L "visual|libshader|shading_parity" --output-on-failure`;
   confirm zero regressions and T034–T043 all passing.
+
+  **265/265 tests pass, zero regressions** (2026-09-20) — the 265 total
+  includes 30 new `add_visual_test` registrations added this checkpoint
+  (`git diff tests/visual/CMakeLists.txt`) for US3/US4/US5's probe pairs,
+  not a fixed baseline; "zero regressions" means every test that existed
+  before this session's changes still passes, not that 265 was the
+  count before. All of T034–T043's probe pairs pass, `LibShader_Compiler`,
+  `LibShader_OpcodeCoverage`, `LibShader_GateHardening`,
+  `LibShader_UsedParametersTable`, `LibShader_UsedParametersGating` all
+  green.
+
+  **What "coverage guard green" actually proves, corrected**:
+  `LibShader_OpcodeCoverage` now shows 100% coverage of
+  `kAllFunctionMnemonics` — not just spec 017's original 26-function
+  inventory, but the complete builtin-function universe reachable via
+  `DEFFUNC`/`DEFLINKFUNC`/`DEFLIGHTFUNC`/`DEFSHORTFUNC` across
+  `scriptFunctions.h → shaderFunctions.h → giFunctions.h` (confirmed by
+  reading `test_opcode_coverage.cpp` in full). This proves **every
+  reachable builtin-function mnemonic has an `emitFunction()` dispatch
+  case** — it does NOT prove every case does real work. `printf()` is a
+  live counterexample found this checkpoint (T043's note, above): it has
+  been in `kHandledOpcodes[]` with a dispatch case since before spec
+  017, and that case is `// Silently skip — no per-vertex output.` — a
+  genuine no-op, invisible to both the coverage guard and the hardened
+  gate, because both only check "does a case exist," never "does it
+  emit IR." Filed as GitHub issue #11 (out of spec 017's scope to fix —
+  a design question about console semantics under multithreaded JIT
+  execution, not a mechanical port).
+
+  A bounded audit of every other `else if (op == ...)` branch in
+  `emitFunction()`'s dispatch chain (grep for branches containing no
+  `CreateCall`/`declareOp`/`emitUn`/`emitBin`/`emitTern`/`collapseArgs`
+  call) found no other instance of this pattern. `return`/`jmp` share
+  `printf`'s no-op branch textually but are structurally redundant
+  there — both are already caught and handled earlier in the same
+  per-instruction loop (an explicit `if (op == "return") { ...; return
+  true; }` and `if (op == "jmp") continue;`), so that branch's `printf`
+  arm is the only opcode that actually reaches it.
+  `endilluminance`/`forend`/`endfor`/`endwhile` are legitimate control-
+  flow markers, explicitly consumed at block-boundary checks elsewhere
+  in the function (documented inline: "handled at the block boundary in
+  the outer loop") rather than at the per-instruction site — not silent
+  gaps. `ntransform`/`vtransform` and the `visibility`/`transmission`/
+  `trace` and `surface`-family multi-op branches looked like false
+  positives to a naive per-branch text scan (they set a local `fnName`
+  string that a shared `CreateCall` after the branch chain consumes) —
+  verified each by reading the surrounding code directly; all emit real
+  IR.
+
+  **`LibShader_GateHardening` was redesigned this checkpoint** (see
+  `contracts/gate-hardening-contract.md`'s updated Verification
+  Obligation #2 and `test_gate_hardening.cpp`'s header comment for full
+  rationale): its original `oshader --jit`-against-a-fixture-`.sl`
+  design became unsatisfiable the moment `format()` (T053) closed the
+  last real gap in `kAllFunctionMnemonics` — there was no longer any
+  real, compilable RSL builtin left to serve as a negative fixture.
+  Replaced with a direct `emitLLVMBitcode()` call against a hand-built
+  `IRModule` carrying a synthetic, guaranteed-never-real opcode mnemonic
+  (`"__unhandled_test_opcode__"`), preceded by a positive-control
+  assertion (same `IRModule` shape using only already-handled opcodes
+  must compile and write a `.slo`) so a malformed test harness can't
+  produce a false "gate fired" result. `fixtures/gate_hardening_probe.sl`
+  was deleted as unused.
 
 **Checkpoint**: All 25 functions from issue #3's original inventory are
 now JIT-handled. `ctest -L libshader`'s coverage guard (T021) is **not**
@@ -782,6 +1193,19 @@ gives for converging on US2 last.
   codegen in `llvmEmitter.cpp` mishandling a `seql`/`sneql`-derived
   condition) -- filed as issue #6, out of scope for this spec. Worked
   around in the probe by using `if` instead of `?:`.
+
+  (c) **Amended 2026-09-20** (T035's retroactive GitHub-issue-#8 audit):
+  `selfMatch`/`surfIsSelf` were `uniform`, masking-vulnerable the same
+  way as (a)/(b) above but independent of both -- switched to `varying`.
+  This then surfaced a THIRD, genuine, previously-masked bug: under
+  `--jit`, `shadername()`'s no-arg form was returning the shader's full
+  `.slo` file path instead of its logical name. Root cause and fix are in
+  T045's note (`src/ri/render/rendererFiles.cpp`'s `parseSloShader()`
+  constructing `CShader` with the file path instead of the logical
+  name) -- this is a real, in-scope US5 correctness bug, not a probe
+  issue, so it was fixed in the engine, not worked around here. Reference
+  unchanged after the `varying` change; re-verified matching post-fix.
+
 - [X] T060 [P] [US5] Create `shaders/phong_specularbrdf_probe.sl`
   (exercises `phong()` under at least one `LightSource` and
   `specularbrdf()` directly, including a near-anti-parallel view/light

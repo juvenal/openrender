@@ -127,15 +127,32 @@ static EVariableType sloVarType(const std::string &t) {
     return TYPE_FLOAT;
 }
 
-static CShader *parseSloShader(const char * /*shaderName*/, const char *sloPath) {
+static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     SLOShaderInfo info;
     if (!CLLVMJitEngine::extractMetadataFromFile(sloPath, info) || !info.valid())
         return nullptr; // no embedded metadata → fall back to .rslo
 
-    // The CShader's CFileResource::name stores the FULL .slo path so that
-    // CProgrammableShaderInstance::prepare() can locate and JIT-compile it.
-    // getShader() caches this CShader under the logical shader name, not this path.
-    CShader *sh = new CShader(sloPath);
+    // Construct with the logical shader name, matching parseShader()'s own
+    // `new CShader(shaderName)` (rslo.y) for the .rslo path -- NOT the full
+    // .slo file path. CFileResource::name backs CShader::getName(), which is
+    // the return value of RSL's shadername() builtin; it must be the
+    // logical name ("wood", not "/path/to/wood.slo"). It also backs
+    // getShader()'s post-load `globalFiles->insert(cShader->name, cShader)`
+    // cache key below, which must match getShader()'s own by-logical-name
+    // `globalFiles->find(name, file)` lookup for the cache to ever hit.
+    //
+    // GitHub issue #3 (spec 017-jit-builtin-function-coverage, US5): this
+    // used to construct `new CShader(sloPath)` instead, so shadername()'s
+    // no-arg overload returned the .slo file's full path under --jit
+    // (confirmed via jitShaderName -> shaderName() -> getName() ->
+    // parent->name) instead of the shader's logical name -- silently wrong,
+    // no error. Found only after fixing an unrelated masking bug (GitHub
+    // issue #8) in shadername_probe.sl's own test pattern; the probe's
+    // previous "pass" carried no information about this codepath at all.
+    // Nothing else in this function (or its caller) reads `sh->name`/
+    // `parent->name` expecting a path -- the JIT-compile call just below
+    // already takes `sloPath` as its own explicit argument.
+    CShader *sh = new CShader(shaderName);
     sh->type = sloShaderType(info.typeName);
 
     int numParams = (int)info.params.size();

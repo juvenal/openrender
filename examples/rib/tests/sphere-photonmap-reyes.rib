@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US3) regression: photonmap() silently
+# no-op under the JIT. Queries a nonexistent .pm file (deterministic
+# empty-photon-map lookup, see shaders/photonmap_probe.sl header) -- not
+# stochastic, no numthreads requirement despite photon lookups
+# generally being RNG-adjacent in real usage.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sphere-photonmap-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "photonmap_probe"
+  Sphere 1 -1 1 360
+WorldEnd

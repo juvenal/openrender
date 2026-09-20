@@ -687,6 +687,188 @@ add_visual_test(sphere-deriv-reyes-slo
     examples/rib/tests/sphere-deriv-reyes-slo.rib
     sphere-deriv-reyes-slo.tif  sphere-deriv-reyes.tif)
 
+# --- User Story 3 (GitHub issue #3, spec 017-jit-builtin-function-
+# coverage): the original 5-function raytracing/GI-adjacent inventory,
+# no shipped callers today.
+
+# ptlined() (T027/T032): pure geometry, exercises all 3 branches of
+# PTLINEDEXP -- see shaders/ptlined_probe.sl header for the important
+# caveat that ptlined() is not true segment-clamped distance in general.
+add_visual_test(sphere-ptlined-reyes
+    examples/rib/tests/sphere-ptlined-reyes.rib
+    sphere-ptlined-reyes.tif  sphere-ptlined-reyes.tif)
+
+add_visual_test(sphere-ptlined-reyes-slo
+    examples/rib/tests/sphere-ptlined-reyes-slo.rib
+    sphere-ptlined-reyes-slo.tif  sphere-ptlined-reyes.tif)
+
+# raylabel()/raydepth() (T025/T026/T030/T031): trivial single
+# private-field reads, mirroring the already-shipped "depth" opcode's
+# shape. Deterministic, not stochastic.
+add_visual_test(sphere-raylabel-reyes
+    examples/rib/tests/sphere-raylabel-reyes.rib
+    sphere-raylabel-reyes.tif  sphere-raylabel-reyes.tif)
+
+add_visual_test(sphere-raylabel-reyes-slo
+    examples/rib/tests/sphere-raylabel-reyes-slo.rib
+    sphere-raylabel-reyes-slo.tif  sphere-raylabel-reyes.tif)
+
+add_visual_test(sphere-raydepth-reyes
+    examples/rib/tests/sphere-raydepth-reyes.rib
+    sphere-raydepth-reyes.tif  sphere-raydepth-reyes.tif)
+
+add_visual_test(sphere-raydepth-reyes-slo
+    examples/rib/tests/sphere-raydepth-reyes-slo.rib
+    sphere-raydepth-reyes-slo.tif  sphere-raydepth-reyes.tif)
+
+# rayinfo() (T024/T029): all 5 query strings ("label"/"depth"/"origin"/
+# "direction"/"length"); the compiler's own destination-type resolution
+# (VarDesc::isString, a new field added specifically for this function --
+# its "f=s." prototype gives no static result-type hint) is exercised by
+# using both a string destination (label) and numeric ones (the other 4).
+add_visual_test(sphere-rayinfo-reyes
+    examples/rib/tests/sphere-rayinfo-reyes.rib
+    sphere-rayinfo-reyes.tif  sphere-rayinfo-reyes.tif)
+
+add_visual_test(sphere-rayinfo-reyes-slo
+    examples/rib/tests/sphere-rayinfo-reyes-slo.rib
+    sphere-rayinfo-reyes-slo.tif  sphere-rayinfo-reyes.tif)
+
+# photonmap() (T023/T028): queries a NONEXISTENT .pm file --
+# CRenderer::getPhotonMap() always constructs a (dummy, empty) map
+# regardless of file existence, so this is a deterministic, portable
+# equivalence test rather than needing a real fixture file (same
+# rationale as textureinfo's own nonexistent-file probe, GitHub issue
+# #7). Sentinel-preset-then-overwrite pattern distinguishes "correctly
+# computed" from "silently skipped" -- see shaders/photonmap_probe.sl.
+add_visual_test(sphere-photonmap-reyes
+    examples/rib/tests/sphere-photonmap-reyes.rib
+    sphere-photonmap-reyes.tif  sphere-photonmap-reyes.tif)
+
+add_visual_test(sphere-photonmap-reyes-slo
+    examples/rib/tests/sphere-photonmap-reyes-slo.rib
+    sphere-photonmap-reyes-slo.tif  sphere-photonmap-reyes.tif)
+
+# --- User Story 4 (GitHub issue #3, spec 017-jit-builtin-function-
+# coverage): the 14 remaining pure math/string functions, no shipped
+# callers today.
+
+# degrees()/round() (T034/T044): same SIMPLEFUNCTION shape as
+# radians()/floor()/etc. round() truncates via (int)x, NOT real
+# rounding -- mirrored exactly, not "fixed" (FR-017).
+add_visual_test(sphere-degrees-round-reyes
+    examples/rib/tests/sphere-degrees-round-reyes.rib
+    sphere-degrees-round-reyes.tif  sphere-degrees-round-reyes.tif)
+
+add_visual_test(sphere-degrees-round-reyes-slo
+    examples/rib/tests/sphere-degrees-round-reyes-slo.rib
+    sphere-degrees-round-reyes-slo.tif  sphere-degrees-round-reyes.tif)
+
+# determinant()/distance() (T035/T045): op_reflect-shape scalar-output pure
+# math. Probe writes raw computed values into Ci rather than an if-gated
+# boolean flag -- GitHub issue #8 (a separate, pre-existing JIT bug found
+# while first writing this probe) makes an assignment inside an `if` body
+# execute unconditionally whenever both the condition and the assigned
+# variable are uniform, which would make a boolean-flag check pass
+# regardless of whether these functions compute the right value.
+add_visual_test(sphere-determinant-distance-reyes
+    examples/rib/tests/sphere-determinant-distance-reyes.rib
+    sphere-determinant-distance-reyes.tif  sphere-determinant-distance-reyes.tif)
+
+add_visual_test(sphere-determinant-distance-reyes-slo
+    examples/rib/tests/sphere-determinant-distance-reyes-slo.rib
+    sphere-determinant-distance-reyes-slo.tif  sphere-determinant-distance-reyes.tif)
+
+# refract() (T036/T046): same op_reflect-shape multi-operand template,
+# plus a 4th scalar eta operand.
+add_visual_test(sphere-refract-reyes
+    examples/rib/tests/sphere-refract-reyes.rib
+    sphere-refract-reyes.tif  sphere-refract-reyes.tif)
+
+add_visual_test(sphere-refract-reyes-slo
+    examples/rib/tests/sphere-refract-reyes-slo.rib
+    sphere-refract-reyes-slo.tif  sphere-refract-reyes.tif)
+
+# match() (T037/T047): plain strcmp equality in the interpreter today
+# (documented FIXME, not real subpattern matching) -- aliases directly
+# to op_seql.
+add_visual_test(sphere-match-reyes
+    examples/rib/tests/sphere-match-reyes.rib
+    sphere-match-reyes.tif  sphere-match-reyes.tif)
+
+add_visual_test(sphere-match-reyes-slo
+    examples/rib/tests/sphere-match-reyes-slo.rib
+    sphere-match-reyes-slo.tif  sphere-match-reyes.tif)
+
+# min() (T038/T048): float 2-argument form only, matching max/maxf's own
+# JIT coverage level (FR-017).
+add_visual_test(sphere-min-reyes
+    examples/rib/tests/sphere-min-reyes.rib
+    sphere-min-reyes.tif  sphere-min-reyes.tif)
+
+add_visual_test(sphere-min-reyes-slo
+    examples/rib/tests/sphere-min-reyes-slo.rib
+    sphere-min-reyes-slo.tif  sphere-min-reyes.tif)
+
+# step() (T039/T049): aliases directly to op_filterstep (formulas are
+# provably identical, no flip needed).
+add_visual_test(sphere-step-reyes
+    examples/rib/tests/sphere-step-reyes.rib
+    sphere-step-reyes.tif  sphere-step-reyes.tif)
+
+add_visual_test(sphere-step-reyes-slo
+    examples/rib/tests/sphere-step-reyes-slo.rib
+    sphere-step-reyes-slo.tif  sphere-step-reyes.tif)
+
+# setcomp() (T040/T050): runtime-indexed vector- and matrix-form writes,
+# generalizing setxcomp/setycomp/setzcomp. GitHub issue #9 (pre-existing,
+# orthogonal interpreter defect found here): comp()/setcomp() disagree on
+# matrix indexing convention -- see setcomp_probe.sl's header comment.
+add_visual_test(sphere-setcomp-reyes
+    examples/rib/tests/sphere-setcomp-reyes.rib
+    sphere-setcomp-reyes.tif  sphere-setcomp-reyes.tif)
+
+add_visual_test(sphere-setcomp-reyes-slo
+    examples/rib/tests/sphere-setcomp-reyes-slo.rib
+    sphere-setcomp-reyes-slo.tif  sphere-setcomp-reyes.tif)
+
+# rotate()/scale()/translate() (T041/T051): matrix-builder overloads only
+# (Rotatem/Scalem/Translatem, not Rotatep). GitHub issue #10 (pre-existing,
+# orthogonal, found here): transform()'s matrix-argument overload is
+# dispatched as if it were the string-space overload -- see
+# matrixbuilder_probe.sl's header comment; probe reads back via comp()
+# instead of transform() to sidestep it.
+add_visual_test(sphere-matrixbuilder-reyes
+    examples/rib/tests/sphere-matrixbuilder-reyes.rib
+    sphere-matrixbuilder-reyes.tif  sphere-matrixbuilder-reyes.tif)
+
+add_visual_test(sphere-matrixbuilder-reyes-slo
+    examples/rib/tests/sphere-matrixbuilder-reyes-slo.rib
+    sphere-matrixbuilder-reyes-slo.tif  sphere-matrixbuilder-reyes.tif)
+
+# concat() (T042/T052): N-ary string concatenation. Needs a real
+# CShadingContext member (jitConcat), not a plain rslOps.cpp free
+# function, since it allocates a genuinely new string at runtime.
+add_visual_test(sphere-concat-reyes
+    examples/rib/tests/sphere-concat-reyes.rib
+    sphere-concat-reyes.tif  sphere-concat-reyes.tif)
+
+add_visual_test(sphere-concat-reyes-slo
+    examples/rib/tests/sphere-concat-reyes-slo.rib
+    sphere-concat-reyes-slo.tif  sphere-concat-reyes.tif)
+
+# format() (T043/T053): %f/%d/%c/%n/%p/%s/%m token scanning, transcribed
+# directly from PRINTEXPR (scriptFunctions.h) -- printf()'s own JIT
+# dispatch turned out to be a silent no-op, not reusable machinery
+# (research.md correction). Last function in spec 017's inventory.
+add_visual_test(sphere-format-reyes
+    examples/rib/tests/sphere-format-reyes.rib
+    sphere-format-reyes.tif  sphere-format-reyes.tif)
+
+add_visual_test(sphere-format-reyes-slo
+    examples/rib/tests/sphere-format-reyes-slo.rib
+    sphere-format-reyes-slo.tif  sphere-format-reyes.tif)
+
 # --- Show-stopper closure (GitHub issue #3, spec 017-jit-builtin-function-
 # coverage, US1, FR-019): quadlight.sl/spherelight.sl (the RSL area-light
 # replacements for the old hardcoded CQuadLight/CSphereLight) use
