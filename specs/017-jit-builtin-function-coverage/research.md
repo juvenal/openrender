@@ -235,7 +235,7 @@ part of the default `ALL` cmake target, with no opt-out mechanism
 from `--jit` compilation, contrary to what issue #3's original text
 implied — they compile today, silently dropping their `comp()` calls).
 Hardening the gate *before* User Story 1 lands would break `cmake --build`
-outright for the eleven shipped/probe shaders that call one of US1's six
+outright for the twelve shipped/probe shaders that call one of US1's six
 functions: `basictrace.sl`, `glass.sl`, `quadlight.sl`, `spherelight.sl`,
 `shadowarea.sl`, `rayarea.sl`, `raypoint.sl`, `raydistant.sl`,
 `ambientocclusion.sl`, `ambientindirect.sl`, `array_ops_probe.sl`,
@@ -243,7 +243,7 @@ functions: `basictrace.sl`, `glass.sl`, `quadlight.sl`, `spherelight.sl`,
 confirmed false positive; only its own shader-name declaration and a doc
 comment match a naive grep, not a real call — so it needs no such
 sequencing consideration.) Confirmed by direct grep, accounting for US1's
-six: zero shipped shaders reference *any* of the remaining 20 US3/US4
+six: zero shipped shaders reference *any* of the remaining 19 US3/US4
 functions — so hardening the gate immediately after US1 lands (as US1's
 own last step, strictly before US3/US4 are even started) causes zero build
 breakage, both immediately and for the whole duration US3/US4 remain

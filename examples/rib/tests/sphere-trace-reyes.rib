@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US1) regression: trace() silently no-ops under
+# the JIT. numthreads 1 required: trace() is a raytraced, RNG-adjacent
+# lookup (trace-parameter sampleBase/bias defaults) -- same thread-
+# scheduling-sensitivity confirmed for random() during issue #1's fix.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "sphere-trace-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "trace_probe"
+  Sphere 1 -1 1 360
+WorldEnd

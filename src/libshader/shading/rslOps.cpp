@@ -1587,6 +1587,77 @@ void op_shadow_f(float *dst, int sd, const char *const *namepp, const float *Ps,
     ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags);
 }
 
+void op_visibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                   const float *du, const float *dv, const float *N, const float *time,
+                   int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitVisibility(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+}
+
+void op_transmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                     const float *du, const float *dv, const float *N, const float *time,
+                     int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitTransmission(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+}
+
+void op_trace_f(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitTraceF(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+}
+
+void op_trace_c(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitTraceC(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+}
+
+// comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure
+// indexed reads (scriptFunctions.h's COMPEXP/MCOMPEXP), no CShadingContext
+// state -- unlike the raytracing-tier functions above, these are plain
+// free functions like op_maxf.
+void op_comp(float *dst, int sd, const float *v, int sv, const float *idx, int si,
+             int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            int k = (int)IDX(idx, si, i)[0];
+            IDX(dst, sd, i)[0] = IDX(v, sv, i)[k];
+        }
+}
+
+void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int sr,
+              const float *cidx, int sc, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            int r = (int)IDX(ridx, sr, i)[0];
+            int c = (int)IDX(cidx, sc, i)[0];
+            IDX(dst, sd, i)[0] = IDX(m, sm, i)[r * 4 + c];
+        }
+}
+
+void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                  const float *samples, int sSamples, const float *du, const float *dv,
+                  int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitOcclusion(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags);
+}
+
+void op_indirectdiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                        const float *samples, int sSamples, const float *du, const float *dv,
+                        int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags);
+}
+
 // =========================================================================
 // Spline interpolation — Catmull-Rom basis (default, no basis-string form)
 // =========================================================================

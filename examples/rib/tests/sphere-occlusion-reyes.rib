@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US1) regression: occlusion() silently no-ops
+# under the JIT. numthreads 1 required: occlusion() is a raytraced,
+# RNG-adjacent lookup (12-sample hemisphere AO), same thread-scheduling-
+# sensitivity confirmed for random() during issue #1's fix.
+#
+# A lone convex sphere has exactly zero ambient occlusion everywhere (no
+# other geometry to block any hemisphere sample) -- a degenerate,
+# non-discriminating test. A second, smaller (overlapping) sphere creates
+# genuine partial occlusion, giving a visibly varying 0..1 pattern.
+# Investigation note: the occluder needs an explicit
+# Attribute "visibility" "diffuse" [1] -- ray-visibility categories
+# (diffuse/specular/transmission) default OFF (CAttributes::CAttributes(),
+# attributes.cpp:87-93, only sets PRIMARY_VISIBLE/DOUBLE_SIDED/
+# DISPLACEMENTS by default) -- without it every AO hemisphere ray misses
+# the occluder and occlusion() returns exactly 0 everywhere, which read
+# as a bug during initial investigation but is correct, documented
+# scene-setup behavior once traced through CAttributes' default flags.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "sphere-occlusion-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "occlusion_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

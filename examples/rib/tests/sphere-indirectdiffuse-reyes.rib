@@ -1,0 +1,23 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US1) regression: indirectdiffuse() silently
+# no-ops under the JIT. See sphere-occlusion-reyes.rib for why numthreads 1
+# and the occluder's Attribute "visibility" "diffuse" [1] are required.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "sphere-indirectdiffuse-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "indirectdiffuse_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Color [0.9 0.2 0.2]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

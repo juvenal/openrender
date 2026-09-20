@@ -351,6 +351,43 @@ void op_environment_c(float *dst, int sd, const char *const *namepp, const float
 void op_shadow_f(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
+ * visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
+ * US1) -- raytracing-tier trampolines. du/dv/N/time are the grid pointers
+ * loaded by resolveVar("du"/"dv"/"N"/"time",...) in llvmEmitter.cpp; see
+ * contracts/op-wrapper-abi.md.
+ * ----------------------------------------------------------------------- */
+void op_visibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                   const float *du, const float *dv, const float *N, const float *time,
+                   int n, const int *tags);
+void op_transmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                     const float *du, const float *dv, const float *N, const float *time,
+                     int n, const int *tags);
+void op_trace_f(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags);
+void op_trace_c(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags);
+
+// comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure indexed
+// reads, no CShadingContext state needed. op_comp = vector form (Comp,
+// "f=vf"); op_mcomp = matrix form (MComp, "f=mff"), row-major 4x4 via
+// element(row,col) = row*4+col (scriptFunctions.h's MCOMPEXP).
+void op_comp(float *dst, int sd, const float *v, int sv, const float *idx, int si,
+             int n, const int *tags);
+void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int sr,
+              const float *cidx, int sc, int n, const int *tags);
+
+// occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
+// US1): point-cloud/irradiance-cache lookup trampolines.
+void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                  const float *samples, int sSamples, const float *du, const float *dv,
+                  int n, const int *tags);
+void op_indirectdiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                        const float *samples, int sSamples, const float *du, const float *dv,
+                        int n, const int *tags);
+
+/* -----------------------------------------------------------------------
  * Spline interpolation (Catmull-Rom, default basis, no basis-string variant)
  * knots[] is an array of numKnots float* pointers; all stride 3 for color,
  * stride 1 for float.

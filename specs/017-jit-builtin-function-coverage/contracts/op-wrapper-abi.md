@@ -16,7 +16,7 @@ between JIT-generated code (`llvmEmitter.cpp`) and the runtime wrapper
   `op_maxf`).
 - **Pure-operand functions** (all of US4, plus `comp`/`ptlined`): no
   `CShadingContext` involvement. Template: `op_reflect`
-  (`rslOps.h:...`, `rslOps.cpp:1338`):
+  (`rslOps.h:311`, `rslOps.cpp:1338`):
   ```c
   void op_reflect(float *dst, int sd, const float *I, int si, const float *N, int sn, int n, const int *tags);
   ```

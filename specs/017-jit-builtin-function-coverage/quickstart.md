@@ -68,7 +68,7 @@ ctest --test-dir build -L libshader --output-on-failure
 Must include the new `kAllFunctionMnemonics`-based guard (see
 `contracts/function-coverage-guard-contract.md`). Confirm it fails, by
 name, for at least one function in this feature's inventory *before* that
-function's fix lands, and passes once all 26 are implemented. The old
+function's fix lands, and passes once all 25 are implemented. The old
 `random`/`urandom`-only hand-written check (issue #1) should be removed
 once this guard subsumes it.
 

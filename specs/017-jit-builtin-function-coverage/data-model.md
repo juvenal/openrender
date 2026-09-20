@@ -84,5 +84,6 @@ All are new `public` methods, added alongside the existing `jitShadowF`
 
 | Field | Type | Notes |
 |---|---|---|
-| `scene` | `examples/rib/quadlight.rib` / `examples/rib/spherelight.rib` | Existing example scenes, currently unregistered in `tests/visual/CMakeLists.txt` — confirmed via grep. |
-| `registration` | New permanent `ctest -L visual` pair per scene | Not a one-time manual check (per spec.md Clarifications) — the concrete, CI-enforced closure criterion for issue #1's original repro. |
+| `rslo_scene` | `examples/rib/quadlight.rib` / `examples/rib/spherelight.rib` | Existing example scenes, unchanged, currently unregistered in `tests/visual/CMakeLists.txt` — confirmed via grep. No reference `.tif` for either exists yet; generating one is part of this feature's own work, not a pre-existing asset. |
+| `slo_scene` | `examples/rib/tests/quadlight-slo.rib` / `examples/rib/tests/spherelight-slo.rib` | **New** files (this feature creates them) — a copy of the corresponding `rslo_scene` with `Attribute "shade" "shaderformat" ["slo"]` added, otherwise identical. Follows the same two-file convention as the Regression Test Pair entity's `rslo_scene`/`slo_scene` split (`sphere-<name>-reyes{,-slo}.rib`), placed under `examples/rib/tests/` since that's where every other JIT-variant scene in this feature lives — the originals under `examples/rib/` stay untouched. |
+| `registration` | New permanent `ctest -L visual` pair per scene | `Visual_quadlight`/`Visual_quadlight-slo` (rendering `rslo_scene`/`slo_scene` respectively, both diffed against the same newly-generated reference `.tif`) and the `spherelight` equivalent — not a one-time manual check (per spec.md Clarifications) — the concrete, CI-enforced closure criterion for issue #1's original repro. |

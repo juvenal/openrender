@@ -63,7 +63,7 @@ extern const char *const kHandledOpcodes[] = {
     "abs", "acos", "addff", "addmm", "addvf", "addvf2", "addvv", "ambient",
     "and",
     "andf", "area", "asin", "atan", "atan2", "break", "calculatenormal",
-    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "continue",
+    "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "comp", "continue",
     "cos", "cross", "ctransform",
     "depth", "diffuse", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
@@ -72,19 +72,19 @@ extern const char *const kHandledOpcodes[] = {
     "floor", "flt",
     "fne", "fneql", "for", "forbegin", "forend", "fresnel", "ftoa",
     "gather", "gatherElse", "gatherEnd", "gatherHeader", "if",
-    "illuminance", "illuminate", "inversesqrt", "jmp", "length",
+    "illuminance", "illuminate", "indirectdiffuse", "inversesqrt", "jmp", "length",
     "lightsource", "log", "max", "maxf", "mfrom", "mfromf", "mfromv",
     "mfroma", "mix", "mixf", "mixv",
     "mod", "moveff", "movemm", "movess", "movevv", "mtoa", "mulff", "mulmm",
     "mulvf", "mulvf2", "mulvv", "negf", "negm",
-    "negv", "nfrom", "noise", "normalize", "not", "ntransform", "or", "orf",
+    "negv", "nfrom", "noise", "normalize", "not", "ntransform", "occlusion", "or", "orf",
     "pfrom", "pow", "printf", "radians", "random", "reflect", "return", "seql",
     "setxcomp", "setycomp", "setzcomp", "sfroma", "shadow", "sign", "sin",
     "smoothstep", "sneql", "snoise", "solar", "specular", "spline",
     "sqrt", "stoa", "subff", "submm", "subvf", "subvv", "tan", "texture",
-    "transform", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
+    "trace", "transform", "transmission", "uffroma", "umfroma", "urandom", "usfroma", "uvfroma",
     "veql", "vegt", "velt", "vfrom", "vfroma", "vfromf", "vfromfff",
-    "vfromvff", "vgt", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
+    "vfromvff", "vgt", "visibility", "vlt", "vneql", "vtoa", "vtransform", "vufloat",
     "vumatrix", "vustring", "vuvector", "while", "whilebegin", "xcomp",
     "ycomp", "zcomp",
     nullptr};
@@ -1535,6 +1535,37 @@ static void emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {dst, dstStride, a, B.getInt32(sa), n, tg});
             }
 
+            // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1):
+            // pure indexed read, same mnemonic "comp" for both the 2-operand
+            // vector form (Comp, "f=vf") and the 3-operand matrix form
+            // (MComp, "f=mff") -- branch on operand count like noise/snoise
+            // branches on operand type.
+            else if (op == "comp") {
+                if (!dst)
+                    continue;
+                if (ins.operands.size() >= 3) {
+                    auto [m, sm] = getVar(ins, 0);
+                    auto [r, sr] = getVar(ins, 1);
+                    auto [c, sc] = getVar(ins, 2);
+                    if (!m || !r || !c)
+                        continue;
+                    auto *fn = declareOp(mod, "op_mcomp", ternOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sm, sr, sc});
+                    B.CreateCall(fn, {dst, dstStride, m, B.getInt32(sm),
+                                      r, B.getInt32(sr), c, B.getInt32(sc), n, tg});
+                }
+                else {
+                    auto [v, sv] = getVar(ins, 0);
+                    auto [idx, si] = getVar(ins, 1);
+                    if (!v || !idx)
+                        continue;
+                    auto *fn = declareOp(mod, "op_comp", binOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sv, si});
+                    B.CreateCall(fn, {dst, dstStride, v, B.getInt32(sv),
+                                      idx, B.getInt32(si), n, tg});
+                }
+            }
+
             // ================================================================
             // Geometry
             // ================================================================
@@ -2116,6 +2147,75 @@ static void emitFunction(const IRFunction &irFn,
                 auto [n, tg] = collapseArgs(dstStrideVal, {sPs});
                 B.CreateCall(fn, {dst, dstStride, namePP,
                                   Ps, B.getInt32(sPs), n, tg});
+            }
+
+            // ================================================================
+            // visibility()/transmission()/trace() (spec 017-jit-builtin-function-
+            // coverage, US1) -- the first JIT-emitted call to construct and
+            // consume a real raytraced batch (research.md D2). du/dv/N/time are
+            // resolved via the already-generic global-variable table (D2) --
+            // no new plumbing. Deliberately NOT run through collapseArgs: these
+            // are per-real-vertex stochastic operations (numRealVertices-bounded
+            // inside op_visibility/etc. itself, D1), so passing the raw numVerts
+            // (not a uniform-collapsed n) is required, matching ambient/diffuse/
+            // specular's precedent rather than shadow's deterministic-lookup one.
+            // ================================================================
+            else if (op == "visibility" || op == "transmission" || op == "trace") {
+                if (ins.operands.size() < 2 || !dst)
+                    continue;
+                auto [P, sP] = getVar(ins, 0);
+                auto [D, sD] = getVar(ins, 1);
+                if (!P || !D)
+                    continue;
+                VarDesc duDesc, dvDesc, nDesc, timeDesc;
+                if (!resolveVar("du", duDesc) || !resolveVar("dv", dvDesc) ||
+                    !resolveVar("N", nDesc) || !resolveVar("time", timeDesc))
+                    continue;
+                llvm::Value *duPtr = loadVarPtr(duDesc);
+                llvm::Value *dvPtr = loadVarPtr(dvDesc);
+                llvm::Value *nPtr = loadVarPtr(nDesc);
+                llvm::Value *timePtr = loadVarPtr(timeDesc);
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy},
+                                                   false);
+                const char *fnName;
+                if (op == "visibility")
+                    fnName = "op_visibility";
+                else if (op == "transmission")
+                    fnName = "op_transmission";
+                else
+                    fnName = (dstStrideVal == 3) ? "op_trace_c" : "op_trace_f";
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), D, B.getInt32(sD),
+                                  duPtr, dvPtr, nPtr, timePtr, numVerts, tags});
+            }
+
+            // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-
+            // coverage, US1): point-cloud/irradiance-cache lookup, not a
+            // ray batch -- same "no collapseArgs" reasoning as visibility/
+            // transmission/trace though (D1's stochastic hemisphere sampling).
+            else if (op == "occlusion" || op == "indirectdiffuse") {
+                if (ins.operands.size() < 3 || !dst)
+                    continue;
+                auto [P, sP] = getVar(ins, 0);
+                auto [N, sN] = getVar(ins, 1);
+                auto [samples, sSamples] = getVar(ins, 2);
+                if (!P || !N || !samples)
+                    continue;
+                VarDesc duDesc, dvDesc;
+                if (!resolveVar("du", duDesc) || !resolveVar("dv", dvDesc))
+                    continue;
+                llvm::Value *duPtr = loadVarPtr(duDesc);
+                llvm::Value *dvPtr = loadVarPtr(dvDesc);
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                    ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy},
+                                                   false);
+                const char *fnName = (op == "occlusion") ? "op_occlusion" : "op_indirectdiffuse";
+                auto *fn = declareOp(mod, fnName, ty);
+                B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), N, B.getInt32(sN),
+                                  samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags});
             }
 
             // ================================================================

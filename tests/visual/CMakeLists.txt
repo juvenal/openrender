@@ -129,12 +129,21 @@ set(VISUAL_ENV_CORRELATED
 #   OUTPUT_TIF   — filename the RIB's Display statement writes (relative to CWD)
 #   REF_TIF      — reference filename in examples/rib/tests/references/
 #   THRESHOLD    — (optional) per-scene threshold override; defaults to VISUAL_THRESHOLD
+#   EXTRA_ARGS   — (optional) extra orender CLI flags (e.g. "-t:1"), for a
+#                  scene that can't take Option "limits" "numthreads" [1]
+#                  itself because it must stay byte-identical to an existing
+#                  example scene (spec 017 quadlight/spherelight closure)
 # ---------------------------------------------------------------------------
 macro(add_visual_test SCENE_NAME RIB_FILE OUTPUT_TIF REF_TIF)
     if(${ARGC} GREATER 4)
         set(_thresh ${ARGV4})
     else()
         set(_thresh ${VISUAL_THRESHOLD})
+    endif()
+    if(${ARGC} GREATER 5)
+        set(_extra_args ${ARGV5})
+    else()
+        set(_extra_args "")
     endif()
 
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${SCENE_NAME})
@@ -147,6 +156,7 @@ macro(add_visual_test SCENE_NAME RIB_FILE OUTPUT_TIF REF_TIF)
             ${OUTPUT_TIF}
             ${CMAKE_SOURCE_DIR}/examples/rib/tests/references/${REF_TIF}
             ${_thresh}
+            ${_extra_args}
         WORKING_DIRECTORY ${_scratch}
     )
 
@@ -495,6 +505,105 @@ add_visual_test(sphere-random-reyes
 add_visual_test(sphere-random-reyes-slo
     examples/rib/tests/sphere-random-reyes-slo.rib
     sphere-random-reyes-slo.tif  sphere-random-reyes.tif)
+
+# --- visibility()/transmission()/trace()/occlusion()/indirectdiffuse()/
+# comp() coverage (GitHub issue #3, spec 017-jit-builtin-function-coverage,
+# US1): same silent-skip root cause as random()/urandom() above -- these
+# six builtin functions were missing from kHandledOpcodes, so
+# emitFunction()'s coverage gate silently skipped each call. visibility()
+# is a raytraced, RNG-adjacent lookup (trace-parameter defaults draw from
+# the same per-thread urand() stream as random()), so numthreads 1 is
+# required in both RIB scenes for the same thread-scheduling-determinism
+# reason as sphere-random-reyes above.
+add_visual_test(sphere-visibility-reyes
+    examples/rib/tests/sphere-visibility-reyes.rib
+    sphere-visibility-reyes.tif  sphere-visibility-reyes.tif)
+
+add_visual_test(sphere-visibility-reyes-slo
+    examples/rib/tests/sphere-visibility-reyes-slo.rib
+    sphere-visibility-reyes-slo.tif  sphere-visibility-reyes.tif)
+
+add_visual_test(sphere-transmission-reyes
+    examples/rib/tests/sphere-transmission-reyes.rib
+    sphere-transmission-reyes.tif  sphere-transmission-reyes.tif)
+
+add_visual_test(sphere-transmission-reyes-slo
+    examples/rib/tests/sphere-transmission-reyes-slo.rib
+    sphere-transmission-reyes-slo.tif  sphere-transmission-reyes.tif)
+
+add_visual_test(sphere-trace-reyes
+    examples/rib/tests/sphere-trace-reyes.rib
+    sphere-trace-reyes.tif  sphere-trace-reyes.tif)
+
+add_visual_test(sphere-trace-reyes-slo
+    examples/rib/tests/sphere-trace-reyes-slo.rib
+    sphere-trace-reyes-slo.tif  sphere-trace-reyes.tif)
+
+add_visual_test(sphere-comp-reyes
+    examples/rib/tests/sphere-comp-reyes.rib
+    sphere-comp-reyes.tif  sphere-comp-reyes.tif)
+
+add_visual_test(sphere-comp-reyes-slo
+    examples/rib/tests/sphere-comp-reyes-slo.rib
+    sphere-comp-reyes-slo.tif  sphere-comp-reyes.tif)
+
+# occlusion()/indirectdiffuse() need a nearby occluder with
+# Attribute "visibility" "diffuse" [1] set (ray-visibility categories
+# default OFF, CAttributes::CAttributes() attributes.cpp:87-93) -- see
+# sphere-occlusion-reyes.rib's header comment. indirectdiffuse() needs a
+# baked global photon map to return anything but zero (irradianceDispatch.cpp
+# ~449: attributes->globalMap must be non-NULL on the hit object) that this
+# single-pass scene doesn't bake -- its reference is legitimately, exactly
+# black; the pair still validates real JIT/interpreter parity (a genuine
+# bit-exact match, not skipped), just not a visually discriminating one.
+add_visual_test(sphere-occlusion-reyes
+    examples/rib/tests/sphere-occlusion-reyes.rib
+    sphere-occlusion-reyes.tif  sphere-occlusion-reyes.tif)
+
+add_visual_test(sphere-occlusion-reyes-slo
+    examples/rib/tests/sphere-occlusion-reyes-slo.rib
+    sphere-occlusion-reyes-slo.tif  sphere-occlusion-reyes.tif)
+
+add_visual_test(sphere-indirectdiffuse-reyes
+    examples/rib/tests/sphere-indirectdiffuse-reyes.rib
+    sphere-indirectdiffuse-reyes.tif  sphere-indirectdiffuse-reyes.tif)
+
+add_visual_test(sphere-indirectdiffuse-reyes-slo
+    examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
+    sphere-indirectdiffuse-reyes-slo.tif  sphere-indirectdiffuse-reyes.tif)
+
+# --- Show-stopper closure (GitHub issue #3, spec 017-jit-builtin-function-
+# coverage, US1, FR-019): quadlight.sl/spherelight.sl (the RSL area-light
+# replacements for the old hardcoded CQuadLight/CSphereLight) use
+# visibility() for their per-sample soft-shadow test -- the exact function
+# whose missing kHandledOpcodes[] entry was issue #1's original motivating
+# repro. The .rib scenes stay unchanged (examples/rib/quadlight.rib /
+# spherelight.rib); the -slo copies under examples/rib/tests/ add only
+# Attribute "shade" "shaderformat" ["slo"]. Both are stochastic (16-sample
+# raytraced soft shadows) and, unlike every other scene in this file, can't
+# take Option "limits" "numthreads" [1] themselves without diverging from
+# the unchanged original -- so "-t:1" is passed as an extra orender CLI arg
+# instead (confirmed needed: two default-multithreaded interpreter renders
+# of quadlight.rib differed by a full 255 before pinning to one thread).
+add_visual_test(quadlight
+    examples/rib/quadlight.rib
+    quadlight.tif  quadlight.tif
+    ${VISUAL_THRESHOLD}  "-t:1")
+
+add_visual_test(quadlight-slo
+    examples/rib/tests/quadlight-slo.rib
+    quadlight-slo.tif  quadlight.tif
+    ${VISUAL_THRESHOLD}  "-t:1")
+
+add_visual_test(spherelight
+    examples/rib/spherelight.rib
+    spherelight.tif  spherelight.tif
+    ${VISUAL_THRESHOLD}  "-t:1")
+
+add_visual_test(spherelight-slo
+    examples/rib/tests/spherelight-slo.rib
+    spherelight-slo.tif  spherelight.tif
+    ${VISUAL_THRESHOLD}  "-t:1")
 
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside

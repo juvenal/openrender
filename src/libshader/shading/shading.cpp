@@ -2543,6 +2543,17 @@ void CShadingContext::next_state() {
     return;
 }
 
+// The Mersenne Twister macros above collide with the RSL "N" (normal) and
+// "M" (matrix) identifiers used pervasively below -- undef once the
+// generator's own code (which is done with them) has been compiled.
+#undef N
+#undef M
+#undef MATRIX_A
+#undef UMASK
+#undef LMASK
+#undef MIXBITS
+#undef TWIST
+
 // =========================================================================
 // Layer G — JIT wrappers for derivative / geometric / texture built-ins
 // =========================================================================
@@ -2701,6 +2712,293 @@ void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&fr
     from = nullptr;
     to = nullptr;
     findCoordinateSystem(name, from, to, type);
+}
+
+// =========================================================================
+// visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
+// US1) -- byte-faithful transcription of TRANSMISSIONEXPR_PRE/TRANSMISSIONEXPR/
+// TRANSMISSIONEXPR_UPDATE (giFunctions.h), the first JIT code to construct and
+// consume a real CTraceLocation ray batch. Shared by all four entry points
+// below via jitTraceBatch(); only the *_POST unpacking (VISIBILITYEXPR_POST/
+// TRANSMISSIONEXPR_POST/TRACE2EXPR_POST/TRACEEXPR_POST) differs per call form.
+//
+// Trace params default exactly as CTraceLookup::init() does for the
+// PL-cache-free case (shaderPl.cpp) -- this feature supports only the plain
+// 2-positional-argument call form; the "!"-suffixed optional named-argument
+// extension is unsupported under the JIT (confirmed unused by every shipped
+// caller, spec.md Edge Cases).
+//
+// Loop bound is currentShadingState->numRealVertices, not n: these are
+// stochastic (RNG-jittered sampleBase, BVH traversal) operations, so the
+// interpreter traces once per real shading point only, then replicates that
+// single result into the two derivative-offset destination positions for
+// that same point (never re-traces at the perturbed positions) -- see D1.
+void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
+                                    const float *D, int sD, const float *du, const float *dv,
+                                    const float *Nrm, const float *time, int n, const int *tags,
+                                    int probeOnly, bool isReflection, bool wantBoolean) {
+    const int numRealVertices = currentShadingState->numRealVertices;
+    if (numRealVertices <= 0)
+        return;
+
+    const CAttributes *cAttributes = currentShadingState->currentObject
+                                          ? currentShadingState->currentObject->attributes
+                                          : nullptr;
+    const float bias = cAttributes ? cAttributes->bias : 0.0f;
+
+    // duVector/dvVector operate over the full currentShadingState->numVertices
+    // (== n here), matching TRANSMISSIONEXPR_PRE's own ralloc(numVertices*12*...)
+    // sizing -- the derivative-offset tail of these scratch buffers is simply
+    // never read by the loop below, which stops at numRealVertices.
+    //
+    // Guard: duVector/dvVector assume src is a real n-vertex varying array
+    // (they index src[+-3] relative to the current grid position). When the
+    // JIT's uniform-collapse optimization hands us P/D with stride 0 (a
+    // single broadcast 3-float value, not a per-vertex array -- see
+    // op-uniform-collapse.md), calling duVector/dvVector on it reads out of
+    // bounds. A uniform field's spatial derivative is exactly zero anyway,
+    // so skip straight to that instead.
+    float *dFdu = (float *)ralloc(n * 12 * sizeof(float), threadMemory);
+    float *dFdv = dFdu + n * 3;
+    float *dTdu = dFdv + n * 3;
+    float *dTdv = dTdu + n * 3;
+    if (sP == 3) {
+        duVector(dFdu, P);
+        dvVector(dFdv, P);
+    }
+    else {
+        memset(dFdu, 0, n * 3 * sizeof(float));
+        memset(dFdv, 0, n * 3 * sizeof(float));
+    }
+    if (sD == 3) {
+        duVector(dTdu, D);
+        dvVector(dTdv, D);
+    }
+    else {
+        memset(dTdu, 0, n * 3 * sizeof(float));
+        memset(dTdv, 0, n * 3 * sizeof(float));
+    }
+
+    CTraceLocation *raysBase = (CTraceLocation *)ralloc(numRealVertices * sizeof(CTraceLocation), threadMemory);
+    CTraceLocation *rays = raysBase;
+    int numRays = 0;
+
+    for (int i = 0; i < numRealVertices; ++i) {
+        if (tags && tags[i])
+            continue;
+        rays->res = JIT_IDX(dst, sd, i);
+        movvv(rays->P, JIT_IDX(P, sP, i));
+        mulvf(rays->dPdu, dFdu + i * 3, du[i]);
+        mulvf(rays->dPdv, dFdv + i * 3, dv[i]);
+        movvv(rays->D, JIT_IDX(D, sD, i));
+        mulvf(rays->dDdu, dTdu + i * 3, du[i]);
+        mulvf(rays->dDdv, dTdv + i * 3, dv[i]);
+        movvv(rays->N, JIT_IDX(Nrm, 3, i));
+        rays->coneAngle = 0.0f;
+        rays->numSamples = 1;
+        rays->bias = bias;
+        rays->sampleBase = 1.0f;
+        rays->maxDist = C_INFINITY;
+        rays->time = time[i];
+        rays++;
+        numRays++;
+    }
+
+    if (numRays > 0) {
+        rays = raysBase;
+        if (isReflection)
+            traceReflection(numRays, rays, probeOnly);
+        else
+            traceTransmission(numRays, rays, probeOnly);
+        for (int i = 0; i < numRays; i++, rays++) {
+            if (sd == 1)
+                *rays->res = wantBoolean ? (rays->t < C_INFINITY ? 1.0f : 0.0f) : rays->t;
+            else
+                movvv(rays->res, rays->C);
+        }
+    }
+
+    // Derivative-offset tail: replicate each real vertex's own already-computed
+    // result into its two extra shading points (never re-trace for them) --
+    // this is what makes Du()/Dv() of these builtins always exactly zero.
+    //
+    // Layout is NOT interleaved per-vertex pairs -- hand-traced against
+    // execute.cpp's expandVector/expandFloat macros with concrete indices
+    // (numRealVertices=2: final layout [R0,R1,R0,R1,R0,R1], not
+    // [R0,R1,R0,R0,R1,R1]) confirms numVertices==3*numRealVertices is laid
+    // out as three CONTIGUOUS blocks: [real(numRealVertices),
+    // +du(numRealVertices), +dv(numRealVertices)] -- a structure-of-arrays
+    // layout, not array-of-structures. expandVector/expandFloat's own
+    // unconditional copy (no tag check -- expr_update always advances the
+    // dest pointer even for a tagged-off DEFSHORTOPCODE vertex, per
+    // execute.cpp:578-584) is mirrored here by omitting the tags guard too.
+    if (n > numRealVertices) {
+        for (int i = 0; i < numRealVertices; ++i) {
+            const float *src = JIT_IDX(dst, sd, i);
+            float *tailDu = JIT_IDX(dst, sd, numRealVertices + i);
+            float *tailDv = JIT_IDX(dst, sd, 2 * numRealVertices + i);
+            for (int k = 0; k < sd; ++k) {
+                tailDu[k] = src[k];
+                tailDv[k] = src[k];
+            }
+        }
+    }
+}
+
+void CShadingContext::jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                                    const float *du, const float *dv, const float *Nrm, const float *time,
+                                    int n, const int *tags) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true);
+}
+
+void CShadingContext::jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                                      const float *du, const float *dv, const float *Nrm, const float *time,
+                                      int n, const int *tags) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false);
+}
+
+void CShadingContext::jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                                const float *du, const float *dv, const float *Nrm, const float *time,
+                                int n, const int *tags) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false);
+}
+
+void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                                const float *du, const float *dv, const float *Nrm, const float *time,
+                                int n, const int *tags) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false);
+}
+
+// =========================================================================
+// occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
+// US1) -- byte-faithful transcription of IDEXPR_PRE/IDEXPR/_UPDATE/_POST
+// (giFunctions.h). Unlike visibility/transmission/trace, this is a
+// point-cloud/irradiance-cache lookup (CTexture3d::lookup), not a
+// CTraceLocation ray batch -- no PL-cache in the JIT path, so
+// COcclusionLookup::init()'s defaults (shaderPl.cpp) are applied directly
+// instead of going through plBegin's cross-call caching. The "!"-suffixed
+// optional channel-binding extension is unsupported (same scoping as
+// visibility/transmission/trace) -- with no extra channels bound,
+// lookup->numChannels is always 0 for the plain 3-argument call form, so
+// IDEXPR_PRE's cache->resolve()/channelValues/texture3Dunpack machinery
+// (entirely about binding those extra channels) is a no-op and is skipped
+// here; C[] is read directly instead.
+//
+// Loop bound is currentShadingState->numRealVertices, not n (D1): this is
+// a stochastic, RNG-jittered hemisphere lookup exactly like the
+// raytracing tier, so the interpreter samples once per real shading point
+// only, then replicates that single result into the derivative-offset
+// tail (see jitTraceBatch's tail-replication comment for the confirmed
+// block-contiguous [real, +du, +dv] layout, verified by direct numeric
+// simulation of expandVector/expandFloat).
+void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int sP,
+                                        const float *N, int sN, const float *samples, int sSamples,
+                                        const float *du, const float *dv, int n, const int *tags,
+                                        bool wantOcclusion) {
+    const int numRealVertices = currentShadingState->numRealVertices;
+    if (numRealVertices <= 0)
+        return;
+
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+    const CAttributes *cAttributes = currentShadingState->currentObject
+                                          ? currentShadingState->currentObject->attributes
+                                          : nullptr;
+
+    // COcclusionLookup::init() defaults (shaderPl.cpp:590-613).
+    scratch->occlusionParams.environmentMapName = nullptr;
+    scratch->texture3dParams.coordsys = "";
+    scratch->occlusionParams.maxError = cAttributes ? cAttributes->irradianceMaxError : 0.4f;
+    scratch->occlusionParams.pointbased = 0;
+    scratch->occlusionParams.maxBrightness = 1.0f;
+    scratch->occlusionParams.pointHierarchyName = nullptr;
+    scratch->occlusionParams.maxPixelDist = cAttributes ? cAttributes->irradianceMaxPixelDistance : 0.0f;
+    scratch->occlusionParams.maxSolidAngle = 0.05f;
+    scratch->occlusionParams.occlusion = wantOcclusion;
+    initv(scratch->occlusionParams.environmentColor, 0.0f);
+    scratch->occlusionParams.pointHierarchy = nullptr;
+    scratch->occlusionParams.environment = nullptr;
+    scratch->occlusionParams.cacheHandle = cAttributes ? cAttributes->irradianceHandle : "";
+    scratch->occlusionParams.cacheMode = cAttributes ? cAttributes->irradianceHandleMode : "w";
+
+    // COcclusionLookup::postBind() (shaderPl.cpp:621-624) -- init() leaves
+    // coordsys empty; postBind() defaults it to "world" before the first
+    // findCoordinateSystem() call. Skipping this produces an "Unknown
+    // coordinate system" warning and an identity from/to fallback instead
+    // of world's real transform -- harmless for a scene whose camera
+    // transform happens to be identity (confirmed bit-exact against the
+    // reference either way), but wrong in general.
+    scratch->texture3dParams.coordsys = "world";
+
+    scratch->traceParams.maxDist = C_INFINITY;
+    scratch->traceParams.coneAngle = 0;
+    scratch->traceParams.sampleBase = 1;
+    scratch->traceParams.label = "";
+    scratch->traceParams.bias = cAttributes ? cAttributes->bias : 0.0f;
+
+    const float *from, *to;
+    findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);
+    CTexture3d *cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle,
+                                               scratch->occlusionParams.cacheMode, from, to);
+    if (!cache)
+        return;
+
+    // duVector/dvVector operate over the full currentShadingState->numVertices
+    // (== n here) -- same uniform-stride guard as jitTraceBatch (a uniform P
+    // has no spatial derivative to compute, and reading past its single
+    // broadcast value would be out of bounds).
+    float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
+    float *dPdv = dPdu + n * 3;
+    if (sP == 3) {
+        duVector(dPdu, P);
+        dvVector(dPdv, P);
+    }
+    else {
+        memset(dPdu, 0, n * 3 * sizeof(float));
+        memset(dPdv, 0, n * 3 * sizeof(float));
+    }
+
+    for (int i = 0; i < numRealVertices; ++i) {
+        if (tags && tags[i])
+            continue;
+        vector PduScaled, PdvScaled;
+        mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
+        mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
+        scratch->traceParams.samples = JIT_IDX(samples, sSamples, i)[0];
+
+        float C[7];
+        cache->lookup(C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i), this);
+
+        float *out = JIT_IDX(dst, sd, i);
+        if (sd == 1)
+            out[0] = C[3];
+        else
+            movvv(out, C);
+    }
+
+    // Derivative-offset tail: block-contiguous [real, +du, +dv] (D1/jitTraceBatch).
+    if (n > numRealVertices) {
+        for (int i = 0; i < numRealVertices; ++i) {
+            const float *src = JIT_IDX(dst, sd, i);
+            float *tailDu = JIT_IDX(dst, sd, numRealVertices + i);
+            float *tailDv = JIT_IDX(dst, sd, 2 * numRealVertices + i);
+            for (int k = 0; k < sd; ++k) {
+                tailDu[k] = src[k];
+                tailDv[k] = src[k];
+            }
+        }
+    }
+}
+
+void CShadingContext::jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                                   const float *samples, int sSamples, const float *du, const float *dv,
+                                   int n, const int *tags) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/true);
+}
+
+void CShadingContext::jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                                         const float *samples, int sSamples, const float *du, const float *dv,
+                                         int n, const int *tags) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/false);
 }
 
 // gather()/gatherElse/gatherEnd shared computation. Byte-faithful transcriptions of

@@ -501,6 +501,42 @@ class CShadingContext {
         void jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags);
         void jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type);
 
+        // visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
+        // US1): byte-faithful transcriptions of TRANSMISSIONEXPR*/VISIBILITYEXPR_POST/
+        // TRACEEXPR_POST/TRACE2EXPR_POST (giFunctions.h) -- the first JIT code to
+        // construct and consume a real CTraceLocation ray batch. Loop bound is
+        // currentShadingState->numRealVertices (not n), with results replicated into
+        // the derivative-offset tail per expandVector/expandFloat's discipline.
+        // Supports only the plain 2-positional-argument call form (no "!"-suffixed
+        // named-argument extension -- confirmed unused by every shipped caller);
+        // trace params default from the current attribute state exactly as
+        // CTraceLookup::init() does for the interpreter's own PL-cache-free case.
+        void jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                           const float *du, const float *dv, const float *N, const float *time,
+                           int n, const int *tags);
+        void jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                             const float *du, const float *dv, const float *N, const float *time,
+                             int n, const int *tags);
+        void jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                       const float *du, const float *dv, const float *N, const float *time,
+                       int n, const int *tags);
+        void jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                       const float *du, const float *dv, const float *N, const float *time,
+                       int n, const int *tags);
+
+        // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
+        // US1): byte-faithful transcriptions of IDEXPR_PRE/IDEXPR/_UPDATE/_POST
+        // (giFunctions.h) -- a point-cloud/irradiance-cache lookup, not a
+        // CTraceLocation ray batch. Same loop-bound/tail-replication discipline
+        // as jitTraceBatch (D1). Supports only the plain 3-positional-argument
+        // call form (no "!"-suffixed channel-binding extension).
+        void jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                          const float *samples, int sSamples, const float *du, const float *dv,
+                          int n, const int *tags);
+        void jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                                const float *samples, int sSamples, const float *du, const float *dv,
+                                int n, const int *tags);
+
     protected:
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
@@ -582,6 +618,25 @@ class CShadingContext {
 
         void traceTransmission(int numRays, CTraceLocation *rays, int probeOnly);
         void traceReflection(int numRays, CTraceLocation *rays, int probeOnly);
+
+        // Shared body for jitVisibility/jitTransmission/jitTraceF/jitTraceC
+        // (spec 017-jit-builtin-function-coverage, US1) -- see shading.cpp.
+        // probeOnly controls the underlying traceTransmission/traceReflection call
+        // form (distance-only query vs. full shaded trace); wantBoolean is a
+        // SEPARATE axis for the float (sd==1) unpacking -- visibility()'s
+        // probeOnly=TRUE wants a 0/1 occlusion boolean (VISIBILITYEXPR_POST), but
+        // trace()'s float form ALSO uses probeOnly=TRUE yet wants the raw hit
+        // distance (TRACE2EXPR_POST) -- conflating the two silently zeroed every
+        // trace() float result (spec 017 T012 fix).
+        void jitTraceBatch(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                           const float *du, const float *dv, const float *N, const float *time,
+                           int n, const int *tags, int probeOnly, bool isReflection, bool wantBoolean);
+
+        // Shared body for jitOcclusion/jitIndirectDiffuse (spec 017-jit-
+        // builtin-function-coverage, US1) -- see shading.cpp.
+        void jitOcclusionBatch(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                               const float *samples, int sSamples, const float *du, const float *dv,
+                               int n, const int *tags, bool wantOcclusion);
 
         // The following functions are used in the shaders
         int surfaceParameter(void *dest, const char *name, CVariable **, int *);

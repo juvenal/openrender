@@ -6,13 +6,13 @@
 
 **Status**: Draft
 
-**Input**: User description: "Fix the LLVM JIT builtin-function coverage gap (GitHub issue #3)." (full background: issue #1 fixed `random()`/`urandom()` silently no-op'ing under `--jit`, tracing the root cause to `llvmEmitter.cpp`'s `emitFunction()` silently skipping any RSL builtin function opcode absent from its `kHandledOpcodes[]` allowlist — zero LLVM IR emitted, no error, destination buffer never written. Filing issue #3 surfaced that 26 more RSL builtin functions hit this same gate, including `visibility()`/`transmission()`, which is what actually blocks issue #1's own repro scenes (`quadlight.rib`/`spherelight.rib`) from rendering correctly under `--jit` — a real JIT "show-stopper".)
+**Input**: User description: "Fix the LLVM JIT builtin-function coverage gap (GitHub issue #3)." (full background: issue #1 fixed `random()`/`urandom()` silently no-op'ing under `--jit`, tracing the root cause to `llvmEmitter.cpp`'s `emitFunction()` silently skipping any RSL builtin function opcode absent from its `kHandledOpcodes[]` allowlist — zero LLVM IR emitted, no error, destination buffer never written. Filing issue #3 surfaced that 25 more RSL builtin functions hit this same gate, including `visibility()`/`transmission()`, which is what actually blocks issue #1's own repro scenes (`quadlight.rib`/`spherelight.rib`) from rendering correctly under `--jit` — a real JIT "show-stopper".)
 
 ## Clarifications
 
 ### Session 2026-09-20
 
-- Q: How should this be scoped as a spec-kit feature, given the size (visibility/transmission/trace alone need brand-new ray-batch JIT machinery with no existing precedent)? → A: One spec, phased by user story — P1 (the functions that unblock shipped shaders, plus closing the defect class via gate-hardening and a coverage-guard extension), P2/P3 (the remaining 20, in decreasing real-world-impact order).
+- Q: How should this be scoped as a spec-kit feature, given the size (visibility/transmission/trace alone need brand-new ray-batch JIT machinery with no existing precedent)? → A: One spec, phased by user story — P1 (the functions that unblock shipped shaders, plus closing the defect class via gate-hardening and a coverage-guard extension), P2/P3 (the remaining 19, in decreasing real-world-impact order).
 - Q: Should hardening the JIT's silent-skip gate into a build-time error be in this spec's scope, or left as a documented recommendation for later? → A: In scope — it's the actual root-cause fix for the defect *class* (not just today's functions), confirmed safe at the emitter level (only ever fires on opcodes already producing zero IR) and safe at the build level once the shipped-shader-blocking functions land (confirmed zero shipped shaders reference anything else missing).
 - Q: All builds going forward should rely solely on the project's vcpkg-vendored toolchain (not Homebrew) — vcpkg's overlay triplets correctly target the project's actual minimum macOS deployment version (13.3), resolving the linker warnings seen building against Homebrew's LLVM (built for whatever SDK Homebrew's own CI happened to use). → Confirmed; local development for this feature uses the vcpkg toolchain exclusively.
 - Q: Should every fixed function get its own persisted `.slo`-vs-`.rslo` equivalence regression test, added as each function lands, or is a final end-of-feature verification pass sufficient? → A: Per-function (or per-tightly-related-group) persisted `ctest -L visual` regression pairs, added at implementation time — not batched to the end.
@@ -37,7 +37,7 @@ in its place — the exact same failure mode issue #1 found and fixed for
 fixes all six so JIT output matches the interpreter's output for shaders
 that use them, closing the actual blocker on issue #1's own repro scenes.
 
-**Why this priority**: These are the only functions, of the 26 covered by
+**Why this priority**: These are the only functions, of the 25 covered by
 this feature, that any currently-shipped shader actually calls — this is
 the concrete, user-visible "JIT show-stopper," not a theoretical gap.
 `comp()` is the simplest of the six (a pure indexed read) but is bundled
@@ -106,7 +106,7 @@ pre-existing gap) leaves some RSL builtin function unhandled, `oshader
 --jit` itself fails to compile the affected shader, with a diagnostic
 naming the specific unhandled function — instead of silently producing a
 `.slo` that compiles and runs but quietly omits that function's effect, as
-happened for `random()`/`urandom()` (issue #1) and the 26 functions this
+happened for `random()`/`urandom()` (issue #1) and the 25 functions this
 feature inventories (issue #3). Independently, the project's automated test
 suite also fails if a reachable builtin function lacks JIT handling, mirroring
 the existing `OPCODE_`-only coverage guard's approach but extended to the
@@ -116,9 +116,9 @@ full `FUNCTION_`-family builtin set.
 *class*, not just the functions this feature happens to name today — without
 it, the exact same silent-failure pattern that produced two real,
 independently-discovered bugs (`random()`/`urandom()`, then this feature's
-26) can recur indefinitely. Sequenced after Story 1 specifically: confirmed
+25) can recur indefinitely. Sequenced after Story 1 specifically: confirmed
 by direct inspection that, once Story 1's six functions are implemented,
-zero currently-shipped shaders reference any of the remaining 20 functions
+zero currently-shipped shaders reference any of the remaining 19 functions
 this feature also inventories — so hardening the compile-time gate at that
 point causes no build breakage, whereas hardening it before Story 1 lands
 would break the build for every shipped shader Story 1 fixes.
@@ -347,7 +347,7 @@ shader exercising it, once via each backend, and confirm the two match.
 - **RSL builtin function**: A named, callable RenderMan Shading Language
   function (as distinct from a bytecode-level operator) that the compiler
   lowers into an intermediate call instruction consumed by both backends —
-  the unit this feature's inventory (26 functions) is organized around.
+  the unit this feature's inventory (25 functions) is organized around.
 - **Coverage gate**: The JIT compiler's existing single point of dispatch
   that decides, per instruction, whether JIT code is emitted for it; this
   feature extends and eventually hardens this gate rather than replacing
@@ -376,8 +376,8 @@ shader exercising it, once via each backend, and confirm the two match.
 - **SC-004**: After Story 2 lands, `cmake --build` from a clean tree
   succeeds with zero new failures — confirming the compile-time hardening
   introduced no build breakage for any currently-shipped shader.
-- **SC-005**: 100% of the 26 builtin functions this feature inventories
-  (6 in Story 1, 5 in Story 3, 15 in Story 4 — `comp` counted once, in
+- **SC-005**: 100% of the 25 builtin functions this feature inventories
+  (6 in Story 1, 5 in Story 3, 14 in Story 4 — `comp` counted once, in
   Story 1) have a passing, persisted JIT-vs-interpreter equivalence
   regression test under `ctest -L visual`.
 - **SC-006**: Zero instances remain, after this feature, of a JIT-side fix
@@ -395,7 +395,7 @@ shader exercising it, once via each backend, and confirm the two match.
   comparison thresholds already used to validate rendering changes; this
   feature does not change that tolerance, only adds/passes comparisons
   under it.
-- This feature's builtin-function inventory (26 functions across Stories 1,
+- This feature's builtin-function inventory (25 functions across Stories 1,
   3, and 4) is drawn from GitHub issue #3's original list minus `"XXX"`
   (confirmed a DSO-dispatch placeholder, not a real function — see Edge
   Cases) and minus `random`/`urandom` (already fixed by issue #1, merged

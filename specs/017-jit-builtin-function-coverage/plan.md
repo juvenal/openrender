@@ -15,7 +15,7 @@ allowlist (lines 62-90) via `isHandledOpcode()` (lines 92-98), at the gate
 silently skipped: zero LLVM IR emitted, no error, destination buffer never
 written. This is the exact mechanism that caused issue #1
 (`random()`/`urandom()`, fixed and merged) and, per issue #3, still affects
-26 more RSL builtin functions — including `visibility()`/`transmission()`,
+25 more RSL builtin functions — including `visibility()`/`transmission()`,
 which is what actually blocks issue #1's own repro scenes
 (`quadlight.rib`/`spherelight.rib`) from rendering correctly under `--jit`.
 
@@ -144,8 +144,8 @@ effect — not a benchmarked target in its own right.
   implemented yet`), `round()`'s truncating-cast semantics, and
   `min()`/`max()`'s shared two-argument-only support.
 
-**Scale/Scope**: Bounded by spec.md's confirmed 26-function inventory
-(6 + 5 + 14 + 1, `comp` counted once in US1) plus the two build-infrastructure
+**Scale/Scope**: Bounded by spec.md's confirmed 25-function inventory
+(6 + 5 + 14 = 25, `comp` counted once, in US1) plus the two build-infrastructure
 deliverables (gate-hardening, coverage-guard extension) and the two
 newly-registered example-scene regression pairs (`quadlight`/`spherelight`).
 No multi-repo or multi-service scope. `XXX` (issue #3's original list)
@@ -244,11 +244,12 @@ examples/rib/tests/                       # matching RIB scene pairs per probe (
                                          #   US1's raytracing tier + photonmap)
 examples/rib/tests/references/            # new reference .tif per probe pair
 
-examples/rib/                             # quadlight.rib/spherelight.rib (existing, unmodified content) —
-                                         #   gain a new -slo sibling scene each under examples/rib/tests/
-                                         #   (e.g. quadlight-slo.rib referencing the existing quadlight.rib's
-                                         #   own already-shipped reference render, or a fresh dedicated pair —
-                                         #   finalized in data-model.md/tasks.md)
+examples/rib/                             # quadlight.rib/spherelight.rib (existing, unmodified content — no
+                                         #   reference .tif exists for either yet; this feature generates the
+                                         #   first one). examples/rib/tests/ gains a new -slo sibling scene
+                                         #   each (quadlight-slo.rib/spherelight-slo.rib), a copy with
+                                         #   Attribute "shade" "shaderformat" ["slo"] added — see
+                                         #   data-model.md's Show-Stopper Closure Pair entity
 
 tests/visual/CMakeLists.txt               # new add_visual_test() registrations for every probe pair (US1/US3/US4)
                                          #   and for quadlight/spherelight (US1, FR-019)

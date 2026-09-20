@@ -173,7 +173,7 @@ static DiffResult compareTiffs(const TiffImage &ref, const TiffImage &act, int t
 int main(int argc, char *argv[]) {
     if (argc < 5) {
         fprintf(stderr,
-                "Usage: %s <orender> <rib_path> <output_tif_name> <reference_tif> [threshold]\n",
+                "Usage: %s <orender> <rib_path> <output_tif_name> <reference_tif> [threshold] [extra_orender_args]\n",
                 argv[0]);
         return 1;
     }
@@ -183,11 +183,21 @@ int main(int argc, char *argv[]) {
     const char *outputTifName = argv[3]; // relative to CWD (where orender writes it)
     const char *referenceTif = argv[4];
     const int threshold = (argc >= 6) ? atoi(argv[5]) : 3;
+    // Optional extra CLI flags inserted before the RIB path (e.g. "-t:1" to
+    // pin a stochastic/raytraced scene to one thread for deterministic
+    // reference comparison, spec 017 quadlight/spherelight closure) --
+    // passed verbatim, not RIB content, so it never touches the scene file.
+    const char *extraOrenderArgs = (argc >= 7) ? argv[6] : "";
 
     // ------------------------------------------------------------------
     // Step 1: run orender
     // ------------------------------------------------------------------
-    std::string cmd = std::string(orenderPath) + " \"" + ribPath + "\"";
+    std::string cmd = std::string(orenderPath);
+    if (extraOrenderArgs[0] != '\0') {
+        cmd += " ";
+        cmd += extraOrenderArgs;
+    }
+    cmd += " \"" + std::string(ribPath) + "\"";
     printf("Running: %s\n", cmd.c_str());
     int rc = system(cmd.c_str());
     if (rc != 0) {

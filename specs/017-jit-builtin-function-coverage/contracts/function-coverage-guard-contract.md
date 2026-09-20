@@ -35,7 +35,7 @@ Both sets are computed fresh on every test run. A builtin function added
 to `scriptFunctions.h`/`giFunctions.h` after this feature ships, but never
 added to `kHandledOpcodes[]`, fails this test without any manual update to
 the test itself — this is what closes the exact structural gap that let
-`random()`/`urandom()` (issue #1) and this feature's 26 functions ship
+`random()`/`urandom()` (issue #1) and this feature's 25 functions ship
 silently: `test_opcode_coverage.cpp`'s pre-this-feature guard could not see
 `FUNCTION_`-family mnemonics at all.
 

@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+# GitHub issue #3 (spec 017, US1) regression: transmission() silently no-ops
+# under the JIT. numthreads 1 required: transmission() is a raytraced,
+# RNG-adjacent lookup (trace-parameter sampleBase/bias defaults) -- same
+# thread-scheduling-sensitivity confirmed for random() during issue #1's fix.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "sphere-transmission-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "transmission_probe"
+  Sphere 1 -1 1 360
+WorldEnd
