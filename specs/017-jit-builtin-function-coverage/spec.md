@@ -16,6 +16,8 @@
 - Q: Should hardening the JIT's silent-skip gate into a build-time error be in this spec's scope, or left as a documented recommendation for later? → A: In scope — it's the actual root-cause fix for the defect *class* (not just today's functions), confirmed safe at the emitter level (only ever fires on opcodes already producing zero IR) and safe at the build level once the shipped-shader-blocking functions land (confirmed zero shipped shaders reference anything else missing).
 - Q: All builds going forward should rely solely on the project's vcpkg-vendored toolchain (not Homebrew) — vcpkg's overlay triplets correctly target the project's actual minimum macOS deployment version (13.3), resolving the linker warnings seen building against Homebrew's LLVM (built for whatever SDK Homebrew's own CI happened to use). → Confirmed; local development for this feature uses the vcpkg toolchain exclusively.
 - Q: Should every fixed function get its own persisted `.slo`-vs-`.rslo` equivalence regression test, added as each function lands, or is a final end-of-feature verification pass sufficient? → A: Per-function (or per-tightly-related-group) persisted `ctest -L visual` regression pairs, added at implementation time — not batched to the end.
+- Q: Should this feature require the new JIT implementations (especially the P1 raytracing tier) to be measurably faster than the interpreter, mirroring spec 011's precedent? → A: No — correctness parity only. Spec 011's equivalent bar (JIT ≥10% faster than interpreter) is documented as never actually met project-wide; this feature's `FR-007` (avoid ~3× redundant ray tracing via the `numRealVertices` discipline) already prevents the most obvious performance regression as a correctness requirement, without gating the fix on a historically-unmet wall-clock target.
+- Q: Should `quadlight.rib`/`spherelight.rib` (currently unregistered example scenes, not part of `ctest -L visual`) become permanent, CI-visible regression tests, or is a one-time manual verification sufficient? → A: Register them permanently — they are the real-world scenes that motivated issues #1 and #3; leaving them unregistered would let a future regression in `visibility()`/`transmission()`'s JIT path silently reopen the exact defect this feature exists to close, with nothing in CI to catch it.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -52,9 +54,12 @@ raytracing, RNG, or per-vertex batching involved.
 `examples/rib/spherelight.rib` with `Attribute "shade" "shaderformat"
 ["slo"]` added, and confirm each now matches its `.rslo`-backed reference
 image within the project's existing visual-regression tolerance (this is
-the end-to-end closure criterion for issue #1's original repro). In
-addition, for each of the six functions, render a minimal shader exercising
-it in isolation, once via each backend, and confirm the two match.
+the end-to-end closure criterion for issue #1's original repro) — as a
+permanent, CI-visible `ctest -L visual` regression pair, not a one-time
+manual check, so a future regression in these functions' JIT paths cannot
+silently reopen this defect. In addition, for each of the six functions,
+render a minimal shader exercising it in isolation, once via each backend,
+and confirm the two match.
 
 **Acceptance Scenarios**:
 
@@ -87,7 +92,9 @@ it in isolation, once via each backend, and confirm the two match.
 7. **Given** `examples/rib/quadlight.rib`/`examples/rib/spherelight.rib`
    rendered with the JIT backend, **Then** the output matches the `.rslo`
    reference image within tolerance (no remaining checkerboard-noise or
-   all-black artifact from any builtin function these shaders call).
+   all-black artifact from any builtin function these shaders call), and
+   this comparison is a permanent, persisted regression test rather than a
+   one-time check.
 
 ---
 
@@ -326,6 +333,10 @@ shader exercising it, once via each backend, and confirm the two match.
   (following the project's existing probe-shader/paired-RIB-scene
   pattern), added at the time that function is implemented rather than
   deferred to the end of the feature.
+- **FR-019**: `examples/rib/quadlight.rib` and `examples/rib/spherelight.rib`
+  MUST be registered as permanent, persisted `.slo`-vs-`.rslo` regression
+  tests under this feature — not verified once and left unregistered —
+  since they are the real-world scenes that motivated issues #1 and #3.
 
 ### Key Entities
 
@@ -356,8 +367,8 @@ shader exercising it, once via each backend, and confirm the two match.
   within the project's existing visual-regression tolerance.
 - **SC-002**: `examples/rib/quadlight.rib` and `examples/rib/spherelight.rib`,
   rendered with the JIT backend, match their `.rslo`-backed reference
-  images within tolerance — the concrete closure criterion for issue #1's
-  original repro.
+  images within tolerance, as permanent `ctest -L visual` entries — the
+  concrete, CI-enforced closure criterion for issue #1's original repro.
 - **SC-003**: A deliberately-introduced unhandled builtin function call
   fails both `oshader --jit` compilation (with a naming diagnostic) and the
   automated test suite (with a naming diagnostic) 100% of the time, with
@@ -408,3 +419,10 @@ shader exercising it, once via each backend, and confirm the two match.
   internal engine parity/bug-fix, not new user-facing functionality that
   the site's content model tracks, matching spec 011's precedent for the
   same reasoning.
+- This feature carries no wall-clock performance requirement or success
+  criterion — correctness parity with the interpreter (FR-001 through
+  FR-016) is the only bar. FR-007's `numRealVertices` discipline is a
+  correctness requirement (matching interpreter behavior exactly, which
+  happens to also avoid ~3× redundant ray tracing), not a performance
+  target in its own right; no fixed function needs to be benchmarked or
+  shown faster than the interpreter to satisfy this feature.
