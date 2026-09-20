@@ -425,7 +425,15 @@ endif()
 # deleted the Cellar path a working cache pointed at, and the tree went quietly
 # interpreter-only. A value ending in -NOTFOUND is false in an if(), so the
 # plain test covers both "never set" and "previously failed".
-if(OPENRENDER_ENABLE_JIT AND APPLE AND NOT LLVM_DIR)
+#
+# Skipped entirely when vcpkg's toolchain is active (VCPKG_TOOLCHAIN, set by
+# vcpkg.cmake): vcpkg now vendors LLVM too (see vcpkg.json), and relies on
+# find_package(LLVM CONFIG QUIET) below discovering it naturally via
+# CMAKE_PREFIX_PATH -- this Homebrew hint predates that and, left
+# unconditional, forces LLVM_DIR to Homebrew's llvm-config (when present on
+# PATH/HINTS) before find_package ever gets a chance to see vcpkg's LLVM,
+# silently defeating the vcpkg-vendored JIT toolchain entirely.
+if(OPENRENDER_ENABLE_JIT AND APPLE AND NOT VCPKG_TOOLCHAIN AND NOT LLVM_DIR)
     find_program(_LLVM_CONFIG NAMES llvm-config
         HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin)
     if(_LLVM_CONFIG)
