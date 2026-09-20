@@ -339,3 +339,19 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
    this engine's default) sidesteps it. Root cause not yet investigated —
    flagged here rather than in a shader comment since it's an engine-level
    JIT defect, not something either shader can work around on its own.
+
+## In-progress work
+
+**017-jit-builtin-function-coverage** (branch `017-jit-builtin-function-coverage`,
+see `specs/017-jit-builtin-function-coverage/`): generalizes gotcha #12
+above — `random()`/`urandom()` were not an isolated defect. `llvmEmitter.cpp`'s
+`emitFunction()` silently skips *any* RSL builtin function absent from its
+`kHandledOpcodes[]` allowlist (zero IR emitted, no error), and 26 more
+builtin functions hit this same gate, including `visibility()`/
+`transmission()` — which is what actually blocks `quadlight`/`spherelight`
+from rendering correctly under `--jit`. Fixes the 26 (phased by
+shipped-shader impact), hardens the gate into a build-time error once the
+shipped-shader-blocking functions land, and extends the JIT/interpreter
+coverage-guard test from bytecode-opcode-only to the full builtin-function
+mnemonic set. See `specs/017-jit-builtin-function-coverage/plan.md`/
+`research.md` for the full technical design.
