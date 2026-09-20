@@ -29,8 +29,20 @@ if [[ -d "$VCPKG_ROOT/.git" ]]; then
     echo "Updating existing vcpkg checkout at $VCPKG_ROOT ..."
     git -C "$VCPKG_ROOT" fetch --quiet origin
 else
-    echo "Cloning vcpkg to $VCPKG_ROOT ..."
-    git clone --quiet https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+    # git clone refuses a non-empty target directory, and $VCPKG_ROOT can
+    # already be non-empty here with nothing to do with this script: the
+    # vcpkg tool itself writes a per-user ~/.vcpkg/config (telemetry
+    # opt-out state) the first time it's ever invoked by anyone, on any
+    # project, regardless of VCPKG_ROOT -- a plain `git clone` into that
+    # directory fails with "already exists and is not an empty directory"
+    # even though there's no real checkout there yet. `git init` (unlike
+    # `git clone`) doesn't care whether the directory is empty, so build
+    # the checkout in place instead of cloning into a fresh one.
+    echo "Setting up vcpkg checkout at $VCPKG_ROOT ..."
+    mkdir -p "$VCPKG_ROOT"
+    git -C "$VCPKG_ROOT" init --quiet
+    git -C "$VCPKG_ROOT" remote add origin https://github.com/microsoft/vcpkg.git
+    git -C "$VCPKG_ROOT" fetch --quiet origin
 fi
 
 git -C "$VCPKG_ROOT" checkout --quiet "$BASELINE_SHA"
