@@ -329,29 +329,40 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
    produces a negative (clamped-to-black) `Cl` for every point. Confirmed
    by direct render testing; `shadowarea.sl`/`rayarea.sl` already use the
    correct `N.normalize(L)` form.
-12. **`random()` under the LLVM JIT (`--jit`/`.slo`) is untested territory
-   and was found broken (2026-09-19)** the first time a shipped shader
-   (`spherelight`/`quadlight`) used it in a per-sample loop: the
-   interpreter (`.rslo`) path renders correctly, but the JIT path produces
-   visibly wrong output (a checkerboard-noise artifact for `quadlight`, a
-   fully black render for `spherelight`) with no error. `Attribute "shade"
-   "shaderformat" ["rslo"]` (or leaving shaderformat unset, since `rslo` is
-   this engine's default) sidesteps it. Root cause not yet investigated —
-   flagged here rather than in a shader comment since it's an engine-level
-   JIT defect, not something either shader can work around on its own.
-
-## In-progress work
-
-**017-jit-builtin-function-coverage** (branch `017-jit-builtin-function-coverage`,
-see `specs/017-jit-builtin-function-coverage/`): generalizes gotcha #12
-above — `random()`/`urandom()` were not an isolated defect. `llvmEmitter.cpp`'s
-`emitFunction()` silently skips *any* RSL builtin function absent from its
-`kHandledOpcodes[]` allowlist (zero IR emitted, no error), and 26 more
-builtin functions hit this same gate, including `visibility()`/
-`transmission()` — which is what actually blocks `quadlight`/`spherelight`
-from rendering correctly under `--jit`. Fixes the 26 (phased by
-shipped-shader impact), hardens the gate into a build-time error once the
-shipped-shader-blocking functions land, and extends the JIT/interpreter
-coverage-guard test from bytecode-opcode-only to the full builtin-function
-mnemonic set. See `specs/017-jit-builtin-function-coverage/plan.md`/
-`research.md` for the full technical design.
+12. **`random()`/`urandom()` under the LLVM JIT were broken, now fixed —
+   generalized into a full builtin-function coverage sweep (spec
+   017-jit-builtin-function-coverage, closed 2026-09-20).** The original
+   symptom (found 2026-09-19 the first time a shipped shader —
+   `spherelight`/`quadlight` — used `random()` in a per-sample loop: the
+   interpreter rendered correctly, the JIT produced visibly wrong output
+   with no error) turned out to be one instance of a general defect:
+   `llvmEmitter.cpp`'s `emitFunction()` silently skipped *any* RSL
+   builtin function absent from its `kHandledOpcodes[]` allowlist — zero
+   IR emitted, no diagnostic. `random`/`urandom` (issue #1, fixed prior
+   to spec 017) plus 43 more (issue #3 — 25 originally inventoried,
+   including `visibility`/`transmission`/`trace`/`occlusion`/
+   `indirectdiffuse`/`comp`, the ones that actually blocked
+   `quadlight`/`spherelight`; 18 more found mid-implementation) hit this
+   same gate. All 45 are now JIT-handled (`printf()`, discussed below,
+   was already in `kHandledOpcodes[]` before this spec and is a separate
+   case, not part of this count). The gate is hardened into a
+   build-time error naming the mnemonic instead of a silent skip; the
+   coverage guard
+   (`LibShader_OpcodeCoverage`) covers the full `OPCODE_*`+`FUNCTION_*`
+   mnemonic universe and is 100% green. **That green result proves every
+   reachable mnemonic has a dispatch case — not that every case emits
+   real IR.** `printf()` (GitHub #11) is a confirmed exception: covered
+   by the guard, but its dispatch case is a no-op, predating this spec.
+   Four residual issues came out of this work, filed not fixed (out of
+   this spec's mandate) — most consequential first: **GitHub #8** (a
+   JIT-wide correctness defect, not specific to any function:
+   `collapseArgs`'s uniform fast path passes a null tags array whenever
+   an instruction's destination and operands are all uniform, so an
+   `if`-gated assignment to a uniform variable executes unconditionally
+   under JIT regardless of the branch condition — this is silently wrong
+   output in *any* JIT shader hitting that shape, not just the functions
+   spec 017 touched), **#9** (`setcomp()`/`comp()` use inconsistent
+   matrix-index formulas), **#10** (JIT `transform()`'s matrix-argument
+   overload dispatches as the string-space overload), and **#11**
+   (`printf()`, above). See `specs/017-jit-builtin-function-coverage/`
+   for the full inventory and verification detail.

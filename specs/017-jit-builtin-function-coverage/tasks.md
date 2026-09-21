@@ -938,13 +938,21 @@ with either if preferred; presented here in spec.md's priority order.
   raytracing-tier US1-US3 functions), not a plain free function.
   Already registered in the compiler's symbol table (`rslo.cpp:1068`) —
   no gap.
-- [ ] T053 [US4] Implement `format()`: read the already-shipped `"printf"`
+- [X] T053 [US4] Implement `format()`: read the already-shipped `"printf"`
   dispatch (`llvmEmitter.cpp:2318`) in full first (`research.md` D5 flags
   this as needing more investigation than the rest of this tier); reuse
   its `%f`/`%d`/`%c`/`%p`/`%v`/`%m`/`%s` token-scanning machinery,
   redirecting the output to a string buffer instead of stdout —
   `op_format` in `rslOps.cpp`/`.h`, `"format"` dispatch in
   `llvmEmitter.cpp`. Confirm T043 now passes.
+
+  Reading the "printf" dispatch first (as this task instructs) found it
+  has no token-scanning machinery to reuse — it's a silent no-op (see
+  T043's note, GitHub issue #11). `format()` was implemented instead by
+  transcribing the interpreter's `PRINTEXPR` macro directly: new
+  `CShadingContext::jitFormat` (`shading.cpp`), thin `op_format`
+  trampoline (`rslOps.h`/`.cpp`), `"format"` dispatch + `kHandledOpcodes[]`
+  entry in `llvmEmitter.cpp`. T043 confirmed passing (`Visual_sphere-format-reyes`/`-slo`).
 - [X] T054 [US4] Run
   `ctest --test-dir build -L "visual|libshader|shading_parity" --output-on-failure`;
   confirm zero regressions and T034–T043 all passing.
@@ -1260,7 +1268,7 @@ gives for converging on US2 last.
 
 ### Implementation for User Story 5
 
-- [ ] T064 [US5] Implement `surface()`/`displacement()`/`atmosphere()`/
+- [X] T064 [US5] Implement `surface()`/`displacement()`/`atmosphere()`/
   `incident()`/`opposite()`: one shared JIT wrapper parameterized by
   accessor constant (`ACCESSOR_SURFACE`/`ACCESSOR_DISPLACEMENT`/
   `ACCESSOR_ATMOSPHERE`/`ACCESSOR_EXTERIOR`/`ACCESSOR_INTERIOR`) and by
@@ -1502,26 +1510,60 @@ mid-implementation) is therefore NOT yet fully JIT-handled -- only the
 **Purpose**: Final validation and small cleanups spanning multiple
 stories.
 
-- [ ] T076 [P] Correct `shaders/usfroma_probe.sl`'s header comment — it
+- [X] T076 [P] Correct `shaders/usfroma_probe.sl`'s header comment — it
   claims `Oi = 1;` is required "because the JIT does not default Oi to
   opaque," which `research.md` D6 confirmed is stale (fixed by spec 014).
-- [ ] T077 Confirm `ctest -L libshader`'s `kAllFunctionMnemonics` guard
+
+  Corrected the comment and removed the now-unneeded `Oi = 1;` line
+  itself (D6's alternatives-considered section flagged this exact
+  removal as a reasonable trivial-polish fold-in). Rebuilt and re-ran
+  `Visual_sphere-usfroma-reyes`/`-slo` to confirm removing the line
+  doesn't change output — both still pass against the existing
+  reference, confirming spec 014's default-fill gating fix genuinely
+  makes the workaround unnecessary rather than just untested.
+- [X] T077 Confirm `ctest -L libshader`'s `kAllFunctionMnemonics` guard
   (T021) is fully green — re-confirms T075's own check, as a final,
   independent pass after all of US3/US4/US5 (T028–T032, T044–T053,
   T064–T074) are complete.
-- [ ] T078 Run the full project test suite one final time —
+
+  `LibShader_OpcodeCoverage` passes. Reminder for whoever reads this
+  green result later (T054's note has the full detail): this proves
+  every reachable mnemonic in `kAllFunctionMnemonics`/`kAllOpcodeMnemonics`
+  has an `emitFunction()` dispatch case — it does not prove every case
+  emits meaningful IR. `printf()` (GitHub issue #11) is a confirmed
+  counterexample: covered by this guard, but a no-op at runtime.
+- [X] T078 Run the full project test suite one final time —
   `ctest --test-dir build -L visual --output-on-failure`,
   `ctest --test-dir build -L libshader --output-on-failure`,
   `ctest --test-dir build -L shading_parity --output-on-failure` — and
   confirm 100% passing, matching issue #1's established verification bar
   (spec.md SC-001 through SC-007).
-- [ ] T079 Update `DEVNOTES.md`'s JIT status row/Open Issues (matching
+
+  **2026-09-20, post-T076 fix, post-commit**: `visual` 257/257,
+  `libshader` 5/5, `shading_parity` 3/3 — 100% across all three suites,
+  run as three separate label invocations per this task's own wording
+  (distinct from T054's combined `-L "visual|libshader|shading_parity"`
+  run). Zero regressions from the T076 comment/line removal.
+- [X] T079 Update `DEVNOTES.md`'s JIT status row/Open Issues (matching
   the entries issue #1's fix and spec 011/012/014 each added) to record
   this feature's completion, and update `CLAUDE.md`'s "Known gotchas" #12
   (`random()`/`urandom()` under the JIT) and the "In-progress work" note
   this plan's Phase 1 added, reflecting that the broader builtin-function
   gap (all 43 functions, including the 18 found mid-implementation) is
   now closed.
+
+  `DEVNOTES.md`: updated the "LLVM JIT shading engine" status row and
+  added a new Open Issues bullet (matching the 012/014 pattern) with the
+  full 25+18=43 function inventory (this spec's own — separate from
+  issue #1's earlier `random`/`urandom` fix, per spec.md's own
+  accounting), the hardened gate, the extended coverage guard, and —
+  surfaced explicitly, not buried — the four residual issues
+  (#8/#9/#10/#11) plus what "guard green" does and doesn't prove.
+  `CLAUDE.md`: rewrote gotcha #12 in place (same slot, to avoid
+  renumbering) to record the fix and the same four residual issues,
+  ranked by consequence (#8 first — a JIT-wide correctness defect, not
+  scoped to any one function). Removed the "In-progress work" section
+  entirely now that spec 017 is closed and nothing else is in flight.
 
 ---
 

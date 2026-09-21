@@ -10,12 +10,17 @@
  * string variable can ever hold the varying read result. This inline
  * consumption is what triggers the `usfroma` opcode instead of `sfroma`.
  *
- * `Oi = 1;` is required for a reason unrelated to usfroma: the JIT does not
- * default Oi to opaque when a shader never assigns it (see measurements.md's
- * T008b section for the empirical trace that found this), so any .slo
- * shader that omits this line renders fully transparent regardless of Ci.
- * This probe is also used to compile a .slo counterpart (T017) once the
- * interpreter-side fix lands, so it must not carry that same confound.
+ * STALE (corrected 2026-09-20, spec 017-jit-builtin-function-coverage,
+ * T076/research.md D6): this comment previously claimed `Oi = 1;` was
+ * required here because "the JIT does not default Oi to opaque when a
+ * shader never assigns it." That is no longer true -- spec 014's
+ * PARAMETER_CI/PARAMETER_OI default-fill gating fix landed after this
+ * comment was written, and test_used_parameters_gating.cpp's T008 /
+ * test_used_parameters_oracle.cpp's T010 both explicitly test and pass
+ * "shader never assigns Ci/Oi -> PARAMETER_OI correctly clear, .slo/.rslo
+ * usedParameters bit-identical" today. The `Oi = 1;` line below has been
+ * removed as no longer needed; kept here only as a record of a confound
+ * this probe once had to work around.
  */
 surface usfroma_probe()
 {
@@ -24,8 +29,6 @@ surface usfroma_probe()
     /* findex ranges continuously over [0,3) and truncates to an int index
      * of 0, 1, or 2 -- provably in-range for usarr's 3 elements. */
     varying float findex = mod(u * 3, 3);
-
-    Oi = 1;
 
     float matchFlag = 0;
     if (usarr[findex] == "a")      matchFlag = 1;   /* usfroma */
