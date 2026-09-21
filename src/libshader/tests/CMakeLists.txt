@@ -64,6 +64,42 @@ set_tests_properties(LibShader_AtmosphereBuiltin LibShader_DebugBuiltin PROPERTI
 message(STATUS "  - LibShader_AtmosphereBuiltin / LibShader_DebugBuiltin (GitHub #5 compiler symbol-table regression)")
 
 # ---------------------------------------------------------------------------
+# test_mcomp_consistency — GitHub #9: op_mcomp/op_setmcomp (rslOps.cpp,
+# shared by the JIT and, via scriptFunctions.h's mirrored macros, the
+# interpreter) used different index formulas for the matrix form, so
+# comp() read the transpose of what setcomp() wrote. The two functions
+# under test are pure free functions (no CShadingContext), but
+# libshader_shading.dylib itself is not self-contained -- it has
+# undefined references to CRenderer:: statics (normally provided by
+# ribRender) resolved at dyld load time regardless of which functions a
+# given caller actually calls, so ribRender must be linked too.
+# ---------------------------------------------------------------------------
+add_executable(test_libshader_mcomp_consistency test_mcomp_consistency.cpp)
+
+target_compile_features(test_libshader_mcomp_consistency PRIVATE cxx_std_20)
+
+target_include_directories(test_libshader_mcomp_consistency PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/libshader/shading   # rslOps.h
+    ${CMAKE_SOURCE_DIR}/src                     # common/, logging.h
+)
+
+target_link_libraries(test_libshader_mcomp_consistency PRIVATE
+    ribRender
+    libshader_shading
+    openrendercommon
+)
+
+add_test(NAME LibShader_McompConsistency
+    COMMAND test_libshader_mcomp_consistency)
+
+set_tests_properties(LibShader_McompConsistency PROPERTIES
+    TIMEOUT 30
+    LABELS  "libshader;shading;unit"
+)
+
+message(STATUS "  - LibShader_McompConsistency (GitHub #9 comp()/setcomp() matrix-index regression)")
+
+# ---------------------------------------------------------------------------
 # The three tests below all reach into llvmEmitter.cpp -- kHandledOpcodes,
 # kOpcodeParamTable and computeUsedParameters() are defined there, and that
 # translation unit is only compiled when OPENRENDER_HAVE_LLVM is set (see

@@ -5,18 +5,12 @@
  * "o=Mfff"), generalizing the fixed-index setxcomp/setycomp/setzcomp
  * shape to a runtime index.
  *
- * GitHub issue #9 (found while writing this probe, pre-existing,
- * orthogonal interpreter defect, out of scope for this spec): the
- * interpreter's SETMCOMPEXP (scriptFunctions.h) writes via
- * `res[element(r,c)]` (`element(r,c) = r + c*4`, algebra.h's documented
- * column-major convention) while its sibling MCOMPEXP (comp()'s
- * matrix-reading form, already shipped from US1) reads via raw
- * `op1[r*4+c]` -- an inconsistent transpose between setcomp() and
- * comp() for the matrix form that predates this task. `comp(m, r, c)`
- * therefore does NOT read back what `setcomp(m, r, c, v)` just wrote;
- * `comp(m, c, r)` (indices swapped) does. Mirrored exactly here (not
- * "fixed", FR-017) via op_setmcomp's own `r + c*4` indexing, and worked
- * around in the read-back below by swapping the row/col arguments.
+ * GitHub issue #9 (found while writing this probe, fixed): comp()'s
+ * matrix-reading form (MCOMPEXP) used to disagree with setcomp()'s
+ * SETMCOMPEXP on the index formula, so comp(m, r, c) read the transpose
+ * of what setcomp(m, r, c, v) wrote. Both now use element(r,c) =
+ * r + c*4 (algebra.h) consistently, so the direct (non-swapped)
+ * read-back below is correct.
  *
  * Raw computed values written directly into Ci (no if-gated boolean
  * flag -- see determinant_distance_probe.sl's header comment, GitHub
@@ -30,5 +24,5 @@ surface setcomp_probe()
     uniform matrix m = 1;
     setcomp(m, 1, 2, 0.4);
 
-    Ci = color(v[1], comp(m, 2, 1), 0.5);
+    Ci = color(v[1], comp(m, 1, 2), 0.5);
 }

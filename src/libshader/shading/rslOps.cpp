@@ -1826,7 +1826,11 @@ void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int
         if (ACTIVE(tags, i)) {
             int r = (int)IDX(ridx, sr, i)[0];
             int c = (int)IDX(cidx, sc, i)[0];
-            IDX(dst, sd, i)[0] = IDX(m, sm, i)[r * 4 + c];
+            // element(r,c) = r + c*4 (algebra.h) -- must match op_setmcomp
+            // below exactly, or comp() reads the transpose of what
+            // setcomp() wrote (GitHub #9, fixed in lockstep with
+            // scriptFunctions.h's MCOMPEXP, its interpreter counterpart).
+            IDX(dst, sd, i)[0] = IDX(m, sm, i)[r + c * 4];
         }
 }
 
@@ -1839,15 +1843,9 @@ void op_setcomp(float *v, int sv, const float *idx, int si, const float *val, in
         }
 }
 
-// NOTE: this deliberately uses `r + c*4` (element(), algebra.h), NOT
-// `r*4+c` like op_mcomp above -- the interpreter's own SETMCOMPEXP
-// (scriptFunctions.h) uses `res[element(r,c)]` while its sibling
-// MCOMPEXP (comp's matrix-reading form) uses raw `op1[r*4+c]`, an
-// existing inconsistency between setcomp() and comp() for the matrix
-// form (comp() reads the transpose of where setcomp() writes) --
-// confirmed pre-existing in the interpreter, filed as GitHub issue #9,
-// out of scope for this spec (JIT coverage, not general interpreter
-// correctness). Mirrored here exactly, not "fixed" (FR-017).
+// Uses `r + c*4` (element(), algebra.h), matching op_mcomp above and
+// scriptFunctions.h's SETMCOMPEXP/MCOMPEXP -- comp(m,r,c) reads back
+// exactly what setcomp(m,r,c,v) wrote (GitHub #9).
 void op_setmcomp(float *m, int sm, const float *ridx, int sr, const float *cidx, int sc,
                  const float *val, int sf, int n, const int *tags) {
     for (int i = 0; i < n; i++)

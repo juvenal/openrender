@@ -325,7 +325,11 @@ DEFLINKFUNC(Comp2, "comp", "f=nf", 0)
 DEFLINKFUNC(Comp3, "comp", "f=cf", 0)
 DEFFUNC(Comp, "comp", "f=vf", FUN3EXPR_PRE, COMPEXP, FUN3EXPR_UPDATE(1, 3, 1), NULL_EXPR, 0)
 
-#define MCOMPEXP *res = op1[((int)*op2) * 4 + ((int)*op3)];
+// element(row,col) = row + col*4 (algebra.h), matching SETMCOMPEXP below --
+// comp(m,r,c) must read back what setcomp(m,r,c,v) wrote at the same
+// (r,c). Previously used raw `row*4+col`, disagreeing with SETMCOMPEXP's
+// element() and silently returning the transposed element (GitHub #9).
+#define MCOMPEXP *res = op1[element((int)*op2, (int)*op3)];
 DEFFUNC(MComp, "comp", "f=mff", FUN4EXPR_PRE, MCOMPEXP, FUN4EXPR_UPDATE(1, 16, 1, 1), NULL_EXPR, 0)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

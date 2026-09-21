@@ -821,9 +821,9 @@ add_visual_test(sphere-step-reyes-slo
     sphere-step-reyes-slo.tif  sphere-step-reyes.tif)
 
 # setcomp() (T040/T050): runtime-indexed vector- and matrix-form writes,
-# generalizing setxcomp/setycomp/setzcomp. GitHub issue #9 (pre-existing,
-# orthogonal interpreter defect found here): comp()/setcomp() disagree on
-# matrix indexing convention -- see setcomp_probe.sl's header comment.
+# generalizing setxcomp/setycomp/setzcomp. GitHub issue #9 (found here,
+# fixed): comp()/setcomp() used to disagree on matrix indexing convention
+# -- see setcomp_probe.sl's header comment.
 add_visual_test(sphere-setcomp-reyes
     examples/rib/tests/sphere-setcomp-reyes.rib
     sphere-setcomp-reyes.tif  sphere-setcomp-reyes.tif)

@@ -415,8 +415,8 @@ void op_trace_c(float *dst, int sd, const float *P, int sP, const float *D, int 
 
 // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure indexed
 // reads, no CShadingContext state needed. op_comp = vector form (Comp,
-// "f=vf"); op_mcomp = matrix form (MComp, "f=mff"), row-major 4x4 via
-// element(row,col) = row*4+col (scriptFunctions.h's MCOMPEXP).
+// "f=vf"); op_mcomp = matrix form (MComp, "f=mff"), column-major 4x4 via
+// element(row,col) = row+col*4 (algebra.h; scriptFunctions.h's MCOMPEXP).
 void op_comp(float *dst, int sd, const float *v, int sv, const float *idx, int si,
              int n, const int *tags);
 void op_mcomp(float *dst, int sd, const float *m, int sm, const float *ridx, int sr,
