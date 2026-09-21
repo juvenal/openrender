@@ -295,18 +295,54 @@ int main(int argc, char *argv[]) {
             }
         }
         else if (strncmp(argv[i], argumentDefine, strlen(argumentDefine)) == 0) {
-            ppargv[ppargc++] = "-d";
-            ppargv[ppargc++] = &argv[i][2];
+            // Accepts both the attached form ("-Dsymbol", value read from the
+            // same argv token) and the space-separated form ("-D symbol",
+            // GitHub #12's sibling case to -I below): when nothing follows
+            // "-D" in this token, consume the next argv token instead of
+            // silently registering an empty define and leaving that token to
+            // misparse as a phantom source file.
+            const char *value = &argv[i][2];
+            if (*value == '\0') {
+                if (i < (argc - 1)) {
+                    value = argv[++i];
+                }
+                else {
+                    fprintf(stderr, "%s expects a symbol\n", argumentDefine);
+                    value = nullptr;
+                }
+            }
+            if (value != nullptr) {
+                ppargv[ppargc++] = "-d";
+                ppargv[ppargc++] = value;
+            }
         }
         else if (strncmp(argv[i], argumentIncludeDirectory, strlen(argumentIncludeDirectory)) == 0) {
-            TSearchpath *nPath = new TSearchpath;
+            // Accepts both the attached form ("-Ipath") and the
+            // space-separated form ("-I path"). Pre-fix, the bare "-I" form
+            // matched here with &argv[i][2] pointing at the token's null
+            // terminator, silently registering an empty include path and
+            // leaving the real path in argv[i+1] to fall through to the
+            // source-file branch below (GitHub #12).
+            const char *path = &argv[i][2];
+            if (*path == '\0') {
+                if (i < (argc - 1)) {
+                    path = argv[++i];
+                }
+                else {
+                    fprintf(stderr, "%s expects a path\n", argumentIncludeDirectory);
+                    path = nullptr;
+                }
+            }
+            if (path != nullptr) {
+                TSearchpath *nPath = new TSearchpath;
 
-            ppargv[ppargc++] = "-i";
-            ppargv[ppargc++] = &argv[i][2];
+                ppargv[ppargc++] = "-i";
+                ppargv[ppargc++] = path;
 
-            nPath->directory = strdup(&argv[i][2]);
-            nPath->next = dsoPath;
-            dsoPath = nPath;
+                nPath->directory = strdup(path);
+                nPath->next = dsoPath;
+                dsoPath = nPath;
+            }
         }
         else if (argv[i][0] == '-' && argv[i][1] != 0) {
             // Starts with '-' but not matched any option

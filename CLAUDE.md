@@ -131,13 +131,16 @@ with those three moving by −0.15, −1.39 and −0.24 block-avg-diff against a
 threshold of 20 — i.e. within sampling noise, on both old and fresh bitcode.
 Do not pre-emptively distrust a green result on them.
 
-**`oshader -I <path>` CLI quirk:** combining `-I` with `-o` and a positional
-`.sl` input currently fails to parse (`Output file specified with multiple
-input files...`) even though there is exactly one input file — a known
-argument-parsing defect, not a real "multiple inputs" condition. Workaround:
-use the `SHADERS_INCLUDE` environment variable instead (documented in
-`oshader --help`), e.g. `SHADERS_INCLUDE="$(pwd)/shaders/includes"
-build/src/oshader/oshader --jit -o shaders/<name>.slo shaders/<name>.sl`.
+**`oshader -I <path>`/`-D <symbol>` (space-separated) fixed (GitHub #12).**
+Both flags previously only read their value from the same argv token
+(`-Ipath`/`-Dsymbol`); the customary space-separated form (`-I path`) silently
+registered an empty value and left the path/symbol to misparse as a phantom
+second source file, failing with `Output file specified with multiple input
+files...` whenever `-o` was also given. Both forms now work; a bare trailing
+`-I`/`-D` with nothing following prints `<flag> expects a path`/`a symbol`
+and is skipped rather than silently misparsed. The `SHADERS_INCLUDE`
+environment variable (documented in `oshader --help`) remains a valid
+alternative to `-I` but is no longer required as a workaround.
 
 ## Repository layout
 

@@ -30,6 +30,28 @@ set_tests_properties(LibShader_Compiler PROPERTIES
 message(STATUS "  - LibShader_Compiler (unit tests for RSL compiler)")
 
 # ---------------------------------------------------------------------------
+# test_oshader_cli_args — GitHub #12: oshader's -I/-D argv matcher only ever
+# read the value from the same argv token, never consuming a following
+# token for the customary space-separated form. Shells out to the real
+# oshader CLI (subprocess) since the bug lives in main()'s argv loop, not
+# any separately-callable function.
+# ---------------------------------------------------------------------------
+add_executable(test_libshader_oshader_cli_args test_oshader_cli_args.cpp)
+
+target_compile_features(test_libshader_oshader_cli_args PRIVATE cxx_std_20)
+
+add_test(NAME LibShader_OshaderCliArgs
+    COMMAND test_libshader_oshader_cli_args)
+
+set_tests_properties(LibShader_OshaderCliArgs PROPERTIES
+    TIMEOUT 30
+    LABELS  "libshader;compiler;unit"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>"
+)
+
+message(STATUS "  - LibShader_OshaderCliArgs (GitHub #12 -I/-D space-separated argument parsing)")
+
+# ---------------------------------------------------------------------------
 # test_atmosphere_debug_builtins — GitHub #5: atmosphere() and debug() were
 # missing from rslo.cpp's compiler symbol table (present in shaderFunctions.h's
 # runtime dispatch tables already). One compile() call per process (see the
