@@ -456,8 +456,18 @@ CPhotonMap *CRenderer::getPhotonMap(const char *name) {
 CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float *from, const float *to) {
     CFileResource *cache;
 
-    assert(name != NULL);
     assert(frameFiles != NULL);
+
+    // name/mode ultimately come from RIB-authored attribute strings (GitHub
+    // #4); NDEBUG strips asserts in Release, so a NULL here must be handled,
+    // not just documented. Fall back to the same empty-string representation
+    // CAttributes's own defaults use -- "" degrades to an in-memory-only
+    // cache below, and an unrecognized mode already falls back to
+    // CACHE_SAMPLE a few lines down.
+    if (name == NULL)
+        name = "";
+    if (mode == NULL)
+        mode = "";
 
     // Check the memory first
     if (frameFiles->find(name, cache) == FALSE) {

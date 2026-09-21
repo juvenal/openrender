@@ -3304,19 +3304,17 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                     const char *val = ((const char **)params[i])[0];
                     if (attributes->irradianceHandle != NULL)
                         free(attributes->irradianceHandle);
-                    if (val[0] == '\0')
-                        attributes->irradianceHandle = NULL;
-                    else
-                        attributes->irradianceHandle = strdup(val);
+                    // An explicit empty string must behave like the unset default
+                    // (CAttributes's ctor: strdup("")), not collapse to NULL --
+                    // NULL then reaches CRenderer::getCache() as `name`/`mode` and
+                    // crashes on strcmp() (GitHub #4).
+                    attributes->irradianceHandle = strdup(val);
                 }
                 else if (strcmp(tokens[i], RI_FILEMODE) == 0) {
                     const char *val = ((const char **)params[i])[0];
                     if (attributes->irradianceHandleMode != NULL)
                         free(attributes->irradianceHandleMode);
-                    if (val[0] == '\0')
-                        attributes->irradianceHandleMode = NULL;
-                    else
-                        attributes->irradianceHandleMode = strdup(val);
+                    attributes->irradianceHandleMode = strdup(val);
                 }
                 else if (strcmp(tokens[i], RI_MAXERROR) == 0) {
                     const float *val = (const float *)params[i];

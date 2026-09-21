@@ -63,3 +63,20 @@ set_tests_properties(ShadingParity_OlWiring PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
+
+# GitHub #4: Attribute "irradiance" "handle"/"filemode" [""] must not
+# collapse to NULL in RiAttributeV, and CRenderer::getCache() must not
+# crash on a NULL name/mode even if some other caller does pass one.
+add_executable(test_shading_parity_irradiance_empty_string test_irradiance_empty_string.cpp)
+target_link_libraries(test_shading_parity_irradiance_empty_string PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_irradiance_empty_string PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_irradiance_empty_string PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_IrradianceEmptyString COMMAND test_shading_parity_irradiance_empty_string)
+set_tests_properties(ShadingParity_IrradianceEmptyString PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+)
