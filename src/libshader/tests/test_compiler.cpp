@@ -142,12 +142,54 @@ static void test_syntax_error() {
 }
 
 // ---------------------------------------------------------------------------
+// Test 4: successive compile() calls in the same process must not leak
+// flex's cached input-buffer state between files. CScriptContext::compile()
+// used to reassign the global `rsloin` (FILE*) without calling flex's own
+// rslorestart(), so a second compile() could still be scanning left-over
+// bytes buffered from a PREVIOUS file whose parse ended early (e.g. on a
+// syntax error) -- producing parse errors that quote content from a
+// different source entirely. Found while adding GitHub #5's regression
+// test (atmosphere()/debug() compiled fine alone but failed when run after
+// test_syntax_error() in this same binary).
+// ---------------------------------------------------------------------------
+static void test_sequential_compiles_dont_leak_lexer_state() {
+    printf("Test 4: sequential compiles in one process don't leak lexer state\n");
+
+    // First: a syntax error, ending the parse early with unconsumed input
+    // still sitting in flex's buffer.
+    const char *badSrc =
+        "surface leaky_marker_ZZYZX(\n"
+        "    THIS IS NOT VALID RSL {}}}{\n"
+        ")\n";
+    const char *badOut = "/tmp/test_leak_bad.rslo";
+    remove(badOut);
+    compileRSL(badSrc, badOut);
+    remove(badOut);
+
+    // Second: a valid, unrelated shader in the same process. Pre-fix, this
+    // could fail with a parse error quoting a token from badSrc above.
+    const char *goodSrc =
+        "surface leaky_marker_check(\n"
+        "    color Kd = color(0.8, 0.8, 0.8)\n"
+        ") {\n"
+        "    Ci = Kd;\n"
+        "    Oi = Os;\n"
+        "}\n";
+    const char *goodOut = "/tmp/test_leak_good.rslo";
+    remove(goodOut);
+    bool ok = compileRSL(goodSrc, goodOut);
+    EXPECT_TRUE(ok);
+    remove(goodOut);
+}
+
+// ---------------------------------------------------------------------------
 int main() {
     LOG_SET_LEVEL(LOG_LEVEL_NONE); // suppress logging noise during tests
 
     test_trivial_surface();
     test_missing_input();
     test_syntax_error();
+    test_sequential_compiles_dont_leak_lexer_state();
 
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;

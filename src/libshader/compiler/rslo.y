@@ -2825,10 +2825,21 @@ rsloFunctionCallParameters:
 
 
 int	CScriptContext::compile(FILE *in,char *outName) {
-	
+
 	rslo = this;
 
 	rsloin	=	in;
+
+	// flex's generated scanner caches its input buffer across calls in the
+	// same process (rslo* are non-reentrant globals, not CScriptContext
+	// members) -- a bare `rsloin = in;` reassignment does not discard it.
+	// Without this, a second compile() call in one process can still be
+	// scanning left-over bytes buffered from a PREVIOUS file (e.g. one
+	// whose parse ended early on error), producing parse errors that quote
+	// content from a different source entirely. rslorestart() is flex's
+	// own reset for exactly this: it (re)creates the current buffer if
+	// needed and reinitializes it from `in`, discarding any stale bytes.
+	rslorestart(in);
 
 	rsloparse();
 
