@@ -842,7 +842,16 @@ void CRenderer::computeDisplayData() {
                     datas[numDisplays].finish = (TDisplayFinishFunction)osResolve(datas[numDisplays].module, "displayFinish");
                 }
                 else {
+                    // CDisplayData has no ctor, so start/data/rawData/finish are
+                    // uninitialized here -- null them too, not just module, or the
+                    // "missing implementation" check below reads garbage and can
+                    // call through an uninitialized function pointer (found via
+                    // ASan while investigating GitHub #2).
                     datas[numDisplays].module = NULL;
+                    datas[numDisplays].start = NULL;
+                    datas[numDisplays].data = NULL;
+                    datas[numDisplays].rawData = NULL;
+                    datas[numDisplays].finish = NULL;
                     error(CODE_SYSTEM, "Failed to open out device \"%s\" (error: %s)\n", cDisplay->outDevice, osModuleError());
                 }
             }

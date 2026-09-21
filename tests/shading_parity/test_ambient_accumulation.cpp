@@ -201,9 +201,11 @@ static void test_t019_no_crash_when_alights_null() {
         RiWorldEnd();
     }
 
-    CShaderInstance *toDetach = light;
-    if (toDetach)
-        toDetach->detach();
+    // light is owned solely by CRenderer::allLights (one attach() in
+    // CShaderInstance's ctor, one matching detach() in endRenderer()) -- it
+    // must not be detach()'d here too. Doing so freed it before RiEnd()'s
+    // endRenderer() detached it a second time, a heap-use-after-free
+    // confirmed via ASan (GitHub #2).
     RiEnd();
 
     // Reported rather than discarded -- see the note in
@@ -275,9 +277,8 @@ static void test_t020_ambient_accumulates_once() {
         RiWorldEnd();
     }
 
-    CShaderInstance *toDetach = light;
-    if (toDetach)
-        toDetach->detach();
+    // See the note in test_t019_no_crash_when_alights_null(): light is owned
+    // solely by CRenderer::allLights; do not detach() it here.
     RiEnd();
 
     // Reported rather than discarded -- see the note in
