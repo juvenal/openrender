@@ -30,6 +30,40 @@ set_tests_properties(LibShader_Compiler PROPERTIES
 message(STATUS "  - LibShader_Compiler (unit tests for RSL compiler)")
 
 # ---------------------------------------------------------------------------
+# test_atmosphere_debug_builtins — GitHub #5: atmosphere() and debug() were
+# missing from rslo.cpp's compiler symbol table (present in shaderFunctions.h's
+# runtime dispatch tables already). One compile() call per process (see the
+# file's header comment for why), so two ctest entries run the same binary
+# with an argv switch rather than sharing one executable/process.
+# ---------------------------------------------------------------------------
+add_executable(test_libshader_atmosphere_debug_builtins test_atmosphere_debug_builtins.cpp)
+
+target_compile_features(test_libshader_atmosphere_debug_builtins PRIVATE cxx_std_20)
+
+target_include_directories(test_libshader_atmosphere_debug_builtins PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/libshader/compiler   # rslo.h (CScriptContext)
+    ${CMAKE_BINARY_DIR}/src/libshader/compiler   # Flex/Bison generated headers
+    ${CMAKE_SOURCE_DIR}/src                      # common/, logging.h
+)
+
+target_link_libraries(test_libshader_atmosphere_debug_builtins PRIVATE
+    libshader_compiler
+    openrendercommon
+)
+
+add_test(NAME LibShader_AtmosphereBuiltin
+    COMMAND test_libshader_atmosphere_debug_builtins)
+add_test(NAME LibShader_DebugBuiltin
+    COMMAND test_libshader_atmosphere_debug_builtins debug)
+
+set_tests_properties(LibShader_AtmosphereBuiltin LibShader_DebugBuiltin PROPERTIES
+    TIMEOUT 30
+    LABELS  "libshader;compiler;unit"
+)
+
+message(STATUS "  - LibShader_AtmosphereBuiltin / LibShader_DebugBuiltin (GitHub #5 compiler symbol-table regression)")
+
+# ---------------------------------------------------------------------------
 # The three tests below all reach into llvmEmitter.cpp -- kHandledOpcodes,
 # kOpcodeParamTable and computeUsedParameters() are defined there, and that
 # translation unit is only compiled when OPENRENDER_HAVE_LLVM is set (see

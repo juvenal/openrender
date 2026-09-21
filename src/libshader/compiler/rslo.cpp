@@ -1014,6 +1014,18 @@ CScriptContext::CScriptContext(int s) {
     addBuiltInFunction("surface", "f=SN", 0);
     addBuiltInFunction("surface", "f=SS", 0);
     addBuiltInFunction("surface", "f=SM", 0);
+    // atmosphere()'s runtime dispatch (AtmosphereV/Atmosphere/AtmosphereS/
+    // AtmosphereM in shaderFunctions.h) already exists and mirrors
+    // surface's/displacement's -- this compiler-side registration was
+    // simply missing, making atmosphere() uncallable from any RSL shader
+    // under either backend (GitHub #5).
+    addBuiltInFunction("atmosphere", "f=SF", 0);
+    addBuiltInFunction("atmosphere", "f=SV", 0);
+    addBuiltInFunction("atmosphere", "f=SC", 0);
+    addBuiltInFunction("atmosphere", "f=SP", 0);
+    addBuiltInFunction("atmosphere", "f=SN", 0);
+    addBuiltInFunction("atmosphere", "f=SS", 0);
+    addBuiltInFunction("atmosphere", "f=SM", 0);
     addBuiltInFunction("lightsource", "f=SF", 0, 0);
     addBuiltInFunction("lightsource", "f=SV", 0, 0);
     addBuiltInFunction("lightsource", "f=SN", 0, 0);
@@ -1067,6 +1079,15 @@ CScriptContext::CScriptContext(int s) {
     addBuiltInFunction("shadername", "s=S", 0);
     addBuiltInFunction("concat", "s=ss*", 0);
     addBuiltInFunction("match", "f=ss", 0);
+    // debug()'s runtime dispatch (DebugFloat/DebugP/DebugC/DebugN/
+    // DebugVector in shaderFunctions.h) already exists -- this compiler-side
+    // registration was simply missing, making debug() uncallable from any
+    // RSL shader under either backend (GitHub #5).
+    addBuiltInFunction("debug", "o=f", 0);
+    addBuiltInFunction("debug", "o=p", 0);
+    addBuiltInFunction("debug", "o=c", 0);
+    addBuiltInFunction("debug", "o=n", 0);
+    addBuiltInFunction("debug", "o=v", 0);
     addBuiltInFunction("printf", "o=s.*", 0);
     addBuiltInFunction("format", "s=s.*", 0);
     addBuiltInFunction("texture", "f=SFff!", 0);
