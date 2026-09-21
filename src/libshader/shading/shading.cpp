@@ -3761,6 +3761,79 @@ void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int 
     }
 }
 
+// printf() (GitHub #11) -- byte-faithful transcription of PRINTFEXPR
+// (scriptFunctions.h): same %f/%d/%c/%n/%p/%s/%m token scanning as
+// jitFormat above, but printf()'s the built string per real vertex
+// instead of persisting it as a result (no dst -- "o=s.*" has none).
+// Gated by numRealVertices exactly like PRINTFEXPR's own `vertexN <
+// numRealVertices` check, so a derivative-expanded point (raytrace
+// tier: real + du-ghost + dv-ghost) prints once, matching the
+// interpreter, not three times.
+void CShadingContext::jitPrintf(const char *const *fmt, int sf, void *const *operands,
+                                const int *strides, int numOperands, int n, const int *tags) {
+    (void)numOperands;
+    const int numRealVertices = currentShadingState->numRealVertices;
+    const int limit = n < numRealVertices ? n : numRealVertices;
+    for (int i = 0; i < limit; ++i) {
+        if (tags && tags[i])
+            continue;
+        const char *str = JIT_IDX(fmt, sf, i)[0];
+        char output[MAX_SCRIPT_STRING_SIZE];
+        char *tmp = output;
+        int cp = -1;
+        while (*str != '\0') {
+            if (*str == '%') {
+                str++;
+                if (*str == '\0')
+                    break;
+                if (*str == 'f') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%f", fv[0]);
+                }
+                else if (*str == 'd') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%d", (int)fv[0]);
+                }
+                else if (*str == 'c' || *str == 'n' || *str == 'p') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "(%f,%f,%f)",
+                            fv[0], fv[1], fv[2]);
+                }
+                else if (*str == 's') {
+                    cp++;
+                    const char *sv = JIT_IDX((const char *const *)operands[cp], strides[cp], i)[0];
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output), "%s", sv);
+                }
+                else if (*str == 'm') {
+                    cp++;
+                    const float *fv = JIT_IDX((const float *)operands[cp], strides[cp], i);
+                    snprintf(tmp, MAX_SCRIPT_STRING_SIZE - (size_t)(tmp - output),
+                            "((%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f),(%f,%f,%f,%f))",
+                            fv[0], fv[1], fv[2], fv[3], fv[4], fv[5], fv[6], fv[7],
+                            fv[8], fv[9], fv[10], fv[11], fv[12], fv[13], fv[14], fv[15]);
+                }
+                else {
+                    *tmp = *str;
+                    tmp++;
+                }
+                str++;
+                tmp = strchr(tmp, '\0');
+            }
+            else {
+                *tmp = *str;
+                tmp++;
+                str++;
+            }
+        }
+        *tmp = '\0';
+
+        printf("%s", output);
+    }
+}
+
 // clearlighting() -- byte-faithful transcription of execute.cpp's
 // clearLighting() macro: mark lighting not-yet-executed for this grid and
 // reset the shaded-light list, reusing its nodes as the new free list

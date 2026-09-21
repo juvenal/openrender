@@ -46,6 +46,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -656,6 +657,18 @@ static bool emitFunction(const IRFunction &irFn,
         }
         if (tok.size() >= 2 && tok.front() == '"' && tok.back() == '"') {
             std::string s = tok.substr(1, tok.size() - 2);
+            // The runtime .rslo loader unescapes \n/\t/\r/\\ via
+            // osProcessEscapes() when it re-parses a compiled string
+            // literal (libshader/runtime/rslo.l, libshader/shading/rslo.l)
+            // -- the JIT path materializes this token directly from the
+            // IR's raw text and never round-trips through that loader, so
+            // without this call a literal like "...\n" would carry a
+            // literal backslash-n into the shader instead of a real
+            // newline. Found via printf() (GitHub #11) parity testing
+            // against the interpreter; applies to every JIT string literal,
+            // not just printf's.
+            osProcessEscapes(s.data());
+            s.resize(std::strlen(s.data()));
             llvm::Value *sptr = B.CreateGlobalString(s, "strlit");
             auto *alloca = B.CreateAlloca(ptrTy, nullptr, "strlit_pp");
             B.CreateStore(sptr, alloca);
@@ -3059,15 +3072,77 @@ static bool emitFunction(const IRFunction &irFn,
                                   val, B.getInt32(sval), n, tg});
             }
 
-            // ================================================================
-            // No-op opcodes (string/print built-ins with no per-vertex effect)
-            // ================================================================
-            else if (op == "printf" ||
-                     op == "return" || op == "jmp") {
-                // Silently skip — no per-vertex output.
+            // printf() (GitHub #11): was silently dropped here -- "covered"
+            // by kHandledOpcodes[] with a dispatch case that emitted no IR
+            // at all, so it compiled clean and did nothing at runtime.
+            // "o=s.*" -- unlike format()'s "s=s.*", printf has no real RSL
+            // result, so the bytecode binds its FIRST logical argument (the
+            // format string) into ins.result instead of operands[0], the
+            // same convention setcomp()'s "o=Vff" uses for its mutated
+            // vector (see the setcomp case above). operands[0..N-1] are
+            // the trailing values, each resolved via getVar() at its own
+            // real RSL type. Confirmed via a throwaway pure-numeric probe's
+            // compiled .rslo (`printf ("o=sff") result "..." v_1 v_1`) --
+            // getVar(ins,0) on operands[0] was reading the FIRST VALUE as
+            // the format string, corrupting every printf/format call with
+            // >=1 trailing operand (caught during manual verification, not
+            // by any test -- see the regression test added alongside this
+            // fix).
+            //
+            // Unlike format() (whose dst is a real, possibly-uniform RSL
+            // variable -- collapsing to n=1 there only skips redundant,
+            // identical recomputation), printf's *count* of prints is
+            // itself the observable behavior: the interpreter's PRINTFEXPR
+            // loops every real vertex regardless of uniformity. So this
+            // case never collapses to the uniform fast path -- always pass
+            // the real numVerts/tags, exactly like the interpreter's own
+            // per-vertex loop.
+            else if (op == "printf") {
+                if (ins.result.empty())
+                    continue;
+                llvm::Value *fmt = nullptr;
+                int sf = 0;
+                VarDesc fmtDesc{};
+                if (resolveVar(ins.result, fmtDesc)) {
+                    fmt = loadVarPtr(fmtDesc);
+                    sf = fmtDesc.stride;
+                } else {
+                    std::tie(fmt, sf) = allocLiteral(ins.result);
+                }
+                if (!fmt)
+                    continue;
+                int numOperands = (int)ins.operands.size();
+                int arrLen = numOperands > 0 ? numOperands : 1;
+                auto *ptrArrTy = llvm::ArrayType::get(ptrTy, arrLen);
+                auto *strideArrTy = llvm::ArrayType::get(i32Ty, arrLen);
+                auto *ptrArr = B.CreateAlloca(ptrArrTy, nullptr, "printf_ops");
+                auto *strideArr = B.CreateAlloca(strideArrTy, nullptr, "printf_strides");
+
+                bool ok = true;
+                for (int k = 0; k < numOperands; ++k) {
+                    auto [p, s] = getVar(ins, k);
+                    if (!p) {
+                        ok = false;
+                        break;
+                    }
+                    auto *pGep = B.CreateGEP(ptrArrTy, ptrArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(p, pGep);
+                    auto *sGep = B.CreateGEP(strideArrTy, strideArr, {B.getInt32(0), B.getInt32(k)});
+                    B.CreateStore(B.getInt32(s), sGep);
+                }
+                if (ok) {
+                    // (fmt, sf, operands**, strides*, numOperands, n, tags)
+                    auto *ty = llvm::FunctionType::get(
+                        voidTy, {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_printf", ty);
+                    B.CreateCall(fn, {fmt, B.getInt32(sf), ptrArr, strideArr,
+                                      B.getInt32(numOperands), numVerts, tags});
+                }
             }
 
-            // Unrecognised opcode — skip silently.
+            // Unrecognised opcode — skip silently. ("return"/"jmp" never
+            // reach here -- both are already caught and handled at the top
+            // of this same instruction loop, before this else-if chain.)
         }
     }
 

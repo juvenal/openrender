@@ -534,6 +534,12 @@ void op_format(char **dst, int sd, const char *const *fmt, int sf,
                void *const *operands, const int *strides, int numOperands,
                int n, const int *tags);
 
+// printf() (GitHub #11): same token-scanning as op_format, delegating to
+// CShadingContext::jitPrintf. Pure side effect (stdout) -- no dst/result,
+// unlike format().
+void op_printf(const char *const *fmt, int sf, void *const *operands,
+               const int *strides, int numOperands, int n, const int *tags);
+
 // clearlighting() / debug() (spec 017-jit-builtin-function-coverage, US5).
 // Both are pure side-effect calls -- no dst, no result.
 void op_clearlighting();

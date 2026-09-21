@@ -2056,6 +2056,13 @@ void op_format(char **dst, int sd, const char *const *fmt, int sf,
         ctx->jitFormat(dst, sd, fmt, sf, operands, strides, numOperands, n, tags);
 }
 
+void op_printf(const char *const *fmt, int sf, void *const *operands,
+               const int *strides, int numOperands, int n, const int *tags) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitPrintf(fmt, sf, operands, strides, numOperands, n, tags);
+}
+
 void op_clearlighting() {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)

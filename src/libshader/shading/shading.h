@@ -712,6 +712,22 @@ class CShadingContext {
                        void *const *operands, const int *strides, int numOperands,
                        int n, const int *tags);
 
+        // printf() (GitHub #11): was a silent no-op under --jit -- listed in
+        // kHandledOpcodes[] and dispatched in emitFunction(), but that case
+        // emitted no IR at all. Byte-faithful transcription of PRINTFEXPR
+        // (scriptFunctions.h, shared with format()'s own PRINTEXPR): same
+        // %f/%d/%c/%n/%p/%s/%m token scanning as jitFormat, but a pure side
+        // effect (stdout) instead of a string result -- no dst. Gated by
+        // numRealVertices exactly like PRINTFEXPR, so a derivative-expanded
+        // shading point (raytrace tier: real + du-ghost + dv-ghost) prints
+        // once, not three times. No new locking beyond plain printf()'s own
+        // per-call atomicity -- the interpreter's PRINTFEXPR has never had
+        // more than that either, despite already running on this renderer's
+        // worker threads today; adding one here would be a JIT-only
+        // stronger guarantee with no interpreter counterpart, not parity.
+        void jitPrintf(const char *const *fmt, int sf, void *const *operands,
+                       const int *strides, int numOperands, int n, const int *tags);
+
         // clearlighting() -- transcribes execute.cpp's clearLighting() macro
         // exactly: mark lighting not-yet-executed and reset the shaded-light
         // list, reusing its nodes as the new free list. No args, no result.
