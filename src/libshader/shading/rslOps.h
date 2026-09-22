@@ -276,6 +276,27 @@ void op_pfrom(float *dst, int sd, const char *space, const float *src, int ss, i
 void op_ptransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
 void op_ntransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
 void op_vtransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
+
+/* GitHub #10: transform()/vtransform()/ntransform() have three more overloads
+ * beyond the single-space "S" form above, each with a different operand
+ * shape that the JIT previously misread operand 0 as a space-name string
+ * for regardless of which was actually instantiated. One op_* per overload
+ * per family, mirroring the interpreter's TRANSFORM*EXPR/VTRANSFORM*EXPR/
+ * NTRANSFORM*EXPR macros (shaderFunctions.h) exactly. */
+/* "p=mp" / "v=mv" / "n=mn": matrix-argument overload, transform(M, P). No
+ * space lookup at all -- direct matrix*point (or matrix-inverse-transpose*normal
+ * for the normal form). */
+void op_ptransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags);
+void op_vtransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags);
+void op_ntransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags);
+/* "p=SSp" / "v=SSv" / "n=SSn": two-space overload, transform(fromSpace, toSpace, P). */
+void op_ptransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags);
+void op_vtransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags);
+void op_ntransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags);
+/* "p=Smp" / "v=Smv" / "n=Smn": space+matrix overload, transform(space, M, P). */
+void op_ptransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags);
+void op_vtransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags);
+void op_ntransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags);
 /* op_cfrom: mirror of CFROMEXPR — color "space" (...) constructor, named→current
  * via convertColorFrom(). Unlike op_pfrom, resolves an ECoordinateSystem (not a
  * 4x4 matrix): color spaces (hsv/hsl/xyz/...) share the same name lookup as

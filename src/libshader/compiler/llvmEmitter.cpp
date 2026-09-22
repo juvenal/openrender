@@ -1812,9 +1812,10 @@ static bool emitFunction(const IRFunction &irFn,
             // op_ntransform already in rslOps.h)
             // Quoted string operand is passed as a global char* constant.
             // ================================================================
-            else if (op == "pfrom" || op == "vtransform" ||
-                     op == "ntransform" || op == "transform") {
-                // operands: space_string src
+            else if (op == "pfrom") {
+                // Fixed-arity DEFOPCODE (not a DEFFUNC overload set — the
+                // point "space" (...) literal constructor always has this
+                // one shape): space_string src.
                 if (ins.operands.size() < 2)
                     continue;
                 const std::string &spaceToken = ins.operands[0].token;
@@ -1822,38 +1823,106 @@ static bool emitFunction(const IRFunction &irFn,
                 if (!dst || !src)
                     continue;
 
-                // Strip surrounding quotes from the space name token
                 std::string spaceName = spaceToken;
                 if (spaceName.size() >= 2 && spaceName.front() == '"')
                     spaceName = spaceName.substr(1, spaceName.size() - 2);
-
                 llvm::Value *spacePtr = B.CreateGlobalString(spaceName, "space_str");
 
-                // (float* dst, int sd, const char* space, const float* src, int ss, int n, const int* tags)
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                // For generic "transform", use proto to pick the right function:
-                //   p=Sp → op_pfrom, n=Sn → op_ntransform, v=Sv → op_vtransform
-                const char *fnName;
-                if (op == "ntransform") {
-                    fnName = "op_ntransform";
-                }
-                else if (op == "vtransform") {
-                    fnName = "op_vtransform";
-                }
-                else if (op == "transform") {
-                    // Determine by proto: "n=..." → ntransform, "v=..." → vtransform, else ptransform.
-                    // RSL transform() goes current→named (uses "to" matrix), unlike pfrom which is named→current.
-                    fnName = (!ins.proto.empty() && ins.proto[0] == 'n')   ? "op_ntransform"
-                             : (!ins.proto.empty() && ins.proto[0] == 'v') ? "op_vtransform"
-                                                                           : "op_ptransform";
-                }
-                else {
-                    fnName = "op_pfrom";
-                }
-                auto *fn = declareOp(mod, fnName, ty);
+                auto *fn = declareOp(mod, "op_pfrom", ty);
                 auto [n, tg] = collapseArgs(dstStrideVal, {ss});
                 B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
+            }
+            else if (op == "vtransform" || op == "ntransform" || op == "transform") {
+                // GitHub #10: unlike pfrom, each of these three mnemonics is
+                // a DEFFUNC with FOUR overloads (shaderFunctions.h):
+                //   "p=Sp"  / "v=Sv"  / "n=Sn"   -- one space name
+                //   "p=SSp" / "v=SSv" / "n=SSn"  -- two space names
+                //   "p=mp"  / "v=mv"  / "n=mn"   -- one matrix, no space at all
+                //   "p=Smp" / "v=Smv" / "n=Smn"  -- one space name + one matrix
+                // The operand SHAPE differs per overload (a matrix operand is
+                // not a compile-time string token like a space name is), so
+                // ins.proto MUST be consulted before operands are read at
+                // all -- reading operand 0 as a space-name string
+                // unconditionally (the pre-fix behavior) embedded a matrix
+                // variable's own identifier as a literal space name whenever
+                // the "m"/"Sm" overloads were instantiated.
+                auto stripQuotes = [](const std::string &tok) {
+                    if (tok.size() >= 2 && tok.front() == '"')
+                        return tok.substr(1, tok.size() - 2);
+                    return tok;
+                };
+                // proto's RHS, minus the trailing result-type letter (the
+                // "p"/"v"/"n" that names what's being transformed): "S",
+                // "SS", "m", or "Sm".
+                std::string shape;
+                size_t eq = ins.proto.find('=');
+                if (eq != std::string::npos && ins.proto.size() >= eq + 3)
+                    shape = ins.proto.substr(eq + 1, ins.proto.size() - eq - 2);
+
+                const char *kindSuffix = (op == "ntransform") ? "n" : (op == "vtransform") ? "v" : "p";
+                auto pickFn = [&](const char *base) -> std::string {
+                    return std::string("op_") + kindSuffix + base;
+                };
+
+                if (shape == "S") {
+                    if (ins.operands.size() < 2)
+                        continue;
+                    auto [src, ss] = getVar(ins, 1);
+                    if (!dst || !src)
+                        continue;
+                    llvm::Value *spacePtr = B.CreateGlobalString(stripQuotes(ins.operands[0].token), "space_str");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, pickFn("transform"), ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                    B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
+                }
+                else if (shape == "m") {
+                    // (float* dst, int sd, const float* m, int sm, const float* src, int ss, int n, const int* tags)
+                    if (ins.operands.size() < 2)
+                        continue;
+                    auto [m, sm] = getVar(ins, 0);
+                    auto [src, ss] = getVar(ins, 1);
+                    if (!dst || !m || !src)
+                        continue;
+                    auto *fn = declareOp(mod, pickFn("transform_m"), binOpTy);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sm, ss});
+                    B.CreateCall(fn, {dst, dstStride, m, B.getInt32(sm), src, B.getInt32(ss), n, tg});
+                }
+                else if (shape == "SS") {
+                    // (float* dst, int sd, const char* space1, const char* space2, const float* src, int ss, int n, const int* tags)
+                    if (ins.operands.size() < 3)
+                        continue;
+                    auto [src, ss] = getVar(ins, 2);
+                    if (!dst || !src)
+                        continue;
+                    llvm::Value *space1Ptr = B.CreateGlobalString(stripQuotes(ins.operands[0].token), "space1_str");
+                    llvm::Value *space2Ptr = B.CreateGlobalString(stripQuotes(ins.operands[1].token), "space2_str");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, pickFn("transform_ss"), ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                    B.CreateCall(fn, {dst, dstStride, space1Ptr, space2Ptr, src, B.getInt32(ss), n, tg});
+                }
+                else if (shape == "Sm") {
+                    // (float* dst, int sd, const char* space, const float* m, int sm, const float* src, int ss, int n, const int* tags)
+                    if (ins.operands.size() < 3)
+                        continue;
+                    auto [m, sm] = getVar(ins, 1);
+                    auto [src, ss] = getVar(ins, 2);
+                    if (!dst || !m || !src)
+                        continue;
+                    llvm::Value *spacePtr = B.CreateGlobalString(stripQuotes(ins.operands[0].token), "space_str");
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                    auto *fn = declareOp(mod, pickFn("transform_sm"), ty);
+                    auto [n, tg] = collapseArgs(dstStrideVal, {sm, ss});
+                    B.CreateCall(fn, {dst, dstStride, spacePtr, m, B.getInt32(sm), src, B.getInt32(ss), n, tg});
+                }
+                // else: unrecognized proto shape -- defensively skip rather
+                // than misdispatch to the wrong overload's op_* function.
             }
 
             // ================================================================

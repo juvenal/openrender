@@ -97,6 +97,21 @@ set_tests_properties(ShadingParity_UniformConditionalJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# GitHub #10: transform()/vtransform()/ntransform()'s matrix-argument
+# ("p=mp"), two-space ("p=SSp") and space+matrix ("p=Smp") overloads were
+# all dispatched under --jit as if they were the single-space ("p=Sp")
+# overload, unconditionally reading operand 0 as a space-name string.
+# Renders a real fixture through the actual orender CLI on both backends.
+add_executable(test_shading_parity_matrix_transform_jit test_matrix_transform_jit.cpp)
+target_link_libraries(test_shading_parity_matrix_transform_jit PRIVATE openrender_common_flags)
+target_compile_features(test_shading_parity_matrix_transform_jit PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_MatrixTransformJit COMMAND test_shading_parity_matrix_transform_jit)
+set_tests_properties(ShadingParity_MatrixTransformJit PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+)
+
 # GitHub #4: Attribute "irradiance" "handle"/"filemode" [""] must not
 # collapse to NULL in RiAttributeV, and CRenderer::getCache() must not
 # crash on a NULL name/mode even if some other caller does pass one.

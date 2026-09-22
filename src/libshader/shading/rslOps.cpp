@@ -1102,6 +1102,148 @@ void op_ntransform(float *dst, int sd, const char *space, const float *src, int 
         }
 }
 
+// GitHub #10: matrix-argument overload transform(M, P) "p=mp" -- mirrors
+// TRANSFORM3EXPR exactly: mulmp(res, op1, op2). No space lookup at all.
+void op_ptransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            mulmp(IDX(dst, sd, i), IDX(m, sm, i), IDX(src, ss, i));
+}
+
+// vtransform(M, V) "v=mv" -- mirrors VTRANSFORM3EXPR: mulmv(res, op1, op2).
+void op_vtransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            mulmv(IDX(dst, sd, i), IDX(m, sm, i), IDX(src, ss, i));
+}
+
+// ntransform(M, N) "n=mn" -- mirrors NTRANSFORM3EXPR: invertm(mtmp, op1);
+// mulmn(res, mtmp, op2). Normals transform by the inverse-transpose.
+void op_ntransform_m(float *dst, int sd, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            matrix inv;
+            invertm(inv, IDX(m, sm, i));
+            mulmn(IDX(dst, sd, i), inv, IDX(src, ss, i));
+        }
+}
+
+// GitHub #10: two-space overload transform(fromSpace, toSpace, P) "p=SSp" --
+// mirrors TRANSFORM2EXPR: vtmp = from1*op3 (space1->current); res = to2*vtmp
+// (current->space2). Unresolved space(s) fall back to identity passthrough,
+// matching the single-space overloads' established convention.
+void op_ptransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags) {
+    const float *from1 = nullptr, *to2 = nullptr;
+    if (!space1 || !getFromMatrix(space1, from1) || !space2 || !getToMatrix(space2, to2)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            mulmp(vtmp, from1, IDX(src, ss, i));
+            mulmp(IDX(dst, sd, i), to2, vtmp);
+        }
+}
+
+// vtransform(fromSpace, toSpace, V) "v=SSv" -- mirrors VTRANSFORM2EXPR (same
+// shape as above with mulmv).
+void op_vtransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags) {
+    const float *from1 = nullptr, *to2 = nullptr;
+    if (!space1 || !getFromMatrix(space1, from1) || !space2 || !getToMatrix(space2, to2)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            mulmv(vtmp, from1, IDX(src, ss, i));
+            mulmv(IDX(dst, sd, i), to2, vtmp);
+        }
+}
+
+// ntransform(fromSpace, toSpace, N) "n=SSn" -- mirrors NTRANSFORM2EXPR:
+// vtmp = to1*op3; res = from2*vtmp (to/from roles swapped vs the point form,
+// matching normals' inverse-transpose convention).
+void op_ntransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags) {
+    const float *to1 = nullptr, *from2 = nullptr;
+    if (!space1 || !getToMatrix(space1, to1) || !space2 || !getFromMatrix(space2, from2)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            mulmn(vtmp, to1, IDX(src, ss, i));
+            mulmn(IDX(dst, sd, i), from2, vtmp);
+        }
+}
+
+// GitHub #10: space+matrix overload transform(space, M, P) "p=Smp" --
+// mirrors TRANSFORM4EXPR: vtmp = from*op3 (space->current); res = op2*vtmp
+// (apply the given matrix directly to the current-space point).
+void op_ptransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    const float *from = nullptr;
+    if (!space || !getFromMatrix(space, from)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            mulmp(vtmp, from, IDX(src, ss, i));
+            mulmp(IDX(dst, sd, i), IDX(m, sm, i), vtmp);
+        }
+}
+
+// vtransform(space, M, V) "v=Smv" -- mirrors VTRANSFORM4EXPR (same shape
+// with mulmv).
+void op_vtransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    const float *from = nullptr;
+    if (!space || !getFromMatrix(space, from)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            mulmv(vtmp, from, IDX(src, ss, i));
+            mulmv(IDX(dst, sd, i), IDX(m, sm, i), vtmp);
+        }
+}
+
+// ntransform(space, M, N) "n=Smn" -- mirrors NTRANSFORM4EXPR: invertm(mtmp,
+// op2); vtmp = to*op3; res = mtmp*vtmp (normals: invert the given matrix,
+// use "to" not "from" for the space leg, matching the inverse-transpose
+// convention).
+void op_ntransform_sm(float *dst, int sd, const char *space, const float *m, int sm, const float *src, int ss, int n, const int *tags) {
+    const float *to = nullptr;
+    if (!space || !getToMatrix(space, to)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i))
+                movvv(IDX(dst, sd, i), IDX(src, ss, i));
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            matrix inv;
+            invertm(inv, IDX(m, sm, i));
+            vector vtmp;
+            mulmn(vtmp, to, IDX(src, ss, i));
+            mulmn(IDX(dst, sd, i), inv, vtmp);
+        }
+}
+
 // Resolves the ECoordinateSystem for a named color space (hsv/hsl/xyz/...),
 // same lookup findCoordinateSystem() uses for point spaces — colorspace names
 // and point-space names share one name trie and one ECoordinateSystem enum.
