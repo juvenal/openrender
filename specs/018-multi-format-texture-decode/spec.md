@@ -8,6 +8,13 @@
 
 **Input**: User description: "Spec 018 of a 3-spec layered effort to add multi-format texture support to openRender: introduce an image-decode abstraction and wire it into otexmake's bake pipeline (texmake.cpp) so PNG, OpenEXR, and RGBE/Radiance HDR files can be used as texture bake sources alongside TIFF, with byte-identical output preserved for existing TIFF sources and no change to the baked-texture output format or the runtime render-time read path."
 
+## Clarifications
+
+### Session 2026-09-22
+
+- Q: Should a multi-part OpenEXR file ever be accepted if it happens to contain exactly one part with a supported RGB/RGBA/luminance layout? → A: No — any multi-part OpenEXR file is rejected outright, regardless of what it contains.
+- Q: Which PNG color types must `otexmake` support as bake sources? → A: RGB, RGBA, Grayscale, and Grayscale+Alpha only — indexed/palette PNGs are rejected with a clear error, mirroring the EXR channel-layout scope decision above.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Bake a texture from a PNG source (Priority: P1)
@@ -36,6 +43,9 @@ produced and that its pixel content matches the source.
 3. **Given** a 16-bit-per-channel PNG source file, **When** it is baked,
    **Then** the full 16-bit precision is preserved rather than being
    silently downsampled to 8-bit.
+4. **Given** an indexed/palette PNG source file, **When** baking is
+   attempted, **Then** `otexmake` fails with a clear, specific error rather
+   than de-palettizing it or producing incorrect color output.
 
 ---
 
@@ -63,10 +73,14 @@ is reported instead of a wrong or silently-truncated result.
    precision, including values outside the 0-1 range.
 2. **Given** a single-channel (luminance) OpenEXR source file, **When** it
    is baked, **Then** it produces a valid single-channel texture.
-3. **Given** an OpenEXR source file with an arbitrary multi-part layout or
-   channel set beyond RGB/RGBA/luminance, **When** baking is attempted,
-   **Then** `otexmake` fails with a clear, specific error identifying the
-   file and the reason, rather than guessing a channel subset or crashing.
+3. **Given** an OpenEXR source file with a channel set beyond
+   RGB/RGBA/luminance, **When** baking is attempted, **Then** `otexmake`
+   fails with a clear, specific error identifying the file and the reason,
+   rather than guessing a channel subset or crashing.
+4. **Given** a multi-part OpenEXR source file, **When** baking is
+   attempted, **Then** `otexmake` rejects it outright with a clear error —
+   unconditionally, even if the file contains exactly one part with an
+   otherwise-supported RGB/RGBA/luminance layout.
 
 ---
 
@@ -125,25 +139,31 @@ resulting texture's decoded radiance values match the source.
   precision (8-bit integer, 16-bit integer, or floating point) when baking,
   rather than always converting to one fixed precision regardless of the
   source.
-- **FR-004**: For OpenEXR sources, `otexmake` MUST support RGB, RGBA, and
-  single-channel/luminance layouts. Sources with additional channels,
-  multiple parts, or another ambiguous layout MUST be rejected with a
-  clear, specific error rather than an automatic or partial interpretation.
-- **FR-005**: `otexmake` MUST apply no colorspace or gamma conversion when
+- **FR-004**: For OpenEXR sources, `otexmake` MUST support single-part
+  files with RGB, RGBA, or single-channel/luminance layouts. Sources with
+  additional/unsupported channels MUST be rejected with a clear, specific
+  error rather than an automatic or partial interpretation. Multi-part
+  files MUST be rejected outright and unconditionally — even one
+  containing exactly one part with an otherwise-supported layout.
+- **FR-005**: For PNG sources, `otexmake` MUST support RGB, RGBA,
+  Grayscale, and Grayscale+Alpha color types. Indexed/palette PNG sources
+  MUST be rejected with a clear, specific error rather than being
+  de-palettized or otherwise auto-converted.
+- **FR-006**: `otexmake` MUST apply no colorspace or gamma conversion when
   decoding any source format — pixel samples are read and baked as-is, with
   no change from the current raw-sample-copy behavior for TIFF sources.
-- **FR-006**: Baking a texture, environment map (cubic/spherical/
+- **FR-007**: Baking a texture, environment map (cubic/spherical/
   cylindrical), or shadow map from an existing TIFF source MUST produce
   output that is byte-for-byte identical to the tool's pre-change behavior.
-- **FR-007**: `otexmake` MUST report a clear, actionable error — not a
+- **FR-008**: `otexmake` MUST report a clear, actionable error — not a
   crash, hang, or silently incorrect result — when given a source file that
   is an unsupported format, or that is corrupted/unreadable within a
   supported format.
-- **FR-008**: This feature MUST NOT require any change to how the renderer
+- **FR-009**: This feature MUST NOT require any change to how the renderer
   loads or reads baked textures at render time (`texture()`/`environment()`
   lookups) — the baked-texture output remains the existing tiled/mipmapped
   format, loadable exactly as it is today.
-- **FR-009**: RGBE (Radiance HDR) source support MUST reuse the existing,
+- **FR-010**: RGBE (Radiance HDR) source support MUST reuse the existing,
   already-implemented RGBE decode routines in the codebase rather than
   reimplementing RGBE decoding from scratch.
 
