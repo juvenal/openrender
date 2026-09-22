@@ -369,3 +369,16 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
    overload dispatches as the string-space overload), and **#11**
    (`printf()`, above). See `specs/017-jit-builtin-function-coverage/`
    for the full inventory and verification detail.
+
+## Active Technologies
+- C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
+  `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
+  (018-multi-format-texture-decode)
+- Storage: N/A — reads local image files, writes the existing baked-TIFF
+  texture container unchanged (018-multi-format-texture-decode)
+
+## Recent Changes
+- 018-multi-format-texture-decode: image-decode abstraction
+  (`CImageInput`) added in `src/ri/texture/`, wired into otexmake's bake
+  pipeline (`texmake.cpp`) so PNG/OpenEXR/RGBE sources can be baked
+  alongside TIFF; runtime texture read path untouched (see spec 018).
