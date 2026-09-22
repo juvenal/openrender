@@ -111,8 +111,12 @@ src/ri/texture/
 └── (brickmap/pointCloud/pointHierarchy/texture3d — UNCHANGED, unrelated point-cloud pipeline)
 
 src/display/rgbe/
-└── rgbe.h/.cpp           # UNCHANGED — RGBE_ReadHeader/RGBE_ReadPixels already implemented here;
-                           # imageInputRgbe.cpp calls these, does not reimplement or move them
+└── rgbe.h/.cpp           # Content UNCHANGED — RGBE_ReadHeader/RGBE_ReadPixels already
+                           # implemented here; imageInputRgbe.cpp calls these, does not
+                           # reimplement or move them. Build wiring DOES change: rgbe.cpp
+                           # must additionally be compiled into the src/ri targets (today
+                           # it's only compiled into the rgbe.dsply MODULE, which orender/
+                           # otexmake never link against) — see research.md §5 addendum.
 
 src/ri/CMakeLists.txt      # MODIFIED — add new imageInput*.cpp sources to the existing
                            # texture/*.cpp source lists (same targets that already build

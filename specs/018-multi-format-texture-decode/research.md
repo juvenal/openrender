@@ -136,6 +136,30 @@ rather than reimplementation.
 **Alternatives considered**: None — this is pure wiring, not a design
 decision.
 
+**Addendum (discovered during task planning): build linkage.**
+`src/display/rgbe/rgbe.cpp` is currently compiled only into the `rgbe`
+`.dsply` `MODULE` library (`src/display/rgbe/CMakeLists.txt`), which
+`otexmake`/`orender` do not link against — display drivers are `dlopen`'d
+at runtime (`DEVNOTES_DETAILS`-documented plugin ABI), not link-time
+dependencies of the main binaries. Calling `RGBE_ReadHeader`/
+`RGBE_ReadPixels` from `src/ri/texture/imageInputRgbe.cpp` therefore
+requires `display/rgbe/rgbe.cpp` to also be compiled directly into the
+`src/ri` targets. **Decision**: add `display/rgbe/rgbe.cpp` to the same
+`src/ri/CMakeLists.txt` source lists that `imageInputRgbe.cpp` is added
+to (duplicate compilation of this one small, dependency-free file into
+each consuming binary), mirroring this codebase's existing convention of
+compiling shared `.cpp` files (e.g. `texture/texmake.cpp`) directly into
+multiple target source lists rather than factoring every shared file
+through an intermediate library. `display/rgbe/rgbe.h` is already
+includable from `src/ri` — `src/ri/CMakeLists.txt:43` already adds
+`${CMAKE_CURRENT_SOURCE_DIR}/../display` to the include path, so no new
+include-path change is needed, only the source-list addition.
+**Alternative considered**: factoring `rgbe.cpp`'s read functions into a
+small shared static library linked by both the `rgbe` module and the
+`src/ri` targets (rejected — adds a new library target and a new link
+dependency for two functions, more machinery than this codebase's
+established multi-target-source-list convention already handles).
+
 ## 6. Error reporting convention
 
 **Decision**: All decode failures (`open()` or `readImage()` returning
