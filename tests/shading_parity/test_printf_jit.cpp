@@ -46,6 +46,21 @@
  * afterwards by giving printf its own DEFPRINTFUNC dispatch macro. This
  * test was updated once that landed to assert the parity it always should
  * have had.
+ *
+ * test_varying_fixture() below covers GitHub #14: a printf() call with a
+ * varying value argument crashed both backends identically -- a compiler
+ * bug, not either backend's. printf's "o=s.*" prototype has no real
+ * return value, so the compiler encodes its format-string argument in the
+ * instruction's result slot (irBuilder.cpp's parseLine() generic
+ * convention: the first token after any opcode's prototype is always
+ * .result). Unlike every other opcode using that slot as a genuine write
+ * target, printf only ever READS it. passDCE.cpp's collectLive() didn't
+ * know that, so whenever a varying argument forced the uniform format
+ * string to be broadcast into a fresh varying temporary (getContainer()'s
+ * uniform-to-varying vustring instruction), that broadcast's own result
+ * was invisible to the liveness scan and got dead-code-eliminated -- the
+ * temporary was left declared but never assigned. Fixed by special-casing
+ * printf's result as live in collectLive().
  */
 
 #include <cassert>
@@ -126,23 +141,16 @@ static int countOccurrences(const std::string &haystack, const std::string &need
     return count;
 }
 
-int main() {
-    printf("GitHub #11: printf() JIT support -- operand indexing, escape handling, per-vertex firing\n");
-
-    const char *oshaderBin = getenv("OSHADER_BIN");
-    const char *orenderBin = getenv("ORENDER_BIN");
-    const char *displaysDir = getenv("TEST_DISPLAYS_DIR");
-    EXPECT_TRUE(oshaderBin != nullptr);
-    EXPECT_TRUE(orenderBin != nullptr);
-    EXPECT_TRUE(displaysDir != nullptr);
-    if (!oshaderBin || !orenderBin || !displaysDir)
-        return 1;
+// GitHub #11/#13: all-uniform printf() call -- operand indexing, escape
+// handling, per-vertex firing, and interpreter/JIT count parity.
+static void test_uniform_fixture(const char *oshaderBin, const char *orenderBin, const char *displaysDir) {
+    printf("GitHub #11/#13: printf() JIT support -- operand indexing, escape handling, per-vertex firing\n");
 
     char tmplBuf[] = "/tmp/shading_parity_printf_XXXXXX";
     char *tmpDir = mkdtemp(tmplBuf);
     EXPECT_TRUE(tmpDir != nullptr);
     if (!tmpDir)
-        return 1;
+        return;
     const std::string dir = tmpDir;
 
     // "qval" deliberately avoids RSL's built-in parametric-coordinate
@@ -156,17 +164,10 @@ int main() {
     const std::string sloOut = dir + "/" + shaderName + ".slo";
     const std::string rsloOut = dir + "/" + shaderName + ".rslo";
     //
-    // Kept deliberately uniform (a bare "qval", not e.g. "qval + N[0]*0"):
-    // mixing a varying value argument into printf() was tried while writing
-    // this test and hit a THIRD, distinct, pre-existing bug -- the compiler
-    // itself mis-lowers printf's format-string operand whenever any value
-    // argument is varying (confirmed via the compiled .rslo text: the
-    // format-string result slot becomes an uninitialized `varying string`
-    // temporary that is never assigned the literal anywhere in the
-    // bytecode) -- and BOTH backends crash identically on that bytecode,
-    // proving it lives in shared IR generation, not either backend. Out of
-    // scope for #11 (which is specifically the JIT's printf no-op); filed
-    // separately, not exercised by this test.
+    // Kept deliberately uniform (a bare "qval") -- the varying-argument
+    // case (GitHub #14, a compiler bug: DCE dead-code-eliminated the
+    // format string's uniform-to-varying broadcast) is covered by
+    // test_varying_fixture() below.
     EXPECT_TRUE(writeFile(src,
         "surface " + shaderName + "(uniform float qval = 3.5)\n"
         "{\n"
@@ -250,6 +251,129 @@ int main() {
     // path. Both backends now dice the same REYES grids and must print the
     // exact same number of lines.
     EXPECT_TRUE(sloCount == rsloCount);
+}
+
+// GitHub #14: printf() call with a varying value argument (forcing the
+// format-string result slot to become an allocated-but-unassigned varying
+// temporary, pre-fix) -- compiler-level, reproduces identically on both
+// backends.
+static void test_varying_fixture(const char *oshaderBin, const char *orenderBin, const char *displaysDir) {
+    printf("GitHub #14: printf() with a varying value argument -- DCE dropped the format string's broadcast\n");
+
+    char tmplBuf[] = "/tmp/shading_parity_printf_varying_XXXXXX";
+    char *tmpDir = mkdtemp(tmplBuf);
+    EXPECT_TRUE(tmpDir != nullptr);
+    if (!tmpDir)
+        return;
+    const std::string dir = tmpDir;
+
+    // "u" (RSL's built-in parametric surface coordinate) is the simplest
+    // guaranteed-varying value available with no arithmetic/indexing of
+    // its own -- keeps this test isolated to the format-string-operand
+    // bug alone, not any other expression-lowering path.
+    const std::string shaderName = "printf_varying_fixture";
+    const std::string src = dir + "/" + shaderName + ".sl";
+    const std::string sloOut = dir + "/" + shaderName + ".slo";
+    const std::string rsloOut = dir + "/" + shaderName + ".rslo";
+    EXPECT_TRUE(writeFile(src,
+        "surface " + shaderName + "()\n"
+        "{\n"
+        "    printf(\"u=%f\\n\", u);\n"
+        "    Ci = color(1,1,1);\n"
+        "}\n"));
+
+    EXPECT_TRUE(runOshader(oshaderBin, src, sloOut, /*jit=*/true));
+    EXPECT_TRUE(runOshader(oshaderBin, src, rsloOut, /*jit=*/false));
+
+    auto writeRib = [&](const std::string &format) {
+        const std::string path = dir + "/scene_" + format + ".rib";
+        writeFile(path,
+            "Format 32 24 1\n"
+            "Projection \"perspective\"\n"
+            "Display \"test.tif\" \"file\" \"rgba\"\n"
+            "WorldBegin\n"
+            "    ShadingRate 100\n"
+            "    Translate 0 0 3\n"
+            "    Attribute \"shade\" \"shaderformat\" [\"" + format + "\"]\n"
+            "    Surface \"" + shaderName + "\"\n"
+            "    Sphere 1 -1 1 360\n"
+            "WorldEnd\n");
+        return path;
+    };
+    const std::string sloRib = writeRib("slo");
+    const std::string rsloRib = writeRib("rslo");
+
+    const std::string sloLog = dir + "/slo_out.log";
+    const std::string rsloLog = dir + "/rslo_out.log";
+    runOrender(orenderBin, displaysDir, dir, sloRib, sloLog);
+    runOrender(orenderBin, displaysDir, dir, rsloRib, rsloLog);
+
+    const std::string sloText = readFile(sloLog);
+    const std::string rsloText = readFile(rsloLog);
+
+    // Pre-fix, both backends crashed (SIGSEGV) rendering this scene, so
+    // the log would be truncated mid-render (missing the trailing "u="
+    // lines a completed render always has) or empty outright depending on
+    // how much stdio buffering flushed before the fault. A non-empty log
+    // alone isn't a reliable crash signal here; the per-vertex count and
+    // value checks below are.
+    EXPECT_TRUE(!sloText.empty());
+    EXPECT_TRUE(!rsloText.empty());
+
+    const int sloCount = countOccurrences(sloText, "u=");
+    const int rsloCount = countOccurrences(rsloText, "u=");
+    printf("  .slo printf calls=%d  .rslo printf calls=%d\n", sloCount, rsloCount);
+
+    // No-crash + correct per-vertex count on both backends is the actual
+    // regression guard: pre-fix, this scene never reached the point of
+    // printing anything at all.
+    EXPECT_TRUE(sloCount > 1);
+    EXPECT_TRUE(sloCount == rsloCount);
+
+    // Value correctness: "u" ranges [0,1] across this sphere's grid and
+    // must be genuinely non-constant (proving the format string prints
+    // real per-vertex data, not e.g. every line reading garbage/"u=0.000000"
+    // by coincidence) and identical between backends.
+    bool sloVaries = sloText.find("u=0.000000\n") != std::string::npos &&
+                     sloText.find("u=1.000000\n") != std::string::npos;
+    bool rsloVaries = rsloText.find("u=0.000000\n") != std::string::npos &&
+                      rsloText.find("u=1.000000\n") != std::string::npos;
+    EXPECT_TRUE(sloVaries);
+    EXPECT_TRUE(rsloVaries);
+
+    // Full-log string equality isn't meaningful here -- the two RIB
+    // filenames differ (scene_slo.rib vs scene_rslo.rib), which leaks into
+    // the "Failed to find shader" warning lines both runs share. Compare
+    // just the printf output itself, which is the only thing this test
+    // (or #14) is actually about.
+    auto extractPrintfLines = [](const std::string &text) {
+        std::string out;
+        size_t pos = 0;
+        while (pos < text.size()) {
+            size_t nl = text.find('\n', pos);
+            if (nl == std::string::npos)
+                nl = text.size();
+            if (text.compare(pos, 2, "u=") == 0)
+                out.append(text, pos, nl - pos + 1);
+            pos = nl + 1;
+        }
+        return out;
+    };
+    EXPECT_TRUE(extractPrintfLines(sloText) == extractPrintfLines(rsloText));
+}
+
+int main() {
+    const char *oshaderBin = getenv("OSHADER_BIN");
+    const char *orenderBin = getenv("ORENDER_BIN");
+    const char *displaysDir = getenv("TEST_DISPLAYS_DIR");
+    EXPECT_TRUE(oshaderBin != nullptr);
+    EXPECT_TRUE(orenderBin != nullptr);
+    EXPECT_TRUE(displaysDir != nullptr);
+    if (!oshaderBin || !orenderBin || !displaysDir)
+        return 1;
+
+    test_uniform_fixture(oshaderBin, orenderBin, displaysDir);
+    test_varying_fixture(oshaderBin, orenderBin, displaysDir);
 
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;

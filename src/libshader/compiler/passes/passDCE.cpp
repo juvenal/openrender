@@ -32,6 +32,28 @@ static void collectLive(const IRFunction &fn,
                 if (!op.isLiteral() && !op.isLabel() && !op.isQuoted())
                     live.insert(op.token);
             }
+
+            // printf ("o=s.*", GitHub #14): irBuilder.cpp's parseLine()
+            // uses a generic, opcode-agnostic convention -- the first
+            // token after any opcode's prototype is always instr.result,
+            // treated as a write target everywhere else in this pass. But
+            // printf has no real return value (its "o=" prototype has no
+            // destination); the compiler encodes its format-string
+            // argument in that slot purely because it needs somewhere to
+            // put it (expression.cpp's CBuiltinExpression::getCode(),
+            // mirroring setcomp's "o=Vff" result-as-first-argument shape).
+            // Unlike setcomp's mutated vector, printf only ever READS that
+            // slot -- so unlike every other opcode, its "result" is really
+            // a source operand. Without this, a uniform format-string
+            // literal that needs broadcasting into a varying temporary
+            // (because another printf argument is varying) has its own
+            // broadcast instruction (vustring) eliminated as a dead write:
+            // nothing else in the program references that temporary as an
+            // operand, so it looked unused even though printf consumes it
+            // via .result. The temporary was left declared but never
+            // assigned, and both backends crashed dereferencing it.
+            if (instr.opcode == "printf" && instr.hasResult())
+                live.insert(instr.result);
         }
     }
 }
