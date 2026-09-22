@@ -620,6 +620,67 @@ execStart:
         goto execStart;                                                                         \
     }
 
+// DEFPRINTFUNC: like DEFFUNC, but the "if (code->uniform) { expr; }" fast
+// path loops numRealVertices times instead of firing once (GitHub #13).
+// printf() is a side-effecting statement, not a value computation -- a
+// uniform classification (every OPERAND statically uniform) must not
+// collapse it to firing once, since RISpec still requires one print per
+// shading point regardless of argument uniformity.
+//
+// The uniform branch deliberately does NOT call expr_update between
+// iterations, unlike the non-uniform branches below. A uniform operand's
+// storage is a single value, not a per-vertex array -- PRINTF_UPDATE's
+// pointer-advance arithmetic (opf[i] += opSteps[i], etc.) is only valid
+// for a real per-vertex buffer. Calling it on a uniform operand walks off
+// the end of that single value into whatever memory happens to follow it
+// (confirmed via a crash reading a neighboring literal's bit pattern as a
+// pointer, one iteration after a correct first print). Not advancing is
+// safe AND correct: PRINTFEXPR's own internal `vertexN < numRealVertices`
+// gate never sees vertexN move past 0, so it re-reads and re-prints the
+// same unchanged uniform value on every iteration -- exactly the RISpec-
+// correct behavior (the same value, once per shading point).
+//
+// Known limitation (not fixed here, scoped like GitHub #8's family): a
+// printf() instruction that is itself statically uniform but sits inside
+// a varying-conditioned `if` block takes this branch unconditionally --
+// it does not consult `tags`, so it fires for every real vertex
+// regardless of which ones the surrounding branch masked off. Fixing that
+// would require tracking vertex position without relying on expr_update,
+// which is a bigger change than this issue's scope.
+//
+// Non-uniform branches unchanged from DEFFUNC except the loop bound
+// (currentShadingState->numRealVertices, like DEFSHORTFUNC, excluding
+// raytrace-tier derivative ghost vertices, rather than numVertices).
+// Printf-only: DEFFUNC's own fast path stays correct and intentional for
+// every other, value-computing user of that macro.
+#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par)                                 \
+    case FUNCTION_##name:                                                                                                \
+    {                                                                                                                    \
+        expr_pre;                                                                                                        \
+        if (code->uniform) {                                                                                            \
+            for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex) {        \
+                expr;                                                                                                    \
+            }                                                                                                            \
+        }                                                                                                                \
+        else if (numPassive != 0) {                                                                                      \
+            for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex, ++tags) { \
+                if (*tags == 0) {                                                                                        \
+                    expr;                                                                                                \
+                }                                                                                                        \
+                expr_update;                                                                                             \
+            }                                                                                                            \
+        }                                                                                                                \
+        else {                                                                                                           \
+            for (int currentVertex = currentShadingState->numRealVertices; currentVertex > 0; --currentVertex) {         \
+                expr;                                                                                                    \
+                expr_update;                                                                                             \
+            }                                                                                                            \
+        }                                                                                                                \
+        expr_post;                                                                                                       \
+        code++;                                                                                                          \
+        goto execStart;                                                                                                  \
+    }
+
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par)        \
     case FUNCTION_##name:                                                                       \
     {                                                                                           \
@@ -684,6 +745,7 @@ execStart:
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef DEFSHORTFUNC
 

@@ -39,6 +39,13 @@
  * path" requirement (a uniform argument must not suppress per-vertex
  * firing, since printf's *count* of calls is itself the observable
  * behavior, unlike format()'s single written result).
+ *
+ * Cross-backend parity (sloCount == rsloCount below) originally could not
+ * be asserted here: the interpreter had its own separate uniform-collapse
+ * bug for printf (GitHub #13, execute.cpp's DEFFUNC macro), fixed
+ * afterwards by giving printf its own DEFPRINTFUNC dispatch macro. This
+ * test was updated once that landed to assert the parity it always should
+ * have had.
  */
 
 #include <cassert>
@@ -216,6 +223,7 @@ int main() {
     // uniform default 3.5. Every line must read exactly "val=3.500000".
     const std::string expectedLine = "val=3.500000\n";
     EXPECT_TRUE(sloCount > 0 && countOccurrences(sloText, expectedLine) == sloCount);
+    EXPECT_TRUE(rsloCount > 0 && countOccurrences(rsloText, expectedLine) == rsloCount);
 
     // Bug 3 regression guard (escape round-trip): pre-fix, the JIT's
     // materialized string literal carried the RAW two-character sequence
@@ -229,19 +237,19 @@ int main() {
     // once total for the whole grid instead of once per real vertex. A
     // ShadingRate-100 grid on this sphere dices to well over one vertex, so
     // a JIT count of exactly 1 here would mean the collapse regressed.
-    //
-    // NOT asserted: sloCount == rsloCount. The interpreter has its own,
-    // separate, pre-existing version of this same bug -- printf() dispatches
-    // through the generic DEFFUNC macro (execute.cpp:597), whose
-    // "if (code->uniform) { expr; }" fast path is correct for value-
-    // computing builtins but fires printf's side effect exactly once for
-    // an all-uniform instruction instead of once per real vertex. Measured
-    // on this exact fixture/scene: .rslo prints 1, .slo prints 16 (matching
-    // a hand-verified grid vertex count). Filed separately, not this
-    // issue's scope -- asserting parity here would mean coding the JIT to
-    // match a bug instead of the RISpec-correct per-vertex behavior the
-    // approved design (numRealVertices gating) specifies.
     EXPECT_TRUE(sloCount > 1);
+
+    // Cross-backend parity (GitHub #13, fixed after this test originally
+    // shipped without this assertion): the interpreter had its own,
+    // separate, pre-existing version of the JIT's Bug 4 -- printf()
+    // dispatched through the generic DEFFUNC macro (execute.cpp), whose
+    // "if (code->uniform) { expr; }" fast path is correct for value-
+    // computing builtins but fired printf's side effect exactly once for
+    // an all-uniform instruction instead of once per real vertex. Fixed by
+    // giving printf its own DEFPRINTFUNC macro that never takes that fast
+    // path. Both backends now dice the same REYES grids and must print the
+    // exact same number of lines.
+    EXPECT_TRUE(sloCount == rsloCount);
 
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;

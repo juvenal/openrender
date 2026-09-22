@@ -790,7 +790,12 @@ DEFFUNC(Match, "match", "f=ss", FUN3SEXPR_PRE, MATCHEXPR, FUN3EXPR_UPDATE(1, 1, 
 
 #endif
 
-DEFFUNC(Printf, "printf", "o=s.*", PRINTFEXPR_PRE, PRINTFEXPR, PRINTF_UPDATE, PRINTF_POST, 0)
+// DEFPRINTFUNC, not DEFFUNC (GitHub #13): printf() is a side-effecting
+// statement -- DEFFUNC's "if (code->uniform) { expr; }" fast path fired
+// this exactly once whenever every argument was statically uniform,
+// instead of once per real vertex as RISpec requires. See execute.cpp's
+// DEFPRINTFUNC definition for the full rationale.
+DEFPRINTFUNC(Printf, "printf", "o=s.*", PRINTFEXPR_PRE, PRINTFEXPR, PRINTF_UPDATE, PRINTF_POST, 0)
 
 #undef PRINTFEXPR
 

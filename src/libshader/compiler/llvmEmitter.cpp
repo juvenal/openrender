@@ -163,6 +163,9 @@ static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
 #define DEFLINKOPCODE(name, text, nargs) {text, 0u},
 #define DEFLINKFUNC(name, text, prototype, par) {text, static_cast<unsigned int>(par)},
 #define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
+// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion here -- only
+// execute.cpp's interpreter dispatch behavior differs.
+#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
 #define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
 
@@ -176,6 +179,7 @@ extern const OpcodeParamEntry kOpcodeParamTable[] = {
 #undef DEFLINKOPCODE
 #undef DEFLINKFUNC
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef DEFSHORTFUNC
 
@@ -196,6 +200,9 @@ extern const OpcodeParamEntry kOpcodeParamTable[] = {
 // =========================================================================
 #define DEFLINKFUNC(name, text, prototype, par) text,
 #define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
+// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion here -- only
+// execute.cpp's interpreter dispatch behavior differs.
+#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
 #define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
 
@@ -205,6 +212,7 @@ extern const char *const kAllFunctionMnemonics[] = {
 
 #undef DEFLINKFUNC
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef DEFSHORTFUNC
 

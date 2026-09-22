@@ -290,6 +290,21 @@ execStart:
         goto execStart;                                                             \
     } break;
 
+// DEFPRINTFUNC (GitHub #13): this file only ever executes the Init: block
+// (parameter-default setup), which runs once regardless -- identical to
+// DEFFUNC's expansion here. execute.cpp's per-vertex Code: block dispatch
+// is the only place DEFPRINTFUNC's uniform-fast-path removal actually
+// matters.
+#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) \
+    case FUNCTION_##name:                                                                \
+    {                                                                                    \
+        expr_pre;                                                                        \
+        expr;                                                                            \
+        expr_post                                                                        \
+            code++;                                                                      \
+        goto execStart;                                                                  \
+    } break;
+
 #define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) \
     case FUNCTION_##name:                                                                \
     {                                                                                    \
@@ -324,6 +339,7 @@ execStart:
     goto execStart;
 #undef DEFOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef INIT_SHADING
 
@@ -361,6 +377,7 @@ execEnd:
 #undef varyingGlobal
 #undef DEFOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLINKOPCODE
 #undef DEFLINKFUNC
 #undef BREAK

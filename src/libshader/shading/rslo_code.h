@@ -38,6 +38,11 @@
 
 #define DEFFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
+// DEFPRINTFUNC (GitHub #13): printf's own dispatch macro in execute.cpp,
+// but for enum generation it's just another FUNCTION_ entry, identical to
+// DEFFUNC's expansion here.
+#define DEFPRINTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
+
 #define DEFLIGHTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
 #define DEFSHORTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
@@ -52,6 +57,7 @@ typedef enum {
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef DEFSHORTFUNC
 #undef DEFLINKOPCODE

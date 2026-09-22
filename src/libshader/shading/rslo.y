@@ -30,6 +30,9 @@
 #define DEFLINKOPCODE(name, text, nargs) OPCODE_##name,
 #define DEFLINKFUNC(name, text, prototype, par) FUNCTION_##name,
 #define DEFFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
+// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion for enum
+// generation purposes -- only execute.cpp's dispatch behavior differs.
+#define DEFPRINTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 #define DEFLIGHTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 #define DEFSHORTFUNC(name, text, prototype, expre_pre, expr, expr_update, expr_post, par) FUNCTION_##name,
 
@@ -42,6 +45,7 @@ typedef enum {
 #undef DEFOPCODE
 #undef DEFSHORTOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFLIGHTFUNC
 #undef DEFSHORTFUNC
 #undef DEFLINKOPCODE
@@ -126,6 +130,9 @@ static	TRSLObjectOpcode	opcodes[]	=	{
 #define	DEFSHORTOPCODE(name,text,nargs,expr_pre,expr,expr_update,expr_post)
 #define DEFLINKOPCODE(name,text,nargs)
 #define	DEFFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)			{FUNCTION_##name,text,prototype,par},
+// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion here -- only
+// execute.cpp's dispatch behavior differs.
+#define	DEFPRINTFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)		{FUNCTION_##name,text,prototype,par},
 #define	DEFLIGHTFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)		{FUNCTION_##name,text,prototype,par},
 #define	DEFSHORTFUNC(name,text,prototype,expr_pre,expr,expr_update,expr_post,par)		{FUNCTION_##name,text,prototype,par},
 #define	DEFLINKFUNC(name,text,prototype,par)											{FUNCTION_##name,text,prototype,par},
@@ -139,6 +146,7 @@ static	TRSLObjectFunction		functions[]	=	{
 #undef DEFSHORTOPCODE
 #undef DEFLINKOPCODE
 #undef DEFFUNC
+#undef DEFPRINTFUNC
 #undef DEFSHORTFUNC
 #undef DEFLINKFUNC
 
