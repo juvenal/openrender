@@ -615,6 +615,34 @@ static bool emitFunction(const IRFunction &irFn,
     };
     std::vector<GatherScope> gatherStack;
 
+    // -----------------------------------------------------------------------
+    // GitHub #8: tags-masked-scope depth tracking, consulted by collapseArgs
+    // below. if/else, illuminate/endilluminate, solar/endsolar, and the
+    // illuminance/gather loop BODIES (not their outer loop-continuation
+    // branch, which is real LLVM control flow) are all implemented via the
+    // SAME "flat batch" model: every instruction always executes, and only
+    // per-vertex `tags` mutation (op_if_update, op_illuminate_begin, etc.)
+    // decides whether a given vertex's write actually applies. A uniform-
+    // classified instruction (destination and every operand stride 0)
+    // lexically nested inside any of these scopes must still respect that
+    // masking -- collapseArgs's "n=1, tags=null" fast path is only valid at
+    // depth 0, where there is no enclosing scope for it to ignore.
+    //
+    // for/while loops are NOT included here: confirmed via direct testing
+    // (a uniform assignment inside a false-from-the-start `while` renders
+    // correctly under JIT) that they use real LLVM conditional branching
+    // (B.CreateCondBr in the forbegin/for/forend handling below) with no
+    // tags-based masking at all, so collapseArgs's fast path is genuinely
+    // safe there -- the loop body's LLVM basic block is simply never
+    // reached when the condition is false, nothing to bypass.
+    //
+    // A plain int suffices (not a stack) since these scopes are always
+    // properly nested/paired in valid compiled bytecode -- only the net
+    // depth at any given instruction matters to collapseArgs, not the
+    // identity of each enclosing scope.
+    // -----------------------------------------------------------------------
+    int conditionalDepth = 0;
+
     auto *i32Ty = llvm::Type::getInt32Ty(ctx);
     auto *f32Ty = llvm::Type::getFloatTy(ctx);
     auto *ptrTy = llvm::PointerType::getUnqual(ctx);
@@ -740,15 +768,45 @@ static bool emitFunction(const IRFunction &irFn,
     // tags=null TOGETHER (§2.3 forbids n=1 with a live tag pointer) —
     // this helper is the single place that pairing is enforced, so no
     // call site can emit one half without the other.
+    //
+    // GitHub #8: at conditionalDepth == 0 the plain n=1/tags=null fast path
+    // applies unconditionally, as before. Inside any tags-masked scope
+    // (if/else, illuminate, solar, the illuminance/gather loop body) that
+    // fast path is wrong in BOTH directions and neither error is
+    // acceptable:
+    //   - passing n=1 with a live tags pointer would let the loop test
+    //     ACTIVE(tags, 0) -- this scope's mask at index 0 -- which can be
+    //     false even when other vertices in the batch ARE active, wrongly
+    //     suppressing an instruction that must still run once (§2.3
+    //     forbids this pairing outright: a uniform-classified instruction
+    //     lexically inside a VARYING conditional must execute exactly once
+    //     unconditionally, ignoring the enclosing mask entirely -- see
+    //     shaders/uniform_in_conditional_probe.sl's contract).
+    //   - passing the real (numVerts, tags) and letting the op's own
+    //     `for (i) if (ACTIVE(tags,i))` loop run is wrong the other way for
+    //     a non-idempotent op (e.g. `bias = bias + 1`): every active vertex
+    //     re-applies the op, so an accumulator advances numActive times
+    //     instead of once.
+    // The correct rule (confirmed against the interpreter, which reaches
+    // this instruction via a real jump and so naturally executes it once
+    // iff the branch was taken at all): execute exactly once iff at least
+    // one vertex in the batch is currently active, with tags still null so
+    // no per-vertex ACTIVE() masking narrows it further. n is therefore
+    // computed at runtime from numActivePtr rather than hardcoded to 1.
     auto collapseArgs = [&](int dstStrideVal,
                             std::initializer_list<int> operandStrides)
         -> std::pair<llvm::Value *, llvm::Value *> {
         bool uniform = (dstStrideVal == 0);
         for (int s : operandStrides)
             uniform = uniform && (s == 0);
-        if (uniform)
+        if (!uniform)
+            return {numVerts, tags};
+        if (conditionalDepth == 0)
             return {B.getInt32(1), llvm::ConstantPointerNull::get(ptrTy)};
-        return {numVerts, tags};
+        auto *na = B.CreateLoad(i32Ty, numActivePtr);
+        auto *any = B.CreateICmpNE(na, B.getInt32(0));
+        auto *n = B.CreateSelect(any, B.getInt32(1), B.getInt32(0));
+        return {n, llvm::ConstantPointerNull::get(ptrTy)};
     };
 
     auto emitBin = [&](const IRInstr &ins, const char *name,
@@ -846,6 +904,7 @@ static bool emitFunction(const IRFunction &irFn,
             // Continue emitting into the exit BB.
             B.SetInsertPoint(sc.exitBB);
             illumStack.pop_back();
+            --conditionalDepth;
         }
 
         for (const IRInstr &ins : blk.instrs) {
@@ -906,6 +965,7 @@ static bool emitFunction(const IRFunction &irFn,
                     B.CreateCall(fn, {cond, B.getInt32(sc), tags, numVerts,
                                       numActivePtr, numPassivePtr});
                 }
+                ++conditionalDepth;
                 continue;
             }
             if (op == "else") {
@@ -916,6 +976,7 @@ static bool emitFunction(const IRFunction &irFn,
             if (op == "endif") {
                 auto *fn = declareOp(mod, "op_endif_update", elseUpdTy);
                 B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                --conditionalDepth;
                 continue;
             }
 
@@ -1071,6 +1132,7 @@ static bool emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {numActivePtr, numPassivePtr});
 
                 gatherStack.push_back({headerBB, exitBB});
+                ++conditionalDepth;
                 continue;
             }
             if (op == "gatherElse") {
@@ -1083,6 +1145,7 @@ static bool emitFunction(const IRFunction &irFn,
                     continue;
                 GatherScope sc = gatherStack.back();
                 gatherStack.pop_back();
+                --conditionalDepth;
 
                 auto *fn = declareOp(mod, "op_gather_end", gatherOpTy);
                 auto *res = B.CreateCall(fn, {numActivePtr, numPassivePtr});
@@ -1124,6 +1187,7 @@ static bool emitFunction(const IRFunction &irFn,
                     B.CreateCall(fn, {from, B.getInt32(sf), tags, numVerts,
                                       numActivePtr, numPassivePtr});
                 }
+                ++conditionalDepth;
                 continue;
             }
             if (op == "endilluminate") {
@@ -1131,6 +1195,7 @@ static bool emitFunction(const IRFunction &irFn,
                                                    {ptrTy, i32Ty, ptrTy, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_illuminate_end", ty);
                 B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                --conditionalDepth;
                 continue;
             }
 
@@ -1150,6 +1215,7 @@ static bool emitFunction(const IRFunction &irFn,
                     B.CreateCall(fn, {Nf, B.getInt32(sf), th, B.getInt32(st),
                                       tags, numVerts, numActivePtr, numPassivePtr});
                 }
+                ++conditionalDepth;
                 continue;
             }
             if (op == "endsolar") {
@@ -1157,6 +1223,7 @@ static bool emitFunction(const IRFunction &irFn,
                                                    {ptrTy, i32Ty, ptrTy, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_solar_end", ty);
                 B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                --conditionalDepth;
                 continue;
             }
 
@@ -1211,6 +1278,7 @@ static bool emitFunction(const IRFunction &irFn,
                 B.SetInsertPoint(bodyBB);
 
                 illumStack.push_back({exitLabel, bodyBB, latchBB, exitBB});
+                ++conditionalDepth;
                 continue;
             }
             // endilluminance: handled at the block boundary in the outer loop.

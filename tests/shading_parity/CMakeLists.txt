@@ -80,6 +80,23 @@ set_tests_properties(ShadingParity_PrintfJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# GitHub #8 (root cause) / #6 (a symptom of #8, not a separate bug):
+# collapseArgs's uniform fast path discarded the real per-vertex tags
+# array for any uniform-classified instruction, so a uniform assignment
+# inside an if/else (or the equivalent ternary) body ran unconditionally
+# regardless of the branch. Renders a real fixture through the actual
+# orender CLI on both backends -- this is a control-flow codegen bug, not
+# visible from a compile-only test.
+add_executable(test_shading_parity_uniform_conditional_jit test_uniform_conditional_jit.cpp)
+target_link_libraries(test_shading_parity_uniform_conditional_jit PRIVATE openrender_common_flags)
+target_compile_features(test_shading_parity_uniform_conditional_jit PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_UniformConditionalJit COMMAND test_shading_parity_uniform_conditional_jit)
+set_tests_properties(ShadingParity_UniformConditionalJit PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+)
+
 # GitHub #4: Attribute "irradiance" "handle"/"filemode" [""] must not
 # collapse to NULL in RiAttributeV, and CRenderer::getCache() must not
 # crash on a NULL name/mode even if some other caller does pass one.
