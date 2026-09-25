@@ -376,8 +376,17 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
   (018-multi-format-texture-decode)
 - Storage: N/A — reads local image files, writes the existing baked-TIFF
   texture container unchanged (018-multi-format-texture-decode)
+- C++20, CMake ≥3.19; `libtiff` only (existing, mandatory — no new
+  dependency) (019-tilesource-extraction)
+- Storage: N/A — reads existing baked-texture files; no new persistent
+  state, no change to the baked-texture container format
+  (019-tilesource-extraction)
 
 ## Recent Changes
+- 019-tilesource-extraction: runtime tile-fetch abstraction
+  (`CTileSource`, `src/ri/texture/tileSource.h`) extracted from
+  `textureLoadBlock()` in `texture.cpp`; `CTiffTileSource` is the only
+  backend, a byte-for-byte behavior-preserving extraction (see spec 019).
 - 018-multi-format-texture-decode: image-decode abstraction
   (`CImageInput`) added in `src/ri/texture/`, wired into otexmake's bake
   pipeline (`texmake.cpp`) so PNG/OpenEXR/RGBE sources can be baked
