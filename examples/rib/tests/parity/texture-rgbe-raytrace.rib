@@ -1,16 +1,11 @@
 ##RenderMan RIB-Structure 1.0
 # Sphere textured from a texture baked (via otexmake) from an RGBE
 # (Radiance HDR) source, spec 018 (multi-format texture source decoding),
-# T026. NOT currently registered as an automated parity test -- see the
-# comment in tests/visual/CMakeLists.txt near the PNG/EXR registrations
-# for why: unlike PNG (grayscale) and OpenEXR (luminance), RGBE has no
-# single-channel escape hatch from the pre-existing appendLayer/
-# TIFFTAG_PHOTOMETRIC gap (GitHub issue #18) -- it is always exactly
-# 3-channel RGB. Confirmed this gap is universal and predates spec 018
-# entirely (even the byte-identical TIFF reference texture from T006 hits
-# it when actually rendered), so registering this scene today would add a
-# deterministically-failing test to the default suite. Kept here, ready to
-# register the moment issue #18 is fixed.
+# T026. Was initially withheld from registration because RGBE (always
+# exactly 3-channel RGB) unconditionally hit a pre-existing appendLayer()/
+# TIFFTAG_PHOTOMETRIC gap (GitHub issue #18, fixed separately from spec 018
+# on fix/texmake-photometric-tag) -- now registered via add_parity_test in
+# tests/visual/CMakeLists.txt.
 version 3.03
 Hider "raytrace"
 Display "texture-rgbe-raytrace.tif" "file" "rgba"

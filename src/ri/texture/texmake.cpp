@@ -107,6 +107,55 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
     TIFFSetField(out, TIFFTAG_TILEWIDTH, (unsigned long)tileSize);
     TIFFSetField(out, TIFFTAG_TILELENGTH, (unsigned long)tileSize);
 
+    // PHOTOMETRIC (and, for a trailing alpha channel, EXTRASAMPLES) tells
+    // libtiff which samples are "color" vs "extra"; without it, libtiff
+    // warns heavily on read for any numSamples != 1 (GitHub issue #18).
+    // Scoped to the 8-bit and float branches only (bitsperpixel != 16) --
+    // NOT the 16-bit branch, deliberately: readMadeTexture<unsigned short>()
+    // (src/ri/texture/texture.cpp) has a pre-existing heuristic that
+    // reads PHOTOMETRIC_RGB on a 16-bit texture as "this is a
+    // pixar-txmake-style texture using a half-range (32k, not 65k) 16-bit
+    // encoding" and applies a 2x value scale on load. That heuristic
+    // predates this fix and this codebase's own 16-bit bakes do NOT use
+    // that half-range encoding (appendLayer() below writes the full
+    // 0-65535 SAMPLEFORMAT_UINT range) -- so naively setting
+    // PHOTOMETRIC_RGB here for a 3/4-channel 16-bit bake would silently
+    // double pixel values read back from freshly-baked textures. Fixing
+    // that requires auditing/changing the read-side heuristic too, a
+    // separate, higher-risk change; tracked as a follow-up on issue #18.
+    // 16-bit multi-channel bakes still trigger the read-time warning until
+    // that follow-up lands, but produce byte-identical pixel *values*.
+    if (bitsperpixel != 16) {
+        switch (numSamples) {
+        case 1:
+            TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+            break;
+        case 2: {
+            // Grayscale + alpha.
+            uint16_t extra[1] = {EXTRASAMPLE_UNASSALPHA};
+            TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+            TIFFSetField(out, TIFFTAG_EXTRASAMPLES, 1, extra);
+            break;
+        }
+        case 3:
+            TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+            break;
+        case 4: {
+            // RGB + alpha. openRender does not premultiply alpha when
+            // baking, so the alpha channel is unassociated (straight),
+            // not associated.
+            uint16_t extra[1] = {EXTRASAMPLE_UNASSALPHA};
+            TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+            TIFFSetField(out, TIFFTAG_EXTRASAMPLES, 1, extra);
+            break;
+        }
+        default:
+            // Unexpected channel count for anything this codebase
+            // currently bakes -- leave PHOTOMETRIC unset rather than guess.
+            break;
+        }
+    }
+
     if (bitsperpixel == 8) {
         TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, (unsigned long)(sizeof(unsigned char) * 8));
@@ -115,7 +164,7 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
     else if (bitsperpixel == 16) {
         TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, (unsigned long)(sizeof(unsigned short) * 8));
-        TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK); // see comment above -- unchanged deliberately
         pixelSize = numSamples * sizeof(unsigned short);
     }
     else {

@@ -2649,28 +2649,30 @@ if(HAVE_OPENEXR)
 endif()
 
 # --- spec 018 (multi-format texture source decoding): RGBE source (T026, US3) ---
-# NOT registered here, deliberately. examples/rib/tests/parity/
-# texture-rgbe-{reyes,raytrace}.rib and texture-rgbe-source.tex exist and
-# are ready to register (mirror the texture-png/texture-exr add_parity_test
-# calls above) but are currently excluded: unlike PNG (grayscale) and
-# OpenEXR (luminance), RGBE has no single-channel escape hatch from the
-# pre-existing appendLayer/TIFFTAG_PHOTOMETRIC gap (GitHub issue #18) --
-# it is always exactly 3-channel RGB, and appendLayer() only sets
-# TIFFTAG_PHOTOMETRIC for its 16-bit branch (texmake.cpp), never 8-bit or
-# float. Confirmed this gap is universal and predates spec 018 entirely --
-# even the byte-identical TIFF reference texture from T006
-# (tests/unit/image_input/fixtures/references/texture.tex) hits the same
-# libtiff warning and orender nonzero exit code when actually rendered, not
-# just RGBE-sourced textures. Fixing appendLayer() is out of scope for spec
-# 018 (it would change the exact TIFF bytes FR-007/SC-002 require staying
-# byte-identical) -- registering this scene today would add a
-# deterministically-failing test to the default suite instead of a flaky
-# one, so it stays out until issue #18 is fixed.
+# Was withheld at spec-018 time: RGBE (always exactly 3-channel RGB, unlike
+# PNG's grayscale or OpenEXR's luminance escape hatch) unconditionally hit
+# a pre-existing appendLayer()/TIFFTAG_PHOTOMETRIC gap (GitHub issue #18),
+# which predated spec 018 entirely (confirmed via the plain TIFF reference
+# texture from T006 too). Fixed separately, on fix/texmake-photometric-tag
+# -- appendLayer() now sets TIFFTAG_PHOTOMETRIC (and TIFFTAG_EXTRASAMPLES
+# for a trailing alpha channel) for its 8-bit and float branches, based on
+# channel count. (Its 16-bit branch is deliberately left unchanged --
+# readMadeTexture<unsigned short>() in texture.cpp has a pre-existing,
+# unrelated heuristic that reads PHOTOMETRIC_RGB on a 16-bit texture as a
+# signal to apply a 2x value scale, modeling a pixar-txmake half-range
+# encoding this codebase's own 16-bit bakes don't use -- setting
+# PHOTOMETRIC_RGB there would silently double-scale pixel values on read.
+# 16-bit multi-channel bakes still warn until that's addressed separately.)
+add_parity_test(texture-rgbe
+    examples/rib/tests/parity/texture-rgbe-reyes.rib
+    texture-rgbe-reyes.tif
+    examples/rib/tests/parity/texture-rgbe-raytrace.rib
+    texture-rgbe-raytrace.tif  20)
 
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      185 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 76 scene pairs registered under label 'parity'")
+message(STATUS "  - Cross-hider parity tests: 77 scene pairs registered under label 'parity'")
 message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")
