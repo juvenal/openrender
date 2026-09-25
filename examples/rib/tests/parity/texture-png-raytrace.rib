@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured from a texture baked (via otexmake) from a grayscale PNG
+# source, spec 018 (multi-format texture source decoding), T014. Validates
+# that a PNG-sourced bake renders identically across camera hiders, same as
+# any TIFF-sourced texture. Grayscale (not RGB) deliberately -- multi-
+# channel 8-bit bakes hit an unrelated, pre-existing appendLayer/
+# PHOTOMETRIC gap (texmake.cpp, untouched by this spec) that makes libtiff
+# warn heavily on read and orender exit non-zero at shutdown despite
+# rendering correctly, regardless of source format (confirmed with a
+# plain TIFF-sourced bake too); filed as a separate GitHub issue.
+version 3.03
+Hider "raytrace"
+Display "texture-png-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["texture-png-source.tex"]
+  Sphere 1 -1 1 360
+WorldEnd

@@ -2630,10 +2630,47 @@ add_parity_test(blobby-roundtrip-vs-direct
     examples/rib/tests/blobby-blend-influencing-reyes.rib  blobby-blend-influencing-reyes.tif
     examples/rib/tests/blobby-roundtrip-reyes.rib          blobby-roundtrip-reyes.tif)
 
+# --- spec 018 (multi-format texture source decoding): textured sphere, ---
+# --- texture baked (via otexmake) from a PNG source (T014, US1) ---
+add_parity_test(texture-png
+    examples/rib/tests/parity/texture-png-reyes.rib
+    texture-png-reyes.tif
+    examples/rib/tests/parity/texture-png-raytrace.rib
+    texture-png-raytrace.tif  20)
+
+# --- spec 018 (multi-format texture source decoding): textured sphere, ---
+# --- texture baked (via otexmake) from an OpenEXR source (T020, US2) ---
+if(HAVE_OPENEXR)
+    add_parity_test(texture-exr
+        examples/rib/tests/parity/texture-exr-reyes.rib
+        texture-exr-reyes.tif
+        examples/rib/tests/parity/texture-exr-raytrace.rib
+        texture-exr-raytrace.tif  20)
+endif()
+
+# --- spec 018 (multi-format texture source decoding): RGBE source (T026, US3) ---
+# NOT registered here, deliberately. examples/rib/tests/parity/
+# texture-rgbe-{reyes,raytrace}.rib and texture-rgbe-source.tex exist and
+# are ready to register (mirror the texture-png/texture-exr add_parity_test
+# calls above) but are currently excluded: unlike PNG (grayscale) and
+# OpenEXR (luminance), RGBE has no single-channel escape hatch from the
+# pre-existing appendLayer/TIFFTAG_PHOTOMETRIC gap (GitHub issue #18) --
+# it is always exactly 3-channel RGB, and appendLayer() only sets
+# TIFFTAG_PHOTOMETRIC for its 16-bit branch (texmake.cpp), never 8-bit or
+# float. Confirmed this gap is universal and predates spec 018 entirely --
+# even the byte-identical TIFF reference texture from T006
+# (tests/unit/image_input/fixtures/references/texture.tex) hits the same
+# libtiff warning and orender nonzero exit code when actually rendered, not
+# just RGBE-sourced textures. Fixing appendLayer() is out of scope for spec
+# 018 (it would change the exact TIFF bytes FR-007/SC-002 require staying
+# byte-identical) -- registering this scene today would add a
+# deterministically-failing test to the default suite instead of a flaky
+# one, so it stays out until issue #18 is fixed.
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      185 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 75 scene pairs registered under label 'parity'")
+message(STATUS "  - Cross-hider parity tests: 76 scene pairs registered under label 'parity'")
 message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

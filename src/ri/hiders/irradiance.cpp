@@ -68,7 +68,7 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
     int i;
 
     assert(dataSize == 7);
-    assert(numChannels == 3);
+    assert(numChannels() == 3);
 
     memory = new CMemStack; // Where we allocate our memory from
     root = NULL;

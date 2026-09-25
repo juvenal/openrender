@@ -57,7 +57,8 @@ concrete `CImageInput` subclass responsible for that format, consulted by
 
 | Suffix | Concrete Type | Always Available? |
 |---|---|---|
-| `.tif`, `.tiff`, *(no match / fallback)* | `CTiffImageInput` | Yes (TIFF is the existing mandatory dependency and the default when no other suffix matches, preserving current behavior for unrecognized filenames) |
+| `.tif`, `.tiff` | `CTiffImageInput` | Yes (TIFF is the existing mandatory dependency) |
 | `.png` | `CPngImageInput` | Yes (PNG is an existing mandatory dependency) |
 | `.exr` | `COpenExrImageInput` | Only when `HAVE_OPENEXR` — otherwise a `.exr` source produces a clear "OpenEXR support not built into this binary" error |
 | `.hdr`, `.pic` | `CRgbeImageInput` | Yes (in-tree codec, no external dependency) |
+| *(any other/unrecognized suffix)* | — | `createImageInput()` returns `nullptr`; no TIFF fallback. See spec.md's Edge Cases ("extension does not match a supported format... MUST fail with a clear error") and `contracts/image-input-interface.md` rule 5 — this table's earlier draft incorrectly described an unrecognized-extension fallback to TIFF, which would have silently mis-decoded non-TIFF files with unrecognized extensions instead of reporting a clear error. |

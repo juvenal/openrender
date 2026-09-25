@@ -126,17 +126,55 @@ src/ri/CMakeLists.txt      # MODIFIED — add new imageInput*.cpp sources to the
 tests/
 ├── unit/                  # NEW — per-decoder round-trip unit tests (tiny synthetic fixtures)
 │   └── image_input/
-└── visual/                # NEW scenes — PNG/EXR/RGBE-sourced texture bakes, reyes+raytrace parity
+└── visual/CMakeLists.txt   # MODIFIED — new add_parity_test() registrations only (no scene
+                            # files live here; see examples/rib/tests/ below)
+
+examples/rib/tests/
+└── texture-{png,exr,rgbe}-{reyes,raytrace}.rib  # NEW — the actual PNG/EXR/RGBE-sourced
+                            # parity scene pairs, following this directory's existing
+                            # <scene>-reyes.rib / <scene>-raytrace.rib naming convention
+                            # (e.g. the existing blobby-*-reyes.rib/-raytrace.rib pairs)
 ```
 
 **Structure Decision**: New files live alongside `texmake.cpp` inside the
 existing `src/ri/texture/` directory (not a new top-level module) because
-that directory is already the texture-baking component's home, is already
-included via `include_directories(.../texture)` in `src/ri/CMakeLists.txt`,
-and its `.cpp` files are already added directly to the same target source
-lists `texmake.cpp` belongs to (confirmed at `src/ri/CMakeLists.txt`
-lines ~127-129, ~293, ~387) — new decoder files should be added to those
-same source lists rather than introducing a new library target, which
+that directory is already the texture-baking component's home and is
+already included via `include_directories(.../texture)` in
+`src/ri/CMakeLists.txt`. Corrected during implementation (the original
+draft of this section mis-described 3 separate target source lists;
+verified against the actual file, there are 2): `texmake.cpp`/`texture.cpp`
+are compiled once, into the single `set(ri_sources ...)` list
+(`src/ri/CMakeLists.txt` line ~45), which feeds `ribRender_obj`/
+`ribRender`/`ribRender_static` — the targets `otexmake` and `orender`
+actually link, and which already link both TIFF and PNG via the existing
+`${openrendertiff_libs}` variable (`= TIFF::TIFF PNG::PNG`,
+`CMakeLists.txt:332`), so `CTiffImageInput`/`CPngImageInput` need no new
+linkage at all. A second target, `ribVector` (`orender-wire`'s lightweight
+preview library, no shading/no LLVM), derives its own source list via
+`set(ribVector_sources ${ri_sources})` then `list(REMOVE_ITEM ...)` —
+`texmake.cpp`/`texture.cpp` stay in it only incidentally (a shared
+`locateFile()` dependency, not because `ribVector` bakes textures).
+**Corrected again, this time by an actual build failure**: an earlier
+draft of this section said the new decode files should be *excluded* from
+`ribVector_sources`, reasoning that `ribVector` has no runtime use for
+this capability. That reasoning was right about runtime behavior but wrong
+about linking — `texmake.cpp` (which `ribVector` compiles unconditionally)
+now calls `createImageInput()`/`dynamic_cast<CTiffImageInput*>`
+unconditionally too, so excluding `imageInput.cpp`/`imageInputTiff.cpp`
+left those symbols undefined and `ribVector` failed to link. The TIFF/PNG/
+RGBE decode files instead stay *in* `ri_sources` (and thus
+`ribVector_sources`, inherited automatically, no exclusion) — zero-cost,
+since TIFF and PNG are already linked into `ribVector_obj` via
+`openrendertiff_libs`, and RGBE's `rgbe.cpp` is dependency-free. Only
+OpenEXR needs active gating: kept out of `ribVector` by defining
+`HAVE_OPENEXR` on `ribRender_obj`'s compile definitions only, not
+`ribVector_obj`'s, so `ribVector`'s copy of `imageInput.cpp` never
+references `COpenExrImageInput` in the first place — not by excluding a
+shared source file, which cannot work when that file is unconditionally
+called into by code (`texmake.cpp`) both targets compile. `ribOut`
+(`output/` — the `-ribout` mode) uses a small explicit whitelist that
+already excludes all of `texture/`, so it needs no changes. New decoder
+files are added to `ri_sources` only — not a new library target, which
 would be unjustified complexity for four small classes.
 
 ## Complexity Tracking

@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured from a texture baked (via otexmake) from a single-channel
+# (luminance) OpenEXR source, spec 018 (multi-format texture source
+# decoding), T020. Validates that an OpenEXR-sourced bake renders
+# identically across camera hiders, same as any TIFF/PNG-sourced texture.
+# Luminance (not RGB) deliberately: an RGB float bake from tiny_rgb.exr hits
+# the same unrelated, pre-existing appendLayer/PHOTOMETRIC gap PNG's parity
+# scene avoided (texmake.cpp, untouched by this spec) -- it turns out to be
+# keyed on channel count (3-channel, no alpha), not the 8-bit case GitHub
+# issue #18 originally described; single-channel sidesteps it here too.
+version 3.03
+Hider "raytrace"
+Display "texture-exr-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["texture-exr-source.tex"]
+  Sphere 1 -1 1 360
+WorldEnd

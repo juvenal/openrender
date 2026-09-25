@@ -26,6 +26,8 @@
 ////////////////////////////////////////////////////////////////////////
 #include "texmake.h"
 #include "error.h"
+#include "imageInput.h"
+#include "imageInputTiff.h"
 #include "memory.h"
 #include "renderer.h"
 #include "ri.h"
@@ -46,6 +48,21 @@ const char *resizeUpMode = "up";
 const char *resizeDownMode = "down";
 const char *resizeRoundMode = "round";
 const char *resizeNoneMode = "none";
+
+///////////////////////////////////////////////////////////////////////
+// function				:	pixelSizeFromInfo
+// Description			:	Bytes per pixel for a decoded CImageInfo, matching
+//							the bit-depth tiers readLayer() used to compute inline
+// Return Value			:	bytes per pixel
+// Comments				:
+static int pixelSizeFromInfo(const CImageInfo &info) {
+    if (info.bitsPerSample == 8)
+        return info.numChannels * sizeof(unsigned char);
+    else if (info.bitsPerSample == 16)
+        return info.numChannels * sizeof(unsigned short);
+    else
+        return info.numChannels * sizeof(float);
+}
 
 ///////////////////////////////////////////////////////////////////////
 // function				:	tiffErrorHandler
@@ -755,43 +772,52 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        TIFF *inHandle = TIFFOpen(inputFileName, "r");
-        if (inHandle == NULL) {
-            error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName);
+        if (imageInput == NULL) {
+            error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
         else {
-            void *data;
-            int numSamples;
-            int bitspersample;
-            int width, height;
-            int tileSize = DEFAULT_TILE_SIZE;
-            RtFilterFunc filter = filt;
-            float filterWidth = fwidth;
-            float filterHeight = fheight;
-            char modes[128];
+            CImageInfo imageInfo;
 
-            memBegin(CRenderer::globalMemory);
-
-            // Read the texture
-            data = readLayer(inHandle, &width, &height, &bitspersample, &numSamples);
-            TIFFClose(inHandle);
-
-            // Write the made texture
-            TIFF *outHandle = TIFFOpen(output, "w");
-            if (output != NULL) {
-                int dstart = 0;
-
-                snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
-
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_TEXTURE);
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
-
-                appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-
-                TIFFClose(outHandle);
+            if (!imageInput->open(inputFileName, imageInfo)) {
+                delete imageInput;
             }
+            else {
+                void *data;
+                int numSamples = imageInfo.numChannels;
+                int bitspersample = imageInfo.bitsPerSample;
+                int width = imageInfo.width, height = imageInfo.height;
+                int tileSize = DEFAULT_TILE_SIZE;
+                RtFilterFunc filter = filt;
+                float filterWidth = fwidth;
+                float filterHeight = fheight;
+                char modes[128];
 
-            memEnd(CRenderer::globalMemory);
+                memBegin(CRenderer::globalMemory);
+
+                // Read the texture
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                imageInput->readImage(data);
+                imageInput->close();
+                delete imageInput;
+
+                // Write the made texture
+                TIFF *outHandle = TIFFOpen(output, "w");
+                if (output != NULL) {
+                    int dstart = 0;
+
+                    snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
+
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_TEXTURE);
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
+
+                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+
+                    TIFFClose(outHandle);
+                }
+
+                memEnd(CRenderer::globalMemory);
+            }
         }
     }
 }
@@ -814,65 +840,81 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        TIFF *inHandle = TIFFOpen(inputFileName, "r");
-        if (inHandle == NULL) {
-            error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName);
+        if (imageInput == NULL) {
+            error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
         else {
-            void *data;
-            int numSamples;
-            int bitspersample;
-            int width, height;
-            int tileSize = DEFAULT_TILE_SIZE;
-            RtFilterFunc filter = filt;
-            float filterWidth = fwidth;
-            float filterHeight = fheight;
-            matrix worldToCamera, worldToScreen;
-            float *tmp;
+            CImageInfo imageInfo;
 
-            memBegin(CRenderer::globalMemory);
-
-            // Read off the from world transformation from the image if possible
-            if (TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE) {
-                error(CODE_BUG, "Failed to read the world to camera matrix\n");
-                identitym(worldToCamera);
+            if (!imageInput->open(inputFileName, imageInfo)) {
+                delete imageInput;
             }
             else {
-                movmm(worldToCamera, tmp);
+                void *data;
+                int numSamples = imageInfo.numChannels;
+                int bitspersample = imageInfo.bitsPerSample;
+                int width = imageInfo.width, height = imageInfo.height;
+                int tileSize = DEFAULT_TILE_SIZE;
+                RtFilterFunc filter = filt;
+                float filterWidth = fwidth;
+                float filterHeight = fheight;
+                matrix worldToCamera, worldToScreen;
+                float *tmp;
+
+                memBegin(CRenderer::globalMemory);
+
+                // Read off the from world transformation from the image if possible.
+                // These are Pixar-private TIFF tags with no equivalent in any other
+                // source format, so a non-TIFF source always takes the same
+                // "tag missing" fallback (identity matrix + error) a TIFF source
+                // without these tags already took before this feature existed.
+                CTiffImageInput *tiffInput = dynamic_cast<CTiffImageInput *>(imageInput);
+                TIFF *inHandle = tiffInput ? tiffInput->getHandle() : NULL;
+
+                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE) {
+                    error(CODE_BUG, "Failed to read the world to camera matrix\n");
+                    identitym(worldToCamera);
+                }
+                else {
+                    movmm(worldToCamera, tmp);
+                }
+
+                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE) {
+                    error(CODE_BUG, "Failed to read the world to screen matrix\n");
+                    identitym(worldToScreen);
+                }
+                else {
+                    movmm(worldToScreen, tmp);
+                }
+
+                // Read the data
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                imageInput->readImage(data);
+
+                // Close the input
+                imageInput->close();
+                delete imageInput;
+
+                TIFF *outHandle = TIFFOpen(output, "w");
+                if (output != NULL) {
+                    int dstart = 0;
+
+                    // Write the texture data
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SHADOW);
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, worldToCamera);
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, worldToScreen);
+
+                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+
+                    TIFFClose(outHandle);
+                }
+                else {
+                    error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
+                }
+
+                memEnd(CRenderer::globalMemory);
             }
-
-            if (TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE) {
-                error(CODE_BUG, "Failed to read the world to screen matrix\n");
-                identitym(worldToScreen);
-            }
-            else {
-                movmm(worldToScreen, tmp);
-            }
-
-            // Read the data
-            data = readLayer(inHandle, &width, &height, &bitspersample, &numSamples);
-
-            // Close the input
-            TIFFClose(inHandle);
-
-            TIFF *outHandle = TIFFOpen(output, "w");
-            if (output != NULL) {
-                int dstart = 0;
-
-                // Write the texture data
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SHADOW);
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, worldToCamera);
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, worldToScreen);
-
-                appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-
-                TIFFClose(outHandle);
-            }
-            else {
-                error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
-            }
-
-            memEnd(CRenderer::globalMemory);
         }
     }
 }
@@ -922,7 +964,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 
                 for (i = 0; i < 6; i++) {
                     int width, height;
-                    TIFF *inHandle;
+                    CImageInput *faceInput;
 
                     // Open the file
                     if (CRenderer::locateFile(inputFileName, names[i], path) == FALSE) {
@@ -930,21 +972,33 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                         break;
                     }
                     else {
-                        inHandle = TIFFOpen(inputFileName, "r");
-                        if (inHandle == NULL)
+                        faceInput = createImageInput(inputFileName);
+                        if (faceInput == NULL)
                             break;
+                        CImageInfo faceInfo;
+                        if (!faceInput->open(inputFileName, faceInfo)) {
+                            delete faceInput;
+                            break;
+                        }
+
+                        memBegin(CRenderer::globalMemory);
+
+                        width = faceInfo.width;
+                        height = faceInfo.height;
+                        numSamples = faceInfo.numChannels;
+                        bitspersample = faceInfo.bitsPerSample;
+
+                        // Read the data
+                        data = ralloc(pixelSizeFromInfo(faceInfo) * width * height, CRenderer::globalMemory);
+                        faceInput->readImage(data);
+                        faceInput->close();
+                        delete faceInput;
+
+                        // Write the data
+                        appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+
+                        memEnd(CRenderer::globalMemory);
                     }
-
-                    memBegin(CRenderer::globalMemory);
-
-                    // Read the data
-                    data = readLayer(inHandle, &width, &height, &bitspersample, &numSamples);
-                    TIFFClose(inHandle);
-
-                    // Write the data
-                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-
-                    memEnd(CRenderer::globalMemory);
                 }
 
                 TIFFClose(outHandle);
@@ -974,43 +1028,52 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        TIFF *inHandle = TIFFOpen(inputFileName, "r");
+        CImageInput *imageInput = createImageInput(inputFileName);
 
-        if (inHandle == NULL) {
-            error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
+        if (imageInput == NULL) {
+            error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
         else {
-            void *data;
-            int numSamples;
-            int bitspersample;
-            int width, height;
-            int tileSize = DEFAULT_TILE_SIZE;
-            RtFilterFunc filter = filt;
-            float filterWidth = fwidth;
-            float filterHeight = fheight;
-            char modes[128];
+            CImageInfo imageInfo;
 
-            memBegin(CRenderer::globalMemory);
-
-            // Read the texture
-            data = readLayer(inHandle, &width, &height, &bitspersample, &numSamples);
-            TIFFClose(inHandle);
-
-            TIFF *outHandle = TIFFOpen(output, "w");
-            if (output != NULL) {
-                int dstart = 0;
-
-                snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
-
-                // Write out the data
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SPHERICAL_ENVIRONMENT);
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
-
-                appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-                TIFFClose(outHandle);
+            if (!imageInput->open(inputFileName, imageInfo)) {
+                delete imageInput;
             }
+            else {
+                void *data;
+                int numSamples = imageInfo.numChannels;
+                int bitspersample = imageInfo.bitsPerSample;
+                int width = imageInfo.width, height = imageInfo.height;
+                int tileSize = DEFAULT_TILE_SIZE;
+                RtFilterFunc filter = filt;
+                float filterWidth = fwidth;
+                float filterHeight = fheight;
+                char modes[128];
 
-            memEnd(CRenderer::globalMemory);
+                memBegin(CRenderer::globalMemory);
+
+                // Read the texture
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                imageInput->readImage(data);
+                imageInput->close();
+                delete imageInput;
+
+                TIFF *outHandle = TIFFOpen(output, "w");
+                if (output != NULL) {
+                    int dstart = 0;
+
+                    snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
+
+                    // Write out the data
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SPHERICAL_ENVIRONMENT);
+                    TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
+
+                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                    TIFFClose(outHandle);
+                }
+
+                memEnd(CRenderer::globalMemory);
+            }
         }
     }
 }
@@ -1033,16 +1096,22 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        TIFF *inHandle = TIFFOpen(inputFileName, "r");
+        CImageInput *imageInput = createImageInput(inputFileName);
 
-        if (inHandle == NULL) {
-            error(CODE_NOFILE, "Failed to open \"%s\"\n", inputFileName);
+        if (imageInput == NULL) {
+            error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
         else {
+            CImageInfo imageInfo;
+
+            if (!imageInput->open(inputFileName, imageInfo)) {
+                delete imageInput;
+            }
+            else {
             void *data;
-            int numSamples;
-            int bitspersample;
-            int width, height;
+            int numSamples = imageInfo.numChannels;
+            int bitspersample = imageInfo.bitsPerSample;
+            int width = imageInfo.width, height = imageInfo.height;
             int tileSize = DEFAULT_TILE_SIZE;
             RtFilterFunc filter = filt;
             float filterWidth = fwidth;
@@ -1051,8 +1120,10 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
 
             memBegin(CRenderer::globalMemory);
 
-            data = readLayer(inHandle, &width, &height, &bitspersample, &numSamples);
-            TIFFClose(inHandle);
+            data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+            imageInput->readImage(data);
+            imageInput->close();
+            delete imageInput;
 
             TIFF *outHandle = TIFFOpen(output, "w");
             if (output != NULL) {
@@ -1068,6 +1139,7 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
             }
 
             memEnd(CRenderer::globalMemory);
+            }
         }
     }
 }

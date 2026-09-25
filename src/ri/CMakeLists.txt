@@ -49,6 +49,12 @@ set(ri_sources
 	geometry/blobbyPolygonize.cpp
 	geometry/blobbyRepeller.cpp
 	texture/brickmap.cpp
+	texture/imageInput.cpp
+	texture/imageInputExr.cpp
+	texture/imageInputPng.cpp
+	texture/imageInputRgbe.cpp
+	texture/imageInputTiff.cpp
+	../display/rgbe/rgbe.cpp
 	hiders/bundles.cpp
 	hiders/compositor.cpp
 	geometry/curves.cpp
@@ -175,6 +181,24 @@ target_include_directories(ribRender_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
 # include dirs, and external lib headers (TIFF, PNG).
 target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_libs})
 
+# spec 018 (multi-format texture source decoding): HAVE_OPENEXR and
+# OPENRENDER_OPENEXR_LIBS (root CMakeLists.txt) previously only fed the
+# openexr *display*-driver module. texture/imageInputExr.cpp is now also
+# part of ri_sources (added unconditionally, guarded internally by
+# #ifdef HAVE_OPENEXR so it's an empty translation unit when the macro isn't
+# defined) -- but the macro itself, and the OpenEXR link dependency, are
+# defined on ribRender_obj/ribRender/ribRender_static ONLY, not
+# ribVector_obj/ribVector. ribVector (orender-wire's lightweight preview
+# lib, deliberately "no shading, no LLVM") has no use for source-image
+# decoding and should not gain an OpenEXR dependency just because it
+# compiles texmake.cpp/imageInput.cpp too -- unlike TIFF/PNG/RGBE (already
+# zero-cost there), OpenEXR is a real, optional external dependency this
+# target should stay free of.
+if(HAVE_OPENEXR)
+    target_compile_definitions(ribRender_obj PRIVATE HAVE_OPENEXR)
+    target_link_libraries(ribRender_obj PRIVATE ${OPENRENDER_OPENEXR_LIBS})
+endif()
+
 # Shared library — external deps (TIFF, PNG, z) are PRIVATE (implementation detail
 # of libri; not part of its public API, so not propagated to linking executables).
 # Phase C: ri links against libshader_shading (shading engine in its own library).
@@ -199,6 +223,9 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
+if(HAVE_OPENEXR)
+    target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
+endif()
 if(WIN32)
     target_link_libraries(ribRender PRIVATE zlib ws2_32)
 endif()
@@ -221,6 +248,9 @@ endif()
 add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
 set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender)
 target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
+if(HAVE_OPENEXR)
+    target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
+endif()
 if(WIN32)
     target_link_libraries(ribRender_static INTERFACE zlib ws2_32)
 endif()
@@ -295,6 +325,19 @@ endif()
 # locateFile() directly). Moved to render/rendererFileSearch.cpp, compiled
 # identically for both ribRender and ribVector -- no real/stub split needed,
 # since there's nothing shading-specific to swap out.
+#
+# spec 018 (multi-format texture source decoding): texture/imageInput.cpp
+# and texture/imageInputTiff.cpp stay in ribVector_sources for the same
+# reason texmake.cpp itself does -- texmake.cpp unconditionally calls
+# createImageInput() and dynamic_casts to CTiffImageInput now, so any target
+# compiling texmake.cpp (ribVector included, even though it never calls
+# makeTexture() et al. at runtime) must link those symbols too. This is
+# zero-cost for TIFF/PNG-backed decoders since ribVector_obj already links
+# TIFF+PNG via openrendertiff_libs; an OpenEXR-backed decoder (added in a
+# later spec 018 phase) is instead kept out of ribVector by defining
+# HAVE_OPENEXR only on ribRender_obj's compile definitions, not
+# ribVector_obj's -- not by excluding the shared source file, since
+# imageInput.cpp itself must stay linked into both.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
     geometry/csgTesselationDispatch.cpp

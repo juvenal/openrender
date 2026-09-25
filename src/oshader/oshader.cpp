@@ -180,7 +180,9 @@ int main(int argc, char *argv[]) {
     char *includeEnv = osEnvironment(SHADERS_INCLUDE);
     int error = ERR_NONE;
     int legacyRSLObjectExt = FALSE;
+#ifdef OPENRENDER_HAVE_LLVM
     int emitJIT = FALSE;
+#endif
 
     orender_log_init();
 

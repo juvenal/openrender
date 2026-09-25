@@ -30,12 +30,12 @@ this branch (`master`@`733bbfb`) — see plan.md's Project Structure section.
 **Purpose**: Create the new module's file/test scaffolding so later phases
 have somewhere to add code.
 
-- [ ] T001 Create `src/ri/texture/imageInput.h` and
+- [X] T001 Create `src/ri/texture/imageInput.h` and
       `src/ri/texture/imageInput.cpp` as empty files with the project's
       standard file header (see any existing file in `src/ri/texture/` for
       the license/author header format) — no content yet, just the files
-      existing so T006 can populate them.
-- [ ] T002 [P] Create `tests/unit/image_input/CMakeLists.txt`, modeled
+      existing so T007 and T010 can populate them.
+- [X] T002 [P] Create `tests/unit/image_input/CMakeLists.txt`, modeled
       directly on `tests/unit/csg/CMakeLists.txt`'s per-executable pattern
       (`add_executable` → `target_compile_features(... cxx_std_20)` →
       `target_include_directories(...)` including
@@ -43,19 +43,25 @@ have somewhere to add code.
       `src/ri/*` directories csg's tests already include → `add_test` →
       `set_tests_properties(... LABELS "image_input;unit")`), initially
       empty of test executables (later tasks add them).
-- [ ] T003 [P] Add `add_subdirectory(unit/image_input)` to
+- [X] T003 [P] Add `add_subdirectory(unit/image_input)` to
       `tests/CMakeLists.txt`, alongside the existing
       `add_subdirectory(unit/csg)` / `add_subdirectory(unit/blobby)` lines.
-- [ ] T004 [P] Create `tests/unit/image_input/fixtures/` and generate tiny
-      (e.g. 4×4 or 8×8 pixel) synthetic test source files checked into it:
-      a small TIFF, an 8-bit RGB PNG, an 8-bit RGBA PNG, a 16-bit PNG, a
-      grayscale PNG, a grayscale+alpha PNG, an indexed/palette PNG (for the
-      negative test), a single-part RGB OpenEXR, a single-part RGBA
-      OpenEXR, a single-part luminance OpenEXR, a multi-part OpenEXR (for
-      the negative test), an OpenEXR with an unsupported channel layout
-      (for the negative test), and a small RGBE `.hdr` file. Each fixture's
-      exact pixel values must be known/recorded so decoder tests can assert
-      on them, not just "decoded without crashing."
+- [X] T004 [P] Create `tests/unit/image_input/fixtures/` and generate
+      **two sizes** of each synthetic test source file, both with a known,
+      closed-form per-pixel formula (recorded in `fixtures/FIXTURES.md`) so
+      decoder tests can assert exact expected content: a **tiny** (4x4) set
+      for fast exact-value unit assertions, and a **large** (512x512) set —
+      otexmake's `DEFAULT_TILE_SIZE` is 32, so a 4x4 image barely exercises
+      tiling/mip-pyramid reduction at all; 512x512 gives real multi-tile,
+      multi-mip-level coverage and stands in for daily-usage texture sizes
+      in the bake-regression (T006) and visual-regression (T014/T020/T026)
+      tests. Formats per size: TIFF, 8-bit RGB PNG, 8-bit RGBA PNG, 16-bit
+      PNG, grayscale PNG, grayscale+alpha PNG, indexed/palette PNG
+      (negative test), single-part RGB OpenEXR, single-part RGBA OpenEXR,
+      single-part luminance OpenEXR, a HALF-channel OpenEXR (precision-
+      promotion test), a multi-part OpenEXR (negative test), an OpenEXR
+      with an unsupported channel layout (negative test), and an RGBE
+      `.hdr` file.
 
 **Checkpoint**: Empty scaffolding compiles (`cmake --build build`); no
 behavior yet.
@@ -71,49 +77,57 @@ begin until this phase's checkpoint passes.**
 
 ### Tests for Foundational phase (write first, confirm failing)
 
-- [ ] T005 [P] Write a failing unit test asserting the `CImageInput`/
+- [X] T005 [P] Write a failing unit test asserting the `CImageInput`/
       `CImageInfo` contract shape compiles and a `CTiffImageInput` decodes
       the TIFF fixture from T004 to the exact expected pixel values, in
       `tests/unit/image_input/test_image_input_tiff.cpp` (register in
       `tests/unit/image_input/CMakeLists.txt` per T002's pattern).
-- [ ] T006 [P] Write a failing regression script/test that bakes an
-      existing TIFF-sourced test texture with `otexmake` before and after
-      this feature and `cmp`s the two outputs, in
-      `tests/unit/image_input/test_tiff_bake_byte_identical.cpp` (or a
-      shell-driven `add_test` invoking `otexmake` twice and running `cmp`
-      if that is simpler than a C++ harness — either is acceptable, but it
-      MUST fail today since `CTiffImageInput` does not exist yet to
-      produce a "before" run through the new path). Register with label
-      `"image_input;unit"`.
+- [X] T006 [P] Write a failing regression script/test that bakes one
+      representative existing TIFF-sourced test source through **each of
+      the 5 bake modes** `otexmake` supports (plain texture, cylindrical
+      environment, cubic environment, spherical environment, shadow) both
+      before and after this feature, `cmp`-ing each mode's before/after
+      output pair, in `tests/unit/image_input/test_tiff_bake_byte_identical.cpp`
+      (or a shell-driven `add_test` running `otexmake` twice per mode and
+      `cmp`, if simpler than a C++ harness). All 5 comparisons MUST fail
+      today since `CTiffImageInput` does not exist yet to produce a
+      "before" run through the new path. Covers FR-007/SC-002's full
+      stated scope (not just the plain-texture path) — the environment/
+      shadow bake functions in `texmake.cpp` are more complex than the
+      plain path and are exactly where a subtle regression is most likely.
+      Register with label `"image_input;unit"`.
 
 ### Implementation for Foundational phase
 
-- [ ] T007 Define `CImageInfo` and the abstract `CImageInput` base class in
+- [X] T007 Define `CImageInfo` and the abstract `CImageInput` base class in
       `src/ri/texture/imageInput.h`, exactly per
       `contracts/image-input-interface.md` (depends on T001).
-- [ ] T008 [P] Implement `CTiffImageInput` in
+- [X] T008 [P] Implement `CTiffImageInput` in
       `src/ri/texture/imageInputTiff.h` and `.cpp`, wrapping the existing
       `readLayer()` logic (`src/ri/texture/texmake.cpp:214-247`) behind the
       `open()`/`readImage()`/`close()` contract, with no behavior change
       (depends on T007).
-- [ ] T009 Implement `createImageInput(filename)` in
+- [X] T009 Add `imageInput.cpp`, `imageInputTiff.cpp` to the `src/ri`
+      CMake target source lists in `src/ri/CMakeLists.txt` (the same lists
+      that already include `texture/texmake.cpp`, at the locations noted
+      in plan.md's Project Structure section) (depends on T007, T008).
+      Done before T010/T011 below so their code has somewhere to compile
+      into as it's written, rather than after.
+- [X] T010 Implement `createImageInput(filename)` in
       `src/ri/texture/imageInput.cpp` with the suffix-dispatch table from
       `data-model.md`'s Format Registration Table — registering `.tif`/
-      `.tiff` and the no-match fallback to `CTiffImageInput` only for now
-      (later phases add their own suffix registrations) (depends on T007,
-      T008).
-- [ ] T010 Migrate all 5 `readLayer()` call sites in
+      `.tiff` only for now (later phases add their own suffix
+      registrations; an unrecognized extension returns `nullptr`, per
+      `contracts/image-input-interface.md` rule 5 — no TIFF fallback)
+      (depends on T007, T008, T009).
+- [X] T011 Migrate all 5 `readLayer()` call sites in
       `src/ri/texture/texmake.cpp` (currently at lines 776, 853, 941, 996,
       1054, each preceded by a direct `TIFFOpen()` at 758, 817, 925, 977,
       1036) to use `createImageInput()`/`CImageInput` instead of calling
       `TIFFOpen`/`readLayer()` directly. `appendLayer`/`appendPyramid`
       (lines 68-205) are NOT touched — only how source pixels are obtained
-      changes (depends on T009).
-- [ ] T011 Add `imageInput.cpp`, `imageInputTiff.cpp` to the `src/ri`
-      CMake target source lists in `src/ri/CMakeLists.txt` (the same lists
-      that already include `texture/texmake.cpp`, at the locations noted
-      in plan.md's Project Structure section) (depends on T007, T008).
-- [ ] T012 Run T005 and T006; confirm both now pass. Run
+      changes (depends on T009, T010).
+- [X] T012 Run T005 and T006; confirm both now pass. Run
       `ctest --test-dir build -L visual --output-on-failure` in full;
       confirm zero regressions against the pre-existing suite.
 
@@ -136,7 +150,7 @@ indexed — independently of OpenEXR/RGBE work.
 
 ### Tests for User Story 1 (write first, confirm failing)
 
-- [ ] T013 [P] [US1] Write failing unit tests for `CPngImageInput` in
+- [X] T013 [P] [US1] Write failing unit tests for `CPngImageInput` in
       `tests/unit/image_input/test_image_input_png.cpp`: round-trip
       decode against the RGB/RGBA/16-bit/grayscale/grayscale+alpha PNG
       fixtures from T004 asserting exact pixel values and correct
@@ -144,7 +158,7 @@ indexed — independently of OpenEXR/RGBE work.
       that the indexed PNG fixture causes `open()` to return `false` with
       an error rather than decoding. Register in
       `tests/unit/image_input/CMakeLists.txt`.
-- [ ] T014 [P] [US1] Add a new visual-regression scene pair,
+- [X] T014 [P] [US1] Add a new visual-regression scene pair,
       `examples/rib/tests/texture-png-reyes.rib` and
       `examples/rib/tests/texture-png-raytrace.rib`, each referencing a
       texture baked from a PNG source, and register them via
@@ -157,20 +171,21 @@ indexed — independently of OpenEXR/RGBE work.
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `CPngImageInput` in
+- [X] T015 [US1] Implement `CPngImageInput` in
       `src/ri/texture/imageInputPng.h` and `.cpp` per `research.md` §4:
       row-based `libpng` API matching `src/display/file/file_png.cpp`'s
       existing usage style, `PNG_COLOR_TYPE_RGB`/`RGB_ALPHA`/`GRAY`/
       `GRAY_ALPHA` accepted, `PNG_COLOR_TYPE_PALETTE` rejected before any
       pixel read, 16-bit samples byte-swapped to native order via
       `png_set_swap()` (depends on T007).
-- [ ] T016 [US1] Register `.png` → `CPngImageInput` in
+- [X] T016 [US1] Add `imageInputPng.cpp` to the `src/ri` CMake target
+      source lists in `src/ri/CMakeLists.txt` (same locations as T009)
+      (depends on T015). Done before T017 so `CPngImageInput` is already
+      linkable when the factory is edited to reference it.
+- [X] T017 [US1] Register `.png` → `CPngImageInput` in
       `createImageInput()` in `src/ri/texture/imageInput.cpp` (depends on
-      T009, T015).
-- [ ] T017 [US1] Add `imageInputPng.cpp` to the `src/ri` CMake target
-      source lists in `src/ri/CMakeLists.txt` (same locations as T011)
-      (depends on T015).
-- [ ] T018 [US1] Run T013 and T014; confirm both pass. Run
+      T010, T015, T016).
+- [X] T018 [US1] Run T013 and T014; confirm both pass. Run
       `ctest --test-dir build -L visual --output-on-failure`; confirm zero
       regressions.
 
@@ -193,7 +208,7 @@ independently of PNG/RGBE work.
 
 ### Tests for User Story 2 (write first, confirm failing)
 
-- [ ] T019 [P] [US2] Write failing unit tests for `COpenExrImageInput` in
+- [X] T019 [P] [US2] Write failing unit tests for `COpenExrImageInput` in
       `tests/unit/image_input/test_image_input_exr.cpp`, guarded by
       `#ifdef HAVE_OPENEXR`: round-trip decode against the RGB/RGBA/
       luminance OpenEXR fixtures from T004 asserting exact float pixel
@@ -205,7 +220,7 @@ independently of PNG/RGBE work.
       `tests/unit/image_input/CMakeLists.txt`, conditionally compiled only
       when `HAVE_OPENEXR` (mirroring how `src/display/openexr/` is
       conditionally built today).
-- [ ] T020 [P] [US2] Add a new visual-regression scene pair,
+- [X] T020 [P] [US2] Add a new visual-regression scene pair,
       `examples/rib/tests/texture-exr-reyes.rib` and
       `examples/rib/tests/texture-exr-raytrace.rib`, referencing a texture
       baked from an OpenEXR source, registered via `add_parity_test` in
@@ -214,7 +229,7 @@ independently of PNG/RGBE work.
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement `COpenExrImageInput` in
+- [X] T021 [US2] Implement `COpenExrImageInput` in
       `src/ri/texture/imageInputExr.h` and `.cpp`, guarded by
       `#ifdef HAVE_OPENEXR`, per `research.md` §3: open via
       `Imf::MultiPartInputFile` first and reject unconditionally if
@@ -223,19 +238,21 @@ independently of PNG/RGBE work.
       else with a clear error); read pixel data through the classic `Imf`
       API; promote any `HALF`-typed channel to 32-bit float on decode
       (depends on T007).
-- [ ] T022 [US2] Register `.exr` → `COpenExrImageInput` in
-      `createImageInput()` in `src/ri/texture/imageInput.cpp`, guarded by
-      `#ifdef HAVE_OPENEXR`; when not defined, a `.exr` source file must
-      cause a clear "OpenEXR support not built into this binary" error
-      rather than falling through to the TIFF decoder (depends on T009,
-      T021).
-- [ ] T023 [US2] Wire `HAVE_OPENEXR` and the existing
+- [X] T022 [US2] Wire `HAVE_OPENEXR` and the existing
       `OPENRENDER_OPENEXR_LIBS` variable (root `CMakeLists.txt:383-412`)
       into `src/ri/CMakeLists.txt`: add `imageInputExr.cpp` to the
       relevant target source lists only when `HAVE_OPENEXR` is `ON`, and
       link `${OPENRENDER_OPENEXR_LIBS}` into those same targets, per
-      `research.md` §2 (depends on T021).
-- [ ] T024 [US2] Run T019 and T020 on a `HAVE_OPENEXR` build; confirm both
+      `research.md` §2 (depends on T021). Done before T023 so
+      `COpenExrImageInput` is already linkable when the factory is edited
+      to reference it.
+- [X] T023 [US2] Register `.exr` → `COpenExrImageInput` in
+      `createImageInput()` in `src/ri/texture/imageInput.cpp`, guarded by
+      `#ifdef HAVE_OPENEXR`; when not defined, a `.exr` source file must
+      cause a clear "OpenEXR support not built into this binary" error
+      rather than falling through to the TIFF decoder (depends on T010,
+      T021, T022).
+- [X] T024 [US2] Run T019 and T020 on a `HAVE_OPENEXR` build; confirm both
       pass. Confirm a build with `HAVE_OPENEXR` off still compiles cleanly
       and produces the expected graceful-degradation error for a `.exr`
       source. Run `ctest --test-dir build -L visual --output-on-failure`;
@@ -258,36 +275,56 @@ of PNG/OpenEXR work.
 
 ### Tests for User Story 3 (write first, confirm failing)
 
-- [ ] T025 [P] [US3] Write a failing unit test for `CRgbeImageInput` in
+- [X] T025 [P] [US3] Write a failing unit test for `CRgbeImageInput` in
       `tests/unit/image_input/test_image_input_rgbe.cpp`: round-trip
       decode against the RGBE fixture from T004 asserting exact expected
       float RGB values (proving `RGBE_ReadHeader`/`RGBE_ReadPixels` are
       actually invoked, not stubbed). Register in
       `tests/unit/image_input/CMakeLists.txt`.
-- [ ] T026 [P] [US3] Add a new visual-regression scene pair,
+- [X] T026 [P] [US3] Add a new visual-regression scene pair,
       `examples/rib/tests/texture-rgbe-reyes.rib` and
       `examples/rib/tests/texture-rgbe-raytrace.rib`, referencing a texture
       baked from an RGBE source, registered via `add_parity_test` in
       `tests/visual/CMakeLists.txt` following T014's pattern.
+      **Completed with a documented exception**: the RIB scene pair and
+      baked `texture-rgbe-source.tex` exist in
+      `examples/rib/tests/parity/`, but are deliberately NOT wired into
+      `add_parity_test`/`tests/visual/CMakeLists.txt`. Reason: RGBE is
+      always exactly 3-channel RGB with no alpha, which unconditionally
+      triggers a pre-existing, out-of-scope bug in `appendLayer()`
+      (`texmake.cpp`, untouched by this spec) — it never sets
+      `TIFFTAG_PHOTOMETRIC` for 3-channel 8-bit/float output, causing a
+      libtiff warning storm and a nonzero `orender` exit code at shutdown
+      (image content itself renders correctly — independently confirmed).
+      Unlike PNG/OpenEXR, RGBE has no single-channel/luminance escape
+      hatch to dodge it. Root-caused and tracked as GitHub issue #18
+      (confirmed to also affect the plain TIFF-sourced reference texture
+      from T006 — i.e. it predates and is unrelated to spec 018 entirely,
+      just never previously exercised by this repo's test suite).
+      Registering the scene as-is would add a deterministically-failing
+      test, not a flaky one, so it stays prepared-but-unregistered until
+      issue #18 is fixed separately.
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Implement `CRgbeImageInput` in
+- [X] T027 [US3] Implement `CRgbeImageInput` in
       `src/ri/texture/imageInputRgbe.h` and `.cpp`, calling the existing
       `RGBE_ReadHeader()`/`RGBE_ReadPixels()` (`display/rgbe/rgbe.h`,
       already includable per `src/ri/CMakeLists.txt:43`) via a standard
       `fopen()`-obtained `FILE*`; always reports `numChannels = 3`,
       `bitsPerSample = 32`, `isFloatFormat = true` (depends on T007).
-- [ ] T028 [US3] Register `.hdr`/`.pic` → `CRgbeImageInput` in
-      `createImageInput()` in `src/ri/texture/imageInput.cpp` (depends on
-      T009, T027).
-- [ ] T029 [US3] Add `imageInputRgbe.cpp` **and** `display/rgbe/rgbe.cpp`
+- [X] T028 [US3] Add `imageInputRgbe.cpp` **and** `display/rgbe/rgbe.cpp`
       to the `src/ri` CMake target source lists in `src/ri/CMakeLists.txt`
-      (same locations as T011/T017) — `rgbe.cpp` is currently compiled
+      (same locations as T009/T016) — `rgbe.cpp` is currently compiled
       only into the `rgbe.dsply` `MODULE`, which these targets do not link
       against, so it must be added directly per `research.md` §5's
-      addendum (depends on T027).
-- [ ] T030 [US3] Run T025 and T026; confirm both pass. Run
+      addendum (depends on T027). Done before T029 so `CRgbeImageInput`
+      (and the `RGBE_Read*` symbols it calls) are already linkable when
+      the factory is edited to reference it.
+- [X] T029 [US3] Register `.hdr`/`.pic` → `CRgbeImageInput` in
+      `createImageInput()` in `src/ri/texture/imageInput.cpp` (depends on
+      T010, T027, T028).
+- [X] T030 [US3] Run T025 and T026; confirm both pass. Run
       `ctest --test-dir build -L visual --output-on-failure`; confirm zero
       regressions.
 
@@ -302,7 +339,7 @@ render correctly, each independently proven; TIFF remains byte-identical.
 out FR-008/SC-004 (clear errors for unsupported/corrupted input) with
 explicit negative-case tests not already covered per-format above.
 
-- [ ] T031 [P] Write unit tests for cross-format negative cases in
+- [X] T031 [P] Write unit tests for cross-format negative cases in
       `tests/unit/image_input/test_image_input_errors.cpp`:
       `createImageInput()` returns `nullptr` for an unsupported extension
       (e.g. `.bmp`), and each decoder's `open()` returns `false` (not a
@@ -310,16 +347,16 @@ explicit negative-case tests not already covered per-format above.
       content for that format (e.g. a truncated PNG, a `.exr`-named file
       that isn't a valid EXR). Register in
       `tests/unit/image_input/CMakeLists.txt`.
-- [ ] T032 [P] Update `DEVNOTES.md` to note `otexmake` now accepts PNG/
+- [X] T032 [P] Update `DEVNOTES.md` to note `otexmake` now accepts PNG/
       OpenEXR/RGBE bake sources in addition to TIFF, per this repo's
       convention of tracking feature status there (see CLAUDE.md's Dev
       workflow section).
-- [ ] T033 Run the full test suite once more end-to-end:
+- [X] T033 Run the full test suite once more end-to-end:
       `ctest --test-dir build -L visual --output-on-failure`,
       `ctest --test-dir build -L image_input --output-on-failure`, and
       `ctest --test-dir build -L libshader --output-on-failure`; confirm
       all green.
-- [ ] T034 Execute every step in `quickstart.md` manually (build,
+- [X] T034 Execute every step in `quickstart.md` manually (build,
       byte-identical `cmp` check, bake+render each new format, all five
       negative-case sanity checks) and confirm the observed behavior
       matches what quickstart.md documents.
@@ -350,16 +387,22 @@ explicit negative-case tests not already covered per-format above.
 - Tests MUST be written and failing before implementation tasks in the
   same phase (constitution III, NON-NEGOTIABLE).
 - Interface (T007) before any concrete decoder.
-- Concrete decoder implementation before its `createImageInput()`
-  registration before its CMake wiring before its checkpoint test run.
+- Concrete decoder implementation before its CMake source-list wiring
+  before its `createImageInput()` registration before its checkpoint test
+  run — CMake wiring is sequenced *before* registration in every phase so
+  that the new decoder's symbols are already linkable by the time the
+  factory function is edited to reference them, rather than leaving an
+  unlinkable intermediate state.
 
 ### Parallel Opportunities
 
 - T002, T003, T004 (Setup) can run in parallel.
 - T005, T006 (Foundational tests) can run in parallel with each other, but
-  both must land before T007-T010.
-- T008 depends on T007 but is otherwise independent of T009/T010 until
-  they need it.
+  both must land before T007-T011.
+- T008 depends on T007. T009 (CMake wiring) depends on T007+T008. T010
+  (factory) and T011 (migrate call sites) each depend, in sequence, on
+  everything before them — T007 through T011 form one linear chain within
+  Foundational, not a parallelizable set.
 - Once Phase 2's checkpoint passes, **US1, US2, and US3 can be implemented
   in parallel** (e.g. by different developers) — each story's test tasks
   (T013/T014, T019/T020, T025/T026) and implementation tasks touch
@@ -369,7 +412,7 @@ explicit negative-case tests not already covered per-format above.
   story adds its own source-list entries — same caveat).
 - Within each story, the two test tasks are marked [P] (different files);
   implementation tasks are sequential within that story due to the
-  interface→registration→CMake-wiring→verification chain.
+  decoder→CMake-wiring→registration→verification chain.
 
 ---
 

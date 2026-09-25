@@ -38,15 +38,25 @@ build/src/otexmake/otexmake studio.hdr studio.tex
 
 Each of the above should produce a texture file usable exactly like a
 TIFF-sourced one — e.g. referenced from a `Texture` shader parameter and
-rendered:
+rendered. Use the **build tree** directly (no `cmake --install` needed —
+the gitignored `openrender/` deploy tree is a separate, install-only
+concern, per this repo's documented deploy-tree gotcha):
 
 ```bash
-SHADERS="$(pwd)/openrender/shaders" \
-ORENDERHOME="$(pwd)/openrender" \
-DISPLAYS="$(pwd)/openrender/displays" \
-GEOMETRIES="$(pwd)/openrender/geometry" \
+SHADERS="$(pwd)/build/shaders" \
+ORENDERHOME="$(pwd)" \
+DISPLAYS="$(pwd)/build/src/display/file:$(pwd)/build/src/display/rgbe:$(pwd)/build/src/display/framebuffer:$(pwd)/build/src/display/openexr" \
 build/src/orender/orender examples/rib/<a-texture-using-scene>.rib
 ```
+
+**Known caveat when trying this yourself**: a pre-existing, unrelated bug
+(`appendLayer()`'s `TIFFTAG_PHOTOMETRIC` gap, GitHub issue #18 — predates
+this feature, applies to plain TIFF-sourced bakes too) makes `orender`
+print libtiff warnings and exit non-zero when rendering with any bake from
+an exactly-3-channel-no-alpha source (image content still renders
+correctly). RGBA (4-channel) or grayscale/luminance (1-channel) sources
+sidestep it cleanly — `probe.tex` above, baked from a single-channel EXR
+source, is unaffected; a 3-channel RGB EXR/PNG/TIFF source would hit it.
 
 ## Run the tests
 

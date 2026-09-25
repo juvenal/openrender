@@ -187,8 +187,9 @@ resulting texture's decoded radiance values match the source.
   RGBE source file using the same `otexmake` invocation pattern already
   used for TIFF sources today, with no new required flags or steps.
 - **SC-002**: Baking from an existing TIFF source produces output that is
-  byte-for-byte identical to the tool's current behavior, across 100% of
-  the project's existing bake-related test scenes.
+  byte-for-byte identical to the tool's pre-change behavior, verified
+  across all 5 bake modes `otexmake` supports (plain texture, cylindrical/
+  cubic/spherical environment, shadow).
 - **SC-003**: A texture baked from a PNG, OpenEXR, or RGBE source renders
   correctly when compared against a reference render of an equivalent
   TIFF-sourced texture, agreeing across both the reyes and raytrace camera
