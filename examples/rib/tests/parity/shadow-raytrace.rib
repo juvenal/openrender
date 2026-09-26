@@ -1,0 +1,26 @@
+##RenderMan RIB-Structure 1.0
+# Sphere casting a shadow (via a baked shadow map, spec 019
+# 019-tilesource-extraction, T008) onto a ground polygon, lit exclusively
+# by a shadowspot light source. Validates that a baked shadow map renders
+# identically across camera hiders, same as any other baked texture.
+version 3.03
+Hider "raytrace"
+Display "shadow-raytrace.tif" "file" "rgba"
+Projection "perspective" "fov" 35
+Translate 0 -0.05 3
+Rotate -30 1 0 0
+Rotate 20 0 1 0
+Scale 1 1 -1
+WorldBegin
+  LightSource "shadowspot" 1
+              "intensity" 120
+              "coneangle" 0.6
+              "from" [0 1.5 0.5] "to" [0 0 0]
+              "shadowname" ["shadow-source.tex"]
+
+  Surface "matte"
+  Polygon "P" [-0.5 0 -0.5  -0.5 0 0.5  0.5 0 0.5  0.5 0 -0.5]
+          "st" [0 0  0 1  1 1  1 0]
+  Translate 0 0.2 0
+  Sphere 0.2 -0.2 0.2 360
+WorldEnd

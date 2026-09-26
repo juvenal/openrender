@@ -42,16 +42,16 @@ the RIB scenes that reference them go one level down, in
 **Purpose**: Confirm the pre-refactor baseline is clean, and create the new
 module's file/test scaffolding so later phases have somewhere to add code.
 
-- [ ] T001 Confirm a clean baseline before any spec 019 code is written:
+- [X] T001 Confirm a clean baseline before any spec 019 code is written:
       `cmake --build build --config Release`, then
       `ctest --test-dir build -L visual --output-on-failure` and
       `ctest --test-dir build -L image_input --output-on-failure`; both
       must be 100% green.
-- [ ] T002 [P] Create `src/ri/texture/tileSource.h` as an empty file with
+- [X] T002 [P] Create `src/ri/texture/tileSource.h` as an empty file with
       the project's standard file header (see any existing file in
       `src/ri/texture/` for the license/author header format) — no content
       yet, just the file existing so T014 can populate it.
-- [ ] T003 [P] Create `tests/unit/texture_tile/CMakeLists.txt`, modeled
+- [X] T003 [P] Create `tests/unit/texture_tile/CMakeLists.txt`, modeled
       directly on `tests/unit/image_input/CMakeLists.txt`'s per-executable
       pattern (`add_executable` → `target_compile_features(...
       cxx_std_20)` → `target_include_directories(...)` including
@@ -59,7 +59,7 @@ module's file/test scaffolding so later phases have somewhere to add code.
       directories image_input's tests already include → `add_test` →
       `set_tests_properties(... LABELS "texture_tile;unit")`), initially
       empty of test executables.
-- [ ] T004 [P] Add `add_subdirectory(unit/texture_tile)` to
+- [X] T004 [P] Add `add_subdirectory(unit/texture_tile)` to
       `tests/CMakeLists.txt`, alongside the existing
       `add_subdirectory(unit/image_input)` line.
 
@@ -83,7 +83,7 @@ until this phase's checkpoint passes.**
 
 ### New fixtures/scenes (environment map + shadow map — real coverage gap, not previously testable)
 
-- [ ] T005 Generate the shadow-map source fixture: author a small RIB
+- [X] T005 Generate the shadow-map source fixture: author a small RIB
       scene, `examples/rib/tests/shadow-caster-source.rib` (one simple
       primitive, e.g. a sphere, camera positioned as the casting light's
       view), rendered with **`-t:1`** (determinism — see T009) and
@@ -95,7 +95,7 @@ until this phase's checkpoint passes.**
       from the input file). Check the rendered `.tif` in as a fixture
       alongside the RIB, directly under `examples/rib/tests/` (not the
       `parity/` subdirectory — see T006's note on why).
-- [ ] T006 [P] Bake the T005 depth image into a checked-in shadow-map
+- [X] T006 [P] Bake the T005 depth image into a checked-in shadow-map
       texture: `otexmake -shadow shadow-caster-source.tif
       examples/rib/tests/shadow-source.tex`. **Must land directly under
       `examples/rib/tests/`, not `examples/rib/tests/parity/`**: the
@@ -110,7 +110,7 @@ until this phase's checkpoint passes.**
       (sanity check against the class of issue GitHub #18 fixed —
       single-channel output was never affected by that gap, but confirm
       directly rather than assume) (depends on T005).
-- [ ] T007 [P] Bake spec 018's existing checked-in `medium_rgb.tif`
+- [X] T007 [P] Bake spec 018's existing checked-in `medium_rgb.tif`
       fixture (8-bit RGB, already unaffected by issue #18 per its
       `PHOTOMETRIC_RGB` tag — confirmed via `tiffinfo`) into a checked-in
       environment map: `otexmake -envlatl
@@ -118,7 +118,7 @@ until this phase's checkpoint passes.**
       examples/rib/tests/env-source.tex` (same `examples/rib/tests/`
       placement rule as T006 — not `parity/`). No new source image
       needed.
-- [ ] T008 Author 4 new regression RIB scenes referencing the T006/T007
+- [X] T008 Author 4 new regression RIB scenes referencing the T006/T007
       fixtures, modeled on spec 018's
       `examples/rib/tests/parity/texture-png-{reyes,raytrace}.rib`:
       `examples/rib/tests/parity/shadow-{reyes,raytrace}.rib` (a simple lit
@@ -153,7 +153,7 @@ until this phase's checkpoint passes.**
 
 ### Byte-identical rendered-output regression bar (FR-002/SC-001)
 
-- [ ] T009 Capture the pre-refactor reference renders for **all 10** scenes
+- [X] T009 Capture the pre-refactor reference renders for **all 10** scenes
       SC-001 covers ("100% of existing visual-regression scenes that
       reference a baked texture, environment map, or shadow map"), not a
       representative sample — confirmed via `speckit.analyze` (finding
@@ -186,7 +186,7 @@ until this phase's checkpoint passes.**
       2 `texture-exr-*` scenes are skipped, matching how
       `tests/visual/CMakeLists.txt` already guards the EXR parity test
       (depends on T001, T008).
-- [ ] T010 [P] Write `tests/unit/texture_tile/test_render_byte_identical.sh`:
+- [X] T010 [P] Write `tests/unit/texture_tile/test_render_byte_identical.sh`:
       for each of the 10 scenes from T009, render it with
       `$<TARGET_FILE:orender> -t:1` (passed as an argument, following
       `test_tiff_bake_byte_identical.sh`'s existing pattern of taking the
@@ -203,44 +203,73 @@ until this phase's checkpoint passes.**
 
 ### Multi-threaded concurrency test (FR-006/SC-002 — new coverage, no equivalent exists today)
 
-- [ ] T011 [P] Generate a synthetic multi-tile, multi-mip-level texture
-      fixture for the concurrency test: a 512x512 source image with a
-      known, closed-form per-pixel formula (reusing spec 018's
-      fixture-design approach; document the formula in a new
-      `tests/unit/texture_tile/fixtures/FIXTURES.md`), baked via
-      `otexmake` into a checked-in reference `.tex` — `otexmake`'s default
-      32x32 tile size against 512x512 gives a 16x16-tile base level plus
-      several smaller mip levels, giving the concurrency test genuinely
-      distinct tiles/levels to fault in concurrently.
-- [ ] T012 [P] Write the multi-threaded concurrency test,
-      `tests/unit/texture_tile/test_tile_source_concurrency.cpp`:
-      `RiBegin(RI_NULL)`/`RiEnd()`-bracketed (per the pattern established in
-      spec 018's `test_image_input_tiff.cpp` for any standalone test
-      reaching code that can call `error()`), load the T011 fixture via
-      `CRenderer::textureLoad()` (`src/ri/render/renderer.h:285`, returns a
-      `CTexture*`) with a minimal `TSearchpath` (`src/ri/state/options.h`)
-      pointed at the fixture directory (mirrors
-      `rendererFiles.cpp`'s existing `textureLoad()` call-site usage), then
-      spin up several `std::thread`s repeatedly calling
-      `CTexture::lookup(dest, u, v, context)` — covering both of spec.md's
-      acceptance scenarios: (a) different threads requesting different,
-      previously-uncached tiles concurrently, and (b) different threads
-      requesting the *same* previously-uncached tile concurrently.
-      Assert every fetch's returned pixel data matches the known formula
-      from T011; run the whole thing in a loop of several iterations to
-      surface intermittent races rather than trusting one interleaving.
-      Register as ctest `TileSource_Concurrency`, label
-      `texture_tile;unit`, in `tests/unit/texture_tile/CMakeLists.txt`
-      (depends on T003, T011).
-- [ ] T013 Run T012 against the current, pre-refactor code, 5 times back
+**Design correction (found during implementation, not planning):** the
+original design below called for a standalone unit test constructing a
+`CShadingContext` directly and driving `CTexture::lookup()` from hand-rolled
+`std::thread`s. This is not implementable: `CShadingContext`
+(`src/libshader/shading/shading.h:267`) is an abstract class
+(`virtual void renderingLoop() = 0;`) with no concrete standalone
+constructor, and no existing test anywhere in the codebase constructs one
+outside a real hider — confirmed by reading the class and searching
+`tests/unit/**/*.cpp` for prior art. Rather than stand up a hider inside a
+unit test (well outside a pure-refactor spec's scope), the concurrency
+test is instead driven through the real, production multi-threaded render
+path: FR-006/SC-002 is about thread safety of the tile-fetch path, not
+texture-sampling fidelity (fidelity is already covered exactly by
+T009/T010's byte-identical harness), so a real render exercising real
+hider-supplied `CShadingContext`s proves the same thing with no new C++
+harness needed.
+
+- [X] T011 [P] Generate a synthetic multi-tile, multi-mip-level texture
+      fixture for the concurrency test: `otexmake`'s plain-texture bake of
+      spec 018's existing `tests/unit/image_input/fixtures/large_rgb.tif`
+      (512x512, 8-bit RGB, closed-form per-pixel formula, documented
+      provenance in `tests/unit/texture_tile/fixtures/FIXTURES.md`) into
+      `tests/unit/texture_tile/fixtures/concurrency_rgb.tex` — a 9-level
+      mip pyramid, `otexmake`'s default 32x32 tile size against the
+      512x512 base level giving a 16x16-tile (256-tile) base level.
+      `TextureWrapModes` confirmed `periodic,periodic` via `tiffinfo`.
+- [X] T012 [P] Write the multi-threaded concurrency test as a real render,
+      not a hand-rolled C++ harness (see design correction above):
+      `tests/unit/texture_tile/concurrency-scene.rib` renders a large
+      (8x8 world units), finely-diced (`ShadingRate 0.25`) frontal
+      `Patch "bilinear"` with `"st"` spanning `[0,8]` (periodic wrap tiles
+      it 8x8 times), shaded by `Surface "paintedplastic"
+      "texturename" ["concurrency_rgb.tex"]` — many REYES buckets (hence
+      many threads) fault in many distinct tiles concurrently (spec.md
+      acceptance scenario a), and since the polygon is larger than the
+      frame with periodic wrap, multiple buckets/threads also race to
+      fault in the *same* early tile (scenario b).
+      `tests/unit/texture_tile/fixtures/references/concurrency-scene.tif`
+      is a checked-in reference render captured single-threaded (`-t:1`,
+      byte-reproducible per the established finding). Verification is
+      `tests/unit/texture_tile/test_tile_source_concurrency.sh`: renders
+      the scene `N` times (default 5) with orender's *default* (multi-
+      threaded) thread count and compares each against the `-t:1`
+      reference via `test_visual_render`'s pixel-value block-average
+      metric (`tests/visual/test_visual_render.cpp`) — a raw byte `cmp`
+      is invalid here (unlike T009/T010) since multi-threaded reyes output
+      is not byte-reproducible run to run even with correct, race-free
+      code (bucket-scheduling nondeterminism, confirmed empirically). The
+      threshold (15) was measured, not guessed: 5 multi-threaded renders
+      against the reference, pre-refactor, all landed at MaxBlockAvgDiff
+      4.55-4.62 (this scene's periodic-tiled linear-ramp texture has
+      gradients almost everywhere, so ~26% of blocks exceed a
+      threshold of 1 from ordinary AA-jitter alone) — 15 leaves ~3x margin
+      above that measured noise band while staying tight enough to catch
+      a real wrong-tile/torn-tile race. Registered as ctest
+      `TileSource_Concurrency`, label `texture_tile;unit`, in
+      `tests/unit/texture_tile/CMakeLists.txt` (depends on T003, T011).
+- [X] T013 Run T012 against the current, pre-refactor code, 5 times back
       to back (`for i in 1 2 3 4 5; do ctest --test-dir build -R
-      TileSource_Concurrency --output-on-failure || break; done`); confirm
-      it passes reliably every time — this is the required pre-refactor
-      baseline for FR-006/SC-002 (depends on T012).
+      "^TileSource_Concurrency$" --output-on-failure || break; done`);
+      confirmed passing reliably every time (5/5, ~1.0-1.1 sec each) —
+      this is the required pre-refactor baseline for FR-006/SC-002
+      (depends on T012).
 
 ### `CTileSource` interface (no behavior yet — just the contract)
 
-- [ ] T014 Define `CTileLevelInfo` and the abstract `CTileSource` base
+- [X] T014 Define `CTileLevelInfo` and the abstract `CTileSource` base
       class in `src/ri/texture/tileSource.h`, exactly per
       `contracts/tile-source-interface.md` (depends on T002).
 
@@ -298,22 +327,49 @@ separate, pre-existing, out-of-scope question found while confirming this
 macros can race `textureMemFlush()`'s locked eviction) — not something
 this spec touches or fixes.
 
-- [ ] T015 [US1] Implement `CTiffTileSource` in `src/ri/texture/texture.cpp`
+- [X] T015 [US1] Implement `CTiffTileSource` in `src/ri/texture/texture.cpp`
       (file-local, per research.md §3 — not a new file, since nothing
       outside `texture.cpp` needs to reference it in this spec): extract
       *only* the I/O portion of `textureLoadBlock()`'s current body (the
       `TIFFOpen`/`TIFFSetDirectory`/`TIFFIsTiled`/`TIFFGetFieldDefaulted`/
       `TIFFReadTile`/`TIFFReadScanline`/`TIFFClose` sequence, ~lines
       266-399) into `CTiffTileSource::fetchTile()`; populate `info()` from
-      the same `TIFFGetFieldDefaulted` geometry queries. Preserve the
-      currently-dead partial-sub-region-read branch (~lines 307-358) and
-      the `PLANARCONFIG_SEPARATE` branches (~lines 344-353, 374-383)
-      unchanged — per FR-005 and `contracts/tile-source-interface.md` rule
-      5, these are NOT reachable by any current caller but MUST NOT be
-      pruned. Do NOT touch the surrounding lock/cache-check/bookkeeping
-      code (lines 230-249, 404-417) in this task — that stays in
-      `textureLoadBlock()` itself, addressed in T015b (depends on T014).
-- [ ] T015b [US1] Generalize `textureLoadBlock()`'s own signature and body
+      the same `TIFFGetFieldDefaulted` geometry queries.
+      **Precise dead/live inventory within lines 307-396 (correcting an
+      earlier, overly-broad reading found during implementation — FR-005's
+      own wording is already scoped correctly, only this task's line-range
+      note needed fixing): the outer `if ((x!=0)||(y!=0)||(w!=width)||
+      (h!=height))` branch at line 307 is NOT itself dead — its tiled
+      sub-case (~lines 331-357, `TIFFReadTile` under
+      `PLANARCONFIG_CONTIG`) is the hot, live path for every
+      `CTiledTexture` fetch of a level with more than one tile (`w`,
+      the requested tile's width, differs from `width`, the level's full
+      image width, for any such level). What FR-005 actually calls
+      unreachable is narrower: (1) ~lines 309-330, the `!tiled` sub-case
+      inside that same outer branch (an untiled image is only ever
+      requested as a whole by `CBasicTexture`, never as a sub-region), and
+      (2) both `PLANARCONFIG_SEPARATE` blocks (~lines 344-353, 374-383) —
+      `otexmake` never writes separate planar config. Preserve both (1)
+      and (2) unchanged per FR-005/contract rule 5; they MUST NOT be
+      pruned. Derive `fetchTile(tileX, tileY, dest)`'s local `x,y,w,h`
+      exactly as the two callers used to compute them (tiled:
+      `x=tileX*tileWidth, y=tileY*tileHeight, w=tileWidth, h=tileHeight`;
+      untiled: `x=0,y=0,w=width,h=height`) so the preserved outer
+      conditional evaluates identically to before, keeping (1) dead and
+      (331-357)/(361-388)/(389-395) exercised exactly as before.**
+      The untiled dead sub-case's temp-buffer allocation (`memBegin`/
+      `ralloc`/`memEnd` against `context->threadMemory`) has no analogue
+      once `fetchTile()` no longer takes a `CShadingContext*` (the
+      contract interface deliberately excludes one, so future non-TIFF
+      backends aren't coupled to shading-context internals) — substitute
+      a plain heap buffer (e.g. `std::vector<unsigned char>`) for that one
+      unreachable branch's scratch allocation only; this changes which
+      allocator an never-executed code path uses, not the read/copy logic
+      FR-005 protects. Do NOT touch the surrounding lock/cache-check/
+      bookkeeping code (lines 230-249, 404-417) in this task — that stays
+      in `textureLoadBlock()` itself, addressed in T015b (depends on
+      T014).
+- [X] T015b [US1] Generalize `textureLoadBlock()`'s own signature and body
       to delegate to a `CTileSource*` instead of doing TIFF I/O inline,
       while leaving its lock acquisition/release (lines 232-236, 243-248,
       412-416), cache-hit early return (238-249), and `entry->data`/
@@ -330,22 +386,46 @@ this spec touches or fixes.
       textually interleaved with the lock calls this task is touching
       anyway — leave the live `#else`/`entry->mutex` branch as plain code
       (depends on T015).
-- [ ] T016 [US1] Update `CTextureLayer` (the base class `CTiledTexture<T>`/
+      **Correction found post-implementation (advisor review, not covered
+      by planning)**: the pre-refactor code only ran
+      `textureAllocateBlock()` (and thus only stored a non-NULL
+      `entry->data`) *inside* the `if (in != NULL)` success branch — a
+      `TIFFOpen` failure (spec.md's "file deleted/unmounted mid-render"
+      edge case) left `entry->data` NULL. The first draft of this
+      generalization ran `textureAllocateBlock()` unconditionally before
+      calling `source->fetchTile()`, so a fetch failure left `entry->data`
+      pointing at an *uninitialized, garbage-filled* buffer instead —
+      `CTiledTexture<T>::lookupPixel()`'s access macro would then silently
+      read garbage pixels (Release) or fail an assert it used to pass
+      cleanly around (Debug), a real, if narrow, "worse than before"
+      regression on this edge case. Fixed: on a `false` return from
+      `fetchTile()`, free the allocated buffer and leave `entry->data`
+      NULL, restoring the exact pre-refactor observable outcome (the one
+      remaining, deliberate difference: `textureAllocateBlock()`'s stats
+      bookkeeping now runs even in this failure case, which affects no
+      rendered pixel and isn't tested either before or after). Also fixed
+      the same class of gap in `CTiffTileSource::info()`: its
+      `assert(in != NULL)` compiles out under `NDEBUG` (this project's own
+      Release build), so a missing file would `TIFFSetDirectory(NULL,
+      ...)` and crash — changed to an early return leaving `CTileLevelInfo`
+      at its member-initializer defaults, per contract rule 5's "never a
+      crash."
+- [X] T016 [US1] Update `CTextureLayer` (the base class `CTiledTexture<T>`/
       `CBasicTexture<T>` derive from, ~lines 503-516) to own a
       `CTileSource*` instead of a `strdup`'d filename string + TIFF
       directory index; update its constructor/destructor accordingly —
       same one-owner, freed-in-destructor discipline it already applies to
       the filename today, just redirected to the new member (depends on
       T015b).
-- [ ] T017 [US1] Update `CBasicTexture<T>::lookupPixel()` (~line 646) to
+- [X] T017 [US1] Update `CBasicTexture<T>::lookupPixel()` (~line 646) to
       call the now-generalized `textureLoadBlock(entry, layer->tileSource,
       0, 0, context)` (always the whole image, per contract rule 1)
       instead of passing a filename/directory (depends on T016).
-- [ ] T018 [US1] Update `CTiledTexture<T>::lookupPixel()`'s tile-access
+- [X] T018 [US1] Update `CTiledTexture<T>::lookupPixel()`'s tile-access
       macro (~line 773) to call the now-generalized
       `textureLoadBlock(entry, layer->tileSource, tileX, tileY, context)`
       instead of passing a filename/directory (depends on T016).
-- [ ] T019 [US1] Update `readMadeTexture()` (~lines 2006-2034) and
+- [X] T019 [US1] Update `readMadeTexture()` (~lines 2006-2034) and
       `readTexture()` (~line 2045) to construct one `CTiffTileSource` per
       layer (from the same filename + TIFF directory index they already
       compute) and pass it to the `CTiledTexture`/`CBasicTexture`
@@ -354,26 +434,39 @@ this spec touches or fixes.
       `fileHeight`/`tileWidth`/`tileHeight`/`numSamples`/`bitsPerSample`)
       are unchanged — out of scope per research.md §1/§4 (depends on T016,
       T017, T018).
-- [ ] T020 [US1] Write a small direct unit test asserting
+- [X] T020 [US1] Write a small direct unit test asserting
       `CTiffTileSource::info()` reports the correct `CTileLevelInfo` for a
       known fixture (width/height/tileWidth/tileHeight/numChannels/
       bitsPerSample/isFloatFormat) — `info()` has no caller anywhere in
       this spec's own code (`readMadeTexture()`/`readTexture()` keep their
       existing direct geometry queries, per research.md §1/§4/§2's
       rationale), so without a direct test it would ship as unverified,
-      uncalled interface surface. Add to a new small test file in
-      `tests/unit/texture_tile/` (depends on T015).
-- [ ] T021 [US1] Build; run `ctest --test-dir build -L visual
+      uncalled interface surface.
+      **Implementation note**: `CTiffTileSource` is intentionally
+      file-local to `texture.cpp` (T015), so a test in a different
+      translation unit can't name the concrete class directly. Added one
+      small factory function, `createTiffTileSource(filename, directory)`,
+      declared in `tileSource.h` and implemented in `texture.cpp` (returns
+      `new CTiffTileSource(...)`) — the only way outside code can construct
+      one, exercised purely through the abstract `CTileSource` interface.
+      Test: `tests/unit/texture_tile/test_tile_source_tiff_info.cpp`,
+      checks `concurrency_rgb.tex` directories 0 and 1 (512x512 and
+      256x256, both 32x32 tiles, 3 channels, 8 bits/sample) against
+      `tiffinfo`-confirmed ground truth. Registered as ctest
+      `TileSource_TiffInfo`, label `texture_tile;unit` (depends on T015).
+- [X] T021 [US1] Build; run `ctest --test-dir build -L visual
       --output-on-failure` in full; confirm 100% passing — the project's
       usual (coarser) visual-diff gate, as a first-pass check before the
-      stricter byte-identical check below (depends on T019, T020).
-- [ ] T022 [US1] Run the byte-identical harness from T010
-      (`ctest --test-dir build -R <its registered name>
+      stricter byte-identical check below. Confirmed: 207/207 passed
+      (depends on T019, T020).
+- [X] T022 [US1] Run the byte-identical harness from T010
+      (`ctest --test-dir build -R TextureTile_RenderByteIdentical
       --output-on-failure`) against the now-refactored build; confirm an
       exact `cmp` match for all 10 scenes from T009 (plain textures across
       all 3 bake source formats, environment map, shadow map, both hiders)
       — the actual proof of FR-002/SC-001's full "100% of existing
-      scenes" scope, not a representative subset (depends on T021).
+      scenes" scope, not a representative subset. Confirmed: PASS, all 10
+      scenes byte-identical (depends on T021).
 
 **Checkpoint**: `CTileSource`/`CTiffTileSource` fully replace
 `textureLoadBlock()`; rendered output is provably byte-identical for plain
@@ -390,11 +483,11 @@ per-`CTextureBlock`-lock concurrency model.
 refactored code, repeatedly; it must pass exactly as reliably as it did
 pre-refactor (T013).
 
-- [ ] T023 [US2] Re-run the concurrency test (T012) against the
+- [X] T023 [US2] Re-run the concurrency test (T012) against the
       now-refactored code, 5 times back to back, exactly as T013 did
       pre-refactor; confirm it still passes reliably with no intermittent
-      failures — proves FR-006/SC-002 held through the extraction (depends
-      on T022).
+      failures — proves FR-006/SC-002 held through the extraction.
+      Confirmed: 5/5 passed (depends on T022).
 
 **Checkpoint**: Concurrent tile-fetch correctness is proven both before
 and after the refactor.
@@ -413,7 +506,7 @@ review `CTiffTileSource`'s source against the pre-refactor
 survived structurally (T025b); confirm the cache/eviction machinery and
 bake-time write path are diff-clean (T025c).
 
-- [ ] T024 [US3] Run quickstart.md's TIFF-reference sanity check:
+- [X] T024 [US3] Run quickstart.md's TIFF-reference sanity check:
       `grep -n "TIFFOpen\|TIFFReadTile\|TIFFReadScanline\|TIFFClose"
       src/ri/texture/texture.cpp`; manually confirm every remaining match
       is inside `CTiffTileSource` alone, or the untouched, separate
@@ -421,14 +514,14 @@ bake-time write path are diff-clean (T025c).
       doesn't move — none in `CTiledTexture<T>::lookupPixel()`,
       `CBasicTexture<T>::lookupPixel()`, or anywhere else in the lookup
       path (SC-003) (depends on T023).
-- [ ] T025 [US3] Code-review confirmation (not automatically testable, per
+- [X] T025 [US3] Code-review confirmation (not automatically testable, per
       `contracts/tile-source-interface.md`'s Conformance section): diff
       `CTiffTileSource::fetchTile()` against the pre-refactor
       `textureLoadBlock()` (available via `git show` on the commit before
       T015) and confirm the partial-sub-region-read and
       `PLANARCONFIG_SEPARATE` branches carried over verbatim, not
       re-derived or simplified (FR-005) (depends on T015).
-- [ ] T025b [US3] Code-review confirmation that the *two-level*
+- [X] T025b [US3] Code-review confirmation that the *two-level*
       locking/caching pattern survived structurally unchanged, naming both
       levels explicitly (coarser checks like "the lock is preserved" would
       miss a subtle inversion): (1) each caller's unlocked, per-thread fast
@@ -441,7 +534,7 @@ bake-time write path are diff-clean (T025c).
       return, end of fault-in) as before this refactor. T023's concurrency
       test exercises this at runtime; this task confirms it by reading the
       diff (depends on T015b, T023).
-- [ ] T025c [US3] Confirm FR-003 and FR-007's "MUST NOT change" scope
+- [X] T025c [US3] Confirm FR-003 and FR-007's "MUST NOT change" scope
       held, not just by omission but by explicit check (`speckit.analyze`
       finding C2 — until now these had no dedicated verification task).
       Two separate checks, since the two files involved are not equally
@@ -466,18 +559,18 @@ bake-time write path are diff-clean (T025c).
 
 **Purpose**: Documentation and a final full-suite validation pass.
 
-- [ ] T026 [P] Update `DEVNOTES.md` with a new status row for spec 019
+- [X] T026 [P] Update `DEVNOTES.md` with a new status row for spec 019
       (runtime tile-fetch abstraction), following the existing convention
       (see spec 018's row, added by that spec's own T032, for style) —
       note the new environment/shadow-map parity coverage (T008) as a
       side benefit, since it closes a pre-existing gap independent of this
       spec's own success criteria.
-- [ ] T027 Run the full test suite once more end-to-end:
+- [X] T027 Run the full test suite once more end-to-end:
       `ctest --test-dir build -L visual --output-on-failure`,
       `ctest --test-dir build -L texture_tile --output-on-failure`, and
       `ctest --test-dir build -L image_input --output-on-failure`
       (unaffected, but part of the standard gate); confirm all green.
-- [ ] T028 Execute every step in `quickstart.md` manually and confirm
+- [X] T028 Execute every step in `quickstart.md` manually and confirm
       observed behavior matches what it documents.
 
 ---
@@ -552,7 +645,7 @@ Task: "T007 Bake medium_rgb.tif into env-source.tex via otexmake -envlatl"
 
 # The two regression bars are independent of each other:
 Task: "T010 Write test_render_byte_identical.sh"
-Task: "T011 + T012 Generate concurrency fixture and write test_tile_source_concurrency.cpp"
+Task: "T011 + T012 Generate concurrency fixture and write concurrency-scene.rib + test_tile_source_concurrency.sh"
 ```
 
 ---

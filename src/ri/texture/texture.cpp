@@ -33,11 +33,13 @@
 #include "shading.h"
 #include "stats.h"
 #include "tiff.h"
+#include "tileSource.h"
 
 #include <math.h>
 #include <stddef.h> // Ensure NULL is defined before libtiff
 #include <string.h>
 #include <tiffio.h>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTexBlockThreadData
@@ -223,155 +225,196 @@ static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, CShading
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	textureLoadBlock
-// Description			:	Read a block of texture from disk
-// Return Value			:	Pointer to the new texture
-// Comments				:
-static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int y, int w, int h, int dir, CShadingContext *context) {
-
-#ifndef TEXTURE_PERBLOCK_LOCK
-    osLock(CRenderer::textureMutex);
-#else
-    osLock(entry->mutex);
-#endif
-
-    // if we already have the data, use that and increment the reference count
-    if (entry->data != NULL) {
-        entry->threadData[context->thread].data = entry->data;
-        entry->refCount++;
-
-#ifndef TEXTURE_PERBLOCK_LOCK
-        osUnlock(CRenderer::textureMutex);
-#else
-        osUnlock(entry->mutex);
-#endif
-        return;
-    }
-
-    // Update the state
-    stats.numTextureMisses++;
-
-    // Note: that we are thread safe because each TIFFOpen returns a fresh
-    // handle which we can operate on provided it's not used in any other thread
-    // We don't set the error handler here, as it will have been set when we
-    // loaded the texture.  Error handler installation invocation is the only
-    // thread-unsafe part of libtiff.  It's important the innards of the handler
-    // don't do anything which would be problematic if more than one thread
-    // executed it
-
-    // Set the error handler so we don't crash
-    // TIFFSetErrorHandler(tiffErrorHandler);
-    // TIFFSetWarningHandler(tiffErrorHandler);
-
-    // Open the file
-    TIFF *in = TIFFOpen(name, "r");
-    void *data = NULL;
-    if (in != NULL) { // Error, we opened this file before
-                      // The stupid user must have deleted the
-                      // file or unmounted the drive while in progress
-        TIFFSetDirectory(in, dir);
-
-        // Get the texture properties
-        // Note: using fileWidth, rather than the pixar full width is fine,
-        // we only use this to work out whether we're tiled or not
-        uint32_t width, height;
-        uint16_t numSamples;
-        uint16_t bitspersample;
-        TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &width);
-        TIFFGetFieldDefaulted(in, TIFFTAG_IMAGELENGTH, &height);
-        TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &numSamples);
-        TIFFGetFieldDefaulted(in, TIFFTAG_BITSPERSAMPLE, &bitspersample);
-        int tiled = TIFFIsTiled(in);
-
-        int bytesPerSample;
-        int pixelSize;
-        if (bitspersample == 8) {
-            bytesPerSample = sizeof(unsigned char);
-            pixelSize = numSamples * sizeof(unsigned char);
-        }
-        else if (bitspersample == 16) {
-            bytesPerSample = sizeof(unsigned short);
-            pixelSize = numSamples * sizeof(unsigned short);
-        }
-        else {
-            assert(bitspersample == 32);
-            bytesPerSample = sizeof(float);
-            pixelSize = numSamples * sizeof(float);
+// Class				:	CTiffTileSource
+// Description			:	CTileSource backend for the baked, tiled/mipmapped
+//							TIFF texture container (otexmake's output
+//							format). A behavior-preserving extraction of
+//							textureLoadBlock()'s prior inline TIFF I/O --
+//							see spec 019 (019-tilesource-extraction). One
+//							instance per mip level: "directory" identifies
+//							which TIFF directory (mip level) this instance
+//							reads.
+// Comments				:	Thread safety matches the pre-refactor code
+//							exactly: each fetchTile() opens its own fresh
+//							TIFF handle (libtiff handles are not safe to
+//							share across threads), used only for the
+//							duration of that one call.
+class CTiffTileSource : public CTileSource {
+    public:
+        CTiffTileSource(const char *name, short directory) {
+            this->name = strdup(name);
+            this->directory = directory;
         }
 
-        // Allocate space for the texture
-        assert(entry->data == NULL);
-        data = textureAllocateBlock(entry, context);
+        virtual ~CTiffTileSource() {
+            free(name);
+        }
 
-        // Do we need to read the entire texture ?
-        if ((x != 0) || (y != 0) || (w != (int)width) || (h != (int)height)) {
-            // No , is the file tiled ?
-            if (!tiled) {
-                // No, read the required portion
-                unsigned char *tdata;
-
-                memBegin(context->threadMemory);
-
-                tdata = (unsigned char *)ralloc(width * height * pixelSize, context->threadMemory);
-
-                // Read the entire image
-                assert((int)(pixelSize * width) == TIFFScanlineSize(in));
-                for (int i = 0; i < (int)height; ++i) {
-                    TIFFReadScanline(in, &tdata[pixelSize * i * width], i, 0);
-                    if (i >= (y + h))
-                        break; // If we read the last required scanline, break
-                }
-
-                for (int i = 0; i < h; ++i) {
-                    memcpy(&((unsigned char *)data)[i * pixelSize * w], &tdata[((y + i) * width + x) * pixelSize], w * pixelSize);
-                }
-
-                memEnd(context->threadMemory);
+        void info(CTileLevelInfo &info) {
+            TIFF *in = TIFFOpen(name, "r");
+            if (in == NULL) {
+                // Fail closed, per contract rule 5: leave info at its
+                // member-initializer defaults rather than crash. assert()
+                // alone isn't enough here -- it compiles out under NDEBUG
+                // (a Release build), same trap this project's own
+                // test_tile_source_tiff_info.cpp's CHECK macro exists to
+                // avoid.
+                return;
             }
-            else {
-                uint32_t tileWidth, tileHeight;
+            TIFFSetDirectory(in, directory);
 
+            uint32_t width, height;
+            uint16_t numSamples;
+            uint16_t bitspersample;
+            TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &width);
+            TIFFGetFieldDefaulted(in, TIFFTAG_IMAGELENGTH, &height);
+            TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &numSamples);
+            TIFFGetFieldDefaulted(in, TIFFTAG_BITSPERSAMPLE, &bitspersample);
+
+            info.width = (int)width;
+            info.height = (int)height;
+            info.numChannels = numSamples;
+            info.bitsPerSample = bitspersample;
+            info.isFloatFormat = (bitspersample == 32);
+
+            if (TIFFIsTiled(in)) {
+                uint32_t tileWidth, tileHeight;
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
                 TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
-                assert(tileWidth == (uint32_t)w);
-                assert(tileHeight == (uint32_t)h);
-                assert((x % tileWidth) == 0);
-                assert((y % tileHeight) == 0);
+                info.tileWidth = (int)tileWidth;
+                info.tileHeight = (int)tileHeight;
+            }
+            else {
+                // Untiled (flat/un-made) source -- the entire image is
+                // the one implicit "tile", per contract rule 1.
+                info.tileWidth = (int)width;
+                info.tileHeight = (int)height;
+            }
 
-                unsigned short planarConfig;
-                TIFFGetFieldDefaulted(in, TIFFTAG_PLANARCONFIG, &planarConfig);
+            TIFFClose(in);
+        }
 
-                if (planarConfig == PLANARCONFIG_SEPARATE) {
-                    unsigned char *buffer = (unsigned char *)alloca(bytesPerSample * tileWidth * tileHeight);
-                    unsigned char *cdata = (unsigned char *)data;
-                    for (int c = 0; c < numSamples; ++c) {
-                        TIFFReadTile(in, buffer, x, y, 0, c);
-                        for (unsigned int i = 0; i < tileWidth * tileHeight; ++i) {
-                            memcpy(cdata + (i * numSamples + c) * bytesPerSample, buffer + i * bytesPerSample, bytesPerSample);
-                        }
+        bool fetchTile(int tileX, int tileY, void *dest) {
+            // Note: that we are thread safe because each TIFFOpen returns a fresh
+            // handle which we can operate on provided it's not used in any other thread
+            // We don't set the error handler here, as it will have been set when we
+            // loaded the texture.  Error handler installation invocation is the only
+            // thread-unsafe part of libtiff.  It's important the innards of the handler
+            // don't do anything which would be problematic if more than one thread
+            // executed it
+
+            // Open the file
+            TIFF *in = TIFFOpen(name, "r");
+            if (in == NULL) { // Error, we opened this file before
+                              // The stupid user must have deleted the
+                              // file or unmounted the drive while in progress
+                return false;
+            }
+
+            TIFFSetDirectory(in, directory);
+
+            // Get the texture properties
+            // Note: using fileWidth, rather than the pixar full width is fine,
+            // we only use this to work out whether we're tiled or not
+            uint32_t width, height;
+            uint16_t numSamples;
+            uint16_t bitspersample;
+            TIFFGetFieldDefaulted(in, TIFFTAG_IMAGEWIDTH, &width);
+            TIFFGetFieldDefaulted(in, TIFFTAG_IMAGELENGTH, &height);
+            TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &numSamples);
+            TIFFGetFieldDefaulted(in, TIFFTAG_BITSPERSAMPLE, &bitspersample);
+            int tiled = TIFFIsTiled(in);
+
+            int bytesPerSample;
+            int pixelSize;
+            if (bitspersample == 8) {
+                bytesPerSample = sizeof(unsigned char);
+                pixelSize = numSamples * sizeof(unsigned char);
+            }
+            else if (bitspersample == 16) {
+                bytesPerSample = sizeof(unsigned short);
+                pixelSize = numSamples * sizeof(unsigned short);
+            }
+            else {
+                assert(bitspersample == 32);
+                bytesPerSample = sizeof(float);
+                pixelSize = numSamples * sizeof(float);
+            }
+
+            // Reconstruct the region this fetch covers, exactly as the
+            // two pre-refactor callers used to compute and pass in: a
+            // full, tile-aligned tile for a tiled source, or the entire
+            // image for an untiled one -- fetchTile() is never asked for
+            // anything else (contract rule 2), so this always matches
+            // what the old caller-supplied x/y/w/h were.
+            int x, y, w, h;
+            if (tiled) {
+                uint32_t tileWidthTag, tileHeightTag;
+                TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidthTag);
+                TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeightTag);
+                w = (int)tileWidthTag;
+                h = (int)tileHeightTag;
+                x = tileX * w;
+                y = tileY * h;
+            }
+            else {
+                w = (int)width;
+                h = (int)height;
+                x = 0;
+                y = 0;
+            }
+
+            void *data = dest;
+
+            // Do we need to read the entire texture ?
+            if ((x != 0) || (y != 0) || (w != (int)width) || (h != (int)height)) {
+                // No , is the file tiled ?
+                if (!tiled) {
+                    // No, read the required portion
+                    //
+                    // Dead in practice: an untiled source is only ever
+                    // requested as a whole (x=0,y=0,w=width,h=height, the
+                    // derivation above), so this branch never executes
+                    // for any current caller -- preserved verbatim per
+                    // FR-005, with one deliberate adaptation: the scratch
+                    // buffer below used to come from the calling shading
+                    // context's per-thread arena (memBegin/ralloc/memEnd
+                    // against context->threadMemory); fetchTile()
+                    // deliberately takes no CShadingContext* (so future
+                    // non-TIFF backends aren't coupled to shading-context
+                    // internals), so a plain heap buffer replaces it here
+                    // -- the read/copy logic itself is unchanged.
+                    std::vector<unsigned char> tdata((size_t)width * height * pixelSize);
+
+                    // Read the entire image
+                    assert((int)(pixelSize * width) == TIFFScanlineSize(in));
+                    for (int i = 0; i < (int)height; ++i) {
+                        TIFFReadScanline(in, &tdata[pixelSize * i * width], i, 0);
+                        if (i >= (y + h))
+                            break; // If we read the last required scanline, break
+                    }
+
+                    for (int i = 0; i < h; ++i) {
+                        memcpy(&((unsigned char *)data)[i * pixelSize * w], &tdata[((y + i) * width + x) * pixelSize], w * pixelSize);
                     }
                 }
                 else {
-                    TIFFReadTile(in, data, x, y, 0, 0);
-                }
-            }
-        }
-        else {
-            // We need to read the entire texture
-            if (tiled) {
-                uint32_t tileWidth, tileHeight;
+                    uint32_t tileWidth, tileHeight;
 
-                TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
-                TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
+                    TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
+                    TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
+                    assert(tileWidth == (uint32_t)w);
+                    assert(tileHeight == (uint32_t)h);
+                    assert((x % tileWidth) == 0);
+                    assert((y % tileHeight) == 0);
 
-                if ((x != 0) || (y != 0) || (w != (int)tileWidth) || (h != (int)tileHeight)) {
-                    error(CODE_BUG, "Tiled unmade texture\n");
-                }
-                else {
                     unsigned short planarConfig;
                     TIFFGetFieldDefaulted(in, TIFFTAG_PLANARCONFIG, &planarConfig);
 
                     if (planarConfig == PLANARCONFIG_SEPARATE) {
+                        // Dead in practice: otexmake never writes
+                        // separate planar config. Preserved verbatim per
+                        // FR-005.
                         unsigned char *buffer = (unsigned char *)alloca(bytesPerSample * tileWidth * tileHeight);
                         unsigned char *cdata = (unsigned char *)data;
                         for (int c = 0; c < numSamples; ++c) {
@@ -387,18 +430,96 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
                 }
             }
             else {
-                // Read the entire image
-                assert((int)(pixelSize * width) == TIFFScanlineSize(in));
-                for (int i = 0; i < (int)height; ++i) {
-                    TIFFReadScanline(in, &((unsigned char *)data)[pixelSize * i * width], i, 0);
+                // We need to read the entire texture
+                if (tiled) {
+                    uint32_t tileWidth, tileHeight;
+
+                    TIFFGetFieldDefaulted(in, TIFFTAG_TILEWIDTH, &tileWidth);
+                    TIFFGetFieldDefaulted(in, TIFFTAG_TILELENGTH, &tileHeight);
+
+                    if ((x != 0) || (y != 0) || (w != (int)tileWidth) || (h != (int)tileHeight)) {
+                        error(CODE_BUG, "Tiled unmade texture\n");
+                    }
+                    else {
+                        unsigned short planarConfig;
+                        TIFFGetFieldDefaulted(in, TIFFTAG_PLANARCONFIG, &planarConfig);
+
+                        if (planarConfig == PLANARCONFIG_SEPARATE) {
+                            unsigned char *buffer = (unsigned char *)alloca(bytesPerSample * tileWidth * tileHeight);
+                            unsigned char *cdata = (unsigned char *)data;
+                            for (int c = 0; c < numSamples; ++c) {
+                                TIFFReadTile(in, buffer, x, y, 0, c);
+                                for (unsigned int i = 0; i < tileWidth * tileHeight; ++i) {
+                                    memcpy(cdata + (i * numSamples + c) * bytesPerSample, buffer + i * bytesPerSample, bytesPerSample);
+                                }
+                            }
+                        }
+                        else {
+                            TIFFReadTile(in, data, x, y, 0, 0);
+                        }
+                    }
+                }
+                else {
+                    // Read the entire image
+                    assert((int)(pixelSize * width) == TIFFScanlineSize(in));
+                    for (int i = 0; i < (int)height; ++i) {
+                        TIFFReadScanline(in, &((unsigned char *)data)[pixelSize * i * width], i, 0);
+                    }
                 }
             }
+
+            TIFFClose(in);
+            return true;
         }
 
-        TIFFClose(in);
+    private:
+        char *name;
+        short directory;
+};
+
+CTileSource *createTiffTileSource(const char *filename, short directory) {
+    return new CTiffTileSource(filename, directory);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	textureLoadBlock
+// Description			:	Read a block of texture from disk
+// Return Value			:	Pointer to the new texture
+// Comments				:
+static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, int tileX, int tileY, CShadingContext *context) {
+
+    osLock(entry->mutex);
+
+    // if we already have the data, use that and increment the reference count
+    if (entry->data != NULL) {
+        entry->threadData[context->thread].data = entry->data;
+        entry->refCount++;
+
+        osUnlock(entry->mutex);
+        return;
     }
-    else {
+
+    // Update the state
+    stats.numTextureMisses++;
+
+    // Allocate space for the texture
+    assert(entry->data == NULL);
+    void *data = textureAllocateBlock(entry, context);
+
+    if (!source->fetchTile(tileX, tileY, data)) {
         // FIXME: Is this an error ?
+        //
+        // Matches the pre-refactor outcome: a failed fetch (e.g. the
+        // underlying file deleted/unmounted mid-render, per spec.md's Edge
+        // Cases) must not leave entry->data pointing at an
+        // uninitialized/garbage-filled buffer for a lookupPixel() access
+        // macro to silently read -- free it and leave entry->data NULL,
+        // exactly as it stayed NULL when the pre-refactor code's TIFFOpen
+        // failed (this refactor does now run textureAllocateBlock()'s
+        // stats bookkeeping even in this failure case, a narrow,
+        // deliberate accounting difference from before).
+        delete[] (unsigned char *)data;
+        data = NULL;
     }
 
     // See note below about out of order architectures.  The functions above take care of this
@@ -409,11 +530,7 @@ static inline void textureLoadBlock(CTextureBlock *entry, char *name, int x, int
     entry->data = data;
     entry->threadData[context->thread].data = data;
 
-#ifndef TEXTURE_PERBLOCK_LOCK
-    osUnlock(CRenderer::textureMutex);
-#else
     osUnlock(entry->mutex);
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -500,20 +617,19 @@ typedef enum {
 // Comments				:
 class CTextureLayer {
     public:
-        CTextureLayer(const char *name, short directory, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode) {
-            this->directory = directory;
+        CTextureLayer(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode) {
+            this->tileSource = tileSource;
             this->width = width;
             this->height = height;
             this->numSamples = numSamples;
             this->fileWidth = fileWidth;
             this->fileHeight = fileHeight;
-            this->name = strdup(name);
             this->sMode = sMode;
             this->tMode = tMode;
         }
 
         virtual ~CTextureLayer() {
-            free(name);
+            delete tileSource;
         }
 
         void lookup(float *r, float s, float t, CShadingContext *context) {
@@ -596,8 +712,7 @@ class CTextureLayer {
             return r;
         }
 
-        char *name;                // The filename of the texture
-        short directory;           // The directory index in the tiff file
+        CTileSource *tileSource;   // Owned; fetches this layer's pixel data
         short numSamples;          // The number of samples in the texture
         int width, height;         // The image info
         int fileWidth, fileHeight; // The physical size in the file
@@ -620,7 +735,7 @@ class CBasicTexture : public CTextureLayer {
         // Description			:	Ctor
         // Return Value			:	-
         // Comments				:
-        CBasicTexture(const char *name, short directory, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, double Mult) : CTextureLayer(name, directory, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
+        CBasicTexture(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, double Mult) : CTextureLayer(tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
             textureRegisterBlock(&dataBlock, width * height * numSamples * sizeof(T));
             M = Mult;
         }
@@ -643,7 +758,7 @@ class CBasicTexture : public CTextureLayer {
 
             if (dataBlock.threadData[thread].data == NULL) {
                 // The data is cached out
-                textureLoadBlock(&dataBlock, name, 0, 0, fileWidth, fileHeight, directory, context);
+                textureLoadBlock(&dataBlock, tileSource, 0, 0, context);
             }
 
             // Texture cache management
@@ -697,7 +812,7 @@ class CTiledTexture : public CTextureLayer {
         // Description			:	Ctor
         // Return Value			:	-
         // Comments				:
-        CTiledTexture(const char *name, short directory, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, int tileWidth, int tileWidthShift, int tileHeight, int tileHeightShift, double Mult) : CTextureLayer(name, directory, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
+        CTiledTexture(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, int tileWidth, int tileWidthShift, int tileHeight, int tileHeightShift, double Mult) : CTextureLayer(tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
             this->tileWidth = tileWidth;
             this->tileWidthShift = tileWidthShift;
             this->tileHeight = tileHeight;
@@ -770,7 +885,7 @@ class CTiledTexture : public CTextureLayer {
     block = dataBlocks[yTile] + xTile;                                                                                               \
                                                                                                                                      \
     if (block->threadData[thread].data == NULL) {                                                                                    \
-        textureLoadBlock(block, name, xTile << tileWidthShift, yTile << tileHeightShift, tileWidth, tileHeight, directory, context); \
+        textureLoadBlock(block, tileSource, xTile, yTile, context);                                                                  \
     }                                                                                                                                \
     assert(block->data != NULL);                                                                                                     \
     (*CRenderer::textureRefNumber[thread])++;                                                                                        \
@@ -2026,7 +2141,7 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
             ;
         tileHeightShift = jj;
 
-        cTexture->layers[i] = new CTiledTexture<T>(name, dstart, cwidth, cheight, numSamples, fileWidth, fileHeight, sMode, tMode, tileWidth, tileWidthShift, tileHeight, tileHeightShift, M);
+        cTexture->layers[i] = new CTiledTexture<T>(new CTiffTileSource(name, dstart), cwidth, cheight, numSamples, fileWidth, fileHeight, sMode, tMode, tileWidth, tileWidthShift, tileHeight, tileHeightShift, M);
         dstart++;
 
         cwidth = cwidth >> 1;
@@ -2064,7 +2179,7 @@ static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int 
     }
 
     CRegularTexture *cTexture = new CRegularTexture(aname);
-    cTexture->layer = new CBasicTexture<T>(name, dstart, width, height, numSamples, width, height, TEXTURE_BLACK, TEXTURE_BLACK, M);
+    cTexture->layer = new CBasicTexture<T>(new CTiffTileSource(name, dstart), width, height, numSamples, width, height, TEXTURE_BLACK, TEXTURE_BLACK, M);
     dstart++;
 
     return cTexture;

@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# Depth pass rendered from a shadow-casting light's point of view, spec 019
+# (019-tilesource-extraction) T005. The "z" AOV makes the "file" display
+# driver's isDepth branch (src/display/file/file_tiff.cpp) write
+# TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA/WORLDTOSCREEN automatically, which
+# `otexmake -shadow` requires of its input (T006). Rendered single-threaded
+# (-t:1) for byte-identical reproducibility -- this fixture is baked once
+# and checked in, not re-rendered by the test suite.
+version 3.03
+Hider "reyes"
+Display "shadow-caster-source.tif" "file" "z"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "matte"
+  Sphere 1 -1 1 360
+WorldEnd

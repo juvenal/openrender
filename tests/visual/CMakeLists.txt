@@ -2669,10 +2669,38 @@ add_parity_test(texture-rgbe
     examples/rib/tests/parity/texture-rgbe-raytrace.rib
     texture-rgbe-raytrace.tif  20)
 
+# --- spec 019 (runtime tile-fetch abstraction): sphere/plane lit by a ---
+# --- shadowspot light source through a baked shadow map (T008). No ---
+# --- scene anywhere in this repo exercised shadow()/a baked shadow map ---
+# --- before this spec -- confirmed by repo-wide grep during task ---
+# --- planning -- so this closes a real, pre-existing coverage gap, not ---
+# --- just spec 019's own byte-identical regression bar. Smoke-tested ---
+# --- single-threaded (-t:1) against a shadowname="" render to confirm ---
+# --- shadow() has a real, deterministic effect before registering. ---
+add_parity_test(shadow
+    examples/rib/tests/parity/shadow-reyes.rib
+    shadow-reyes.tif
+    examples/rib/tests/parity/shadow-raytrace.rib
+    shadow-raytrace.tif  20)
+
+# --- spec 019 (runtime tile-fetch abstraction): mirror-shaded sphere ---
+# --- reflecting a baked lat-long/cylindrical environment map (T008). ---
+# --- Same pre-existing coverage gap as the shadow pair above -- no ---
+# --- scene exercised environment()/a baked environment map before this ---
+# --- spec. "texname" is deliberately not mirror.sl's "raytrace" ---
+# --- sentinel, which bypasses environment() lookups entirely. ---
+# --- Smoke-tested single-threaded against a texname="raytrace" render ---
+# --- to confirm the baked map has a real, deterministic effect. ---
+add_parity_test(env
+    examples/rib/tests/parity/env-reyes.rib
+    env-reyes.tif
+    examples/rib/tests/parity/env-raytrace.rib
+    env-raytrace.tif  20)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
 message(STATUS "      185 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 77 scene pairs registered under label 'parity'")
+message(STATUS "  - Cross-hider parity tests: 79 scene pairs registered under label 'parity'")
 message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

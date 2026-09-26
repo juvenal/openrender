@@ -1,0 +1,19 @@
+##RenderMan RIB-Structure 1.0
+# Sphere reflecting a baked environment map (spec 019
+# 019-tilesource-extraction, T008). Validates that a baked lat-long/
+# cylindrical environment map renders identically across camera hiders,
+# same as any other baked texture. "texname" is deliberately NOT the
+# "raytrace" sentinel mirror.sl special-cases -- that value bypasses
+# environment() lookups entirely in favor of ray-traced reflections.
+version 3.03
+Hider "raytrace"
+Display "env-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.2]
+  LightSource "distantlight" 2 "intensity" [0.6] "from" [5 5 -5] "to" [0 0 0]
+  Surface "mirror" "texname" ["env-source.tex"] "Kr" [1] "Ks" [0.4]
+  Sphere 1 -1 1 360
+WorldEnd

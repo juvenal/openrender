@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+# Multi-threaded tile-fetch stress scene, spec 019 (019-tilesource-extraction)
+# T012. A large, frontal, periodically-wrapped polygon textured with
+# concurrency_rgb.tex (9-level mip pyramid, 16x16=256 tiles at the base
+# level -- see fixtures/FIXTURES.md), diced at a fine ShadingRate so many
+# micropolygon grids -- processed across many REYES buckets, hence many
+# threads -- fault in many distinct tiles concurrently. The polygon spans
+# well past the frame and wraps periodically, so multiple buckets/threads
+# race to fault in the SAME early tile too (spec.md User Story 2
+# acceptance scenario b), not just distinct ones (scenario a).
+version 3.03
+Hider "reyes"
+Display "concurrency-scene.tif" "file" "rgba"
+Projection "orthographic"
+ShadingRate 0.25
+Translate 0 0 4
+Surface "paintedplastic" "texturename" ["concurrency_rgb.tex"]
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [1]
+  Patch "bilinear" "P" [-4 -4 0  4 -4 0  -4 4 0  4 4 0]
+        "st" [0 0  8 0  0 8  8 8]
+WorldEnd
