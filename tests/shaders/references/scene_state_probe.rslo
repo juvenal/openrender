@@ -1,0 +1,38 @@
+#!version 1.0.0
+#!name "scene_state_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	sr
+uniform	float	fmt[3]
+uniform	string	rendererName
+varying	float	foundAttr
+varying	float	foundOpt
+varying	float	foundInfo
+varying	float	sumFound
+uniform	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+uniform	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+#!Init:
+	return            
+#!Code:
+	attribute	("f=SF")  temporary_0 "ShadingRate" sr
+	vufloat  foundAttr temporary_0
+	option	("f=SF")  temporary_0 "Format" fmt
+	vufloat  foundOpt temporary_0
+	rendererinfo	("f=SS")  temporary_0 "renderer" rendererName
+	vufloat  foundInfo temporary_0
+	addff  temporary_1 foundAttr foundOpt
+	addff  sumFound temporary_1 foundInfo
+	divff  temporary_0 sr 10
+	vufloat  temporary_1 temporary_0
+	ffroma  temporary_3 fmt 0
+	divff  temporary_0 temporary_3 1000
+	vufloat  temporary_2 temporary_0
+	vufloat  temporary_5 3
+	divff  temporary_4 sumFound temporary_5
+	vfromf  Ci temporary_1 temporary_2 temporary_4
+	return

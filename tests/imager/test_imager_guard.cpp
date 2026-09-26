@@ -55,6 +55,12 @@ static void test4_imager_after_worldbegin_ignored() {
     std::ostringstream logCapture;
     set_log_output(logCapture);
     set_log_level(LogLevel::WARN);
+    // set_log_level()/set_log_output() alone don't turn logging on -- a
+    // separate log_enabled flag (only set by orender_log_init() reading
+    // ORENDER_INSTR_LEVEL) gates every log() call before anything else is
+    // even checked. Force it directly so log_warn() below actually reaches
+    // logCapture instead of silently no-op'ing.
+    set_log_enabled(true);
 
     RiBegin(RI_NULL);
 
@@ -87,6 +93,7 @@ static void test4_imager_after_worldbegin_ignored() {
     // Restore log
     set_log_output(std::clog);
     set_log_level(LogLevel::INFO);
+    set_log_enabled(false);
 }
 
 // ---------------------------------------------------------------------------

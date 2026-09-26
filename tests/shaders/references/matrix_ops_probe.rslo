@@ -1,0 +1,117 @@
+#!version 1.0.0
+#!name "matrix_ops_probe"
+surface
+#!parameters:
+uniform	float	f00	=	1
+uniform	float	f01	=	0
+uniform	float	f02	=	0
+uniform	float	f03	=	0
+uniform	float	f10	=	0
+uniform	float	f11	=	1
+uniform	float	f12	=	0
+uniform	float	f13	=	0
+uniform	float	f20	=	0
+uniform	float	f21	=	0
+uniform	float	f22	=	1
+uniform	float	f23	=	0
+uniform	float	f30	=	0
+uniform	float	f31	=	0
+uniform	float	f32	=	0
+uniform	float	f33	=	1
+#!variables:
+varying	matrix	M1
+varying	float	vf00
+varying	matrix	M2
+varying	matrix	M3
+varying	matrix	Msum
+varying	matrix	Mdiff
+varying	matrix	Mdiv
+varying	matrix	Mmul
+varying	matrix	Mneg
+varying	vector	Vv
+varying	matrix	M4
+uniform	matrix	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	temporary_10
+varying	float	temporary_11
+varying	float	temporary_12
+varying	float	temporary_13
+varying	float	temporary_14
+varying	float	temporary_15
+varying	vector	temporary_16
+varying	vector	temporary_17
+varying	vector	temporary_18
+varying	vector	temporary_19
+varying	vector	temporary_20
+varying	vector	temporary_21
+#!Init:
+	return            
+#!Code:
+	mfromf  temporary_0 f00 f01 f02 f03 f10 f11 f12 f13 f20 f21 f22 f23 f30 f31 f32 f33
+	vumatrix  M1 temporary_0
+	vufloat  temporary_1 f00
+	mulff  vf00 temporary_1 u
+	vufloat  temporary_1 f01
+	vufloat  temporary_2 f02
+	vufloat  temporary_3 f03
+	vufloat  temporary_4 f10
+	vufloat  temporary_5 f11
+	vufloat  temporary_6 f12
+	vufloat  temporary_7 f13
+	vufloat  temporary_8 f20
+	vufloat  temporary_9 f21
+	vufloat  temporary_10 f22
+	vufloat  temporary_11 f23
+	vufloat  temporary_12 f30
+	vufloat  temporary_13 f31
+	vufloat  temporary_14 f32
+	vufloat  temporary_15 f33
+	mfromf  M2 vf00 temporary_1 temporary_2 temporary_3 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 temporary_13 temporary_14 temporary_15
+	movemm  M3 M1
+	addmm  Msum M1 M2
+	submm  Mdiff M1 M2
+	divmm  Mdiv M1 M2
+	mulmm  Mmul M1 M2
+	negm  Mneg M1
+	vufloat  temporary_1 0
+	vfromf  Vv u v temporary_1
+	mfromv  M4 Vv
+	moveff  temporary_2 temporary_1
+	moveff  temporary_3 temporary_1
+	comp	("f=mff")  temporary_1 Mneg temporary_2 temporary_3
+	vfromf  temporary_21 temporary_1
+	mulvv  temporary_20 Cs temporary_21
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	comp	("f=mff")  temporary_1 Mdiv temporary_2 temporary_3
+	vfromf  temporary_21 temporary_1
+	mulvv  temporary_19 temporary_20 temporary_21
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	comp	("f=mff")  temporary_1 Mdiff temporary_2 temporary_3
+	vfromf  temporary_20 temporary_1
+	mulvv  temporary_18 temporary_19 temporary_20
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	comp	("f=mff")  temporary_1 Msum temporary_2 temporary_3
+	vfromf  temporary_19 temporary_1
+	mulvv  temporary_17 temporary_18 temporary_19
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	comp	("f=mff")  temporary_1 M3 temporary_2 temporary_3
+	vfromf  temporary_18 temporary_1
+	mulvv  temporary_16 temporary_17 temporary_18
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	comp	("f=mff")  temporary_1 M4 temporary_2 temporary_3
+	vfromf  temporary_17 temporary_1
+	mulvv  Ci temporary_16 temporary_17
+	return

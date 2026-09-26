@@ -1,0 +1,23 @@
+#!version 1.0.0
+#!name "raylabel_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	label
+varying	float	isCamera
+varying	float	temporary_0
+uniform	float	temporary_1
+#!Init:
+	return            
+#!Code:
+	raylabel	("s=")  label
+	vufloat  isCamera 0
+	seql  temporary_1 label "camera"
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label3
+	vufloat  isCamera 1
+#!Label3:
+	endif
+	vufloat  temporary_0 0.5
+	vfromf  Ci isCamera isCamera temporary_0
+	return

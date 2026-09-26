@@ -1,0 +1,11 @@
+#!version 1.0.0
+#!name "param_query_displacement"
+displacement
+#!parameters:
+uniform	float	testDispParam	=	0.25
+uniform	vector	testDispVec	=	 [ 0.1 0.2 0.3 ]
+#!variables:
+#!Init:
+	return            
+#!Code:
+	return

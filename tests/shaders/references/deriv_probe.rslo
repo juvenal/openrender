@@ -1,0 +1,34 @@
+#!version 1.0.0
+#!name "deriv_probe"
+surface
+#!parameters:
+#!variables:
+varying	float	varyingNum
+varying	float	dVaryingDu
+uniform	float	uniformNum
+varying	float	dUniformDu
+varying	float	uniformGuardOk
+varying	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+#!Init:
+	return            
+#!Code:
+	mulff  varyingNum u u
+	Deriv	("f=ff")  dVaryingDu varyingNum u
+	moveff  uniformNum 3
+	vufloat  temporary_0 uniformNum
+	Deriv	("f=ff")  dUniformDu temporary_0 u
+	vufloat  uniformGuardOk 0
+	moveff  temporary_1 uniformGuardOk
+	feql  temporary_0 dUniformDu temporary_1
+	if temporary_0 #!Label3
+	vufloat  uniformGuardOk 1
+#!Label3:
+	endif
+	vufloat  temporary_1 0
+	vufloat  temporary_2 1
+	clamp	("f=fff")  temporary_0 dVaryingDu temporary_1 temporary_2
+	vufloat  temporary_1 0.5
+	vfromf  Ci temporary_0 uniformGuardOk temporary_1
+	return

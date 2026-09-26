@@ -1,0 +1,49 @@
+#!version 1.0.0
+#!name "shader_parameter_probe"
+surface
+#!parameters:
+uniform	float	testParam	=	0.5
+uniform	vector	testVec	=	 [ 0.6 0.7 0.8 ]
+#!variables:
+varying	float	foundSurfF
+varying	float	foundSurfV
+varying	float	foundDispF
+varying	float	foundDispV
+varying	float	foundInc
+varying	float	foundOpp
+varying	float	sF
+varying	float	dF
+varying	float	iF
+varying	float	oF
+varying	vector	sV
+varying	vector	dV
+varying	float	sumFound
+varying	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+#!Init:
+	return            
+#!Code:
+	surface	("f=SF")  foundSurfF "testParam" sF
+	surface	("f=SV")  foundSurfV "testVec" sV
+	displacement	("f=SF")  foundDispF "testDispParam" dF
+	displacement	("f=SN")  foundDispV "testDispVec" dV
+	incident	("f=SF")  foundInc "testVolParam" iF
+	opposite	("f=SF")  foundOpp "testVolParam" oF
+	addff  temporary_3 foundSurfF foundSurfV
+	addff  temporary_2 temporary_3 foundDispF
+	addff  temporary_1 temporary_2 foundDispV
+	addff  temporary_0 temporary_1 foundInc
+	addff  sumFound temporary_0 foundOpp
+	addff  temporary_0 sF dF
+	vufloat  temporary_3 0
+	comp	("f=cf")  temporary_2 sV temporary_3
+	moveff  temporary_4 temporary_3
+	comp	("f=cf")  temporary_3 dV temporary_4
+	addff  temporary_1 temporary_2 temporary_3
+	vufloat  temporary_3 6
+	divff  temporary_2 sumFound temporary_3
+	vfromf  Ci temporary_0 temporary_1 temporary_2
+	return

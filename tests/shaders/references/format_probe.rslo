@@ -1,0 +1,22 @@
+#!version 1.0.0
+#!name "format_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	f
+uniform	vector	v_1
+uniform	string	s_1
+uniform	string	result
+uniform	float	ok
+uniform	vector	temporary_0
+#!Init:
+	return            
+#!Code:
+	moveff  f 1.5
+	vfromf  v_1 1 2 3
+	movess  s_1 "hi"
+	format	("s=sfvs")  result "%f %p %s" f v_1 s_1
+	match	("f=ss")  ok result "1.500000 (1.000000,2.000000,3.000000) hi"
+	vfromf  temporary_0 ok ok 0.5
+	vuvector  Ci temporary_0
+	return

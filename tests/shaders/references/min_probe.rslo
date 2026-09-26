@@ -1,0 +1,20 @@
+#!version 1.0.0
+#!name "min_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	a
+uniform	float	b
+uniform	vector	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+#!Init:
+	return            
+#!Code:
+	min	("f=ff")  a 3 7
+	min	("f=ff")  b 7 3
+	divff  temporary_1 a 10
+	divff  temporary_2 b 10
+	vfromf  temporary_0 temporary_1 temporary_2 0.5
+	vuvector  Ci temporary_0
+	return

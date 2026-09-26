@@ -1,0 +1,36 @@
+#!version 1.0.0
+#!name "matrixbuilder_probe"
+surface
+#!parameters:
+#!variables:
+uniform	matrix	ident
+uniform	matrix	t_1
+uniform	matrix	s_1
+uniform	matrix	r
+uniform	vector	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+uniform	float	temporary_3
+uniform	float	temporary_4
+uniform	float	temporary_5
+#!Init:
+	return            
+#!Code:
+	mfromf  ident 1
+	vfromf  temporary_0 1 2 3
+	translate	("m=mp")  t_1 ident temporary_0
+	vfromf  temporary_0 2 2 2
+	scale	("m=mp")  s_1 ident temporary_0
+	radians	("f=f")  temporary_1 90
+	vfromf  temporary_0 0 0 1
+	rotate	("m=mfv")  r ident temporary_1 temporary_0
+	comp	("f=mff")  temporary_2 t_1 3 0
+	divff  temporary_1 temporary_2 4
+	comp	("f=mff")  temporary_3 s_1 0 0
+	divff  temporary_2 temporary_3 4
+	comp	("f=mff")  temporary_5 r 0 1
+	divff  temporary_4 temporary_5 2
+	addff  temporary_3 temporary_4 0.5
+	vfromf  temporary_0 temporary_1 temporary_2 temporary_3
+	vuvector  Ci temporary_0
+	return

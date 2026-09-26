@@ -1,0 +1,20 @@
+#!version 1.0.0
+#!name "concat_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	a
+uniform	string	b
+uniform	string	result
+uniform	float	ok
+uniform	vector	temporary_0
+#!Init:
+	return            
+#!Code:
+	movess  a "foo"
+	movess  b "bar"
+	concat	("s=ssss")  result a "-" b "-baz"
+	match	("f=ss")  ok result "foo-bar-baz"
+	vfromf  temporary_0 ok ok 0.5
+	vuvector  Ci temporary_0
+	return

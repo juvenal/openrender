@@ -1,0 +1,33 @@
+#!version 1.0.0
+#!name "refract_probe"
+surface
+#!parameters:
+#!variables:
+uniform	vector	I_1
+uniform	vector	N_1
+uniform	vector	r
+uniform	float	temporary_0
+uniform	vector	temporary_1
+uniform	float	temporary_2
+uniform	float	temporary_3
+uniform	float	temporary_4
+uniform	float	temporary_5
+#!Init:
+	return            
+#!Code:
+	vfromf  I_1 0 0 1
+	vufloat  temporary_0 -1
+	vfromf  N_1 0 0 temporary_0
+	refract	("v=vvf")  r I_1 N_1 1.5
+	comp	("f=cf")  temporary_3 r 0
+	divff  temporary_2 temporary_3 2
+	addff  temporary_0 temporary_2 0.5
+	comp	("f=cf")  temporary_4 r 1
+	divff  temporary_3 temporary_4 2
+	addff  temporary_2 temporary_3 0.5
+	comp	("f=cf")  temporary_5 r 2
+	divff  temporary_4 temporary_5 2
+	addff  temporary_3 temporary_4 0.5
+	vfromf  temporary_1 temporary_0 temporary_2 temporary_3
+	vuvector  Ci temporary_1
+	return

@@ -1,0 +1,26 @@
+#!version 1.0.0
+#!name "uniform_in_conditional_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	bias
+uniform	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	vector	temporary_3
+#!Init:
+	return            
+#!Code:
+	moveff  bias 0
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	vufloat  temporary_2 0.05
+	fgt  temporary_1 u temporary_2
+	if temporary_1 #!Label3
+	addff  bias bias 1
+#!Label3:
+	endif
+	vfromf  temporary_0 bias
+	vuvector  temporary_3 temporary_0
+	mulvv  Ci Cs temporary_3
+	return

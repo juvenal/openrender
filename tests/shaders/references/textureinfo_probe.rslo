@@ -1,0 +1,43 @@
+#!version 1.0.0
+#!name "textureinfo_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	missing
+varying	float	res[2]
+varying	float	resFound
+varying	float	exists
+varying	float	existsFound
+varying	float	resCorrect
+varying	float	existsCorrect
+uniform	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+#!Init:
+	return            
+#!Code:
+	movess  missing "017_textureinfo_probe_does_not_exist.tex"
+	vufloat  temporary_0 -1
+	vufloat  resFound temporary_0
+	textureinfo	("f=SSF")  resFound missing "resolution" res
+	vufloat  exists 0
+	vufloat  temporary_0 -1
+	vufloat  existsFound temporary_0
+	textureinfo	("f=SSF")  existsFound missing "exists" exists
+	moveff  resCorrect exists
+	moveff  temporary_2 exists
+	feql  temporary_1 resFound temporary_2
+	if temporary_1 #!Label5
+	vufloat  resCorrect 1
+#!Label5:
+	endif
+	vufloat  existsCorrect 0
+	moveff  temporary_2 existsCorrect
+	feql  temporary_1 existsFound temporary_2
+	if temporary_1 #!Label7
+	vufloat  existsCorrect 1
+#!Label7:
+	endif
+	vufloat  temporary_1 0.5
+	vfromf  Ci resCorrect existsCorrect temporary_1
+	return

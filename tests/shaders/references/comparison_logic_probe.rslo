@@ -1,0 +1,93 @@
+#!version 1.0.0
+#!name "comparison_logic_probe"
+surface
+#!parameters:
+#!variables:
+varying	float	f1
+varying	float	f2
+varying	vector	Vv1
+varying	vector	Vv2
+varying	float	result
+varying	float	temporary_0
+varying	float	temporary_1
+varying	vector	temporary_2
+#!Init:
+	return            
+#!Code:
+	moveff  f1 u
+	moveff  f2 v
+	vufloat  temporary_0 0
+	vfromf  Vv1 u v temporary_0
+	vufloat  temporary_0 0
+	vfromf  Vv2 v u temporary_0
+	moveff  result temporary_0
+	veql  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label23
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label23:
+	endif
+	vneql  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label25
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label25:
+	endif
+	felt  temporary_0 f1 f2
+	if temporary_0 #!Label27
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label27:
+	endif
+	velt  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label29
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label29:
+	endif
+	flt  temporary_0 f1 f2
+	if temporary_0 #!Label31
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label31:
+	endif
+	vlt  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label33
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label33:
+	endif
+	fegt  temporary_0 f1 f2
+	if temporary_0 #!Label35
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label35:
+	endif
+	vegt  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label37
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label37:
+	endif
+	fgt  temporary_0 f1 f2
+	if temporary_0 #!Label39
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label39:
+	endif
+	vgt  temporary_0 Vv1 Vv2
+	if temporary_0 #!Label41
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label41:
+	endif
+	fgt  temporary_1 f1 f2
+	not  temporary_0 temporary_1
+	if temporary_0 #!Label43
+	vufloat  temporary_1 1
+	addff  result result temporary_1
+#!Label43:
+	endif
+	vfromf  temporary_2 result
+	mulvv  Ci Cs temporary_2
+	return

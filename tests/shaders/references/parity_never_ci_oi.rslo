@@ -1,0 +1,12 @@
+#!version 1.0.0
+#!name "parity_never_ci_oi"
+surface
+#!parameters:
+uniform	float	unused_param	=	1.0
+#!variables:
+varying	float	dummy
+uniform	float	temporary_0
+#!Init:
+	return            
+#!Code:
+	return

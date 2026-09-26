@@ -1,0 +1,18 @@
+#!version 1.0.0
+#!name "visibility_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Psample
+varying	float	vis
+varying	vector	temporary_0
+uniform	vector	temporary_1
+#!Init:
+	return            
+#!Code:
+	vfromf  temporary_1 0.3 0.2 0.1
+	vuvector  temporary_0 temporary_1
+	addvv  Psample P temporary_0
+	visibility	("f=pp")  vis P Psample
+	vfromf  Ci vis vis vis
+	return

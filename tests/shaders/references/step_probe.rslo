@@ -1,0 +1,18 @@
+#!version 1.0.0
+#!name "step_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	below
+uniform	float	above
+uniform	float	atEdge
+uniform	vector	temporary_0
+#!Init:
+	return            
+#!Code:
+	step	("f=ff")  below 0.5 0.2
+	step	("f=ff")  above 0.5 0.8
+	step	("f=ff")  atEdge 0.5 0.5
+	vfromf  temporary_0 below above atEdge
+	vuvector  Ci temporary_0
+	return

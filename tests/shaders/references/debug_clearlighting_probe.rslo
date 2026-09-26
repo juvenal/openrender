@@ -1,0 +1,24 @@
+#!version 1.0.0
+#!name "debug_clearlighting_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Nf
+varying	vector	c1
+varying	vector	c2
+varying	vector	temporary_0
+varying	vector	temporary_1
+uniform	vector	temporary_2
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	diffuse	("c=n")  c1 Nf
+	clearlighting	("o=")
+	diffuse	("c=n")  c2 Nf
+	addvv  temporary_0 c1 c2
+	vfromf  temporary_2 2
+	vuvector  temporary_1 temporary_2
+	divvv  Ci temporary_0 temporary_1
+	return

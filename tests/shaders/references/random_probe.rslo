@@ -1,0 +1,40 @@
+#!version 1.0.0
+#!name "random_probe"
+surface
+#!parameters:
+#!variables:
+varying	float	rf
+varying	vector	rv
+varying	float	uf
+varying	vector	uv
+uniform	vector	temporary_0
+varying	vector	temporary_1
+varying	vector	temporary_2
+varying	float	temporary_3
+varying	vector	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	vector	temporary_7
+#!Init:
+	return            
+#!Code:
+	random	("f=")  rf
+	random	("v=")  rv
+	urandom	("f=")  uf
+	urandom	("v=")  uv
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	xcomp	("f=p")  temporary_3 rv
+	vfromf  temporary_2 rf temporary_3 uf
+	vfromf  temporary_0 0.5
+	vuvector  temporary_4 temporary_0
+	mulvv  temporary_1 temporary_2 temporary_4
+	xcomp	("f=p")  temporary_3 uv
+	ycomp	("f=p")  temporary_5 uv
+	zcomp	("f=p")  temporary_6 uv
+	vfromf  temporary_4 temporary_3 temporary_5 temporary_6
+	vfromf  temporary_0 0.5
+	vuvector  temporary_7 temporary_0
+	mulvv  temporary_2 temporary_4 temporary_7
+	addvv  Ci temporary_1 temporary_2
+	return

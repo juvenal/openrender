@@ -1,0 +1,24 @@
+#!version 1.0.0
+#!name "match_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	a
+uniform	string	b
+uniform	string	c
+uniform	float	sameMatch
+uniform	float	diffMatch
+uniform	vector	temporary_0
+uniform	float	temporary_1
+#!Init:
+	return            
+#!Code:
+	movess  a "hello"
+	movess  b a
+	movess  c "world"
+	match	("f=ss")  sameMatch a b
+	match	("f=ss")  diffMatch a c
+	subff  temporary_1 1 diffMatch
+	vfromf  temporary_0 sameMatch temporary_1 0.5
+	vuvector  Ci temporary_0
+	return

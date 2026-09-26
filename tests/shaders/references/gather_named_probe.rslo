@@ -1,0 +1,55 @@
+#!version 1.0.0
+#!name "gather_named_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Nn
+varying	vector	Csum
+varying	float	samples
+varying	vector	rOrigin
+varying	vector	rDir
+varying	float	rLen
+varying	vector	Ctotal
+uniform	vector	temporary_0
+varying	string	temporary_1
+varying	float	temporary_2
+uniform	float	temporary_3
+varying	vector	temporary_4
+varying	vector	temporary_5
+varying	vector	temporary_6
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	vfromf  temporary_0 0
+	vuvector  Csum temporary_0
+	vufloat  samples 64
+	vfromf  temporary_0 0
+	vuvector  rOrigin temporary_0
+	vfromf  temporary_0 0
+	vuvector  rDir temporary_0
+	vufloat  rLen 0
+	vfromf  temporary_0 0
+	vuvector  Ctotal temporary_0
+	vustring  temporary_1 "illuminance"
+	vufloat  temporary_3 1.570796327
+	vufloat  temporary_2 temporary_3
+	gatherHeader	("o=spnffsfsfsfssssscspsvsf") temporary_1 P Nn temporary_2 samples "bias" 0.01 "maxdist" 1000.0 "samplebase" 2 "distribution" "cosine" "label" "myGather" "surface:Ci" Csum "ray:origin" rOrigin "ray:direction" rDir "ray:length" rLen
+#!Label4:
+	gather #!Label6
+	addvv  Ctotal Ctotal Csum
+#!Label6:
+	gatherElse #!Label5
+	vfromf  temporary_0 0
+	vuvector  temporary_4 temporary_0
+	addvv  Ctotal Ctotal temporary_4
+#!Label5:
+	gatherEnd #!Label4
+	vfromf  temporary_0 0.05
+	vuvector  temporary_4 temporary_0
+	vfromf  temporary_6 samples
+	divvv  temporary_5 Ctotal temporary_6
+	addvv  Ci temporary_4 temporary_5
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	return

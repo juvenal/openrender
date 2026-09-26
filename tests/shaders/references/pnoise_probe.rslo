@@ -1,0 +1,26 @@
+#!version 1.0.0
+#!name "pnoise_probe"
+surface
+#!parameters:
+#!variables:
+varying	float	n1d
+varying	vector	Pp
+varying	float	n3d
+varying	float	temporary_0
+varying	float	temporary_1
+varying	vector	temporary_2
+uniform	vector	temporary_3
+#!Init:
+	return            
+#!Code:
+	vufloat  temporary_1 4
+	mulff  temporary_0 u temporary_1
+	vufloat  temporary_1 4
+	pnoise	("f=ff")  n1d temporary_0 temporary_1
+	transform	("p=Sp")  Pp "shader" P
+	vfromf  temporary_3 2 2 2
+	vuvector  temporary_2 temporary_3
+	pnoise	("f=pp")  n3d Pp temporary_2
+	vufloat  temporary_0 0.5
+	vfromf  Ci n1d n3d temporary_0
+	return

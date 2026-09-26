@@ -1,0 +1,129 @@
+#!version 1.0.0
+#!name "array_ops_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	ufarr[3]
+uniform	vector	uvarr[3]
+uniform	matrix	umarr[3]
+varying	float	farr[3]
+varying	vector	varr[3]
+varying	matrix	marr[3]
+uniform	string	sarr[2]
+varying	float	findex
+uniform	float	uidx
+varying	float	rf
+varying	vector	rv
+varying	matrix	rm
+varying	float	ruf
+varying	vector	ruv
+varying	matrix	rum
+varying	float	matchFlag
+uniform	vector	temporary_0
+uniform	matrix	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	vector	temporary_4
+varying	matrix	temporary_5
+uniform	float	temporary_6
+uniform	string	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	temporary_10
+varying	float	temporary_11
+varying	float	temporary_12
+varying	float	temporary_13
+varying	float	temporary_14
+#!Init:
+	return            
+#!Code:
+	ftoa  ufarr 0 1
+	ftoa  ufarr 1 2
+	ftoa  ufarr 2 3
+	vfromf  temporary_0 1 0 0
+	vtoa  uvarr 0 temporary_0
+	vfromf  temporary_0 0 1 0
+	vtoa  uvarr 1 temporary_0
+	vfromf  temporary_0 0 0 1
+	vtoa  uvarr 2 temporary_0
+	mfromf  temporary_1 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+	mtoa  umarr 0 temporary_1
+	mfromf  temporary_1 2 0 0 0 0 2 0 0 0 0 2 0 0 0 0 1
+	mtoa  umarr 1 temporary_1
+	mfromf  temporary_1 3 0 0 0 0 3 0 0 0 0 3 0 0 0 0 1
+	mtoa  umarr 2 temporary_1
+	vufloat  temporary_3 3
+	mulff  temporary_2 u temporary_3
+	vufloat  temporary_3 3
+	mod	("f=ff")  findex temporary_2 temporary_3
+	moveff  uidx 1
+	vufloat  temporary_2 0
+	ftoa  farr temporary_2 u
+	vufloat  temporary_2 1
+	ftoa  farr temporary_2 v
+	vufloat  temporary_2 2
+	addff  temporary_3 u v
+	ftoa  farr temporary_2 temporary_3
+	vufloat  temporary_2 0
+	moveff  temporary_3 temporary_2
+	vfromf  temporary_4 u v temporary_3
+	vtoa  varr temporary_2 temporary_4
+	vufloat  temporary_2 1
+	vufloat  temporary_3 0
+	vfromf  temporary_4 v u temporary_3
+	vtoa  varr temporary_2 temporary_4
+	vufloat  temporary_2 2
+	vfromf  temporary_4 u u v
+	vtoa  varr temporary_2 temporary_4
+	moveff  temporary_2 temporary_3
+	mfroma  temporary_1 umarr 0
+	vumatrix  temporary_5 temporary_1
+	mtoa  marr temporary_2 temporary_5
+	vufloat  temporary_2 1
+	mfroma  temporary_1 umarr 1
+	vumatrix  temporary_5 temporary_1
+	mtoa  marr temporary_2 temporary_5
+	vufloat  temporary_2 2
+	mfroma  temporary_1 umarr 2
+	vumatrix  temporary_5 temporary_1
+	mtoa  marr temporary_2 temporary_5
+	stoa  sarr 0 "x"
+	stoa  sarr 1 "y"
+	ffroma  rf farr findex
+	vfroma  rv varr findex
+	mfroma  rm marr findex
+	uffroma  ruf ufarr findex
+	uvfroma  ruv uvarr findex
+	umfroma  rum umarr findex
+	moveff  matchFlag temporary_3
+	sfroma  temporary_7 sarr uidx
+	seql  temporary_6 temporary_7 "x"
+	vufloat  temporary_2 temporary_6
+	if temporary_2 #!Label3
+	vufloat  temporary_3 1
+	addff  matchFlag matchFlag temporary_3
+#!Label3:
+	endif
+	mfromv  temporary_5 rv
+	vufloat  temporary_13 0
+	moveff  temporary_14 temporary_13
+	comp	("f=mff")  temporary_12 temporary_5 temporary_13 temporary_14
+	addff  temporary_11 rf temporary_12
+	vufloat  temporary_13 0
+	moveff  temporary_14 temporary_13
+	comp	("f=mff")  temporary_12 rm temporary_13 temporary_14
+	addff  temporary_10 temporary_11 temporary_12
+	addff  temporary_9 temporary_10 ruf
+	mfromv  temporary_5 ruv
+	moveff  temporary_11 temporary_13
+	moveff  temporary_12 temporary_13
+	comp	("f=mff")  temporary_10 temporary_5 temporary_11 temporary_12
+	addff  temporary_8 temporary_9 temporary_10
+	moveff  temporary_10 temporary_13
+	moveff  temporary_11 temporary_13
+	comp	("f=mff")  temporary_9 rum temporary_10 temporary_11
+	addff  temporary_3 temporary_8 temporary_9
+	addff  temporary_2 temporary_3 matchFlag
+	vfromf  temporary_4 temporary_2
+	mulvv  Ci Cs temporary_4
+	return

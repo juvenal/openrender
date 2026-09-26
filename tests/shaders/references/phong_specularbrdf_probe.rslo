@@ -1,0 +1,60 @@
+#!version 1.0.0
+#!name "phong_specularbrdf_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Nf
+varying	vector	Vf
+varying	vector	phongTerm
+varying	vector	Lnormal
+varying	vector	brdfNormal
+varying	vector	Lantiparallel
+varying	vector	brdfAntiparallel
+varying	float	antiparallelFinite
+varying	vector	temporary_0
+varying	float	temporary_1
+uniform	vector	temporary_2
+uniform	vector	temporary_3
+varying	vector	temporary_4
+varying	vector	temporary_5
+varying	vector	temporary_6
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	normalize	("v=v")  temporary_0 I
+	negv  Vf temporary_0
+	vufloat  temporary_1 20
+	phong	("c=nvf")  phongTerm Nf Vf temporary_1
+	vfromf  temporary_3 0 0 1
+	normalize	("v=v")  temporary_2 temporary_3
+	vuvector  Lnormal temporary_2
+	vufloat  temporary_1 0.1
+	specularbrdf	("c=vnvf")  brdfNormal Lnormal Nf Vf temporary_1
+	negv  temporary_4 Vf
+	vfromf  temporary_2 0.0001 0.0001 0.0001
+	vuvector  temporary_5 temporary_2
+	addvv  temporary_0 temporary_4 temporary_5
+	normalize	("v=v")  Lantiparallel temporary_0
+	vufloat  temporary_1 0.1
+	specularbrdf	("c=vnvf")  brdfAntiparallel Lantiparallel Nf Vf temporary_1
+	vufloat  antiparallelFinite 0
+	veql  temporary_1 brdfAntiparallel brdfAntiparallel
+	if temporary_1 #!Label3
+	vufloat  antiparallelFinite 1
+#!Label3:
+	endif
+	vfromf  temporary_2 0.3
+	vuvector  temporary_5 temporary_2
+	mulvv  temporary_4 phongTerm temporary_5
+	vfromf  temporary_2 0.3
+	vuvector  temporary_6 temporary_2
+	mulvv  temporary_5 brdfNormal temporary_6
+	addvv  temporary_0 temporary_4 temporary_5
+	vfromf  temporary_5 antiparallelFinite antiparallelFinite antiparallelFinite
+	vfromf  temporary_2 0.2
+	vuvector  temporary_6 temporary_2
+	mulvv  temporary_4 temporary_5 temporary_6
+	addvv  Ci temporary_0 temporary_4
+	return

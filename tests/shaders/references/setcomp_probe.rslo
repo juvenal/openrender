@@ -1,0 +1,22 @@
+#!version 1.0.0
+#!name "setcomp_probe"
+surface
+#!parameters:
+#!variables:
+uniform	vector	v_1
+uniform	matrix	m
+uniform	vector	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+#!Init:
+	return            
+#!Code:
+	vfromf  v_1 0 0 0
+	setcomp	("o=Cff")  v_1 1 0.6
+	mfromf  m 1
+	setcomp	("o=Mfff")  m 1 2 0.4
+	comp	("f=cf")  temporary_1 v_1 1
+	comp	("f=mff")  temporary_2 m 1 2
+	vfromf  temporary_0 temporary_1 temporary_2 0.5
+	vuvector  Ci temporary_0
+	return

@@ -46,6 +46,14 @@ constexpr std::string_view level_to_string(LogLevel level) {
 inline void set_log_level(LogLevel level) { current_log_level = level; }
 inline void set_log_output(std::ostream &os) { log_output = &os; }
 
+// Force the enabled/disabled state directly, bypassing orender_log_init()'s
+// ORENDER_INSTR_LEVEL env-var gate. set_log_level()/set_log_output() alone
+// do NOT turn logging on -- log()'s !log_enabled check is the very first
+// thing it tests, before current_log_level/log_output are ever consulted --
+// so a caller that wants to programmatically capture log output (e.g. a
+// unit test redirecting log_output to an ostringstream) must call this too.
+inline void set_log_enabled(bool enabled) { log_enabled = enabled; }
+
 // orender_log_init — reads env vars once and configures logging state.
 // ORENDER_INSTR_LEVEL: "debug"|"info"|"warn"|"error" → enables logging at that threshold.
 //   Absent or unrecognized → logging disabled.

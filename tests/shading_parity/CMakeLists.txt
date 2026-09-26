@@ -112,6 +112,26 @@ set_tests_properties(ShadingParity_MatrixTransformJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# The 5 tests above (UsedParametersOracle, OlWiring, PrintfJit,
+# UniformConditionalJit, MatrixTransformJit) all compare/exercise an actual
+# .slo (LLVM JIT bitcode) load or JIT-compiled render -- there is no
+# meaningful "JIT vs. interpreter parity" to check without a JIT. Registered
+# either way, so the suite's total never quietly shrinks, but marked
+# DISABLED when there is no JIT behind them (mirrors
+# tests/visual/CMakeLists.txt's identical treatment of its own .slo scenes)
+# rather than failing outright on an oshader --jit invocation that can't
+# possibly succeed in this build.
+if(NOT OPENRENDER_HAVE_LLVM)
+    set_tests_properties(
+        ShadingParity_UsedParametersOracle
+        ShadingParity_OlWiring
+        ShadingParity_PrintfJit
+        ShadingParity_UniformConditionalJit
+        ShadingParity_MatrixTransformJit
+        PROPERTIES DISABLED TRUE)
+    message(STATUS "  - ShadingParity_{UsedParametersOracle,OlWiring,PrintfJit,UniformConditionalJit,MatrixTransformJit}: DISABLED (no LLVM JIT in this build)")
+endif()
+
 # GitHub #4: Attribute "irradiance" "handle"/"filemode" [""] must not
 # collapse to NULL in RiAttributeV, and CRenderer::getCache() must not
 # crash on a NULL name/mode even if some other caller does pass one.

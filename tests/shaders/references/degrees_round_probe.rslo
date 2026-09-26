@@ -1,0 +1,28 @@
+#!version 1.0.0
+#!name "degrees_round_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	d
+uniform	float	r1
+uniform	float	r2
+uniform	float	temporary_0
+uniform	vector	temporary_1
+uniform	float	temporary_2
+uniform	float	temporary_3
+uniform	float	temporary_4
+#!Init:
+	return            
+#!Code:
+	degrees	("f=f")  d 3.141592654
+	round	("f=f")  r1 2.7
+	vufloat  temporary_0 -2.7000000000000002
+	round	("f=f")  r2 temporary_0
+	divff  temporary_0 d 360
+	addff  temporary_3 r1 5
+	divff  temporary_2 temporary_3 10
+	addff  temporary_4 r2 5
+	divff  temporary_3 temporary_4 10
+	vfromf  temporary_1 temporary_0 temporary_2 temporary_3
+	vuvector  Ci temporary_1
+	return

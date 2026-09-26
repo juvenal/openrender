@@ -1,0 +1,33 @@
+#!version 1.0.0
+#!name "shadername_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	selfName
+uniform	string	surfName
+varying	float	selfMatch
+varying	float	surfIsSelf
+varying	float	temporary_0
+uniform	float	temporary_1
+#!Init:
+	return            
+#!Code:
+	shadername	("s=")  selfName
+	shadername	("s=S")  surfName "surface"
+	vufloat  selfMatch 0
+	moveff  surfIsSelf selfMatch
+	seql  temporary_1 selfName "shadername_probe"
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label5
+	vufloat  selfMatch 1
+#!Label5:
+	endif
+	seql  temporary_1 surfName selfName
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label7
+	vufloat  surfIsSelf 1
+#!Label7:
+	endif
+	vufloat  temporary_0 0.5
+	vfromf  Ci selfMatch surfIsSelf temporary_0
+	return

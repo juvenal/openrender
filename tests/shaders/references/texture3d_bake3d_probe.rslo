@@ -1,0 +1,18 @@
+#!version 1.0.0
+#!name "texture3d_bake3d_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	pcName
+varying	float	bakeOk
+varying	float	readOk
+varying	float	temporary_0
+#!Init:
+	return            
+#!Code:
+	movess  pcName "017_texture3d_bake3d_probe.ptc"
+	bake3d	("f=SSpn")  bakeOk pcName "rgb" P N
+	texture3d	("f=Spn")  readOk pcName P N
+	vufloat  temporary_0 0.5
+	vfromf  Ci bakeOk readOk temporary_0
+	return

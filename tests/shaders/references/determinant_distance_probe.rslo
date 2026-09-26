@@ -1,0 +1,25 @@
+#!version 1.0.0
+#!name "determinant_distance_probe"
+surface
+#!parameters:
+#!variables:
+uniform	matrix	m2
+uniform	float	det
+uniform	float	d
+uniform	vector	temporary_0
+uniform	vector	temporary_1
+uniform	float	temporary_2
+uniform	float	temporary_3
+#!Init:
+	return            
+#!Code:
+	mfromf  m2 2
+	determinant	("f=m")  det m2
+	vfromf  temporary_0 0 0 0
+	vfromf  temporary_1 3 4 0
+	distance	("f=pp")  d temporary_0 temporary_1
+	divff  temporary_2 det 10
+	divff  temporary_3 d 10
+	vfromf  temporary_0 temporary_2 temporary_3 0.5
+	vuvector  Ci temporary_0
+	return

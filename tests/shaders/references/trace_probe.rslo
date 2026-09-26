@@ -1,0 +1,27 @@
+#!version 1.0.0
+#!name "trace_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Vdir
+varying	float	hitDist
+varying	vector	hitColor
+uniform	vector	temporary_0
+uniform	vector	temporary_1
+varying	vector	temporary_2
+varying	vector	temporary_3
+varying	vector	temporary_4
+#!Init:
+	return            
+#!Code:
+	vfromf  temporary_1 0.2 0.15 1
+	normalize	("v=v")  temporary_0 temporary_1
+	vuvector  Vdir temporary_0
+	trace	("f=pv")  hitDist P Vdir
+	trace	("c=pv")  hitColor P Vdir
+	vfromf  temporary_3 hitDist hitDist hitDist
+	vfromf  temporary_0 0.001
+	vuvector  temporary_4 temporary_0
+	mulvv  temporary_2 temporary_3 temporary_4
+	addvv  Ci hitColor temporary_2
+	return

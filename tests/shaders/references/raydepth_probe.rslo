@@ -1,0 +1,19 @@
+#!version 1.0.0
+#!name "raydepth_probe"
+surface
+#!parameters:
+#!variables:
+uniform	float	depth
+uniform	vector	temporary_0
+uniform	float	temporary_1
+uniform	float	temporary_2
+#!Init:
+	return            
+#!Code:
+	vufloat  depth -5
+	raydepth	("f=")  depth
+	addff  temporary_1 depth 5
+	moveff  temporary_2 temporary_1
+	vfromf  temporary_0 temporary_1 temporary_2 0.5
+	vuvector  Ci temporary_0
+	return
