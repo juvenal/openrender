@@ -31,6 +31,25 @@
   case directly (never requires write access next to the original
   source); a pipeline can still redirect it, matching this project's
   `ORENDERHOME`-style configurable-location convention.
+- Q: User Story 2 is explicitly motivated by "farm re-renders" — many
+  render processes potentially starting around the same time. When
+  multiple render processes concurrently discover the same missing/stale
+  disk-cache entry for the same unbaked source, what must happen so a
+  reader never observes a corrupted or partially-written cache file? →
+  A: Atomic write-then-rename, no locking — each writer builds its own
+  complete cache file at a temporary/unique path, then atomically renames
+  it into place; whichever writer finishes last simply overwrites
+  harmlessly (both built an equally-valid representation of the same
+  unchanged source), with no cross-process coordination needed and no
+  possibility of a reader observing a partially-written file.
+- Q: SC-003 and User Story 2's Acceptance Scenario 2 both require the
+  disk-cache path and a fresh in-memory-only synthesis to produce
+  "indistinguishable" rendered output. What comparison standard should
+  prove this? → A: Byte-for-byte identical output, with the renderer
+  pinned to single-threaded execution for the comparison — matches this
+  project's own established precedent (spec 019's byte-identical
+  regression harness) for exactly this class of "does swapping the
+  internal data source change anything" question.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -88,10 +107,11 @@ output at all — a studio gets no benefit from a faster cache of a texture
 that doesn't render correctly in the first place.
 
 **Independent Test**: Render the same scene twice with the cache option
-enabled; confirm the second render reuses the cached preparation (and
-produces output indistinguishable from the first render). Then modify the
-source image and render a third time; confirm the stale cache is detected
-and rebuilt rather than silently reused.
+enabled; confirm the second render reuses the cached preparation (and,
+pinned single-threaded for the comparison, produces output byte-for-byte
+identical to the first render). Then modify the source image and render
+a third time; confirm the stale cache is detected and rebuilt rather than
+silently reused.
 
 **Acceptance Scenarios**:
 
@@ -101,11 +121,21 @@ and rebuilt rather than silently reused.
 2. **Given** that same scene is rendered again with the cache present and
    the source file unchanged, **When** it renders, **Then** the render
    reuses the existing cache rather than re-decoding the source, and
-   produces rendered output indistinguishable from the first render.
+   (with the renderer pinned to single-threaded execution for this
+   comparison) produces rendered output byte-for-byte identical to the
+   first render.
 3. **Given** the source image file is modified after the cache was
    written, **When** the scene is rendered again, **Then** the system
    detects the cache is out of date and rebuilds it from the modified
    source, rather than rendering with stale texture data.
+4. **Given** multiple render processes starting at approximately the same
+   time, each discovering the same missing/stale cache entry for the same
+   unbaked source (the render-farm case this story is motivated by),
+   **When** more than one of them builds and writes that cache entry
+   concurrently, **Then** no process ever reads a corrupted or
+   partially-written cache file — each writer's completed file only
+   becomes visible to readers atomically, so the worst case is redundant
+   work, never a corrupted result.
 
 ---
 
@@ -234,6 +264,12 @@ runs.
   a configurable cache location, defaulting to a system temporary/cache
   directory when not otherwise configured — never requiring write access
   next to the original source image.
+- **FR-016**: A disk cache entry MUST only ever become visible to a
+  reader once it is completely written — multiple render processes
+  concurrently building the same cache entry for the same source MUST
+  NOT be able to produce a corrupted or partially-written file visible
+  to any reader; redundant concurrent work by more than one writer is an
+  acceptable outcome, a corrupted or partial cache file is not.
 
 ### Key Entities
 
@@ -267,8 +303,9 @@ runs.
 - **SC-003**: With the disk cache enabled, a second render referencing
   the same, unchanged unbaked source completes its texture preparation
   step without repeating the decode-and-build work the first render did,
-  while producing rendered output indistinguishable from a render that
-  built the texture fresh in memory.
+  while producing rendered output byte-for-byte identical (single-
+  threaded comparison) to a render that built the texture fresh in
+  memory.
 - **SC-004**: A source file modified after its disk cache entry was
   written is never silently rendered with stale texture data — 100%
   detection in a dedicated, repeatable test.
@@ -276,6 +313,10 @@ runs.
   threaded access to an unbaked-source texture passes reliably and
   repeatably (no intermittent failures across repeated runs), where no
   equivalent test existed before this work.
+- **SC-006**: A dedicated, repeatable test demonstrating multiple
+  processes concurrently building the same disk cache entry never
+  produces a corrupted or partially-written cache file, across repeated
+  runs.
 
 ## Assumptions
 

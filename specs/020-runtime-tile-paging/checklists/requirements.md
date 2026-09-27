@@ -31,7 +31,14 @@
 
 ## Notes
 
-- All 3 [NEEDS CLARIFICATION] markers (FR-013 wrap-mode default, FR-014
-  disk-cache opt-in mechanism, FR-015 disk-cache file location) resolved
-  via the 2026-09-26 clarification session — see spec.md's Clarifications
-  section. Checklist fully passing.
+- All 3 [NEEDS CLARIFICATION] markers from initial drafting (FR-013
+  wrap-mode default, FR-014 disk-cache opt-in mechanism, FR-015 disk-cache
+  file location) resolved during `/speckit.specify`.
+- A dedicated `/speckit.clarify` pass (2026-09-26) found and resolved 2
+  further gaps not caught by the initial draft: concurrent disk-cache
+  writers from multiple render-farm processes (→ FR-016, SC-006, User
+  Story 2 Acceptance Scenario 4), and the previously-vague
+  "indistinguishable rendered output" comparison standard for SC-003/User
+  Story 2 Acceptance Scenario 2 (→ resolved to byte-for-byte, single-
+  threaded, matching spec 019's established precedent). Checklist fully
+  passing.
