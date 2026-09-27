@@ -30,6 +30,34 @@ ctest --test-dir build -R TextureTile_RenderByteIdentical --output-on-failure
 ctest --test-dir build -L visual --output-on-failure   # must stay 100% passing
 ```
 
+## Verify a non-power-of-two unbaked source works (FR-012)
+
+```bash
+# examples/rib/tests/parity/unbaked-nonpot-reyes.rib references a
+# deliberately non-power-of-two fixture (tests/unit/texture_tile/fixtures/
+# nonpot_rgb.png, 500x300) -- confirm it renders correctly, exercising the
+# same non-power-of-two resize path otexmake's own bake pipeline uses.
+ctest --test-dir build -R Parity_unbaked-nonpot --output-on-failure
+```
+
+## Verify baked vs. unbaked renders are visually equivalent (User Story 1 Acceptance Scenario 2)
+
+```bash
+# Bake large_rgb8.png via otexmake, then compare its baked render against
+# examples/rib/tests/parity/unbaked-png-reyes.rib's direct (unbaked)
+# reference of the same source -- see tests/unit/texture_tile/ for the
+# automated version of this check.
+```
+
+## Verify a genuinely undecodable file still degrades gracefully (User Story 1 Acceptance Scenario 3)
+
+```bash
+# Reference tests/unit/image_input/fixtures/tiny_indexed.png (palette-
+# indexed, must be rejected by CImageInput) as a texturename; confirm the
+# render still succeeds with CDummyTexture substitution and the expected
+# error(CODE_NOFILE, "Failed open texture ...") message -- no crash.
+```
+
 ## Enable the opt-in disk cache and verify reuse (SC-003)
 
 ```bash
@@ -41,9 +69,16 @@ Option "texturecache" "enable" [1]
 ```bash
 # Re-render the identical scene; the second run should reuse the
 # already-written cache entry rather than re-decoding the source.
-# Byte-identical comparison against a fresh in-memory-only render
-# (cache disabled) is the actual regression bar -- see
-# tests/unit/texture_tile/ for the automated version of this check.
+ctest --test-dir build -R TextureTile_CacheByteIdentical --output-on-failure
+```
+
+## Verify the default cache directory works with no override configured (FR-015)
+
+```bash
+# Option "texturecache" "enable" [1] alone -- no "directory" token --
+# must still write to and read back from a real, working default
+# location.
+ctest --test-dir build -R TextureTile_CacheDefaultDirectory --output-on-failure
 ```
 
 ## Verify stale-cache detection (SC-004)
@@ -51,20 +86,34 @@ Option "texturecache" "enable" [1]
 ```bash
 # After the disk cache is populated for a source, touch (modify) the
 # source file and re-render; the cache MUST be rebuilt, not silently
-# reused with outdated data. See the dedicated automated test in
-# tests/unit/texture_tile/ for the exact mechanics.
+# reused with outdated data.
+ctest --test-dir build -R TextureTile_CacheStaleDetection --output-on-failure
 ```
 
-## Run the new concurrency tests
+## Verify concurrent disk-cache writers never corrupt a cache entry (SC-006/FR-016)
+
+```bash
+# Multiple orender processes racing to build the same missing cache
+# entry (the render-farm case) -- none may ever observe a corrupted or
+# partially-written file.
+ctest --test-dir build -R TextureTile_CacheConcurrentWrite --output-on-failure
+```
+
+## Verify the decode+pyramid-construction pipeline directly
+
+```bash
+# Direct unit test: CSynthesizedTileSource::info()/fetchTile() against
+# large_rgb8.png's own closed-form pixel formula, independent of any
+# full render.
+ctest --test-dir build -R TileSource_SynthesizedInfo --output-on-failure
+```
+
+## Run the new concurrency test
 
 ```bash
 # Multi-threaded, single-process: the synthesized backend's own
 # fetchTile() concurrency (SC-005).
-ctest --test-dir build -R <TBD, tasks.md names this> --output-on-failure
-
-# Multi-process: concurrent disk-cache writers never produce a
-# corrupted/partial cache file (SC-006/FR-016).
-ctest --test-dir build -R <TBD, tasks.md names this> --output-on-failure
+ctest --test-dir build -R TileSource_SynthesizedConcurrency --output-on-failure
 ```
 
 ## Run the full test suite

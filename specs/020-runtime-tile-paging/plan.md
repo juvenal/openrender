@@ -40,15 +40,24 @@ not a new file format.
 stay 100% passing — SC-002); `-L texture_tile` (spec 019's existing
 byte-identical harness, reused as the baseline-regression check for this
 spec too); new visual-regression parity scenes for PNG/EXR/RGBE sources
-referenced with no bake step (SC-001); a new byte-identical (`-t:1`)
-disk-cache-vs-live-synthesis comparison test (SC-003); a new stale-cache
-detection test (SC-004); a new multi-threaded concurrency test for the
-synthesized backend, following spec 019's real-render pattern since
-`CShadingContext` cannot be hand-constructed (SC-005); a new
-multi-**process** concurrent-cache-write test — genuinely new test
+referenced with no bake step (SC-001), including a deliberately
+non-power-of-two source (FR-012's edge case — added after a
+`/speckit.analyze` pass found the original scene set was entirely
+power-of-two-sized); a baked-vs-unbaked visual-equivalence comparison
+(User Story 1 Acceptance Scenario 2); a post-implementation
+undecodable-file graceful-degradation check (User Story 1 Acceptance
+Scenario 3); a new byte-identical (`-t:1`) disk-cache-vs-live-synthesis
+comparison test (SC-003); a default-cache-directory resolution check
+(FR-015's unconfigured-default path, not just the explicit override); a
+new stale-cache detection test (SC-004); a new multi-threaded concurrency
+test for the synthesized backend, following spec 019's real-render
+pattern since `CShadingContext` cannot be hand-constructed (SC-005); a
+new multi-**process** concurrent-cache-write test — genuinely new test
 infrastructure this project hasn't needed before, since spec 019's
 concurrency test used threads within one process, not multiple OS
-processes (SC-006/FR-016).
+processes (SC-006/FR-016). Two rounds of `/speckit.analyze` found and
+closed 9 coverage gaps beyond the initial task list — see `tasks.md`'s
+own analysis-finding annotations (C1-C4, U1, F1-F4) for the full record.
 
 **Target Platform**: Linux (Ubuntu 24.04 baseline) and macOS only
 (constitution VI) — no Windows-specific code paths. The atomic
@@ -174,13 +183,26 @@ examples/rib/tests/
                             # precedent
 
 tests/
-└── unit/texture_tile/      # EXTENDED — spec 019's existing test
-                            # directory gains: disk-cache-parity test,
-                            # stale-cache-detection test, synthesized-
-                            # backend concurrency test (real render,
-                            # spec 019 US2 pattern), and the new
-                            # multi-process cache-write-safety test
-                            # (naming/exact layout TBD in tasks.md)
+├── unit/texture_tile/      # EXTENDED — spec 019's existing test
+│                           # directory gains: disk-cache-parity test,
+│                           # stale-cache-detection test, synthesized-
+│                           # backend concurrency test (real render,
+│                           # spec 019 US2 pattern), the new
+│                           # multi-process cache-write-safety test, a new
+│                           # non-power-of-two fixture (its own
+│                           # fixtures/FIXTURES.md), and (per a
+│                           # `/speckit.analyze` finding) its
+│                           # CMakeLists.txt's TEXTURES search path
+│                           # extended to also reach
+│                           # tests/unit/image_input/fixtures/
+├── unit/image_input/       # UNCHANGED — reused as a fixture source only
+│                           # (large_rgb8.png/large_rgb.exr/large.hdr);
+│                           # no test code here is modified
+└── visual/CMakeLists.txt   # MODIFIED — new `add_parity_test` entries for
+                            # the unbaked-source scenes, and (per the same
+                            # `/speckit.analyze` finding) its own TEXTURES
+                            # search path also extended to reach
+                            # tests/unit/image_input/fixtures/
 ```
 
 **Structure Decision**: `CSynthesizedTileSource` stays file-local to
