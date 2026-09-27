@@ -272,6 +272,15 @@ tests/
 │                           #     "correctly rebuilt" from "served stale
 │                           #     data" when pixel content is unchanged)
 │                           #   fixtures/nonpot_rgb.png (T002b, non-power-of-two)
+│                           #   synthesized-concurrency-scene.rib +
+│                           #     test_tile_source_synthesized_concurrency.sh
+│                           #     + fixtures/references/
+│                           #     synthesized-concurrency-scene.tif (T024-T027,
+│                           #     US3 -- mirrors spec 019's own
+│                           #     concurrency-scene.rib/
+│                           #     test_tile_source_concurrency.sh exactly, but
+│                           #     targeting CSynthesizedTileSource: references
+│                           #     large_rgb8.png directly, no bake, no cache)
 │                           #   its own CMakeLists.txt's TEXTURES search path
 │                           #     extended (per a `/speckit.analyze` finding)
 │                           #     to also reach tests/unit/image_input/fixtures/

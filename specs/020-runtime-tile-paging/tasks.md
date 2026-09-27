@@ -675,7 +675,7 @@ consistent rendered output across repeated runs.
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Author a new concurrency scene + script targeting
+- [X] T024 [US3] Author a new concurrency scene + script targeting
       `CSynthesizedTileSource` specifically (research.md §11, mirroring
       spec 019's `concurrency-scene.rib`/`test_tile_source_concurrency.sh`
       pattern exactly, since `CShadingContext` cannot be hand-constructed
@@ -684,18 +684,35 @@ consistent rendered output across repeated runs.
       referencing an unbaked source **directly** (disk cache disabled,
       so `CSynthesizedTileSource`'s own `fetchTile()` is what's under
       test, not `CTiffTileSource`'s) (depends on T014).
-- [ ] T025 [US3] Render T024's scene once single-threaded (`-t:1`);
-      check in the result as the reference (depends on T024).
-- [ ] T026 [US3] Render T024's scene several times with orender's
+      Implemented as `synthesized-concurrency-scene.rib`
+      (`tests/unit/texture_tile/`) — identical polygon/ShadingRate/wrap
+      geometry to spec 019's own `concurrency-scene.rib`, but referencing
+      `large_rgb8.png` (spec 018's fixture) directly instead of a baked
+      `.tex`, with no `Option "texturecache"` statement at all (cache
+      stays at its default-disabled state).
+- [X] T025 [US3] Render T024's scene once single-threaded (`-t:1`);
+      check in the result as the reference (depends on T024). Checked in
+      as `tests/unit/texture_tile/fixtures/references/
+      synthesized-concurrency-scene.tif`.
+- [X] T026 [US3] Render T024's scene several times with orender's
       default (multi-threaded) thread count; measure the actual
       block-average diff against the T025 reference empirically (not
       guessed, per spec 019's own established methodology) and fix the
-      test's threshold accordingly (depends on T025).
-- [ ] T027 [US3] Register as ctest **`TileSource_SynthesizedConcurrency`**
+      test's threshold accordingly (depends on T025). Measured: 5
+      multi-threaded renders against the `-t:1` reference gave
+      MaxBlockAvgDiff in the 4.58-5.28 range (close to, but independently
+      measured from, spec 019's own 4.55-4.62 for its baked-TIFF
+      equivalent — same underlying gradient formula, same AA-jitter noise
+      source). Threshold fixed at 16 (~3x margin above the measured
+      band), not reused verbatim from spec 019's 15.
+- [X] T027 [US3] Register as ctest **`TileSource_SynthesizedConcurrency`**
       (analysis finding G2) (`texture_tile` label) in
       `tests/unit/texture_tile/CMakeLists.txt`; run 5 times back to
       back; confirm reliable passing with no intermittent failures —
-      proves SC-005 (depends on T026).
+      proves SC-005 (depends on T026). Verified: the registered test
+      (which itself does 5 internal iterations) run 5 additional times
+      back to back via `ctest -R TileSource_SynthesizedConcurrency` — 25
+      total multi-threaded renders, zero failures.
 
 **Checkpoint**: All 3 user stories complete and independently verified.
 

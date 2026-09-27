@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+# Multi-threaded tile-fetch stress scene targeting CSynthesizedTileSource
+# specifically, spec 020 (020-runtime-tile-paging) T024. Mirrors spec 019's
+# own concurrency-scene.rib exactly (large, frontal, periodically-wrapped
+# polygon, diced at a fine ShadingRate so many micropolygon grids --
+# processed across many REYES buckets, hence many threads -- fault in many
+# distinct tiles concurrently; periodic wrap makes multiple buckets/threads
+# race to fault in the SAME early tile too, not just distinct ones), but
+# referencing large_rgb8.png (spec 018's fixture, tests/unit/image_input/
+# fixtures/) DIRECTLY -- no otexmake bake step, no disk cache (this scene
+# deliberately has no "Option \"texturecache\"" statement, so the cache
+# stays at its default-disabled state) -- so CRenderer::textureLoad()'s
+# fallback always goes through CSynthesizedTileSource, not CTiffTileSource,
+# which is what spec 019's own concurrency-scene.rib already exercises and
+# is therefore not this test's concern.
+version 3.03
+Hider "reyes"
+Display "synthesized-concurrency-scene.tif" "file" "rgba"
+Projection "orthographic"
+ShadingRate 0.25
+Translate 0 0 4
+Surface "paintedplastic" "texturename" ["large_rgb8.png"]
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [1]
+  Patch "bilinear" "P" [-4 -4 0  4 -4 0  -4 4 0  4 4 0]
+        "st" [0 0  8 0  0 8  8 8]
+WorldEnd

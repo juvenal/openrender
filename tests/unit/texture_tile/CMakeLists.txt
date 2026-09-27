@@ -83,6 +83,28 @@ set_tests_properties(TileSource_Concurrency PROPERTIES
     DEPENDS "orender;test_visual_render")
 
 # ---------------------------------------------------------------------------
+# Multi-threaded tile-fetch concurrency test targeting CSynthesizedTileSource
+# specifically (spec 020-runtime-tile-paging, T024-T027, FR-011/SC-005)
+# ---------------------------------------------------------------------------
+# See test_tile_source_synthesized_concurrency.sh's header comment for the
+# full design rationale -- same real-multi-threaded-render approach as
+# TileSource_Concurrency above, but targeting the new synthesized backend
+# (an unbaked source, no disk cache) rather than the baked-TIFF path that
+# test already covers.
+add_test(NAME TileSource_SynthesizedConcurrency
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_tile_source_synthesized_concurrency.sh
+        $<TARGET_FILE:orender>
+        $<TARGET_FILE:test_visual_render>
+        ${CMAKE_CURRENT_SOURCE_DIR}/synthesized-concurrency-scene.rib
+        ${TEXTURE_TILE_FIXTURES_DIR}/references/synthesized-concurrency-scene.tif
+        5)
+set_tests_properties(TileSource_SynthesizedConcurrency PROPERTIES
+    TIMEOUT 300
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS "orender;test_visual_render")
+
+# ---------------------------------------------------------------------------
 # CTiffTileSource::info() direct unit test (T020)
 # ---------------------------------------------------------------------------
 add_executable(test_tile_source_tiff_info test_tile_source_tiff_info.cpp)
