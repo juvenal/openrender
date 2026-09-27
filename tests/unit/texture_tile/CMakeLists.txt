@@ -35,7 +35,13 @@ set(TEXTURE_TILE_ENV
     "SHADERS=${CMAKE_BINARY_DIR}/shaders"
     "ORENDERHOME=${TEXTURE_TILE_RC_HOME}"
     "DISPLAYS=${TEXTURE_TILE_DISPLAY_PATH}"
-    "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests:${TEXTURE_TILE_FIXTURES_DIR}"
+    # tests/unit/image_input/fixtures is also searched -- spec 020's
+    # disk-cache/concurrency scenes (T019-T021, T024-T027) reference
+    # spec 018's fixtures directly; a fresh /speckit.analyze pass (spec
+    # 020, findings F1/F2) found this directory was never searched here
+    # either, which would have made every one of those scenes fail on a
+    # search-path miss, not a real feature regression.
+    "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests:${TEXTURE_TILE_FIXTURES_DIR}:${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures"
 )
 
 if(HAVE_OPENEXR)
@@ -86,3 +92,21 @@ target_link_libraries(test_tile_source_tiff_info PRIVATE ribRender openrendercom
 add_test(NAME TileSource_TiffInfo COMMAND test_tile_source_tiff_info)
 set_tests_properties(TileSource_TiffInfo PROPERTIES TIMEOUT 30 LABELS "texture_tile;unit"
     ENVIRONMENT "TEXTURE_TILE_FIXTURES_DIR=${TEXTURE_TILE_FIXTURES_DIR}")
+
+# ---------------------------------------------------------------------------
+# CSynthesizedTileSource::info()/fetchTile() direct unit test (spec
+# 020-runtime-tile-paging, T012)
+# ---------------------------------------------------------------------------
+# Reads large_rgb8.png (spec 018's fixture, tests/unit/image_input/fixtures/)
+# via its own IMAGE_INPUT_FIXTURES_DIR env var, matching spec 018's own
+# test_image_input_*.cpp convention -- this is a standalone binary, not a
+# RIB render, so it never goes through the renderer's TEXTURES search path
+# (analysis finding F3). Needs PNG::PNG (not just TIFF::TIFF) since
+# createSynthesizedTileSource() decodes via CImageInput/createImageInput().
+add_executable(test_tile_source_synthesized_info test_tile_source_synthesized_info.cpp)
+target_compile_features(test_tile_source_synthesized_info PRIVATE cxx_std_20)
+target_include_directories(test_tile_source_synthesized_info PRIVATE ${TEXTURE_TILE_INCLUDE_DIRS})
+target_link_libraries(test_tile_source_synthesized_info PRIVATE ribRender openrendercommon PNG::PNG)
+add_test(NAME TileSource_SynthesizedInfo COMMAND test_tile_source_synthesized_info)
+set_tests_properties(TileSource_SynthesizedInfo PROPERTIES TIMEOUT 30 LABELS "texture_tile;unit"
+    ENVIRONMENT "IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")

@@ -180,6 +180,7 @@ class CRenderer {
         static TMutex deepShadowMutex;  // To serialize deep shadow _writes_
         static TMutex hierarchyMutex;   // To serialize lazy construction of bounding volume hierarchy
         static TMutex atomicMutex;      // To serialize atomic operations on unsupported platforms
+        static TMutex synthesizeMutex;  // To serialize in-memory pyramid synthesis for unbaked texture sources (020-runtime-tile-paging)
 
         ////////////////////////////////////////////////////////////////////
         //

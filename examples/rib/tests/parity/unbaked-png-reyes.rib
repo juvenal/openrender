@@ -1,0 +1,23 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured directly from a raw PNG source, spec 020
+# (020-runtime-tile-paging), T003 -- no otexmake bake step at all.
+# Validates that CRenderer::textureLoad()'s new fallback (reached only
+# on TIFFOpen() failure) decodes large_rgb8.png via CImageInput and
+# serves it through CSynthesizedTileSource, rendering identically across
+# camera hiders, same as any baked texture. Full RGB (not the grayscale
+# spec 018's own baked-PNG scene used to sidestep a since-fixed,
+# bake-time-only PHOTOMETRIC gap) -- that gap is specific to otexmake's
+# appendLayer() bake-time write path, which this unbaked-source path
+# never goes through at all.
+version 3.03
+Hider "reyes"
+Display "unbaked-png-reyes.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["large_rgb8.png"]
+  Sphere 1 -1 1 360
+WorldEnd

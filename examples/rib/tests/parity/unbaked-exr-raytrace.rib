@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured directly from a raw RGB float OpenEXR source, spec 020
+# (020-runtime-tile-paging), T003 -- no otexmake bake step at all.
+# Validates that CRenderer::textureLoad()'s new fallback decodes
+# large_rgb.exr via CImageInput and serves it through
+# CSynthesizedTileSource. Full RGB (not the luminance-only source spec
+# 018's own baked-EXR scene used to sidestep a since-fixed, bake-time-only
+# PHOTOMETRIC gap) -- that gap is specific to otexmake's appendLayer()
+# bake-time write path, which this unbaked-source path never goes
+# through at all.
+version 3.03
+Hider "raytrace"
+Display "unbaked-exr-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["large_rgb.exr"]
+  Sphere 1 -1 1 360
+WorldEnd

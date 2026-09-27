@@ -143,6 +143,22 @@ TMutex CRenderer::hierarchyMutex;
 /////////////////////////////////////////////////////////////
 TMutex CRenderer::atomicMutex;
 
+/////////////////////////////////////////////////////////////
+//	Used to serialize in-memory mip pyramid synthesis for unbaked
+//	(non-TIFF) texture sources (020-runtime-tile-paging). Held for
+//	the whole decode/resize/pyramid-reduction body inside
+//	CRenderer::textureLoad()'s fallback in texture.cpp, since
+//	adjustSize<T>/filterScaleImage<T>/filterImage<T> share
+//	CRenderer::globalMemory, an unsynchronized bump allocator, and
+//	textureLoad() is reachable from multiple shading threads
+//	concurrently. Deliberately separate from textureMutex, whose
+//	current role (under TEXTURE_PERBLOCK_LOCK) is narrowly
+//	textureMemFlush()'s eviction scan, not synthesis.
+//
+//	VERIFIED
+/////////////////////////////////////////////////////////////
+TMutex CRenderer::synthesizeMutex;
+
 // TODO: Comment on
 // Per block mutexes for textures, tesselations, grid objects
 
@@ -163,6 +179,7 @@ void CRenderer::initMutexes() {
     osCreateMutex(delayedMutex);
     osCreateMutex(deepShadowMutex);
     osCreateMutex(hierarchyMutex);
+    osCreateMutex(synthesizeMutex);
 
 #ifdef ATOMIC_UNSUPPORTED
     warning(CODE_SYSTEM, "Atomic operations are not supported on this system, consider leaving a note in Sourceforge about your platform");
@@ -187,6 +204,7 @@ void CRenderer::shutdownMutexes() {
     osDeleteMutex(delayedMutex);
     osDeleteMutex(deepShadowMutex);
     osDeleteMutex(hierarchyMutex);
+    osDeleteMutex(synthesizeMutex);
 
 #ifdef ATOMIC_UNSUPPORTED
     osDeleteMutex(atomicMutex);

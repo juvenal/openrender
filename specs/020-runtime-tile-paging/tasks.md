@@ -40,11 +40,12 @@ matching spec 019's own established "reuse, don't duplicate" practice.
 **Purpose**: Confirm the pre-feature baseline is clean before any spec
 020 code is written.
 
-- [ ] T001 Confirm a clean baseline: `cmake --build build --config
+- [X] T001 Confirm a clean baseline: `cmake --build build --config
       Release`, then `ctest --test-dir build -L visual
       --output-on-failure`, `ctest --test-dir build -L texture_tile
       --output-on-failure`, and `ctest --test-dir build -L image_input
-      --output-on-failure`; all three must be 100% green.
+      --output-on-failure`; all three must be 100% green. Confirmed:
+      207/207 visual, 3/3 texture_tile, 6/6 image_input.
 
 **Checkpoint**: Baseline confirmed clean; safe to begin.
 
@@ -59,7 +60,7 @@ exists. Also reconfirm spec 019's existing byte-identical regression bar
 as the SC-002 starting point this spec must not break. **No user story
 phase may begin until this phase's checkpoint passes.**
 
-- [ ] T002 [P] Confirm reusable unbaked-source fixtures: spec 018's
+- [X] T002 [P] Confirm reusable unbaked-source fixtures: spec 018's
       `tests/unit/image_input/fixtures/large_rgb8.png` (512x512, 8-bit
       RGB), `large_rgb.exr` (512x512, RGB float, `HAVE_OPENEXR`-gated),
       and `large.hdr` (512x512, Radiance HDR/RGBE) — all with known
@@ -67,8 +68,11 @@ phase may begin until this phase's checkpoint passes.**
       directory's own `FIXTURES.md`, all already sized for real
       tile/mip-pyramid coverage (16x16 tiles per level, full 10-level
       pyramid, per that file's own note). No new fixtures generated —
-      reuse only.
-- [ ] T002b [P] Generate one new, checked-in **non-power-of-two** PNG
+      reuse only. Confirmed: all 3 files exist; this build has
+      `HAVE_OPENEXR` enabled (openexr.dsply built, `Parity_texture-exr`/
+      `ImageInput_Exr` registered), so the EXR scene pair will be
+      exercised, not gated off.
+- [X] T002b [P] Generate one new, checked-in **non-power-of-two** PNG
       fixture, `tests/unit/texture_tile/fixtures/nonpot_rgb.png` (e.g.
       500x300 — deliberately not a power of two and not a multiple of
       `DEFAULT_TILE_SIZE`), reusing the same closed-form RGB formula
@@ -79,8 +83,12 @@ phase may begin until this phase's checkpoint passes.**
       existing fixture is non-power-of-two (every `tiny_*`/`large_*`
       fixture from spec 018 is 4x4 or 512x512) — this is new test data,
       not a duplication of existing coverage (analysis finding C1;
-      FR-012, spec.md's own non-power-of-two Edge Case).
-- [ ] T002c [P] Wire up the `TEXTURES` search path so the fixtures T002/
+      FR-012, spec.md's own non-power-of-two Edge Case). Generated
+      (Pillow + numpy), verified pixel (10,20)=(40,120,80) matches the
+      formula exactly. Appended its provenance section to the *existing*
+      `FIXTURES.md` (spec 019's `concurrency_rgb.tex` entry, preserved —
+      caught and fixed an accidental overwrite before it was committed).
+- [X] T002c [P] Wire up the `TEXTURES` search path so the fixtures T002/
       T002b reuse are actually resolvable once T003's scenes are
       registered (analysis findings F1/F2 — a fresh `/speckit.analyze`
       pass, checking the actual current CMake files rather than assuming,
@@ -99,7 +107,7 @@ phase may begin until this phase's checkpoint passes.**
       T022/T027 register T019-T021/T024-T027 into the
       `TEXTURE_TILE_ENV`-driven one, and neither currently searches
       where spec 018 actually left these fixtures.
-- [ ] T003 Author 4 new example RIB scene pairs (reyes+raytrace) in
+- [X] T003 Author 4 new example RIB scene pairs (reyes+raytrace) in
       `examples/rib/tests/parity/`, modeled directly on spec 018's
       `texture-{png,exr,rgbe}-{reyes,raytrace}.rib` but referencing the
       T002/T002b fixtures **directly** as `Surface "paintedplastic"
@@ -117,31 +125,32 @@ phase may begin until this phase's checkpoint passes.**
       throughout: the gap was specific to `otexmake`'s bake-time
       `appendLayer()` path, which this spec's unbaked-source path never
       goes through at all (depends on T002, T002b).
-- [ ] T004 Smoke-check T003's 4 scene pairs against the current
+- [X] T004 Smoke-check T003's 4 scene pairs against the current
       (pre-spec-020) `orender` binary: confirm each fails to render the
       texture correctly today — reported as `error(CODE_NOFILE, "Failed
       open texture ...")` and substituted with `CDummyTexture`
       (untextured/inert output), the existing, correct behavior for a
       file `TIFFOpen()` can't read — establishing genuine Red state
-      before any implementation exists, per constitution III (depends on
-      T003).
-- [ ] T004b [P] Confirm suitable negative-test fixtures already exist for
+      before any implementation exists, per constitution III. Confirmed
+      all 4: each prints `Failed open texture "..."` and still renders
+      (untextured) (depends on T003).
+- [X] T004b [P] Confirm suitable negative-test fixtures already exist for
       User Story 1 Acceptance Scenario 3 (a file `CImageInput` itself
       correctly refuses to decode): spec 018's
       `tests/unit/image_input/fixtures/tiny_indexed.png` (palette-
       indexed, must be rejected) and `large_unsupported_channels.exr`
       (unsupported channel layout, `HAVE_OPENEXR`-gated) are already
-      established negative-test fixtures — no new fixture needed. Actually
-      *rendering* a scene against one of these to prove graceful
-      degradation is T010c, once the fallback exists (analysis finding
-      C4).
-- [ ] T005 Confirm spec 019's existing byte-identical regression harness
+      established negative-test fixtures — no new fixture needed.
+      Confirmed both exist. Actually *rendering* a scene against one of
+      these to prove graceful degradation is T010c, once the fallback
+      exists (analysis finding C4).
+- [X] T005 Confirm spec 019's existing byte-identical regression harness
       (`ctest --test-dir build -R TextureTile_RenderByteIdentical
       --output-on-failure`) still passes against the current,
       pre-spec-020 build — the SC-002 starting point ("100% of existing
       scenes referencing an already-baked texture... continue to produce
-      byte-for-byte identical output") this spec must not regress
-      (depends on T001).
+      byte-for-byte identical output") this spec must not regress.
+      Confirmed passing (depends on T001).
 
 **Checkpoint**: 4 new unbaked-source scene pairs (including the
 non-power-of-two one, T002b/T003) exist, are checked in, and are
@@ -171,7 +180,7 @@ passes unchanged.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Relocate `adjustSize<T>`/`filterScaleImage<T>` template
+- [X] T006 [US1] Relocate `adjustSize<T>`/`filterScaleImage<T>` template
       *definitions* from `src/ri/texture/texmake.cpp` into
       `src/ri/texture/texmake.h` (research.md §4) — a pure reachability
       fix (both were physically unreachable from any other translation
@@ -180,8 +189,23 @@ passes unchanged.
       existing call sites (which gain a `#include "texmake.h"` if not
       already present). Build; confirm `ctest -L visual` and `-L
       image_input` are still 100% green after this one, isolated,
-      mechanical change before touching anything else (depends on T005).
-- [ ] T007 [US1] Define `CSynthesizedPyramid` (data-model.md) and
+      mechanical change before touching anything else.
+      **Scope correction found during implementation**: `adjustSize<T>`'s
+      own body also calls `copyData<T>`/`initData<T>`/`initDataValues<T>`/
+      `filterImage<T>` internally, and references the file-scope
+      `resizeDownMode`/`resizeRoundMode`/`resizeNoneMode` string
+      constants (`resizeUpMode` stays in `texmake.cpp` — used only by an
+      unrelated macro, not by anything relocated) — all of these needed
+      to move together for `adjustSize<T>` to actually be instantiable
+      from `texture.cpp`, since a template must be fully visible at
+      every point it's instantiated. Relocated the full transitive
+      closure (6 template functions + 3 constants); added `#include
+      "memory.h"`/`"renderer.h"`/`<math.h>`/`<string.h>` to `texmake.h`
+      for their own dependencies. `texmake.cpp`'s own `appendTexture()`
+      caller is unaffected — same zero-behavior-change guarantee, just a
+      larger mechanical move than originally scoped. Verified: builds
+      clean, 207/207 visual, 6/6 image_input (depends on T005).
+- [X] T007 [US1] Define `CSynthesizedPyramid` (data-model.md) and
       `CSynthesizedTileSource` (file-local to `texture.cpp`, matching
       `CTiffTileSource`'s existing convention — per
       `contracts/synthesized-tile-source.md`) in
@@ -198,7 +222,42 @@ passes unchanged.
       (`DEFAULT_TILE_SIZE`-square tiles, partial trailing tiles handled
       the same way `libtiff`'s own tiled-image API already does — no new
       zero-fill/padding logic) (depends on T006).
-- [ ] T008 [US1] Add the factory `createSynthesizedTileSource(filename,
+      **Thread-safety requirement found during implementation** (research.md
+      §4a, plan.md Constraints): `adjustSize<T>`/`filterScaleImage<T>`/
+      `filterImage<T>` allocate from `CRenderer::globalMemory`, an
+      unsynchronized stack-based bump allocator (confirmed via full read of
+      `src/ri/core/memory.h` — no lock anywhere in `ralloc()`/`memBegin`/
+      `memEnd`); `textureLoad()` (this task's call site) is reachable from
+      multiple shading threads concurrently (`getTexture()` is called from
+      the `texture()`/`environment()` RSL builtin,
+      `src/libshader/shading/rslBuiltins.cpp:181`). This task MUST wrap its
+      entire decode+resize+pyramid-reduction body in a new mutex, following
+      this project's own existing convention rather than `std::mutex`: add
+      `static TMutex synthesizeMutex;` to `CRenderer` in
+      `src/ri/render/renderer.h` (alongside the 11 existing project-wide
+      mutexes, e.g. `textureMutex`) and `osCreateMutex`/`osDeleteMutex` it
+      in `CRenderer::initMutexes()`/`shutdownMutexes()`
+      (`src/ri/render/rendererMutexes.cpp`), then `osLock(CRenderer::
+      synthesizeMutex)`/`osUnlock(...)` around the synthesis body in
+      `texture.cpp` (same `osLock`/`osUnlock` idiom already used elsewhere
+      in this file, e.g. `textureMemFlush()`). Do NOT reuse the existing
+      `CRenderer::textureMutex` for this — under this project's build
+      (`TEXTURE_PERBLOCK_LOCK` always defined), it currently serializes
+      only `textureMemFlush()`'s eviction scan, and holding it for this
+      task's slower decode/resize work would give it a second, unrelated
+      meaning and could block unrelated texture-memory eviction elsewhere
+      (research.md §4a). Bracket the arena use with `memBegin(CRenderer::
+      globalMemory)`/`memEnd(CRenderer::globalMemory)` held for the same
+      duration as the mutex, and copy resized/reduced results out into
+      `CSynthesizedPyramid`'s own heap (`std::vector`) buffers *before* the
+      matching `memEnd()` (no early return between begin/end, per
+      `memory.h`'s own comment). `fetchTile()` itself stays lock-free,
+      reading only the finished, immutable pyramid. This is a new hazard
+      introduced by this feature's own code, distinct from the
+      pre-existing, separately-filed `frameFiles`/`CTrie` concurrent-first-
+      load race (GitHub #20, out of scope for this spec, same boundary as
+      GitHub #19).
+- [X] T008 [US1] Add the factory `createSynthesizedTileSource(filename,
       level)` to `src/ri/texture/tileSource.h` (declaration) and
       `texture.cpp` (definition, per `contracts/synthesized-tile-source.md`),
       plus the internal helper that decodes a source exactly once via
@@ -208,7 +267,7 @@ passes unchanged.
       `std::shared_ptr<CSynthesizedPyramid>` into the same shared
       structure (research.md §1) — no per-level re-decoding (depends on
       T007).
-- [ ] T009 [US1] Add the new fallback branch inside
+- [X] T009 [US1] Add the new fallback branch inside
       `CRenderer::textureLoad()` (`texture.cpp:2281-2316`): on
       `TIFFOpen()` failure, attempt `createImageInput(fn)`; on success,
       build one `CTiledTexture<T>` layer per level from T008's factory
@@ -220,11 +279,49 @@ passes unchanged.
       unmodified NULL-return path (`CRenderer::getTexture()`'s
       `CDummyTexture` substitution, `rendererFiles.cpp:373`, untouched)
       (depends on T008).
-- [ ] T010 [US1] Build; render Phase 2's 4 new scene pairs (PNG, EXR,
+      **Scope correction found during implementation** (research.md §4b):
+      a manual smoke render surfaced that `TIFFOpen(fn, "r")` on a
+      genuine PNG/EXR/RGBE source (the exact case this task's own
+      fallback exists to serve) makes libtiff invoke the already-
+      registered `tiffErrorHandler()` -> `error(CODE_SYSTEM, "Not a
+      TIFF...")`, which sets the global `RiLastError` and makes
+      `orender`'s own exit code nonzero (`orender.cpp:919`) even though
+      the fallback then succeeds and the render is pixel-correct.
+      `test_hider_parity.cpp:339-343` (the harness T011's own parity
+      tests run under) treats any nonzero `orender` exit code as an
+      outright failure before ever comparing pixels — meaning every one
+      of T011's 4 new scene pairs would fail permanently, regardless of
+      correctness, without a fix. Two fixes were considered and rejected
+      (both would touch shared, unsynchronized global state --
+      `TIFFSetErrorHandler`'s process-global handler pointer, or the
+      global `RiLastError` -- from a call path reachable by multiple
+      concurrent shading threads, research.md §4a's same class of
+      hazard). The fix actually applied: a new file-local
+      `looksLikeTiff(fn)` helper checks fn's first 4 bytes against
+      TIFF's own magic number (both byte orders) *before* ever calling
+      `TIFFOpen()`; `TIFFOpen()` is only attempted when the magic
+      matches (or the check itself couldn't be performed, e.g. an
+      unreadable file — defaults to attempting `TIFFOpen()` regardless,
+      never silently diverting a real TIFF). A valid-magic-but-corrupt
+      TIFF still reaches `TIFFOpen()` and still reports a real error, so
+      no existing correct-error-reporting behavior is lost — only the
+      spurious "not a TIFF at all" case (now this spec's own normal,
+      successful path) is silenced. GitHub #21 filed for the underlying,
+      broader architectural facts (process-global libtiff handler,
+      unsynchronized `RiLastError`) this correction's rejected
+      alternatives ran into, out of scope for this spec to fix generally.
+      Verified: `Not a TIFF` message and nonzero exit code both gone for
+      the 4 new unbaked scenes; `orender`'s exit code is 0 for a
+      successful synthesized-fallback render.
+- [X] T010 [US1] Build; render Phase 2's 4 new scene pairs (PNG, EXR,
       RGBE, and the non-power-of-two PNG); confirm each now renders the
       texture correctly (Green) — visual smoke-check before trusting
       them as permanent regression coverage (depends on T009, T002c).
-- [ ] T010b [US1] Prove User Story 1 Acceptance Scenario 2 (baked vs.
+      Verified via manual render (not just "a TIF was produced"): all 4
+      unbaked-source scenes (raytrace hider; PNG also spot-checked under
+      reyes) render with `orender` exiting 0 and no error output, after
+      T009's own `looksLikeTiff()` scope correction.
+- [X] T010b [US1] Prove User Story 1 Acceptance Scenario 2 (baked vs.
       unbaked visual equivalence, analysis finding C2): bake
       `large_rgb8.png` via `otexmake` into a `.tex`; render two otherwise
       identical scenes — one referencing the baked `.tex`, one
@@ -234,7 +331,18 @@ passes unchanged.
       comparison tool), confirming the two are visually equivalent, not
       merely that the unbaked one renders *something* plausible (depends
       on T010).
-- [ ] T010c [US1] Prove User Story 1 Acceptance Scenario 3 holds
+      Verified manually (ahead of T011's permanent registration) for all
+      4 formats, not just PNG: baked-vs-unbaked `test_hider_parity`
+      comparisons (raytrace hider, `-t:1`) for PNG, the non-power-of-two
+      PNG (`nonpot_rgb.png`, exercising `adjustSize<T>`/
+      `filterScaleImage<T>` end to end), EXR, and RGBE all report
+      **MaxBlockAvgDiff: 0.00** against a threshold of 20 — pixel-
+      identical, not merely within tolerance. This single check exercises
+      `CSynthesizedPyramid`'s `validWidth`/`validHeight` propagation, the
+      per-bit-depth `M` normalization in `readSynthesizedTexture<T>()`,
+      the fixed-`DEFAULT_TILE_SIZE` tiling decision, and the box-filter
+      pyramid reduction all at once.
+- [X] T010c [US1] Prove User Story 1 Acceptance Scenario 3 holds
       post-implementation (analysis finding C4): render a scene
       referencing `tiny_indexed.png` (or, when `HAVE_OPENEXR`,
       `large_unsupported_channels.exr` — both already-established
@@ -244,12 +352,33 @@ passes unchanged.
       and no crash, proving `CImageInput`'s own decode-failure reporting
       falls through T009's fallback cleanly (depends on T009, T004b,
       T002c).
-- [ ] T011 [US1] Register the 4 new scene pairs as permanent
+      Verified via manual render against `tiny_indexed.png`: renders to
+      completion (no crash), prints exactly `Failed open texture
+      "tiny_indexed.png"`, substitutes `CDummyTexture` — confirming
+      `CImageInput`'s own decode failure (indexed PNG, an unsupported
+      layout) falls through T009's fallback to the existing, unmodified
+      NULL-return path cleanly. Exit code 255 here is the *correct*,
+      intentional signal for a genuine failure — unlike T009's
+      `looksLikeTiff()` correction, which addresses only the spurious
+      case where the overall load actually succeeds.
+- [X] T011 [US1] Register the 4 new scene pairs as permanent
       `add_parity_test` entries in `tests/visual/CMakeLists.txt`,
       promoting Phase 2's authored-but-unregistered scenes into the
       standing visual-regression suite, matching spec 018/019's own
       registration convention (depends on T010, T010b, T010c).
-- [ ] T012 [US1] Write a direct unit test for
+      **Scope correction found during implementation**: `unbaked-nonpot`
+      references `nonpot_rgb.png` (T002b), which lives under
+      `tests/unit/texture_tile/fixtures/`, not
+      `tests/unit/image_input/fixtures/` — `VISUAL_ENV`'s `TEXTURES`
+      (extended for F1/F2) didn't search that directory either. Extended
+      it a second time to include `tests/unit/texture_tile/fixtures`,
+      catching what would otherwise have been the same class of
+      search-path-miss bug F1/F2 already found once. Verified: all 4
+      new tests (`Parity_unbaked-png`, `-nonpot`, `-exr`, `-rgbe`) pass
+      via `ctest -R Parity_unbaked` (4/4, ~0.3s each — cheap, since a
+      parity test's own comparison threshold of 20 is generous relative
+      to these pixel-identical renders).
+- [X] T012 [US1] Write a direct unit test for
       `CSynthesizedTileSource::info()`/`fetchTile()` against
       `large_rgb8.png` (mirroring `test_tile_source_tiff_info.cpp`'s
       existing pattern): assert level-0 pixel values match the
@@ -276,15 +405,50 @@ passes unchanged.
       `ENVIRONMENT
       "IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures"`
       added alongside its existing `TEXTURE_TILE_FIXTURES_DIR` entry
-      (depends on T008).
-- [ ] T013 [US1] Run `ctest --test-dir build -L visual
+      (depends on T008). Needs `PNG::PNG` linked (not just `TIFF::TIFF`,
+      unlike `test_tile_source_tiff_info`), since
+      `createSynthesizedTileSource()` decodes via
+      `CImageInput`/`createImageInput()`.
+      **Scope correction found during implementation**: a first version
+      of this test (calling `createSynthesizedTileSource()` with no
+      further setup, mirroring `test_tile_source_tiff_info.cpp` exactly)
+      segfaulted twice, for two distinct reasons neither `CTiffTileSource`
+      nor its own test ever had to contend with, since that backend
+      touches neither: (1) `adjustSize<T>`/`filterScaleImage<T>`/
+      `filterImage<T>` (T006/T007) allocate from `CRenderer::globalMemory`,
+      which is a bare global initialized to `NULL`
+      (`rendererStatics.cpp:106`) and only ever set up inside
+      `CRenderer::beginRenderer()`; (2) `CImageInput::open()`'s own
+      failure-reporting paths call `error()`, which depends on the global
+      `renderMan` singleton, likewise only initialized as part of the same
+      renderer lifecycle. Both are unavailable in a bare standalone
+      binary. Fixed by calling `RiBegin(RI_NULL)`/`RiEnd()` around the
+      test body — the exact same minimal-context initialization
+      `test_image_input_png.cpp`/`test_image_input_tiff.cpp` already use
+      for the identical reason (confirmed via their own header comments),
+      not a new pattern invented for this spec. Verified via `lldb`
+      backtraces for both crashes before applying the fix, then a clean
+      pass after. Registered `ctest` result: `TileSource_SynthesizedInfo`
+      passes (all level-0/level-1 geometry checks, two pixel-exact tile
+      spot-checks including one away from the origin, and both
+      out-of-range/unrecognized-source rejection checks).
+- [X] T013 [US1] Run `ctest --test-dir build -L visual
       --output-on-failure` in full; confirm 100% passing (existing
       scenes plus the 4 newly-registered ones) (depends on T011, T012).
-- [ ] T014 [US1] Run `ctest --test-dir build -R
+      Confirmed: full suite green, no failures (two earlier apparent
+      timeouts on `teapot-wood-raytrace`/`teapot-motion-raytrace` during
+      an earlier, resource-contended run were confirmed as CPU
+      contention from concurrent background builds, not real failures —
+      both pass in isolation in 1s/47s well under their timeout; a
+      subsequent clean run confirmed 100% passing with no contention).
+- [X] T014 [US1] Run `ctest --test-dir build -R
       TextureTile_RenderByteIdentical --output-on-failure`; confirm it
       still passes unchanged — proves SC-002 (the existing baked-TIFF
       fast path is completely unaffected) holds after this story's
-      changes (depends on T013).
+      changes (depends on T013). Confirmed passing (6.98s) as part of
+      the full `texture_tile` suite run (4/4 passing:
+      `TextureTile_RenderByteIdentical`, `TileSource_Concurrency`,
+      `TileSource_TiffInfo`, `TileSource_SynthesizedInfo`).
 
 **Checkpoint**: An artist can reference a plain PNG/EXR/RGBE image
 directly as a texture, with no bake step, and it renders correctly.
@@ -341,7 +505,15 @@ cache entry; confirm no reader ever observes a corrupted file.
       the *same directory* as the final cache path (guaranteeing a
       same-filesystem `rename()`), the existing `TSearchpath*`,
       `"periodic"`/`"periodic"` wrap modes, `RiCatmullRomFilter` at
-      width/height 1.0, and no extra params (research.md §8); on success,
+      width/height 3.0 (matching `otexmake`'s own actual CLI default
+      filter size, `otexmake.cpp:74-75` — **corrected during T007**, an
+      earlier version of this task said 1.0, which would be a materially
+      narrower filter and not match a real `otexmake` bake of the same
+      source), and no extra params so `makeTexture()`'s own
+      `getResizeMode()` defaults the resize mode to `"up"` (research.md
+      §8; §3's correction re-verified this default directly against
+      `otexmake.cpp`/`texmake.cpp` rather than trusting an earlier
+      grounding pass, which had wrongly said "round"); on success,
       `rename()` the temporary file into the final path (research.md §6)
       — a reader only ever attempts the final path, never the temporary
       one. A write failure (unwritable location) is caught and degrades

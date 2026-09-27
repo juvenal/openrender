@@ -1,4 +1,6 @@
-# Fixture provenance (T011)
+# Fixture provenance (T011, spec 019; T002b, spec 020)
+
+## `concurrency_rgb.tex` (spec 019, T011)
 
 `concurrency_rgb.tex` is `otexmake`'s plain-texture bake of spec 018's
 existing `tests/unit/image_input/fixtures/large_rgb.tif` (512x512, 8-bit
@@ -22,3 +24,45 @@ account for), giving the concurrency test (`test_tile_source_concurrency.cpp`,
 T012) plenty of distinct, exactly-verifiable tiles to fault in
 concurrently from multiple threads without needing to replicate
 `appendPyramid()`'s box-filter reduction math for higher mip levels.
+
+## `nonpot_rgb.png` (spec 020, T002b)
+
+`nonpot_rgb.png` is a deliberately **non-power-of-two** (500x300) 8-bit RGB
+PNG, generated for spec 020's `020-runtime-tile-paging` — closing analysis
+finding C1 (a fresh `/speckit.analyze` pass found the spec's original
+Foundational fixture set was entirely power-of-two-sized: `large_rgb8.png`/
+`large_rgb.exr`/`large.hdr` are all 512x512). 500x300 is deliberately not a
+power of two and not a multiple of `DEFAULT_TILE_SIZE` (32,
+`src/ri/core/ri_config.h:31`), so referencing it directly (no bake step)
+exercises `CSynthesizedTileSource`'s non-power-of-two resize path
+end to end (FR-012, spec.md's own non-power-of-two Edge Case).
+
+Reuses the exact same closed-form RGB formula as
+`tests/unit/image_input/fixtures/FIXTURES.md`'s `{}_rgb.tif`/`{}_rgb8.png`
+fixtures, for `x` in `[0,499]`, `y` in `[0,299]`:
+
+- R(x,y) = (3x+10) mod 256
+- G(x,y) = (5y+20) mod 256
+- B(x,y) = (x+2y+30) mod 256
+
+Generated via a small scratch script (Pillow + numpy, not checked in — the
+formula above fully reproduces it):
+
+```python
+from PIL import Image
+import numpy as np
+
+W, H = 500, 300
+x = np.arange(W).reshape(1, W)
+y = np.arange(H).reshape(H, 1)
+
+R = np.broadcast_to((3 * x + 10) % 256, (H, W)).astype(np.uint8)
+G = np.broadcast_to((5 * y + 20) % 256, (H, W)).astype(np.uint8)
+B = np.broadcast_to((x + 2 * y + 30) % 256, (H, W)).astype(np.uint8)
+
+img = np.stack([R, G, B], axis=-1)
+Image.fromarray(img, mode="RGB").save("nonpot_rgb.png")
+```
+
+Verified against the formula directly: pixel (10,20) = (40, 120, 80),
+matching R=(3*10+10)%256=40, G=(5*20+20)%256=120, B=(10+2*20+30)%256=80.

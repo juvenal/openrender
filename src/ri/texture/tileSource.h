@@ -87,4 +87,23 @@ class CTileSource {
 // tests/unit/texture_tile/test_tile_source_tiff_info.cpp).
 CTileSource *createTiffTileSource(const char *filename, short directory);
 
+// Decodes filename via CImageInput, builds the full in-memory mip
+// pyramid (resizing to a power of two first if needed), and returns one
+// CTileSource instance for level "level" of that pyramid. Returns
+// nullptr if filename cannot be decoded by any supported CImageInput
+// backend, on any decode failure, or if "level" is out of range. Spec
+// 020 (020-runtime-tile-paging). Ownership of the returned CTileSource
+// transfers to the caller.
+//
+// Unlike createTiffTileSource() (cheap -- just stores a filename+
+// directory, no I/O until fetchTile()), this factory does real decode
+// work on every call: it is meant for the one legitimate outside use
+// this spec has (direct unit testing of info()/fetchTile(), mirroring
+// createTiffTileSource()'s own rationale), not for constructing every
+// level of a real texture load -- CRenderer::textureLoad()'s own
+// fallback branch decodes once and constructs all levels together via a
+// file-local helper in texture.cpp, per
+// contracts/synthesized-tile-source.md.
+CTileSource *createSynthesizedTileSource(const char *filename, int level);
+
 #endif

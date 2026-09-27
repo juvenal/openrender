@@ -1,0 +1,21 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured directly from a raw Radiance HDR (RGBE) source, spec
+# 020 (020-runtime-tile-paging), T003 -- no otexmake bake step at all.
+# Validates that CRenderer::textureLoad()'s new fallback decodes
+# large.hdr via CImageInput and serves it through
+# CSynthesizedTileSource. RGBE is always exactly 3-channel RGB (unlike
+# spec 018's own baked-RGBE scene, this unbaked-source path never goes
+# through otexmake's appendLayer() bake-time write path, so the
+# PHOTOMETRIC gap that scene's own header notes never applies here).
+version 3.03
+Hider "raytrace"
+Display "unbaked-rgbe-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["large.hdr"]
+  Sphere 1 -1 1 360
+WorldEnd

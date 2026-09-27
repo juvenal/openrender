@@ -100,7 +100,18 @@ set(VISUAL_ENV
     # the .rib that uses them. Added for spec 015's repelling-ground-plane
     # scenes, which read examples/rib/tests/blobby-ground.z; it only
     # extends a search path, so no existing scene changes behaviour.
-    "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests"
+    # tests/unit/image_input/fixtures is also searched -- spec 020's
+    # unbaked-source parity scenes reference spec 018's fixtures
+    # (large_rgb8.png/large_rgb.exr/large.hdr) directly, with no bake
+    # step and thus no copy under examples/rib/tests; a fresh
+    # /speckit.analyze pass (spec 020, findings F1/F2) found this
+    # directory was never searched by any suite before, which would have
+    # made every one of those scenes fail on a search-path miss, not a
+    # real feature regression. tests/unit/texture_tile/fixtures is
+    # searched too -- T011's unbaked-nonpot parity test references
+    # nonpot_rgb.png (T002b), which lives there, not under
+    # tests/unit/image_input/fixtures.
+    "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests:${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures:${CMAKE_SOURCE_DIR}/tests/unit/texture_tile/fixtures"
 )
 
 # Same as VISUAL_ENV, plus Option B's unified per-bucket sample table (spec
@@ -2668,6 +2679,53 @@ add_parity_test(texture-rgbe
     texture-rgbe-reyes.tif
     examples/rib/tests/parity/texture-rgbe-raytrace.rib
     texture-rgbe-raytrace.tif  20)
+
+# --- spec 020 (runtime bake-on-load for non-TIFF sources): textured ---
+# --- sphere referencing a raw PNG source DIRECTLY -- no otexmake bake ---
+# --- step, no .tex intermediate at all (T011, US1). Validates ---
+# --- CRenderer::textureLoad()'s new fallback (reached only on ---
+# --- TIFFOpen() failure) end to end: CImageInput decode -> ---
+# --- CSynthesizedTileSource -> render, identically across camera ---
+# --- hiders. Manually verified (T010b) pixel-identical (MaxBlockAvgDiff
+# --- 0.00) against the equivalent baked-texture render before being
+# --- registered here.
+add_parity_test(unbaked-png
+    examples/rib/tests/parity/unbaked-png-reyes.rib
+    unbaked-png-reyes.tif
+    examples/rib/tests/parity/unbaked-png-raytrace.rib
+    unbaked-png-raytrace.tif  20)
+
+# --- spec 020: same as above, but the source is deliberately ---
+# --- non-power-of-two (500x300) -- exercises FR-012's resize path ---
+# --- (adjustSize<T>/filterScaleImage<T>, relocated to texmake.h by ---
+# --- T006) end to end, closing analysis finding C1. Manually verified
+# --- (T010b) pixel-identical against the equivalent baked render.
+add_parity_test(unbaked-nonpot
+    examples/rib/tests/parity/unbaked-nonpot-reyes.rib
+    unbaked-nonpot-reyes.tif
+    examples/rib/tests/parity/unbaked-nonpot-raytrace.rib
+    unbaked-nonpot-raytrace.tif  20)
+
+# --- spec 020: same as unbaked-png above, but an OpenEXR RGB float ---
+# --- source (T011, US1) -- HAVE_OPENEXR-gated, same as texture-exr ---
+# --- above. Manually verified (T010b) pixel-identical against the
+# --- equivalent baked render.
+if(HAVE_OPENEXR)
+    add_parity_test(unbaked-exr
+        examples/rib/tests/parity/unbaked-exr-reyes.rib
+        unbaked-exr-reyes.tif
+        examples/rib/tests/parity/unbaked-exr-raytrace.rib
+        unbaked-exr-raytrace.tif  20)
+endif()
+
+# --- spec 020: same as unbaked-png above, but a Radiance HDR (RGBE) ---
+# --- source (T011, US1). Manually verified (T010b) pixel-identical
+# --- against the equivalent baked render.
+add_parity_test(unbaked-rgbe
+    examples/rib/tests/parity/unbaked-rgbe-reyes.rib
+    unbaked-rgbe-reyes.tif
+    examples/rib/tests/parity/unbaked-rgbe-raytrace.rib
+    unbaked-rgbe-raytrace.tif  20)
 
 # --- spec 019 (runtime tile-fetch abstraction): sphere/plane lit by a ---
 # --- shadowspot light source through a baked shadow map (T008). No ---

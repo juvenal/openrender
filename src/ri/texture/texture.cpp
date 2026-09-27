@@ -27,15 +27,19 @@
 #include "texture.h"
 #include "common/portable_io.h"
 #include "error.h"
+#include "imageInput.h"
 #include "memory.h"
 #include "renderer.h"
 #include "ri_config.h"
 #include "shading.h"
 #include "stats.h"
+#include "texmake.h"
 #include "tiff.h"
 #include "tileSource.h"
 
+#include <algorithm>
 #include <math.h>
+#include <memory>
 #include <stddef.h> // Ensure NULL is defined before libtiff
 #include <string.h>
 #include <tiffio.h>
@@ -479,6 +483,347 @@ class CTiffTileSource : public CTileSource {
 
 CTileSource *createTiffTileSource(const char *filename, short directory) {
     return new CTiffTileSource(filename, directory);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSynthesizedPyramid
+// Description			:	The full, decoded-once, immutable in-memory mip
+//							pyramid built from an unbaked (non-TIFF)
+//							texture source (spec 020,
+//							020-runtime-tile-paging). One entry per level,
+//							index 0 = full (post-resize) resolution.
+//							Conceptually the in-memory counterpart to what
+//							a baked TIFF's own directory structure already
+//							provides -- see data-model.md.
+// Comments				:	Shared (via std::shared_ptr) across every
+//							per-level CSynthesizedTileSource view
+//							constructed from it (research.md SS1). Built
+//							exactly once, single-threaded, then never
+//							mutated -- safe for concurrent reads from
+//							multiple CSynthesizedTileSource instances with
+//							no locking of its own.
+class CSynthesizedPyramid {
+    public:
+        struct Level {
+            int width = 0;
+            int height = 0;
+            std::vector<unsigned char> data; // tightly-packed, row-major
+        };
+
+        std::vector<Level> levels;
+        int numChannels = 0;
+        int bitsPerSample = 0; // 8, 16, or 32
+        bool isFloatFormat = false;
+
+        // The ratio-preserving target width/height adjustSize<T> computed
+        // BEFORE padding level 0 up to a power of two (its own
+        // "validWidth"/"validHeight" out-parameters) -- the in-memory
+        // counterpart to TIFFTAG_PIXAR_IMAGEFULLWIDTH/LENGTH, which
+        // texLoad()/readMadeTexture() read in preference to the padded
+        // TIFFTAG_IMAGEWIDTH/LENGTH "so we can rescale when otexmake
+        // makes a texture power of 2 but retains aspect ratio" (that
+        // existing comment, texture.cpp:2569-2570). For an
+        // already-power-of-two source these equal levels[0].width/height.
+        int validWidth = 0;
+        int validHeight = 0;
+};
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	reduceSynthesizedPyramidLevel
+// Description			:	Reduces one pyramid level into the next,
+//							in-place over the arena-allocated buffer
+//							"data" (which is sized for the base level and
+//							therefore always big enough for every smaller
+//							level), replicating appendPyramid<T>()'s exact
+//							2x2-block-average math (texmake.cpp:200-273)
+//							without writing to a TIFF file.
+// Return Value			:	-
+// Comments				:	Must be called with CRenderer::synthesizeMutex
+//							held and inside the same memBegin/memEnd
+//							bracket as the caller's arena allocations
+//							(research.md SS4a) -- "fnextLevel" is itself
+//							arena-allocated.
+template <class T>
+static void reduceSynthesizedPyramidLevel(T *data, int currentWidth, int numSamples, int nextWidth, int nextHeight, float *fnextLevel) {
+    for (int y = 0, yo = 0; y < nextHeight; y++, yo += 2) {
+        T *src = &data[yo * currentWidth * numSamples];
+        float *dest = &fnextLevel[y * nextWidth * numSamples];
+
+        for (int x = 0; x < nextWidth; x++) {
+            for (int n = 0; n < numSamples; n++) {
+                dest[n] = src[n];
+                dest[n] += src[numSamples + n];
+            }
+            dest += numSamples;
+            src += 2 * numSamples;
+        }
+
+        src = &data[(yo + 1) * currentWidth * numSamples];
+        dest = &fnextLevel[y * nextWidth * numSamples];
+
+        for (int x = 0; x < nextWidth; x++) {
+            for (int n = 0; n < numSamples; n++) {
+                dest[n] += src[n];
+                dest[n] += src[numSamples + n];
+            }
+            dest += numSamples;
+            src += 2 * numSamples;
+        }
+
+        dest = &fnextLevel[y * nextWidth * numSamples];
+        for (int x = 0; x < nextWidth * numSamples; x++) {
+            *dest++ *= 1 / (float)4;
+        }
+    }
+
+    for (int s = 0; s < nextWidth * nextHeight * numSamples; s++) {
+        data[s] = (T)fnextLevel[s];
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	buildSynthesizedPyramidTyped
+// Description			:	Resizes a decoded source up to a power of two
+//							if needed (reusing the relocated
+//							adjustSize<T>/filterScaleImage<T>, T006), then
+//							builds every mip level by repeated 2x2-block-
+//							average reduction, copying each level's result
+//							out of the shared arena into the pyramid's own
+//							heap-owned buffers.
+// Return Value			:	-
+// Comments				:	Must be called with CRenderer::synthesizeMutex
+//							held and inside the caller's memBegin/memEnd
+//							bracket (research.md SS4a) -- "decodedData" is
+//							itself arena-allocated by the caller.
+template <class T>
+static void buildSynthesizedPyramidTyped(const CImageInfo &info, void *decodedData, CSynthesizedPyramid *pyramid) {
+    int width = info.width;
+    int height = info.height;
+    int numSamples = info.numChannels;
+    int bitspersample = info.bitsPerSample;
+    T *data = (T *)decodedData;
+    int validWidth, validHeight;
+
+    // Non-power-of-two resize, matching otexmake's/makeTexture()'s own
+    // actual default: "up" resize mode, periodic/periodic wrap,
+    // RiCatmullRomFilter at width/height 3.0 (research.md SS3).
+    // "up": otexmake's/makeTexture()'s own actual default resize mode
+    // (resizeUpMode = "up" in texmake.cpp, not reachable here since it
+    // wasn't part of T006's relocation -- see research.md SS3's
+    // correction). Any string that isn't "down"/"round"/"none" produces
+    // the same round-up-to-power-of-two behavior in adjustSize<T>.
+    adjustSize<T>(&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, 3.0f, 3.0f, RiCatmullRomFilter, RI_PERIODIC, RI_PERIODIC, "up");
+
+    pyramid->validWidth = validWidth;
+    pyramid->validHeight = validHeight;
+
+    int numLevels = tiffNumLevels(width, height);
+    pyramid->levels.resize(numLevels);
+
+    size_t level0Bytes = (size_t)width * height * numSamples * sizeof(T);
+    pyramid->levels[0].width = width;
+    pyramid->levels[0].height = height;
+    pyramid->levels[0].data.resize(level0Bytes);
+    memcpy(pyramid->levels[0].data.data(), data, level0Bytes);
+
+    if (numLevels > 1) {
+        float *fnextLevel = (float *)ralloc((size_t)width * height * numSamples * sizeof(float), CRenderer::globalMemory);
+        int currentWidth = width;
+        int currentHeight = height;
+
+        for (int lvl = 1; lvl < numLevels; lvl++) {
+            int nextWidth = currentWidth >> 1;
+            int nextHeight = currentHeight >> 1;
+
+            reduceSynthesizedPyramidLevel<T>(data, currentWidth, numSamples, nextWidth, nextHeight, fnextLevel);
+
+            currentWidth = nextWidth;
+            currentHeight = nextHeight;
+
+            size_t levelBytes = (size_t)currentWidth * currentHeight * numSamples * sizeof(T);
+            pyramid->levels[lvl].width = currentWidth;
+            pyramid->levels[lvl].height = currentHeight;
+            pyramid->levels[lvl].data.resize(levelBytes);
+            memcpy(pyramid->levels[lvl].data.data(), data, levelBytes);
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	buildSynthesizedPyramid
+// Description			:	Decodes filename via CImageInput and builds the
+//							full in-memory mip pyramid described above.
+//							Returns nullptr if filename cannot be decoded
+//							by any supported CImageInput backend, or on
+//							any decode failure.
+// Return Value			:	std::shared_ptr<CSynthesizedPyramid>, or an
+//							empty shared_ptr on failure
+// Comments				:	Serializes its entire decode+resize+reduction
+//							body behind CRenderer::synthesizeMutex, because
+//							adjustSize<T>/filterScaleImage<T>/filterImage<T>
+//							(and this function's own reduction step) share
+//							CRenderer::globalMemory, an unsynchronized bump
+//							allocator, and this function is reachable from
+//							multiple shading threads concurrently via
+//							CRenderer::textureLoad() (research.md SS4a).
+//							Not on the hot per-tile fetchTile() path -- this
+//							runs once per distinct unbaked source per
+//							render.
+static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *filename) {
+    std::unique_ptr<CImageInput> input(createImageInput(filename));
+    if (input.get() == NULL) {
+        return std::shared_ptr<CSynthesizedPyramid>();
+    }
+
+    CImageInfo info;
+    if (!input->open(filename, info)) {
+        return std::shared_ptr<CSynthesizedPyramid>();
+    }
+
+    std::shared_ptr<CSynthesizedPyramid> pyramid = std::make_shared<CSynthesizedPyramid>();
+    pyramid->numChannels = info.numChannels;
+    pyramid->bitsPerSample = info.bitsPerSample;
+    pyramid->isFloatFormat = info.isFloatFormat;
+
+    // readOk is declared outside the memBegin/memEnd bracket below on
+    // purpose: memBegin/memEnd are brace-matched macros (memory.h), so
+    // anything declared between them goes out of scope at memEnd -- it
+    // must be read only after that scope closes.
+    bool readOk;
+
+    osLock(CRenderer::synthesizeMutex);
+    memBegin(CRenderer::globalMemory);
+
+    int bytesPerSample = (info.bitsPerSample == 8) ? (int)sizeof(unsigned char) : (info.bitsPerSample == 16) ? (int)sizeof(unsigned short)
+                                                                                                              : (int)sizeof(float);
+    size_t decodeSize = (size_t)info.width * info.height * info.numChannels * bytesPerSample;
+    void *decodedData = ralloc(decodeSize, CRenderer::globalMemory);
+
+    readOk = input->readImage(decodedData);
+
+    if (readOk) {
+        if (info.bitsPerSample == 8) {
+            buildSynthesizedPyramidTyped<unsigned char>(info, decodedData, pyramid.get());
+        }
+        else if (info.bitsPerSample == 16) {
+            buildSynthesizedPyramidTyped<unsigned short>(info, decodedData, pyramid.get());
+        }
+        else {
+            assert(info.bitsPerSample == 32);
+            buildSynthesizedPyramidTyped<float>(info, decodedData, pyramid.get());
+        }
+    }
+
+    memEnd(CRenderer::globalMemory);
+    osUnlock(CRenderer::synthesizeMutex);
+
+    input->close();
+
+    if (!readOk) {
+        return std::shared_ptr<CSynthesizedPyramid>();
+    }
+
+    return pyramid;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSynthesizedTileSource
+// Description			:	CTileSource backend for a runtime-synthesized,
+//							in-memory mip pyramid built from a non-TIFF
+//							(unbaked) texture source (spec 020,
+//							020-runtime-tile-paging). One instance per mip
+//							level, each holding a
+//							std::shared_ptr<CSynthesizedPyramid> into the
+//							same shared structure (research.md SS1) --
+//							see contracts/synthesized-tile-source.md.
+// Comments				:	Safe for concurrent fetchTile() calls across
+//							different instances: the pyramid it reads from
+//							is built once, single-threaded (behind
+//							buildSynthesizedPyramid()'s
+//							CRenderer::synthesizeMutex), before any
+//							concurrent fetchTile() call can happen, and
+//							never mutated afterward. Uses
+//							DEFAULT_TILE_SIZE-square tiles, matching
+//							otexmake's own default (research.md SS2);
+//							partial trailing tiles copy only the valid,
+//							in-bounds portion, same as libtiff's own
+//							tiled-image API already does for
+//							CTiffTileSource's smallest mip levels -- no new
+//							zero-fill/padding logic.
+class CSynthesizedTileSource : public CTileSource {
+    public:
+        CSynthesizedTileSource(std::shared_ptr<CSynthesizedPyramid> pyramid, int level) : pyramid(pyramid), level(level) {}
+
+        virtual ~CSynthesizedTileSource() {}
+
+        void info(CTileLevelInfo &info) {
+            const CSynthesizedPyramid::Level &lvl = pyramid->levels[level];
+
+            info.width = lvl.width;
+            info.height = lvl.height;
+            // DEFAULT_TILE_SIZE unconditionally, matching the baked-TIFF
+            // convention (appendLayer(), texmake.cpp): every level uses
+            // the SAME fixed tile size regardless of that level's own
+            // width/height, so a level smaller than DEFAULT_TILE_SIZE is
+            // exactly one (partially-valid) tile -- NOT clamped down to
+            // the level's own dimensions. CTiledTexture<T>'s
+            // tileWidthShift/tileHeightShift computation (texture.cpp,
+            // readMadeTexture()) assumes a fixed power-of-two tile size
+            // across all levels of a texture; a per-level-shrunk value
+            // would not generally be a power of two and would break that
+            // computation.
+            info.tileWidth = DEFAULT_TILE_SIZE;
+            info.tileHeight = DEFAULT_TILE_SIZE;
+            info.numChannels = pyramid->numChannels;
+            info.bitsPerSample = pyramid->bitsPerSample;
+            info.isFloatFormat = pyramid->isFloatFormat;
+        }
+
+        bool fetchTile(int tileX, int tileY, void *dest) {
+            const CSynthesizedPyramid::Level &lvl = pyramid->levels[level];
+
+            const int tileWidth = DEFAULT_TILE_SIZE;
+            const int tileHeight = DEFAULT_TILE_SIZE;
+
+            const int bytesPerSample = (pyramid->bitsPerSample == 8) ? (int)sizeof(unsigned char) : (pyramid->bitsPerSample == 16) ? (int)sizeof(unsigned short)
+                                                                                                                                     : (int)sizeof(float);
+            const int pixelSize = pyramid->numChannels * bytesPerSample;
+
+            const int x0 = tileX * tileWidth;
+            const int y0 = tileY * tileHeight;
+
+            if ((x0 < 0) || (y0 < 0) || (x0 >= lvl.width) || (y0 >= lvl.height)) {
+                // Contract rule 5: fail closed only for a request entirely
+                // outside the level's valid bounds -- a caller bug, since
+                // every real caller already clamps coordinates.
+                return false;
+            }
+
+            const int validWidth = std::min(tileWidth, lvl.width - x0);
+            const int validHeight = std::min(tileHeight, lvl.height - y0);
+
+            const unsigned char *src = lvl.data.data();
+            unsigned char *dst = (unsigned char *)dest;
+
+            for (int row = 0; row < validHeight; row++) {
+                memcpy(dst + (size_t)row * tileWidth * pixelSize, src + ((size_t)(y0 + row) * lvl.width + x0) * pixelSize, (size_t)validWidth * pixelSize);
+            }
+
+            return true;
+        }
+
+    private:
+        std::shared_ptr<CSynthesizedPyramid> pyramid;
+        int level;
+};
+
+CTileSource *createSynthesizedTileSource(const char *filename, int level) {
+    std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(filename);
+    if (!pyramid || (level < 0) || (level >= (int)pyramid->levels.size())) {
+        return NULL;
+    }
+
+    return new CSynthesizedTileSource(pyramid, level);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2152,6 +2497,66 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	readSynthesizedTexture
+// Description			:	Builds a CMadeTexture from an already-built
+//							CSynthesizedPyramid, one CTiledTexture<T> layer
+//							per pyramid level -- the in-memory counterpart
+//							to readMadeTexture() above, sourcing per-level
+//							geometry from the pyramid instead of TIFF tags
+//							(spec 020, 020-runtime-tile-paging, T009).
+// Return Value			:	The texture
+// Comments				:	Periodic wrap mode both axes unconditionally
+//							(FR-013's resolved default) -- there is no RIB
+//							parameter list to read a wrap mode override
+//							from at texture-lookup time, unlike a baked
+//							texture's TIFFTAG_PIXAR_WRAPMODES tag.
+template <class T>
+static CTexture *readSynthesizedTexture(const char *aname, std::shared_ptr<CSynthesizedPyramid> pyramid) {
+    double M;
+
+    if (sizeof(T) == sizeof(float)) {
+        M = 1;
+    }
+    else if (sizeof(T) == sizeof(unsigned short)) {
+        // No PHOTOMETRIC_RGB half-range (32k, not 65k) heuristic here --
+        // that heuristic (see readMadeTexture() above / appendLayer()'s
+        // own comment, texmake.cpp) is for pixar-txmake-style legacy
+        // files specifically; a synthesized pyramid's 16-bit samples use
+        // the full 0-65535 range, matching what this codebase's own
+        // appendLayer() writes for a fresh bake.
+        M = 1.0 / 65535.0;
+    }
+    else {
+        M = 1.0 / 255.0;
+    }
+
+    int ii, jj;
+    for (ii = 1, jj = 0; ii != DEFAULT_TILE_SIZE; ii = ii << 1, jj++)
+        ;
+    const int tileSizeShift = jj;
+
+    CMadeTexture *cTexture = new CMadeTexture(aname);
+
+    const int numLevels = (int)pyramid->levels.size();
+    cTexture->numLayers = (short)numLevels;
+    cTexture->layers = new CTextureLayer *[numLevels];
+
+    int cwidth = pyramid->validWidth;
+    int cheight = pyramid->validHeight;
+
+    for (int i = 0; i < numLevels; i++) {
+        const CSynthesizedPyramid::Level &lvl = pyramid->levels[i];
+
+        cTexture->layers[i] = new CTiledTexture<T>(new CSynthesizedTileSource(pyramid, i), cwidth, cheight, (short)pyramid->numChannels, lvl.width, lvl.height, TEXTURE_PERIODIC, TEXTURE_PERIODIC, DEFAULT_TILE_SIZE, tileSizeShift, DEFAULT_TILE_SIZE, tileSizeShift, M);
+
+        cwidth = cwidth >> 1;
+        cheight = cheight >> 1;
+    }
+
+    return cTexture;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	readTexture
 // Description			:	read a regular texture
 // Return Value			:	The texture
@@ -2274,6 +2679,45 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	looksLikeTiff
+// Description			:	Cheaply checks fn's first 4 bytes against
+//							TIFF's own magic number (both byte orders),
+//							without ever calling TIFFOpen() (spec 020,
+//							020-runtime-tile-paging, T009 scope
+//							correction -- see that task's own note and
+//							research.md SS4b for why this exists).
+// Return Value			:	true if fn's magic number matches TIFF (or
+//							the check itself couldn't be performed, in
+//							which case the caller should still attempt
+//							TIFFOpen() rather than silently divert a file
+//							this check could not read); false only for a
+//							successfully-read header that is definitively
+//							NOT a TIFF.
+// Comments				:	A valid-magic-but-otherwise-corrupt TIFF
+//							still reaches TIFFOpen() and still reports a
+//							real error -- this only short-circuits the
+//							"not a TIFF at all" case.
+static bool looksLikeTiff(const char *fn) {
+    FILE *probe = fopen(fn, "rb");
+    if (probe == NULL) {
+        return true; // Should-never-happen (locateFile already found fn) -- default to attempting TIFFOpen.
+    }
+
+    unsigned char magic[4];
+    size_t numRead = fread(magic, 1, sizeof(magic), probe);
+    fclose(probe);
+
+    if (numRead != sizeof(magic)) {
+        return true; // Couldn't read a full header -- let TIFFOpen() decide.
+    }
+
+    const bool little = (magic[0] == 0x49) && (magic[1] == 0x49) && (magic[2] == 0x2A) && (magic[3] == 0x00);
+    const bool big = (magic[0] == 0x4D) && (magic[1] == 0x4D) && (magic[2] == 0x00) && (magic[3] == 0x2A);
+
+    return little || big;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	textureLoad
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
@@ -2289,8 +2733,28 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
     TIFFSetErrorHandler(tiffErrorHandler);
     TIFFSetWarningHandler(tiffErrorHandler);
 
-    // Open the texture
-    TIFF *in = TIFFOpen(fn, "r");
+    // Open the texture -- but only attempt TIFFOpen() at all when fn's
+    // own magic number says it might actually be one. TIFFSetErrorHandler
+    // above is process-global (not per-call, not thread-local) and
+    // textureLoad() is reachable from multiple shading threads
+    // concurrently (research.md SS4a); a definitely-not-TIFF file (e.g.
+    // any PNG/EXR/RGBE source this spec's own fallback below is meant to
+    // serve) would otherwise make libtiff invoke tiffErrorHandler() ->
+    // error(CODE_SYSTEM, "Not a TIFF...") on every single load, which
+    // sets the global RiLastError and makes orender's own exit code
+    // nonzero (orender.cpp:919) even though the render itself succeeds
+    // end to end via the fallback -- and test_hider_parity.cpp (the
+    // harness T011's new parity tests run under) treats any nonzero
+    // orender exit code as an outright failure before it ever compares
+    // pixels (test_hider_parity.cpp:339-343), which would make every
+    // new unbaked-source scene fail regardless of correctness. Found via
+    // an actual smoke render during T009/T010, not assumed. A
+    // save-current-handler/suppress/restore alternative around just this
+    // probe was considered and rejected: unsafe under the same
+    // concurrency, since it would suppress a DIFFERENT thread's genuine
+    // TIFFOpen error during the suppression window. This magic-number
+    // check touches no shared state, so it introduces no new race.
+    TIFF *in = looksLikeTiff(fn) ? TIFFOpen(fn, "r") : NULL;
     CTexture *cTexture = NULL;
     if (in != NULL) {
         char *textureFormat = NULL;
@@ -2310,6 +2774,32 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
         }
 
         TIFFClose(in);
+    }
+    else {
+        // Not a TIFF at all -- try decoding it directly via CImageInput
+        // and serving it through the in-memory synthesized-pyramid
+        // backend (spec 020, 020-runtime-tile-paging). Reached only when
+        // TIFFOpen() has already failed, so the existing baked-TIFF fast
+        // path above is completely unaffected (FR-002). Periodic wrap
+        // mode both axes (FR-013's resolved default) -- there is no RIB
+        // parameter list to read a wrap-mode override from here, unlike
+        // a baked texture's TIFFTAG_PIXAR_WRAPMODES tag.
+        std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn);
+        if (pyramid) {
+            if (pyramid->bitsPerSample == 8) {
+                cTexture = readSynthesizedTexture<unsigned char>(name, pyramid);
+            }
+            else if (pyramid->bitsPerSample == 16) {
+                cTexture = readSynthesizedTexture<unsigned short>(name, pyramid);
+            }
+            else {
+                cTexture = readSynthesizedTexture<float>(name, pyramid);
+            }
+        }
+        // On failure (unrecognized/unsupported format, or a decode
+        // failure), cTexture stays NULL -- CRenderer::getTexture()'s
+        // existing CDummyTexture substitution + CODE_NOFILE error
+        // (rendererFiles.cpp:373) handles it exactly as it always has.
     }
 
     return cTexture;

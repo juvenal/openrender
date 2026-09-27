@@ -74,13 +74,32 @@ not inventing new semantics this spec would need to separately justify.
 fallback branch), after a successful `CImageInput::open()`+`readImage()`:
 (1) if the decoded image's width/height isn't a power of two, resize it
 up to the nearest power of two using the *relocated* (see §7)
-`adjustSize<T>()`/`filterScaleImage<T>()` — the exact same ratio-preserving
-"round" resize mode and `RiCatmullRomFilter` default `otexmake`'s own CLI
-uses (`otexmake.cpp:79`) — before building any mip level; (2) build the
-full mip pyramid from that (now power-of-two) base level using the same
-2x2-block-average reduction `appendPyramid<T>()` already performs
-(`texmake.cpp:200-273`), producing `tiffNumLevels(width, height)` levels
-total (`tiff.h:43`).
+`adjustSize<T>()`/`filterScaleImage<T>()`, passing the exact same
+ratio-preserving `"up"` resize mode (`resizeUpMode`), `"periodic"`/
+`"periodic"` wrap modes, and `RiCatmullRomFilter`/3.0/3.0 filter default
+`otexmake`'s own CLI and `makeTexture()`'s own no-params-given default both
+use (`otexmake.cpp:71-79`; `texmake.cpp`'s `getResizeMode` macro,
+`resizeMode = resizeUpMode` when no `"resize"` RIB parameter is given) —
+before building any mip level; (2) build the full mip pyramid from that
+(now power-of-two) base level using the same 2x2-block-average reduction
+`appendPyramid<T>()` already performs (`texmake.cpp:200-273`), producing
+`tiffNumLevels(width, height)` levels total (`tiff.h:43`).
+
+**Correction (found during T007 implementation, re-verified directly
+against `otexmake.cpp`/`texmake.cpp` rather than trusting an earlier
+grounding pass)**: an earlier version of this section, and of the
+technical context handed to `/speckit.plan`, described the default resize
+mode as `"round"` (round to the *nearest* power of two, up or down). That
+is wrong: `otexmake.cpp:71` sets `resizeMode = "up"` as its own CLI
+default, and `texmake.cpp`'s `getResizeMode` macro defaults to
+`resizeUpMode = "up"` whenever `makeTexture()` is called with no explicit
+`"resize"` RIB parameter (`rendererContext.cpp`'s `RiMakeTextureV`
+passes RIB parameters through unmodified, so this same default applies via
+RIB too). `"round"` is a real, selectable `adjustSize<T>` mode (rounds to
+whichever power of two is numerically closer), but it is not the default
+either CLI otexmake or `makeTexture()`'s callers actually use. This
+spec's synthesis call MUST pass `"up"` to match the actual default
+behavior a bake-then-reference workflow would produce, not `"round"`.
 
 **Rationale**: FR-012 requires this spec to handle non-power-of-two
 sources "using the same resizing behavior the project's existing bake
@@ -88,7 +107,11 @@ step already applies" — reusing the identical functions, not
 re-deriving equivalent logic, is both the literal requirement and the
 only way to guarantee the *same* visual result a bake-then-reference
 workflow would have produced (User Story 1 Acceptance Scenario 2's
-"visually equivalent" bar).
+"visually equivalent" bar). Getting the specific default mode string
+right matters exactly because of this bar — "up" and "round" produce
+different pixel dimensions (and thus different resampled pixels) for the
+same non-power-of-two source whenever the nearest power of two happens to
+be the lower one.
 
 ## 4. `adjustSize<T>`/`filterScaleImage<T>` reachability from `texture.cpp`
 
@@ -116,6 +139,235 @@ moving parts than simply relocating the definitions, for no benefit
 here: neither function is large enough that compile-time cost from
 header-visibility is a real concern, unlike, say, a heavily-instantiated
 generic container type).
+
+## 4a. Thread-safety of reusing `adjustSize<T>`/`filterScaleImage<T>`/`filterImage<T>` from `textureLoad()`'s new fallback
+
+**Finding, made during T007 implementation (not anticipated at plan time)**:
+these three template functions (relocated to `texmake.h` per §4 above)
+internally allocate their working/output buffers via
+`ralloc(size, CRenderer::globalMemory)` (`src/ri/core/memory.h`).
+`CRenderer::globalMemory` is a single, stack-based bump allocator with
+`memBegin`/`memEnd` checkpoint semantics — confirmed by direct inspection of
+`memory.h` in full: no lock, mutex, or atomic anywhere in `ralloc()`,
+`memBegin`, or `memEnd`. Until this spec, every caller of these functions ran
+at bake time (`otexmake`'s own process, or `RiMakeTextureV`'s implementation
+in `rendererContext.cpp`), which is single-threaded with respect to this
+arena. This spec's new fallback runs inside `CRenderer::textureLoad()`,
+called from `CRenderer::getTexture()`, called from the `texture()`/
+`environment()` RSL builtin implementation (confirmed at
+`src/libshader/shading/rslBuiltins.cpp:181`, `svc->getTexture(name)`) — i.e.
+at shading time, which this project runs multi-threaded. Two shading
+threads referencing the same not-yet-loaded unbaked source concurrently
+would both enter this spec's new fallback and could both call into
+`adjustSize<T>` concurrently, corrupting the shared bump-pointer arena. This
+is a genuinely new hazard this spec's code would introduce — distinct from
+the pre-existing, separate `frameFiles`/`CTrie` concurrent-first-load gap
+found in the same investigation (filed as GitHub #20, out of scope for this
+spec, same boundary as #19).
+
+**Decision**: Reuse `adjustSize<T>`/`filterScaleImage<T>`/`filterImage<T>`
+verbatim (per §3/§4's own reachability work — do not re-derive an
+equivalent resize/filter implementation), but serialize the entire unbaked-
+source synthesis body inside `textureLoad()`'s new fallback (decode via
+`CImageInput`, any `adjustSize<T>` resize call, and the box-filter pyramid
+reduction) behind a new mutex. Rather than a raw `std::mutex`, this uses
+the project's own existing synchronization idiom: a new `TMutex
+CRenderer::synthesizeMutex`, declared in `renderer.h` alongside its
+siblings (`textureMutex`, `shaderMutex`, `tesselateMutex`, etc. —
+`src/ri/render/renderer.h:172-182`) and created/destroyed in
+`CRenderer::initMutexes()`/`shutdownMutexes()`
+(`src/ri/render/rendererMutexes.cpp`), exactly like every other
+project-wide serialization mutex; `texture.cpp` uses it via the same
+`osLock`/`osUnlock` calls already used throughout this file (e.g.
+`textureMemFlush()`'s existing `osLock(CRenderer::textureMutex)` at
+`texture.cpp:140`). `CRenderer::textureMutex` itself was considered and
+rejected for reuse (see Alternatives) in favor of a dedicated mutex. The
+arena interaction is additionally bracketed with `memBegin(CRenderer::
+globalMemory)`/`memEnd(CRenderer::globalMemory)`, held for the same
+duration as the mutex; per `memory.h`'s own comment, the bracketed scope
+must not be exited early (no early `return` between begin/end), so results
+needed after `memEnd` are copied out of the arena into the pyramid's own
+heap-owned (`std::vector`-backed) level buffers *before* calling `memEnd`,
+never held as raw arena pointers past that point. The pre-resize decode
+buffer is itself arena-allocated too (inside the same bracket), so there is
+exactly one ownership story for all transient buffers (arena) versus the
+final per-level pyramid data (heap, owned by `CSynthesizedPyramid`).
+
+**Rationale**: This is the narrowest fix that doesn't compromise
+correctness. Texture *loading* (as opposed to per-tile *fetching*, which
+this spec's `CSynthesizedTileSource::fetchTile()` still serves lock-free
+from the already-built, immutable pyramid) is a one-time event per distinct
+unbaked source per render, not a hot path, so serializing it has no
+meaningful performance cost — matching this spec's own stated position
+(spec.md Assumptions) that there is no performance target on the in-memory
+synthesis path itself. The alternative of re-deriving a heap-only resize
+implementation was rejected because it would silently diverge from FR-012's
+actual requirement ("using the same resizing behavior the project's
+existing bake step already applies") and would invalidate T029c's premise
+(that `texmake.h`'s relocated functions are behaviorally unchanged and
+still the single source of truth for this resize behavior).
+
+**Alternatives considered**:
+- Re-derive a standalone, heap-only, thread-safe resize/filter
+  implementation instead of reusing `adjustSize`/`filterScaleImage`/
+  `filterImage` (rejected — see Rationale: FR-012 divergence risk, and a
+  second, untested numeric implementation of the same behavior).
+- A narrower lock scoped only to the `ralloc`/arena calls themselves, not
+  the whole synthesis body (rejected — leaves the door open for the same
+  hazard around any other, not-yet-identified shared-arena use inside these
+  functions' call graph; locking the whole synthesis body is simpler to
+  reason about and costs nothing extra given synthesis is a one-time,
+  non-hot-path event).
+- Adding locking inside `CRenderer::getTexture()`/`frameFiles` itself to
+  prevent the double-synthesis case entirely (rejected — that is the
+  pre-existing, separately-filed GitHub #20 concern; this spec does not
+  modify `getTexture()` or `CTrie`, matching FR-002/FR-010's existing-path-
+  unmodified boundary. A duplicate synthesis under #20's race is wasted
+  work, not corruption, once this spec's own mutex is in place).
+- A raw `std::mutex` local to `texture.cpp` (rejected — this project has
+  its own cross-platform `TMutex`/`osCreateMutex`/`osLock`/`osUnlock`
+  abstraction, already used for every other project-wide serialization
+  mutex including several declared and used inside this very file; a
+  `std::mutex` would be a second, redundant concurrency primitive type for
+  no benefit, and would not follow the `CRenderer::initMutexes()`/
+  `shutdownMutexes()` lifecycle every sibling mutex already uses).
+- Reusing the existing `CRenderer::textureMutex` ("to serialize texture
+  fetches") instead of adding a new dedicated mutex (rejected — under this
+  project's build (`TEXTURE_PERBLOCK_LOCK` always defined per
+  `ri_config.h:55`), `textureMutex`'s actual current role is narrow:
+  serializing `textureMemFlush()`'s block-scan/eviction-selection logic
+  only (`texture.cpp:140`), not per-tile or per-load contention (that's
+  handled by each `CTextureBlock`'s own per-block `TMutex`). Holding it for
+  this spec's potentially-slower decode+resize+reduction work would give it
+  a second, unrelated meaning and could block unrelated texture-memory
+  eviction in another thread for the duration of an unbaked-source
+  synthesis. A dedicated mutex keeps each primitive's responsibility
+  legible, matching this codebase's existing one-mutex-per-documented-
+  purpose convention in `rendererMutexes.cpp`.)
+
+## 4b. Spurious "Not a TIFF" error / nonzero exit code on a successful synthesized-fallback render
+
+**Finding, made during T009 implementation via a manual smoke render (not
+anticipated at plan time)**: `CRenderer::textureLoad()`'s existing,
+unmodified `TIFFOpen(fn, "r")` probe call, when given a genuine PNG/EXR/
+RGBE source (this spec's own primary use case), makes libtiff invoke the
+already-registered `tiffErrorHandler()` (`TIFFSetErrorHandler(
+tiffErrorHandler)`, set unconditionally on every `textureLoad()` call) ->
+`error(CODE_SYSTEM, "Not a TIFF or MDI file, bad magic number ...")`. This
+sets the global `RiLastError` (`src/ri/parse/ri.cpp:371`), which
+`orender`'s own `main()` reads once at exit: `return (RiLastError !=
+RIE_NOERROR) ? -1 : 0;` (`orender.cpp:919`) -- so a render that succeeds
+completely via this spec's new fallback still exits nonzero.
+`test_hider_parity.cpp:339-343` (`runOrender()`) treats any nonzero
+`orender` exit code as an outright failure *before* it ever compares
+pixels -- and this is the exact harness T011's own 4 new parity tests run
+under (`add_parity_test`, `tests/visual/CMakeLists.txt:227-243`). Left
+unfixed, every one of T011's new scenes would fail permanently regardless
+of pixel correctness.
+
+**Why this is in-scope, not merely a pre-existing/adjacent concern (per
+the boundary GitHub #19/#20 established)**: the *root cause* chain
+(process-global libtiff error handler + the unsynchronized `RiLastError`
+global) is pre-existing and untouched by this spec. But before this spec,
+hitting this code path (`TIFFOpen()` failing) was *always* immediately
+followed by a second, intentional failure signal (`CODE_NOFILE` +
+`CDummyTexture` substitution) -- so the spurious message was harmless
+noise alongside a real, correctly-reported failure. This spec is what
+turns that scenario into a fully successful one for the first time,
+which is precisely what exposes the spurious message as a standalone,
+misleading false negative with a concrete, measured consequence for this
+spec's own required test coverage (T011). Fixing the test-blocking
+symptom is therefore in scope; fixing the general root cause is not.
+
+**Decision**: Add a small, file-local `looksLikeTiff(const char *fn)`
+check in `texture.cpp` that reads fn's first 4 bytes and compares them
+against TIFF's own magic number, both byte orders (`49 49 2A 00` /
+`4D 4D 00 2A`) -- `TIFFOpen()` is only attempted when the magic matches,
+or when the check itself could not be performed (file unreadable --
+should-never-happen, since `locateFile()` already found it; defaults to
+still attempting `TIFFOpen()` rather than silently diverting a file this
+check couldn't read). A valid-magic-but-corrupt TIFF still reaches
+`TIFFOpen()` and still reports a real, correct error -- only the
+"not a TIFF at all" case (this spec's own normal, successful path) is
+silenced.
+
+**Rationale**: This is the narrowest fix that does not touch any shared,
+concurrently-reached mutable state -- unlike the two alternatives below,
+both of which were seriously considered and rejected specifically because
+of the concurrency finding in §4a (the same `textureLoad()` call path is
+reachable by multiple shading threads simultaneously). A file's own
+leading bytes are read once, locally, with no interaction with libtiff's
+global handler registration or the global `RiLastError` at all, so this
+introduces no new race. For a genuine TIFF, this check is a cheap,
+side-effect-free pass-through -- `TIFFOpen()` still runs identically,
+preserving FR-002's "existing baked path unaltered" guarantee in the
+sense that matters (observable behavior for an actual TIFF is unchanged).
+
+**Alternatives considered**:
+- Temporarily save the current libtiff error handler, set it to a no-op/
+  NULL, perform the `TIFFOpen()` probe, then restore the saved handler
+  (rejected -- `TIFFSetErrorHandler`/`TIFFSetWarningHandler` are libtiff
+  *process-global* function pointers, not per-handle or thread-local.
+  `textureLoad()` runs on multiple shading threads concurrently
+  (research.md §4a); a different thread's own, genuinely-failing
+  `TIFFOpen()` call -- or any other libtiff error -- occurring during
+  this thread's suppression window would have its real error silently
+  dropped too. Unsafe under this codebase's actual concurrency model,
+  not merely theoretically imperfect).
+- Reset the global `RiLastError` back to `RIE_NOERROR` immediately after
+  a successful synthesized-fallback load, undoing the spurious probe's
+  side effect directly (rejected -- confirmed by direct inspection
+  (`src/ri/parse/ri.cpp:371`) that `RiLastError` is a bare global,
+  written unsynchronized from `error()`/`warning()`/`fatal()` from any
+  thread. A concurrently-running thread could have set it for an
+  unrelated, genuine problem at nearly the same moment; resetting it
+  here risks silently clobbering that thread's real signal).
+- Leave it unfixed and accept the nonzero exit code as a pre-existing,
+  out-of-scope concern, mirroring GitHub #19/#20's boundary (rejected --
+  unlike those two, this one has a concrete, measured, in-scope
+  consequence: it would make T011's own required regression coverage
+  permanently red regardless of correctness, which this spec cannot
+  accept without abandoning its own testing requirements).
+
+GitHub #21 filed for the underlying, broader architectural facts (the
+process-global libtiff handler and the unsynchronized `RiLastError`
+exit-status global) both rejected alternatives ran into -- fixing those
+generally remains out of scope for this spec.
+
+## 4c. Standalone-binary dependency on renderer-lifecycle globals (T012)
+
+**Finding, made while writing T012's direct unit test**: unlike
+`CTiffTileSource` (whose `info()`/`fetchTile()` only ever call plain
+`TIFFOpen`/`TIFFReadTile`, no renderer-global state at all), exercising
+`CSynthesizedTileSource`/`createSynthesizedTileSource()` from a bare
+standalone binary (no `RiBegin()`/render in progress) crashes twice, for
+two separate reasons: `adjustSize<T>`/`filterScaleImage<T>`/
+`filterImage<T>` (§4a) allocate from `CRenderer::globalMemory`, a bare
+global initialized to `NULL` (`rendererStatics.cpp:106`) until
+`CRenderer::beginRenderer()` sets it up; and `CImageInput::open()`'s own
+failure-reporting paths call `error()`, which dereferences the global
+`renderMan` singleton, likewise unset outside a renderer lifecycle.
+Confirmed via `lldb` backtraces for both (`buildSynthesizedPyramid()` on
+the first; `CPngImageInput::open()` -> `error()` on the second, after
+fixing the first in isolation first surfaced it).
+
+**Decision**: T012's test brackets its body in `RiBegin(RI_NULL)`/
+`RiEnd()` -- confirmed to be the project's own existing, minimal-context
+convention for exactly this problem, already used (and documented in
+their own header comments) by `test_image_input_png.cpp`/
+`test_image_input_tiff.cpp` for the identical reason (their own decode-
+failure paths call `error()` too). Not a new pattern; this spec's test
+simply needed the same treatment `CTiffTileSource`'s own test never
+required, since that backend has no renderer-global dependency to begin
+with.
+
+**Rationale**: `RiBegin(RI_NULL)`/`RiEnd()` is a standard RenderMan API
+call pair already exercised by this exact test category, far lighter than
+hand-initializing individual renderer globals (which was tried first --
+`memoryInit(CRenderer::globalMemory)` + `CRenderer::initMutexes()` --
+and only fixed the first crash, since it does not touch `renderMan`) and
+without inventing a second, narrower initialization convention alongside
+an existing, working one for the same problem.
 
 ## 5. Disk cache filename/key scheme
 
@@ -207,13 +459,17 @@ codebase splits closely-related settings this way; grouping matches
 
 **Decision**: The cache-write path calls `makeTexture(sourcePath,
 tempCachePath, texturePath /* existing TSearchpath* */, "periodic",
-"periodic", RiCatmullRomFilter, 1.0f, 1.0f, 0, nullptr, nullptr)` —
+"periodic", RiCatmullRomFilter, 3.0f, 3.0f, 0, nullptr, nullptr)` —
 `"periodic"` wrap modes matching spec.md's resolved wrap-mode default
-(FR-013), `RiCatmullRomFilter` at width/height 1.0 (matching
-`otexmake`'s own CLI default filter and its default "round" resize
-behavior, since `numParams=0` means no explicit resize-mode override is
-given, and `makeTexture()`'s own `getResizeMode()` call already applies
-its documented default in that case).
+(FR-013), `RiCatmullRomFilter` at width/height 3.0 (matching `otexmake`'s
+own actual CLI default filter size, `otexmake.cpp:74-75`, not 1.0 — a 1.0
+filter width/height would be a materially narrower, near-point-sampling
+filter and would not match what a real `otexmake` bake of the same source
+produces), with `numParams=0` so `makeTexture()`'s own `getResizeMode()`
+macro applies its documented default resize mode, `"up"` (`resizeUpMode`
+— **corrected**: an earlier version of this section said "round"; see §3's
+own correction for the verification against `otexmake.cpp`/`texmake.cpp`
+that found this).
 
 **Rationale**: Confirmed by direct inspection this function is already
 renderer-linked (used by `RiMakeTextureV`'s existing implementation,

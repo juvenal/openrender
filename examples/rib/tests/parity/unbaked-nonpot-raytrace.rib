@@ -1,0 +1,21 @@
+##RenderMan RIB-Structure 1.0
+# Sphere textured directly from a deliberately non-power-of-two PNG
+# source (500x300), spec 020 (020-runtime-tile-paging), T003 -- no
+# otexmake bake step at all. Exercises CSynthesizedTileSource's
+# non-power-of-two resize path end to end (FR-012, spec.md's own
+# non-power-of-two Edge Case; analysis finding C1), using the same
+# resizing behavior otexmake's own bake pipeline already applies to
+# non-power-of-two sources (adjustSize<T>/filterScaleImage<T>,
+# relocated to texmake.h by T006).
+version 3.03
+Hider "raytrace"
+Display "unbaked-nonpot-raytrace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 1 100000
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [0.3]
+  LightSource "distantlight" 2 "intensity" [0.85] "from" [5 5 -5] "to" [0 0 0]
+  Surface "paintedplastic" "texturename" ["nonpot_rgb.png"]
+  Sphere 1 -1 1 360
+WorldEnd

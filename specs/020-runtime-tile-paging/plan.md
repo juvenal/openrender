@@ -86,9 +86,39 @@ must only ever become visible to a reader once fully written — no reader
 may ever observe a partial file (FR-016), achieved via atomic
 write-then-rename, not locking.
 
+**Constraint found during implementation (T007)**: `adjustSize<T>`/
+`filterScaleImage<T>`/`filterImage<T>` allocate their working buffers from
+`CRenderer::globalMemory`, a stack-based bump allocator with no internal
+thread-safety (confirmed by full inspection of `src/ri/core/memory.h`).
+`CRenderer::textureLoad()` — where this feature's new fallback runs — is
+reachable from multiple shading threads concurrently (`getTexture()` is
+called from the `texture()`/`environment()` RSL builtin implementation,
+`src/libshader/shading/rslBuiltins.cpp:181`). This feature's own new
+synthesis code (decode + resize + pyramid reduction) MUST therefore be
+serialized behind a new mutex, following this project's own existing
+synchronization idiom rather than `std::mutex`: a new `TMutex
+CRenderer::synthesizeMutex`, declared alongside the existing project-wide
+mutexes in `renderer.h` and created/destroyed in `CRenderer::initMutexes()`/
+`shutdownMutexes()` (`rendererMutexes.cpp`), used via the same `osLock`/
+`osUnlock` calls already used throughout `texture.cpp`. Held for the
+duration of the new fallback's arena use, with results copied out of the
+arena into the pyramid's own heap-owned buffers before the corresponding
+`memEnd()` — see research.md §4a for the full finding, why
+`CRenderer::textureMutex` was considered and rejected for reuse, and other
+rejected alternatives. This is a narrow, additive safety measure around
+this feature's own new code; it does not touch, and is not a fix for, the
+pre-existing, separately-filed `frameFiles`/`CTrie` concurrent-first-load
+gap (GitHub #20), which remains out of scope for this spec (same boundary
+as GitHub #19 was for spec 019).
+
 **Scale/Scope**: 1 new `CTileSource` backend (`CSynthesizedTileSource`,
 file-local to `texture.cpp`, matching `CTiffTileSource`'s convention); 1
-new fallback branch inside `CRenderer::textureLoad()`; 1 new RIB `Option`
+new fallback branch inside `CRenderer::textureLoad()`; 1 new project-wide
+mutex (`CRenderer::synthesizeMutex`, following the exact existing
+`textureMutex`/`shaderMutex`/etc. convention) serializing that fallback's
+unbaked-source synthesis body (decode/resize/pyramid-reduction only — not
+`fetchTile()`, which stays lock-free against the finished, immutable
+pyramid); 1 new RIB `Option`
 class (2 tokens: enable, cache directory override); 2 existing template
 functions (`adjustSize<T>`/`filterScaleImage<T>`, currently file-local to
 `texmake.cpp`) relocated to a shared header so `texture.cpp` can reuse
@@ -102,7 +132,7 @@ its existing call sites.
 
 | Principle | Assessment |
 |---|---|
-| I. Clean Code Standards | PASS — one new backend class following an established sibling's exact convention (file-local, factory-exposed); reuses existing resize/bake logic rather than duplicating it; no new complexity added to the existing caching/eviction machinery, which stays untouched. |
+| I. Clean Code Standards | PASS — one new backend class following an established sibling's exact convention (file-local, factory-exposed); reuses existing resize/bake logic rather than duplicating it; no new complexity added to the existing caching/eviction machinery, which stays untouched. The one new synchronization primitive (`CRenderer::synthesizeMutex`, serializing unbaked-source synthesis, found necessary during T007 — see research.md §4a) follows this project's own existing mutex idiom exactly (`TMutex`/`osLock`/`osUnlock`, declared and lifecycle-managed the same way every sibling project-wide mutex already is) rather than introducing a new primitive type, and is the narrowest fix for a genuinely new hazard this feature's own code introduces, not scope creep: it guards only this feature's new call path into the shared `CRenderer::globalMemory` arena, costs nothing on the hot per-tile-fetch path (which stays lock-free), and does not attempt to fix the unrelated, pre-existing `frameFiles` race (GitHub #20). |
 | II. Language Standards | PASS — C++20, standard library only (`rename()` is POSIX, already used elsewhere in this codebase's platform-targeted code); no platform-specific APIs beyond what constitution VI already scopes to Linux/macOS. |
 | III. TDD (NON-NEGOTIABLE) | PASS, with a process requirement carried into `tasks.md`: every new test (byte-identical disk-cache parity, stale-cache detection, synthesized-backend concurrency, multi-process cache-write safety) MUST be written and demonstrated failing/inapplicable against pre-feature code before the corresponding implementation exists, mirroring spec 019's own TDD sequencing. |
 | IV. Command Line Interface | PASS — N/A for the texture-loading code itself; the new RIB `Option` is this feature's only new user-facing surface, and it is exercised the same way every other `Option` already is (via RIB text, already CLI-driven through `orender <rib>`). |
@@ -164,10 +194,19 @@ src/ri/render/
 │                           # gains a new dispatch branch for the
 │                           # texture-cache Option class, storing the
 │                           # result on COptions
-└── rendererFiles.cpp       # UNCHANGED — CRenderer::getTexture()'s
-                            # NULL-fallback/CDummyTexture substitution
-                            # stays exactly as-is; it's simply reached
-                            # less often now
+├── rendererFiles.cpp       # UNCHANGED — CRenderer::getTexture()'s
+│                           # NULL-fallback/CDummyTexture substitution
+│                           # stays exactly as-is; it's simply reached
+│                           # less often now
+└── rendererMutexes.cpp     # MODIFIED (found during T007, research.md
+                            # §4a) — one new TMutex, synthesizeMutex,
+                            # added to initMutexes()/shutdownMutexes()
+                            # alongside the 11 existing project-wide
+                            # mutexes
+
+(renderer.h itself — src/ri/render/renderer.h — MODIFIED, found during
+T007: one new `static TMutex synthesizeMutex;` declared alongside
+CRenderer's existing sibling mutexes, textureMutex/shaderMutex/etc.)
 
 src/ri/state/
 └── options.h               # MODIFIED — COptions gains the new
@@ -238,3 +277,22 @@ impact. The TDD process requirement (every new regression/parity/
 concurrency test written and demonstrated against pre-feature code before
 the corresponding implementation exists) carries forward unchanged into
 `tasks.md`.
+
+**Re-checked again during implementation (T007)**: the new
+`CRenderer::synthesizeMutex` serializing unbaked-source synthesis
+(Constraints/Scale-Scope above, research.md §4a) is a design addition
+discovered while implementing `CSynthesizedTileSource`, not anticipated at
+Phase 1. It touches two files beyond `texture.cpp` — `renderer.h` (one new
+`static TMutex` declaration, alongside its 11 existing siblings) and
+`rendererMutexes.cpp` (one new `osCreateMutex`/`osDeleteMutex` pair, added
+to `initMutexes()`/`shutdownMutexes()`) — which the original Phase 1 file
+list (`## Project Structure` below) did not anticipate; that list is
+updated accordingly. Re-assessed against Principle I: still PASS — it is
+the narrowest possible fix for a hazard this feature's own new code
+introduces (concurrent use of the unsynchronized `CRenderer::globalMemory`
+arena from a now-multi-threaded call path), scoped to synthesis only (not
+the hot `fetchTile()` path), and it follows the project's own existing
+one-mutex-per-documented-purpose convention exactly rather than inventing a
+new pattern. It does not touch `CTextureBlock`/`textureMemFlush`/
+`getTexture()`/`CTrie`, or any of the other 11 existing mutexes. No other
+principle is implicated. No Complexity Tracking entry needed.
