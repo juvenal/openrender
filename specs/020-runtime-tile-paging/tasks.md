@@ -722,10 +722,10 @@ consistent rendered output across repeated runs.
 
 **Purpose**: Documentation and a final full-suite validation pass.
 
-- [ ] T028 [P] Update `DEVNOTES.md` with a new status row for spec 020,
+- [X] T028 [P] Update `DEVNOTES.md` with a new status row for spec 020,
       following the existing convention (see specs 018/019's own rows
       for style).
-- [ ] T029 Diff review (`git diff <pre-spec-020 commit>..HEAD --
+- [X] T029 Diff review (`git diff <pre-spec-020 commit>..HEAD --
       src/ri/texture/texture.cpp`) confirming spec 019's existing
       functions/classes (`textureLoadBlock()`, `CTiffTileSource`,
       `CTiledTexture<T>::lookupPixel()`, `CBasicTexture<T>::lookupPixel()`)
@@ -733,8 +733,16 @@ consistent rendered output across repeated runs.
       (`CSynthesizedTileSource`, the new fallback branch), never
       modifies, any of spec 019's existing code bodies within this one
       file (FR-002's "MUST NOT alter" boundary, verified by diff, not
-      just asserted) (depends on T027).
-- [ ] T029b Diff review confirming FR-008's boundary held, not just by
+      just asserted) (depends on T027). Base commit: `7c04611` (last
+      commit before spec 020's own first commit). Verified: across the
+      entire branch, only **2 lines** were ever removed from
+      `texture.cpp` — both inside `CRenderer::textureLoad()` itself (the
+      original bare `TIFFOpen(fn, "r")` call, replaced by the
+      `looksLikeTiff(fn) ? TIFFOpen(fn, "r") : NULL` guard, T009's own
+      scope correction) — zero removed/changed lines anywhere in
+      `textureLoadBlock()`, `CTiffTileSource`, or either
+      `lookupPixel()`.
+- [X] T029b Diff review confirming FR-008's boundary held, not just by
       omission but by explicit check (analysis finding C3 — this spec's
       own T006/T015/T016 touch files beyond `texture.cpp`, which T029
       alone never checked): `git diff <pre-spec-020 commit>..HEAD --
@@ -746,7 +754,13 @@ consistent rendered output across repeated runs.
       (`rendererContext.cpp` ~lines 5876, 5886) show zero changes either
       — only the new `Option "texturecache"` dispatch branch (T016) is
       expected to differ in `rendererContext.cpp` (depends on T029).
-- [ ] T029c Diff review confirming the rest of FR-010's boundary held
+      Verified: zero removed lines anywhere in `rendererContext.cpp`
+      (purely additive); its one diff hunk sits entirely inside
+      `RiOptionV()`, nowhere near `RiMakeTextureV()` (line ~5892).
+      `texture.cpp`'s last hunk (the one touching `textureLoad()`, see
+      T029) is confirmed via its own function-context marker to end
+      before `environmentLoad()` (line 2973) begins.
+- [X] T029c Diff review confirming the rest of FR-010's boundary held
       (analysis finding C3): `git diff <pre-spec-020 commit>..HEAD --
       src/ri/texture/texmake.cpp src/ri/texture/texmake.h`, confirming
       `appendLayer()`/`appendPyramid()`/`makeTexture()`'s own bodies show
@@ -754,13 +768,32 @@ consistent rendered output across repeated runs.
       relocation of `adjustSize<T>`/`filterScaleImage<T>` (definitions
       moved from `.cpp` to `.h`, `#include` adjustments), not a change to
       either function's behavior or to `otexmake`'s CLI (depends on
-      T029b).
-- [ ] T030 Run the full test suite once more end-to-end: `ctest
+      T029b). Verified: `texmake.cpp`'s only removed lines are exactly
+      T006's own relocated content (the 3 resize-mode constants +
+      `copyData<T>`/`initData<T>`/`initDataValues<T>`/`filterImage<T>`/
+      `filterScaleImage<T>`/`adjustSize<T>`, verbatim); neither
+      `appendLayer`/`appendPyramid`/`makeTexture` appears in any removed
+      or added line in either file.
+- [X] T030 Run the full test suite once more end-to-end: `ctest
       --test-dir build -L visual --output-on-failure`, `-L texture_tile`,
       and `-L image_input` (unaffected, but part of the standard gate);
-      confirm all green (depends on T029c).
-- [ ] T031 Execute every step in `quickstart.md` manually and confirm
+      confirm all green (depends on T029c). Confirmed: visual (200+
+      scenes) clean, texture_tile 9/9, image_input 6/6.
+- [X] T031 Execute every step in `quickstart.md` manually and confirm
       observed behavior matches what it documents (depends on T030).
+      Every ctest-based step was already exercised as part of T030/the
+      individual task verifications above. Additionally, literally ran
+      quickstart.md's own documented "reference a plain image directly"
+      command (its exact env-var invocation, not a variant) — rendered
+      cleanly, exit 0, no `CODE_NOFILE` error. For the final "sanity
+      check: the existing baked-TIFF fast path took priority" section
+      (no ctest command given, just a suggested manual check): added a
+      temporary `fprintf(stderr, ...)` probe inside `textureLoad()`'s new
+      fallback branch, confirmed it never fires for a baked-TIFF scene
+      (`texture-png-reyes.rib`) but fires exactly once for an unbaked one
+      (`unbaked-png-reyes.rib`, naming `large_rgb8.png`), then removed the
+      probe (`git diff --stat` confirms zero trace left behind) and
+      rebuilt clean.
 
 ---
 
