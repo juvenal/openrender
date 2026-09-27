@@ -381,8 +381,22 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
 - Storage: N/A — reads existing baked-texture files; no new persistent
   state, no change to the baked-texture container format
   (019-tilesource-extraction)
+- C++20, CMake ≥3.19; `libtiff` (existing, mandatory) + spec 018's
+  `CImageInput`/`createImageInput()` — no new dependency
+  (020-runtime-tile-paging)
+- Storage: N/A for the in-memory path; the opt-in disk cache persists
+  prepared textures as ordinary baked TIFF files (existing container
+  format, unchanged) at a configurable cache root
+  (020-runtime-tile-paging)
 
 ## Recent Changes
+- 020-runtime-tile-paging: runtime bake-on-load for non-TIFF sources —
+  `CRenderer::textureLoad()` gains a fallback (reached only on
+  `TIFFOpen()` failure) that decodes PNG/OpenEXR/RGBE directly via
+  `CImageInput` and serves it through a new `CSynthesizedTileSource`
+  (`CTileSource` backend, `texture.cpp`); opt-in disk-cache sidecar via
+  `Option "texturecache"`, written as an ordinary baked TIFF through the
+  existing `makeTexture()` (see spec 020).
 - 019-tilesource-extraction: runtime tile-fetch abstraction
   (`CTileSource`, `src/ri/texture/tileSource.h`) extracted from
   `textureLoadBlock()` in `texture.cpp`; `CTiffTileSource` is the only
