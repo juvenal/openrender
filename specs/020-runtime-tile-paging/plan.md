@@ -206,13 +206,35 @@ src/ri/render/
 
 (renderer.h itself — src/ri/render/renderer.h — MODIFIED, found during
 T007: one new `static TMutex synthesizeMutex;` declared alongside
-CRenderer's existing sibling mutexes, textureMutex/shaderMutex/etc.)
+CRenderer's existing sibling mutexes, textureMutex/shaderMutex/etc.
+Also MODIFIED during T015 (Phase 4): two new `static` members,
+`textureCacheEnabled`/`textureCacheDirectory`, mirroring `texturePath`'s
+own existing cached-frame-state convention — `textureLoad()` is a static
+`CRenderer` method with no `CRendererContext*`/`currentOptions` in scope,
+so this is the only viable way for it to reach these `COptions` settings.)
+
+(renderer.cpp/rendererStatics.cpp — MODIFIED during T015: the new
+`CRenderer::textureCacheEnabled`/`textureCacheDirectory` static members'
+one required definition (rendererStatics.cpp) and their
+`copyOptions()`-time population from `COptions` (renderer.cpp), alongside
+`texturePath`'s own existing copy.)
+
+(rendererDeclarations.cpp — MODIFIED during T016, a scope correction:
+research.md §7's original claim that `Option` classes are exempt from the
+4-layer pre-declaration system was wrong — every existing `Option`
+sub-token IS pre-declared via `declareVariable()` here, and the new
+`"texturecache"` tokens needed the same treatment, confirmed by an actual
+render failing with `Parameter "enable" is not declared` until fixed.)
 
 src/ri/state/
-└── options.h               # MODIFIED — COptions gains the new
-                            # texture-cache setting fields (enable flag +
-                            # optional directory override), alongside
-                            # existing fields like texturePath
+├── options.h                # MODIFIED — COptions gains the new
+│                           # texture-cache setting fields (enable flag +
+│                           # optional directory override), alongside
+│                           # existing fields like texturePath
+└── options.cpp               # MODIFIED — constructor default/copy-
+                            # constructor/destructor wired for the two
+                            # new fields, mirroring defaultShaderFormat's
+                            # existing nullable-owned-string convention
 
 examples/rib/tests/
 └── parity/                 # NEW scenes — plain PNG/EXR/RGBE textures
@@ -223,25 +245,46 @@ examples/rib/tests/
 
 tests/
 ├── unit/texture_tile/      # EXTENDED — spec 019's existing test
-│                           # directory gains: disk-cache-parity test,
-│                           # stale-cache-detection test, synthesized-
-│                           # backend concurrency test (real render,
-│                           # spec 019 US2 pattern), the new
-│                           # multi-process cache-write-safety test, a new
-│                           # non-power-of-two fixture (its own
-│                           # fixtures/FIXTURES.md), and (per a
-│                           # `/speckit.analyze` finding) its
-│                           # CMakeLists.txt's TEXTURES search path
-│                           # extended to also reach
-│                           # tests/unit/image_input/fixtures/
+│                           # directory gains:
+│                           #   test_tile_source_synthesized_info.cpp (T012,
+│                           #     direct CSynthesizedTileSource unit test;
+│                           #     needed RiBegin(RI_NULL)/RiEnd() around its
+│                           #     body -- a scope correction, see research.md
+│                           #     SS4c -- since unlike CTiffTileSource's own
+│                           #     test, this backend depends on
+│                           #     CRenderer::globalMemory/the renderMan
+│                           #     singleton, both unset outside a renderer
+│                           #     lifecycle)
+│                           #   cache-scene.rib.in (T022, a shared template
+│                           #     with @CACHE_OPTION@/@TEXTURE_PATH@
+│                           #     placeholders -- no existing precedent for
+│                           #     dynamically-generated RIB content in this
+│                           #     codebase, so this establishes one)
+│                           #   test_texture_cache_byte_identical.sh (T019),
+│                           #     test_texture_cache_default_directory.sh
+│                           #     (T018b), test_texture_cache_stale_detection.sh
+│                           #     (T020), test_texture_cache_concurrent_write.sh
+│                           #     (T021, genuinely new multi-PROCESS test
+│                           #     infrastructure for this project)
+│                           #   fixtures/cache_stale_v2.png (T020 -- a second,
+│                           #     genuinely-different-content RGB8 fixture;
+│                           #     a bare mtime touch alone can't distinguish
+│                           #     "correctly rebuilt" from "served stale
+│                           #     data" when pixel content is unchanged)
+│                           #   fixtures/nonpot_rgb.png (T002b, non-power-of-two)
+│                           #   its own CMakeLists.txt's TEXTURES search path
+│                           #     extended (per a `/speckit.analyze` finding)
+│                           #     to also reach tests/unit/image_input/fixtures/
 ├── unit/image_input/       # UNCHANGED — reused as a fixture source only
 │                           # (large_rgb8.png/large_rgb.exr/large.hdr);
 │                           # no test code here is modified
 └── visual/CMakeLists.txt   # MODIFIED — new `add_parity_test` entries for
-                            # the unbaked-source scenes, and (per the same
-                            # `/speckit.analyze` finding) its own TEXTURES
-                            # search path also extended to reach
-                            # tests/unit/image_input/fixtures/
+                            # the unbaked-source scenes, and its own TEXTURES
+                            # search path extended twice over (per
+                            # `/speckit.analyze` findings F1/F2, then again
+                            # for T011's unbaked-nonpot scene) to reach both
+                            # tests/unit/image_input/fixtures/ and
+                            # tests/unit/texture_tile/fixtures/
 ```
 
 **Structure Decision**: `CSynthesizedTileSource` stays file-local to

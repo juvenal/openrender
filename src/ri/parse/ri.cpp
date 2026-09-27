@@ -228,6 +228,7 @@ RtToken RI_SHUTTER = "shutter";
 RtToken RI_USER = "user";
 RtToken RI_TRIMCURVE = "trimcurve";
 RtToken RI_SENSE = "sense";
+RtToken RI_TEXTURECACHE = "texturecache";
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -327,6 +328,9 @@ RtToken RI_MAXDEPTH = "maxdepth";
 RtToken RI_ENDOFFRAME = "endofframe";
 RtToken RI_FILELOG = "filelog";
 RtToken RI_PROGRESS = "progress";
+
+RtToken RI_TEXTURECACHEENABLE = "enable";
+RtToken RI_TEXTURECACHEDIRECTORY = "directory";
 
 // Irradiance options
 RtToken RI_HANDLE = "handle";

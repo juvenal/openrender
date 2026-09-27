@@ -343,6 +343,8 @@ class CRenderer {
         static TSearchpath *displayPath;                               // Display search path
         static TSearchpath *modulePath;                                // Search path for openRender modules
         static TSearchpath *geometryPath;                              // Geometry search path
+        static bool textureCacheEnabled;                               // Opt-in disk cache for unbaked texture sources (020-runtime-tile-paging)
+        static const char *textureCacheDirectory;                      // Cache directory override, nullptr -> resolved default
         static int pixelXsamples, pixelYsamples;                       // Number of samples to take in X and Y
         static float gamma, gain;                                      // Gamma correction stuff
         static float pixelFilterWidth, pixelFilterHeight;              // Pixel filter data

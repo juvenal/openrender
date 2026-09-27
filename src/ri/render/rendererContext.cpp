@@ -1881,6 +1881,29 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_TEXTURECACHE) == 0) {
+        // Opt-in disk cache for the runtime-synthesized (non-TIFF)
+        // texture-source fallback (spec 020-runtime-tile-paging,
+        // contracts/texturecache-option.md). Render-global, like every
+        // other Option; consulted only inside CRenderer::textureLoad()'s
+        // new fallback (reached solely on TIFFOpen() failure) -- has no
+        // effect on already-baked textures.
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_TEXTURECACHEENABLE) == 0) {
+                int *val = (int *)params[i];
+                options->textureCacheEnabled = (val[0] != 0);
+            }
+            else if (strcmp(tokens[i], RI_TEXTURECACHEDIRECTORY) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                if (options->textureCacheDirectory != nullptr)
+                    free((void *)options->textureCacheDirectory);
+                options->textureCacheDirectory = (val[0] != '\0') ? strdup(val) : nullptr;
+            }
+            else {
+                error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+            }
+        }
+    }
     else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }

@@ -66,3 +66,44 @@ Image.fromarray(img, mode="RGB").save("nonpot_rgb.png")
 
 Verified against the formula directly: pixel (10,20) = (40, 120, 80),
 matching R=(3*10+10)%256=40, G=(5*20+20)%256=120, B=(10+2*20+30)%256=80.
+
+## `cache_stale_v2.png` (spec 020, T020)
+
+`cache_stale_v2.png` is a second, deliberately-different 512x512 8-bit RGB
+PNG used only by `test_texture_cache_stale_detection.sh` (T020, SC-004):
+that test needs two genuinely different pixel contents at the SAME logical
+source path, at two different points in time, so a bug that silently served
+a stale cache entry (same pixels as before the "modification") is
+distinguishable from correct stale-detection (new pixels, matching this
+file's own formula, plus a new cache filename). Same channel count/bit
+depth/dimensions as `tests/unit/image_input/fixtures/large_rgb8.png`
+deliberately, so both share `CTiledTexture<T>`'s existing (pre-existing,
+out-of-scope) 3-channel `lookupPixel()` access pattern identically — only
+the pixel *content* needs to differ, not the format.
+
+For x,y in `[0,511]`:
+
+- R(x,y) = (x+7) mod 256
+- G(x,y) = (y+13) mod 256
+- B(x,y) = (x+y+19) mod 256
+
+Generated via a small scratch script (Pillow + numpy, not checked in — the
+formula above fully reproduces it):
+
+```python
+from PIL import Image
+import numpy as np
+
+W, H = 512, 512
+arr = np.zeros((H, W, 3), dtype=np.uint8)
+for y in range(H):
+    for x in range(W):
+        arr[y, x, 0] = (x + 7) % 256
+        arr[y, x, 1] = (y + 13) % 256
+        arr[y, x, 2] = (x + y + 19) % 256
+
+Image.fromarray(arr, mode="RGB").save("cache_stale_v2.png")
+```
+
+Verified against the formula directly: pixel (10,20) = (17, 33, 49),
+matching R=(10+7)%256=17, G=(20+13)%256=33, B=(10+20+19)%256=49.

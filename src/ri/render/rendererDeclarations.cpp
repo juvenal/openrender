@@ -121,6 +121,9 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_FILELOG, "string");
     declareVariable(RI_PROGRESS, "int");
 
+    declareVariable(RI_TEXTURECACHEENABLE, "int");
+    declareVariable(RI_TEXTURECACHEDIRECTORY, "string");
+
     // File display variables
 
     declareVariable("quantize", "float[4]");

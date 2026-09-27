@@ -437,16 +437,35 @@ fields like `texturePath`.
 
 **Rationale**: Directly implements the resolved clarification ("a
 scene-level RIB `Option`... consistent with this project's existing
-convention"). Confirmed by direct inspection of `RiOptionV()`: existing
-option classes are recognized by a plain `strcmp` chain against `RtToken`
-constants, not subject to the 4-layer `Attribute`-style pre-declaration
-system (`CLAUDE.md`'s "Adding attributes" note is specific to
-`RiAttributeV`) — so adding a new class needs only a new token constant
-(`ri.h`/`ri.cpp`) plus a new dispatch branch, exactly like every existing
-class already works. Grouping "enable" and "directory" under one class
-(rather than two separately-named `Option` statements) mirrors how
-`"limits"` already groups several related settings (`bucketsize`,
-`gridsize`, `eyesplits`, etc.) under one class.
+convention"). Grouping "enable" and "directory" under one class (rather
+than two separately-named `Option` statements) mirrors how `"limits"`
+already groups several related settings (`bucketsize`, `gridsize`,
+`eyesplits`, etc.) under one class.
+
+**Correction (found during T016 implementation via an actual render, not
+code review alone)**: this section originally claimed existing `Option`
+classes are "not subject to the 4-layer `Attribute`-style pre-declaration
+system" and that a new token constant plus dispatch branch alone would be
+sufficient. That claim was wrong, and a manual smoke render caught it
+immediately: `Option "texturecache" "enable" [1] "directory" [...]`
+failed at RIB-parse time with `Parameter "enable" is not declared`,
+*before* `RiOptionV()`'s new dispatch branch was ever reached. Checking
+`initDeclarations()` (`src/ri/render/rendererDeclarations.cpp:88-122`)
+directly shows every existing `Option` sub-token IS pre-declared there
+too — `declareVariable(RI_BUCKETSIZE, "int[2]")`,
+`declareVariable(RI_JITTER, "float")`, `declareVariable(RI_FILELOG,
+"string")`, and so on for every single one, with no exception. The RIB
+parser's own pre-declaration gate applies uniformly to `Option` and
+`Attribute` parameters alike; `CLAUDE.md`'s "Adding attributes" note
+happens to describe the 4-layer system in terms of `RiAttributeV`
+specifically, but the pre-declaration layer itself is not
+`Attribute`-exclusive. **Fix applied**: added
+`declareVariable(RI_TEXTURECACHEENABLE, "int")`/
+`declareVariable(RI_TEXTURECACHEDIRECTORY, "string")` to
+`initDeclarations()`, alongside the other `Option` sub-token
+declarations — a fourth step this section's own decision omitted
+entirely. Re-verified via the same manual render: the `Option` statement
+now parses and dispatches correctly.
 
 **Alternatives considered**: An environment variable (rejected by the
 spec's own clarification — an `Option` was explicitly chosen for

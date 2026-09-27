@@ -262,6 +262,8 @@ COptions::COptions() {
 
     hider = strdup("reyes");
     defaultShaderFormat = nullptr;
+    textureCacheEnabled = false;
+    textureCacheDirectory = nullptr;
     blobbyOpcodeOrder = BLOBBY_ORDER_RISPEC;
 
     // Unified search paths across all platforms. Environment expansion is handled
@@ -443,6 +445,8 @@ COptions::COptions(const COptions *o) {
     globalOut = (o->globalOut != NULL ? strdup(o->globalOut) : NULL);
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
     defaultShaderFormat = (o->defaultShaderFormat != nullptr ? strdup(o->defaultShaderFormat) : nullptr);
+    textureCacheEnabled = o->textureCacheEnabled;
+    textureCacheDirectory = (o->textureCacheDirectory != nullptr ? strdup(o->textureCacheDirectory) : nullptr);
     blobbyOpcodeOrder = o->blobbyOpcodeOrder;
 
     if (imager != nullptr)
@@ -507,6 +511,8 @@ COptions::~COptions() {
         free(filelog);
     if (defaultShaderFormat != nullptr)
         free((void *)defaultShaderFormat);
+    if (textureCacheDirectory != nullptr)
+        free((void *)textureCacheDirectory);
 
     if (imager != nullptr)
         imager->detach();

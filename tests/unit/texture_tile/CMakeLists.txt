@@ -110,3 +110,59 @@ target_link_libraries(test_tile_source_synthesized_info PRIVATE ribRender openre
 add_test(NAME TileSource_SynthesizedInfo COMMAND test_tile_source_synthesized_info)
 set_tests_properties(TileSource_SynthesizedInfo PROPERTIES TIMEOUT 30 LABELS "texture_tile;unit"
     ENVIRONMENT "IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")
+
+# ---------------------------------------------------------------------------
+# Opt-in disk cache tests (spec 020-runtime-tile-paging, User Story 2,
+# T018b/T019/T020/T021/T022). Each drives real orender subprocesses
+# against a shared cache-scene.rib.in template (see that file's own header
+# comment) rather than a hand-constructed CShadingContext -- same
+# precedent as TileSource_Concurrency above.
+# ---------------------------------------------------------------------------
+set(CACHE_SCENE_TEMPLATE ${CMAKE_CURRENT_SOURCE_DIR}/cache-scene.rib.in)
+set(CACHE_SOURCE_PNG ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb8.png)
+
+add_test(NAME TextureTile_CacheByteIdentical
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_byte_identical.sh
+        $<TARGET_FILE:orender>
+        ${CACHE_SCENE_TEMPLATE}
+        ${CACHE_SOURCE_PNG})
+set_tests_properties(TextureTile_CacheByteIdentical PROPERTIES
+    TIMEOUT 60
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS orender)
+
+add_test(NAME TextureTile_CacheDefaultDirectory
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_default_directory.sh
+        $<TARGET_FILE:orender>
+        ${CACHE_SCENE_TEMPLATE}
+        ${CACHE_SOURCE_PNG})
+set_tests_properties(TextureTile_CacheDefaultDirectory PROPERTIES
+    TIMEOUT 60
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS orender)
+
+add_test(NAME TextureTile_CacheStaleDetection
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_stale_detection.sh
+        $<TARGET_FILE:orender>
+        ${CACHE_SCENE_TEMPLATE}
+        ${CACHE_SOURCE_PNG}
+        ${TEXTURE_TILE_FIXTURES_DIR}/cache_stale_v2.png)
+set_tests_properties(TextureTile_CacheStaleDetection PROPERTIES
+    TIMEOUT 60
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS orender)
+
+add_test(NAME TextureTile_CacheConcurrentWrite
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_concurrent_write.sh
+        $<TARGET_FILE:orender>
+        ${CACHE_SCENE_TEMPLATE}
+        ${CACHE_SOURCE_PNG}
+        8)
+set_tests_properties(TextureTile_CacheConcurrentWrite PROPERTIES
+    TIMEOUT 120
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS orender)

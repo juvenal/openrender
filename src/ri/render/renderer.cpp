@@ -186,6 +186,8 @@ static void copyOptions(const COptions *o) {
     CRenderer::displayPath = o->displayPath;
     CRenderer::modulePath = o->modulePath;
     CRenderer::geometryPath = o->geometryPath;
+    CRenderer::textureCacheEnabled = o->textureCacheEnabled;
+    CRenderer::textureCacheDirectory = o->textureCacheDirectory;
     CRenderer::pixelXsamples = o->pixelXsamples;
     CRenderer::pixelYsamples = o->pixelYsamples;
     CRenderer::gamma = o->gamma;

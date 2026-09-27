@@ -291,7 +291,8 @@ RI_SEARCHPATH,
     RI_SHUTTER,
     RI_USER,
     RI_TRIMCURVE,
-    RI_SENSE;
+    RI_SENSE,
+    RI_TEXTURECACHE;
 
 EXTERN(RtToken)
 RI_DICE,
@@ -426,6 +427,11 @@ EXTERN(RtToken)
 RI_ENDOFFRAME,
     RI_FILELOG,
     RI_PROGRESS;
+
+// Texturecache options (spec 020-runtime-tile-paging)
+EXTERN(RtToken)
+RI_TEXTURECACHEENABLE,
+    RI_TEXTURECACHEDIRECTORY;
 
 // Irradiance options
 EXTERN(RtToken)

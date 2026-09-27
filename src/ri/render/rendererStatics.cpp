@@ -145,6 +145,8 @@ TSearchpath *CRenderer::shaderPath;
 TSearchpath *CRenderer::displayPath;
 TSearchpath *CRenderer::modulePath;
 TSearchpath *CRenderer::geometryPath;
+bool CRenderer::textureCacheEnabled;
+const char *CRenderer::textureCacheDirectory;
 int CRenderer::pixelXsamples, CRenderer::pixelYsamples;
 float CRenderer::gamma, CRenderer::gain;
 float CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight;

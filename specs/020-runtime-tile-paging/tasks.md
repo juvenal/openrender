@@ -475,11 +475,19 @@ cache entry; confirm no reader ever observes a corrupted file.
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add `textureCacheEnabled` (bool, default `false`) and
+- [X] T015 [US2] Add `textureCacheEnabled` (bool, default `false`) and
       `textureCacheDirectory` (nullable owned string, default unset) to
       `COptions` (`src/ri/state/options.h`), per `data-model.md`'s
-      `COptions` additions table (depends on T014).
-- [ ] T016 [US2] Add a new `RtToken` constant (`src/ri/parse/ri.h`/
+      `COptions` additions table (depends on T014). Also cached onto
+      `CRenderer` (new static `textureCacheEnabled`/
+      `textureCacheDirectory` members, wired into `copyOptions()`,
+      `renderer.cpp`), mirroring `texturePath`'s own existing convention
+      — `textureLoad()` is a static `CRenderer` method with no
+      `CRendererContext*`/`currentOptions` in scope, so this is the only
+      viable way for it to reach these settings (confirmed by checking
+      how `texturePath` itself gets from `COptions` to `textureLoad()`'s
+      `TSearchpath*` parameter).
+- [X] T016 [US2] Add a new `RtToken` constant (`src/ri/parse/ri.h`/
       `ri.cpp`, matching `RI_LIMITS`/`RI_SEARCHPATH`/`RI_HIDER`'s
       existing pattern) for the `"texturecache"` `Option` class, and a
       new dispatch branch inside `CRendererContext::RiOptionV()`
@@ -489,7 +497,22 @@ cache entry; confirm no reader ever observes a corrupted file.
       `COptions` fields. An unrecognized token under this class reports
       via the same existing `error(CODE_BADTOKEN, ...)` path every other
       `Option` class already uses (depends on T015).
-- [ ] T017 [US2] Implement the disk-cache key/lookup: a small helper
+      **Scope correction found during implementation** (research.md §7's
+      own correction): a manual smoke render caught a real gap research.md
+      §7 itself had wrong — every `Option` sub-token in this codebase is
+      pre-declared via `declareVariable()` inside `initDeclarations()`
+      (`rendererDeclarations.cpp`), the SAME 4-layer pre-declaration gate
+      `CLAUDE.md`'s "Adding attributes" note describes for `Attribute`
+      parameters, not something `Option` is exempt from. Without this,
+      the RIB parser rejects the statement at parse time
+      (`Parameter "enable" is not declared`) before `RiOptionV()`'s new
+      dispatch branch is ever reached. Fixed by adding
+      `declareVariable(RI_TEXTURECACHEENABLE, "int")`/
+      `declareVariable(RI_TEXTURECACHEDIRECTORY, "string")` to
+      `initDeclarations()`, alongside the other `Option` declarations.
+      Re-verified via the same manual render: parses and dispatches
+      correctly now.
+- [X] T017 [US2] Implement the disk-cache key/lookup: a small helper
       computing `<hash-of-absolute-source-path>-<source-mtime-epoch-
       seconds>.tex` (`std::hash<std::string>`, research.md §5) under the
       configured (or default system temp/cache) directory. Inside
@@ -498,8 +521,32 @@ cache entry; confirm no reader ever observes a corrupted file.
       falling to `CSynthesizedTileSource` — a hit reads back through the
       completely ordinary, unmodified `CTiffTileSource` path (T009's own
       `TIFFOpen`-succeeds branch, no new read-side code) (depends on
-      T016).
-- [ ] T018 [US2] Implement the cache-write path on a miss (cache
+      T016). `resolveDefaultTextureCacheDirectory()` deliberately does
+      NOT reuse `osTempdir()` — that helper is documented as
+      "unique within this process" (PID-suffixed), which would make two
+      separate `orender` invocations against the same source never see
+      each other's cache entries, defeating User Story 2 entirely; it
+      resolves `TMPDIR`/`TMP`-then-`/tmp` the same way `osTempdir()`
+      itself does, but under one fixed, stable subdirectory shared across
+      renders.
+      **Bug found during manual smoke-testing (not just code review)**:
+      the first real render with the cache enabled printed a spurious
+      `<cachepath>: No such file or directory` error on the very first
+      (cache-miss) render — reusing T009's `looksLikeTiff()` helper for
+      the cache-path existence check was wrong. `looksLikeTiff()`'s
+      "file unreadable → return true, attempt `TIFFOpen()` anyway"
+      fallback is correct for the *source* file (`locateFile()` already
+      confirmed it exists, so unreadable is should-never-happen) but
+      wrong for the *cache* path, where non-existence is the normal,
+      expected first-miss case — falling through to an unconditional
+      `TIFFOpen()` attempt on a nonexistent file, hitting the exact
+      spurious-error/exit-code hazard research.md §4b already exists to
+      avoid, just at a second call site. Fixed by checking
+      `osFileExists(cachePath)` explicitly before ever calling
+      `looksLikeTiff()`/`TIFFOpen()` on the cache path. Re-verified via
+      the same manual render: a cache miss now writes a new entry with no
+      spurious error and exit code 0.
+- [X] T018 [US2] Implement the cache-write path on a miss (cache
       enabled, no entry found at the T017 key): call `makeTexture()`
       (`texmake.h`) with `sourcePath`, a temporary/uniquely-named path in
       the *same directory* as the final cache path (guaranteeing a
@@ -519,7 +566,15 @@ cache entry; confirm no reader ever observes a corrupted file.
       one. A write failure (unwritable location) is caught and degrades
       to T009's in-memory-only `CSynthesizedTileSource` path for that
       render, never failing or altering it (FR-007) (depends on T017).
-- [ ] T018b [US2] Verify the *default* cache-directory resolution
+      Implemented as `writeTextureCacheEntry()` (`texture.cpp`) — success
+      is detected via `osFileExists(tempPath)` after `makeTexture()`
+      returns (`makeTexture()` itself is `void`, reporting failure only
+      via `error()`, not a return value). Verified via `TextureTile_
+      CacheByteIdentical`/`TextureTile_CacheDefaultDirectory`/`TextureTile_
+      CacheStaleDetection`/`TextureTile_CacheConcurrentWrite` (T019-T021),
+      all passing, plus manual smoke renders during T017/T018's own
+      implementation.
+- [X] T018b [US2] Verify the *default* cache-directory resolution
       (analysis finding U1): render a scene with `Option "texturecache"
       "enable" [1]` alone — no `"directory"` token at all, the most
       common configuration a user would actually try first — confirm a
@@ -527,15 +582,19 @@ cache entry; confirm no reader ever observes a corrupted file.
       the resolved default system temp/cache location actually is on
       this platform, not just the explicit-override path T017/T018 were
       otherwise exercised against. Ctest name: **`TextureTile_CacheDefaultDirectory`**
-      (analysis finding G2) (depends on T018).
-- [ ] T019 [US2] Author a new scene + script proving SC-003: render the
+      (analysis finding G2) (depends on T018). Isolated via `TMPDIR`
+      override to a private scratch dir per test run (never touches or
+      races the real, shared system default). Verified passing.
+- [X] T019 [US2] Author a new scene + script proving SC-003: render the
       same unbaked-source scene (`-t:1`) twice — once with the disk
       cache freshly populated (reads back via `CTiffTileSource`), once
       with the cache disabled (reads via `CSynthesizedTileSource`
       directly) — `cmp` the two outputs byte-for-byte (research.md §9).
       Ctest name: **`TextureTile_CacheByteIdentical`** (analysis finding
-      G2) (depends on T018).
-- [ ] T020 [US2] Author a new test proving SC-004 (stale-cache
+      G2) (depends on T018). Implemented as the full 3-render sequence
+      research.md §9 actually specifies (populate → hit → disabled),
+      not a shortcut two-render comparison. Verified passing.
+- [X] T020 [US2] Author a new test proving SC-004 (stale-cache
       detection): populate the cache for a fixture source, modify
       (touch) the source file's mtime, re-render, and confirm (a) the
       render output reflects the *modified* source, not stale data, and
@@ -543,7 +602,20 @@ cache entry; confirm no reader ever observes a corrupted file.
       changed) rather than the old entry being reused. Ctest name:
       **`TextureTile_CacheStaleDetection`** (analysis finding G2) (depends
       on T018).
-- [ ] T021 [US2] Author the new multi-**process** concurrent
+      **Scope correction found during implementation**: a bare mtime
+      `touch` (identical pixel content, only the timestamp changed) would
+      make this test unable to distinguish "correctly rebuilt from the
+      modified source" from "silently served the stale cache entry" — both
+      produce identical output when content hasn't actually changed. Added
+      one new small checked-in fixture, `cache_stale_v2.png`
+      (`tests/unit/texture_tile/fixtures/`, documented in that directory's
+      own `FIXTURES.md`, same convention as T002b's `nonpot_rgb.png`) with
+      genuinely different pixel content (same dimensions/channels/bit
+      depth as `large_rgb8.png`, so only content differs, not format) —
+      copied over the same private source path in place of `large_rgb8.png`
+      between renders, so a stale-serving bug and correct rebuilding are
+      actually distinguishable outcomes. Verified passing.
+- [X] T021 [US2] Author the new multi-**process** concurrent
       cache-write test (research.md §10 — genuinely new test
       infrastructure, since spec 019's own concurrency test used threads
       within one process, not multiple OS processes): a shell script
@@ -557,13 +629,29 @@ cache entry; confirm no reader ever observes a corrupted file.
       (`tiffinfo`/`TIFFOpen`-based check) — a corrupt/partial write would
       fail this directly. Ctest name: **`TextureTile_CacheConcurrentWrite`**
       (analysis finding G2) (depends on T018).
-- [ ] T022 [US2] Register `TextureTile_CacheDefaultDirectory`
+      **Scope correction**: validated the resulting cache file's validity
+      via `orender` itself (a second, minimal render referencing the
+      cache `.tex` directly as `texturename`, cache disabled, so it
+      exercises the completely ordinary pre-existing `TIFFOpen()`-succeeds
+      fast path) rather than `tiffinfo` — this project has no existing
+      dependency on libtiff's own CLI tools, and constitution V (Minimal
+      Dependencies) argues against adding one for a single test when the
+      project's own binary already answers the same question. Verified
+      passing (8 concurrent writers, byte-identical output across all,
+      single valid resulting cache entry).
+- [X] T022 [US2] Register `TextureTile_CacheDefaultDirectory`
       (T018b)/`TextureTile_CacheByteIdentical`
       (T019)/`TextureTile_CacheStaleDetection`
       (T020)/`TextureTile_CacheConcurrentWrite` (T021) as ctest entries
       (`texture_tile` label) in `tests/unit/texture_tile/CMakeLists.txt`
-      (depends on T018b, T019, T020, T021).
-- [ ] T023 [US2] Run `ctest --test-dir build -L texture_tile
+      (depends on T018b, T019, T020, T021). All 4 share a common scene
+      template, `cache-scene.rib.in` (`@CACHE_OPTION@`/`@TEXTURE_PATH@`
+      placeholders, substituted per test via `sed`), since the "Option
+      \"texturecache\"" statement and source path both need to vary per
+      test run/process — no existing precedent in this codebase for
+      dynamically-generated RIB content, so this establishes one,
+      documented in the template's own header comment.
+- [X] T023 [US2] Run `ctest --test-dir build -L texture_tile
       --output-on-failure` in full; confirm 100% passing (depends on
       T022).
 

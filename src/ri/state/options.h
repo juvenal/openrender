@@ -164,6 +164,16 @@ class COptions {
         char *hider;                     // Hider name
         const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
 
+        // Opt-in disk cache for the runtime-synthesized (non-TIFF)
+        // texture-source fallback (spec 020, 020-runtime-tile-paging).
+        // Set via `Option "texturecache" "enable"/"directory"`
+        // (contracts/texturecache-option.md). textureCacheDirectory is
+        // nullptr when unset -> resolved to a system temp/cache
+        // directory at first use, matching defaultShaderFormat's own
+        // nullable-owned-string convention above.
+        bool textureCacheEnabled;
+        const char *textureCacheDirectory;
+
         // Which primary source's assignment of blobby opcodes 4 and 5 is in
         // force (spec 015, FR-013). Scene-wide, resolved once per primitive
         // at construction rather than branched per evaluation point.

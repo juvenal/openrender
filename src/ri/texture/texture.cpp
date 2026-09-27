@@ -38,11 +38,16 @@
 #include "tileSource.h"
 
 #include <algorithm>
+#include <cstdio> // rename()
+#include <functional> // std::hash
 #include <math.h>
 #include <memory>
 #include <stddef.h> // Ensure NULL is defined before libtiff
 #include <string.h>
+#include <string>
+#include <sys/stat.h> // stat(), for source-mtime and cache-key computation
 #include <tiffio.h>
+#include <unistd.h> // getpid()
 #include <vector>
 
 ///////////////////////////////////////////////////////////////////////
@@ -2718,6 +2723,122 @@ static bool looksLikeTiff(const char *fn) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	resolveDefaultTextureCacheDirectory
+// Description			:	Resolves the default disk-cache directory used
+//							when `Option "texturecache" "directory"` is not
+//							given (spec 020, 020-runtime-tile-paging, T017).
+// Return Value			:	A directory path, always ending in '/'.
+// Comments				:	Deliberately NOT osTempdir() -- that helper is
+//							documented as "unique within this process"
+//							(os.cpp, pid-suffixed), which would mean two
+//							separate orender invocations against the same
+//							source could never see each other's cache
+//							entries, defeating this entire feature (User
+//							Story 2's own independent test: "render the
+//							same unbaked-source scene twice... confirm the
+//							second render reuses the cached entry"). This
+//							uses the same TMPDIR/TMP-then-/tmp resolution
+//							osTempdir() itself uses, but under one fixed,
+//							stable subdirectory shared by every render on
+//							this machine.
+static std::string resolveDefaultTextureCacheDirectory() {
+    const char *tempDirEnv = osEnvironment("TMPDIR");
+    if (tempDirEnv == NULL)
+        tempDirEnv = osEnvironment("TMP");
+
+    std::string directory = (tempDirEnv != NULL) ? tempDirEnv : "/tmp";
+    if (!directory.empty() && (directory.back() != '/'))
+        directory += '/';
+    directory += "openRenderTextureCache/";
+
+    return directory;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	computeTextureCacheFilePath
+// Description			:	Computes the disk-cache key/path for sourcePath
+//							(spec 020, 020-runtime-tile-paging, T017):
+//							<hash-of-absolute-source-path>-<source-mtime-
+//							epoch-seconds>.tex, under the configured (or
+//							default, see resolveDefaultTextureCacheDirectory
+//							above) cache directory (research.md SS5). "Is
+//							there a valid, fresh cache entry" reduces to "is
+//							there a file at this exact path" -- a changed
+//							source resolves to a different filename
+//							entirely, so no separate staleness check is
+//							needed (FR-006).
+// Return Value			:	true on success (cachePath filled); false if
+//							sourcePath's absolute path or mtime could not be
+//							determined (should-never-happen -- the caller
+//							already decoded sourcePath successfully via
+//							CImageInput).
+// Comments				:	Creates the cache directory (best-effort,
+//							ignoring failure -- an unwritable location
+//							degrades to in-memory-only per FR-007, detected
+//							later when the actual write attempt fails).
+static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath) {
+    char absolutePath[OS_MAX_PATH_LENGTH];
+    if (realpath(sourcePath, absolutePath) == NULL) {
+        return false;
+    }
+
+    struct stat st;
+    if (stat(absolutePath, &st) != 0) {
+        return false;
+    }
+
+    std::string directory = (CRenderer::textureCacheDirectory != NULL) ? CRenderer::textureCacheDirectory : resolveDefaultTextureCacheDirectory();
+    if (!directory.empty() && (directory.back() != '/'))
+        directory += '/';
+
+    osCreateDir(directory.c_str()); // best-effort; mkdir() failure (e.g. EEXIST, or unwritable parent) is not fatal here
+
+    const size_t hash = std::hash<std::string>{}(absolutePath);
+    char filename[64];
+    snprintf(filename, sizeof(filename), "%zx-%lld.tex", hash, (long long)st.st_mtime);
+
+    cachePath = directory + filename;
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	writeTextureCacheEntry
+// Description			:	Best-effort disk-cache write for sourcePath,
+//							targeting finalCachePath (spec 020,
+//							020-runtime-tile-paging, T018). Reuses the
+//							existing makeTexture() (texmake.h) -- already
+//							renderer-linked, already dispatches through
+//							createImageInput() -- as the writer, so this
+//							spec invents no new TIFF-pyramid-writing code
+//							(research.md SS8).
+// Return Value			:	-
+// Comments				:	Writes to a temporary, uniquely-named
+//							(PID-suffixed) path in the SAME directory as
+//							finalCachePath first, then rename()s it into
+//							place only once fully written (research.md
+//							SS6) -- a reader only ever attempts
+//							finalCachePath, so it can never observe a
+//							partial write, even when several render
+//							processes race to populate the same entry
+//							(FR-016/SC-006). A write failure (unwritable
+//							location) simply leaves nothing to rename;
+//							this never fails or alters the render (FR-007)
+//							-- the caller has already proceeded via the
+//							in-memory CSynthesizedTileSource path
+//							regardless.
+static void writeTextureCacheEntry(const char *sourcePath, const std::string &finalCachePath) {
+    char tempPath[OS_MAX_PATH_LENGTH];
+    snprintf(tempPath, sizeof(tempPath), "%s.tmp%d", finalCachePath.c_str(), (int)getpid());
+
+    makeTexture(sourcePath, tempPath, CRenderer::texturePath, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 0, NULL, NULL);
+
+    if (osFileExists(tempPath)) {
+        rename(tempPath, finalCachePath.c_str());
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	textureLoad
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
@@ -2784,22 +2905,61 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
         // mode both axes (FR-013's resolved default) -- there is no RIB
         // parameter list to read a wrap-mode override from here, unlike
         // a baked texture's TIFFTAG_PIXAR_WRAPMODES tag.
-        std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn);
-        if (pyramid) {
-            if (pyramid->bitsPerSample == 8) {
-                cTexture = readSynthesizedTexture<unsigned char>(name, pyramid);
-            }
-            else if (pyramid->bitsPerSample == 16) {
-                cTexture = readSynthesizedTexture<unsigned short>(name, pyramid);
-            }
-            else {
-                cTexture = readSynthesizedTexture<float>(name, pyramid);
+        std::string cachePath;
+        bool haveCachePath = false;
+
+        if (CRenderer::textureCacheEnabled) {
+            // Opt-in disk cache (T017/T018, contracts/texturecache-option.md):
+            // a cache hit reads back through the completely ordinary,
+            // unmodified CTiffTileSource fast path above -- no new
+            // read-side code at all.
+            haveCachePath = computeTextureCacheFilePath(fn, cachePath);
+            if (haveCachePath) {
+                // Unlike looksLikeTiff()'s use on the SOURCE file above
+                // (whose existence locateFile() already confirmed, making
+                // an unreadable-file fallback truly should-never-happen),
+                // the cache path legitimately may not exist yet -- a
+                // first-time miss is the normal, expected case, not an
+                // error. Check existence explicitly first, so a miss
+                // never reaches TIFFOpen() at all (avoiding the same
+                // spurious-error/exit-code hazard looksLikeTiff() itself
+                // exists to avoid for the source-file check, T009).
+                TIFF *cacheIn = (osFileExists(cachePath.c_str()) && looksLikeTiff(cachePath.c_str())) ? TIFFOpen(cachePath.c_str(), "r") : NULL;
+                if (cacheIn != NULL) {
+                    int directory = 0;
+                    cTexture = texLoad(cachePath.c_str(), name, cacheIn, directory);
+                    TIFFClose(cacheIn);
+                }
             }
         }
-        // On failure (unrecognized/unsupported format, or a decode
-        // failure), cTexture stays NULL -- CRenderer::getTexture()'s
-        // existing CDummyTexture substitution + CODE_NOFILE error
-        // (rendererFiles.cpp:373) handles it exactly as it always has.
+
+        if (cTexture == NULL) {
+            // Cache disabled, cache miss, or no usable cache path --
+            // decode+synthesize in memory (T009's original path).
+            std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn);
+            if (pyramid) {
+                if (CRenderer::textureCacheEnabled && haveCachePath) {
+                    // Best-effort disk-cache write (T018) -- never fails
+                    // or alters this render either way (FR-007); the
+                    // in-memory path below proceeds regardless.
+                    writeTextureCacheEntry(fn, cachePath);
+                }
+
+                if (pyramid->bitsPerSample == 8) {
+                    cTexture = readSynthesizedTexture<unsigned char>(name, pyramid);
+                }
+                else if (pyramid->bitsPerSample == 16) {
+                    cTexture = readSynthesizedTexture<unsigned short>(name, pyramid);
+                }
+                else {
+                    cTexture = readSynthesizedTexture<float>(name, pyramid);
+                }
+            }
+            // On failure (unrecognized/unsupported format, or a decode
+            // failure), cTexture stays NULL -- CRenderer::getTexture()'s
+            // existing CDummyTexture substitution + CODE_NOFILE error
+            // (rendererFiles.cpp:373) handles it exactly as it always has.
+        }
     }
 
     return cTexture;
