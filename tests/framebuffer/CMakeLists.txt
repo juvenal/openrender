@@ -12,6 +12,7 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(test_fb_ipc PRIVATE openrender_common_flags openrendercommon pthread)
     target_include_directories(test_fb_ipc PRIVATE
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/display
         ${CMAKE_BINARY_DIR}
     )
     target_compile_features(test_fb_ipc PRIVATE cxx_std_20)

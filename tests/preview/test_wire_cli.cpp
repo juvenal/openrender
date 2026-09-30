@@ -72,8 +72,8 @@ static CapturedOutput runCli(int argc, char **argv, int *exitCode) {
     fflush(stderr);
     int savedOut = dup(STDOUT_FILENO);
     int savedErr = dup(STDERR_FILENO);
-    freopen(outPath, "w", stdout);
-    freopen(errPath, "w", stderr);
+    CHECK(freopen(outPath, "w", stdout) != NULL);
+    CHECK(freopen(errPath, "w", stderr) != NULL);
 
     char *dataPath = NULL;
     WireCliAction action = wireCliRun(argc, argv, &dataPath, exitCode);

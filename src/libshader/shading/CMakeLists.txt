@@ -76,6 +76,21 @@ if(APPLE)
     # This breaks the circular dependency: libshader_shading references CRenderer::*,
     # stats, etc. from ri, while ri links against libshader_shading.
     target_link_options(libshader_shading PRIVATE "-undefined" "dynamic_lookup")
+elseif(UNIX)
+    # ELF equivalent of the APPLE workaround above, but applied on the consumer
+    # side: libshader_shading.so's undefined CRenderer::*/stats/etc. symbols
+    # (satisfied at runtime by ribRender.so) carry no recorded NEEDED entry back
+    # to ribRender -- this library deliberately never links ribRender (one-way
+    # dependency, see the file header comment). GNU ld's default is to allow
+    # that (--allow-shlib-undefined) *unless* something in the same link
+    # directly calls a symbol that only libshader_shading.so exports (e.g. a
+    # test binding straight to op_mcomp()/op_setmcomp() while also linking
+    # ribRender for CRenderer::* etc.) -- once that happens, ld additionally
+    # insists libshader_shading.so's own undefined symbols be resolvable too,
+    # and refuses to take it on faith that a sibling ribRender.so on the same
+    # command line will cover them at runtime, even though it does. INTERFACE
+    # so every consumer's link automatically gets the flag.
+    target_link_options(libshader_shading INTERFACE "-Wl,--allow-shlib-undefined")
 endif()
 
 # Shading engine needs src/ri/ headers for renderer types (CObject, CPhotonMap, etc.)

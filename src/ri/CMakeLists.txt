@@ -418,6 +418,14 @@ if(APPLE)
     endif()
 endif()
 
+# orender-wire (src/preview/) links this directly and needs it at runtime --
+# without an install rule it's built but never lands in the deploy tree,
+# so `orender-wire` fails at load time with "cannot open shared object file".
+install(TARGETS ribVector
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
 # ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
 # and final CRiInterface implementation, needing even less than ribVector.
 # CRibOut (output/ribOut.cpp) never constructs a single geometry class: it

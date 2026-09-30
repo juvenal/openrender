@@ -127,7 +127,8 @@ static void runOrender(const char *orenderBin, const char *displaysDir,
     std::string cmd = std::string("SHADERS=\"") + shadersDir + "\" ORENDERHOME=\"" + shadersDir +
                       "\" DISPLAYS=\"" + displaysDir + "\" \"" + orenderBin + "\" \"" +
                       ribPath + "\" > \"" + logPath + "\" 2>&1";
-    system(cmd.c_str());
+    int rc = system(cmd.c_str());
+    (void)rc; // orender's exit code is not a useful success signal here (see comment above)
 }
 
 // Counts non-overlapping occurrences of needle in haystack.

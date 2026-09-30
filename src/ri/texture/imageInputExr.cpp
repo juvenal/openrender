@@ -29,6 +29,7 @@
 
 #include <ImfChannelList.h>
 #include <ImfFrameBuffer.h>
+#include <ImfHeader.h>
 #include <ImfInputPart.h>
 #include <ImfMultiPartInputFile.h>
 

@@ -63,7 +63,8 @@ static long runKeysCapturingStdout(void (*run)()) {
     const char *capturePath = "test_data_keys_stdout_capture.txt";
     fflush(stdout);
     int savedFd = dup(STDOUT_FILENO);
-    freopen(capturePath, "w", stdout);
+    FILE *reopened = freopen(capturePath, "w", stdout);
+    CHECK(reopened != nullptr);
 
     run();
 
