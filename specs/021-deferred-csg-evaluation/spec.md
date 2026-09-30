@@ -6,9 +6,19 @@
 
 **Status**: Draft
 
-**Supersedes**: Spec 013 (`013-solid-csg-operations`) behavior of resolving a solid's composite surface once, up front, when its solid block closes (013 FR-007 and FR-022). All other spec 013 guarantees remain in force.
+**Supersedes**: Spec 013 (`013-solid-csg-operations`) behavior of resolving a solid's composite surface once, up front, when its solid block closes (013 FR-007 and FR-022), and 013's rejection of procedural primitives as solid operands (013 FR-015's exception and FR-021). All other spec 013 guarantees remain in force.
 
 **Input**: User description: "Deferred, on-demand evaluation of constructive solid geometry (SolidBegin/SolidEnd solids). Solids composed with union/intersection/difference render with jagged, spiky seams, thin cracks and polygonal openings where operands meet, identically in every visibility method, because the composed shape is fixed into a fixed-precision surface when the solid block closes. A composed solid must stay its high-level definition for the whole render; its composite surface is only worked out where and when rendering needs it, at a precision fit for the view, as the last step before appearance is computed. Geometry, appearance (shading) and visibility (hiding) must stay independent concerns."
+
+## Clarifications
+
+### Session 2026-09-30
+
+- Q: When an operand isn't a closed shape on its own (e.g. an uncapped cylinder), how should it take part in a boolean operation? → A: Treat it as the closed solid it implies — open ends and partial-sweep gaps are capped with flat faces, silently (no notice).
+- Q: How much slower than today may solid scenes render? → A: Same order of magnitude — under 10× today's render time on every existing solid test scene; correctness first, optimization later.
+- Q: Does the seam guarantee apply to every operand type or only analytic shapes? → A: No cracks for every operand type; within-1-pixel seam accuracy for analytic shapes (quadrics, flat polygons); free-form surfaces (patches, NURBS, subdivision) must be as accurate at the seam as they already render outside a solid.
+- Q: Should procedural (deferred-expansion) primitives be allowed as solid operands now that evaluation is deferred? → A: Yes — allowed in this feature, expanded only when the solid is first needed by rendering; spec 013's rejection diagnostic (013 FR-021) is retired.
+- Q: What should happen to spec 013's `Attribute "solid" "tessellationtolerance"` setting? → A: Keep accepting it without error; it has no effect; print a one-time notice per render saying so.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -59,8 +69,9 @@ A scene author's existing solid scenes, including nested operations, per-operand
 2. **Given** a composite whose operands carry different surface shaders, **When** rendered, **Then** each part of the final surface shows the shader of the operand it came from, including the walls exposed by a subtraction.
 3. **Given** a solid with Interior/Exterior shaders, **When** viewed from outside and from inside its volume, **Then** the exterior and interior shaders apply exactly as spec 013 requires.
 4. **Given** a solid defined once as an object and instanced several times under different transforms, **When** rendered, **Then** every instance shows the correct composite shape with smooth seams.
-5. **Given** malformed solid blocks (unknown operation name, unmatched or improperly nested blocks, a block nested inside a "primitive" block, a procedural inside a "primitive" block), **When** parsed, **Then** the same diagnostics are reported as before.
+5. **Given** malformed solid blocks (unknown operation name, unmatched or improperly nested blocks, a block nested inside a "primitive" block), **When** parsed, **Then** the same diagnostics are reported as before.
 6. **Given** an empty solid block, or a boolean block with a single operand, **When** rendered, **Then** the empty block yields nothing and the single operand renders unchanged.
+7. **Given** a "primitive" solid block containing a procedural primitive (for example, a delayed-read archive holding a sphere), **When** the solid is rendered, **Then** the procedural's expanded geometry takes part in the boolean operation exactly as if it had been written directly in the block, and it is expanded no earlier than the first time rendering needs that solid.
 
 ---
 
@@ -82,7 +93,7 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 
 ### Edge Cases
 
-- **Open operand shapes**: an operand that is not a closed shape on its own, such as the hero scene's uncapped cylinder or a partial-sweep quadric, is treated as its implied closed solid (see Assumptions; to be confirmed in clarification).
+- **Open operand shapes**: an operand that is not a closed shape on its own, such as the hero scene's uncapped cylinder or a partial-sweep quadric, is treated as its implied closed solid, with its open ends and sweep gaps capped by flat faces (FR-021). No notice is printed.
 - **Coincident faces**: operands whose faces exactly coincide (two boxes sharing a face in a union, a subtracted box flush with a face of the other) produce a clean result: no leftover internal skin, no flicker between faces, no pinholes along the shared face.
 - **Containment**: one operand lying entirely inside or entirely outside another produces the correct result (for example, subtracting a shape entirely outside the first leaves the first unchanged).
 - **Tangency**: operands that only touch at a point or along a curve produce no stray slivers or holes at the touching region.
@@ -108,8 +119,9 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 
 **Seam quality**
 
-- **FR-006**: System MUST render seams between operands free of cracks, gaps and slivers at any image resolution.
-- **FR-007**: System MUST render curved seams smooth to within one pixel of the exact intersection of the operand shapes at the rendered resolution, with no visible facets, spikes or spurs.
+- **FR-006**: System MUST render seams between operands free of cracks, gaps and slivers at any image resolution, for every accepted operand type.
+- **FR-007**: Where every operand meeting at a seam is an analytic shape (quadrics and flat polygons), System MUST render the seam within one pixel of the exact intersection of the operand shapes at the rendered resolution, with no visible facets, spikes or spurs.
+- **FR-007a**: Where a free-form operand (bilinear/bicubic patch, patch mesh, NURBS, subdivision surface) meets another operand at a seam, the seam MUST be no less accurate than that free-form surface is when rendered on its own outside any solid, at the same resolution and settings.
 - **FR-008**: System MUST keep seams continuous across the boundaries between separately processed regions of the image.
 - **FR-009**: System MUST NOT let seam accuracy degrade as image resolution increases.
 
@@ -127,19 +139,21 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 - **FR-016**: Each part of the final surface MUST keep the surface shader and the Interior/Exterior shader assignments of the operand it came from, with Interior/Exterior behavior exactly as spec 013 FR-009 to FR-012 and FR-020 define.
 - **FR-017**: A solid defined inside an object definition and instanced MUST render correctly for every instance, each under its own transform.
 - **FR-018**: System MUST keep every operand type spec 013 accepts as a valid operand.
-- **FR-019**: System MUST report the same diagnostics as spec 013 for malformed blocks (FR-013, FR-014, FR-019, FR-021); an empty block MUST yield nothing and a single-operand boolean block MUST yield that operand unchanged (spec 013 FR-016, FR-017).
+- **FR-019**: System MUST report the same diagnostics as spec 013 for malformed blocks (013 FR-013, FR-014, FR-019); an empty block MUST yield nothing and a single-operand boolean block MUST yield that operand unchanged (spec 013 FR-016, FR-017). Spec 013's rejection of procedural operands (013 FR-021) is retired by FR-024.
 - **FR-020**: Scenes that use no solid blocks MUST render exactly as before this feature.
 
 **Operands and settings**
 
-- **FR-021**: An operand that is not a closed shape on its own (for example, a cylinder without end caps, or a quadric swept through less than a full turn) MUST behave as the closed solid it implies, capped across its open ends, so that scenes like the hero scene produce the intuitively expected result.
+- **FR-021**: An operand that is not a closed shape on its own (for example, a cylinder without end caps, or a quadric swept through less than a full turn) MUST behave as the closed solid it implies: its open ends and sweep gaps are treated as capped by flat faces, so that scenes like the hero scene produce the intuitively expected result. Where a cap lies on the final composite boundary, it MUST appear as a real surface with the operand's shader. No notice or warning is emitted for auto-closed operands.
 - **FR-022**: Where operand faces coincide exactly, System MUST produce a clean, deterministic result: no leftover internal skin, no flicker between the coincident faces, no pinholes along them.
-- **FR-023**: The per-primitive "solid" tessellation tolerance setting introduced by spec 013 MUST remain accepted in scene files without error, but MUST no longer be required to obtain smooth seams. A one-time notice MUST tell the author that the setting no longer affects results.
+- **FR-023**: The per-primitive "solid" tessellation tolerance setting introduced by spec 013 MUST remain accepted in scene files without error, but MUST have no effect on the rendered result; seam precision is governed solely by the view (FR-003, FR-007, FR-007a). The first time the setting is encountered in a render, a single notice MUST tell the author that it no longer affects results; later occurrences in the same render MUST NOT repeat the notice.
+- **FR-024**: System MUST accept procedural (deferred-expansion) primitives inside "primitive" solid blocks. Everything a procedural expands to belongs to the operand of the block it was declared in, exactly as if written there directly. A procedural operand MUST NOT be expanded before rendering first needs its solid, and MUST NOT be expanded at all if its solid never contributes to the image or to any traced ray. Each procedural operand is expanded at most once per solid instance.
+- **FR-025**: If a procedural operand's expansion itself opens a solid block, System MUST report the same diagnostic as a solid block nested inside a "primitive" block (spec 013 FR-019), and ignore that nested block. A procedural operand that expands to nothing contributes an empty operand: an empty first operand of a difference or intersection yields nothing, and an empty operand in a union, or a later operand of a difference, changes nothing.
 
 ### Key Entities
 
 - **Solid definition**: a named composition of one or more operands under an operation (primitive, union, intersection, difference), possibly nested. It is retained unchanged from block close until the frame ends and is shared by every instance of it.
-- **Operand**: an original shape (quadric, patch, patch mesh, NURBS, subdivision surface, polygon mesh, etc.) as the author declared it, with its own attributes and shaders. It is never replaced by an approximation of itself.
+- **Operand**: an original shape (quadric, patch, patch mesh, NURBS, subdivision surface, polygon mesh, etc.), or a procedural that expands into such shapes on demand, as the author declared it, with its own attributes and shaders. It is never replaced by an approximation of itself.
 - **Composite surface region**: the part of an operand's surface that belongs to the final solid's boundary, together with the direction it faces (flipped for walls exposed by subtraction). It is determined on demand, only where and when rendering needs it.
 
 ## Success Criteria *(mandatory)*
@@ -151,18 +165,16 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 - **SC-003**: The hero and sphere-minus-cube scenes show 0 see-through gaps (pixels where the background shows through a surface that should be solid) at both resolutions, in all three visibility methods.
 - **SC-004**: For each solid test scene, the raytrace, REYES and Z-buffer images agree within the renderer's existing cross-method tolerances.
 - **SC-005**: 100% of the existing solid test scenes and solid-related tests pass (with reference images regenerated only where seams improve), and 100% of the existing non-solid visual regression scenes are unchanged.
-- **SC-006**: A solid entirely outside the view (and never reached by a traced ray) triggers 0 surface-refinement operations, as reported by the renderer's statistics.
-- **SC-007**: Render time for the existing solid test scenes stays within the same order of magnitude as the current baseline: less than 10× (hero scene today: raytrace 0.31 s at 800×500 / 1.42 s at 1600×1000; REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s). A tighter target may be set during clarification.
+- **SC-006**: A solid entirely outside the view (and never reached by a traced ray) triggers 0 surface-refinement operations and 0 procedural expansions, as reported by the renderer's statistics.
+- **SC-007**: Render time for every existing solid test scene (and the hero scene) stays under 10× its current baseline, measured on the same machine and build configuration (hero scene today: raytrace 0.31 s at 800×500 / 1.42 s at 1600×1000; REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s). Correctness takes priority; performance optimization beyond this bound is a follow-up.
 - **SC-008**: The region of an operand untouched by the boolean operation (for example, the far side of the hero sphere) matches a render of the same shape without any solid block, within existing rendering tolerances.
-- **SC-009**: Project documentation describing solids is updated to reflect deferred evaluation, the retired role of the tessellation tolerance setting, and the treatment of open operands (constitution Principle VII).
+- **SC-009**: Project documentation describing solids is updated to reflect deferred evaluation, the retired role of the tessellation tolerance setting, the treatment of open operands, and the acceptance of procedural operands (constitution Principle VII).
+- **SC-010**: A solid built from a procedural operand (for example, a delayed-read archive containing a sphere, subtracted by a cylinder) renders identically, within existing rendering tolerances, to the same solid with the sphere written directly in the scene.
 
 ## Assumptions
 
-- **Open operands are implied closed solids (FR-021)**. This matches the hero scene author's intent and common CSG practice. The alternative, rejecting open operands with a diagnostic, would break the reference scene. *To be confirmed in /speckit.clarify.*
-- **Tessellation tolerance setting is kept but inert (FR-023)**. Accepting it silently preserves existing scene files; a notice avoids confusion. *To be confirmed in /speckit.clarify.*
-- **Procedural (deferred) primitives stay rejected as operands**, unchanged from spec 013 FR-021, even though deferred evaluation could make them possible. Lifting that restriction is a possible follow-up, not part of this feature. *To be confirmed in /speckit.clarify.*
-- **Performance target is "same order of magnitude" (SC-007)**, keeping spec 013's correctness-first stance while bounding regressions. *To be confirmed or tightened in /speckit.clarify.*
+- **A procedural operand's declared bound encloses everything it expands to**, as the RenderMan standard requires of every procedural; geometry outside the declared bound may be missed, exactly as for procedurals outside solids.
 - **Moving (motion-blurred) operands** keep whatever behavior they have today; motion-blurred CSG is out of scope.
 - **Operand shapes, their transforms and attributes are fixed** once the solid block closes (standard RenderMan scene-description semantics).
 - **Existing cross-method agreement tolerances** (the parity thresholds already used by the renderer's test suite) are the yardstick for "consistent across visibility methods"; no new tolerance is introduced.
-- **Seam accuracy is measured against the exact analytic intersection** for scenes whose operands have closed-form shapes (spheres, cylinders, boxes), which covers both reference scenes.
+- **Seam accuracy is measured against the exact analytic intersection** for scenes whose operands are analytic shapes (spheres, cylinders, boxes), which covers both reference scenes. For free-form operands, accuracy is measured against a render of the same free-form surface outside any solid (FR-007a).
