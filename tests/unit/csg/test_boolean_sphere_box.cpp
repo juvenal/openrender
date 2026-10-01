@@ -4,29 +4,13 @@
  * File: test_boolean_sphere_box.cpp
  *
  * Description:
- *   Unit test (T015, spec 013-solid-csg-operations, US1) for the CSG
- *   boolean kernel (csgBoolean.h/.cpp): a curved operand (UV-tessellated
- *   sphere) against a flat operand (box), validating that spanning-polygon
- *   clipping works for triangles (not just quads) and that operand
- *   tessellation density flows through to the combined result unchanged.
- *
- *   Volume conservation ("upper half + lower half == whole") is used as
- *   the correctness invariant instead of an analytic sphere-volume
- *   comparison, since a UV-tessellated sphere is only an inscribed-
- *   polyhedron approximation of the true sphere and its exact volume
- *   depends on `slices`/`stacks` -- but for ANY fixed tessellation, the
- *   intersection with two complementary half-space boxes must sum back
- *   to the untouched whole, regardless of how it approximates a true
- *   sphere. This makes the test implementation-independent of both the
- *   BSP kernel's fragmentation choices AND the sphere tessellation's
- *   approximation error.
- *
- *   Attribute "solid" "float tessellationtolerance" wiring into the
- *   adaptive per-primitive tessellation pipeline is T020-T022's job (not
- *   yet implemented); this test instead drives the kernel directly with
- *   two different fixed `slices`/`stacks` densities to confirm operand
- *   density is preserved end-to-end by csgCombine(), independent of how
- *   a future density is chosen upstream.
+ *   Unit test (T022, spec 021; rewritten from spec 013's BSP kernel suite)
+ *   for a sphere combined with a bilinear-patch box: a box covering the
+ *   half-space x > 0 splits the unit sphere into two hemispheres whose
+ *   volumes add up to the sphere's; a box enclosing the sphere leaves it
+ *   whole under intersection and empty under difference; a disjoint box
+ *   leaves nothing in common. Classification is exact at the seam: points
+ *   1e-4 either side of it classify correctly (no tessellation).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -37,120 +21,67 @@
  *
  */
 
-#include <cstdio>
+#include "csgTreeHelpers.h"
 
-#include "csgTestUtils.h"
+using namespace csgtest;
 
-static int tests_passed = 0;
-static int tests_failed = 0;
-
-#define TEST(name)                              \
-    void test_##name();                         \
-    void run_test_##name() {                    \
-        printf("Running test: %s ... ", #name); \
-        fflush(stdout);                         \
-        int failedBefore = tests_failed;        \
-        test_##name();                          \
-        if (tests_failed == failedBefore) {     \
-            tests_passed++;                     \
-            printf("PASSED\n");                 \
-        }                                       \
-    }                                           \
-    void test_##name()
-
-#define ASSERT(condition)                                          \
-    do {                                                           \
-        if (!(condition)) {                                        \
-            printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
-                   #condition, __FILE__, __LINE__);                \
-            tests_failed++;                                        \
-            return;                                                \
-        }                                                          \
-    } while (0)
-
-static const float kVolumeTolerance = 1e-3f;
+static const float GLO[3] = {-1.2f, -1.2f, -1.2f}, GHI[3] = {1.2f, 1.2f, 1.2f};
+static const double SPHERE = 4.0 * M_PI / 3.0;
 
 TEST(half_space_split_conserves_volume) {
-    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 16, 8, NULL);
-    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0, 0, 0, 1.0f, 16, 8, NULL);
-    CArray<CCSGPolygon *> *upperBox = csgtest::makeBox(-2, -2, 0.0f, 2, 2, 2, NULL);  // z in [0,2]
-    CArray<CCSGPolygon *> *lowerBox = csgtest::makeBox(-2, -2, -2.0f, 2, 2, 0, NULL); // z in [-2,0]
-
-    double wholeVolume = csgtest::computeVolume(sphereRef);
-    ASSERT(wholeVolume > 0.1); // sanity: a real, non-degenerate sphere approximation
-
-    CArray<CCSGPolygon *> *upperHalf = csgCombine(CSG_INTERSECTION, sphere, upperBox);
-    CArray<CCSGPolygon *> *lowerHalf = csgCombine(CSG_INTERSECTION, sphere, lowerBox);
-
-    double sumVolume = csgtest::computeVolume(upperHalf) + csgtest::computeVolume(lowerHalf);
-
-    ASSERT(fabs(sumVolume - wholeVolume) < kVolumeTolerance);
-
-    csgFreePolygons(sphere);
-    csgFreePolygons(sphereRef);
-    csgFreePolygons(upperBox);
-    csgFreePolygons(lowerBox);
-    csgFreePolygons(upperHalf);
-    csgFreePolygons(lowerHalf);
+    CCsgSession s;
+    const float lo[3] = {0, -2, -2}, hi[3] = {2, 2, 2};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), {sphere(s, 0, 0, 0, 1)}),
+                                              makeOperand(s.ctx(), boxPatches(s, lo, hi))};
+    const double in = volume(definition(2, N(CSG_INTERSECTION, {L(0), L(1)})), ops, s.ctx(), GLO, GHI, 40);
+    const double out = volume(definition(2, N(CSG_DIFFERENCE, {L(0), L(1)})), ops, s.ctx(), GLO, GHI, 40);
+    ASSERT(std::fabs(in - SPHERE / 2) < 0.02 * SPHERE);
+    ASSERT(std::fabs(out - SPHERE / 2) < 0.02 * SPHERE);
+    ASSERT(std::fabs(in + out - SPHERE) < 0.02 * SPHERE);
 }
 
-TEST(box_fully_enclosing_sphere_leaves_volume_unchanged) {
-    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
-    CArray<CCSGPolygon *> *sphereRef = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
-    CArray<CCSGPolygon *> *box = csgtest::makeBox(-5, -5, -5, 5, 5, 5, NULL);
-
-    double sphereVolume = csgtest::computeVolume(sphereRef);
-    CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, sphere, box);
-    double resultVolume = csgtest::computeVolume(result);
-
-    ASSERT(fabs(resultVolume - sphereVolume) < kVolumeTolerance);
-
-    csgFreePolygons(sphere);
-    csgFreePolygons(sphereRef);
-    csgFreePolygons(box);
-    csgFreePolygons(result);
+TEST(box_fully_enclosing_sphere) {
+    CCsgSession s;
+    const float lo[3] = {-2, -2, -2}, hi[3] = {2, 2, 2};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), {sphere(s, 0, 0, 0, 1)}),
+                                              makeOperand(s.ctx(), boxPatches(s, lo, hi))};
+    ASSERT(std::fabs(volume(definition(2, N(CSG_INTERSECTION, {L(0), L(1)})), ops, s.ctx(), GLO, GHI, 40) - SPHERE) <
+           0.02 * SPHERE);
+    ASSERT(volume(definition(2, N(CSG_DIFFERENCE, {L(0), L(1)})), ops, s.ctx(), GLO, GHI, 40) == 0.0);
 }
 
 TEST(disjoint_sphere_and_box_intersection_is_empty) {
-    CArray<CCSGPolygon *> *sphere = csgtest::makeSphere(0, 0, 0, 1.0f, 12, 6, NULL);
-    CArray<CCSGPolygon *> *box = csgtest::makeBox(10, 10, 10, 12, 12, 12, NULL);
-
-    CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, sphere, box);
-
-    ASSERT(result->numItems == 0);
-    ASSERT(fabs(csgtest::computeVolume(result)) < kVolumeTolerance);
-
-    csgFreePolygons(sphere);
-    csgFreePolygons(box);
-    csgFreePolygons(result);
+    CCsgSession s;
+    const float lo[3] = {3, 3, 3}, hi[3] = {4, 4, 4};
+    const float glo[3] = {-1.2f, -1.2f, -1.2f}, ghi[3] = {4.2f, 4.2f, 4.2f};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), {sphere(s, 0, 0, 0, 1)}),
+                                              makeOperand(s.ctx(), boxPatches(s, lo, hi))};
+    ASSERT(volume(definition(2, N(CSG_INTERSECTION, {L(0), L(1)})), ops, s.ctx(), glo, ghi, 30) == 0.0);
+    const double un = volume(definition(2, N(CSG_UNION, {L(0), L(1)})), ops, s.ctx(), glo, ghi, 30);
+    ASSERT(std::fabs(un - (SPHERE + 1.0)) < 0.05 * (SPHERE + 1.0));
 }
 
-TEST(finer_tessellation_yields_denser_result) {
-    CArray<CCSGPolygon *> *coarseSphere = csgtest::makeSphere(0, 0, 0, 1.0f, 8, 4, NULL);
-    CArray<CCSGPolygon *> *fineSphere = csgtest::makeSphere(0, 0, 0, 1.0f, 24, 12, NULL);
-    CArray<CCSGPolygon *> *box = csgtest::makeBox(-5, -5, -5, 5, 5, 5, NULL);
-
-    CArray<CCSGPolygon *> *coarseResult = csgCombine(CSG_INTERSECTION, coarseSphere, box);
-    CArray<CCSGPolygon *> *fineResult = csgCombine(CSG_INTERSECTION, fineSphere, box);
-
-    ASSERT(fineResult->numItems > coarseResult->numItems);
-
-    csgFreePolygons(coarseSphere);
-    csgFreePolygons(fineSphere);
-    csgFreePolygons(box);
-    csgFreePolygons(coarseResult);
-    csgFreePolygons(fineResult);
+TEST(classification_is_exact_at_the_seam) {
+    CCsgSession s;
+    const float lo[3] = {0, -2, -2}, hi[3] = {2, 2, 2};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), {sphere(s, 0, 0, 0, 1)}),
+                                              makeOperand(s.ctx(), boxPatches(s, lo, hi))};
+    CCSGDefinition *in = definition(2, N(CSG_INTERSECTION, {L(0), L(1)}));
+    for (int i = 0; i < 32; i++) {
+        const double a = 2 * M_PI * i / 32;
+        for (int side = -1; side <= 1; side += 2) {
+            // Near the sphere's surface, in the half x > 0
+            const double r = 1 + side * 1e-4;
+            const float P[3] = {(float)(0.6 * r), (float)(0.8 * r * std::cos(a)), (float)(0.8 * r * std::sin(a))};
+            ASSERT(inside(in, ops, s.ctx(), P) == (side < 0 ? TRUE : FALSE));
+        }
+    }
 }
 
 int main() {
-    printf("=== CSG Boolean Kernel Tests: boolean_sphere_box (T015) ===\n\n");
-
-    run_test_half_space_split_conserves_volume();
-    run_test_box_fully_enclosing_sphere_leaves_volume_unchanged();
-    run_test_disjoint_sphere_and_box_intersection_is_empty();
-    run_test_finer_tessellation_yields_denser_result();
-
-    printf("\n=== Results: %d passed, %d failed ===\n", tests_passed, tests_failed);
-
-    return tests_failed > 0 ? 1 : 0;
+    RUN(half_space_split_conserves_volume);
+    RUN(box_fully_enclosing_sphere);
+    RUN(disjoint_sphere_and_box_intersection_is_empty);
+    RUN(classification_is_exact_at_the_seam);
+    SUMMARY();
 }

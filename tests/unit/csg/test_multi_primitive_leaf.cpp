@@ -4,25 +4,11 @@
  * File: test_multi_primitive_leaf.cpp
  *
  * Description:
- *   Unit test (T014, spec 013-solid-csg-operations, US1) for the
- *   renderer-level SolidBegin/SolidEnd capture path (rendererContext.cpp
- *   CRendererContext::addObject / csgTree.cpp resolveCSGTree): two raw
- *   primitives declared inside one `SolidBegin "primitive"` block (no
- *   nested SolidBegin) must be captured as a single CSGTreeNode's
- *   leafObjects chain (FR-002) and resolved into ONE CSolidObject whose
- *   `fragments` chain contains exactly those two objects.
- *
- *   Drives the real Ri* interface in-process (RiBegin(RI_NULL), no RIB
- *   parsing, no display/hider setup -- following the precedent already
- *   established by tests/imager/test_imager_execution.cpp). A test-only
- *   CRendererContext subclass, installed via RiSetContextFactory(),
- *   intercepts the single addObject(CSolidObject*) call that would
- *   otherwise reach CRenderer::render() (which needs a live hider/
- *   display this test never sets up) -- every other addObject() call
- *   (the two RiSphere leaves, captured while a solid block is open)
- *   still runs through the real, unmodified CRendererContext::addObject
- *   leaf-chaining logic (rendererContext.cpp:502-507), so the chaining
- *   behavior under test is genuine, not reimplemented.
+ *   Unit test (T023, spec 021; rewritten from spec 013's multi-primitive
+ *   leaf suite) for an operand holding several primitives: two disjoint
+ *   spheres are both inside it, and two coincident identical spheres cancel
+ *   by parity, so the operand behaves as empty (the documented consequence
+ *   of crossing parity; use a "union" block to merge overlapping shapes).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -33,111 +19,34 @@
  *
  */
 
-#include <cstdio>
+#include "csgTreeHelpers.h"
 
-#include "object.h"
-#include "rendererContext.h"
-#include "ri.h"
-#include "riHooks.h"
-#include "solidObject.h"
+using namespace csgtest;
 
-static int tests_passed = 0;
-static int tests_failed = 0;
-
-#define TEST(name)                              \
-    void test_##name();                         \
-    void run_test_##name() {                    \
-        printf("Running test: %s ... ", #name); \
-        fflush(stdout);                         \
-        int failedBefore = tests_failed;        \
-        test_##name();                          \
-        if (tests_failed == failedBefore) {     \
-            tests_passed++;                     \
-            printf("PASSED\n");                 \
-        }                                       \
-    }                                           \
-    void test_##name()
-
-#define ASSERT(condition)                                          \
-    do {                                                           \
-        if (!(condition)) {                                        \
-            printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
-                   #condition, __FILE__, __LINE__);                \
-            tests_failed++;                                        \
-            return;                                                \
-        }                                                          \
-    } while (0)
-
-// Intercepts the single addObject(CSolidObject*) call made by
-// resolveCSGTree() at the outermost RiSolidEnd -- skipping
-// CRenderer::render() (no hider/display exists in this test) -- while
-// leaving every other addObject() call (leaf-chaining while a solid
-// block is open) to the real base-class implementation.
-class CCaptureContext : public CRendererContext {
-    public:
-        CSolidObject *captured;
-
-        CCaptureContext() : CRendererContext(), captured(NULL) {}
-
-        virtual void addObject(CObject *o) {
-            CSolidObject *solid = dynamic_cast<CSolidObject *>(o);
-
-            if (solid != NULL) {
-                captured = solid;
-                solid->attach();
-                return;
-            }
-
-            CRendererContext::addObject(o);
-        }
-};
-
-static CCaptureContext *g_captureContext = NULL;
-
-static CRiInterface *makeCaptureContext() {
-    g_captureContext = new CCaptureContext();
-    return g_captureContext;
+TEST(two_disjoint_primitives_in_one_operand) {
+    CCsgSession s;
+    CCSGResolvedOperand *op = makeOperand(s.ctx(), {sphere(s, -2, 0, 0, 1), sphere(s, 2, 0, 0, 1)});
+    ASSERT(op->kind == CSG_OPERAND_MULTI_SURFACE);
+    const float a[3] = {-2, 0, 0}, b[3] = {2, 0, 0}, between[3] = {0, 0, 0};
+    ASSERT(classifyOperand(s.ctx(), *op, a) == CSG_IN);
+    ASSERT(classifyOperand(s.ctx(), *op, b) == CSG_IN);
+    ASSERT(classifyOperand(s.ctx(), *op, between) == CSG_OUT);
 }
 
-TEST(two_primitives_chain_into_one_leaf) {
-    RiSetContextFactory(makeCaptureContext);
-
-    RiBegin(RI_NULL);
-    RiWorldBegin();
-
-    RiSolidBegin("primitive");
-    RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
-    RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
-    RiSolidEnd();
-
-    ASSERT(g_captureContext != NULL);
-    ASSERT(g_captureContext->captured != NULL);
-
-    int count = 0;
-    CObject *o;
-    for (o = g_captureContext->captured->fragments; o != NULL; o = o->sibling)
-        count++;
-
-    ASSERT(count == 2);
-
-    // Read out before RiEnd(), which deletes the CRendererContext
-    // (and, transitively, the fragment chain we just walked).
-    g_captureContext->captured->detach();
-    g_captureContext->captured = NULL;
-
-    RiWorldEnd();
-    RiEnd();
-
-    RiSetContextFactory(NULL);
-    g_captureContext = NULL;
+TEST(two_coincident_identical_spheres_form_an_empty_operand) {
+    CCsgSession s;
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), {sphere(s, 0, 0, 0, 1), sphere(s, 0, 0, 0, 1)}),
+                                              makeOperand(s.ctx(), {sphere(s, 5, 0, 0, 1)})};
+    const float centre[3] = {0, 0, 0};
+    ASSERT(classifyOperand(s.ctx(), *ops[0], centre) == CSG_OUT);
+    CCSGEvaluator ev(definition(2, N(CSG_UNION, {L(0), L(1)})), ops, 1e-5f);
+    ASSERT(onSphere(ev, 0, 0, 0, 0, 1, 0, 0) == FALSE);
+    ASSERT(onSphere(ev, 0, 0, 0, 0, 0, 0, -1) == FALSE);
+    ASSERT(onSphere(ev, 1, 5, 0, 0, 6, 0, 0) == TRUE);
 }
 
 int main() {
-    printf("=== CSG Boolean Kernel Tests: multi_primitive_leaf (T014) ===\n\n");
-
-    run_test_two_primitives_chain_into_one_leaf();
-
-    printf("\n=== Results: %d passed, %d failed ===\n", tests_passed, tests_failed);
-
-    return tests_failed > 0 ? 1 : 0;
+    RUN(two_disjoint_primitives_in_one_operand);
+    RUN(two_coincident_identical_spheres_form_an_empty_operand);
+    SUMMARY();
 }

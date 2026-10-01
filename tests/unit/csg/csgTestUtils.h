@@ -1,177 +1,252 @@
-// Shared geometry helpers for the CSG boolean-kernel unit tests
-// (spec 013-solid-csg-operations, T013-T016). Builds simple polygon-soup
-// operands (box, sphere) and computes implementation-independent
-// correctness invariants (enclosed volume via the divergence theorem,
-// distinct supporting-plane count) against csgCombine()'s output.
+/**
+ * Project: openRender
+ *
+ * File: csgTestUtils.h
+ *
+ * Description:
+ *   Shared helpers for the CSG unit tests (spec 021, deferred CSG evaluation).
+ *
+ *   - TEST / ASSERT / RUN, in the style the CSG suites have always used
+ *   - CCsgSession: an in-process Ri session (RiBegin(RI_NULL) + RiWorldBegin,
+ *     following test_ambient_accumulation.cpp) whose context captures every
+ *     primitive instead of rendering it, and which exposes a real
+ *     CShadingContext (CRenderer::contexts[0]) for mesh materialization and
+ *     free-form crossing queries
+ *   - depth-first materialization and resolved-operand builders
+ *   - analytic membership helpers for spheres and boxes
+ *
+ *   With no camera transform before RiWorldBegin, camera space equals world
+ *   space, so the coordinates written in the tests are the coordinates the
+ *   classification code sees.
+ *
+ * Authors:
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 2026, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
 #ifndef CSG_TEST_UTILS_H
 #define CSG_TEST_UTILS_H
 
-#include <array>
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <functional>
 #include <vector>
 
-#include "csgBoolean.h"
+#include "csgClassify.h"
+#include "csgDefinition.h"
+#include "object.h"
+#include "renderer.h"
+#include "rendererContext.h"
+#include "ri.h"
+#include "riHooks.h"
+
+// ---------------------------------------------------------------------------
+// Minimal test framework
+// ---------------------------------------------------------------------------
+
+static int tests_passed = 0;
+static int tests_failed = 0;
+
+#define TEST(name)                              \
+    void test_##name();                         \
+    void run_test_##name() {                    \
+        printf("Running test: %s ... ", #name); \
+        fflush(stdout);                         \
+        int failedBefore = tests_failed;        \
+        test_##name();                          \
+        if (tests_failed == failedBefore) {     \
+            tests_passed++;                     \
+            printf("PASSED\n");                 \
+        }                                       \
+    }                                           \
+    void test_##name()
+
+#define ASSERT(condition)                                          \
+    do {                                                           \
+        if (!(condition)) {                                        \
+            printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
+                   #condition, __FILE__, __LINE__);                \
+            tests_failed++;                                        \
+            return;                                                \
+        }                                                          \
+    } while (0)
+
+#define RUN(name) run_test_##name()
+
+#define SUMMARY()                                                       \
+    do {                                                                \
+        printf("\n%d passed, %d failed\n", tests_passed, tests_failed); \
+        return tests_failed == 0 ? 0 : 1;                               \
+    } while (0)
 
 namespace csgtest {
 
-    inline CCSGVertex makeVertex(float x, float y, float z) {
-        CCSGVertex v;
-        v.p[0] = x;
-        v.p[1] = y;
-        v.p[2] = z;
-        v.hasNormal = FALSE;
-        return v;
+    // -----------------------------------------------------------------------
+    // In-process Ri session that captures primitives
+    // -----------------------------------------------------------------------
+
+    class CCaptureContext : public CRendererContext {
+        public:
+            std::vector<CObject *> captured;
+
+            virtual void addObject(CObject *o) {
+                o->attach();
+                captured.push_back(o);
+            }
+    };
+
+    inline CCaptureContext *&captureContextSlot() {
+        static CCaptureContext *slot = NULL;
+        return slot;
     }
 
-    inline CCSGPolygon *makeQuad(const CCSGVertex &a, const CCSGVertex &b, const CCSGVertex &c, const CCSGVertex &d, CAttributes *attr) {
-        CCSGPolygon *poly = new CCSGPolygon;
-
-        poly->vertices.push(a);
-        poly->vertices.push(b);
-        poly->vertices.push(c);
-        poly->vertices.push(d);
-        poly->attributes = attr;
-        poly->computePlane();
-
-        return poly;
+    inline CRiInterface *makeCaptureContext() {
+        captureContextSlot() = new CCaptureContext();
+        return captureContextSlot();
     }
 
-    // Axis-aligned box, outward-facing CCW winding on every face (verified
-    // against CCSGPolygon::computePlane()'s cross(e1,e2) convention).
-    inline CArray<CCSGPolygon *> *makeBox(float xlo, float ylo, float zlo, float xhi, float yhi, float zhi, CAttributes *attr) {
-        CArray<CCSGPolygon *> *polys = new CArray<CCSGPolygon *>;
+    // One Ri world block. Construct it, emit Ri calls, and take the objects
+    // they create with one(). Ends the world block on destruction.
+    class CCsgSession {
+        public:
+            CCsgSession() {
+                RiSetContextFactory(makeCaptureContext);
+                RiBegin(RI_NULL);
+                RiWorldBegin();
+            }
 
-        // +X / -X
-        polys->push(makeQuad(makeVertex(xhi, ylo, zlo), makeVertex(xhi, yhi, zlo), makeVertex(xhi, yhi, zhi), makeVertex(xhi, ylo, zhi), attr));
-        polys->push(makeQuad(makeVertex(xlo, ylo, zlo), makeVertex(xlo, ylo, zhi), makeVertex(xlo, yhi, zhi), makeVertex(xlo, yhi, zlo), attr));
-        // +Y / -Y
-        polys->push(makeQuad(makeVertex(xlo, yhi, zlo), makeVertex(xlo, yhi, zhi), makeVertex(xhi, yhi, zhi), makeVertex(xhi, yhi, zlo), attr));
-        polys->push(makeQuad(makeVertex(xlo, ylo, zlo), makeVertex(xhi, ylo, zlo), makeVertex(xhi, ylo, zhi), makeVertex(xlo, ylo, zhi), attr));
-        // +Z / -Z
-        polys->push(makeQuad(makeVertex(xlo, ylo, zhi), makeVertex(xhi, ylo, zhi), makeVertex(xhi, yhi, zhi), makeVertex(xlo, yhi, zhi), attr));
-        polys->push(makeQuad(makeVertex(xlo, ylo, zlo), makeVertex(xlo, yhi, zlo), makeVertex(xhi, yhi, zlo), makeVertex(xhi, ylo, zlo), attr));
+            ~CCsgSession() {
+                for (CObject *o : capture()->captured)
+                    o->detach();
+                capture()->captured.clear();
+                RiWorldEnd();
+                RiEnd();
+                RiSetContextFactory(NULL);
+                captureContextSlot() = NULL;
+            }
 
-        return polys;
+            CCaptureContext *capture() const { return captureContextSlot(); }
+
+            // A real shading context, for materialization and free-form queries
+            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
+
+            // Run Ri calls in their own attribute block and return the single
+            // object they created (NULL if they created none or several)
+            CObject *one(const std::function<void()> &emit) {
+                size_t before = capture()->captured.size();
+                RiAttributeBegin();
+                emit();
+                RiAttributeEnd();
+                size_t after = capture()->captured.size();
+                return after == before + 1 ? capture()->captured.back() : NULL;
+            }
+    };
+
+    // -----------------------------------------------------------------------
+    // Materialization and resolved operands
+    // -----------------------------------------------------------------------
+
+    // Depth-first: materialize the object, then each of its children, and
+    // collect every CSurface that has no children of its own.
+    inline void collectSurfaces(CShadingContext *ctx, CObject *o, std::vector<CSurface *> &out) {
+        o->materialize(ctx);
+        if (o->children == NULL) {
+            CSurface *s = dynamic_cast<CSurface *>(o);
+            if (s != NULL)
+                out.push_back(s);
+            return;
+        }
+        for (CObject *c = o->children; c != NULL; c = c->sibling)
+            collectSurfaces(ctx, c, out);
     }
 
-    // UV-sphere polygon soup (quads, with pole rows collapsing to triangles
-    // stored as degenerate quads is avoided -- poles are triangle fans),
-    // outward-facing. `slices`/`stacks` control tessellation density (T015
-    // validates that finer tessellation changes triangle/vertex density).
-    inline CArray<CCSGPolygon *> *makeSphere(float cx, float cy, float cz, float radius, int slices, int stacks, CAttributes *attr) {
-        CArray<CCSGPolygon *> *polys = new CArray<CCSGPolygon *>;
-        int i, j;
+    // An operand made of the given members, each contributing its surfaces,
+    // with its kind derived by the production code
+    inline CCSGResolvedOperand *makeOperand(CShadingContext *ctx, const std::vector<CObject *> &members) {
+        CCSGResolvedOperand *op = new CCSGResolvedOperand();
+        for (size_t m = 0; m < members.size(); m++) {
+            op->addMember(members[m]);
+            std::vector<CSurface *> surfaces;
+            collectSurfaces(ctx, members[m], surfaces);
+            for (CSurface *s : surfaces)
+                op->addSurface(s, (int)m);
+        }
+        deriveOperandKind(*op);
+        return op;
+    }
 
-        auto point = [&](int stack, int slice) {
-            double theta = M_PI * (double)stack / (double)stacks;     // 0..PI
-            double phi = 2.0 * M_PI * (double)slice / (double)slices; // 0..2PI
-            float sx = (float)(cx + radius * sin(theta) * cos(phi));
-            float sy = (float)(cy + radius * cos(theta));
-            float sz = (float)(cz + radius * sin(theta) * sin(phi));
-            CCSGVertex v = makeVertex(sx, sy, sz);
-            v.hasNormal = TRUE;
-            v.n[0] = (sx - cx) / radius;
-            v.n[1] = (sy - cy) / radius;
-            v.n[2] = (sz - cz) / radius;
-            return v;
+    // An operand whose surfaces all belong to ONE member, as a mesh's would:
+    // the first piece stands for the member; every piece contributes surfaces.
+    inline CCSGResolvedOperand *makeOperandOneMember(CShadingContext *ctx, const std::vector<CObject *> &pieces) {
+        CCSGResolvedOperand *op = new CCSGResolvedOperand();
+        op->addMember(pieces[0]);
+        for (CObject *piece : pieces) {
+            std::vector<CSurface *> surfaces;
+            collectSurfaces(ctx, piece, surfaces);
+            for (CSurface *s : surfaces)
+                op->addSurface(s, 0);
+        }
+        deriveOperandKind(*op);
+        return op;
+    }
+
+    // -----------------------------------------------------------------------
+    // Primitive builders (inside a CCsgSession)
+    // -----------------------------------------------------------------------
+
+    inline CObject *sphere(CCsgSession &s, float cx, float cy, float cz, float r) {
+        return s.one([&] {
+            RiTranslate(cx, cy, cz);
+            RiSphere(r, -r, r, 360.0f, RI_NULL);
+        });
+    }
+
+    // Six bilinear patches of the box [lo, hi], one RiPatch (one CPatchMesh)
+    // each, outward-facing
+    inline std::vector<CObject *> boxPatches(CCsgSession &s, const float *lo, const float *hi) {
+        const float x0 = lo[0], y0 = lo[1], z0 = lo[2], x1 = hi[0], y1 = hi[1], z1 = hi[2];
+        float faces[6][12] = {
+            {x1, y0, z0, x1, y1, z0, x1, y0, z1, x1, y1, z1}, // +x
+            {x0, y0, z0, x0, y0, z1, x0, y1, z0, x0, y1, z1}, // -x
+            {x0, y1, z0, x0, y1, z1, x1, y1, z0, x1, y1, z1}, // +y
+            {x0, y0, z0, x1, y0, z0, x0, y0, z1, x1, y0, z1}, // -y
+            {x0, y0, z1, x1, y0, z1, x0, y1, z1, x1, y1, z1}, // +z
+            {x0, y0, z0, x0, y1, z0, x1, y0, z0, x1, y1, z0}, // -z
         };
-
-        for (i = 0; i < stacks; i++) {
-            for (j = 0; j < slices; j++) {
-                CCSGVertex v00 = point(i, j);
-                CCSGVertex v01 = point(i, j + 1);
-                CCSGVertex v11 = point(i + 1, j + 1);
-                CCSGVertex v10 = point(i + 1, j);
-
-                if (i == 0) {
-                    // Top pole row: triangle (degenerate v00==v01 at the pole)
-                    CCSGPolygon *tri = new CCSGPolygon;
-                    tri->vertices.push(v00);
-                    tri->vertices.push(v11);
-                    tri->vertices.push(v10);
-                    tri->attributes = attr;
-                    tri->computePlane();
-                    polys->push(tri);
-                }
-                else if (i == stacks - 1) {
-                    // Bottom pole row
-                    CCSGPolygon *tri = new CCSGPolygon;
-                    tri->vertices.push(v00);
-                    tri->vertices.push(v01);
-                    tri->vertices.push(v11);
-                    tri->attributes = attr;
-                    tri->computePlane();
-                    polys->push(tri);
-                }
-                else {
-                    polys->push(makeQuad(v00, v01, v11, v10, attr));
-                }
-            }
+        std::vector<CObject *> out;
+        for (int f = 0; f < 6; f++) {
+            float *P = faces[f];
+            out.push_back(s.one([&] { RiPatch(RI_BILINEAR, RI_P, P, RI_NULL); }));
         }
-
-        return polys;
+        return out;
     }
 
-    inline void freeBox(CArray<CCSGPolygon *> *polys) {
-        csgFreePolygons(polys);
+    // -----------------------------------------------------------------------
+    // Analytic membership
+    // -----------------------------------------------------------------------
+
+    inline bool insideSphere(const float *P, float cx, float cy, float cz, float r) {
+        const float dx = P[0] - cx, dy = P[1] - cy, dz = P[2] - cz;
+        return dx * dx + dy * dy + dz * dz < r * r;
     }
 
-    // Enclosed volume via the divergence theorem: V = (1/6) * sum over every
-    // fan-triangulated face of v0 . (v1 x v2). Valid for any closed, watertight,
-    // consistently outward-oriented polygon soup regardless of triangulation or
-    // choice of origin -- so it is a correctness check independent of exactly
-    // how csgCombine() fragmented each face.
-    inline double computeVolume(CArray<CCSGPolygon *> *polys) {
-        double volume = 0.0;
-        int i, k;
-
-        for (i = 0; i < polys->numItems; i++) {
-            CCSGPolygon *poly = polys->array[i];
-            int n = poly->vertices.numItems;
-
-            for (k = 1; k + 1 < n; k++) {
-                const float *v0 = poly->vertices.array[0].p;
-                const float *v1 = poly->vertices.array[k].p;
-                const float *v2 = poly->vertices.array[k + 1].p;
-                double cx = (double)v1[1] * v2[2] - (double)v1[2] * v2[1];
-                double cy = (double)v1[2] * v2[0] - (double)v1[0] * v2[2];
-                double cz = (double)v1[0] * v2[1] - (double)v1[1] * v2[0];
-
-                volume += (double)v0[0] * cx + (double)v0[1] * cy + (double)v0[2] * cz;
-            }
-        }
-
-        return volume / 6.0;
+    inline bool insideBox(const float *P, const float *lo, const float *hi) {
+        return P[0] > lo[0] && P[0] < hi[0] && P[1] > lo[1] && P[1] < hi[1] && P[2] > lo[2] && P[2] < hi[2];
     }
 
-    // Number of distinct supporting planes represented in the polygon soup
-    // (fragments sharing the same outward plane -- normal direction + offset,
-    // within `eps` -- count once). This is implementation-independent of how
-    // many fragments the BSP kernel happened to split each face into.
-    inline int countDistinctPlanes(CArray<CCSGPolygon *> *polys, float eps) {
-        std::vector<std::array<float, 4>> planes;
-        int i, j;
-
-        for (i = 0; i < polys->numItems; i++) {
-            CCSGPolygon *poly = polys->array[i];
-            std::array<float, 4> p = {poly->planeNormal[0], poly->planeNormal[1], poly->planeNormal[2], poly->planeD};
-            bool found = false;
-
-            for (j = 0; j < (int)planes.size(); j++) {
-                const std::array<float, 4> &q = planes[j];
-
-                if (fabsf(p[0] - q[0]) < eps && fabsf(p[1] - q[1]) < eps &&
-                    fabsf(p[2] - q[2]) < eps && fabsf(p[3] - q[3]) < eps) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-                planes.push_back(p);
-        }
-
-        return (int)planes.size();
+    // Deterministic points at the centres of an n x n x n grid over [lo, hi]
+    inline std::vector<std::vector<float>> gridPoints(const float *lo, const float *hi, int n) {
+        std::vector<std::vector<float>> pts;
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                for (int k = 0; k < n; k++)
+                    pts.push_back({lo[0] + (hi[0] - lo[0]) * (i + 0.5f) / n, lo[1] + (hi[1] - lo[1]) * (j + 0.5f) / n,
+                                   lo[2] + (hi[2] - lo[2]) * (k + 0.5f) / n});
+        return pts;
     }
 
 } // namespace csgtest

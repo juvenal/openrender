@@ -17,3 +17,17 @@
  *
  */
 #include "surfaceCrossingDispatch.h"
+
+// Spec 021 Phase 2 skeleton: the Newton core and the dispatch arrive with T029.
+
+CCrossingSeedGrid::CCrossingSeedGrid(const CCrossingSurface &, int nu, int nv) : nu(nu), nv(nv) {}
+
+int findSurfaceCrossings(const CCrossingSurface &, const CCrossingSeedGrid &, const double *, const double *,
+                         std::vector<CCrossingHit> &hits) {
+    hits.clear();
+    return 0;
+}
+
+int countFreeFormCrossings(CShadingContext *, const CSurface *, const float *, const float *) {
+    return 0;
+}

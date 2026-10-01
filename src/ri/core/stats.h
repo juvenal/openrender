@@ -108,6 +108,12 @@ class CStats {
         int numBlobbyLatticeCells;           // Cells a dense grid over the extent would have had
         atomic_int32 numBlobbyTriangles;     // Triangles emitted
 
+        atomic_int32 numCsgClassifications;      // Spec 021: operand point classifications
+        atomic_int32 numCsgSeamSplits;           // Straddle-driven patch splits at solid seams
+        atomic_int32 numCsgInstancesResolved;    // Solid instances whose per-instance state was built
+        atomic_int32 numCsgProceduralExpansions; // Procedural operands expanded
+        int csgFrameHasSolid;                    // TRUE once this frame contains a solid (prints the four above)
+
         int numTextureMisses;                   // The number of texture misses
         int transferredTextureData;             // The amount the texture data transmitted
         int textureSize;                        // The current amount of textures in the memory

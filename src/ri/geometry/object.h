@@ -53,6 +53,36 @@ const unsigned int OBJECT_MOVING_TESSELATION = 4;    // Set if the object is an 
 const unsigned int OBJECT_HIERARCHY_READY = 8;       // Set if the children pointer is processed
 const unsigned int OBJECT_TERMINAL_TESSELATION = 16; // Set if the object should not be further tesselated
 
+// Answers of CRegionPredicate::classifyBound()
+const int REGION_ALL_IN = 0;  // Every point in the bound is accepted
+const int REGION_ALL_OUT = 1; // No point in the bound is accepted
+const int REGION_MIXED = 2;   // Some points may be accepted, some not
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRegionPredicate
+// Description			:	A spatial trim: decides which points of a surface
+//							belong to the rendered surface. Geometry attaches
+//							one to an object (CObject::region); dicing and ray
+//							hit acceptance consult it. Generic by design: the
+//							hiders may name it, so it carries no CSG notion
+//							(spec 021, contracts/geometry-region-interface.md).
+// Comments				:	Both queries are pure functions of their inputs, so
+//							they may be called from any thread in any order.
+class CRegionPredicate {
+    public:
+        virtual ~CRegionPredicate() {}
+
+        // TRUE if the camera-space point P of the accepting surface belongs to
+        // the rendered surface. Ng is that surface's undisplaced geometric
+        // normal at P (camera space); only its direction matters, not its sign.
+        // ctx may be NULL where the surface needs no shading context.
+        virtual int accepts(CShadingContext *ctx, const float *P, const float *Ng) const = 0;
+
+        // REGION_ALL_IN / REGION_ALL_OUT / REGION_MIXED for a surface patch that
+        // lies within the camera-space bound [bmin, bmax]
+        virtual int classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const = 0;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CObject
 // Description			:	This class encapsulates a general object
@@ -82,6 +112,14 @@ class CObject : public CRefCounter {
         // Set the children objects
         void setChildren(CShadingContext *, CObject *);
 
+        // Create the children of an object that builds them lazily (meshes).
+        // Idempotent. The default does nothing.
+        virtual void materialize(CShadingContext *) {}
+
+        // FALSE if this object cannot take part in a region-restricted render:
+        // its own rendering bypasses the region hook, or it encloses no volume.
+        virtual int honorsRegion() const { return TRUE; }
+
         void destroy(); // Delete the children/siblings
 
         int flags;                   // Holds object flags
@@ -89,6 +127,7 @@ class CObject : public CRefCounter {
         CXform *xform;               // Holds the object xform to the object space
         CObject *children, *sibling; // The hierarchy
         vector bmin, bmax;           // The bounding box
+        CRegionPredicate *region;    // Spatial trim restricting the rendered surface, or NULL (not owned)
     protected:
         // This function must be used to expand the bound to take the displacements into account
         void makeBound(float *, float *) const;
@@ -142,6 +181,12 @@ class CSurface : public CObject {
         // Lets dicing skip the per-vertex trimAccepts calls/bookkeeping entirely
         // for the common untrimmed case (FR-004).
         virtual bool hasTrim() const { return FALSE; }
+
+        // Unsigned number of times the segment from + t*dir, t > 0, crosses
+        // the undisplaced surface. A geometric query: ray-visibility flags,
+        // LOD, backface culling and displacement are ignored. The default (a
+        // surface type with no crossing query) reports 0.
+        virtual int countCrossings(CShadingContext * /*ctx*/, const float * /*from*/, const float * /*dir*/) const { return 0; }
 
     protected:
         // Shared ray-rejection + displacement-tesselation guard used at the top

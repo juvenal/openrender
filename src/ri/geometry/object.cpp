@@ -57,6 +57,7 @@ CObject::CObject(CAttributes *a, CXform *x) {
 
     children = NULL;
     sibling = NULL;
+    region = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////

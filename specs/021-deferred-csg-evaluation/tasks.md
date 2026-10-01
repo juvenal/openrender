@@ -123,12 +123,12 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Tests for Phase 2 (write first, confirm they FAIL) ⚠️
 
-- [ ] T015 [P] Create `tests/unit/csg/test_count_crossings.cpp`. With a NULL context, assert the **unsigned** crossing counts (undisplaced surface; ignoring visibility flags, LOD, backface, displacement and orientation attributes) for rays with known answers against:
+- [X] T015 [P] Create `tests/unit/csg/test_count_crossings.cpp`. With a NULL context, assert the **unsigned** crossing counts (undisplaced surface; ignoring visibility flags, LOD, backface, displacement and orientation attributes) for rays with known answers against:
   - `CSphere`, `CDisk`, `CCone`, `CParaboloid`, `CCylinder`, `CHyperboloid`, `CToroid` (including partial `thetamax` and z-cuts)
   - `CPolygonTriangle`, `CPolygonQuad`, `CBilinearPatch`
 
   Also test the pure Newton-refinement core in `surfaceCrossingDispatch.h` with analytic evaluation callbacks: a bicubic patch representing a plane exactly, and a rational NURBS sphere. Crossing parameters must converge to the analytic intersection within 1e-5 (FR-007a).
-- [ ] T016 [P] Create `tests/unit/csg/test_classify_quadrics.cpp`. Assert analytic implied-closed classification (IN/OUT) for single-quadric operands:
+- [X] T016 [P] Create `tests/unit/csg/test_classify_quadrics.cpp`. Assert analytic implied-closed classification (IN/OUT) for single-quadric operands:
   - closed sphere and torus
   - cylinder capped at z-min/z-max
   - z-cut sphere
@@ -138,7 +138,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - a lone `CDisk`, which is an empty operand: silently, always OUT
 
   Use points on both sides of every implied cap.
-- [ ] T017 [P] Create `tests/unit/csg/test_parity_robustness.cpp`. Assert parity classification (odd crossings ⇒ IN) for multi-surface operands built from directly constructible surfaces:
+- [X] T017 [P] Create `tests/unit/csg/test_parity_robustness.cpp`. Assert parity classification (odd crossings ⇒ IN) for multi-surface operands built from directly constructible surfaces:
   - a six-`CBilinearPatch` box
   - the same box with deliberately mixed vertex orders
   - the same box with one patch under `ReverseOrientation`
@@ -150,7 +150,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - one member made of two adjacent `CBilinearPatch`es forming an open strip: not closed, an empty operand flagged for the diagnostic (the same rule a multi-span open `NuPatch` or an open `PointsPolygons` must follow)
   - a single `CBilinearPatch` member: not closed, empty
   - six separate members forming the same box: multi-surface parity, no closedness test (FR-021 applies to a single member only) The NURBS closedness cases run render-side in T038 (research D13), so the Phase 2 gate only covers tests that can be green in Phase 2.
-- [ ] T018 [P] Create `tests/unit/csg/test_boundary_rule.cpp`, building `CCSGResolvedOperand`s directly (T030). For union, intersection and difference (2 and 3 operands), the 4-level nested tree, single-operand and empty-tree collapse, and **direct leaves in a boolean block** (one first operand, parity-combined), assert:
+- [X] T018 [P] Create `tests/unit/csg/test_boundary_rule.cpp`, building `CCSGResolvedOperand`s directly (T030). For union, intersection and difference (2 and 3 operands), the 4-level nested tree, single-operand and empty-tree collapse, and **direct leaves in a boolean block** (one first operand, parity-combined), assert:
   - the boundary rule at points on each leaf
   - static orientation parity
   - short-circuit evaluation: a test-double `CSurface` subclass whose `countCrossings` counts its calls shows that irrelevant operands are never queried (no production counter needed)
@@ -160,17 +160,17 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - `classifyBound()` `ALL_IN`/`ALL_OUT`/`MIXED`
   - **analytic seam location**: for the sphere-cube difference, sample 64 points on each exact intersection circle; at ±δ (δ = 1e-4·r) along the sphere's surface, perpendicular to the curve, the predicate must flip, with the matching face-side check. Do the same for the hero's two circles at z = ±√(1.5² − 0.65²).
   - **tangency**: two spheres touching at a point, and one sphere internally tangent to another; neither produces boundary points away from the contact.
-- [ ] T019 [P] Create `tests/unit/csg/test_classify_determinism.cpp`. Classify the same point set over analytic, polygon and bilinear operands in forward order, in shuffled order, and from 8 `std::thread`s concurrently; assert bit-identical results (FR-008).
-- [ ] T020 [P] Create `tests/unit/csg/test_csg_stats.cpp`. Assert that `CStats` exposes `numCsgClassifications`, `numCsgSeamSplits`, `numCsgInstancesResolved` and `numCsgProceduralExpansions`, zero-initialized per frame; that the end-of-frame statistics at level ≥ 2 print them, zeros included, whenever the frame contains a solid (an outermost `SolidEnd` ran in this frame, single-operand collapses included), with the exact labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and `CSG procedural expansions:`; and that one `classify()` call increments `numCsgClassifications` by exactly 1.
-- [ ] T021 [P] Create `tests/unit/csg/test_region_inheritance.cpp`. Assert that `CObject::setChildren()` copies the parent's `region` to every child that has none, does not overwrite a child's own `region`, and leaves `region` null throughout when the parent has none. Include a nested case: a grandchild created through an intermediate mesh (as `CLoopSubdivMesh` creates an inner `CPolygonMesh`) inherits the region.
-- [ ] T022 [P] Rewrite `tests/unit/csg/test_boolean_boxes.cpp`, `test_boolean_sphere_box.cpp` and `test_boolean_sphere_sphere.cpp` as classification and boundary-rule tests over the same scenarios. Build `CCSGDefinition` directly, with no Ri capture interception.
-- [ ] T023 [P] Rewrite the remaining kernel suites, building `CCSGDefinition` directly:
+- [X] T019 [P] Create `tests/unit/csg/test_classify_determinism.cpp`. Classify the same point set over analytic, polygon and bilinear operands in forward order, in shuffled order, and from 8 `std::thread`s concurrently; assert bit-identical results (FR-008).
+- [X] T020 [P] Create `tests/unit/csg/test_csg_stats.cpp`. Assert that `CStats` exposes `numCsgClassifications`, `numCsgSeamSplits`, `numCsgInstancesResolved` and `numCsgProceduralExpansions`, zero-initialized per frame; that the end-of-frame statistics at level ≥ 2 print them, zeros included, whenever the frame contains a solid (an outermost `SolidEnd` ran in this frame, single-operand collapses included), with the exact labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and `CSG procedural expansions:`; and that one `classify()` call increments `numCsgClassifications` by exactly 1.
+- [X] T021 [P] Create `tests/unit/csg/test_region_inheritance.cpp`. Assert that `CObject::setChildren()` copies the parent's `region` to every child that has none, does not overwrite a child's own `region`, and leaves `region` null throughout when the parent has none. Include a nested case: a grandchild created through an intermediate mesh (as `CLoopSubdivMesh` creates an inner `CPolygonMesh`) inherits the region.
+- [X] T022 [P] Rewrite `tests/unit/csg/test_boolean_boxes.cpp`, `test_boolean_sphere_box.cpp` and `test_boolean_sphere_sphere.cpp` as classification and boundary-rule tests over the same scenarios. Build `CCSGDefinition` directly, with no Ri capture interception.
+- [X] T023 [P] Rewrite the remaining kernel suites, building `CCSGDefinition` directly:
   - `tests/unit/csg/test_boolean_coplanar.cpp`: two-sided ±ε rule
   - `test_nested_tree.cpp`
   - `test_multi_primitive_leaf.cpp`: use two **disjoint** spheres, and assert that two coincident identical spheres in one block form an empty operand (the documented parity consequence)
 
   Update `tests/unit/csg/csgTestUtils.h`: remove `#include "csgBoolean.h"` and the `computeVolume`/volume-sign helpers; add analytic point-set builders.
-- [ ] T024 In `tests/unit/csg/CMakeLists.txt`, register T015–T021 with labels `csg;unit`, keeping the rewritten suites' registrations. Build, run `ctest --test-dir build -L csg`, and confirm the new and rewritten tests FAIL (red) for the right reasons.
+- [X] T024 In `tests/unit/csg/CMakeLists.txt`, register T015–T021 with labels `csg;unit`, keeping the rewritten suites' registrations. Build, run `ctest --test-dir build -L csg`, and confirm the new and rewritten tests FAIL (red) for the right reasons.
 
 **Checkpoint (red tests — maintainer approval)**: stage the new and rewritten tests with their confirmed-red evidence, and stop for the maintainer to approve the tests before any implementation task below starts (constitution III: Tests written → User approved → Tests fail → Then implement).
 

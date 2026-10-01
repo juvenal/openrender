@@ -4,22 +4,11 @@
  * File: test_boolean_coplanar.cpp
  *
  * Description:
- *   Unit test (T016, spec 013-solid-csg-operations, US1) for the CSG
- *   boolean kernel (csgBoolean.h/.cpp): two boxes that share an exact,
- *   full coincident face (touching, zero-volume overlap) -- the edge
- *   case explicitly deferred out of T013's geometry (see that file's
- *   header comment) because it exercises coplanar-polygon classification
- *   against the C_EPSILON-consistent splitting-plane epsilon
- *   (kCsgPlaneEpsilon in csgBoolean.cpp) rather than genuine spanning
- *   clip.
- *
- *   A = [0,0,0]-[1,1,1], B = [1,0,0]-[2,1,1]: A's +X face and B's -X
- *   face are coincident but anti-parallel (touching from opposite
- *   sides). The classic BSP-CSG double-invert union sequence
- *   (a.clipTo(b); b.clipTo(a); b.invert(); b.clipTo(a); b.invert())
- *   is specifically designed to cancel exactly this kind of coincident
- *   touching pair, leaving a single clean merged box with no internal
- *   zero-thickness face.
+ *   Unit test (T023, spec 021; rewritten from spec 013's BSP kernel suite)
+ *   for coincident operand faces (FR-022) under the two-sided rule: boxes
+ *   that touch along a face merge with no internal skin; boxes sharing an
+ *   outer face plane render that face once (the lowest operand index wins);
+ *   a box subtracted flush with a face leaves no skin across the cut.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -30,105 +19,67 @@
  *
  */
 
-#include <cstdio>
+#include "csgTreeHelpers.h"
 
-#include "csgTestUtils.h"
+using namespace csgtest;
 
-static int tests_passed = 0;
-static int tests_failed = 0;
-
-#define TEST(name)                              \
-    void test_##name();                         \
-    void run_test_##name() {                    \
-        printf("Running test: %s ... ", #name); \
-        fflush(stdout);                         \
-        int failedBefore = tests_failed;        \
-        test_##name();                          \
-        if (tests_failed == failedBefore) {     \
-            tests_passed++;                     \
-            printf("PASSED\n");                 \
-        }                                       \
-    }                                           \
-    void test_##name()
-
-#define ASSERT(condition)                                          \
-    do {                                                           \
-        if (!(condition)) {                                        \
-            printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
-                   #condition, __FILE__, __LINE__);                \
-            tests_failed++;                                        \
-            return;                                                \
-        }                                                          \
-    } while (0)
-
-static const float kVolumeTolerance = 1e-4f;
-static const float kPlaneEpsilon = 1e-4f;
-
-TEST(touching_boxes_union_merges_into_one_solid) {
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL); // shares x=1 face with A
-
-    CArray<CCSGPolygon *> *result = csgCombine(CSG_UNION, a, b);
-
-    double volume = csgtest::computeVolume(result);
-    int planes = csgtest::countDistinctPlanes(result, kPlaneEpsilon);
-
-    // Exact regardless of fragmentation: the two unit boxes only touch,
-    // so the merged solid's volume is exactly the sum of the two.
-    ASSERT(fabs(volume - 2.0) < kVolumeTolerance);
-
-    // A clean merge leaves exactly the 6 outer faces of the combined
-    // 2x1x1 box; the coincident internal touching face must not survive
-    // in either box's output (neither as a lone plane nor doubled).
-    ASSERT(planes == 6);
-
-    csgFreePolygons(a);
-    csgFreePolygons(b);
-    csgFreePolygons(result);
+TEST(touching_boxes_union_has_no_internal_skin) {
+    CCsgSession s;
+    const float alo[3] = {0, 0, 0}, ahi[3] = {1, 1, 1}, blo[3] = {1, 0, 0}, bhi[3] = {2, 1, 1};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), boxPatches(s, alo, ahi)),
+                                              makeOperand(s.ctx(), boxPatches(s, blo, bhi))};
+    CCSGEvaluator ev(definition(2, N(CSG_UNION, {L(0), L(1)})), ops, 1e-5f);
+    ASSERT(onPlane(ev, s.ctx(), 0, 1, 0.5f, 0.5f, 1, 0, 0) == FALSE);  // A's +x face: shared
+    ASSERT(onPlane(ev, s.ctx(), 1, 1, 0.5f, 0.5f, -1, 0, 0) == FALSE); // B's -x face: shared
+    ASSERT(onPlane(ev, s.ctx(), 0, 0, 0.5f, 0.5f, -1, 0, 0) == TRUE);  // A's -x face: outer
+    ASSERT(onPlane(ev, s.ctx(), 1, 2, 0.5f, 0.5f, 1, 0, 0) == TRUE);   // B's +x face: outer
+    // The top faces of A and B both stay, either side of the shared edge
+    ASSERT(onPlane(ev, s.ctx(), 0, 0.9f, 1, 0.5f, 0, 1, 0) == TRUE);
+    ASSERT(onPlane(ev, s.ctx(), 1, 1.1f, 1, 0.5f, 0, 1, 0) == TRUE);
 }
 
 TEST(touching_boxes_intersection_is_empty) {
-    // A and B share only a zero-thickness face, so their intersection
-    // (a genuine 3D overlap) must be empty.
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL);
-
-    CArray<CCSGPolygon *> *result = csgCombine(CSG_INTERSECTION, a, b);
-
-    ASSERT(fabs(csgtest::computeVolume(result)) < kVolumeTolerance);
-
-    csgFreePolygons(a);
-    csgFreePolygons(b);
-    csgFreePolygons(result);
+    CCsgSession s;
+    const float alo[3] = {0, 0, 0}, ahi[3] = {1, 1, 1}, blo[3] = {1, 0, 0}, bhi[3] = {2, 1, 1};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), boxPatches(s, alo, ahi)),
+                                              makeOperand(s.ctx(), boxPatches(s, blo, bhi))};
+    CCSGEvaluator ev(definition(2, N(CSG_INTERSECTION, {L(0), L(1)})), ops, 1e-5f);
+    ASSERT(onPlane(ev, s.ctx(), 0, 1, 0.5f, 0.5f, 1, 0, 0) == FALSE);
+    ASSERT(onPlane(ev, s.ctx(), 1, 1, 0.5f, 0.5f, -1, 0, 0) == FALSE);
 }
 
-TEST(touching_boxes_difference_leaves_minuend_whole) {
-    // Subtracting a solid that only touches (no interior overlap) must
-    // leave A's volume and face count completely unchanged.
-    CArray<CCSGPolygon *> *a = csgtest::makeBox(0, 0, 0, 1, 1, 1, NULL);
-    CArray<CCSGPolygon *> *b = csgtest::makeBox(1, 0, 0, 2, 1, 1, NULL);
+TEST(shared_outer_face_renders_once) {
+    CCsgSession s;
+    // A = [0,1]^3, B = [0,1] x [0,1] x [0,2]: they share the faces x = 0,
+    // x = 1, y = 0, y = 1 (over z in [0,1]) and z = 0
+    const float alo[3] = {0, 0, 0}, ahi[3] = {1, 1, 1}, blo[3] = {0, 0, 0}, bhi[3] = {1, 1, 2};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), boxPatches(s, alo, ahi)),
+                                              makeOperand(s.ctx(), boxPatches(s, blo, bhi))};
+    CCSGEvaluator ev(definition(2, N(CSG_UNION, {L(0), L(1)})), ops, 1e-5f);
+    ASSERT(onPlane(ev, s.ctx(), 0, 0, 0.5f, 0.5f, -1, 0, 0) == TRUE);  // A owns the shared face
+    ASSERT(onPlane(ev, s.ctx(), 1, 0, 0.5f, 0.5f, -1, 0, 0) == FALSE); // B's coincident copy is dropped
+    ASSERT(onPlane(ev, s.ctx(), 1, 0, 0.5f, 1.5f, -1, 0, 0) == TRUE);  // only B there
+    ASSERT(onPlane(ev, s.ctx(), 0, 0.5f, 0.5f, 1, 0, 0, 1) == FALSE);  // A's top: inside B
+}
 
-    CArray<CCSGPolygon *> *result = csgCombine(CSG_DIFFERENCE, a, b);
-
-    double volume = csgtest::computeVolume(result);
-    int planes = csgtest::countDistinctPlanes(result, kPlaneEpsilon);
-
-    ASSERT(fabs(volume - 1.0) < kVolumeTolerance);
-    ASSERT(planes == 6);
-
-    csgFreePolygons(a);
-    csgFreePolygons(b);
-    csgFreePolygons(result);
+TEST(flush_subtraction_leaves_no_skin) {
+    CCsgSession s;
+    // [-0.5,0.5]^3 minus [0.2,0.5] x [-0.7,0.7]^2, flush with the face x = 0.5
+    const float alo[3] = {-0.5f, -0.5f, -0.5f}, ahi[3] = {0.5f, 0.5f, 0.5f};
+    const float blo[3] = {0.2f, -0.7f, -0.7f}, bhi[3] = {0.5f, 0.7f, 0.7f};
+    std::vector<CCSGResolvedOperand *> ops = {makeOperand(s.ctx(), boxPatches(s, alo, ahi)),
+                                              makeOperand(s.ctx(), boxPatches(s, blo, bhi))};
+    CCSGEvaluator ev(definition(2, N(CSG_DIFFERENCE, {L(0), L(1)})), ops, 1e-5f);
+    ASSERT(onPlane(ev, s.ctx(), 0, 0.5f, 0, 0, 1, 0, 0) == FALSE);  // A's face x = 0.5: removed
+    ASSERT(onPlane(ev, s.ctx(), 1, 0.5f, 0, 0, 1, 0, 0) == FALSE);  // B's face x = 0.5: no skin
+    ASSERT(onPlane(ev, s.ctx(), 1, 0.2f, 0, 0, -1, 0, 0) == TRUE);  // B's face x = 0.2: the cut
+    ASSERT(onPlane(ev, s.ctx(), 0, -0.5f, 0, 0, -1, 0, 0) == TRUE); // A's far face stays
 }
 
 int main() {
-    printf("=== CSG Boolean Kernel Tests: boolean_coplanar (T016) ===\n\n");
-
-    run_test_touching_boxes_union_merges_into_one_solid();
-    run_test_touching_boxes_intersection_is_empty();
-    run_test_touching_boxes_difference_leaves_minuend_whole();
-
-    printf("\n=== Results: %d passed, %d failed ===\n", tests_passed, tests_failed);
-
-    return tests_failed > 0 ? 1 : 0;
+    RUN(touching_boxes_union_has_no_internal_skin);
+    RUN(touching_boxes_intersection_is_empty);
+    RUN(shared_outer_face_renders_once);
+    RUN(flush_subtraction_leaves_no_skin);
+    SUMMARY();
 }
