@@ -145,7 +145,8 @@ The operand's member surfaces are its resolved per-instance surfaces:
 procedurals expanded, and mesh-type leaves materialized (Decision 15).
 
 `ctx` is the caller's `CShadingContext`. Every call site (`CPatch::dice`,
-`CReyes::drawGrid`, `intersect`) already has one. It may be NULL for quadric,
+`CObject::regionCoverage` called from `CReyes::shadeGrid`, `intersect`) already
+has one. It may be NULL for quadric,
 polygon and bilinear surfaces; free-form surfaces and mesh materialization
 require it.
 
@@ -202,8 +203,9 @@ require it.
      are a geometry query, not a render ray.
    - **Robustness**: the ray direction is a fixed, deterministic,
      axis-irrational direction. If a crossing is near-grazing
-     (|N·dir| < ε) or within ε of a surface edge, the query is recast with a second
-     fixed direction, and the majority of three decides. The result is a pure
+     (|N̂·d̂| < 1e-4) or within a parametric distance of 1e-5 of a surface edge, the
+     query is recast with a second fixed direction, and the majority of three
+     decides. Both thresholds are named constants in `csgClassify.cpp`. The result is a pure
      function of P, which guarantees seam continuity across buckets and threads
      (FR-008).
 
@@ -259,6 +261,16 @@ require it.
     bound size.
   - This removes internal skins (union of flush boxes) and leftover skins
     (difference flush with a face) without flicker.
+- **Empty operands (FR-025a)**: an operand that encloses no volume (an empty
+  nested block, an empty expansion, a lone disk, a lone open non-quadric surface,
+  or shapes that cancel by parity) classifies every point as OUT. The tree
+  evaluation then gives the empty-set semantics with no special casing: no change
+  in a union or as a later operand of a difference, and nothing from an
+  intersection or from a difference whose first operand it is. The CSG-aware
+  bound agrees: an empty operand has an empty bound, so an intersection with it,
+  or a difference with it first, is culled whole. An empty nested block therefore
+  stays in its position, unlike spec 013's resolver, which dropped it
+  (`csgTree.cpp:511`).
 
 **Rationale**: for union/intersection/difference trees in which every operand
 appears once, the composite is monotone in each operand, so orientation is a
@@ -282,23 +294,41 @@ spec 013's approach, and it is meaningless without a mesh.
   bound of any other operand's boundary surfaces, its classification is uniform.
   One predicate evaluation keeps or drops the whole patch, with no per-vertex
   work.
-- **Straddling patches** keep splitting. Termination is **screen-size-based**:
-  split until the sub-patch dices into micropolygons no larger than a seam
-  threshold, rather than stopping at `CRenderer::maxEyeSplits`.
+- **Bound classification uses undisplaced geometry.** `classifyBound()` runs on
+  the bound of the *undisplaced* probe points, sampled with the object's own
+  `sample()` from a snapshot of the probe u/v (as the trim stage snapshots
+  `trimU`/`trimV`, `surface.cpp:172`), padded by the largest distance between
+  neighbouring probe points to cover curvature between probes. The displaced
+  probe bound from `displaceEstimate()` is not used for this, because
+  displacement can move points across an operand boundary.
+- **Straddling (`MIXED`) patches** dice at the **seam rate**: micropolygon edge
+  ≤ min(√ShadingRate, 1) pixel. They split, counting `numCsgSeamSplits`, only
+  while the patch at that rate would exceed the grid-size limit.
+  `CRenderer::maxEyeSplits` does not apply to them.
   - The trim path *drops* straddlers at the eyesplit cap; for CSG that drop would
     itself create exactly the reported gaps.
-  - A generous safety depth cap exists; hitting it *keeps* the patch instead of
-    dropping it.
-- **Final grids** carry a **per-micropolygon coverage mask**, computed from the
-  P-only sampling that `CReyes::drawGrid()` (`src/ri/hiders/reyes.cpp:695`) already
-  performs (`shadeGrid(grid, TRUE)`).
+  - The safety cap is 24 split levels (about float-mantissa precision); hitting
+    it *keeps* the patch instead of dropping it.
+- **Final grids** carry a **per-micropolygon coverage mask**, computed from
+  **undisplaced** camera-space P. The P-only grid P cannot be used: in
+  `CReyes::shadeGrid()`'s P-only branch (`reyes.cpp:748`, ~L955, reached from
+  `drawGrid()` at :695) it has already been displaced and converted to sample
+  space (`displace()`, then `camera2samples()`).
+  - A generic hook, `virtual void CObject::regionCoverage(CShadingContext*, int
+    udiv, int vdiv, unsigned char *coverage)` (default no-op; `CSurface` override
+    in the renderer-only `surface.cpp`), snapshots the grid's u/v/time, calls the
+    object's own `sample()` for undisplaced P, evaluates `region->accepts(ctx, P)`
+    per vertex, fills the mask and restores u/v/time. The hider calls it before
+    `displace()` when `object->region` is set. Motion-blurred grids use the
+    shutter-open sample. The mask is kept with the grid through its later full
+    shading.
   - A quad is absent iff none of its four vertices is accepted. This is
     conservative: straddling quads are kept, which yields sub-pixel overlap,
     never a gap.
-  - The rasterizers already skip any quad whose per-quad `bounds` miss the bucket
-    (`stochasticQuad.h:703`, `zbufferQuad.h:40`). An absent quad gets an empty
-    bound where the per-quad bounds are computed (`reyes.cpp` ~1452/1705), so
-    **no rasterizer loop changes**.
+  - An absent quad gets the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}` where the
+    per-quad bounds are computed (`reyes.cpp` ~1452/1705). The rasterizers' first
+    existing trivial reject, `bounds[1] < left` (`stochasticQuad.h:703`,
+    `zbufferQuad.h:40`), then skips it, so **no rasterizer loop changes**.
   - The mask is a generic `CRasterGrid` field ("geometry says this micropolygon
     does not exist"), with no CSG knowledge in the hider (FR-012).
 - Shading stays lazy, as today (`RASTER_UNSHADED`): only surviving grids reach the
@@ -309,7 +339,8 @@ spec 013's approach, and it is meaningless without a mesh.
 - Bucket-driven splitting already defers work to the buckets that need it
   (FR-002, FR-004).
 - The mask reuses existing culling.
-- The seam threshold makes seam error track screen resolution (FR-007, FR-009).
+- The seam rate makes seam error track screen resolution (FR-007, FR-009): at most
+  one micropolygon, which is at most 1 pixel.
 
 **Alternatives considered**:
 
@@ -373,8 +404,11 @@ proven. It is exact for quadrics and polygons.
     exactly two faces.
 - **A lone non-quadric surface that is not closed** (a single open NURBS sheet, a
   single bilinear patch) has no well-defined implied solid. It **contributes
-  nothing** (an empty operand) and emits a one-time "operand is not closed"
-  diagnostic, at a level `CODE_LOG` does not swallow. This is deterministic and
+  nothing** (an empty operand) and emits an "operand is not closed" warning
+  (`warning(CODE_BADTOKEN, …)`, never `CODE_LOG`), once per offending operand per
+  frame. It is emitted at instance resolution under `delayedMutex`, deduplicated
+  per (definition, operand), so further instances stay silent and no atomic guard
+  is needed. This is deterministic and
   testable, and the boundary-edge test avoids false diagnostics on closed
   single-patch shapes such as a NURBS sphere (seam plus poles).
 
@@ -402,12 +436,29 @@ non-quadric surfaces were added during analysis (2026-09-30).
   procedural operand members are expanded under `CRenderer::delayedMutex`. This
   mirrors `CDelayedObject::intersect()` and `processDelayedObject()`
   (`src/ri/render/geometryDispatch.cpp:679`).
-- **Capture**: `addObject()` gains an *operand capture* mode, diverting the
-  expansion's primitives into that operand's member list. Nested procedurals are
-  captured and then expanded recursively.
-- A `SolidBegin` issued during expansion reports the existing nested-in-primitive
-  diagnostic (`csgValidateNestedSolidBegin`) and is ignored.
-- An empty expansion yields an empty operand, with FR-025 semantics.
+- **Capture**: expansion output goes through the same capture target that
+  instance resolution uses for `instantiate()` (Decision 9): the context's
+  `delayed` points at a per-operand holder, so `addObject()` lands each primitive
+  in that operand's member list. Nested procedurals are captured and then
+  expanded recursively.
+- **Attributes**: the expansion runs with a flagged clone of the procedural's
+  attributes as the current attributes, so every expanded object inherits
+  `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the leaf's `ATTRIBUTES_FLAGS_INSIDE`
+  parity, exactly as instantiated leaves do.
+- **Nested solid blocks**: `csgValidateNestedSolidBegin()` cannot be reused as is.
+  It needs a parent node, `currentSolid` is NULL at render time, and the matching
+  root-level `RiSolidEnd` would call `resolveCSGTree()` and create a new solid.
+  Instead, an expansion-scoped counter `swallowedSolidDepth` in `CRendererContext`
+  guards them:
+  - `RiSolidBegin` still validates the operation name
+  - at the first nesting level it reports the nested-in-primitive message through
+    a parent-less helper, `csgReportNestedSolidBegin()`, which
+    `csgValidateNestedSolidBegin()` also calls
+  - it then increments the counter and creates no node
+  - `addObject()` discards objects while the counter is above 0
+  - `RiSolidEnd` only decrements it and resolves nothing
+- An empty expansion yields an empty operand, with FR-025a semantics (the empty
+  set in its position).
 - Each operand is expanded at most once per solid instance. It is never expanded
   if the instance is never needed.
 - **Operand kind is derived after expansion.** Single-quadric / multi-surface /
@@ -432,14 +483,30 @@ trigger.
   creates another solid over the same definition with a composed transform, as
   `CSolidObject::instantiate()` does today.
 - **Per-instance state** (`CCSGInstanceState`) is built on first use, under
-  `delayedMutex`:
-  - leaves instantiated with the composed transform, via each leaf's
-    `instantiate()`
-  - procedural expansions
-  - mesh-type leaves materialized (Decision 15)
-  - operand kinds derived from the resolved members (Decision 8)
-  - caps
-  - one `CCSGRegion` per leaf
+  `delayedMutex`, in this order:
+  1. **Capture target**: `instantiate()` hands its output to `addObject()`
+     (e.g. `quadrics.cpp:512`). For each operand, the context's `delayed` points
+     at a temporary holder, as `processDelayedSolid()` does
+     (`rendererContext.cpp:485`), so the output lands in the operand's member
+     list, not in the scene.
+  2. **Flagged clones**: each template leaf's attributes are cloned, with
+     `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` set and `ATTRIBUTES_FLAGS_INSIDE` toggled
+     per `leafFlip`, and the leaf is instantiated with that clone and the composed
+     transform (`instantiate()` uses the attributes passed in,
+     `quadrics.cpp:508`). Procedural members are expanded here too (Decision 8).
+  3. `region` set on every member to its `CCSGRegion`.
+  4. Depth-first materialization (Decision 15).
+  5. Every `CSurface` descendant collected as the operand's classification
+     surfaces.
+  6. Operand kinds derived from the resolved members (Decisions 7 and 8), with
+     the "not closed" warning.
+  7. Caps, carrying the operand's flagged attributes.
+
+  Mesh children copy their parent's `attributes` pointer when `create()` runs
+  (`polygons.cpp:1313`, `patches.cpp:1650`, `subdivisionCreator.cpp:630`), and
+  `setChildren()` copies only `region`. Steps 2 and 3 must therefore precede
+  step 4, or mesh-type operands would render without the region, the
+  solid-fragment flag or the orientation flip.
 - **Dicing**: `CCSGSolid` sets `children` to all instance leaves (mesh-type
   objects, surfaces, caps), and its `dice()` calls `CObject::dice(r)`
   (`geometryDispatch.cpp:76`). Every leaf is therefore clipped and queued per
@@ -460,10 +527,11 @@ trigger.
   3. `CAttributes::tessellationTolerance` (`attributes.h:165`)
   4. `initDeclarations()`
 - Stop reading its value.
-- The first occurrence per render emits a notice through the error channel at a
-  level that is not swallowed. Do not use `CODE_LOG`, which silently drops
-  messages; follow the `CODE_BADTOKEN`-level precedent from the hider rename.
-- A per-render flag is reset at frame begin.
+- The first occurrence per frame emits a notice with `warning(CODE_BADTOKEN, …)`.
+  Warnings are always printed, to stdout (`ri.cpp:2367–2370`). Do not use
+  `CODE_LOG`, which silently drops messages.
+- A per-frame flag is reset at frame begin. "Render" in FR-023 means one frame
+  (spec Assumptions).
 
 ## Decision 11: Retiring the BSP path
 
@@ -541,7 +609,12 @@ verification tests, which already pass, are labeled as such in `tasks.md`.
   - analytic implied-closed quadric classification and caps
   - crossing-parity robustness (`test_parity_robustness`): grazing and edge rays,
     mixed vertex orders, a reversed patch, overlapping shells in one block, and the
-    closedness rules ("not closed" diagnostic plus empty operand)
+    closedness helper on directly constructible surfaces. The NURBS closedness
+    cases (closed NURBS sphere: no diagnostic; open sheet: one diagnostic and an
+    empty operand) run render-side through `add_csg_metric_test` log checks,
+    consistent with free-form operands being covered render-side.
+  - empty operands as the empty set in their position (FR-025a), in
+    `test_boundary_rule`
   - analytic seam location (points straddling the exact intersection curves),
     tangency, and direct leaves of a boolean block, in `test_boundary_rule`
   - determinism: identical classification regardless of query order or thread
@@ -629,8 +702,13 @@ the same way.
 - A new `virtual void CObject::materialize(CShadingContext*)` (default no-op) is
   overridden by the five mesh types as `if (children == NULL) create(context);`.
   `create()` is already mutex-guarded and idempotent (`polygons.cpp:1840`).
-  `CCSGInstanceState` materializes mesh-type leaves and collects every
+  `CCSGInstanceState` materializes **depth-first**: `materialize(ctx)` on each
+  member, then on each of its children. One level is not enough, because
+  `CLoopSubdivMesh::create()` sets its children to a nested `CPolygonMesh` whose
+  triangles do not exist yet (`subdivisionLoop.cpp:483`). It then collects every
   `CSurface` descendant as that operand's classification surfaces.
+- Materialization happens after the flagged attribute clone and the `region`
+  are set (Decision 9), because mesh children copy both at `create()` time.
 
 **Rationale**:
 - Most authored operands are mesh-type `CObject`s, not `CSurface`s:
@@ -653,9 +731,15 @@ Rejected: five copies of the same logic, and it is easy to miss one.
   - renders one or more RIBs, with the same environment as `add_visual_test`
   - copies support directories (archives) into the per-test scratch working
     directory
-  - applies log regexes itself, so CTest's `PASS_REGULAR_EXPRESSION` never
-    overrides the exit code
-  - runs `test_csg_seam_metric` modes and propagates their exit code
+  - runs `orender -x 3` with `ORENDER_INSTR_LEVEL` unset, because statistics
+    are INFO-level messages and print only at that log level
+  - captures stdout and stderr together (statistics and warnings go to stdout,
+    errors to stderr; `ri.cpp:2354–2378`) and applies log regexes to that
+    combined output itself, so CTest's `PASS_REGULAR_EXPRESSION` never overrides
+    the exit code
+  - runs `test_csg_seam_metric` modes and propagates their exit code. Alpha-only
+    modes cannot see shadows or reflections, so the tool also has a
+    `--luminance-ratio` mode for secondary-ray checks.
   - extracts end-of-frame statistics by label for `==`, `<=`, `>` and
     ratio-to-other-render comparisons
 

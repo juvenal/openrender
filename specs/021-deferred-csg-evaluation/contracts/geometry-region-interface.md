@@ -8,10 +8,10 @@ It lists what each domain may assume about the others.
 ## Geometry domain (`src/ri/geometry/`)
 
 0. **Naming requirement.** The region-predicate type, its methods, the
-   `CObject` hook member, `materialize()`, `countCrossings()` and the
+   `CObject` hook member, `materialize()`, `regionCoverage()`, `countCrossings()` and the
    `CRasterGrid` coverage-mask field MUST have generic names: no `csg`, `Csg`,
    `CSG` or `Solid` anywhere in the identifier. For example: `CRegionPredicate`,
-   `accepts()`, `classifyBound()`, `region`, `materialize()`, `coverage`. The
+   `accepts()`, `classifyBound()`, `region`, `materialize()`, `regionCoverage()`, `coverage`. The
    hider (`reyes.cpp`) references these names, and the separation-of-concerns
    grep gate ([quickstart §7](../quickstart.md)) matches `csg`/`Csg`/`CSG`
    anywhere inside an identifier. Only the CSG *implementation*, which lives in
@@ -27,13 +27,22 @@ It lists what each domain may assume about the others.
    - A null pointer means today's behavior, bit for bit.
    - `CObject::materialize(ctx)` (default no-op) lets geometry force a mesh-type
      object to create its children. It is idempotent.
+   - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op; `CSurface`
+     override in `surface.cpp`) fills a grid's per-micropolygon coverage mask from
+     **undisplaced** camera-space P at the grid's u/v, using the object's own
+     `sample()`. It snapshots and restores the grid's u/v/time. A quad is absent iff
+     none of its four vertices is accepted.
 2. **`CPatch::dice()`** (`surface.cpp:142`) consults `object->region` alongside
    the trim hook. The two combine: a point must pass both. (`CSurface::dice()`
    itself is in `geometryDispatch.cpp:332`.)
+   - `classifyBound()` runs on the bound of the undisplaced probe points, padded
+     by the largest distance between neighbouring probes.
    - `ALL_OUT`: the patch is skipped.
    - `ALL_IN`: the patch is diced normally.
-   - `MIXED`: the patch splits. Termination is screen-size-based; hitting the
-     safety cap keeps the patch.
+   - `MIXED`: the patch dices at the seam rate, a micropolygon edge of at most
+     min(√ShadingRate, 1) pixel, and splits only while it would exceed the
+     grid-size limit. `maxEyeSplits` does not apply. Hitting the safety cap of 24
+     split levels keeps the patch.
    - Trim behavior is unchanged: straddlers are still dropped at the eyesplit cap.
 3. **Hit acceptance** in every intersector (quadric root loops, polygon
    intersectors, `CTesselationPatch` candidate tests) calls `accepts()` on the
@@ -56,15 +65,20 @@ It lists what each domain may assume about the others.
 ## Hider domain (`src/ri/hiders/`)
 
 1. The hiders receive **no** CSG types, calls or flags.
-2. **`CReyes::drawGrid()`**: after the P-only sampling it already does, it asks
-   the object's region hook, when one is set, for per-vertex acceptance
-   (`region->accepts(this, P)`). From
-   that it fills the grid's generic **coverage mask** (null when the hook is
-   null). This is the only hider-side change. It is expressed in generic terms:
-   "geometry reports which micropolygons exist."
-3. **Per-quad bound computation** (`reyes.cpp` ~1452/1705) gives absent quads an
-   empty bound. The rasterizer loops (`stochasticQuad.h`, `zbufferQuad.h`) are
-   unchanged; they already skip quads outside the bucket.
+2. **`CReyes::shadeGrid()`, P-only branch** (`reyes.cpp:748`, ~L955, reached from
+   `drawGrid()` at :695): when `object->region` is set, it allocates the grid's
+   generic **coverage mask** and calls `object->regionCoverage(this, udiv, vdiv,
+   grid->coverage)` **before** `displace()`. The grid's own P cannot be used,
+   because it is displaced and converted to sample space right after. The mask is
+   null when the hook is null, computed once, and kept with the grid through its
+   later full shading. Motion-blurred grids use the shutter-open sample. This is
+   the only hider-side change, expressed in generic terms: "geometry reports which
+   micropolygons exist."
+3. **Per-quad bound computation** (`reyes.cpp` ~1452/1705) gives an absent quad
+   the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`. The rasterizer loops
+   (`stochasticQuad.h`, `zbufferQuad.h`) are unchanged; their first trivial
+   reject, `bounds[1] < left` (`stochasticQuad.h:703`, `zbufferQuad.h:40`), skips
+   it.
 4. **Raytrace traversal** (`trace.cpp`) is unchanged. The solid is an ordinary
    non-dummy BVH node.
 

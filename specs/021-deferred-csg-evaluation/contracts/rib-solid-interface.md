@@ -11,7 +11,7 @@ is unchanged from spec 013.
 |---|---|
 | Operations | `"primitive"`, `"union"`, `"intersection"`, `"difference"`: same meaning as spec 013 |
 | Nesting | Arbitrary depth |
-| Result | The composite surface of the tree, resolved on demand at view-appropriate precision. Seams are crack-free; analytic seams are within 1 pixel of the exact intersection; free-form seams are as accurate as the free-form surface renders on its own |
+| Result | The composite surface of the tree, resolved on demand at view-appropriate precision. Seams are crack-free. Analytic seams (quadrics, flat polygons, bilinear patches) are within 1 pixel of the exact intersection. Free-form seams follow FR-007a: within 1 pixel where the surface exactly represents an analytic shape, and otherwise crack-free and consistent across hiders within 1 pixel |
 | Hider independence | Raytrace, REYES and Z-buffer agree within existing parity tolerances |
 | Shaders | Each face keeps its operand's `Surface` / `Interior` / `Exterior` shaders. Walls exposed by subtraction face outward |
 | Instancing | A solid inside `ObjectBegin`/`ObjectEnd` renders correctly for every `ObjectInstance` |
@@ -25,17 +25,18 @@ is unchanged from spec 013.
 | Several surfaces in one `"primitive"` block | Their jointly enclosed volume. The author closes the shape (no auto-caps). Overlapping closed shapes in one block combine by parity: where they overlap counts as outside. Use `"union"` to merge overlapping shapes |
 | Primitives placed directly in a boolean block (not wrapped in `"primitive"`) | Together they form one operand, positioned first, combined by parity exactly like a `"primitive"` block |
 | A lone zero-volume surface (e.g. a single `Disk`) | Empty operand |
-| A lone open non-quadric surface (patch, NURBS, polygon mesh, subdivision mesh) | Empty operand. One-time diagnostic per render: operand is not closed. A non-quadric counts as closed when every boundary edge collapses to a point or coincides with another boundary edge (meshes: every edge shared by exactly two faces) |
+| A lone open non-quadric surface (patch, NURBS, polygon mesh, subdivision mesh) | Empty operand. One "operand is not closed" warning per offending operand per frame; further instances of the same solid stay silent. A non-quadric counts as closed when every boundary edge collapses to a point or coincides with another boundary edge (meshes: every edge shared by exactly two faces) |
 | `Procedural` (`DelayedReadArchive`, `RunProgram`, `DynamicLoad`) | **Now accepted** (supersedes spec 013 FR-021). Expanded only when the solid is first needed; never if never needed; at most once per instance. Its expansion is part of the enclosing operand |
-| `SolidBegin` inside a procedural's expansion | Same diagnostic as a solid nested inside `"primitive"`; that nested block is ignored |
-| Procedural expanding to nothing (including a missing archive) | Contributes nothing. The usual archive-open diagnostic is reported, and the operand's other members still render. A wholly empty first operand of `difference`/`intersection` yields nothing; otherwise it changes nothing |
+| `SolidBegin` inside a procedural's expansion | Same diagnostic as a solid nested inside `"primitive"`, reported once. The nested block, its contents and its `SolidEnd` are ignored; no extra solid is created |
+| Procedural expanding to nothing (including a missing archive) | Contributes nothing. The usual archive-open diagnostic is reported, and the operand's other members still render. If the operand ends up with no members at all, it is an empty operand (below) |
+| Empty operand: an empty nested block, a procedural that expands to nothing, a lone disk, a lone open non-quadric surface, or shapes that cancel by parity (FR-025a) | The empty set, in its position: changes nothing in a `union` or as a later operand of a `difference`; makes an `intersection`, or a `difference` whose first operand it is, yield nothing. **Changed from spec 013**, which silently dropped an empty nested block |
 | Procedural expanding to a single open quadric | Exactly as if written inline: implied closure, caps rendered |
 
 ## Attributes
 
 | Attribute | Contract |
 |---|---|
-| `Attribute "solid" "float tessellationtolerance"` | Still accepted without error. **No effect.** The first occurrence in a render prints one notice that it no longer affects results; later occurrences are silent |
+| `Attribute "solid" "float tessellationtolerance"` | Still accepted without error. **No effect.** The first occurrence in a frame prints one warning that it no longer affects results; later occurrences in that frame are silent |
 
 ## Diagnostics (unchanged from spec 013 unless noted)
 

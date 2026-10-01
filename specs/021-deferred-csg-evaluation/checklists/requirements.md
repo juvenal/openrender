@@ -36,11 +36,12 @@
   user-selectable visibility methods (scene-level `Hider` choices), not
   implementation details.
 - No [NEEDS CLARIFICATION] markers were used. The open questions are resolved
-  in the spec's Clarifications section (7 bullets): open operands (FR-021),
+  in the spec's Clarifications section (8 bullets): open operands (FR-021),
   performance target (SC-007), seam accuracy by operand type (FR-007a),
   procedural operands (FR-024), tessellation tolerance setting (FR-023);
   raised during planning, which open operands are auto-closed; and raised
   during analysis, closedness, overlaps, direct leaves and the measurement of
-  seam accuracy and work bounds.
+  seam accuracy and work bounds; and, in the third analysis round, empty operands
+  as the empty set (FR-025a).
 - SC-001/SC-003 baselines were measured on master at 6680e71 (hero scene,
   raytrace/REYES/Z-buffer, 800×500 and 1600×1000).

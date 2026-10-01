@@ -102,15 +102,21 @@ ctest --test-dir build -R "Csg(OffscreenStats|PartialVisibilityStats|ResolutionS
 ```
 
 **Expected**:
-- `CsgOffscreenStats`: `csg-offscreen-stats.rib` (a hero solid behind the
-  camera whose sphere operand is a procedural) reports 0 instances resolved,
-  0 classifications and 0 procedural expansions.
-- `CsgPartialVisibilityStats`: the half-framed hero (`csg-hero-partial-stats.rib`)
-  needs at most 0.75× the seam splits of the fully framed one.
+- `CsgOffscreenStats_{raytrace,reyes}`: `csg-offscreen-stats-{raytrace,reyes}.rib`
+  (a hero solid behind the camera whose sphere operand is a procedural) reports 0
+  instances resolved, 0 classifications, 0 seam splits and 0 procedural
+  expansions.
+- `CsgPartialVisibilityStats`: the hero rendered with `CropWindow 0 0.5 0 1`
+  (`csg-hero-partial-stats-reyes.rib`) needs at most 0.75× the seam splits of the
+  full frame (`csg-hero-stats-800-reyes.rib`). Seam splits are counted by REYES
+  dicing, so the statistics scenes use REYES.
 - `CsgResolutionScaling`: the REYES hero at 1600×1000 reports more seam splits
   than at 800×500 (precision follows resolution).
-- `CsgTinySolidStats`: a hero solid covering under 4×4 pixels needs at most 16
-  seam splits.
+- `CsgTinySolidStats`: a hero solid covering under 4×4 pixels
+  (`csg-tiny-solid-stats-reyes.rib`) needs at most 16 seam splits.
+
+To read the counters from a manual render, pass `-x 3`. Statistics are INFO-level
+messages, printed to stdout only at that log level.
 
 ## 5. Settings and diagnostics (FR-019, FR-023, FR-025)
 

@@ -47,7 +47,9 @@ built on first use.
 `tests/visual/CMakeLists.txt` (`add_visual_test`, 8×8 block-average diff,
 thresholds 20–40/255); cross-hider parity (label `parity`,
 `tests/visual/test_hider_parity.cpp`); a new seam-metric helper; performance
-comparison via `tests/visual/test_perf_compare.cpp`.
+timings: throttled wall-clock times against the master baselines in
+`baseline-timings.md` (T014/T081). `test_perf_compare.cpp` compares two renders
+within one build, so it cannot compare against master.
 
 **Glossary (spec term → code term)**:
 - visibility method → hider
@@ -138,9 +140,11 @@ src/ri/geometry/
 ├── surfaceCrossingDispatch.{h,cpp}  # NEW: renderer-only free-form crossing core (pure Newton, immutable
 │                            #      per-surface seed grid; no per-thread CTesselationPatch cache)
 ├── object.{h,cpp}           # MODIFY: generic CObject::region hook (inherited in setChildren), virtual
-│                            #         materialize(ctx), CSurface::countCrossings(ctx, from, dir) virtual
+│                            #         materialize(ctx), virtual regionCoverage(ctx, udiv, vdiv, coverage),
+│                            #         CSurface::countCrossings(ctx, from, dir) virtual
 ├── surface.cpp              # MODIFY: CPatch::dice() (surface.cpp:142) region stage (uniform shortcut,
-│                            #         screen-size seam termination, keep-at-cap);
+│                            #         seam rate, undisplaced classifyBound, keep-at-cap);
+│                            #         CSurface::regionCoverage (undisplaced P);
 │                            #         CTesselationPatch hit acceptance consults region
 ├── quadrics.{h,cpp}         # MODIFY: countCrossings (analytic, all roots); region check in root loops
 ├── polygons.{h,cpp}         # MODIFY: countCrossings (exact); region check at hit acceptance;
@@ -154,14 +158,14 @@ src/ri/vector/
 └── surfaceCrossingDispatchStub.cpp  # NEW: ribVector stub (ribVector excludes surface.cpp)
 
 src/ri/render/
-├── rendererContext.{h,cpp}  # MODIFY: SolidEnd builds definition; operand-capture mode for procedural expansion;
-│                            #         remove processDelayedSolid; tessellationtolerance once-per-render notice
+├── rendererContext.{h,cpp}  # MODIFY: SolidEnd builds definition; nested-SolidBegin guard during expansion;
+│                            #         remove processDelayedSolid; tessellationtolerance once-per-frame warning
 └── geometryDispatch.cpp     # MODIFY (if needed): shared helpers next to checkRayGuard (classification rays bypass it)
 
 src/ri/hiders/
 ├── reyes.h                  # MODIFY: CRasterGrid generic `coverage` mask field
-└── reyes.cpp                # MODIFY: drawGrid fills the mask from the object's region hook; per-quad bounds
-                             #         computation gives absent quads an empty bound (no rasterizer loop changes)
+└── reyes.cpp                # MODIFY: shadeGrid's P-only branch calls regionCoverage before displace(); per-quad bounds
+                             #         computation gives absent quads the {INT_MAX, INT_MIN, …} bound (no rasterizer loop changes)
 
 src/ri/core/stats.{h,cpp}    # MODIFY: CSG counters (SC-006)
 src/ri/state/attributes.h    # MODIFY (comment only): tessellationTolerance documented as inert
@@ -213,13 +217,17 @@ Each phase is a pause-and-commit point for the maintainer (stage only).
    bounds, `countCrossings(ctx, …)` per primitive type (free-form via
    `surfaceCrossingDispatch`), analytic implied-closed quadric
    classification, crossing parity with robustness, boundary rule, static
-   orientation, two-sided ON rule, determinism, statistics counters (test-first).
+   orientation, two-sided ON rule, empty operands as the empty set (FR-025a),
+   determinism, statistics counters (test-first).
    Unit suites rewritten or added and green.
 2. **CSG solid and per-instance state.** `CCSGSolid` replaces `CSolidObject`;
-   leaves are instantiated on first use; the `SOLID_FRAGMENT` flag and
-   orientation move onto cloned leaf attributes; instancing. From the switch-over
-   until deliberate reference regeneration (end of US1), the existing CSG visual
-   tests are expected red.
+   per-instance state is built on first use in the order of research Decision 9
+   (capture target, flagged attribute clones passed to `instantiate()`, region,
+   depth-first materialization, surfaces, kinds, caps), so the `SOLID_FRAGMENT`
+   flag, the orientation flip and the region reach mesh children too;
+   instancing. From the switch-over until deliberate reference regeneration (end
+   of US1), the existing CSG visual tests are expected red, and the REYES legs of
+   the per-operand-shader and free-form guards until phase 4 ends.
 3. **Raytrace path.** Region check at every hit-acceptance point; secondary rays;
    displaced-leaf handling. **Exit criteria: raytrace only.** The hero and
    sphere-cube *raytrace* seam metrics go green (SC-001 to SC-003 for raytrace).
@@ -228,22 +236,25 @@ Each phase is a pause-and-commit point for the maintainer (stage only).
    coverage mask introduced there.
 4. **REYES / Z-buffer path.** Region stage in `CPatch::dice()`
    (`surface.cpp:142`; uniform
-   shortcut, screen-size seam termination, keep-at-cap); generic coverage mask
-   plus empty per-quad bounds, with generically named hooks (contract §0).
+   shortcut, undisplaced `classifyBound`, seam rate, keep-at-cap); generic
+   coverage mask filled from undisplaced P through `CObject::regionCoverage()`
+   before displacement, plus sentinel per-quad bounds, with generically named
+   hooks (contract §0).
    **Exit criteria**: REYES and Z-buffer seam metrics go green (SC-001 to SC-003
    for all three hiders), and CSG parity pairs pass (SC-004).
 5. **Implied closure caps** (FR-021) for single-quadric operands, then the
    deliberate regeneration of the existing CSG references (before/after crops).
    This closes US1 with everything green.
-6. **Procedural operands** (FR-024/025): operand-capture mode, lazy recursive
-   expansion, nested-`SolidBegin` diagnostic, empty-operand semantics. The
+6. **Procedural operands** (FR-024/025): capture through the instance's `delayed` target, lazy recursive
+   expansion with flagged attributes, nested-`SolidBegin` guard, empty operands
+   per FR-025a. The
    archive is copied into the test's scratch directory. The old
    `csg-malformed-procedural-in-primitive` scene becomes
    `csg-procedural-missing-archive` (accepted; missing-archive diagnostic at
    expansion; the procedural contributes nothing, so the block's sphere
    renders) (SC-010).
 7. **Settings and retirement.** Make `tessellationtolerance` inert with a
-   once-per-render notice. Delete the BSP kernel, the fragment builders,
+   once-per-frame warning. Delete the BSP kernel, the fragment builders,
    `CSolidObject`, `processDelayedSolid`, the `csgTesselationDispatch` pair and
    its CMake entries, and the unused 013 tessellation helpers and their suites.
 8. **Validation and docs.** Run full `ctest -L visual` sequentially; timing vs.

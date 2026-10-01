@@ -40,6 +40,8 @@ outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
 
 **Validation**:
 - An empty tree yields no solid (spec 013 FR-016).
+- An empty nested block stays in its position as an empty operand, the empty set
+  (FR-025a). Spec 013's resolver dropped it instead (`csgTree.cpp:511`).
 - A single-operand boolean node collapses to that operand, passthrough with no
   predicate (spec 013 FR-017).
 - The operand **kind** (single-quadric / multi-surface / empty / open) is **not**
@@ -76,17 +78,29 @@ once per instance.
 
 | Field | Meaning |
 |---|---|
-| `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with the composed transform, plus procedural expansions |
-| `operandSurfaces[op][]` | Every `CSurface` descendant of the operand's members, after `materialize(ctx)` of mesh-type leaves. These are the classification surfaces for parity |
-| `operandKind[op]` | single-quadric / multi-surface / empty / open, derived from the resolved members |
+| `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through the context's `delayed` target, because `instantiate()` hands its output to `addObject()` |
+| `operandSurfaces[op][]` | Every `CSurface` descendant of the operand's members, after depth-first `materialize(ctx)`. These are the classification surfaces for parity |
+| `operandKind[op]` | single-quadric / multi-surface / empty / open, derived from the resolved members. An empty operand classifies every point OUT (FR-025a) |
 | `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
 
 **State transitions**: Unresolved → Resolving → Resolved.
-- **Resolving** (lock held): procedurals expanded, leaves instantiated, mesh-type
-  leaves materialized, kinds derived, caps synthesized, flip and solid-fragment
-  flag applied to cloned attributes.
+- **Resolving** (lock held), in this order (research Decision 9):
+  1. capture target set (`delayed` → per-operand holder)
+  2. each template leaf instantiated with a clone of its attributes carrying
+     `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the `leafFlip` toggle of
+     `ATTRIBUTES_FLAGS_INSIDE`; procedurals expanded with a flagged clone as the
+     current attributes
+  3. `region` set on every member
+  4. depth-first materialization
+  5. classification surfaces collected
+  6. kinds derived, with the "not closed" warning once per offending operand per
+     frame
+  7. caps synthesized
+
+  Mesh children copy `attributes` and `region` when `create()` runs, so steps 2
+  and 3 must precede step 4.
 - **Resolved**: immutable, read concurrently by all threads.
 
 ### Region predicate — `CRegionPredicate` (new generic interface; CSG is its only implementer)
@@ -103,7 +117,13 @@ object creates lazily inherit it (research Decision 15).
 
 **Mesh materialization**: `virtual void CObject::materialize(CShadingContext*)`
 (default no-op). The five mesh types override it to create their children
-(idempotent and mutex-guarded).
+(idempotent and mutex-guarded). Instance resolution calls it depth-first, which
+reaches the nested `CPolygonMesh` that a `CLoopSubdivMesh` creates.
+
+**Coverage hook**: `virtual void CObject::regionCoverage(CShadingContext*, int
+udiv, int vdiv, unsigned char *coverage)` (default no-op; `CSurface` override in
+`surface.cpp`) fills a grid's coverage mask from **undisplaced** camera-space P at
+the grid's u/v.
 
 **The CSG region adapter, `CCSGRegion`**, holds (instance state, operand index, leaf index) and
 implements `accepts` by the boundary rule (research Decision 4). For
@@ -135,10 +155,14 @@ backface, displacement). Implementations:
 
 | Field | Meaning |
 |---|---|
-| `coverage` | Per-micropolygon flag (null = all present). A quad is absent iff none of its 4 vertices is accepted by the surface's region predicate |
+| `coverage` | Per-micropolygon flag (null = all present). A quad is absent iff none of its 4 vertices, taken undisplaced, is accepted by the object's region predicate |
 
-Consumed only where per-quad `bounds` are computed: an absent quad gets an empty
-bound. Rasterizer loops are unchanged (FR-012).
+Filled once by `CObject::regionCoverage()`, called from the P-only branch of
+`CReyes::shadeGrid()` before `displace()`, and kept with the grid through its
+later full shading. Consumed only where per-quad `bounds` are computed: an absent
+quad gets the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, which the
+rasterizers' existing first trivial reject skips. Rasterizer loops are unchanged
+(FR-012).
 
 ### Statistics (`CStats`, extended)
 
@@ -172,8 +196,9 @@ CSGTreeNode (capture, transient) ──SolidEnd──▶ CSG definition (shared,
 | No CSG logic in hiders (FR-012) | Generic region predicate on `CObject` (inherited via `setChildren`); generic coverage mask on `CRasterGrid` |
 | Every operand type keeps working (FR-018) | Mesh-type leaves are materialized, and their surfaces inherit the region via `setChildren` (research Decision 15) |
 | Procedural operands behave as if written inline (FR-024) | Operand kind and caps are derived after expansion, per instance |
-| Open operands (FR-021) | Closedness test per instance; single open quadric ⇒ implied closure and caps; lone open non-quadric ⇒ empty plus diagnostic |
+| Open operands (FR-021) | Closedness test per instance; single open quadric ⇒ implied closure and caps; lone open non-quadric ⇒ empty plus one warning per operand per frame |
+| Empty operands (FR-025a) | Always OUT, so the tree gives the empty-set semantics; empty bound for culling; empty nested blocks kept in position |
 | Faces keep operand shaders (FR-016) | Leaves are the operands' own surfaces with their own (cloned) attributes |
 | Subtracted walls face outward (FR-011) | Static flip applied as `ATTRIBUTES_FLAGS_INSIDE` on cloned attributes |
 | Interior/Exterior (spec 013 FR-009 to FR-012) | `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` set on each leaf's cloned attributes; `shading.cpp:1019` unchanged |
-| Tolerance setting inert, with notice (FR-023) | Attribute still parsed; value unread; once-per-render notice |
+| Tolerance setting inert, with notice (FR-023) | Attribute still parsed; value unread; once-per-frame warning |
