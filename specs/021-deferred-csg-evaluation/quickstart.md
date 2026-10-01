@@ -93,13 +93,25 @@ camera) with `Option "statistics" "endofframe" [1]`.
 **Expected**: the CSG counters report 0 instances resolved, 0 classifications and
 0 procedural expansions for that frame.
 
+Partial view: `ctest --test-dir build -R CsgPartialVisibilityStats` renders the
+hero solid fully framed and half framed (`csg-hero-partial-stats.rib`).
+
+**Expected**: the half-framed seam-split count is ≤ 0.75× the full-view count.
+
 ## 5. Settings and diagnostics (FR-019, FR-023, FR-025)
 
 - A scene using `Attribute "solid" "tessellationtolerance"` several times prints
   exactly **one** notice and renders identically to the same scene without it.
 - `examples/rib/tests/csg-malformed-*.rib` produce the same diagnostics as
-  before, except that `csg-malformed-procedural-in-primitive.rib` now **renders**
-  (FR-024). Its registration moves from the diagnostic tests to the visual tests.
+  before.
+- The former `csg-malformed-procedural-in-primitive.rib` is renamed
+  `csg-procedural-missing-archive.rib`. Its procedural, which still points at a
+  nonexistent archive, is now **accepted** at capture (FR-024). Expansion reports
+  exactly one archive-open diagnostic, the operand is empty (FR-025), and the
+  render completes. The old "cannot be declared inside a SolidBegin block"
+  diagnostic must not appear.
+- `csg-procedural-operand-raytrace` matches its inline twin (SC-010). Its
+  archive is copied into the test's scratch working directory at configure time.
 
 ## 6. Performance bound (SC-007)
 

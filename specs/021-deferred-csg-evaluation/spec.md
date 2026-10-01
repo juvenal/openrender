@@ -95,6 +95,7 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 ### Edge Cases
 
 - **Open operand shapes**: a single-quadric operand that is not closed on its own, such as the hero scene's uncapped cylinder or a partial-sweep quadric, is treated as its implied closed solid, with its open ends and sweep gaps capped by flat faces; no notice is printed. A multi-surface operand is what its surfaces jointly enclose, with no auto-caps. A lone open free-form surface gets a "not closed" diagnostic (FR-021).
+- **Overlapping shapes in one "primitive" block**: where closed shapes declared in the same "primitive" block overlap, the overlap counts as outside, because it is enclosed twice. Overlapping shapes are combined with a "union" block. Spec 013 left this case undefined.
 - **Coincident faces**: operands whose faces exactly coincide (two boxes sharing a face in a union, a subtracted box flush with a face of the other) produce a clean result: no leftover internal skin, no flicker between faces, no pinholes along the shared face.
 - **Containment**: one operand lying entirely inside or entirely outside another produces the correct result (for example, subtracting a shape entirely outside the first leaves the first unchanged).
 - **Tangency**: operands that only touch at a point or along a curve produce no stray slivers or holes at the touching region.

@@ -22,9 +22,9 @@ is unchanged from spec 013.
 |---|---|
 | Any geometric primitive accepted by spec 013 | Accepted, unchanged |
 | A single quadric that is not closed (e.g. `Cylinder`, partial `thetamax`, z-cut `Sphere`) | Treated as its implied closed solid; caps render where they lie on the composite boundary, with the operand's shaders. No notice |
-| Several surfaces in one `"primitive"` block | Their jointly enclosed volume. The author closes the shape (no auto-caps) |
+| Several surfaces in one `"primitive"` block | Their jointly enclosed volume. The author closes the shape (no auto-caps). Overlapping closed shapes in one block combine by parity: where they overlap counts as outside. Use `"union"` to merge overlapping shapes |
 | A lone zero-volume surface (e.g. a single `Disk`) | Empty operand |
-| A lone open free-form surface | Classified by enclosed winding. One-time diagnostic: operand is not closed |
+| A lone open free-form surface | Classified by crossing parity. One-time diagnostic: operand is not closed |
 | `Procedural` (`DelayedReadArchive`, `RunProgram`, `DynamicLoad`) | **Now accepted** (supersedes spec 013 FR-021). Expanded only when the solid is first needed; never if never needed; at most once per instance. Its expansion is part of the enclosing operand |
 | `SolidBegin` inside a procedural's expansion | Same diagnostic as a solid nested inside `"primitive"`; that nested block is ignored |
 | Procedural expanding to nothing | Empty operand. An empty first operand of `difference`/`intersection` yields nothing; otherwise it changes nothing |

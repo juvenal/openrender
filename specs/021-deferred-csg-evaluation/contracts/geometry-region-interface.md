@@ -31,7 +31,9 @@ It lists what each domain may assume about the others.
    intersectors, `CTesselationPatch` candidate tests) calls `accepts()` on the
    undisplaced point before accepting a hit. A rejected candidate leaves
    `ray->t`/`ray->object` untouched.
-4. **`CSurface::countCrossings(from, dir)`**: a read-only geometric query. It
+4. **`CSurface::countCrossings(from, dir)`**: a read-only geometric query that
+   returns the **unsigned** number of crossings (operands classify by parity,
+   independent of surface orientation). It
    never consults ray flags, LOD, backface culling or displacement.
 5. **Orientation** of flipped leaves is conveyed only through the leaf's cloned
    attributes (`ATTRIBUTES_FLAGS_INSIDE`), which the sampler and intersector

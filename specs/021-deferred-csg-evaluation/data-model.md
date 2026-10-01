@@ -26,7 +26,7 @@ procedural rejection is removed (FR-024).
 **Lifetime**: discarded once converted into a CSG definition at the outermost
 `SolidEnd`.
 
-### CSG definition (new; immutable, reference-counted)
+### CSG definition — `CCSGDefinition` (new; immutable, reference-counted)
 
 The persistent, shared description of one solid tree. Built once at the
 outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
@@ -45,7 +45,7 @@ outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
 - An operand that is a lone zero-volume surface is empty.
 - A lone open free-form operand emits a one-time "not closed" diagnostic.
 
-### CSG solid (new; replaces `CSolidObject`, a `CObject`)
+### CSG solid — `CCSGSolid` (new; replaces `CSolidObject`, a `CObject`)
 
 The renderable handle registered with the scene and BVH, one per placement or
 instance.
@@ -64,7 +64,7 @@ instance.
 - `instantiate()` creates a new CSG solid over the same definition, with a
   composed transform.
 
-### Per-instance state (new)
+### Per-instance state — `CCSGInstanceState` (new)
 
 Built on first `dice()`/`intersect()` under `CRenderer::delayedMutex`, at most
 once per instance.
@@ -73,14 +73,14 @@ once per instance.
 |---|---|
 | `operandMembers[op][]` | This instance's leaf surfaces per operand: templates instantiated with the composed transform, plus procedural expansions |
 | `caps[op][]` | Synthesized cap surfaces, single-quadric operands only (FR-021) |
-| `regions[]` | One region adapter per leaf and cap (below) |
+| `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
 
 **State transitions**: Unresolved → Resolving (lock held; procedurals expanded,
 leaves instantiated, caps synthesized, flip applied to cloned attributes) →
 Resolved (immutable, read concurrently by all threads).
 
-### Region predicate (new generic interface; CSG is its only implementer)
+### Region predicate — `CRegionPredicate` (new generic interface; CSG is its only implementer)
 
 Attached to a `CSurface` through a nullable pointer. It is a generic "spatial
 trim", not a CSG concept.
@@ -90,7 +90,7 @@ trim", not a CSG concept.
 | `accepts(P)` | Does this surface point belong to the rendered surface? |
 | `classifyBound(bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
 
-**The CSG region adapter** holds (instance state, operand index, leaf index) and
+**The CSG region adapter, `CCSGRegion`**, holds (instance state, operand index, leaf index) and
 implements `accepts` by the boundary rule (research Decision 4). For
 coincident-face ON cases it uses a two-sided evaluation at P ± ε·N.
 
@@ -103,7 +103,7 @@ coincident-face ON cases it uses a two-sided evaluation at P ± ε·N.
 
 | Operation | Meaning |
 |---|---|
-| `countCrossings(from, dir) → int` | Signed crossings (+1 entering, −1 leaving) of the *undisplaced* surface along the ray |
+| `countCrossings(from, dir) → int` | **Unsigned** number of crossings of the *undisplaced* surface along the ray. Operands classify by parity (odd ⇒ IN), independent of how the author oriented each surface (research Decision 3) |
 
 This query ignores every rendering-side ray filter (visibility flags, LOD,
 backface, displacement). Implementations:
@@ -136,8 +136,8 @@ CSGTreeNode (capture, transient) ──SolidEnd──▶ CSG definition (shared,
                                                    │ 1
                                                    ▼ 0..1 (built on first use)
                                         Per-instance state
-                                         ├── operandMembers ──▶ CSurface leaves ──▶ region adapter
-                                         └── caps ────────────▶ CSurface caps   ──▶ region adapter
+                                         ├── operandMembers ──▶ CSurface leaves ──▶ CCSGRegion
+                                         └── caps ────────────▶ CSurface caps   ──▶ CCSGRegion
 ```
 
 ## Rules carried from the spec

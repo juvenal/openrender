@@ -147,10 +147,22 @@ directly-captured leaves of a boolean block) answers `classify(P) → IN / OUT`:
    paraboloid and hyperboloid are capped at their parametric ends; partial
    sweeps and z-cuts are closed by planes. All of this is exact, in the quadric's
    object space.
-3. **Otherwise**: a signed crossing count (winding number) of a ray from P
-   against all of the operand's surfaces. Non-zero means IN.
+3. **Otherwise**: an **unsigned crossing count (parity)** of a ray from P
+   against all of the operand's surfaces. An odd count means IN.
+   - Parity ignores surface orientation. Author-closed shells built from
+     inconsistently oriented pieces therefore classify correctly: for example, six
+     bilinear patches in arbitrary vertex order, or one patch under
+     `ReverseOrientation`.
+   - **Consequence**: overlapping closed shapes inside one `"primitive"` block
+     combine by parity. Where they overlap, the region is enclosed twice and counts
+     as outside. Authors combine overlapping shapes with a `"union"` block, which
+     is what blocks are for. Spec 013 never defined this case (its FR-002 only says
+     a block is "a single operand"), and its BSP kernel produced undefined output
+     for overlapping shells, so no defined behavior regresses. The spec states it
+     as an edge case.
    - This uses a new per-surface capability, `countCrossings(from, dir)`, which
-     returns the signed crossings of the undisplaced surface. It is implemented:
+     returns the **unsigned** number of times the ray crosses the undisplaced
+     surface. It is implemented:
      - analytically for quadrics (every root in the u/v range, not just the
        nearest — `CSphere::intersect()` in `quadrics.cpp:167` already iterates
        roots in order)
@@ -173,10 +185,11 @@ directly-captured leaves of a boolean block) answers `classify(P) → IN / OUT`:
 
 **Rationale**:
 
-- Analytic tests are exact and cheap for the common primitives. The winding
-  number covers every surface type uniformly, including user-closed multi-surface
+- Analytic tests are exact and cheap for the common primitives. Crossing parity
+  covers every surface type uniformly, including user-closed multi-surface
   operands (a can built from a cylinder and two disks, a box from six bilinear
-  patches, a polygonized blobby).
+  patches, a polygonized blobby), and it does not depend on how the author
+  oriented each piece.
 - Bypassing ray filters keeps classification independent of shading and
   visibility attributes (separation of concerns).
 
@@ -189,6 +202,12 @@ directly-captured leaves of a boolean block) answers `classify(P) → IN / OUT`:
 - *Classify against a cached coarse tessellation*: rejected. It re-introduces a
   precision mismatch at the seam: the trimmed side would follow the polygon, the
   other side the true surface.
+- *Signed winding number* (signs from surface normals; non-zero ⇒ IN): rejected.
+  It requires every surface's orientation to be consistent, and RIB authoring
+  does not guarantee that. A box with one reversed patch, or with mixed vertex
+  orders, would cancel to zero and classify inside points as outside. Its one
+  advantage, merging overlapping shells within a single block, is already served
+  by `"union"` blocks.
 
 ## Decision 4: Boundary rule, orientation, coincident faces
 
@@ -314,13 +333,13 @@ proven. It is exact for quadrics and polygons.
   where it lies on the composite boundary. In the hero scene, the tube's caps lie
   outside the sphere and never render.
 - **Operands with several surfaces** are classified by the jointly-enclosed
-  volume (winding number) with **no** auto-caps. The author closes them, exactly
+  volume (crossing parity, Decision 3) with **no** auto-caps. The author closes them, exactly
   as spec 013 requires. Auto-capping them would double-count author-provided caps,
   e.g. a cylinder plus two disks.
 - **A lone zero-volume surface** (a single disk, a single open bilinear patch) is
   an empty operand.
 - **A lone open free-form surface** (a single open NURBS sheet) has no
-  well-defined implied solid. It is classified by winding number, and a one-time
+  well-defined implied solid. It is classified by crossing parity, and a one-time
   diagnostic says the operand is not closed.
 
 **Spec alignment**: confirmed by the maintainer during planning (2026-09-30).
@@ -444,23 +463,44 @@ existing statistics output:
   spec 013. They are retired together with any helper that Decision 11 removes,
   and kept for any helper that survives. New suites cover:
   - analytic implied-closed quadric classification and caps
-  - winding-number robustness (grazing and edge cases)
+  - crossing-parity robustness (`test_parity_robustness`): grazing and edge rays,
+    mixed vertex orders, a reversed patch, overlapping shells in one block, and the
+    "not closed" diagnostic
+  - analytic seam location (points straddling the exact intersection curves) and
+    tangency, in `test_boundary_rule`
   - determinism: identical classification regardless of query order or thread
-  - `countCrossings` per primitive type
+  - `countCrossings` per primitive type, including Newton-refined free-form
+    agreement with the surface's own tessellation (FR-007a)
+  - CSG statistics counters (`test_csg_stats`)
+  - procedural operands and lazy resolution
 - **Visual**: existing `examples/rib/tests/csg-*.rib` and `blobby-csg-*` scenes
   keep their registrations. References are regenerated deliberately, and only
   where seams improve, with before/after crops recorded. New scenes:
   - the hero scene, in all three hiders at 800×500 and 1600×1000
-  - an open-operand cap scene (a partial-sweep cylinder subtracted, caps visible)
+  - a two-shader hero scene (per-operand shaders, FR-016)
+  - an open-operand cap scene (a partial-sweep cylinder intersected, caps
+    visible)
   - a coincident-face scene (flush boxes: union and difference)
+  - displaced-operand and translucent-operand hero variants
+  - REYES twins of the free-form (NURBS, subdivision) union scenes, plus
+    free-form-alone references
   - a procedural-operand equivalence scene (`DelayedReadArchive` sphere vs.
-    inline sphere)
-  - an off-screen-solid statistics scene
-- **Seam metric tool**: the Step 0 measurement is promoted into a test helper.
-  It counts stray pixels in analytically computed regions and measures radial
-  seam deviation against the exact intersection curve, gating SC-001 to SC-003.
-- **Parity**: the existing cross-hider parity registrations cover SC-004; the
-  hero scene is added to them.
+    inline sphere), with the archive copied into the test's scratch directory
+  - a missing-archive procedural scene (renamed from
+    `csg-malformed-procedural-in-primitive.rib`)
+  - secondary-ray scenes (raytrace and REYES)
+  - off-screen and partial-view statistics scenes
+- **Seam metric tool** (`test_csg_seam_metric`, with `--help`): the Step 0
+  measurement is promoted into a test helper. It has four modes:
+  - stray pixels in analytically computed regions, plus radial seam deviation
+  - edge comparison between two renders
+  - region comparison
+  - region color
+
+  Together they gate SC-001 to SC-003, SC-008 and FR-016.
+- **Parity**: the existing cross-hider parity registrations cover SC-004. The
+  hero, sphere-cube, coincident, caps, displaced and translucent scenes are
+  added to them.
 - **Regression**: full `ctest -L visual` for non-CSG scenes (FR-020, SC-005).
   Known flaky and pre-existing failures are not misattributed:
   - flaky: ImagerRegressionRender, Parity_transparency-matte-aov,

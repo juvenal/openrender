@@ -17,8 +17,9 @@ The technique is **CSG as spatial trimming**:
 - Each leaf renders as itself, at native, view-dependent precision.
 - It is restricted by a geometry-owned *region predicate*: "is this point on the
   composite boundary?" The predicate is built from exact point classification of
-  the other operands: analytic for quadrics, polygons and bilinear patches;
-  Newton-refined winding for free-form surfaces.
+  the other operands: analytic for single quadrics; otherwise orientation-
+  independent crossing parity, which is exact for polygons and bilinear patches
+  and Newton-refined for free-form surfaces.
 - It reuses the spec 009 NURBS-trim hook shape.
 - REYES terminates seam splitting by screen size and drops absent micropolygons
   through a generic coverage mask. The raytracer rejects non-boundary hits in
@@ -45,6 +46,14 @@ built on first use.
 thresholds 20–40/255); cross-hider parity (label `parity`,
 `tests/visual/test_hider_parity.cpp`); a new seam-metric helper; performance
 comparison via `tests/visual/test_perf_compare.cpp`.
+
+**Glossary (spec term → code term)**:
+- visibility method → hider
+- appearance computation → shading
+- composite surface region → a leaf surface trimmed by its region predicate
+  (`CSurface::region`)
+- solid definition → `CCSGDefinition`
+- solid → `CCSGSolid`
 
 **Target Platform**: macOS (Apple Silicon, primary dev) and Linux (Ubuntu 24.04
 baseline).
@@ -76,7 +85,7 @@ REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s at 800×500 / 1600×1000.
 
 | Principle | Status | Notes |
 |---|---|---|
-| I. Clean Code | PASS | Replaces the 755-line `csgTree.cpp` plus the 697-line BSP kernel with focused units (definition, classification, region adapter, caps). Every function has a single responsibility. |
+| I. Clean Code | PASS | Replaces the 755-line `csgTree.cpp` plus the 697-line BSP kernel with focused units (`CCSGDefinition`, classification, `CCSGRegion`, caps). Every function has a single responsibility. |
 | II. Language Standards | PASS | C++20, no extensions; existing `CObject`/`CSurface` patterns. |
 | III. TDD (non-negotiable) | PASS (plan) | Every phase starts with failing unit or visual tests (research Decision 13); references are regenerated only after the tests are red. |
 | IV. CLI | PASS | The behavior is reached through the existing `orender` CLI and RIB. The new statistics counters appear in the existing statistics output. |
@@ -117,8 +126,8 @@ src/ri/geometry/
 │                            #         procedural capture allowed; BSP/tessellation/fragment code removed
 ├── csgDefinition.{h,cpp}    # NEW: immutable shared definition (flattened tree, operands, flips, CSG-aware bound)
 ├── csgSolid.{h,cpp}         # NEW: CObject solid handle + per-instance state (replaces solidObject.{h,cpp})
-├── csgClassify.{h,cpp}      # NEW: operand classification (analytic + winding), boundary rule, two-sided ON rule,
-│                            #      region adapter implementing the generic predicate
+├── csgClassify.{h,cpp}      # NEW: operand classification (analytic + crossing parity), boundary rule, two-sided ON
+│                            #      rule; CCSGRegion implementing the generic CRegionPredicate
 ├── csgCaps.{h,cpp}          # NEW: implied-closure caps for single-quadric operands (FR-021)
 ├── csgBoolean.{h,cpp}       # DELETE (BSP kernel)
 ├── solidObject.{h,cpp}      # DELETE (replaced by csgSolid)
@@ -149,13 +158,17 @@ tests/unit/csg/
 ├── test_boolean_*.cpp, test_nested_tree.cpp, test_multi_primitive_leaf.cpp  # REWRITE as classification/boundary tests
 ├── test_interior_exterior_selection.cpp   # KEEP/UPDATE (provenance)
 ├── test_*_tesselation*.cpp, test_tesselation_flatness.cpp  # RETIRE with the helpers they cover (research D11)
-├── test_classify_quadrics.cpp, test_count_crossings.cpp, test_winding_robustness.cpp,
+├── test_classify_quadrics.cpp, test_count_crossings.cpp, test_parity_robustness.cpp,
 │   test_implied_caps.cpp, test_boundary_rule.cpp, test_classify_determinism.cpp,
-│   test_procedural_operand.cpp   # NEW
+│   test_csg_stats.cpp, test_procedural_operand.cpp, test_lazy_resolution.cpp   # NEW
 
-tests/visual/CMakeLists.txt  # MODIFY: register hero ×3 hiders ×2 resolutions, caps, coincident, procedural,
-                             #         off-screen stats scenes; parity pairs; move csg-malformed-procedural to visual
-tests/visual/                # NEW helper: seam metric (stray pixels in analytic regions + radial seam deviation)
+tests/visual/CMakeLists.txt  # MODIFY: register hero ×3 hiders ×2 resolutions, sphere-cube, coincident, two-shader,
+                             #         free-form, caps, displaced/translucent, secondary-ray, procedural (+ archive
+                             #         copy into scratch), missing-archive (renamed malformed scene), tolerance,
+                             #         off-screen and partial-view stats; parity pairs
+tests/visual/test_csg_seam_metric.cpp  # NEW: seam-metric CLI (--help; annuli / edge-compare / region-compare /
+                                       #      region-color modes)
+tests/visual/csg_partial_stats.cmake   # NEW: cmake -P driver comparing full vs. partial-view seam-split counts
 examples/rib/tests/          # NEW: csg-hero-*.rib, csg-open-quadric-caps-*.rib, csg-coincident-*.rib,
                              #      csg-procedural-operand-*.rib (+ archive), csg-offscreen-stats.rib
 
@@ -178,11 +191,14 @@ Each phase is a pause-and-commit point for the maintainer (stage only).
    current output. *(US1–US4 tests red.)*
 1. **Geometry core, no rendering change.** CSG definition, CSG-aware bounds,
    `countCrossings` per primitive type, analytic implied-closed quadric
-   classification, winding with robustness, boundary rule, static orientation,
-   two-sided ON rule, determinism. Unit suites rewritten or added and green.
-2. **CSG solid and per-instance state.** Replace `CSolidObject`; instantiate
-   leaves on first use; move the `SOLID_FRAGMENT` flag and orientation onto
-   cloned leaf attributes; instancing; statistics counters.
+   classification, crossing parity with robustness, boundary rule, static
+   orientation, two-sided ON rule, determinism, statistics counters (test-first).
+   Unit suites rewritten or added and green.
+2. **CSG solid and per-instance state.** `CCSGSolid` replaces `CSolidObject`;
+   leaves are instantiated on first use; the `SOLID_FRAGMENT` flag and
+   orientation move onto cloned leaf attributes; instancing. From the switch-over
+   until deliberate reference regeneration (end of US1), the existing CSG visual
+   tests are expected red.
 3. **Raytrace path.** Region check at every hit-acceptance point; secondary rays;
    displaced-leaf handling. **Exit criteria: raytrace only.** The hero and
    sphere-cube *raytrace* seam metrics go green (SC-001 to SC-003 for raytrace).
@@ -194,17 +210,24 @@ Each phase is a pause-and-commit point for the maintainer (stage only).
    plus empty per-quad bounds, with generically named hooks (contract §0).
    **Exit criteria**: REYES and Z-buffer seam metrics go green (SC-001 to SC-003
    for all three hiders), and CSG parity pairs pass (SC-004).
-5. **Implied closure caps** (FR-021) for single-quadric operands.
+5. **Implied closure caps** (FR-021) for single-quadric operands, then the
+   deliberate regeneration of the existing CSG references (before/after crops).
+   This closes US1 with everything green.
 6. **Procedural operands** (FR-024/025): operand-capture mode, lazy recursive
-   expansion, nested-`SolidBegin` diagnostic, empty-operand semantics;
-   `csg-malformed-procedural-in-primitive` becomes a visual test (SC-010).
+   expansion, nested-`SolidBegin` diagnostic, empty-operand semantics. The
+   archive is copied into the test's scratch directory. The old
+   `csg-malformed-procedural-in-primitive` scene becomes
+   `csg-procedural-missing-archive` (accepted; missing-archive diagnostic at
+   expansion; empty operand) (SC-010).
 7. **Settings and retirement.** Make `tessellationtolerance` inert with a
    once-per-render notice. Delete the BSP kernel, the fragment builders,
    `CSolidObject`, `processDelayedSolid`, and the unused 013 tessellation helpers
    and their suites.
-8. **Validation and docs.** Deliberately regenerate CSG references (before/after
-   crops); run full `ctest -L visual` sequentially; timing vs. baseline (SC-007);
-   grep gate; documentation (SC-009).
+8. **Validation and docs.** Run full `ctest -L visual` sequentially; timing vs.
+   baseline (SC-007); grep gate; documentation (SC-009); Linux validation.
+
+`tasks.md` is the authoritative execution order. It groups these phases by user
+story.
 
 ## Complexity Tracking
 
