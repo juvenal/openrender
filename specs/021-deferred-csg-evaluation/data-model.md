@@ -81,7 +81,7 @@ once per instance.
 | Field | Meaning |
 |---|---|
 | `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through the context's `delayed` target, because `instantiate()` hands its output to `addObject()` |
-| `resolved[op]` | A `CCSGResolvedOperand { members, surfaces, kind, bound }`: the operand's members (declared primitives, minus any whose `honorsRegion()` is false), every `CSurface` descendant of them after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(members, surfaces)`. Closedness is judged per member, because a mesh splits into many surfaces. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
+| `resolved[op]` | A `CCSGResolvedOperand { members, surfaces, kind, bound }`: the operand's members (declared primitives, minus unsupported members per research Decision 3), every `CSurface` descendant of them after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(members, surfaces)`. Closedness is judged per member, because a mesh splits into many surfaces. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
 | `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
@@ -106,8 +106,9 @@ once per instance.
      frame
   7. caps synthesized; the members of empty or open operands left out of
      `children` (they never render); and, if a single non-empty operand remains
-     once empties that change nothing are removed, the instance is a passthrough
-     with no region and no caps (FR-019)
+     once empty subtrees are removed (emptiness propagates bottom-up), the
+     instance is a passthrough with no caps, and the region already set on its
+     members and their descendants is cleared (FR-019)
 
   Mesh children copy `attributes` and `region` when `create()` runs, so steps 2
   and 3 must precede step 4.

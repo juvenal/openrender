@@ -271,6 +271,11 @@ operand type" error, which goes with `csgTessellateOperand`.
   it forced OUT, with every other operand classified at P.
   - Evaluation short-circuits: operands whose value cannot change the result are
     never classified.
+  - **Emptiness propagates bottom-up** (FR-025a): a subtree is empty if it is a
+    union of empties, an intersection with an empty operand, or a difference
+    whose first operand is empty. Empty subtrees are removed from unions and
+    later difference positions before the passthrough and implied-closure tests,
+    so `union(openCylinder, intersection(B, empty))` is a passthrough.
   - **Operands that contribute nothing never render.** The forced IN/OUT test
     assumes P really lies on its own operand's boundary, which is false for an
     empty or open operand (a lone disk, an open sheet, an open mesh): in
@@ -616,8 +621,9 @@ trigger.
   7. Caps, carrying the operand's flagged attributes. The members of operands
      resolved as empty or open are left out of `children` and get no caps
      (Decision 4). If the tree then reduces to one non-empty operand, the
-     instance is a passthrough: that operand renders as authored, with no region
-     and no caps (FR-019).
+     instance is a passthrough: that operand renders as authored, with no caps
+     (FR-019), and the `region` that steps 3 and 4 already set on its members and
+     copied to their mesh children is cleared on all of them.
 
   Mesh children copy their parent's `attributes` pointer when `create()` runs
   (`polygons.cpp:1313`, `patches.cpp:1650`, `subdivisionCreator.cpp:630`), and

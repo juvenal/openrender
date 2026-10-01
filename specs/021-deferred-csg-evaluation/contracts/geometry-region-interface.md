@@ -38,7 +38,10 @@ It lists what each domain may assume about the others.
      `CCurveMesh` and `CDelayedInstance` return `FALSE`; a solid drops such
      operands with a deduplicated warning.
    - Geometry never hands the hiders a leaf whose operand contributes nothing:
-     the leaves of empty or open operands are left out of the solid's children.
+     the leaves of operands *resolved* as empty or open are left out of the
+     solid's children. Identical shapes that cancel by parity resolve as a
+     multi-surface operand; their leaves stay, but the coincident-face check
+     rejects every point of them.
    - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op in
      `object.cpp`; `CSurface` override in the renderer-only
      `render/geometryDispatch.cpp`, with a no-op stub in
