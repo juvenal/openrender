@@ -24,7 +24,7 @@ nice -n 15 cmake --build build -j4
 Render environment used below:
 
 ```bash
-export SHADERS="$PWD/build/shaders" ORENDERHOME="$PWD/openrender" \
+export SHADERS="$PWD/build/shaders" ORENDERHOME="$PWD/build" \
        DISPLAYS="$PWD/build/src/display/file"
 ```
 
@@ -40,10 +40,13 @@ SolidBegin "difference"
 SolidEnd
 ```
 
-Run the seam-metric test:
+Every check below is a test registered with the `add_csg_metric_test` macro
+(`tests/visual/CMakeLists.txt`). It renders the scenes through the
+`tests/visual/csg_metric_test.cmake` driver, runs `test_csg_seam_metric` on the
+output, and checks logs and statistics. Run the seam-metric tests:
 
 ```bash
-ctest --test-dir build -R "CsgSeam_hero" --output-on-failure
+ctest --test-dir build -R "CsgSeam_(hero|spherecube)" --output-on-failure
 ```
 
 **Expected**:
@@ -51,6 +54,8 @@ ctest --test-dir build -R "CsgSeam_hero" --output-on-failure
   at 1600×1000 in raytrace.
 - 0 see-through gap pixels outside it.
 - Seam radial deviation ≤ 1 px from the exact intersection circles.
+- Sphere-minus-cube: seams within 1 px of the projected exact sphere ∩ cube-face
+  circles (`--projected-curve`), and no enclosed holes.
 - All of this holds in all three hiders, at both resolutions.
 
 ## 2. Cross-hider agreement (US2, SC-004)
@@ -87,16 +92,25 @@ misattributed:
 
 ## 4. Work only where seen (US4, SC-006)
 
-Render `examples/rib/tests/csg-offscreen-stats.rib` (a solid placed behind the
-camera) with `Option "statistics" "endofframe" [1]`.
+The CSG counters print at `Option "statistics" "endofframe" [2]` or higher,
+labelled `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:`
+and `CSG procedural expansions:` (zeros included whenever the frame has a solid).
 
-**Expected**: the CSG counters report 0 instances resolved, 0 classifications and
-0 procedural expansions for that frame.
+```bash
+ctest --test-dir build -R "Csg(OffscreenStats|PartialVisibilityStats|ResolutionScaling|TinySolidStats)" \
+      --output-on-failure
+```
 
-Partial view: `ctest --test-dir build -R CsgPartialVisibilityStats` renders the
-hero solid fully framed and half framed (`csg-hero-partial-stats.rib`).
-
-**Expected**: the half-framed seam-split count is ≤ 0.75× the full-view count.
+**Expected**:
+- `CsgOffscreenStats`: `csg-offscreen-stats.rib` (a hero solid behind the
+  camera whose sphere operand is a procedural) reports 0 instances resolved,
+  0 classifications and 0 procedural expansions.
+- `CsgPartialVisibilityStats`: the half-framed hero (`csg-hero-partial-stats.rib`)
+  needs at most 0.75× the seam splits of the fully framed one.
+- `CsgResolutionScaling`: the REYES hero at 1600×1000 reports more seam splits
+  than at 800×500 (precision follows resolution).
+- `CsgTinySolidStats`: a hero solid covering under 4×4 pixels needs at most 16
+  seam splits.
 
 ## 5. Settings and diagnostics (FR-019, FR-023, FR-025)
 
@@ -107,11 +121,14 @@ hero solid fully framed and half framed (`csg-hero-partial-stats.rib`).
 - The former `csg-malformed-procedural-in-primitive.rib` is renamed
   `csg-procedural-missing-archive.rib`. Its procedural, which still points at a
   nonexistent archive, is now **accepted** at capture (FR-024). Expansion reports
-  exactly one archive-open diagnostic, the operand is empty (FR-025), and the
-  render completes. The old "cannot be declared inside a SolidBegin block"
-  diagnostic must not appear.
-- `csg-procedural-operand-raytrace` matches its inline twin (SC-010). Its
-  archive is copied into the test's scratch working directory at configure time.
+  exactly one archive-open diagnostic, and the procedural contributes nothing
+  (FR-025). The operand is then the block's own `Sphere 1 -1 1 360`, so **the
+  render shows that sphere**. The old "cannot be declared inside a SolidBegin
+  block" diagnostic must not appear.
+- `CsgProcedural_sphere` and `CsgProcedural_open_cylinder` match their inline
+  twins (SC-010). The open cylinder comes from the archive and still gets its
+  caps. The archives are copied into each test's scratch working directory
+  (`COPY examples/rib/tests/archives`).
 
 ## 6. Performance bound (SC-007)
 
@@ -124,12 +141,14 @@ Z-buffer 0.16 s / 0.34 s.
 ## 7. Separation-of-concerns gate (FR-012, contract)
 
 ```bash
-grep -rnE '#include "(csg[A-Za-z]*|solidObject)\.h"|\bCCSG|\bCSG[A-Z_]|\bcsg[A-Z]' \
-  src/ri/hiders src/libshader/shading
+grep -rnHE '[A-Za-z0-9_]*(Csg|CSG|csg)[A-Za-z0-9_]*' src/ri/hiders src/libshader/shading \
+  | grep -vE ':[0-9]+:[[:space:]]*(//|\*|/\*)'
 ```
 
-**Expected**: no matches. The pattern targets CSG headers, CSG types and CSG
-functions. It deliberately ignores comments that mention CSG, the unrelated
-`maxSolidAngle`, and the pre-existing `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` /
-`isSolidFragment` Interior/Exterior read at `shading.cpp:1019`. The command
-returns no matches on master today.
+**Expected**: no output. The first grep finds any identifier containing `csg`,
+`Csg` or `CSG`: CSG headers, types, functions, and members such as
+`numCsgClassifications`. The second drops comment lines. (`-H` keeps the
+`file:line:` prefix that the comment filter relies on, even on a single file.)
+The pattern does not match `maxSolidAngle` or the pre-existing
+`ATTRIBUTES_FLAGS_SOLID_FRAGMENT` / `isSolidFragment` Interior/Exterior read at
+`shading.cpp:1019`. The gate returns no output on master today.

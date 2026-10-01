@@ -137,8 +137,17 @@ composite boundary.
 
 ## Decision 3: Point classification — "is P inside operand O?"
 
-**Decision**: Each operand (the leaves of one `"primitive"` block, or the
-directly-captured leaves of a boolean block) answers `classify(P) → IN / OUT`:
+**Decision**: Each operand answers `classify(ctx, P) → IN / OUT`. An operand is
+the leaves of one `"primitive"` block, or all the primitives placed directly in a
+boolean block, which together form one operand positioned first, as in spec 013.
+
+The operand's member surfaces are its resolved per-instance surfaces:
+procedurals expanded, and mesh-type leaves materialized (Decision 15).
+
+`ctx` is the caller's `CShadingContext`. Every call site (`CPatch::dice`,
+`CReyes::drawGrid`, `intersect`) already has one. It may be NULL for quadric,
+polygon and bilinear surfaces; free-form surfaces and mesh materialization
+require it.
 
 1. **Bound rejection first**: if P lies outside the operand's bound, the answer is
    OUT, with no further work.
@@ -160,18 +169,33 @@ directly-captured leaves of a boolean block) answers `classify(P) → IN / OUT`:
      a block is "a single operand"), and its BSP kernel produced undefined output
      for overlapping shells, so no defined behavior regresses. The spec states it
      as an edge case.
-   - This uses a new per-surface capability, `countCrossings(from, dir)`, which
-     returns the **unsigned** number of times the ray crosses the undisplaced
-     surface. It is implemented:
+   - The same parity rule applies to direct leaves of a boolean block (spec edge
+     case).
+   - This uses a new per-surface capability, `countCrossings(ctx, from, dir)`,
+     which returns the **unsigned** number of times the ray crosses the
+     undisplaced surface. It is implemented:
      - analytically for quadrics (every root in the u/v range, not just the
        nearest — `CSphere::intersect()` in `quadrics.cpp:167` already iterates
        roots in order)
      - exactly for flat polygons (`CPolygonTriangle`/`CPolygonQuad`)
      - analytically for bilinear patches
-     - for free-form surfaces (bicubic, patch meshes, NURBS, subdivision), by
-       ray–patch intersection seeded from the surface's tessellation and
-       Newton-refined to float precision, so seam accuracy is at least what the
-       surface renders with on its own (FR-007a).
+     - for free-form surfaces (`CBicubicPatch`, `CNURBSPatch`, `CPatchGrid`,
+       `CBSplinePatchGrid`, `CSubdivision`), by a **pure Newton-refinement core
+       over a surface-evaluation callback**. The core is seeded from a
+       per-surface grid of the surface's own evaluation, built once under a
+       mutex and immutable afterwards. It deliberately does **not** use the
+       per-thread `CTesselationPatch` cache: that cache needs a context and is
+       not shareable across threads. Refined crossings are accurate to float
+       precision, which meets FR-007a.
+     - **Placement**: the core lives in the renderer-only
+       `src/ri/geometry/surfaceCrossingDispatch.cpp`, with a stub in
+       `src/ri/vector/surfaceCrossingDispatchStub.cpp`. This mirrors the existing
+       `csgTesselationDispatch.cpp`/stub split. The surface classes' files
+       (patches.cpp, patchgrid.cpp, bsplinePatchgrid.cpp, subdivision.cpp) also
+       compile into ribVector, which excludes `surface.cpp`; they only forward to
+       the dispatch function, so libribpreview keeps linking.
+     - Unknown `CSurface` types (for example `CImplicit`) return 0 by default and
+       so contribute nothing.
    - Classification rays bypass every rendering-side ray filter: visibility
      attribute flags, LOD, backface culling and displacement tessellation
      (`CSurface::checkRayGuard()`, `src/ri/render/geometryDispatch.cpp:239`). They
@@ -248,10 +272,12 @@ spec 013's approach, and it is meaningless without a mesh.
 
 **Decision**:
 
-- The solid's `dice()` hands each leaf (and any caps) to the normal
-  split/dice path, with the region predicate attached.
-- The `CSurface::dice()` probe loop (`surface.cpp:145-362`) gains a region stage,
-  parallel to (and combinable with) the trim stage.
+- The solid's `dice()` calls `CObject::dice(r)`, which hands each leaf (and any
+  caps) to the normal per-bucket split/dice path via `drawObject`, with the
+  region predicate attached (Decision 9). `CSurface::dice()` itself lives in
+  `geometryDispatch.cpp:332`.
+- The `CPatch::dice()` probe loop (`surface.cpp:142`, ~L145-362) gains a region
+  stage, parallel to (and combinable with) the trim stage.
 - **Uniform-patch shortcut**: if a (sub-)patch's probe bound does not overlap the
   bound of any other operand's boundary surfaces, its classification is uniform.
   One predicate evaluation keeps or drops the whole patch, with no per-vertex
@@ -336,15 +362,26 @@ proven. It is exact for quadrics and polygons.
   volume (crossing parity, Decision 3) with **no** auto-caps. The author closes them, exactly
   as spec 013 requires. Auto-capping them would double-count author-provided caps,
   e.g. a cylinder plus two disks.
-- **A lone zero-volume surface** (a single disk, a single open bilinear patch) is
-  an empty operand.
-- **A lone open free-form surface** (a single open NURBS sheet) has no
-  well-defined implied solid. It is classified by crossing parity, and a one-time
-  diagnostic says the operand is not closed.
+- **Closedness test** (applied per instance, after procedural expansion and mesh
+  materialization; see Decision 8 and Decision 15):
+  - A quadric is closed only when it is a full sphere or a full torus. Every
+    other single quadric is auto-closed as above, except a disk, which encloses
+    no volume and is a silently empty operand.
+  - A single non-quadric surface or mesh is closed when every parametric
+    boundary edge either collapses to a point or coincides with another boundary
+    edge. Polygon and subdivision meshes are closed when every edge is shared by
+    exactly two faces.
+- **A lone non-quadric surface that is not closed** (a single open NURBS sheet, a
+  single bilinear patch) has no well-defined implied solid. It **contributes
+  nothing** (an empty operand) and emits a one-time "operand is not closed"
+  diagnostic, at a level `CODE_LOG` does not swallow. This is deterministic and
+  testable, and the boundary-edge test avoids false diagnostics on closed
+  single-patch shapes such as a NURBS sphere (seam plus poles).
 
 **Spec alignment**: confirmed by the maintainer during planning (2026-09-30).
 FR-021 was amended to this exact scope, and a Clarifications bullet was added to
-the spec.
+the spec. The closedness test and the empty-plus-diagnostic rule for open
+non-quadric surfaces were added during analysis (2026-09-30).
 
 **Alternatives considered**:
 
@@ -357,8 +394,9 @@ the spec.
 
 **Decision**:
 
-- The capture-time rejection is removed: `csgValidateProceduralCapture()`
-  (`csgTree.cpp:90`) and the `"delayed"` gate in `addObject()`.
+- The capture-time rejection is removed: the call
+  `csgValidateProceduralCapture(currentSolid)` inside `RiProcedural()`
+  (`rendererContext.cpp:5201`) and its definition (`csgTree.cpp:90`).
 - A procedural declared in a solid block becomes an *unexpanded operand member*.
 - When a solid instance is first needed (its first `dice()` or `intersect()`), its
   procedural operand members are expanded under `CRenderer::delayedMutex`. This
@@ -372,6 +410,11 @@ the spec.
 - An empty expansion yields an empty operand, with FR-025 semantics.
 - Each operand is expanded at most once per solid instance. It is never expanded
   if the instance is never needed.
+- **Operand kind is derived after expansion.** Single-quadric / multi-surface /
+  empty / open, and therefore implied closure and caps, are decided per instance
+  from the *expanded* members. An archive holding the hero's open `Cylinder`
+  thus behaves "exactly as if written there directly" (FR-024).
+  `CCSGDefinition` stores only the template structure.
 - A counter records expansions (SC-006).
 
 **Rationale**: this reuses the existing delayed-object machinery and locking. An
@@ -388,12 +431,21 @@ trigger.
   with its own transform and attributes. `instantiate()` (for `RiObjectInstance`)
   creates another solid over the same definition with a composed transform, as
   `CSolidObject::instantiate()` does today.
-- **Per-instance state** is built on first use, under `delayedMutex`:
+- **Per-instance state** (`CCSGInstanceState`) is built on first use, under
+  `delayedMutex`:
   - leaves instantiated with the composed transform, via each leaf's
     `instantiate()`
   - procedural expansions
+  - mesh-type leaves materialized (Decision 15)
+  - operand kinds derived from the resolved members (Decision 8)
   - caps
-  - per-leaf region adapters
+  - one `CCSGRegion` per leaf
+- **Dicing**: `CCSGSolid` sets `children` to all instance leaves (mesh-type
+  objects, surfaces, caps), and its `dice()` calls `CObject::dice(r)`
+  (`geometryDispatch.cpp:76`). Every leaf is therefore clipped and queued per
+  bucket by `CReyes::drawObject`, as with any other object. Calling each leaf's
+  `dice()` directly would bypass that per-bucket clipping and dice every leaf
+  whole on first touch, which would violate FR-002/FR-004.
 - All geometry is already in camera space (object bounds are transformed at
   construction), so classification queries need no extra transform beyond each
   primitive's own.
@@ -428,12 +480,24 @@ tessellation helpers that spec 013 added (`tesselateQuadricAdaptive`,
 `tesselatePatchMeshAdaptive`, `tesselateNURBSPatchMeshAdaptive`,
 `csgTessellatePolygonMeshOperand`, `tessellateToSurfaces`) are removed if no
 non-CSG caller remains; this is checked per helper during implementation. Any
-still used elsewhere stay.
+still used elsewhere stay. These go with them:
+- `src/ri/geometry/csgTesselationDispatch.cpp` and
+  `src/ri/vector/csgTesselationDispatchStub.cpp`, which exist only for those
+  helpers (`src/ri/CMakeLists.txt` L63, L343, L373)
+- the friend declaration at `polygons.h:73`
+- csgTree.cpp's `kCsgDefaultToleranceFraction` (L47) and its
+  `#include "csgBoolean.h"`, both removed at the switch-over, since they become
+  unused and would trip `-Werror`
+- the `#include "csgBoolean.h"` in `tests/unit/csg/csgTestUtils.h`
 
 ## Decision 12: Statistics (SC-006)
 
-**Decision**: add counters to `CStats` (`src/ri/core/stats.h`), reported with the
-existing statistics output:
+**Decision**: add counters to `CStats` (`src/ri/core/stats.h`). Like the other
+subsystem sections, they print at statistics level ≥ 2 (`stats.cpp:150`), but
+**always, zeros included, whenever the frame contains a solid**, with the exact
+labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and
+`CSG procedural expansions:`. The statistics test scenes use
+`Option "statistics" "endofframe" [2]`. The counters are:
 
 - `numCsgClassifications` (point classifications performed)
 - `numCsgSeamSplits` (straddle-driven splits)
@@ -445,12 +509,24 @@ existing statistics output:
 
 ## Decision 13: Test strategy (constitution III — TDD)
 
-**Decision**: tests are written first, fail, and then pass.
+**Decision**: tests are written first, fail, and then pass. Guard and
+verification tests, which already pass, are labeled as such in `tasks.md`.
 
 - **Unit (`tests/unit/csg/`)**: the kernel suites are rewritten as
   classification and boundary-rule suites over the **same scenarios**:
   `test_boolean_boxes`, `_coplanar`, `_sphere_box`, `_sphere_sphere`,
-  `test_nested_tree`, `test_multi_primitive_leaf`. They now assert:
+  `test_nested_tree`, `test_multi_primitive_leaf`.
+  - They build `CCSGDefinition` directly, with no Ri capture interception. The
+    capture path gets its own test, `test_capture_path`, after the switch-over.
+  - `test_multi_primitive_leaf` uses disjoint spheres. It also asserts that two
+    coincident identical spheres in one block form an empty operand under
+    parity.
+  - Unit tests use directly constructible surfaces (quadrics, polygons,
+    bilinear patches) with a NULL context. Free-form crossings are tested
+    through the pure Newton core with analytic callbacks. Mesh-type and
+    free-form operands are covered render-side.
+
+  The rewritten suites now assert:
   - point classification (IN/OUT) at chosen points
   - the boundary predicate and orientation at points on each leaf
   - coincident-face two-sided behavior
@@ -465,14 +541,16 @@ existing statistics output:
   - analytic implied-closed quadric classification and caps
   - crossing-parity robustness (`test_parity_robustness`): grazing and edge rays,
     mixed vertex orders, a reversed patch, overlapping shells in one block, and the
-    "not closed" diagnostic
-  - analytic seam location (points straddling the exact intersection curves) and
-    tangency, in `test_boundary_rule`
+    closedness rules ("not closed" diagnostic plus empty operand)
+  - analytic seam location (points straddling the exact intersection curves),
+    tangency, and direct leaves of a boolean block, in `test_boundary_rule`
   - determinism: identical classification regardless of query order or thread
-  - `countCrossings` per primitive type, including Newton-refined free-form
-    agreement with the surface's own tessellation (FR-007a)
+  - `countCrossings` per primitive type, plus the free-form Newton core against
+    analytic callbacks (FR-007a)
+  - region inheritance through `setChildren` (`test_region_inheritance`)
   - CSG statistics counters (`test_csg_stats`)
-  - procedural operands and lazy resolution
+  - capture path, leaf-attribute flags, lazy resolution, implied caps, and
+    procedural operands (including an archive-supplied open cylinder)
 - **Visual**: existing `examples/rib/tests/csg-*.rib` and `blobby-csg-*` scenes
   keep their registrations. References are regenerated deliberately, and only
   where seams improve, with before/after crops recorded. New scenes:
@@ -487,20 +565,31 @@ existing statistics output:
   - a procedural-operand equivalence scene (`DelayedReadArchive` sphere vs.
     inline sphere), with the archive copied into the test's scratch directory
   - a missing-archive procedural scene (renamed from
-    `csg-malformed-procedural-in-primitive.rib`)
+    `csg-malformed-procedural-in-primitive.rib`; it renders the block's sphere)
+  - an archive-supplied open-cylinder scene with an inline twin
   - secondary-ray scenes (raytrace and REYES)
-  - off-screen and partial-view statistics scenes
+  - statistics scenes: off-screen solid with a procedural operand, partial
+    view, resolution scaling, and a tiny solid
+  - a polygon-mesh box difference scene
+- **Diagnostic guards**: all four `csg-malformed-*` scenes are registered from
+  Phase 1, with log regexes for today's diagnostics (FR-019).
 - **Seam metric tool** (`test_csg_seam_metric`, with `--help`): the Step 0
-  measurement is promoted into a test helper. It has four modes:
-  - stray pixels in analytically computed regions, plus radial seam deviation
-  - edge comparison between two renders
-  - region comparison
-  - region color
+  measurement is promoted into a test helper. Every mode shares include/exclude
+  regions and a `--margin` for pixel-filter falloff. The modes are:
+  - `--annuli`
+  - `--edge-compare`
+  - `--region-compare`
+  - `--region-chroma`
+  - `--projected-curve`, which checks the seam against the exact intersection
+    curves projected through the camera, in every hider
+  - `--enclosed-holes`
 
-  Together they gate SC-001 to SC-003, SC-008 and FR-016.
-- **Parity**: the existing cross-hider parity registrations cover SC-004. The
-  hero, sphere-cube, coincident, caps, displaced and translucent scenes are
-  added to them.
+  Together they gate SC-001 to SC-003, SC-008, FR-007a and FR-016.
+- **Harness** (Decision 16): `add_csg_metric_test` plus a `cmake -P` driver
+  combines renders, metrics, log regexes and statistics comparisons.
+- **Parity**: the existing cross-hider parity registrations cover SC-004.
+  Three-hider scenes get the pairs raytrace↔reyes and raytrace↔zbuffer, and
+  two-hider scenes get one pair; existing pairs are kept, not duplicated.
 - **Regression**: full `ctest -L visual` for non-CSG scenes (FR-020, SC-005).
   Known flaky and pre-existing failures are not misattributed:
   - flaky: ImagerRegressionRender, Parity_transparency-matte-aov,
@@ -519,6 +608,59 @@ existing statistics output:
 Timing is measured against the Step 0 baselines (raytrace 0.31 s / 1.42 s,
 REYES 0.19 s / 0.40 s, Z-buffer 0.16 s / 0.34 s) on the same machine, throttled
 the same way.
+
+## Decision 15: Mesh-type operands — region inheritance and materialization
+
+**Decision**:
+
+- `region` lives on `CObject`, generic and nullable, not on `CSurface`.
+- `CObject::setChildren()` (`object.cpp:130`) copies the parent's `region` to
+  every child that has none. All five mesh types create their surfaces lazily in
+  a non-virtual `create(CShadingContext*)` that ends in `setChildren(context, …)`:
+  - `CPolygonMesh` (`polygons.cpp:1939`)
+  - `CPatchMesh` (`patches.cpp:1710`)
+  - `CNURBSPatchMesh` (`patches.cpp:2203`)
+  - `CSubdivMesh` (`subdivisionCreator.cpp:2256`)
+  - `CLoopSubdivMesh` (`subdivisionLoop.cpp:483`, which builds a nested
+    `CPolygonMesh`)
+
+  Their surfaces, nested ones included, therefore inherit the predicate with no
+  per-mesh-type rendering code.
+- A new `virtual void CObject::materialize(CShadingContext*)` (default no-op) is
+  overridden by the five mesh types as `if (children == NULL) create(context);`.
+  `create()` is already mutex-guarded and idempotent (`polygons.cpp:1840`).
+  `CCSGInstanceState` materializes mesh-type leaves and collects every
+  `CSurface` descendant as that operand's classification surfaces.
+
+**Rationale**:
+- Most authored operands are mesh-type `CObject`s, not `CSurface`s:
+  `PointsPolygons`, `PatchMesh`, `NuPatch` meshes, subdivision meshes,
+  polygonized blobbies.
+- `setChildren` is the single point every mesh type already goes through, so
+  inheritance there is generic and automatic.
+
+**Alternatives considered**: per-mesh-type region plumbing in each `create()`.
+Rejected: five copies of the same logic, and it is easy to miss one.
+
+## Decision 16: Test harness for render-and-measure tests
+
+**Decision**:
+- A `cmake -P` driver, `tests/visual/csg_metric_test.cmake`, plus an
+  `add_csg_metric_test(...)` macro in `tests/visual/CMakeLists.txt`.
+- **Why it's needed**: `add_visual_test` only compares one render against a
+  reference, and `add_parity_test` only diffs two renders.
+- **What the driver does**:
+  - renders one or more RIBs, with the same environment as `add_visual_test`
+  - copies support directories (archives) into the per-test scratch working
+    directory
+  - applies log regexes itself, so CTest's `PASS_REGULAR_EXPRESSION` never
+    overrides the exit code
+  - runs `test_csg_seam_metric` modes and propagates their exit code
+  - extracts end-of-frame statistics by label for `==`, `<=`, `>` and
+    ratio-to-other-render comparisons
+
+**Rationale**: about 25 tests need multi-render, metric, log and statistics
+combinations, so one driver keeps them uniform and correct.
 
 ## Out of scope (confirmed)
 

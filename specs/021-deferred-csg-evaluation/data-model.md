@@ -34,16 +34,18 @@ outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
 | Field | Meaning |
 |---|---|
 | `nodes[]` | Flattened tree: `{operation, childIndices[], operandIndex or -1}` |
-| `operands[]` | One entry per operand: template member objects, kind (single-quadric / multi-surface / has-procedurals), and bound |
+| `operands[]` | One entry per operand: **template** member objects only (surfaces, mesh-type objects, unexpanded procedurals) and template bound. Primitives placed directly in a boolean block form one operand, positioned first |
 | `leafFlip[]` | Per operand: static orientation parity (odd number of subtrahend positions ⇒ flipped) |
-| `bound` | CSG-aware bound: union = ∪ of operand bounds; intersection = ∩; difference = first operand's bound |
+| `bound` | CSG-aware template bound: union = ∪ of operand bounds; intersection = ∩; difference = first operand's bound |
 
 **Validation**:
 - An empty tree yields no solid (spec 013 FR-016).
 - A single-operand boolean node collapses to that operand, passthrough with no
   predicate (spec 013 FR-017).
-- An operand that is a lone zero-volume surface is empty.
-- A lone open free-form operand emits a one-time "not closed" diagnostic.
+- The operand **kind** (single-quadric / multi-surface / empty / open) is **not**
+  stored here. It is derived per instance after procedural expansion and mesh
+  materialization (`CCSGInstanceState`). The definition provides the
+  closedness helper (FR-021) used for that.
 
 ### CSG solid — `CCSGSolid` (new; replaces `CSolidObject`, a `CObject`)
 
@@ -59,7 +61,10 @@ instance.
 | `flags` | Not `OBJECT_DUMMY`, so `trace.cpp:332` still calls `intersect()` |
 
 **Behavior**:
-- `dice(CReyes*)` resolves the state, then dices each leaf and cap.
+- `dice(CReyes*)` resolves the state, sets `children` to all instance leaves
+  (mesh-type objects, surfaces, caps), then calls `CObject::dice(r)`
+  (`geometryDispatch.cpp:76`). Each leaf is thereby clipped and queued per
+  bucket via `drawObject`.
 - `intersect()` resolves the state and populates `children`.
 - `instantiate()` creates a new CSG solid over the same definition, with a
   composed transform.
@@ -71,24 +76,34 @@ once per instance.
 
 | Field | Meaning |
 |---|---|
-| `operandMembers[op][]` | This instance's leaf surfaces per operand: templates instantiated with the composed transform, plus procedural expansions |
-| `caps[op][]` | Synthesized cap surfaces, single-quadric operands only (FR-021) |
+| `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with the composed transform, plus procedural expansions |
+| `operandSurfaces[op][]` | Every `CSurface` descendant of the operand's members, after `materialize(ctx)` of mesh-type leaves. These are the classification surfaces for parity |
+| `operandKind[op]` | single-quadric / multi-surface / empty / open, derived from the resolved members |
+| `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
 
-**State transitions**: Unresolved → Resolving (lock held; procedurals expanded,
-leaves instantiated, caps synthesized, flip applied to cloned attributes) →
-Resolved (immutable, read concurrently by all threads).
+**State transitions**: Unresolved → Resolving → Resolved.
+- **Resolving** (lock held): procedurals expanded, leaves instantiated, mesh-type
+  leaves materialized, kinds derived, caps synthesized, flip and solid-fragment
+  flag applied to cloned attributes.
+- **Resolved**: immutable, read concurrently by all threads.
 
 ### Region predicate — `CRegionPredicate` (new generic interface; CSG is its only implementer)
 
-Attached to a `CSurface` through a nullable pointer. It is a generic "spatial
-trim", not a CSG concept.
+Attached to any `CObject` through the nullable `CObject::region` pointer. It is
+a generic "spatial trim", not a CSG concept. `CObject::setChildren()` copies a
+parent's `region` to children that have none, so the surfaces a mesh-type
+object creates lazily inherit it (research Decision 15).
 
 | Operation | Meaning |
 |---|---|
-| `accepts(P)` | Does this surface point belong to the rendered surface? |
-| `classifyBound(bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
+| `accepts(ctx, P)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext` |
+| `classifyBound(ctx, bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
+
+**Mesh materialization**: `virtual void CObject::materialize(CShadingContext*)`
+(default no-op). The five mesh types override it to create their children
+(idempotent and mutex-guarded).
 
 **The CSG region adapter, `CCSGRegion`**, holds (instance state, operand index, leaf index) and
 implements `accepts` by the boundary rule (research Decision 4). For
@@ -103,14 +118,18 @@ coincident-face ON cases it uses a two-sided evaluation at P ± ε·N.
 
 | Operation | Meaning |
 |---|---|
-| `countCrossings(from, dir) → int` | **Unsigned** number of crossings of the *undisplaced* surface along the ray. Operands classify by parity (odd ⇒ IN), independent of how the author oriented each surface (research Decision 3) |
+| `countCrossings(ctx, from, dir) → int` | **Unsigned** number of crossings of the *undisplaced* surface along the ray. Operands classify by parity (odd ⇒ IN), independent of how the author oriented each surface (research Decision 3) |
 
 This query ignores every rendering-side ray filter (visibility flags, LOD,
 backface, displacement). Implementations:
-- quadrics: analytic, all roots in the u/v range
-- flat polygons: exact
-- bilinear patches: analytic
-- free-form surfaces: tessellation-seeded, Newton-refined
+- quadrics: analytic, all roots in the u/v range (NULL `ctx` allowed)
+- flat polygons: exact (NULL `ctx` allowed)
+- bilinear patches: analytic (NULL `ctx` allowed)
+- free-form surfaces (`CBicubicPatch`, `CNURBSPatch`, `CPatchGrid`,
+  `CBSplinePatchGrid`, `CSubdivision`): forward to the renderer-only
+  `surfaceCrossingDispatch`, a pure Newton core seeded from an immutable
+  per-surface evaluation grid. The ribVector build gets a stub.
+- default (other `CSurface` types): 0, so they contribute nothing
 
 ### Coverage mask (new generic `CRasterGrid` field)
 
@@ -124,7 +143,11 @@ bound. Rasterizer loops are unchanged (FR-012).
 ### Statistics (`CStats`, extended)
 
 `numCsgClassifications`, `numCsgSeamSplits`, `numCsgInstancesResolved`,
-`numCsgProceduralExpansions` (SC-006).
+`numCsgProceduralExpansions` (SC-006, FR-003, FR-004).
+
+They are printed at statistics level ≥ 2, zeros included, whenever the frame
+contains a solid, with the labels `CSG classifications:`, `CSG seam splits:`,
+`CSG instances resolved:` and `CSG procedural expansions:`.
 
 ## Relationships
 
@@ -146,7 +169,10 @@ CSGTreeNode (capture, transient) ──SolidEnd──▶ CSG definition (shared,
 |---|---|
 | Composite surface only where and when needed (FR-002, FR-004) | Per-instance state built on first use; bucket and ray driven dicing and intersection |
 | Seam accuracy tracks resolution (FR-007, FR-009) | Straddle split terminated by screen size, plus coverage mask |
-| No CSG logic in hiders (FR-012) | Generic region predicate on `CSurface`; generic coverage mask on `CRasterGrid` |
+| No CSG logic in hiders (FR-012) | Generic region predicate on `CObject` (inherited via `setChildren`); generic coverage mask on `CRasterGrid` |
+| Every operand type keeps working (FR-018) | Mesh-type leaves are materialized, and their surfaces inherit the region via `setChildren` (research Decision 15) |
+| Procedural operands behave as if written inline (FR-024) | Operand kind and caps are derived after expansion, per instance |
+| Open operands (FR-021) | Closedness test per instance; single open quadric ⇒ implied closure and caps; lone open non-quadric ⇒ empty plus diagnostic |
 | Faces keep operand shaders (FR-016) | Leaves are the operands' own surfaces with their own (cloned) attributes |
 | Subtracted walls face outward (FR-011) | Static flip applied as `ATTRIBUTES_FLAGS_INSIDE` on cloned attributes |
 | Interior/Exterior (spec 013 FR-009 to FR-012) | `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` set on each leaf's cloned attributes; `shading.cpp:1019` unchanged |

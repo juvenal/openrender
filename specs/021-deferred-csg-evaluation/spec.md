@@ -20,6 +20,11 @@
 - Q: Should procedural (deferred-expansion) primitives be allowed as solid operands now that evaluation is deferred? → A: Yes — allowed in this feature, expanded only when the solid is first needed by rendering; spec 013's rejection diagnostic (013 FR-021) is retired.
 - Q: What should happen to spec 013's `Attribute "solid" "tessellationtolerance"` setting? → A: Keep accepting it without error; it has no effect; print a one-time notice per render saying so.
 - Q (raised during planning): Which open operands are auto-closed? → A: Only operands consisting of exactly one quadric. Multi-surface operands are the volume their surfaces jointly enclose, closed by the author with no auto-caps, which avoids doubling author caps. A lone zero-volume surface is an empty operand. A lone open free-form surface gets a one-time "not closed" diagnostic.
+- Q (raised during analysis): How are closedness, overlaps and direct leaves defined, and how are seam accuracy and work bounds measured? → A:
+  - **Closedness** is a defined geometric test, and a lone non-quadric operand that fails it contributes nothing while emitting the diagnostic (FR-021).
+  - **Overlapping shapes, and primitives placed directly in a boolean block**, combine by parity (Edge Cases).
+  - **Free-form seam accuracy** is restated measurably: crack-free and consistent across methods everywhere, and within 1 pixel of the exact intersection where the free-form shape exactly represents an analytic one (FR-007a).
+  - **Work bounds** are measured through the renderer's statistics (FR-003, US4, Edge Cases).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -87,20 +92,21 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 **Acceptance Scenarios**:
 
 1. **Given** a solid located entirely outside the camera view and never reached by any traced ray, **When** the frame renders, **Then** no surface-refinement work is performed for that solid.
-2. **Given** a solid that is partially visible, **When** the frame renders, **Then** refinement work is concentrated on the visible parts and on the seams within them.
+2. **Given** a solid that is partially visible, **When** the frame renders, **Then** refinement work is concentrated on the visible parts and on the seams within them: with only half of the solid in frame, seam refinement work is at most 75% of what the fully framed solid requires, as reported by the renderer's statistics.
 3. **Given** a solid block that has just been closed, **When** no rendering has yet needed it, **Then** the renderer holds only the solid's definition (its operations and original shapes), not a pre-computed detailed surface.
 
 ---
 
 ### Edge Cases
 
-- **Open operand shapes**: a single-quadric operand that is not closed on its own, such as the hero scene's uncapped cylinder or a partial-sweep quadric, is treated as its implied closed solid, with its open ends and sweep gaps capped by flat faces; no notice is printed. A multi-surface operand is what its surfaces jointly enclose, with no auto-caps. A lone open free-form surface gets a "not closed" diagnostic (FR-021).
+- **Open operand shapes**: a single-quadric operand that is not closed on its own, such as the hero scene's uncapped cylinder or a partial-sweep quadric, is treated as its implied closed solid, with its open ends and sweep gaps capped by flat faces; no notice is printed. A multi-surface operand is what its surfaces jointly enclose, with no auto-caps. A lone non-quadric surface that is not closed contributes nothing and emits a "not closed" diagnostic (FR-021).
 - **Overlapping shapes in one "primitive" block**: where closed shapes declared in the same "primitive" block overlap, the overlap counts as outside, because it is enclosed twice. Overlapping shapes are combined with a "union" block. Spec 013 left this case undefined.
+- **Primitives placed directly in a boolean block**: primitives declared directly inside a "union", "intersection" or "difference" block, without a "primitive" block around them, together form one operand, positioned first (as in spec 013). They combine like a "primitive" block, so overlaps among them count as outside.
 - **Coincident faces**: operands whose faces exactly coincide (two boxes sharing a face in a union, a subtracted box flush with a face of the other) produce a clean result: no leftover internal skin, no flicker between faces, no pinholes along the shared face.
 - **Containment**: one operand lying entirely inside or entirely outside another produces the correct result (for example, subtracting a shape entirely outside the first leaves the first unchanged).
 - **Tangency**: operands that only touch at a point or along a curve produce no stray slivers or holes at the touching region.
 - **Camera or ray origin inside a solid**: interior behavior follows spec 013 (Interior shader applies; surfaces facing the viewer from inside are shaded correctly).
-- **Very small or distant solids** (smaller than a pixel) render without artifacts and without excessive work.
+- **Very small or distant solids** render without artifacts. Seam refinement stops at pixel precision, so a solid covering under 4×4 pixels performs at most 16 seam-refinement steps, as reported by the renderer's statistics.
 - **Solids partially outside the view**: the visible part renders correctly; the off-screen part costs no refinement work.
 - **Translucent surfaces on operands**: surfaces seen through a translucent part of a solid (for example, the walls of a carved hole seen through a semi-transparent outer surface) appear correctly.
 - **Surface displacement on an operand**: the solid's shape (which parts exist) is determined by the operands' undisplaced shapes; displacement then perturbs the surviving surface as it would on any shape.
@@ -115,7 +121,7 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 
 - **FR-001**: System MUST retain each solid as its high-level definition (its tree of operations over the original, unmodified operand shapes) from the close of its solid block through the end of the frame, instead of converting it into a pre-computed detailed surface when the block closes.
 - **FR-002**: System MUST work out a solid's composite surface only where rendering needs it — the region of the image currently being processed, the ray currently being traced, or the whole scene when a visibility method processes the scene as a whole — and only at the moment it is needed, as the last step before that surface's appearance is computed.
-- **FR-003**: System MUST choose the precision of a solid's composite surface from the current view, refining where the surface and its seams are seen in detail and not refining where they are not.
+- **FR-003**: System MUST choose the precision of a solid's composite surface from the current view, refining where the surface and its seams are seen in detail and not refining where they are not. Measurably: the same solid rendered at a higher resolution performs more seam-refinement work than at a lower one, as reported by the renderer's statistics.
 - **FR-004**: System MUST perform no surface-refinement work for a solid, or a part of a solid, that never contributes to the image and is never reached by a traced ray.
 - **FR-005**: System MUST decide where a solid can be seen or hit, and where it needs refinement, using the solid's own information (its operations, its operands and their extents), without depending on how any particular visibility method works internally.
 
@@ -123,7 +129,12 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 
 - **FR-006**: System MUST render seams between operands free of cracks, gaps and slivers at any image resolution, for every accepted operand type.
 - **FR-007**: Where every operand meeting at a seam is an analytic shape (quadrics and flat polygons), System MUST render the seam within one pixel of the exact intersection of the operand shapes at the rendered resolution, with no visible facets, spikes or spurs.
-- **FR-007a**: Where a free-form operand (bilinear/bicubic patch, patch mesh, NURBS, subdivision surface) meets another operand at a seam, the seam MUST be no less accurate than that free-form surface is when rendered on its own outside any solid, at the same resolution and settings.
+- **FR-007a**: Where a free-form operand (bilinear/bicubic patch, patch mesh, NURBS, subdivision surface) meets another operand at a seam:
+  - the seam MUST be crack-free, and consistent across visibility methods to within 1 pixel;
+  - where the free-form operand exactly represents an analytic shape (for example, a rational NURBS sphere or a planar bicubic patch), the seam MUST lie within 1 pixel of the exact intersection;
+  - elsewhere, the free-form operand MUST render as it does outside any solid.
+
+  This keeps the clarified "as accurate as it renders on its own" intent, stated so it can be measured.
 - **FR-008**: System MUST keep seams continuous across the boundaries between separately processed regions of the image.
 - **FR-009**: System MUST NOT let seam accuracy degrade as image resolution increases.
 
@@ -146,7 +157,11 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 
 **Operands and settings**
 
-- **FR-021**: An operand consisting of exactly one quadric that is not closed on its own (for example, a cylinder without end caps, a z-cut sphere, or a quadric swept through less than a full turn) MUST behave as the closed solid it implies: its open ends and sweep gaps are treated as capped by flat faces, so that scenes like the hero scene produce the intuitively expected result. Where a cap lies on the final composite boundary, it MUST appear as a real surface with the operand's shader. No notice or warning is emitted for auto-closed operands. An operand made of several surfaces is the volume those surfaces jointly enclose, and is not auto-capped: the author closes it, as in spec 013, so author-provided caps are never doubled. An operand that is a single zero-volume surface (for example, one disk) is empty. An operand that is a single open free-form surface (for example, one open NURBS sheet) MUST produce a one-time diagnostic stating that the operand is not closed.
+- **FR-021**: An operand consisting of exactly one quadric that is not closed on its own (for example, a cylinder without end caps, a z-cut sphere, or a quadric swept through less than a full turn) MUST behave as the closed solid it implies: its open ends and sweep gaps are treated as capped by flat faces, so that scenes like the hero scene produce the intuitively expected result. Where a cap lies on the final composite boundary, it MUST appear as a real surface with the operand's shader. No notice or warning is emitted for auto-closed operands. An operand made of several surfaces is the volume those surfaces jointly enclose, and is not auto-capped: the author closes it, as in spec 013, so author-provided caps are never doubled. Closedness rules:
+  - A quadric is closed only when it is a full sphere or a full torus; every other single quadric is auto-closed as above, except a disk, which encloses no volume and is silently empty.
+  - A single non-quadric surface or mesh is closed when every one of its boundary edges either collapses to a point or coincides with another of its boundary edges, or, for polygon and subdivision meshes, when every edge is shared by exactly two faces.
+  - A single non-quadric surface or mesh that is not closed (for example, one open NURBS sheet or one bilinear patch) contributes nothing (an empty operand) and MUST produce a one-time diagnostic stating that the operand is not closed.
+  - A closed single surface, such as a single-patch NURBS sphere, produces no diagnostic.
 - **FR-022**: Where operand faces coincide exactly, System MUST produce a clean, deterministic result: no leftover internal skin, no flicker between the coincident faces, no pinholes along them.
 - **FR-023**: The per-primitive "solid" tessellation tolerance setting introduced by spec 013 MUST remain accepted in scene files without error, but MUST have no effect on the rendered result; seam precision is governed solely by the view (FR-003, FR-007, FR-007a). The first time the setting is encountered in a render, a single notice MUST tell the author that it no longer affects results; later occurrences in the same render MUST NOT repeat the notice.
 - **FR-024**: System MUST accept procedural (deferred-expansion) primitives inside "primitive" solid blocks. Everything a procedural expands to belongs to the operand of the block it was declared in, exactly as if written there directly. A procedural operand MUST NOT be expanded before rendering first needs its solid, and MUST NOT be expanded at all if its solid never contributes to the image or to any traced ray. Each procedural operand is expanded at most once per solid instance.
@@ -163,7 +178,7 @@ A scene author places many solids in a large scene, most of them off-screen, hid
 ### Measurable Outcomes
 
 - **SC-001**: The hero scene renders with 0 stray pixels inside the clear see-through region of the hole, at both 800×500 and 1600×1000, in all three visibility methods (baseline today: 213 at 1600×1000 raytrace, 63 REYES, 38 Z-buffer).
-- **SC-002**: In the hero and sphere-minus-cube scenes, every seam lies within 1 pixel of the exact intersection curve at both 800×500 and 1600×1000, in all three visibility methods; no seam shows spikes, spurs or polygon facets under 4× zoom inspection.
+- **SC-002**: In the hero and sphere-minus-cube scenes, every seam lies within 1 pixel of the exact intersection curve at both 800×500 and 1600×1000, in all three visibility methods. This is measured by projecting the exact intersection curves through the scene camera and checking the rendered seam edge against them; spikes, spurs and polygon facets show up as deviations. 4× zoom crops are kept as supporting evidence.
 - **SC-003**: The hero and sphere-minus-cube scenes show 0 see-through gaps (pixels where the background shows through a surface that should be solid) at both resolutions, in all three visibility methods.
 - **SC-004**: For each solid test scene, the raytrace, REYES and Z-buffer images agree within the renderer's existing cross-method tolerances.
 - **SC-005**: 100% of the existing solid test scenes and solid-related tests pass (with reference images regenerated only where seams improve), and 100% of the existing non-solid visual regression scenes are unchanged.

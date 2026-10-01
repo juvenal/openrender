@@ -35,12 +35,12 @@
 - "Raytrace", "REYES" and "Z-buffer" appear by name because they are the
   user-selectable visibility methods (scene-level `Hider` choices), not
   implementation details.
-- No [NEEDS CLARIFICATION] markers were used. The five open questions from
-  the feature description were resolved with documented defaults in the
-  Assumptions section, each flagged "to be confirmed in /speckit.clarify",
-  so the maintainer's chosen workflow order (specify → clarify) handles
-  them: open operands (FR-021), tessellation tolerance setting (FR-023),
-  procedural operands, performance target (SC-007), coincident faces
-  (FR-022).
+- No [NEEDS CLARIFICATION] markers were used. The open questions are resolved
+  in the spec's Clarifications section (7 bullets): open operands (FR-021),
+  performance target (SC-007), seam accuracy by operand type (FR-007a),
+  procedural operands (FR-024), tessellation tolerance setting (FR-023);
+  raised during planning, which open operands are auto-closed; and raised
+  during analysis, closedness, overlaps, direct leaves and the measurement of
+  seam accuracy and work bounds.
 - SC-001/SC-003 baselines were measured on master at 6680e71 (hero scene,
   raytrace/REYES/Z-buffer, 800×500 and 1600×1000).
