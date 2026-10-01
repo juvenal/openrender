@@ -1,0 +1,37 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T008): sphere r=1 intersected with the open half-sweep Cylinder 1.2 -0.5 0.5 180,
+# a single open quadric operand (FR-021). The result is the band |z| <= 0.5, y >= 0 of the
+# sphere, closed by the implied caps: the end caps z = +-0.5 and the flat sweep-gap face
+# y = 0. The flat face and the z = -0.5 end cap face the camera.
+#
+# Visible cap regions (image discs well inside each cap, for --region-chroma):
+#   end cap z = -0.5: disc:267.7,139.2,24.9
+#   flat face y = 0: disc:300.0,225.0,24.5
+# A cap carries the cylinder operand's colour (blue); a missing cap would show the gold inside
+# of the sphere band instead.
+Hider "reyes"
+PixelSamples 4 4
+Display "csg-open-quadric-caps-reyes.tif" "file" "rgba"
+Format 600 450 1
+Projection "perspective" "fov" [40]
+Clipping 0.1 1000
+Translate 0 0 4.2
+Rotate 35 1 0 0
+Rotate 25 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Surface "matte"
+    Sides 2
+    SolidBegin "intersection"
+        SolidBegin "primitive"
+            Color [1 0.8 0.3]
+            Sphere 1 -1 1 360
+        SolidEnd
+        SolidBegin "primitive"
+            Color [0.2 0.35 1]
+            Cylinder 1.2 -0.5 0.5 180
+        SolidEnd
+    SolidEnd
+WorldEnd

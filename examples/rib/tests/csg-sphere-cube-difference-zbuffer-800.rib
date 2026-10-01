@@ -1,0 +1,45 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T006): csg-sphere-cube-difference geometry and camera at a seam-measurable
+# resolution (800x500).
+#
+# --projected-curve data, in the solid's object space:
+#   --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000
+#   --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0     (y = +0.5)
+#   --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0     (y = -0.5)
+#   --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0     (z = +0.5)
+#   --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0     (z = -0.5)
+# The arcs meet at x = sqrt(0.5). The cube's x = 0.1 face lies entirely inside the sphere and
+# the x = 1.1 plane misses it, so neither carries a seam.
+Hider "zbuffer"
+PixelSamples 4 4
+Display "csg-sphere-cube-difference-zbuffer-800.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [40]
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1 -1 1 360
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0.6 0 0
+                Scale 1 1 1
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5]
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5]
+                Patch "bilinear" "P" [0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [-0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5]
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

@@ -1,0 +1,32 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 hero scene (T005): sphere r=1.5 minus the open Cylinder 0.65 -2 2 360,
+# viewed straight down the hole.
+#
+# Analytic image radii at 1600x1000, centred on (800, 500):
+#   clear through-hole disc (far rim)  r = 91.2 px
+#   near seam ring                     r = 123.4 px
+#   sphere silhouette                  r = 245.5 px
+# Seams: the circles z = +-sqrt(1.5^2 - 0.65^2) = +-1.352 on the cylinder r = 0.65.
+# Object-to-camera matrix (RIB row-vector order): 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 9.000000 1.000000
+Hider "zbuffer"
+PixelSamples 4 4
+Display "csg-hero-zbuffer-1600.tif" "file" "rgba"
+Format 1600 1000 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 9
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1.50 -1.50 1.50 360
+        SolidEnd
+        SolidBegin "primitive"
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd

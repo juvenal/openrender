@@ -1,0 +1,51 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T010): secondary rays (FR-013). The camera sees the hero solid only through a
+# 45-degree mirror; behind the solid, a back plane is lit by a distant light that travels
+# along the hole axis, so the solid's shadow on it has a lit spot where the hole lets light
+# through. Reflection rays must respect the hole; shadow (transmission) rays must too.
+#
+# Image regions at 800x500, centred on (400, 250) (mirror image of the hero view):
+#   shadow-hole spot (lit back plane through the hole)   disc:400,250,30.7
+#   shadow body (shadowed back plane seen through hole)  annulus:400,250,36.7,42.6
+#   open lit ground (back plane beside the solid)        annulus:400,250,137.7,182.7
+#   reflected hole (through-hole, shadow ring)           annulus:400,250,36.7,42.6
+#   reflected sphere ring (outer sphere surface)         annulus:400,250,65.7,118.7
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-secondary-rays-raytrace.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.05]
+    LightSource "raydistant" 2 "intensity" [1.2] "from" [-100 0 0] "to" [0 0 0]
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+        # the mirror: invisible to shadow rays, so it never blocks the light
+        Attribute "visibility" "int transmission" [0]
+        Surface "mirror" "float Ka" [0] "float Ks" [0] "float Kr" [1]
+        Polygon "P" [-8 -8 -5  -8 8 -5  14 8 17  14 -8 17]
+    AttributeEnd
+    AttributeBegin
+        # the back plane x = 11
+        Color [0.9 0.9 0.9]
+        Surface "matte"
+        Polygon "P" [11 -12 -9  11 12 -9  11 12 15  11 -12 15]
+    AttributeEnd
+    AttributeBegin
+        Color [0.8 0.6 0.4]
+        Surface "plastic"
+        Translate 6 0 3
+        Rotate 90 0 1 0
+        SolidBegin "difference"
+            SolidBegin "primitive"
+                Sphere 1.50 -1.50 1.50 360
+            SolidEnd
+            SolidBegin "primitive"
+                Cylinder 0.65 -2 2 360
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+WorldEnd

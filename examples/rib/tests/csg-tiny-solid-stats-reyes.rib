@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T010): the hero solid scaled by 0.015, so it covers under 4x4 pixels
+# (silhouette radius 1.84 px).
+Hider "reyes"
+PixelSamples 4 4
+Display "csg-tiny-solid-stats-reyes.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 9
+Option "statistics" "endofframe" [2]
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+    Scale 0.015 0.015 0.015
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1.50 -1.50 1.50 360
+        SolidEnd
+        SolidBegin "primitive"
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd

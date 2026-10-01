@@ -61,6 +61,11 @@ set(ri_sources
 	geometry/csgBoolean.cpp
 	geometry/csgTesselationDispatch.cpp
 	geometry/csgTree.cpp
+	geometry/csgCaps.cpp
+	geometry/csgClassify.cpp
+	geometry/csgDefinition.cpp
+	geometry/csgSolid.cpp
+	geometry/surfaceCrossingDispatch.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
@@ -296,7 +301,11 @@ endif()
 # override at all, so CSG is structurally unsupported on the preview path,
 # and CSolidObject is constructed only from csgTree.cpp (confirmed by
 # grepping every "new CSolidObject"/"CSolidObject(" site repo-wide) -- so
-# excluding csgTree.cpp makes solidObject.cpp dead too. parse/ifexpr_generated.cpp
+# excluding csgTree.cpp makes solidObject.cpp dead too. Spec 021's
+# deferred CSG units (csgDefinition/csgSolid/csgClassify/csgCaps.cpp) are
+# excluded for the same reason, and surfaceCrossingDispatch.cpp (free-form
+# crossing counts, only ever reached from CSG classification) is swapped for
+# vector/surfaceCrossingDispatchStub.cpp. parse/ifexpr_generated.cpp
 # (the RIB `if()`-conditional grammar) defines CRendererContext::ifParse(),
 # called only from the two RiIfBeginV/RiElseIfV sites in the already-excluded
 # rendererContext.cpp -- confirmed by grepping every ifParse call site
@@ -339,6 +348,10 @@ endif()
 # imageInput.cpp itself must stay linked into both.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
+    geometry/csgCaps.cpp
+    geometry/csgClassify.cpp
+    geometry/csgDefinition.cpp
+    geometry/csgSolid.cpp
     geometry/csgTesselationDispatch.cpp
     geometry/csgTree.cpp
     geometry/dlobject.cpp
@@ -367,12 +380,14 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererShadingServices.cpp
     geometry/solidObject.cpp
     geometry/surface.cpp
+    geometry/surfaceCrossingDispatch.cpp
 )
 list(APPEND ribVector_sources
     vector/csgTesselationDispatchStub.cpp
     vector/geometryDispatchStub.cpp
     vector/irradianceDispatchStub.cpp
     vector/rendererDeclarationsDispatchStub.cpp
+    vector/surfaceCrossingDispatchStub.cpp
 )
 
 add_library(ribVector_obj OBJECT ${ribVector_sources} ${ri_headers})

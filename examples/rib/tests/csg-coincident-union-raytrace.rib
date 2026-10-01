@@ -1,0 +1,49 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T007): coincident operand faces (FR-022).
+# union: boxes [-1,0]x[-0.5,0.5]^2 and [0,1]x[-0.5,0.5]^2 share the face x = 0;
+#   expected result: one box [-1,1]x[-0.5,0.5]^2.
+# difference: box [-0.5,0.5]^3 minus [0.2,0.5]x[-0.7,0.7]^2, flush with the face x = 0.5;
+#   expected result: the box [-0.5,0.2]x[-0.5,0.5]^2.
+# Compare against csg-coincident-{union,difference}-expected-raytrace.rib.
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-coincident-union-raytrace.tif" "file" "rgba"
+Format 400 300 1
+Projection "perspective" "fov" [40]
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidBegin "union"
+        SolidBegin "primitive"
+            TransformBegin
+                Translate -0.5 0 0
+                Scale 1 1 1
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5]
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5]
+                Patch "bilinear" "P" [0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [-0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5]
+            TransformEnd
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0.5 0 0
+                Scale 1 1 1
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5]
+                Patch "bilinear" "P" [-0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5]
+                Patch "bilinear" "P" [0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5]
+                Patch "bilinear" "P" [-0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5]
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

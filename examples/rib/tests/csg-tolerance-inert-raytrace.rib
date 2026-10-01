@@ -1,0 +1,29 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T010): the hero scene with the retired tessellation tolerance set three times
+# on different operands. It must render exactly like csg-hero-raytrace-800.rib and print
+# exactly one notice (FR-023).
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-tolerance-inert-raytrace.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 9
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+    Attribute "solid" "float tessellationtolerance" [0.01]
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Attribute "solid" "float tessellationtolerance" [0.01]
+            Sphere 1.50 -1.50 1.50 360
+        SolidEnd
+        SolidBegin "primitive"
+            Attribute "solid" "float tessellationtolerance" [0.01]
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd

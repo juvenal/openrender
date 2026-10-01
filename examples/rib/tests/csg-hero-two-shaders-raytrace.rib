@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T011): gold plastic sphere operand, blue matte cylinder operand (FR-016).
+# Hole wall annulus 45.6-61.7 px: blue; outer annulus 62-122 px: gold.
+#
+# Analytic image radii at 800x500, centred on (400, 250):
+#   clear through-hole disc (far rim)  r = 45.6 px
+#   near seam ring                     r = 61.7 px
+#   sphere silhouette                  r = 122.7 px
+# Seams: the circles z = +-sqrt(1.5^2 - 0.65^2) = +-1.352 on the cylinder r = 0.65.
+# Object-to-camera matrix (RIB row-vector order): 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 9.000000 1.000000
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-hero-two-shaders-raytrace.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 9
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Color [1 0.8 0.3]
+            Surface "plastic"
+            Sphere 1.50 -1.50 1.50 360
+        SolidEnd
+        SolidBegin "primitive"
+            Color [0.2 0.35 1]
+            Surface "matte"
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd

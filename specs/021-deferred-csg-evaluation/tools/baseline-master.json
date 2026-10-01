@@ -1,0 +1,711 @@
+{
+ "timings": {
+  "csg-sphere-cube-union-raytrace": 1.06,
+  "csg-sphere-cube-union-reyes": 0.69,
+  "csg-sphere-cube-union-zbuffer": 0.44,
+  "csg-sphere-cube-difference-raytrace": 0.72,
+  "csg-sphere-cube-difference-reyes": 0.72,
+  "csg-sphere-cube-difference-zbuffer": 0.55,
+  "csg-sphere-cube-intersection-raytrace": 0.5,
+  "csg-sphere-cube-intersection-reyes": 0.53,
+  "csg-sphere-cube-intersection-zbuffer": 0.47,
+  "csg-sphere-sphere-tight-tolerance-raytrace": 1.93,
+  "csg-sphere-sphere-loose-tolerance-raytrace": 1.36,
+  "csg-subdivision-sphere-union-raytrace": 1.38,
+  "csg-nurbs-sphere-union-raytrace": 1.07,
+  "csg-nested-tree-4-level-raytrace": 3.11,
+  "csg-object-instance-reuse-raytrace": 3.03,
+  "csg-sphere-sphere-difference-interior-raytrace": 1.69,
+  "csg-sphere-sphere-difference-interior-raytrace-inside": 1.88,
+  "blobby-csg-difference-raytrace": 69.22,
+  "blobby-csg-difference-reyes": 63.09,
+  "blobby-csg-difference-zbuffer": 49.75,
+  "csg-hero-raytrace-800": 4.75,
+  "csg-hero-raytrace-1600": 16.03,
+  "csg-hero-reyes-800": 1.94,
+  "csg-hero-reyes-1600": 5.11,
+  "csg-hero-zbuffer-800": 1.44,
+  "csg-hero-zbuffer-1600": 3.58,
+  "csg-sphere-cube-difference-raytrace-800": 3.68,
+  "csg-sphere-cube-difference-raytrace-1600": 14.89,
+  "csg-sphere-cube-difference-reyes-800": 1.8,
+  "csg-sphere-cube-difference-reyes-1600": 5.06,
+  "csg-sphere-cube-difference-zbuffer-800": 1.15,
+  "csg-sphere-cube-difference-zbuffer-1600": 3.16,
+  "csg-coincident-union-raytrace": 0.82,
+  "csg-coincident-union-reyes": 0.45,
+  "csg-coincident-union-zbuffer": 0.25,
+  "csg-coincident-difference-raytrace": 0.64,
+  "csg-coincident-difference-reyes": 0.28,
+  "csg-coincident-difference-zbuffer": 0.23,
+  "csg-coincident-union-expected-raytrace": 0.88,
+  "csg-coincident-difference-expected-raytrace": 0.67,
+  "csg-open-quadric-caps-raytrace": 4.23,
+  "csg-open-quadric-caps-reyes": 1.44,
+  "csg-open-quadric-caps-zbuffer": 1.17,
+  "csg-nurbs-rational-sphere-union-raytrace": 2.37,
+  "csg-nurbs-rational-sphere-union-reyes": 1.5,
+  "csg-nurbs-rational-sphere-alone-raytrace": 1.84,
+  "csg-subdivision-sphere-union-reyes": 1.07,
+  "csg-subdivision-sphere-alone-raytrace": 0.81,
+  "csg-polymesh-box-difference-raytrace": 1.62,
+  "csg-polymesh-box-difference-reyes": 0.7,
+  "csg-polymesh-open-raytrace": 1.86,
+  "csg-nurbs-sheet-expected-raytrace": 0.29,
+  "csg-nurbs-sheet-instanced-raytrace": 1.25,
+  "csg-hero-two-shaders-raytrace": 4.57,
+  "csg-hero-two-shaders-reyes": 2.05,
+  "csg-hero-displaced-raytrace": 17.49,
+  "csg-hero-stats-800-reyes": 1.9,
+  "csg-hero-single-operand-stats-800-reyes": 1.13,
+  "csg-hero-instanced-outside-world-reyes": 1.75
+ },
+ "metrics": [
+  {
+   "test": "T034 csg-hero-raytrace-800",
+   "args": "--annuli csg-hero-raytrace-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=3.000,seam_45.6_max_px=0.847,seam_45.6_missing_rays=0,seam_61.7_luma_max_px=3.000,seam_61.7_luma_missing_rays=11,seam_122.7_max_px=0.338,seam_122.7_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-raytrace-800",
+   "args": "--enclosed-holes csg-hero-raytrace-800.tif --exclude disc:400,250,45.6",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T034 csg-hero-raytrace-1600",
+   "args": "--annuli csg-hero-raytrace-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=23,gap_pixels=0,max_seam_deviation_px=3.000,seam_91.2_max_px=1.517,seam_91.2_missing_rays=0,seam_123.4_luma_max_px=3.000,seam_123.4_luma_missing_rays=24,seam_245.4_max_px=0.434,seam_245.4_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-raytrace-1600",
+   "args": "--enclosed-holes csg-hero-raytrace-1600.tif --exclude disc:800,500,91.2",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T034 csg-hero-reyes-800",
+   "args": "--annuli csg-hero-reyes-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=3.000,seam_45.6_max_px=0.790,seam_45.6_missing_rays=0,seam_61.7_luma_max_px=3.000,seam_61.7_luma_missing_rays=11,seam_122.7_max_px=0.305,seam_122.7_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-reyes-800",
+   "args": "--enclosed-holes csg-hero-reyes-800.tif --exclude disc:400,250,45.6",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T034 csg-hero-reyes-1600",
+   "args": "--annuli csg-hero-reyes-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=41,gap_pixels=0,max_seam_deviation_px=3.000,seam_91.2_max_px=1.509,seam_91.2_missing_rays=0,seam_123.4_luma_max_px=3.000,seam_123.4_luma_missing_rays=26,seam_245.4_max_px=0.477,seam_245.4_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-reyes-1600",
+   "args": "--enclosed-holes csg-hero-reyes-1600.tif --exclude disc:800,500,91.2",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T034 csg-hero-zbuffer-800",
+   "args": "--annuli csg-hero-zbuffer-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=1,max_seam_deviation_px=3.000,seam_45.6_max_px=0.772,seam_45.6_missing_rays=0,seam_61.7_luma_max_px=3.000,seam_61.7_luma_missing_rays=11,seam_122.7_max_px=0.303,seam_122.7_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-zbuffer-800",
+   "args": "--enclosed-holes csg-hero-zbuffer-800.tif --exclude disc:400,250,45.6",
+   "out": "mode=enclosed-holes,hole_pixels=6,opaque=0.990,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-zbuffer-1600",
+   "args": "--annuli csg-hero-zbuffer-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2",
+   "out": "mode=annuli,stray_pixels=30,gap_pixels=0,max_seam_deviation_px=3.000,seam_91.2_max_px=1.468,seam_91.2_missing_rays=0,seam_123.4_luma_max_px=3.000,seam_123.4_luma_missing_rays=25,seam_245.4_max_px=0.388,seam_245.4_missing_rays=0,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T034 csg-hero-zbuffer-1600",
+   "args": "--enclosed-holes csg-hero-zbuffer-1600.tif --exclude disc:800,500,91.2",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-raytrace-800",
+   "args": "--projected-curve csg-sphere-cube-difference-raytrace-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-raytrace-800",
+   "args": "--enclosed-holes csg-sphere-cube-difference-raytrace-800.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-raytrace-1600",
+   "args": "--projected-curve csg-sphere-cube-difference-raytrace-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-raytrace-1600",
+   "args": "--enclosed-holes csg-sphere-cube-difference-raytrace-1600.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-reyes-800",
+   "args": "--projected-curve csg-sphere-cube-difference-reyes-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-reyes-800",
+   "args": "--enclosed-holes csg-sphere-cube-difference-reyes-800.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-reyes-1600",
+   "args": "--projected-curve csg-sphere-cube-difference-reyes-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-reyes-1600",
+   "args": "--enclosed-holes csg-sphere-cube-difference-reyes-1600.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-zbuffer-800",
+   "args": "--projected-curve csg-sphere-cube-difference-zbuffer-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-zbuffer-800",
+   "args": "--enclosed-holes csg-sphere-cube-difference-zbuffer-800.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-zbuffer-1600",
+   "args": "--projected-curve csg-sphere-cube-difference-zbuffer-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1",
+   "out": "mode=projected-curve,samples=340,max_curve_deviation_px=5.000,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T035 csg-sphere-cube-difference-zbuffer-1600",
+   "args": "--enclosed-holes csg-sphere-cube-difference-zbuffer-1600.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-raytrace",
+   "args": "--enclosed-holes csg-coincident-union-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-raytrace",
+   "args": "--region-compare csg-coincident-union-raytrace.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=1.58,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-reyes",
+   "args": "--enclosed-holes csg-coincident-union-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-reyes",
+   "args": "--region-compare csg-coincident-union-reyes.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=1.70,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-zbuffer",
+   "args": "--enclosed-holes csg-coincident-union-zbuffer.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-union-zbuffer",
+   "args": "--region-compare csg-coincident-union-zbuffer.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=1.33,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-raytrace",
+   "args": "--enclosed-holes csg-coincident-difference-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-raytrace",
+   "args": "--region-compare csg-coincident-difference-raytrace.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=2.11,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-reyes",
+   "args": "--enclosed-holes csg-coincident-difference-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-reyes",
+   "args": "--region-compare csg-coincident-difference-reyes.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=2.19,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-zbuffer",
+   "args": "--enclosed-holes csg-coincident-difference-zbuffer.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T036 csg-coincident-difference-zbuffer",
+   "args": "--region-compare csg-coincident-difference-zbuffer.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20",
+   "out": "mode=region-compare,blocks=1900,fail_blocks=0,max_block_avg_diff=1.92,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T037 csg-hero-two-shaders-raytrace",
+   "args": "--region-chroma csg-hero-two-shaders-raytrace.tif --include annulus:400,250,45.6,61.7 --min-share b=0.4 --max-share r=0.3",
+   "out": "mode=region-chroma,pixels=2023,share_r=0.2186,share_g=0.3161,share_b=0.4653,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T037 csg-hero-two-shaders-raytrace",
+   "args": "--region-chroma csg-hero-two-shaders-raytrace.tif --include annulus:400,250,62,122 --min-share r=0.45 --max-share b=0.15",
+   "out": "mode=region-chroma,pixels=23230,share_r=0.5578,share_g=0.3720,share_b=0.0703,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T037 csg-hero-two-shaders-reyes",
+   "args": "--region-chroma csg-hero-two-shaders-reyes.tif --include annulus:400,250,45.6,61.7 --min-share b=0.4 --max-share r=0.3",
+   "out": "mode=region-chroma,pixels=2028,share_r=0.2191,share_g=0.3164,share_b=0.4644,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T037 csg-hero-two-shaders-reyes",
+   "args": "--region-chroma csg-hero-two-shaders-reyes.tif --include annulus:400,250,62,122 --min-share r=0.45 --max-share b=0.15",
+   "out": "mode=region-chroma,pixels=23240,share_r=0.5578,share_g=0.3719,share_b=0.0703,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 rational union rt",
+   "args": "--enclosed-holes csg-nurbs-rational-sphere-union-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 rational union reyes",
+   "args": "--enclosed-holes csg-nurbs-rational-sphere-union-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 rational edge",
+   "args": "--edge-compare csg-nurbs-rational-sphere-union-reyes.tif csg-nurbs-rational-sphere-union-raytrace.tif --tolerance 1",
+   "out": "mode=edge-compare,edge_pixels=3342,max_edge_distance_px=0.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 projected-curve csg-nurbs-rational-sphere-union-raytrace",
+   "args": "--projected-curve csg-nurbs-rational-sphere-union-raytrace.tif --camera 40 400 400 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0.391154,0.000000,-0.304231,0.789352,0.000000,-0.613941,0.494411 --facing 0,0,0 --facing 0.45,0.0,-0.35 --tolerance 1",
+   "out": "mode=projected-curve,samples=269,max_curve_deviation_px=1.447,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T038 projected-curve csg-nurbs-rational-sphere-union-reyes",
+   "args": "--projected-curve csg-nurbs-rational-sphere-union-reyes.tif --camera 40 400 400 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0.391154,0.000000,-0.304231,0.789352,0.000000,-0.613941,0.494411 --facing 0,0,0 --facing 0.45,0.0,-0.35 --tolerance 1",
+   "out": "mode=projected-curve,samples=269,max_curve_deviation_px=1.265,tolerance_px=1.000,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T038 subdiv union reyes holes",
+   "args": "--enclosed-holes csg-subdivision-sphere-union-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 subdiv edge",
+   "args": "--edge-compare csg-subdivision-sphere-union-reyes.tif csg-subdivision-sphere-union-raytrace.tif --tolerance 1",
+   "out": "mode=edge-compare,edge_pixels=2029,max_edge_distance_px=0.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 polymesh holes rt",
+   "args": "--enclosed-holes csg-polymesh-box-difference-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 polymesh holes reyes",
+   "args": "--enclosed-holes csg-polymesh-box-difference-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 polymesh edge",
+   "args": "--edge-compare csg-polymesh-box-difference-reyes.tif csg-polymesh-box-difference-raytrace.tif --tolerance 1",
+   "out": "mode=edge-compare,edge_pixels=3027,max_edge_distance_px=1.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 untouched csg-nurbs-rational-sphere-union-raytrace",
+   "args": "--region-compare csg-nurbs-rational-sphere-union-raytrace.tif csg-nurbs-rational-sphere-alone-raytrace.tif --margin 0 --include mask:/Volumes/Projects/Development/CLI/openrender-worktrees/021-deferred-csg-evaluation/examples/rib/tests/masks/csg-nurbs-rational-untouched.png",
+   "out": "mode=region-compare,blocks=29,fail_blocks=0,max_block_avg_diff=1.00,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 untouched csg-subdivision-sphere-union-raytrace",
+   "args": "--region-compare csg-subdivision-sphere-union-raytrace.tif csg-subdivision-sphere-alone-raytrace.tif --margin 0 --include mask:/Volumes/Projects/Development/CLI/openrender-worktrees/021-deferred-csg-evaluation/examples/rib/tests/masks/csg-subdivision-untouched.png",
+   "out": "mode=region-compare,blocks=16,fail_blocks=0,max_block_avg_diff=1.00,threshold=20.00,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T038 nurbs_open region",
+   "args": "--region-compare csg-nurbs-sphere-union-raytrace.tif csg-nurbs-sheet-expected-raytrace.tif --include frame",
+   "out": "mode=region-compare,blocks=625,fail_blocks=86,max_block_avg_diff=254.61,threshold=20.00,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T039 displaced",
+   "args": "--enclosed-holes csg-hero-displaced-raytrace.tif --exclude disc:400,250,45.6",
+   "out": "mode=enclosed-holes,hole_pixels=1,opaque=0.990,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T039 displaced",
+   "args": "--annuli csg-hero-displaced-raytrace.tif --center 400,250 --clear disc:400,250,40.9 --seam 45.6 --seam 122.7 --tolerance 5.7",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=2.613,seam_45.6_max_px=1.489,seam_45.6_missing_rays=0,seam_122.7_max_px=2.613,seam_122.7_missing_rays=0,tolerance_px=5.700,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T041 instance",
+   "args": "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:184.6,110.0,22.9",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=0.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T041 instance",
+   "args": "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:300.0,110.0,21.8",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=0.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T041 instance",
+   "args": "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:392.5,110.0,18.7",
+   "out": "mode=annuli,stray_pixels=0,gap_pixels=0,max_seam_deviation_px=0.000,tolerance_px=1.000,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T041 instance",
+   "args": "--enclosed-holes csg-object-instance-reuse-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-raytrace",
+   "args": "--enclosed-holes csg-open-quadric-caps-raytrace.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-raytrace",
+   "args": "--region-chroma csg-open-quadric-caps-raytrace.tif --include disc:267.7,139.2,24.9 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1648,share_r=0.4768,share_g=0.3811,share_b=0.1421,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-raytrace",
+   "args": "--region-chroma csg-open-quadric-caps-raytrace.tif --include disc:300.0,225.0,24.5 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1576,share_r=0.4772,share_g=0.3812,share_b=0.1416,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-reyes",
+   "args": "--enclosed-holes csg-open-quadric-caps-reyes.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-reyes",
+   "args": "--region-chroma csg-open-quadric-caps-reyes.tif --include disc:267.7,139.2,24.9 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1648,share_r=0.4768,share_g=0.3811,share_b=0.1421,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-reyes",
+   "args": "--region-chroma csg-open-quadric-caps-reyes.tif --include disc:300.0,225.0,24.5 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1576,share_r=0.4772,share_g=0.3812,share_b=0.1416,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-zbuffer",
+   "args": "--enclosed-holes csg-open-quadric-caps-zbuffer.tif",
+   "out": "mode=enclosed-holes,hole_pixels=0,opaque=0.990,result=PASS",
+   "rc": 0
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-zbuffer",
+   "args": "--region-chroma csg-open-quadric-caps-zbuffer.tif --include disc:267.7,139.2,24.9 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1648,share_r=0.4767,share_g=0.3812,share_b=0.1421,result=FAIL",
+   "rc": 1
+  },
+  {
+   "test": "T042 csg-open-quadric-caps-zbuffer",
+   "args": "--region-chroma csg-open-quadric-caps-zbuffer.tif --include disc:300.0,225.0,24.5 --min-share b=0.5",
+   "out": "mode=region-chroma,pixels=1576,share_r=0.4771,share_g=0.3813,share_b=0.1416,result=FAIL",
+   "rc": 1
+  }
+ ],
+ "logs": {
+  "csg-sphere-cube-union-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-union-reyes": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-union-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-reyes": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-intersection-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-intersection-reyes": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-intersection-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-sphere-sphere-tight-tolerance-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-sphere-loose-tolerance-raytrace": [
+   0,
+   ""
+  ],
+  "csg-subdivision-sphere-union-raytrace": [
+   0,
+   ""
+  ],
+  "csg-nurbs-sphere-union-raytrace": [
+   0,
+   ""
+  ],
+  "csg-nested-tree-4-level-raytrace": [
+   0,
+   ""
+  ],
+  "csg-object-instance-reuse-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-sphere-difference-interior-raytrace": [
+   0,
+   ""
+  ],
+  "csg-sphere-sphere-difference-interior-raytrace-inside": [
+   0,
+   ""
+  ],
+  "blobby-csg-difference-raytrace": [
+   0,
+   ""
+  ],
+  "blobby-csg-difference-reyes": [
+   0,
+   ""
+  ],
+  "blobby-csg-difference-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-hero-raytrace-800": [
+   0,
+   ""
+  ],
+  "csg-hero-raytrace-1600": [
+   0,
+   ""
+  ],
+  "csg-hero-reyes-800": [
+   0,
+   ""
+  ],
+  "csg-hero-reyes-1600": [
+   0,
+   ""
+  ],
+  "csg-hero-zbuffer-800": [
+   0,
+   ""
+  ],
+  "csg-hero-zbuffer-1600": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-raytrace-800": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-raytrace-1600": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-reyes-800": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-reyes-1600": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-zbuffer-800": [
+   0,
+   ""
+  ],
+  "csg-sphere-cube-difference-zbuffer-1600": [
+   0,
+   ""
+  ],
+  "csg-coincident-union-raytrace": [
+   0,
+   ""
+  ],
+  "csg-coincident-union-reyes": [
+   0,
+   ""
+  ],
+  "csg-coincident-union-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-coincident-difference-raytrace": [
+   0,
+   ""
+  ],
+  "csg-coincident-difference-reyes": [
+   0,
+   ""
+  ],
+  "csg-coincident-difference-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-coincident-union-expected-raytrace": [
+   0,
+   ""
+  ],
+  "csg-coincident-difference-expected-raytrace": [
+   0,
+   ""
+  ],
+  "csg-open-quadric-caps-raytrace": [
+   0,
+   ""
+  ],
+  "csg-open-quadric-caps-reyes": [
+   0,
+   ""
+  ],
+  "csg-open-quadric-caps-zbuffer": [
+   0,
+   ""
+  ],
+  "csg-nurbs-rational-sphere-union-raytrace": [
+   0,
+   ""
+  ],
+  "csg-nurbs-rational-sphere-union-reyes": [
+   0,
+   ""
+  ],
+  "csg-nurbs-rational-sphere-alone-raytrace": [
+   0,
+   ""
+  ],
+  "csg-subdivision-sphere-union-reyes": [
+   0,
+   ""
+  ],
+  "csg-subdivision-sphere-alone-raytrace": [
+   0,
+   ""
+  ],
+  "csg-polymesh-box-difference-raytrace": [
+   0,
+   ""
+  ],
+  "csg-polymesh-box-difference-reyes": [
+   0,
+   ""
+  ],
+  "csg-polymesh-open-raytrace": [
+   0,
+   ""
+  ],
+  "csg-nurbs-sheet-expected-raytrace": [
+   0,
+   ""
+  ],
+  "csg-nurbs-sheet-instanced-raytrace": [
+   0,
+   ""
+  ],
+  "csg-hero-two-shaders-raytrace": [
+   0,
+   ""
+  ],
+  "csg-hero-two-shaders-reyes": [
+   0,
+   ""
+  ],
+  "csg-hero-displaced-raytrace": [
+   0,
+   ""
+  ],
+  "csg-hero-stats-800-reyes": [
+   0,
+   "---> Renderer current:\n       Zone memory: 18000000/22000000 (Current/Peak bytes)\n              Time: 1.84 seconds\n           Network: 0 KB received, 0 KB sent\n---> End of frame stats:\n              Time:  2.96 seconds\n->Memory\n             Xform: 3 (instances)\n        Attributes: 3 (instances)\n             Gprim: 3 (instances)\n           Options: 2 (instances)\n          Textures: 0(0) (bytes(instances))\n         Zone Peak: 22000000 (bytes)\n->Rasterizer\n      Grid Culling: 16.20 (percent)\n       Vertex/Grid: 106.00 (540475/5099)\n          Overdraw: 1.94 (times)\n          Surfaces: 609       (peak)\n->Raytracer\n      Total Traced: 278041\n        Reflection: 0\n      Transmission: 278041\n            Gather: 0\n  Indirect Diffuse: 0\n         Occlusion: 0\n           Photons: 0\n"
+  ],
+  "csg-hero-single-operand-stats-800-reyes": [
+   0,
+   "---> Renderer current:\n       Zone memory: 18000000/22000000 (Current/Peak bytes)\n              Time: 1.07 seconds\n           Network: 0 KB received, 0 KB sent\n---> End of frame stats:\n              Time:  1.94 seconds\n->Memory\n             Xform: 3 (instances)\n        Attributes: 2 (instances)\n             Gprim: 1 (instances)\n           Options: 2 (instances)\n          Textures: 0(0) (bytes(instances))\n         Zone Peak: 22000000 (bytes)\n->Rasterizer\n      Grid Culling: 34.43 (percent)\n       Vertex/Grid: 180.66 (110200/610)\n          Overdraw: 2.06 (times)\n          Surfaces: 299       (peak)\n          U splits: 47.35 %\n          V splits: 52.65 %\n         UV splits: 0.00 %\n->Raytracer\n      Total Traced: 57268\n        Reflection: 0\n      Transmission: 57268\n            Gather: 0\n  Indirect Diffuse: 0\n         Occlusion: 0\n           Photons: 0\n"
+  ],
+  "csg-hero-instanced-outside-world-reyes": [
+   0,
+   "---> Renderer current:\n       Zone memory: 18000000/22000000 (Current/Peak bytes)\n              Time: 1.70 seconds\n           Network: 0 KB received, 0 KB sent\n---> End of frame stats:\n              Time:  2.21 seconds\n->Memory\n             Xform: 4 (instances)\n        Attributes: 3 (instances)\n             Gprim: 3 (instances)\n           Options: 2 (instances)\n          Textures: 0(0) (bytes(instances))\n         Zone Peak: 22000000 (bytes)\n->Rasterizer\n      Grid Culling: 16.01 (percent)\n       Vertex/Grid: 105.99 (540139/5096)\n          Overdraw: 1.94 (times)\n          Surfaces: 479       (peak)\n->Raytracer\n      Total Traced: 0\n        Reflection: 0\n      Transmission: 0\n            Gather: 0\n  Indirect Diffuse: 0\n         Occlusion: 0\n           Photons: 0\n"
+  ]
+ }
+}

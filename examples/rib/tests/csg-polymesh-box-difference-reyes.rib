@@ -1,0 +1,33 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T010): a PointsPolygons unit cube minus a sphere of radius 0.6 centred on its
+# corner (0.5, 0.5, -0.5): a mesh-type operand (FR-018).
+Hider "reyes"
+PixelSamples 4 4
+Display "csg-polymesh-box-difference-reyes.tif" "file" "rgba"
+Format 400 400 1
+Projection "perspective" "fov" [40]
+Clipping 0.1 1000
+Translate 0 0 5
+Rotate -25 1 0 0
+Rotate 30 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "plastic"
+    Sides 2
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            PointsPolygons [4 4 4 4 4 4]
+                [0 3 2 1  4 5 6 7  0 1 5 4  2 3 7 6  1 2 6 5  0 4 7 3]
+                "P" [-0.5 -0.5 -0.5  0.5 -0.5 -0.5  0.5 0.5 -0.5  -0.5 0.5 -0.5  -0.5 -0.5 0.5  0.5 -0.5 0.5  0.5 0.5 0.5  -0.5 0.5 0.5]
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0.5 0.5 -0.5
+                Sphere 0.6 -0.6 0.6 360
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd

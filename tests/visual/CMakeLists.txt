@@ -41,6 +41,15 @@ add_executable(test_radial_histogram test_radial_histogram.cpp)
 target_link_libraries(test_radial_histogram PRIVATE TIFF::TIFF)
 target_compile_features(test_radial_histogram PRIVATE cxx_std_20)
 
+# Seam-metric CLI tool (spec 021, deferred CSG evaluation): measures rendered
+# solids against analytic expectations -- clear/solid regions and seam radii,
+# edge and region comparisons, chromaticity, projected intersection curves,
+# enclosed see-through holes and luminance ratios. Run by add_csg_metric_test()
+# below; `test_csg_seam_metric --help` documents every mode.
+add_executable(test_csg_seam_metric test_csg_seam_metric.cpp)
+target_link_libraries(test_csg_seam_metric PRIVATE TIFF::TIFF PNG::PNG)
+target_compile_features(test_csg_seam_metric PRIVATE cxx_std_20)
+
 # Cross-hider (reyes vs. raytrace) parity test driver (spec 008). Renders
 # both hider variants of a scene and diffs their fresh outputs against each
 # other (no static reference — see test_hider_parity.cpp header comment).
@@ -245,6 +254,77 @@ macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
         DEPENDS        orender
     )
 endmacro()
+
+# ---------------------------------------------------------------------------
+# Helper function: register one render-and-measure test (spec 021, deferred
+# CSG evaluation)
+#
+# Renders one or more scenes in a scratch directory, then runs any mix of
+# test_csg_seam_metric checks, log regexes and end-of-frame statistics
+# comparisons. The checks are run by tests/visual/csg_metric_test.cmake,
+# which applies the log regexes itself, so CTest's PASS_REGULAR_EXPRESSION
+# never overrides the exit code.
+#
+#   add_csg_metric_test(NAME <name>
+#       RENDERS <rib>[:<output.tif>]...      scene paths relative to the root;
+#                                            the optional :<output.tif> must exist
+#       [METRIC "<test_csg_seam_metric arguments>"]...
+#       [LOG_PASS <regex>]...                must match the combined output
+#       [LOG_FAIL <regex>]...                must not match it
+#       [STATS <render> <label> <op> <value|[factor*]render>]...
+#                                            op is ==, <= or >; <render> and the
+#                                            right-hand render are RIB paths
+#       [COPY <dir>]...                      copied into the scratch directory
+#       [LABELS <labels>]                    default "csg;visual"
+#       [ALLOW_RENDER_ERROR])                a non-zero orender exit is accepted;
+#                                            only a crash fails
+#
+# Each METRIC string is split like a shell command line and its image paths
+# are relative to the scratch directory, where the renders write.
+# ---------------------------------------------------------------------------
+function(add_csg_metric_test)
+    cmake_parse_arguments(PARSE_ARGV 0 _csg "ALLOW_RENDER_ERROR" "NAME"
+        "RENDERS;METRIC;LOG_PASS;LOG_FAIL;STATS;COPY;LABELS")
+    if(NOT _csg_NAME OR NOT _csg_RENDERS)
+        message(FATAL_ERROR "add_csg_metric_test: NAME and RENDERS are required")
+    endif()
+    if(NOT _csg_LABELS)
+        set(_csg_LABELS "csg;visual")
+    endif()
+
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/csg-${_csg_NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+
+    # Bracket arguments keep regexes, spaces and semicolons intact.
+    set(_config "set(CSG_SOURCE_DIR [==[${CMAKE_SOURCE_DIR}]==])\n")
+    foreach(_var RENDERS METRIC LOG_PASS LOG_FAIL STATS COPY)
+        string(APPEND _config "set(CSG_${_var}")
+        foreach(_item IN LISTS _csg_${_var})
+            string(APPEND _config " [==[${_item}]==]")
+        endforeach()
+        string(APPEND _config ")\n")
+    endforeach()
+    string(APPEND _config "set(CSG_METRICS \${CSG_METRIC})\n")
+    if(_csg_ALLOW_RENDER_ERROR)
+        string(APPEND _config "set(CSG_ALLOW_RENDER_ERROR TRUE)\n")
+    endif()
+    set(_config_file ${_scratch}/csg_metric_config.cmake)
+    file(WRITE ${_config_file} "${_config}")
+
+    add_test(NAME Csg_${_csg_NAME}
+        COMMAND ${CMAKE_COMMAND}
+            -DCONFIG=${_config_file}
+            -DORENDER=$<TARGET_FILE:orender>
+            -DMETRIC_TOOL=$<TARGET_FILE:test_csg_seam_metric>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/csg_metric_test.cmake
+        WORKING_DIRECTORY ${_scratch}
+    )
+    set_tests_properties(Csg_${_csg_NAME} PROPERTIES
+        TIMEOUT        600
+        LABELS         "${_csg_LABELS}"
+        ENVIRONMENT    "${VISUAL_ENV}"
+    )
+endfunction()
 
 # ---------------------------------------------------------------------------
 # Helper macro: register a "not-required" smoke test (spec
@@ -1811,6 +1891,30 @@ add_visual_test(csg-sphere-sphere-difference-interior-raytrace-inside
     examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace-inside.rib
     csg-sphere-sphere-difference-interior-raytrace-inside.tif
     csg-sphere-sphere-difference-interior-raytrace-inside.tif)
+
+# ---------------------------------------------------------------------------
+# Deferred CSG evaluation (spec 021-deferred-csg-evaluation)
+# ---------------------------------------------------------------------------
+
+# T013: diagnostic guards for the malformed solid scenes (FR-019). Each pins
+# today's diagnostic text, so a later change cannot silently alter it. orender
+# exits non-zero after a RIB error, so only a crash fails the render step.
+add_csg_metric_test(NAME malformed-bogus-operation
+    RENDERS examples/rib/tests/csg-malformed-bogus-operation.rib
+    LOG_PASS "Unknown solid operation: bogus"
+    ALLOW_RENDER_ERROR)
+add_csg_metric_test(NAME malformed-nested-in-primitive
+    RENDERS examples/rib/tests/csg-malformed-nested-in-primitive.rib
+    LOG_PASS "SolidBegin/SolidEnd cannot be nested inside a \"primitive\" solid block"
+    ALLOW_RENDER_ERROR)
+add_csg_metric_test(NAME malformed-unmatched-solidend
+    RENDERS examples/rib/tests/csg-malformed-unmatched-solidend.rib
+    LOG_PASS "Bad scope for \"RiSolidEnd\""
+    ALLOW_RENDER_ERROR)
+add_csg_metric_test(NAME malformed-procedural-in-primitive
+    RENDERS examples/rib/tests/csg-malformed-procedural-in-primitive.rib
+    LOG_PASS "RiProcedural cannot be declared inside a SolidBegin block"
+    ALLOW_RENDER_ERROR)
 
 # ---------------------------------------------------------------------------
 # Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)

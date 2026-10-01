@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T009): the hero scene with its sphere supplied by a DelayedReadArchive
+# procedural (FR-024). Must match csg-procedural-operand-inline-raytrace.rib (SC-010).
+# The archive path is relative: the test copies examples/rib/tests/archives into its
+# scratch directory.
+Hider "raytrace"
+PixelSamples 4 4
+Display "csg-procedural-operand-raytrace.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+Clipping 0.1 1000
+Translate 0 0 9
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Procedural "DelayedReadArchive" ["archives/csg-sphere-operand.rib"] [-1.5 1.5 -1.5 1.5 -1.5 1.5]
+        SolidEnd
+        SolidBegin "primitive"
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd
