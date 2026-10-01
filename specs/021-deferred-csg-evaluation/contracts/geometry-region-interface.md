@@ -8,7 +8,7 @@ It lists what each domain may assume about the others.
 ## Geometry domain (`src/ri/geometry/`)
 
 0. **Naming requirement.** The region-predicate type, its methods, the
-   `CObject` hook member, `materialize()`, `regionCoverage()`, `countCrossings()` and the
+   `CObject` hook member, `materialize()`, `regionCoverage()`, `honorsRegion()`, `countCrossings()` and the
    `CRasterGrid` coverage-mask field MUST have generic names: no `csg`, `Csg`,
    `CSG` or `Solid` anywhere in the identifier. For example: `CRegionPredicate`,
    `accepts()`, `classifyBound()`, `region`, `materialize()`, `regionCoverage()`, `coverage`. The
@@ -23,11 +23,18 @@ It lists what each domain may assume about the others.
    - `accepts(ctx, P, Ng)`: a pure function of the camera-space point P. `ctx` is
      the caller's `CShadingContext`, which may be NULL for quadric, polygon and
      bilinear surfaces. `Ng` is the accepting surface's undisplaced geometric
-     normal at P; the two-sided coincident-face rule tests P ± ε·N̂g.
+     normal at P, in camera space. It is only the transverse axis of the
+     two-sided coincident-face rule (P ± ε·N̂g), so its sign does not matter:
+     REYES (`sample()`) and raytrace (intersectors) may hand opposite signs and
+     still agree. Among coincident leaves that all report a boundary, only the
+     lowest-indexed operand's leaf accepts.
    - `classifyBound(ctx, bmin, bmax)`: returns `ALL_IN`, `ALL_OUT` or `MIXED`.
    - A null pointer means today's behavior, bit for bit.
    - `CObject::materialize(ctx)` (default no-op) lets geometry force a mesh-type
      object to create its children. It is idempotent.
+   - `CObject::honorsRegion()` (default `TRUE`) reports whether the object's own
+     rendering consults the region hook. `CImplicit` and `CDLObject` return
+     `FALSE`; a solid drops such operands with a warning.
    - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op in
      `object.cpp`; `CSurface` override in the renderer-only
      `render/geometryDispatch.cpp`, with a no-op stub in
@@ -49,8 +56,12 @@ It lists what each domain may assume about the others.
      split levels keeps the patch.
    - Trim behavior is unchanged: straddlers are still dropped at the eyesplit cap.
 3. **Hit acceptance** in every intersector (quadric root loops, polygon
-   intersectors, `CTesselationPatch` candidate tests) calls `accepts()` on the
-   undisplaced point and its geometric normal before accepting a hit. A rejected candidate leaves
+   intersectors, the analytic `CBilinearPatch::intersect` at `patches.cpp:193`,
+   `CTesselationPatch` candidate tests) calls `accepts()` on the undisplaced
+   camera-space point and its geometric normal before accepting a hit. Quadric
+   root loops run in object space, so they convert P and the normal first.
+   `CTesselationPatch` reads the region of the surface being tessellated, since
+   its own `region` is always null. A rejected candidate leaves
    `ray->t`/`ray->object` untouched.
 4. **`CSurface::countCrossings(ctx, from, dir)`**: a read-only geometric query
    that returns the **unsigned** number of crossings (operands classify by

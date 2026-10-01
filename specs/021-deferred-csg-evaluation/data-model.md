@@ -43,7 +43,9 @@ outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
 - An empty nested block stays in its position as an empty operand, the empty set
   (FR-025a). Spec 013's resolver dropped it instead (`csgTree.cpp:511`).
 - A single-operand boolean node collapses to that operand, passthrough with no
-  predicate (spec 013 FR-017).
+  predicate (spec 013 FR-017). When the **whole** solid collapses to one operand,
+  it renders as authored, with no implied caps (FR-019); a single-operand node
+  nested in a boolean still takes part in it.
 - The operand **kind** (single-quadric / multi-surface / empty / open) is **not**
   stored here. It is derived per instance after procedural expansion and mesh
   materialization (`CCSGInstanceState`). The definition provides the
@@ -79,13 +81,15 @@ once per instance.
 | Field | Meaning |
 |---|---|
 | `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through the context's `delayed` target, because `instantiate()` hands its output to `addObject()` |
-| `resolved[op]` | A `CCSGResolvedOperand { surfaces, kind, bound }`: every `CSurface` descendant of the operand's members after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(surfaces)`. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
+| `resolved[op]` | A `CCSGResolvedOperand { members, surfaces, kind, bound }`: the operand's members (declared primitives, minus any whose `honorsRegion()` is false), every `CSurface` descendant of them after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(members, surfaces)`. Closedness is judged per member, because a mesh splits into many surfaces. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
 | `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
 
 **State transitions**: Unresolved → Resolving → Resolved.
 - **Resolving** (lock held), in this order (research Decision 9):
+  0. members whose `honorsRegion()` is false (implicit and DSO primitives)
+     dropped, with one warning per offending operand per frame (FR-018)
   1. capture target set (`delayed` → per-operand holder)
   2. each template leaf instantiated with a clone of its attributes carrying
      `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the `leafFlip` toggle of
@@ -113,8 +117,12 @@ object creates lazily inherit it (research Decision 15).
 
 | Operation | Meaning |
 |---|---|
-| `accepts(ctx, P, Ng)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext`; `Ng` is the accepting surface's undisplaced geometric normal at P, used by the two-sided ON rule (P ± ε·N̂g) |
+| `accepts(ctx, P, Ng)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext`; `Ng` is the accepting surface's undisplaced geometric normal at P in camera space, used only as the transverse axis of the two-sided ON rule (P ± ε·N̂g; sign irrelevant). Among coincident leaves that all report a boundary, only the lowest-indexed operand's leaf accepts |
 | `classifyBound(ctx, bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
+
+**Region support**: `virtual int CObject::honorsRegion() const` (default `TRUE`).
+`CImplicit` and `CDLObject` return `FALSE`: their own `intersect()`/`dice()`
+bypass every trimming hook, so inside a solid they are dropped (FR-018).
 
 **Mesh materialization**: `virtual void CObject::materialize(CShadingContext*)`
 (default no-op). The five mesh types override it to create their children
@@ -172,8 +180,9 @@ rasterizers' existing first trivial reject skips. Rasterizer loops are unchanged
 `numCsgProceduralExpansions` (SC-006, FR-003, FR-004).
 
 They are printed at statistics level ≥ 2, zeros included, whenever the frame
-contains a solid (a per-frame flag set by every outermost `RiSolidEnd`,
-single-operand collapses included), with the labels `CSG classifications:`, `CSG seam splits:`,
+contains a solid (a per-frame flag set by every outermost `RiSolidEnd` inside
+the world block, single-operand collapses included, and by every
+`CCSGSolid::instantiate()`), with the labels `CSG classifications:`, `CSG seam splits:`,
 `CSG instances resolved:` and `CSG procedural expansions:`.
 
 ## Relationships
@@ -200,6 +209,8 @@ CSGTreeNode (capture, transient) ──SolidEnd──▶ CSG definition (shared,
 | Every operand type keeps working (FR-018) | Mesh-type leaves are materialized, and their surfaces inherit the region via `setChildren` (research Decision 15) |
 | Procedural operands behave as if written inline (FR-024) | Operand kind and caps are derived after expansion, per instance |
 | Open operands (FR-021) | Closedness test per instance; single open quadric ⇒ implied closure and caps; lone open non-quadric ⇒ empty plus one warning per operand per frame |
+| Single-operand solids (FR-019) | Whole-solid collapse is a passthrough: no region, no caps |
+| Untrimmable operands (FR-018) | `honorsRegion() == FALSE` members dropped with a warning |
 | Empty operands (FR-025a) | Always OUT, so the tree gives the empty-set semantics; empty bound for culling; empty nested blocks kept in position |
 | Faces keep operand shaders (FR-016) | Leaves are the operands' own surfaces with their own (cloned) attributes |
 | Subtracted walls face outward (FR-011) | Static flip applied as `ATTRIBUTES_FLAGS_INSIDE` on cloned attributes |

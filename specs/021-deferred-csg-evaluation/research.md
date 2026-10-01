@@ -143,8 +143,11 @@ boolean block, which together form one operand positioned first, as in spec 013.
 
 The operand's member surfaces are its resolved per-instance surfaces:
 procedurals expanded, and mesh-type leaves materialized (Decision 15). They are
-held in a `CCSGResolvedOperand { surfaces, kind, bound }`, whose kind comes from
-a pure `deriveOperandKind(surfaces)` built on the closedness test (Decision 7).
+held in a `CCSGResolvedOperand { members, surfaces, kind, bound }`, whose kind
+comes from a pure `deriveOperandKind(members, surfaces)` built on the closedness
+test (Decision 7). Members are kept because closedness is a property of a
+declared primitive, not of the pieces a mesh splits into (`CNURBSPatchMesh`
+emits one patch per knot span, `patches.cpp:2172–2190`).
 Unit tests build resolved operands directly; instance resolution calls the same
 function.
 
@@ -154,9 +157,17 @@ has one. The predicate is `accepts(ctx, P, Ng)`: `Ng` is the accepting surface's
 undisplaced geometric normal at P, which every caller already has (the quadric
 and polygon intersects compute it, `CTesselationPatch` carries it, and
 `regionCoverage` requests `PARAMETER_NG` from `sample()`). The two-sided ON rule
-(Decision 4) needs it. It may be NULL for quadric,
-polygon and bilinear surfaces; free-form surfaces and mesh materialization
-require it.
+(Decision 4) uses it only as a transverse axis, so its sign convention does not
+matter. `ctx` may be NULL for quadric, polygon and bilinear surfaces; free-form
+surfaces and mesh materialization require it.
+
+**Operands the solid cannot trim**: `CImplicit` (`Geometry "implicit"`) and
+`CDLObject` (`Geometry "dlo"`) derive from `CSurface` but have their own
+`intersect()`/`dice()` that bypass every trimming hook, and count no crossings.
+They would render untrimmed and ignore the boolean. They report
+`honorsRegion() == FALSE` (a generic `CObject` virtual), and instance resolution
+drops them with one warning per offending operand per frame: they are not
+supported as solid operands (FR-018).
 
 1. **Bound rejection first**: if P lies outside the operand's bound, the answer is
    OUT, with no further work.
@@ -265,8 +276,14 @@ require it.
   boundary (ON), classify at P ± ε·N̂g instead, where Ng is the normal passed
   to `accepts()` (the leaf's own undisplaced geometric normal; at a coincident
   face it is ± the other face's normal), and use the two-sided rule: P is on
-  the boundary iff the composite membership differs on the two sides, and it faces
-  the OUT side.
+  the boundary iff the composite membership differs on the two sides. Ng is only
+  a transverse axis; its sign is never used, so REYES (`sample()` applies only
+  `xform->flip`) and raytrace (intersectors apply `INSIDE ^ xform->flip`) agree.
+  - Where coincident leaves of several operands all report a boundary at the
+    same place, only the leaf of the **lowest-indexed** such operand accepts. Exactly
+    one face renders, identically in every hider, with no flicker.
+  - Facing is not decided here. Each leaf's orientation is its static `leafFlip`
+    (above).
   - ε is deterministic and scene-relative: `C_EPSILON` scaled by the solid's
     bound size.
   - This removes internal skins (union of flush boxes) and leftover skins
@@ -376,8 +393,17 @@ spec 013's approach, and it is meaningless without a mesh.
   a hit:
   - the analytic quadric root loops (`quadrics.cpp`)
   - polygon intersectors (`polygons.cpp`)
+  - the analytic bilinear-patch intersector, `CBilinearPatch::intersect`
+    (`patches.cpp:193`, its `solve()` acceptance), which never goes through
+    `CTesselationPatch`. Boxes built from `Patch "bilinear"`, and the implied
+    caps, depend on it.
   - the `CTesselationPatch` candidate test at `surface.cpp:857` and `:1024`, next
-    to `trimAccepts`
+    to `trimAccepts`. The region comes from the surface being tessellated, not
+    the tessellation patch, which is assigned as a child directly, without
+    `setChildren()` (`geometryDispatch.cpp:282–322`), so its own `region` is null.
+  - the quadric root loops work in object space, so the check computes the
+    camera-space P as `from + t·dir` and transforms the object-space normal, as
+    the accepted hit does (`quadrics.cpp:276`)
 - A rejected candidate simply does not update `ray->t`, so the same leaf's next
   root, and the rest of the traversal, proceed naturally.
 - Secondary rays (shadow, reflection, refraction, occlusion, transmission,
@@ -393,6 +419,10 @@ proven. It is exact for quadrics and polygons.
 
 **Decision**:
 
+- Implied closure applies only to an operand that takes part in a boolean with
+  at least one other operand. A whole solid that collapses to one operand is a
+  passthrough: the operand renders as authored, with no caps (FR-019, spec 013
+  FR-017).
 - Implied closure is defined for operands consisting of **exactly one quadric**:
   the hero scene's case, and the common authoring pattern.
 - **Classification**: the quadric's implied solid (Decision 3.2).
@@ -423,10 +453,12 @@ proven. It is exact for quadrics and polygons.
   - A quadric is closed only when it is a full sphere or a full torus. Every
     other single quadric is auto-closed as above, except a disk, which encloses
     no volume and is a silently empty operand.
-  - A single non-quadric surface or mesh is closed when every parametric
-    boundary edge either collapses to a point or coincides with another boundary
-    edge. Polygon and subdivision meshes are closed when every edge is shared by
-    exactly two faces.
+  - A single non-quadric **member** (one declared surface or mesh, however many
+    pieces it splits into) is closed when every parametric boundary edge of its
+    pieces either collapses to a point or coincides with another boundary edge of
+    the same member. Polygon and subdivision meshes are closed when every edge is
+    shared by exactly two faces. An operand with several members is
+    multi-surface: parity, no closedness test.
 - **A lone non-quadric surface that is not closed** (a single open NURBS sheet, a
   single bilinear patch) has no well-defined implied solid. It **contributes
   nothing** (an empty operand) and emits an "operand is not closed" warning
@@ -534,6 +566,9 @@ trigger.
   instance. Without the rebase, the outer transform would be applied twice.
 - **Per-instance state** (`CCSGInstanceState`) is built on first use, under
   `delayedMutex`, in this order:
+  0. Members whose `honorsRegion()` is false (implicit and DSO primitives) are
+     dropped with one warning per offending operand per frame, for template and
+     expanded members alike (Decision 3).
   1. **Capture target**: `instantiate()` hands its output to `addObject()`
      (e.g. `quadrics.cpp:512`). For each operand, the context's `delayed` points
      at a temporary holder, as `processDelayedSolid()` does
@@ -613,8 +648,12 @@ still used elsewhere stay. These go with them:
 **Decision**: add counters to `CStats` (`src/ri/core/stats.h`). Like the other
 subsystem sections, they print at statistics level ≥ 2 (`stats.cpp:150`), but
 **always, zeros included, whenever the frame contains a solid**: a per-frame
-flag set by every outermost `RiSolidEnd`, single-operand collapses included, so
-a collapsed solid still prints its zeros. They use the exact
+flag set by every outermost `RiSolidEnd` inside the world block, single-operand
+collapses included (so a collapsed solid still prints its zeros), and by every
+`CCSGSolid::instantiate()` (a solid defined in an `ObjectBegin` outside the
+world block and instanced inside the frame). The counters are INFO-level
+messages: `orender` sets the log level to NONE at startup (`orender.cpp:611–612`),
+so they print only with `-x 3` or `ORENDER_INSTR_LEVEL=info`. They use the exact
 labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and
 `CSG procedural expansions:`. The statistics test scenes use
 `Option "statistics" "endofframe" [2]`. The counters are:
@@ -789,8 +828,8 @@ Rejected: five copies of the same logic, and it is easy to miss one.
   - copies support directories (archives) into the per-test scratch working
     directory
   - runs `orender -x 3` with `ORENDER_INSTR_LEVEL` unset, because statistics
-    are INFO-level messages, which a lower log level (`-x 1`/`-x 2` or the
-    environment variable) suppresses
+    are INFO-level messages and `orender` sets the log level to NONE at startup
+    (`orender.cpp:611–612`), so without `-x 3` they never print
   - captures stdout and stderr together (statistics and warnings go to stdout,
     errors to stderr; `ri.cpp:2354–2378`) and applies log regexes to that
     combined output itself, so CTest's `PASS_REGULAR_EXPRESSION` never overrides

@@ -93,7 +93,7 @@ REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s at 800×500 / 1600×1000.
 |---|---|---|
 | I. Clean Code | PASS | Replaces the 755-line `csgTree.cpp` plus the 697-line BSP kernel with focused units (`CCSGDefinition`, classification, `CCSGRegion`, caps). Every function has a single responsibility. |
 | II. Language Standards | PASS | C++20, no extensions; existing `CObject`/`CSurface` patterns. |
-| III. TDD (non-negotiable) | PASS (plan) | Every phase starts with failing unit or visual tests (research Decision 13); references are regenerated only after the tests are red. |
+| III. TDD (non-negotiable) | PASS (plan) | Every phase starts with failing unit or visual tests (research Decision 13), then stops for the maintainer to approve the red tests before any implementation task (Tests written → User approved → Tests fail → Then implement); references are regenerated only after the tests are red. |
 | IV. CLI | PASS | The behavior is reached through the existing `orender` CLI and RIB. The new statistics counters appear in the existing statistics output. |
 | V. Minimal Dependencies | PASS | No new dependency; the BSP kernel is removed rather than a geometry library added. |
 | VI. Platform Targeting | PASS | Portable C++; no platform code. Linux validation via the existing CI and Linux builds. |
@@ -150,7 +150,7 @@ src/ri/geometry/
 ├── polygons.{h,cpp}         # MODIFY: countCrossings (exact); region check at hit acceptance;
 │                            #         CPolygonMesh::materialize
 ├── patches.{h,cpp}          # MODIFY: countCrossings (bilinear analytic; bicubic/NURBS via dispatch);
-│                            #         CPatchMesh/CNURBSPatchMesh::materialize
+│                            #         CPatchMesh/CNURBSPatchMesh::materialize; CBilinearPatch::intersect region check
 ├── patchgrid.cpp, bsplinePatchgrid.cpp, subdivision.cpp  # MODIFY: countCrossings via dispatch
 └── subdivisionCreator.{h,cpp}, subdivisionLoop.{h,cpp}   # MODIFY: CSubdivMesh/CLoopSubdivMesh::materialize
 
@@ -211,7 +211,8 @@ unchanged.
 
 ## Implementation phases (input to /speckit.tasks)
 
-Each phase is a pause-and-commit point for the maintainer (stage only).
+Each phase has two pause points for the maintainer (stage only): after its red
+tests, for test approval (constitution III), and at its end, for commit.
 
 0. **Baseline and harness only.** Promote the Step 0 measurement into the
    seam-metric tool and the `add_csg_metric_test` harness. Add the scenes and

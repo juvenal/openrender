@@ -115,9 +115,9 @@ ctest --test-dir build -R "Csg(OffscreenStats|PartialVisibilityStats|ResolutionS
 - `CsgTinySolidStats`: a hero solid covering under 4×4 pixels
   (`csg-tiny-solid-stats-reyes.rib`) needs at most 16 seam splits.
 
-Statistics are INFO-level messages on stdout. They print at the default log
-level, but `-x 1`/`-x 2` or a lower `ORENDER_INSTR_LEVEL` suppresses them; pass
-`-x 3` to be sure, as the test harness does.
+Statistics are INFO-level messages on stdout, and `orender` starts at log level
+NONE (`orender.cpp:611–612`), so a manual render must pass `-x 3` (or set
+`ORENDER_INSTR_LEVEL=info`) to see the counters, as the test harness does.
 
 ## 5. Settings and diagnostics (FR-019, FR-023, FR-025)
 
