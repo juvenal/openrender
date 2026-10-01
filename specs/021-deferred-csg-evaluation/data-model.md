@@ -34,9 +34,9 @@ outermost `SolidEnd`; shared by every instance (FR-001, FR-017).
 | Field | Meaning |
 |---|---|
 | `nodes[]` | Flattened tree: `{operation, childIndices[], operandIndex or -1}` |
-| `operands[]` | One entry per operand: **template** member objects only (surfaces, mesh-type objects, unexpanded procedurals) and template bound. Primitives placed directly in a boolean block form one operand, positioned first |
+| `operands[]` | One entry per operand: **template** member objects only (surfaces, mesh-type objects, unexpanded procedurals) and template bound. Each template leaf's xform is **rebased** into the outer frame (`outerXform⁻¹ · leafXform`), because captured leaves carry absolute transforms. Primitives placed directly in a boolean block form one operand, positioned first. Blocks nested inside `"primitive"` contribute no geometry |
 | `leafFlip[]` | Per operand: static orientation parity (odd number of subtrahend positions ⇒ flipped) |
-| `bound` | CSG-aware template bound: union = ∪ of operand bounds; intersection = ∩; difference = first operand's bound |
+| `bound` | CSG-aware template bound in the outer frame's local space (each leaf's camera-space bound transformed by `outerXform⁻¹`): union = ∪ of operand bounds; intersection = ∩; difference = first operand's bound |
 
 **Validation**:
 - An empty tree yields no solid (spec 013 FR-016).
@@ -58,7 +58,7 @@ instance.
 |---|---|
 | `definition` | Shared CSG definition (attached / reference-counted) |
 | `xform`, `attributes` | This placement's transform and attributes |
-| `bmin`, `bmax` | Definition bound under `xform` |
+| `bmin`, `bmax` | The definition's local template bound transformed by this solid's `xform` |
 | `state` | Per-instance state, or null until first use |
 | `flags` | Not `OBJECT_DUMMY`, so `trace.cpp:332` still calls `intersect()` |
 
@@ -79,8 +79,7 @@ once per instance.
 | Field | Meaning |
 |---|---|
 | `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through the context's `delayed` target, because `instantiate()` hands its output to `addObject()` |
-| `operandSurfaces[op][]` | Every `CSurface` descendant of the operand's members, after depth-first `materialize(ctx)`. These are the classification surfaces for parity |
-| `operandKind[op]` | single-quadric / multi-surface / empty / open, derived from the resolved members. An empty operand classifies every point OUT (FR-025a) |
+| `resolved[op]` | A `CCSGResolvedOperand { surfaces, kind, bound }`: every `CSurface` descendant of the operand's members after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(surfaces)`. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
 | `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
 | `operandBounds[]` | Per-operand bounds for the uniform-patch shortcut |
@@ -90,8 +89,10 @@ once per instance.
   1. capture target set (`delayed` → per-operand holder)
   2. each template leaf instantiated with a clone of its attributes carrying
      `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the `leafFlip` toggle of
-     `ATTRIBUTES_FLAGS_INSIDE`; procedurals expanded with a flagged clone as the
-     current attributes
+     `ATTRIBUTES_FLAGS_INSIDE`, and with the solid's xform (the leaves were
+     rebased, so this reproduces their absolute placement); then every captured
+     `CDelayedObject` replaced by its expansion through `expandIntoOperand()`,
+     with a flagged clone as the current attributes, until none remains
   3. `region` set on every member
   4. depth-first materialization
   5. classification surfaces collected
@@ -112,7 +113,7 @@ object creates lazily inherit it (research Decision 15).
 
 | Operation | Meaning |
 |---|---|
-| `accepts(ctx, P)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext` |
+| `accepts(ctx, P, Ng)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext`; `Ng` is the accepting surface's undisplaced geometric normal at P, used by the two-sided ON rule (P ± ε·N̂g) |
 | `classifyBound(ctx, bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
 
 **Mesh materialization**: `virtual void CObject::materialize(CShadingContext*)`
@@ -121,8 +122,9 @@ object creates lazily inherit it (research Decision 15).
 reaches the nested `CPolygonMesh` that a `CLoopSubdivMesh` creates.
 
 **Coverage hook**: `virtual void CObject::regionCoverage(CShadingContext*, int
-udiv, int vdiv, unsigned char *coverage)` (default no-op; `CSurface` override in
-`surface.cpp`) fills a grid's coverage mask from **undisplaced** camera-space P at
+udiv, int vdiv, unsigned char *coverage)` (default no-op in `object.cpp`;
+`CSurface` override in the renderer-only `render/geometryDispatch.cpp`, with a
+no-op stub in `vector/geometryDispatchStub.cpp`) fills a grid's coverage mask from **undisplaced** camera-space P at
 the grid's u/v.
 
 **The CSG region adapter, `CCSGRegion`**, holds (instance state, operand index, leaf index) and
@@ -170,7 +172,8 @@ rasterizers' existing first trivial reject skips. Rasterizer loops are unchanged
 `numCsgProceduralExpansions` (SC-006, FR-003, FR-004).
 
 They are printed at statistics level ≥ 2, zeros included, whenever the frame
-contains a solid, with the labels `CSG classifications:`, `CSG seam splits:`,
+contains a solid (a per-frame flag set by every outermost `RiSolidEnd`,
+single-operand collapses included), with the labels `CSG classifications:`, `CSG seam splits:`,
 `CSG instances resolved:` and `CSG procedural expansions:`.
 
 ## Relationships

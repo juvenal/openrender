@@ -24,7 +24,7 @@ nice -n 15 cmake --build build -j4
 Render environment used below:
 
 ```bash
-export SHADERS="$PWD/build/shaders" ORENDERHOME="$PWD/build" \
+export SHADERS="$PWD/build/shaders" ORENDERHOME="$PWD/build/tests/visual/_home" \
        DISPLAYS="$PWD/build/src/display/file"
 ```
 
@@ -115,8 +115,9 @@ ctest --test-dir build -R "Csg(OffscreenStats|PartialVisibilityStats|ResolutionS
 - `CsgTinySolidStats`: a hero solid covering under 4×4 pixels
   (`csg-tiny-solid-stats-reyes.rib`) needs at most 16 seam splits.
 
-To read the counters from a manual render, pass `-x 3`. Statistics are INFO-level
-messages, printed to stdout only at that log level.
+Statistics are INFO-level messages on stdout. They print at the default log
+level, but `-x 1`/`-x 2` or a lower `ORENDER_INSTR_LEVEL` suppresses them; pass
+`-x 3` to be sure, as the test harness does.
 
 ## 5. Settings and diagnostics (FR-019, FR-023, FR-025)
 

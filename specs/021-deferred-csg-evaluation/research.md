@@ -142,11 +142,19 @@ the leaves of one `"primitive"` block, or all the primitives placed directly in 
 boolean block, which together form one operand positioned first, as in spec 013.
 
 The operand's member surfaces are its resolved per-instance surfaces:
-procedurals expanded, and mesh-type leaves materialized (Decision 15).
+procedurals expanded, and mesh-type leaves materialized (Decision 15). They are
+held in a `CCSGResolvedOperand { surfaces, kind, bound }`, whose kind comes from
+a pure `deriveOperandKind(surfaces)` built on the closedness test (Decision 7).
+Unit tests build resolved operands directly; instance resolution calls the same
+function.
 
 `ctx` is the caller's `CShadingContext`. Every call site (`CPatch::dice`,
 `CObject::regionCoverage` called from `CReyes::shadeGrid`, `intersect`) already
-has one. It may be NULL for quadric,
+has one. The predicate is `accepts(ctx, P, Ng)`: `Ng` is the accepting surface's
+undisplaced geometric normal at P, which every caller already has (the quadric
+and polygon intersects compute it, `CTesselationPatch` carries it, and
+`regionCoverage` requests `PARAMETER_NG` from `sample()`). The two-sided ON rule
+(Decision 4) needs it. It may be NULL for quadric,
 polygon and bilinear surfaces; free-form surfaces and mesh materialization
 require it.
 
@@ -254,7 +262,9 @@ require it.
     So shading and backface handling see an ordinary outward-facing surface
     (FR-011) with zero shading-side changes.
 - **Coincident faces (FR-022)**: when a classification is within ε of an operand
-  boundary (ON), classify at P ± ε·N instead, and use the two-sided rule: P is on
+  boundary (ON), classify at P ± ε·N̂g instead, where Ng is the normal passed
+  to `accepts()` (the leaf's own undisplaced geometric normal; at a coincident
+  face it is ± the other face's normal), and use the two-sided rule: P is on
   the boundary iff the composite membership differs on the two sides, and it faces
   the OUT side.
   - ε is deterministic and scene-relative: `C_EPSILON` scaled by the solid's
@@ -315,18 +325,25 @@ spec 013's approach, and it is meaningless without a mesh.
   `drawGrid()` at :695) it has already been displaced and converted to sample
   space (`displace()`, then `camera2samples()`).
   - A generic hook, `virtual void CObject::regionCoverage(CShadingContext*, int
-    udiv, int vdiv, unsigned char *coverage)` (default no-op; `CSurface` override
-    in the renderer-only `surface.cpp`), snapshots the grid's u/v/time, calls the
-    object's own `sample()` for undisplaced P, evaluates `region->accepts(ctx, P)`
-    per vertex, fills the mask and restores u/v/time. The hider calls it before
+    udiv, int vdiv, unsigned char *coverage)` (default no-op in `object.cpp`;
+    `CSurface` override in the renderer-only `render/geometryDispatch.cpp`, with a
+    no-op stub in `vector/geometryDispatchStub.cpp`), snapshots the grid's
+    u/v/time, calls the object's own `sample()` for undisplaced P and Ng,
+    evaluates `region->accepts(ctx, P, Ng)` per vertex, fills the mask and restores u/v/time. The hider calls it before
     `displace()` when `object->region` is set. Motion-blurred grids use the
     shutter-open sample. The mask is kept with the grid through its later full
     shading.
+  - The override cannot live in `surface.cpp`: that file is excluded from the
+    shared ribVector library (`src/ri/CMakeLists.txt:370`), so the `CSurface`
+    vtable there would reference an undefined symbol. Every other render-only
+    `CSurface` method uses the same `geometryDispatch.cpp` / stub split.
   - A quad is absent iff none of its four vertices is accepted. This is
     conservative: straddling quads are kept, which yields sub-pixel overlap,
     never a gap.
   - An absent quad gets the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}` where the
-    per-quad bounds are computed (`reyes.cpp` ~1452/1705). The rasterizers' first
+    per-quad bounds are computed, in the quad branch of `insertGrid()`
+    (`reyes.cpp` ~1705). Point grids (`RASTER_POINT` branch, ~1380–1460) are
+    untouched. The rasterizers' first
     existing trivial reject, `bounds[1] < left` (`stochasticQuad.h:703`,
     `zbufferQuad.h:40`), then skips it, so **no rasterizer loop changes**.
   - The mask is a generic `CRasterGrid` field ("geometry says this micropolygon
@@ -381,8 +398,16 @@ proven. It is exact for quadrics and polygons.
 - **Classification**: the quadric's implied solid (Decision 3.2).
 - **Rendering**: the solid synthesizes **cap surfaces** for that operand:
   - planar bilinear patches that generously cover each open cross-section: end
-    circles at z-min/z-max or height ends, and the two half-planes of a partial
-    sweep
+    circles at z-min/z-max or height ends (a paraboloid with zmin > 0 has both),
+    and the two half-planes of a partial sweep (for a torus, flat circular
+    segments)
+  - **a torus cut across its tube** (partial phi) is the exception: its two cut
+    circles lie at different heights and radii, so no flat face closes it. It is
+    closed by a `CHyperboloid` from (R + r·cosφmin, 0, r·sinφmin) to
+    (R + r·cosφmax, 0, r·sinφmax) over the torus's own `thetamax`, a cone-shaped
+    surface. Its implied solid is the circular segment between the tube arc and
+    that chord, revolved; classification tests the point's (ρ, z) cross-section
+    against that segment
   - each carries the operand's attributes and transform
   - each is trimmed by the quadric's own implied-solid cross-section predicate,
     so only the true cap shape survives
@@ -428,19 +453,34 @@ non-quadric surfaces were added during analysis (2026-09-30).
 
 **Decision**:
 
-- The capture-time rejection is removed: the call
-  `csgValidateProceduralCapture(currentSolid)` inside `RiProcedural()`
-  (`rendererContext.cpp:5201`) and its definition (`csgTree.cpp:90`).
+- The capture-time rejection is removed: the whole
+  `if (currentSolid != NULL) { csgValidateProceduralCapture(currentSolid); return; }`
+  branch in `RiProcedural()` (`rendererContext.cpp:5200`), not just the call,
+  since the early `return` alone would still drop the procedural. Its definition
+  (`csgTree.cpp:90`) goes too. `addObject()` then routes the `CDelayedObject`
+  into `leafObjects`.
 - A procedural declared in a solid block becomes an *unexpanded operand member*.
 - When a solid instance is first needed (its first `dice()` or `intersect()`), its
-  procedural operand members are expanded under `CRenderer::delayedMutex`. This
-  mirrors `CDelayedObject::intersect()` and `processDelayedObject()`
-  (`src/ri/render/geometryDispatch.cpp:679`).
-- **Capture**: expansion output goes through the same capture target that
-  instance resolution uses for `instantiate()` (Decision 9): the context's
-  `delayed` points at a per-operand holder, so `addObject()` lands each primitive
-  in that operand's member list. Nested procedurals are captured and then
-  expanded recursively.
+  procedural operand members are expanded under `CRenderer::delayedMutex`, as
+  `CDelayedObject::intersect()` does (`src/ri/render/geometryDispatch.cpp:679`).
+- **Capture-aware expansion**: `processDelayedObject()` (`rendererContext.cpp:421`)
+  cannot be reused. It targets the delayed object's own children, resets
+  `delayed = NULL` on return (so later leaves of the same operand would land in
+  the scene), and calls `setChildren()` before any region is set (so the
+  expansion would render untrimmed). A new helper,
+  `CRendererContext::expandIntoOperand(ctx, cDelayed, holder, flagged)`:
+  - saves `delayed`, `currentAttributes` and `currentXform`
+  - sets `delayed = holder`, the current attributes to a copy of `flagged`, and
+    the current xform to the delayed object's xform
+  - runs the subdivision function, then restores all three to their saved values
+  - does not call `setChildren()`
+
+  Each instance first instantiates its template `CDelayedObject`
+  (`delayed.h:68`) into the operand holder with the composed xform (Decision 9,
+  step 2). Resolution then loops over the operand's members, replacing each
+  `CDelayedObject` with its expansion, until none remains; nested procedurals are
+  handled by the same loop. Region, materialization and operand type therefore
+  only ever see real geometry.
 - **Attributes**: the expansion runs with a flagged clone of the procedural's
   attributes as the current attributes, so every expanded object inherits
   `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the leaf's `ATTRIBUTES_FLAGS_INSIDE`
@@ -482,6 +522,16 @@ trigger.
   with its own transform and attributes. `instantiate()` (for `RiObjectInstance`)
   creates another solid over the same definition with a composed transform, as
   `CSolidObject::instantiate()` does today.
+- **Transforms**: captured leaves carry absolute transforms (the full
+  local-to-world transform active when they were declared). The definition
+  therefore rebases each template leaf into the outer frame,
+  `outerXform⁻¹ · leafXform`, which is the logic of today's `csgRebaseFragments`
+  (`csgTree.cpp:687–722`), moved rather than deleted. The template bound is
+  computed in that local frame (each leaf's camera-space bound transformed by
+  `outerXform⁻¹`). Each solid's bound is that local bound transformed by the
+  solid's own xform, and instantiating a leaf with the solid's xform rebuilds
+  the absolute transform for a direct placement and the composed one for an
+  instance. Without the rebase, the outer transform would be applied twice.
 - **Per-instance state** (`CCSGInstanceState`) is built on first use, under
   `delayedMutex`, in this order:
   1. **Capture target**: `instantiate()` hands its output to `addObject()`
@@ -491,8 +541,8 @@ trigger.
      list, not in the scene.
   2. **Flagged clones**: each template leaf's attributes are cloned, with
      `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` set and `ATTRIBUTES_FLAGS_INSIDE` toggled
-     per `leafFlip`, and the leaf is instantiated with that clone and the composed
-     transform (`instantiate()` uses the attributes passed in,
+     per `leafFlip`, and the leaf is instantiated with that clone and the solid's
+     xform (`instantiate()` uses the attributes passed in,
      `quadrics.cpp:508`). Procedural members are expanded here too (Decision 8).
   3. `region` set on every member to its `CCSGRegion`.
   4. Depth-first materialization (Decision 15).
@@ -562,7 +612,9 @@ still used elsewhere stay. These go with them:
 
 **Decision**: add counters to `CStats` (`src/ri/core/stats.h`). Like the other
 subsystem sections, they print at statistics level ≥ 2 (`stats.cpp:150`), but
-**always, zeros included, whenever the frame contains a solid**, with the exact
+**always, zeros included, whenever the frame contains a solid**: a per-frame
+flag set by every outermost `RiSolidEnd`, single-operand collapses included, so
+a collapsed solid still prints its zeros. They use the exact
 labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and
 `CSG procedural expansions:`. The statistics test scenes use
 `Option "statistics" "endofframe" [2]`. The counters are:
@@ -573,7 +625,8 @@ labels `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:` and
 - `numCsgProceduralExpansions`
 
 "No refinement work for an off-screen solid" means `numCsgInstancesResolved`,
-`numCsgClassifications` and `numCsgProceduralExpansions` stay 0 for it.
+`numCsgClassifications`, `numCsgSeamSplits` and `numCsgProceduralExpansions` stay
+0 for it.
 
 ## Decision 13: Test strategy (constitution III — TDD)
 
@@ -610,9 +663,12 @@ verification tests, which already pass, are labeled as such in `tasks.md`.
   - crossing-parity robustness (`test_parity_robustness`): grazing and edge rays,
     mixed vertex orders, a reversed patch, overlapping shells in one block, and the
     closedness helper on directly constructible surfaces. The NURBS closedness
-    cases (closed NURBS sphere: no diagnostic; open sheet: one diagnostic and an
-    empty operand) run render-side through `add_csg_metric_test` log checks,
-    consistent with free-form operands being covered render-side.
+    cases run render-side through `add_csg_metric_test` log checks in Phase 3,
+    consistent with free-form operands being covered render-side: a new closed
+    rational quadratic NURBS sphere scene must print no diagnostic, and the
+    existing `csg-nurbs-sphere-union-raytrace.rib`, whose NURBS operand is in
+    fact a single open, non-rational bicubic sheet, must print exactly one and
+    lose that operand (its reference is regenerated under FR-021).
   - empty operands as the empty set in their position (FR-025a), in
     `test_boundary_rule`
   - analytic seam location (points straddling the exact intersection curves),
@@ -656,6 +712,7 @@ verification tests, which already pass, are labeled as such in `tasks.md`.
   - `--projected-curve`, which checks the seam against the exact intersection
     curves projected through the camera, in every hider
   - `--enclosed-holes`
+  - `--luminance-ratio`, for shadows and reflections, which alpha cannot see
 
   Together they gate SC-001 to SC-003, SC-008, FR-007a and FR-016.
 - **Harness** (Decision 16): `add_csg_metric_test` plus a `cmake -P` driver
@@ -732,7 +789,8 @@ Rejected: five copies of the same logic, and it is easy to miss one.
   - copies support directories (archives) into the per-test scratch working
     directory
   - runs `orender -x 3` with `ORENDER_INSTR_LEVEL` unset, because statistics
-    are INFO-level messages and print only at that log level
+    are INFO-level messages, which a lower log level (`-x 1`/`-x 2` or the
+    environment variable) suppresses
   - captures stdout and stderr together (statistics and warnings go to stdout,
     errors to stderr; `ri.cpp:2354–2378`) and applies log regexes to that
     combined output itself, so CTest's `PASS_REGULAR_EXPRESSION` never overrides

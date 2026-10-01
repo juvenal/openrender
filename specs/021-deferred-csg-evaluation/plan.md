@@ -130,7 +130,8 @@ specs/021-deferred-csg-evaluation/
 src/ri/geometry/
 ├── csgTree.{h,cpp}          # MODIFY: capture tree + validation kept; resolveCSGTree → build CSG definition;
 │                            #         procedural capture allowed; BSP/tessellation/fragment code removed
-├── csgDefinition.{h,cpp}    # NEW: immutable shared definition (flattened tree, operands, flips, CSG-aware bound)
+├── csgDefinition.{h,cpp}    # NEW: immutable shared definition (flattened tree, operands rebased into the outer
+│                            #      frame, flips, local CSG-aware bound); CCSGResolvedOperand + deriveOperandKind()
 ├── csgSolid.{h,cpp}         # NEW: CObject solid handle + per-instance state (replaces solidObject.{h,cpp})
 ├── csgClassify.{h,cpp}      # NEW: operand classification (analytic + crossing parity), boundary rule, two-sided ON
 │                            #      rule; CCSGRegion implementing the generic CRegionPredicate
@@ -144,7 +145,6 @@ src/ri/geometry/
 │                            #         CSurface::countCrossings(ctx, from, dir) virtual
 ├── surface.cpp              # MODIFY: CPatch::dice() (surface.cpp:142) region stage (uniform shortcut,
 │                            #         seam rate, undisplaced classifyBound, keep-at-cap);
-│                            #         CSurface::regionCoverage (undisplaced P);
 │                            #         CTesselationPatch hit acceptance consults region
 ├── quadrics.{h,cpp}         # MODIFY: countCrossings (analytic, all roots); region check in root loops
 ├── polygons.{h,cpp}         # MODIFY: countCrossings (exact); region check at hit acceptance;
@@ -155,12 +155,16 @@ src/ri/geometry/
 └── subdivisionCreator.{h,cpp}, subdivisionLoop.{h,cpp}   # MODIFY: CSubdivMesh/CLoopSubdivMesh::materialize
 
 src/ri/vector/
-└── surfaceCrossingDispatchStub.cpp  # NEW: ribVector stub (ribVector excludes surface.cpp)
+├── surfaceCrossingDispatchStub.cpp  # NEW: ribVector stub (ribVector excludes surface.cpp)
+└── geometryDispatchStub.cpp         # MODIFY: no-op CSurface::regionCoverage stub
 
 src/ri/render/
-├── rendererContext.{h,cpp}  # MODIFY: SolidEnd builds definition; nested-SolidBegin guard during expansion;
-│                            #         remove processDelayedSolid; tessellationtolerance once-per-frame warning
-└── geometryDispatch.cpp     # MODIFY (if needed): shared helpers next to checkRayGuard (classification rays bypass it)
+├── rendererContext.{h,cpp}  # MODIFY: SolidEnd builds definition and sets the per-frame "contains a solid" flag;
+│                            #         RiProcedural's solid-block branch removed; expandIntoOperand();
+│                            #         nested-SolidBegin guard during expansion; remove processDelayedSolid;
+│                            #         tessellationtolerance once-per-frame warning
+└── geometryDispatch.cpp     # MODIFY: CSurface::regionCoverage (undisplaced P and Ng; render-only, stubbed in
+                             #         vector/geometryDispatchStub.cpp)
 
 src/ri/hiders/
 ├── reyes.h                  # MODIFY: CRasterGrid generic `coverage` mask field
@@ -189,7 +193,8 @@ tests/visual/CMakeLists.txt  # MODIFY: add_csg_metric_test macro; register hero 
 tests/visual/csg_metric_test.cmake     # NEW: cmake -P driver: renders, runs the metric tool, checks LOG_PASS/LOG_FAIL
                                        #      and STATS (absolute or render-vs-render) assertions
 tests/visual/test_csg_seam_metric.cpp  # NEW: seam-metric CLI (--help; --annuli / --edge-compare / --region-compare /
-                                       #      --region-chroma / --projected-curve / --enclosed-holes)
+                                       #      --region-chroma / --projected-curve / --enclosed-holes /
+                                       #      --luminance-ratio)
 examples/rib/tests/          # NEW (~45 new or renamed): csg-hero-*, csg-sphere-cube-difference-*-{800,1600},
                              #      csg-coincident-*, csg-open-quadric-caps-*, csg-procedural-* (+ archives/),
                              #      csg-*-stats, csg-tiny-solid-stats, free-form/polymesh, two-shader,
@@ -241,11 +246,12 @@ Each phase is a pause-and-commit point for the maintainer (stage only).
    before displacement, plus sentinel per-quad bounds, with generically named
    hooks (contract §0).
    **Exit criteria**: REYES and Z-buffer seam metrics go green (SC-001 to SC-003
-   for all three hiders), and CSG parity pairs pass (SC-004).
+   for all three hiders). CSG parity pairs (SC-004) are registered and must pass
+   in US2 (T058).
 5. **Implied closure caps** (FR-021) for single-quadric operands, then the
    deliberate regeneration of the existing CSG references (before/after crops).
    This closes US1 with everything green.
-6. **Procedural operands** (FR-024/025): capture through the instance's `delayed` target, lazy recursive
+6. **Procedural operands** (FR-024/025): capture through the instance's `delayed` target via `expandIntoOperand()` (not `processDelayedObject()`), lazy recursive
    expansion with flagged attributes, nested-`SolidBegin` guard, empty operands
    per FR-025a. The
    archive is copied into the test's scratch directory. The old

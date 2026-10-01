@@ -21,7 +21,7 @@ is unchanged from spec 013.
 | Operand | Contract |
 |---|---|
 | Any geometric primitive accepted by spec 013 | Accepted, unchanged |
-| A single quadric that is not closed (e.g. `Cylinder`, partial `thetamax`, z-cut `Sphere`) | Treated as its implied closed solid; caps render where they lie on the composite boundary, with the operand's shaders. No notice |
+| A single quadric that is not closed (e.g. `Cylinder`, partial `thetamax`, z-cut `Sphere`) | Treated as its implied closed solid; caps render where they lie on the composite boundary, with the operand's shaders. Caps are flat, except that a `Torus` cut across its tube (partial phi) is closed by the cone-shaped surface joining its two cut circles. No notice |
 | Several surfaces in one `"primitive"` block | Their jointly enclosed volume. The author closes the shape (no auto-caps). Overlapping closed shapes in one block combine by parity: where they overlap counts as outside. Use `"union"` to merge overlapping shapes |
 | Primitives placed directly in a boolean block (not wrapped in `"primitive"`) | Together they form one operand, positioned first, combined by parity exactly like a `"primitive"` block |
 | A lone zero-volume surface (e.g. a single `Disk`) | Empty operand |
@@ -50,7 +50,11 @@ is unchanged from spec 013.
 ## Statistics
 
 At `Option "statistics" "endofframe" [2]` or higher, the output gains four CSG
-counters. They are printed, zeros included, whenever the frame contains a solid:
+counters. They are printed, zeros included, whenever the frame contains a solid,
+meaning an outermost `SolidEnd` ran in that frame (a single-operand block that
+collapses to its operand still counts). The statistics are INFO-level messages on
+stdout: printed at the default log level (INFO, `logging.hpp:28`), but suppressed
+by `orender -x 1`/`-x 2` or a lower `ORENDER_INSTR_LEVEL`:
 
 ```text
 CSG classifications:

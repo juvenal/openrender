@@ -20,17 +20,21 @@ It lists what each domain may assume about the others.
    - A nullable pointer to a region predicate on `CObject`.
    - `CObject::setChildren()` copies it to children that have none, so the
      surfaces a mesh-type object creates lazily inherit it.
-   - `accepts(ctx, P)`: a pure function of the camera-space point P. `ctx` is the
-     caller's `CShadingContext`, which may be NULL for quadric, polygon and
-     bilinear surfaces.
+   - `accepts(ctx, P, Ng)`: a pure function of the camera-space point P. `ctx` is
+     the caller's `CShadingContext`, which may be NULL for quadric, polygon and
+     bilinear surfaces. `Ng` is the accepting surface's undisplaced geometric
+     normal at P; the two-sided coincident-face rule tests P ± ε·N̂g.
    - `classifyBound(ctx, bmin, bmax)`: returns `ALL_IN`, `ALL_OUT` or `MIXED`.
    - A null pointer means today's behavior, bit for bit.
    - `CObject::materialize(ctx)` (default no-op) lets geometry force a mesh-type
      object to create its children. It is idempotent.
-   - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op; `CSurface`
-     override in `surface.cpp`) fills a grid's per-micropolygon coverage mask from
-     **undisplaced** camera-space P at the grid's u/v, using the object's own
-     `sample()`. It snapshots and restores the grid's u/v/time. A quad is absent iff
+   - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op in
+     `object.cpp`; `CSurface` override in the renderer-only
+     `render/geometryDispatch.cpp`, with a no-op stub in
+     `vector/geometryDispatchStub.cpp`, because `surface.cpp` is not part of the
+     shared ribVector library) fills a grid's per-micropolygon coverage mask from
+     **undisplaced** camera-space P and Ng at the grid's u/v, using the object's
+     own `sample()`. It snapshots and restores the grid's u/v/time. A quad is absent iff
      none of its four vertices is accepted.
 2. **`CPatch::dice()`** (`surface.cpp:142`) consults `object->region` alongside
    the trim hook. The two combine: a point must pass both. (`CSurface::dice()`
@@ -46,7 +50,7 @@ It lists what each domain may assume about the others.
    - Trim behavior is unchanged: straddlers are still dropped at the eyesplit cap.
 3. **Hit acceptance** in every intersector (quadric root loops, polygon
    intersectors, `CTesselationPatch` candidate tests) calls `accepts()` on the
-   undisplaced point before accepting a hit. A rejected candidate leaves
+   undisplaced point and its geometric normal before accepting a hit. A rejected candidate leaves
    `ray->t`/`ray->object` untouched.
 4. **`CSurface::countCrossings(ctx, from, dir)`**: a read-only geometric query
    that returns the **unsigned** number of crossings (operands classify by
@@ -74,7 +78,8 @@ It lists what each domain may assume about the others.
    later full shading. Motion-blurred grids use the shutter-open sample. This is
    the only hider-side change, expressed in generic terms: "geometry reports which
    micropolygons exist."
-3. **Per-quad bound computation** (`reyes.cpp` ~1452/1705) gives an absent quad
+3. **Per-quad bound computation** (the quad branch of `insertGrid()`, `reyes.cpp`
+   ~1705; point grids are untouched) gives an absent quad
    the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`. The rasterizer loops
    (`stochasticQuad.h`, `zbufferQuad.h`) are unchanged; their first trivial
    reject, `bounds[1] < left` (`stochasticQuad.h:703`, `zbufferQuad.h:40`), skips
