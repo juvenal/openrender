@@ -88,7 +88,9 @@ once per instance.
 
 **State transitions**: Unresolved → Resolving → Resolved.
 - **Resolving** (lock held), in this order (research Decision 9):
-  0. members whose `honorsRegion()` is false (implicit and DSO primitives)
+  0. unsupported members (`honorsRegion()` false: implicit, DSO, points,
+     curves, curve meshes, object instances; or not a surface, mesh or
+     procedural)
      dropped, with one warning per offending operand per frame (FR-018)
   1. capture target set (`delayed` → per-operand holder)
   2. each template leaf instantiated with a clone of its attributes carrying
@@ -102,7 +104,10 @@ once per instance.
   5. classification surfaces collected
   6. kinds derived, with the "not closed" warning once per offending operand per
      frame
-  7. caps synthesized
+  7. caps synthesized; the members of empty or open operands left out of
+     `children` (they never render); and, if a single non-empty operand remains
+     once empties that change nothing are removed, the instance is a passthrough
+     with no region and no caps (FR-019)
 
   Mesh children copy `attributes` and `region` when `create()` runs, so steps 2
   and 3 must precede step 4.
@@ -117,12 +122,13 @@ object creates lazily inherit it (research Decision 15).
 
 | Operation | Meaning |
 |---|---|
-| `accepts(ctx, P, Ng)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext`; `Ng` is the accepting surface's undisplaced geometric normal at P in camera space, used only as the transverse axis of the two-sided ON rule (P ± ε·N̂g; sign irrelevant). Among coincident leaves that all report a boundary, only the lowest-indexed operand's leaf accepts |
+| `accepts(ctx, P, Ng)` | Does this surface point belong to the rendered surface? `ctx` is the caller's `CShadingContext`; `Ng` is the accepting surface's undisplaced geometric normal at P in camera space, used only as the transverse axis of the two-sided ON rule (P ± ε·N̂g; sign irrelevant). The ON check counts every other surface within ε, including the other surfaces of the leaf's own operand. Among coincident leaves that all report a boundary, only the lowest-indexed operand's leaf accepts |
 | `classifyBound(ctx, bmin, bmax)` | `ALL_IN`, `ALL_OUT` or `MIXED`, for a surface patch within this bound |
 
 **Region support**: `virtual int CObject::honorsRegion() const` (default `TRUE`).
-`CImplicit` and `CDLObject` return `FALSE`: their own `intersect()`/`dice()`
-bypass every trimming hook, so inside a solid they are dropped (FR-018).
+`CImplicit`, `CDLObject`, `CPoints`, `CCurve`, `CCurveMesh` and `CDelayedInstance`
+return `FALSE`: their own rendering bypasses every trimming hook, or they
+enclose no volume, so inside a solid they are dropped (FR-018).
 
 **Mesh materialization**: `virtual void CObject::materialize(CShadingContext*)`
 (default no-op). The five mesh types override it to create their children
@@ -170,17 +176,19 @@ backface, displacement). Implementations:
 Filled once by `CObject::regionCoverage()`, called from the P-only branch of
 `CReyes::shadeGrid()` before `displace()`, and kept with the grid through its
 later full shading. Consumed only where per-quad `bounds` are computed: an absent
-quad gets the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, which the
-rasterizers' existing first trivial reject skips. Rasterizer loops are unchanged
-(FR-012).
+quad gets the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, written both into
+`bounds[]` and into the quad's per-time-stratum entries of
+`grid->quadStratumBounds` (the motion-blurred xtreme path culls by those alone),
+so the rasterizers' existing trivial rejects skip it. Rasterizer loops are
+unchanged (FR-012).
 
 ### Statistics (`CStats`, extended)
 
-`numCsgClassifications`, `numCsgSeamSplits`, `numCsgInstancesResolved`,
+`atomic_int32` counters `numCsgClassifications`, `numCsgSeamSplits`, `numCsgInstancesResolved`,
 `numCsgProceduralExpansions` (SC-006, FR-003, FR-004).
 
 They are printed at statistics level ≥ 2, zeros included, whenever the frame
-contains a solid (a per-frame flag set by every outermost `RiSolidEnd` inside
+contains a solid (a per-frame flag, reset at `RiWorldBegin`, set by every outermost `RiSolidEnd` inside
 the world block, single-operand collapses included, and by every
 `CCSGSolid::instantiate()`), with the labels `CSG classifications:`, `CSG seam splits:`,
 `CSG instances resolved:` and `CSG procedural expansions:`.
@@ -210,7 +218,8 @@ CSGTreeNode (capture, transient) ──SolidEnd──▶ CSG definition (shared,
 | Procedural operands behave as if written inline (FR-024) | Operand kind and caps are derived after expansion, per instance |
 | Open operands (FR-021) | Closedness test per instance; single open quadric ⇒ implied closure and caps; lone open non-quadric ⇒ empty plus one warning per operand per frame |
 | Single-operand solids (FR-019) | Whole-solid collapse is a passthrough: no region, no caps |
-| Untrimmable operands (FR-018) | `honorsRegion() == FALSE` members dropped with a warning |
+| Untrimmable operands (FR-018) | Unsupported members dropped with a deduplicated warning |
+| Operands that contribute nothing (FR-021, FR-025a) | Members of empty or open operands never render; the coincident-face check counts the leaf's own operand's other surfaces |
 | Empty operands (FR-025a) | Always OUT, so the tree gives the empty-set semantics; empty bound for culling; empty nested blocks kept in position |
 | Faces keep operand shaders (FR-016) | Leaves are the operands' own surfaces with their own (cloned) attributes |
 | Subtracted walls face outward (FR-011) | Static flip applied as `ATTRIBUTES_FLAGS_INSIDE` on cloned attributes |

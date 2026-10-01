@@ -32,9 +32,13 @@ It lists what each domain may assume about the others.
    - A null pointer means today's behavior, bit for bit.
    - `CObject::materialize(ctx)` (default no-op) lets geometry force a mesh-type
      object to create its children. It is idempotent.
-   - `CObject::honorsRegion()` (default `TRUE`) reports whether the object's own
-     rendering consults the region hook. `CImplicit` and `CDLObject` return
-     `FALSE`; a solid drops such operands with a warning.
+   - `CObject::honorsRegion()` (default `TRUE`) reports whether the object can
+     take part in a solid: whether its own rendering consults the region hook and
+     it encloses volume. `CImplicit`, `CDLObject`, `CPoints`, `CCurve`,
+     `CCurveMesh` and `CDelayedInstance` return `FALSE`; a solid drops such
+     operands with a deduplicated warning.
+   - Geometry never hands the hiders a leaf whose operand contributes nothing:
+     the leaves of empty or open operands are left out of the solid's children.
    - `CObject::regionCoverage(ctx, udiv, vdiv, coverage)` (default no-op in
      `object.cpp`; `CSurface` override in the renderer-only
      `render/geometryDispatch.cpp`, with a no-op stub in
@@ -91,10 +95,12 @@ It lists what each domain may assume about the others.
    micropolygons exist."
 3. **Per-quad bound computation** (the quad branch of `insertGrid()`, `reyes.cpp`
    ~1705; point grids are untouched) gives an absent quad
-   the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`. The rasterizer loops
-   (`stochasticQuad.h`, `zbufferQuad.h`) are unchanged; their first trivial
-   reject, `bounds[1] < left` (`stochasticQuad.h:703`, `zbufferQuad.h:40`), skips
-   it.
+   the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, in `bounds[]` and in each of
+   the quad's per-time-stratum entries of `grid->quadStratumBounds` (~1715). The
+   rasterizer loops (`stochasticQuad.h`, `zbufferQuad.h`) are unchanged: their
+   trivial rejects skip it, `bounds[1] < left` (`stochasticQuad.h:703`,
+   `zbufferQuad.h:40`) and, on the motion-blurred xtreme path, which culls by the
+   stratum entries alone, `qsb[1]` (`stochasticQuad.h:518–534`).
 4. **Raytrace traversal** (`trace.cpp`) is unchanged. The solid is an ordinary
    non-dummy BVH node.
 

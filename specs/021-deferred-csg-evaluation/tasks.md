@@ -79,10 +79,10 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - expected twins with no solid block, same camera and shaders: `examples/rib/tests/csg-coincident-union-expected-raytrace.rib` (one 2×1×1 box) and `examples/rib/tests/csg-coincident-difference-expected-raytrace.rib` (the box that remains after the flush subtraction), each built from plain bilinear patches
 - [ ] T008 [P] Create the implied-cap scenes `examples/rib/tests/csg-open-quadric-caps-{raytrace,reyes,zbuffer}.rib`: a sphere r=1 intersected with `Cylinder 0.6 -0.5 0.5 180` (an open half-sweep, a single-quadric operand), oriented so that both flat sweep-gap caps and one end cap lie on the composite boundary and face the camera. The sphere operand is `Color [1 0.8 0.3]` and the cylinder operand `Color [0.2 0.35 1]`; the header records each visible cap's image region for `--region-chroma`.
 - [ ] T009 [P] Create the procedural-operand scenes:
-  - archives: `examples/rib/tests/archives/csg-sphere-operand.rib` (contains `Sphere 1.50 -1.50 1.50 360`) and `examples/rib/tests/archives/csg-open-cylinder-operand.rib` (contains `Cylinder 0.65 -2 2 360`)
+  - archives: `examples/rib/tests/archives/csg-sphere-operand.rib` (contains `Sphere 1.50 -1.50 1.50 360`) and `examples/rib/tests/archives/csg-open-cylinder-operand.rib` (contains the T008 half-sweep `Cylinder 0.6 -0.5 0.5 180`, whose caps are visible)
   - `examples/rib/tests/csg-procedural-operand-raytrace.rib`: hero geometry, with the sphere supplied by `Procedural "DelayedReadArchive" ["archives/csg-sphere-operand.rib"] [-1.5 1.5 -1.5 1.5 -1.5 1.5]` inside `SolidBegin "primitive"`
-  - `examples/rib/tests/csg-procedural-open-cylinder-raytrace.rib`: hero geometry, with the open cylinder supplied by `Procedural "DelayedReadArchive" ["archives/csg-open-cylinder-operand.rib"] [-0.65 0.65 -0.65 0.65 -2 2]` (the bound must enclose the whole cylinder)
-  - inline twins `examples/rib/tests/csg-procedural-operand-inline-raytrace.rib` and `examples/rib/tests/csg-procedural-open-cylinder-inline-raytrace.rib`
+  - `examples/rib/tests/csg-procedural-open-cylinder-raytrace.rib`: the T008 implied-cap geometry (sphere r=1 intersected with the half-sweep cylinder), with the cylinder supplied by `Procedural "DelayedReadArchive" ["archives/csg-open-cylinder-operand.rib"] [-0.6 0.6 -0.6 0.6 -0.5 0.5]` (the bound must enclose the whole cylinder). Its caps lie on the composite boundary and face the camera, so the comparison with the inline twin observes them.
+  - inline twins `examples/rib/tests/csg-procedural-operand-inline-raytrace.rib` (hero geometry) and `examples/rib/tests/csg-procedural-open-cylinder-inline-raytrace.rib` (identical to the T008 raytrace scene)
 
   **Path note**: visual tests run with `WORKING_DIRECTORY` set to a per-test scratch directory (`tests/visual/CMakeLists.txt:171`). Registrations of these scenes therefore pass `COPY examples/rib/tests/archives` to `add_csg_metric_test` (T004).
 - [ ] T010 [P] Create the remaining scenes:
@@ -95,6 +95,8 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - `examples/rib/tests/csg-tiny-solid-stats-reyes.rib`: the REYES hero solid scaled to cover under 4×4 pixels; `Option "statistics" "endofframe" [2]`.
   - `examples/rib/tests/csg-polymesh-box-difference-{raytrace,reyes}.rib`: a `PointsPolygons` cube minus a sphere.
   - `examples/rib/tests/csg-polymesh-open-raytrace.rib`: a `PointsPolygons` box with one face missing (an open mesh) as the second operand of a `difference` with a sphere.
+  - `examples/rib/tests/csg-nurbs-sheet-expected-raytrace.rib`: the existing `csg-nurbs-sphere-union-raytrace.rib` with the open NURBS sheet removed and no solid block (a plain `Sphere 0.7 -0.7 0.7 360`, same camera and shaders): what that scene must render once its open operand contributes nothing.
+  - `examples/rib/tests/csg-hero-instanced-outside-world-reyes.rib`: the hero solid defined in an `ObjectBegin`/`ObjectEnd` placed before `WorldBegin`, instanced once inside the world, `Option "statistics" "endofframe" [2]`.
   - `examples/rib/tests/csg-nurbs-sheet-instanced-raytrace.rib`: the solid of the existing `csg-nurbs-sphere-union-raytrace.rib` (whose NURBS operand is an open sheet) inside `ObjectBegin`/`ObjectEnd`, instanced twice.
   - `examples/rib/tests/csg-nurbs-rational-sphere-union-{raytrace,reyes}.rib`: `Sphere 0.7 -0.7 0.7 360` unioned with a **closed rational quadratic NURBS sphere** of radius 0.5 centred at (0.45, 0, −0.35). u is order 3 with knots `[0 0 0 .25 .25 .5 .5 .75 .75 1 1 1]` (9 control points); v is order 3 with knots `[0 0 0 .5 .5 1 1 1]` (5 control points); homogeneous `"Pw"`. Each header records the object-to-camera matrix and the exact intersection circle of the two spheres, for `--projected-curve`. (The existing `csg-nurbs-sphere-union-raytrace.rib` is *not* a sphere: its NURBS operand is a single open, non-rational 4×4 bicubic sheet. It becomes the open-sheet case, T038/T057.)
   - `examples/rib/tests/csg-nurbs-rational-sphere-alone-raytrace.rib`: the rational NURBS sphere alone, same camera. Its header, and the subdivision `*-alone` scene's, record the image rectangle of the free-form operand's untouched visible area (outside the 0.7 sphere's silhouette and away from the seam) for T038's `--include`.
@@ -107,7 +109,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 - [ ] T014 Record master baselines in `specs/021-deferred-csg-evaluation/baseline-timings.md`:
   - throttled wall-clock render time for every existing `examples/rib/tests/csg-*.rib` visual scene, the `blobby-csg-*` scenes and the T005/T006 scenes
   - the T002 tool's metric output on master for T005/T006/T007 (the expected-red baseline; the hero scene should reproduce the 213 / 63 / 38 stray pixels at 1600×1000), including the `--annuli` maximum radial seam deviation for every hero leg
-  - which T034 legs already pass on master; those are guard legs, not red tests
+  - the master result of every Phase 3 test marked "confirm red" (T034–T036, T038's `--projected-curve` and closedness legs, T039–T042 render checks). Any leg that already passes on master is recorded here as a guard leg, not a red test.
 
 **Checkpoint (Phase 1)**: harness, scenes and diagnostic guards exist; baseline recorded; build warning-free; no behavior change. Stage and pause for commit.
 
@@ -152,7 +154,8 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - the boundary rule at points on each leaf
   - static orientation parity
   - short-circuit evaluation: a test-double `CSurface` subclass whose `countCrossings` counts its calls shows that irrelevant operands are never queried (no production counter needed)
-  - **single-operand passthrough (FR-019)**: a solid that collapses to one operand, including one open `Cylinder`, yields that operand unchanged: no region predicate and no implied caps. A single-operand block *nested* in a boolean still takes part in it, so implied closure applies there.
+  - **single-operand passthrough (FR-019)**: a solid that collapses to one operand, including one open `Cylinder`, yields that operand unchanged: no region predicate and no implied caps. Empty operands that change nothing are removed first (FR-025a), so `difference(openCylinder, empty)` and `union(openCylinder, Disk)` are passthroughs too. A single-operand block *nested* in a boolean with another non-empty operand still takes part in it, so implied closure applies there.
+  - **operands that contribute nothing never render (FR-021, FR-025a)**: in `union(A, Disk)`, no point of the disk leaf is accepted, including points outside A; the leaves of an open-sheet operand are never accepted; and for two identical spheres in one operand (cancelling by parity), no point of either sphere is accepted, because the coincident-face check also counts the other surfaces of the leaf's own operand
   - **empty operands (FR-025a)**, for every empty source (empty nested block, lone disk, lone open non-quadric, cancelling shapes): `difference(empty, B)` and `intersection(A, empty)` yield nothing; `union(A, empty)` and `difference(A, empty)` yield A
   - `classifyBound()` `ALL_IN`/`ALL_OUT`/`MIXED`
   - **analytic seam location**: for the sphere-cube difference, sample 64 points on each exact intersection circle; at ±δ (δ = 1e-4·r) along the sphere's surface, perpendicular to the curve, the predicate must flip, with the matching face-side check. Do the same for the hero's two circles at z = ±√(1.5² − 0.65²).
@@ -178,7 +181,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - add a nullable `CObject::region` member
   - propagate `region` in `CObject::setChildren()` (object.cpp:130) to children that have none
   - add `virtual void CObject::materialize(CShadingContext *)` (default no-op)
-  - add `virtual int CObject::honorsRegion() const` (default `TRUE`), overridden to return `FALSE` in `CImplicit` (`src/ri/geometry/implicitSurface.h`) and `CDLObject` (`src/ri/geometry/dlobject.h`), whose own `intersect()`/`dice()` bypass every trimming hook
+  - add `virtual int CObject::honorsRegion() const` (default `TRUE`), overridden to return `FALSE` where an object's own rendering bypasses every trimming hook or encloses no volume: `CImplicit` (`src/ri/geometry/implicitSurface.h`), `CDLObject` (`src/ri/geometry/dlobject.h`), `CPoints` (`src/ri/geometry/points.h`; its `dice()` goes straight to `drawPoints`, geometryDispatch.cpp:555), `CCurve` and `CCurveMesh` (`src/ri/geometry/curves.h`; curves reach `drawGrid` without the `CPatch` region stage), and `CDelayedInstance` (`src/ri/geometry/delayed.h`; an `ObjectInstance` inside a solid, which spec 013 also rejected)
   - add `virtual int CSurface::countCrossings(CShadingContext *ctx, const float *from, const float *dir) const`, returning an unsigned count, default 0
 
   All names must be generic (contract §0). Make T021 green.
@@ -209,11 +212,11 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 - [ ] T031 Implement classification in `src/ri/geometry/csgClassify.{h,cpp}`:
   - operand `classify(ctx, P)` over a `CCSGResolvedOperand` (T030): bound rejection first; analytic implied-closed test for a single-quadric operand; an empty operand (FR-025a: lone disk, lone open non-quadric surface, empty nested block, empty expansion) is always OUT, which yields the empty-set semantics with no special casing; otherwise deterministic fixed-direction parity over the operand's surfaces via `countCrossings`, with the grazing/edge fallback (thresholds from T017) and majority-of-three. The "operand is not closed" warning is emitted at instance resolution (T046), not here.
   - the boundary rule with short-circuit evaluation
-  - the two-sided ±ε ON rule at P ± ε·N̂g, using the `Ng` passed to `accepts()` as a transverse axis (sign irrelevant; ε = `C_EPSILON` × solid bound size). P is on the boundary iff composite membership differs between the two sides. Where coincident leaves of several operands all report a boundary there, only the leaf of the **lowest-indexed** such operand accepts, so exactly one face renders, identically in every hider. Orientation is never read from `Ng`; it is the leaf's static `leafFlip`.
+  - the two-sided ±ε ON rule at P ± ε·N̂g, using the `Ng` passed to `accepts()` as a transverse axis (sign irrelevant; ε = `C_EPSILON` × solid bound size). P is on the boundary iff composite membership differs between the two sides. The ON check considers every other surface within ε, **including the other surfaces of the leaf's own operand**, so identical shapes that cancel by parity are correctly rejected. Where coincident leaves of several operands all report a boundary there, only the leaf of the **lowest-indexed** such operand accepts, so exactly one face renders, identically in every hider. Orientation is never read from `Ng`; it is the leaf's static `leafFlip`.
   - `CCSGRegion` implementing `CRegionPredicate`
 
   Make T015–T019, T022 and T023 green.
-- [ ] T032 Add the four counters to `CStats` in `src/ri/core/stats.h`. Initialize them, and in `src/ri/core/stats.cpp` print them at level ≥ 2, zeros included, whenever the frame contains a solid, with the T020 labels. "Contains a solid" is a per-frame flag set by every outermost `RiSolidEnd` inside the world block (`src/ri/render/rendererContext.cpp`), single-operand collapses included, and by every `CCSGSolid::instantiate()` (a solid defined in an `ObjectBegin` outside the world block and instanced inside the frame). Increment `numCsgClassifications` in `src/ri/geometry/csgClassify.cpp` (sequence after T031; same file). Make T020 green.
+- [ ] T032 Add the four counters to `CStats` in `src/ri/core/stats.h` as `atomic_int32`, like the blobby counters (stats.h:103–107), since classification runs on every render thread. Initialize them, and in `src/ri/core/stats.cpp` print them at level ≥ 2, zeros included, whenever the frame contains a solid, with the T020 labels. "Contains a solid" is a per-frame flag, reset at `RiWorldBegin`, set by every outermost `RiSolidEnd` inside the world block (`src/ri/render/rendererContext.cpp`), single-operand collapses included. T046 also sets it from `CCSGSolid::instantiate()`, which does not exist yet in this phase. Increment `numCsgClassifications` in `src/ri/geometry/csgClassify.cpp` (sequence after T031; same file). Make T020 green.
 - [ ] T033 Phase 2 gate:
   - `ctest -L csg` is green, including the T013 guards
   - the full `ctest -L visual` (sequential) is unchanged versus master, apart from the known flaky and pre-existing failures listed in quickstart.md §3
@@ -247,13 +250,13 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
   Also register the NURBS closedness checks (research D13):
   - `CsgClosedness_nurbs_closed`: `LOG_FAIL` on "operand is not closed" for `csg-nurbs-rational-sphere-union-raytrace.rib` (a guard)
-  - `CsgClosedness_nurbs_open`: `LOG_PASS` on that warning and `LOG_FAIL` on a second occurrence, for the existing `csg-nurbs-sphere-union-raytrace.rib`, whose NURBS operand is a single open sheet. Red until T047.
+  - `CsgClosedness_nurbs_open`: `LOG_PASS` on that warning and `LOG_FAIL` on a second occurrence, for the existing `csg-nurbs-sphere-union-raytrace.rib`, whose NURBS operand is a single open sheet, plus `--region-compare --include frame` against `csg-nurbs-sheet-expected-raytrace.rib` (T010): the sheet must not render at all. Red until T047.
   - `CsgClosedness_nurbs_instanced`: `LOG_PASS` on exactly one "operand is not closed" warning, `LOG_FAIL` on a second, for `csg-nurbs-sheet-instanced-raytrace.rib` (two instances, one warning per offending operand per frame). Red until T047.
   - `CsgClosedness_polymesh_open`: `LOG_PASS` on exactly one warning for `csg-polymesh-open-raytrace.rib` (an open mesh is empty plus a warning). Red until T047.
 
   The remaining legs guard the mesh and free-form paths across the switch-over; their red test is T015.
 - [ ] T039 [US1] Register `CsgSeam_hero_displaced_raytrace` (T012 scene): `--enclosed-holes --exclude disc:<hole>` with the hole disc shrunk by the projected maximum displacement recorded in the T012 header, and seam radii within 1 px plus that displacement of the undisplaced analytic radii (membership follows the undisplaced shape; displacement then moves the surviving surface by at most Km). Confirm red. This is the failing test for T050's displaced-leaf handling.
-- [ ] T040 [US1] Register `CsgSeamSplitCounter` via `add_csg_metric_test` `STATS`: `csg-hero-stats-800-reyes.rib` must report `CSG seam splits: > 0`, and `csg-hero-single-operand-stats-800-reyes.rib` (T010) must report `= 0`. Confirm red: the counter is never incremented before T053.
+- [ ] T040 [US1] Register `CsgSeamSplitCounter` via `add_csg_metric_test` `STATS`: `csg-hero-stats-800-reyes.rib` must report `CSG seam splits: > 0`, and `csg-hero-single-operand-stats-800-reyes.rib` (T010) must report `= 0`. `csg-hero-instanced-outside-world-reyes.rib` must print the counters at all (the "contains a solid" flag set through `CCSGSolid::instantiate()`), with `CSG instances resolved: > 0`; this leg is red until T046. Confirm red: the counter is never incremented before T053.
 - [ ] T041 [US1] Register `CsgInstance_seams` for `examples/rib/tests/csg-object-instance-reuse-raytrace.rib`: `--enclosed-holes`, and each instance's bounding rect has opaque coverage (`--include rect:` per instance). Confirm red. This is the failing test for `CCSGSolid::instantiate()`.
 - [ ] T042 [P] [US1] Create `tests/unit/csg/test_implied_caps.cpp`. For each single-quadric kind (cylinder ends, z-cut sphere, half-sweep cylinder, cone base, paraboloid top, and bottom when zmin > 0, hyperboloid ends, partial-`thetamax` torus sweep gaps, and the cone-shaped `CHyperboloid` cap of a partial-phi torus), assert the number, plane (or, for the torus phi cap, the two circles) and orientation of the synthesized caps, and that each cap's predicate accepts exactly the cross-section inside the lateral surface. Register it in `tests/unit/csg/CMakeLists.txt`. Also register `CsgCaps_{raytrace,reyes,zbuffer}` via `add_csg_metric_test` for the T008 scenes: `--enclosed-holes`, plus `--region-chroma` on each cap region recorded in the T008 header (blue share ≥ 0.5, the cylinder operand's colour). Confirm red.
 - [ ] T043 [P] [US1] Create `tests/unit/csg/test_capture_path.cpp`: `RiSolidBegin`…`RiSolidEnd` yields exactly one `addObject(CCSGSolid*)` whose definition holds the expected operands (including direct leaves of a boolean block as the first operand). Also assert that template leaf xforms are rebased into the outer frame (a leaf declared under its own `Translate` keeps its offset relative to `outerXform`, not doubled), that the template bound is in that local frame, and that a block nested inside `"primitive"` contributes no geometry. Register it. Confirm red.
@@ -267,18 +270,19 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 - [ ] T046 [US1] Implement `CCSGSolid` and `CCSGInstanceState` in `src/ri/geometry/csgSolid.{h,cpp}`:
   - a `CObject` that is not `OBJECT_DUMMY` (trace.cpp:332), bounded by the definition's local template bound (T030) transformed by its own xform
   - on the first `dice()`/`intersect()`, build `CCSGInstanceState` once under `CRenderer::delayedMutex`, mirroring `CDelayedObject::intersect()` (geometryDispatch.cpp:679), **in this order** (research D9):
-    0. drop operand members whose `honorsRegion()` is false (`Geometry "implicit"` / `"dlo"`), emitting one `warning(CODE_BADTOKEN, …)` per offending operand per frame that the primitive is not supported as a solid operand (FR-018); dropped members are never rendered
+    0. drop operand members that are not supported as solid operands (FR-018): any member whose `honorsRegion()` is false (implicit, DSO, points, curves, curve meshes, object instances), and, defensively, any member that is neither a `CSurface`, one of the five mesh types with `materialize()`, nor a `CDelayedObject` (procedural). Emit one `warning(CODE_BADTOKEN, …)` naming the primitive, deduplicated per (definition, operand) per frame, as the "not closed" warning is. Dropped members are never rendered. This replaces spec 013's "Unsupported CSG operand type" error, deleted at T047.
     1. **capture target**: `instantiate()` hands its output to `addObject()` (e.g. quadrics.cpp:512). For each operand, point the context's `delayed` at a temporary holder, as `processDelayedSolid()` does (rendererContext.cpp:485), so the output lands in that operand's member list, not in the scene. T066 reuses this target for procedural expansion.
     2. **flagged clones**: for each template leaf, clone its attributes, set `ATTRIBUTES_FLAGS_SOLID_FRAGMENT`, toggle `ATTRIBUTES_FLAGS_INSIDE` per `leafFlip`, and call `leaf->instantiate(clone, solid->xform, context)` (`instantiate()` uses the attributes passed in, e.g. quadrics.cpp:508). Because T030 rebased the template leaves, this rebuilds the absolute transform for a direct placement and the composed one for each `ObjectInstance`. Mesh children copy their parent's `attributes` when `create()` runs, so this must precede step 4.
     3. set `region` on every operand member to its `CCSGRegion`
     4. materialize depth-first: `materialize(context)` on each member, then on each of its children. Mesh children are thereby created with the flagged attributes and inherit the region via `setChildren`, including the inner `CPolygonMesh` of a `CLoopSubdivMesh`.
     5. collect every `CSurface` descendant as that operand's classification surfaces
-    6. build each operand's `CCSGResolvedOperand` (members and their surfaces) and derive its **kind** (single-quadric / multi-surface / empty / open) with `deriveOperandKind(members, surfaces)` (T030), so closedness is judged per member, not per surface. Emit the "operand is not closed" warning (`warning(CODE_BADTOKEN, …)`) once per offending operand per frame, deduplicated per (definition, operand) so further instances stay silent (FR-021).
-  - set `children` to all instance leaves (meshes, surfaces, and caps later), and make `dice()` call `CObject::dice(r)` (geometryDispatch.cpp:76), so every leaf is clipped and queued per bucket by `drawObject`
-  - `instantiate()` creates a new `CCSGSolid` over the same definition with a composed transform
+    6. build each operand's `CCSGResolvedOperand` (members and their surfaces) and derive its **kind** (single-quadric / multi-surface / empty / open) with `deriveOperandKind(members, surfaces)` (T030), so closedness is judged per member, not per surface.
+    7. **operands that contribute nothing never render** (FR-021, FR-025a): leave the members of every operand resolved as empty or open out of `children`, with no caps. Then, if the tree reduces to a single non-empty operand once empties that change nothing are removed (an empty later difference operand, an empty union operand), the instance is a **passthrough** (FR-019): that operand renders as authored, with no region and no implied caps. Emit the "operand is not closed" warning (`warning(CODE_BADTOKEN, …)`) once per offending operand per frame, deduplicated per (definition, operand) so further instances stay silent (FR-021).
+  - set `children` to the instance leaves of the operands that contribute (meshes, surfaces, and caps later), and make `dice()` call `CObject::dice(r)` (geometryDispatch.cpp:76), so every leaf is clipped and queued per bucket by `drawObject`
+  - `instantiate()` creates a new `CCSGSolid` over the same definition with a composed transform, and sets the per-frame "contains a solid" statistics flag (T032), so a solid defined in an `ObjectBegin` outside the world block and instanced inside the frame still prints its counters
   - increment `numCsgInstancesResolved`
 
-  Make T044 green; it builds the definition and the solid directly, without `RiSolidEnd`.
+  Make T044 green; it builds the definition and the solid directly, without `RiSolidEnd`. Also makes T040's instanced-outside-world leg green once T047 routes `RiSolidEnd` to `CCSGSolid`.
 - [ ] T047 [US1] Switch `RiSolidEnd` to the new path:
   - in `src/ri/geometry/csgTree.{h,cpp}`, replace `resolveCSGTree()` with a function that builds a `CCSGDefinition` and calls `context->addObject(new CCSGSolid(...))`
   - delete the now-unused static helpers (`csgResolveNode`, `csgToSoup`, `csgTessellateOperand`, `csgTriangulateGrid`, `csgMakeGridVertex`, `csgEmitTriangle`, `csgTriangleIsDegenerate`, `csgSignedVolume`, `csgFlipAll`, `csgPolygonsToFragments`, `csgBuildMeshForAttributeGroup`, `csgResolveTolerance`; `csgRebaseFragments`' logic has moved to T030), the constant `kCsgDefaultToleranceFraction` (csgTree.cpp:47) and `#include "csgBoolean.h"`, to keep `-Werror` happy
@@ -287,14 +291,14 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
   Make T043, T045 and T038's `CsgClosedness_nurbs_open` green. T041 additionally needs the raytrace region checks (T048–T050) and is confirmed at T051.
 
-  **Expected-red note**: from this task until T057, the existing `csg-*`/`blobby-csg-*` reference-image tests are expected red (old BSP-era references). From this task until T055, the REYES legs of T037 (`CsgPerOperandShader_hero_reyes`) and T038 (the REYES `--edge-compare`) are expected red too, because REYES dices CSG leaves without a region stage until T053/T054. Never regenerate references to make a gate pass.
+  **Expected-red note**: from this task until T057, the existing `csg-*`/`blobby-csg-*` reference-image tests are expected red (old BSP-era references). From this task until T055, the REYES legs of T037 (`CsgPerOperandShader_hero_reyes`) and T038 (the REYES `--edge-compare`) are expected red too, because REYES dices CSG leaves without a region stage until T053/T054. From this task until T048–T050, the raytrace legs of T037/T038 are red too, because the intersectors do not consult the region yet; T051 confirms they are green again. Never regenerate references to make a gate pass.
 - [ ] T048 [US1] Raytrace hit acceptance for quadrics, in `src/ri/geometry/quadrics.cpp`: in every quadric `intersect()` root loop, before accepting a candidate, `continue` to the next root when `region && !region->accepts(context, P, Ng)`. The root loops work in object space, so compute the camera-space P as `from + t·dir` from the camera-space ray, and Ng by transforming the object-space normal to camera space as the accepted hit does at the end (`mulmn(rv->N, xform->to, tmp)`, quadrics.cpp:276). Leave `ray->t`/`ray->object` untouched on rejection.
 - [ ] T049 [P] [US1] Apply the same region check at hit acceptance in `src/ri/geometry/polygons.cpp` (`CPolygonTriangle`/`CPolygonQuad` intersect paths) and in `src/ri/geometry/patches.cpp` at `CBilinearPatch::intersect` (patches.cpp:193, inside its `solve()` acceptance macro). Bilinear patches have their own analytic intersector and never reach `CTesselationPatch`; the sphere-cube cube, the coincident-face boxes and the implied caps are all bilinear patches, so without this the raytrace legs of T035, T036 and T042 cannot pass.
 - [ ] T050 [US1] Apply the same region check in `src/ri/geometry/surface.cpp` at the `CTesselationPatch` candidate acceptance (~L857 and ~L1024, alongside `trimAccepts`). Read the region from the surface being tessellated (the same object whose `trimAccepts()` is consulted there), never from the `CTesselationPatch` itself: tessellation patches are assigned as `children` directly, without `setChildren()` (geometryDispatch.cpp:282–322), so their own `region` is always null and the check would silently pass. For displaced leaves, evaluate the predicate at the undisplaced surface point and normal for the hit's (u,v), via the object's own sample/interpolate. Make T039 green.
-- [ ] T051 [US1] **Raytrace exit check**: the raytrace variants of T034, T035 and T036, plus T039 and T041, are green, and the raytrace guard legs of T037/T038 stay green; T038's raytrace `--projected-curve` leg and closedness checks turn green. REYES and Z-buffer variants, including the REYES legs of T037/T038, are expected red until T055.
+- [ ] T051 [US1] **Raytrace exit check**: the raytrace variants of T034, T035 and T036, plus T039 and T041, are green, and the raytrace guard legs of T037/T038 are green again; T038's raytrace `--projected-curve` leg and closedness checks turn green. REYES and Z-buffer variants, including the REYES legs of T037/T038, are expected red until T055.
 - [ ] T052 [US1] Add the generic coverage mask (prerequisite: T034–T036 red):
   - a nullable `CRasterGrid::coverage` field in `src/ri/hiders/reyes.h` (null ⇒ every micropolygon present), allocated only by T054's call site when a region is set, and freed with the grid
-  - in `src/ri/hiders/reyes.cpp`, where per-quad `bounds` are computed in the quad branch of `insertGrid()` (~L1705; the `RASTER_POINT` branch around ~L1380–1460 handles point grids and is untouched), give a quad marked absent the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, so the existing first trivial reject (`bounds[1] < left`, stochasticQuad.h:703 and zbufferQuad.h:40) skips it with **no rasterizer loop changes**
+  - in `src/ri/hiders/reyes.cpp`, where per-quad `bounds` are computed in the quad branch of `insertGrid()` (~L1705; the `RASTER_POINT` branch around ~L1380–1460 handles point grids and is untouched), give a quad marked absent the bound `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}`, so the existing first trivial reject (`bounds[1] < left`, stochasticQuad.h:703 and zbufferQuad.h:40) skips it. Write the same value into each of that quad's per-time-stratum entries in `grid->quadStratumBounds` (computed at ~L1715): the motion-blurred xtreme path culls by those entries alone (`qsb[1]`, stochasticQuad.h:518–534), never by `bounds[]`. Together this needs **no rasterizer loop changes**
 
   Use generic names only (contract §0).
 - [ ] T053 [US1] Add the REYES region stage to `CPatch::dice()` in `src/ri/geometry/surface.cpp:142` (~L145–362), parallel to and combinable with the trim stage (both must pass; trim behavior unchanged):
@@ -333,8 +337,8 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 ### Tests for User Story 2 ⚠️
 
 - [ ] T058 [US2] (verification) Add cross-hider parity registrations in `tests/visual/CMakeLists.txt` (label `parity`, thresholds from `tests/visual/parity-thresholds.md`), keeping any pair already registered instead of duplicating it. For `blobby-csg-difference`, keep the existing reyes↔raytrace and reyes↔zbuffer pairs (~L2560–2566) instead of adding raytrace↔zbuffer:
-  - **three-hider scenes**, pairs raytrace↔reyes and raytrace↔zbuffer: `csg-sphere-cube-{union,difference,intersection}`, `blobby-csg-difference`, `csg-hero-*-800`, `csg-coincident-{union,difference}`, `csg-open-quadric-caps`
-  - **two-hider scenes**, pair raytrace↔reyes: `csg-hero-two-shaders`, `csg-hero-displaced`, `csg-hero-translucent`, `csg-secondary-rays`
+  - **three-hider scenes**, pairs raytrace↔reyes and raytrace↔zbuffer: `csg-sphere-cube-{union,difference,intersection}`, `csg-sphere-cube-difference-*-{800,1600}`, `blobby-csg-difference`, `csg-hero-*-{800,1600}`, `csg-coincident-{union,difference}`, `csg-open-quadric-caps`
+  - **two-hider scenes**, pair raytrace↔reyes: `csg-hero-two-shaders`, `csg-hero-displaced`, `csg-hero-translucent`, `csg-secondary-rays`, `csg-polymesh-box-difference`, `csg-nurbs-rational-sphere-union`, `csg-subdivision-sphere-union`
 
   The translucent pair additionally runs `--enclosed-holes --opaque 0.45 --exclude disc:<hole>`; the displaced pair runs `--enclosed-holes --exclude disc:<hole>` (the hero's through-hole is a legitimate opening). Both are via `add_csg_metric_test`.
 - [ ] T059 [US2] (verification) Register `CsgSecondaryRays_{raytrace,reyes}` via `add_csg_metric_test` for `csg-secondary-rays-{raytrace,reyes}.rib`, using `--luminance-ratio` with the regions recorded in each scene header, because alpha cannot tell lit, shadowed and reflected pixels apart (FR-013):
@@ -369,7 +373,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - nested procedurals expand recursively
   - a `SolidBegin` emitted during expansion reports exactly one nested-in-primitive diagnostic, its contents are absent from the operand, its `SolidEnd` resolves nothing, and no extra `CCSGSolid` is created
   - an empty expansion follows FR-025a
-  - an archive containing only the hero's open `Cylinder` gives an operand resolved as single-quadric, with implied closure and caps
+  - the T009 open-cylinder archive (a single open quadric) gives an operand resolved as single-quadric, with implied closure and caps
   - expanded objects carry `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the leaf's `ATTRIBUTES_FLAGS_INSIDE` parity
   - `numCsgProceduralExpansions` counts correctly
 
@@ -383,15 +387,15 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 ### Implementation for User Story 3
 
 - [ ] T066 [US3] Support procedural operands (research D8):
-  - remove the whole `if (currentSolid != NULL) { csgValidateProceduralCapture(currentSolid); return; }` branch in `RiProcedural()` (`src/ri/render/rendererContext.cpp:5200`), so `addObject()` routes the `CDelayedObject` into `leafObjects`, and delete the function's definition (`src/ri/geometry/csgTree.cpp:90`)
+  - remove the whole `if (currentSolid != NULL) { csgValidateProceduralCapture(currentSolid); return; }` branch in `RiProcedural()` (`src/ri/render/rendererContext.cpp:5200`), so `addObject()` routes the `CDelayedObject` into `leafObjects` of any open solid block. A procedural placed directly in a boolean block therefore joins that block's first operand, like any direct leaf (FR-024), and delete the function's definition (`src/ri/geometry/csgTree.cpp:90`)
   - add a capture-aware helper `CRendererContext::expandIntoOperand(CShadingContext *, CDelayedObject *, CObject *holder, CAttributes *flagged)` in `src/ri/render/rendererContext.{h,cpp}`. `processDelayedObject()` (rendererContext.cpp:421) cannot be reused, because it targets the delayed object's own children, resets `delayed = NULL` and calls `setChildren()` before any region is set. The helper:
     - saves `delayed`, `currentAttributes` and `currentXform`
     - sets `delayed = holder`, the current attributes to a copy of `flagged` (so every expanded object inherits `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the leaf's `ATTRIBUTES_FLAGS_INSIDE` parity) and the current xform to the delayed object's xform
     - runs the subdivision function, then restores all three to their **saved** values, never `NULL`
     - does not call `setChildren()`
   - in `src/ri/geometry/csgSolid.cpp`, during `CCSGInstanceState` resolution under `delayedMutex` (after T046 step 2, which instantiates each template `CDelayedObject` (`delayed.h:68`) into the holder with the composed xform, and **before** step 3): loop over the operand's members, replacing each `CDelayedObject` with its expansion, until none remains. Nested procedurals are handled by the same loop, so steps 3–6 only ever see real geometry; T046 step 0's filter also runs over expanded members.
-  - guard nested blocks during expansion with an expansion-scoped counter `swallowedSolidDepth` in `CRendererContext` (`rendererContext.{h,cpp}`):
-    - while an operand expansion runs, `RiSolidBegin` still validates the operation name
+  - guard nested blocks during expansion with an `expandingOperand` flag, set by `expandIntoOperand()` for the duration of the expansion and saved/restored around it, and a counter `swallowedSolidDepth`, both in `CRendererContext` (`rendererContext.{h,cpp}`). A `SolidBegin` inside an ordinary procedural (not an operand expansion) is legal and is not swallowed:
+    - while `expandingOperand` is set, `RiSolidBegin` still validates the operation name
     - at the first nesting level it reports the nested-in-primitive message through a new parent-less helper `csgReportNestedSolidBegin()` in `src/ri/geometry/csgTree.cpp`, which `csgValidateNestedSolidBegin()` now calls
     - it then increments the counter and creates no node
     - `addObject()` discards objects while the counter is above 0
@@ -403,7 +407,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 - [ ] T067 [US3] Make `tessellationtolerance` inert (research D10):
   - remove every remaining read of `CAttributes::tessellationTolerance`
   - keep parsing in all four attribute layers
-  - in `RiAttributeV()` (`src/ri/render/rendererContext.cpp`), emit the notice with `warning(CODE_BADTOKEN, …)` (always printed, to stdout; never `CODE_LOG`) on the first occurrence per frame, using a per-frame flag reset at frame begin
+  - in `RiAttributeV()` (`src/ri/render/rendererContext.cpp`), emit the notice with `warning(CODE_BADTOKEN, …)` (always printed, to stdout; never `CODE_LOG`) on the first occurrence per frame, using a per-frame flag reset at `RiWorldBegin`
   - update the field comment in `src/ri/state/attributes.h:165`
 
   Make T065 green.
@@ -457,7 +461,7 @@ All four are verification of laziness delivered by T045/T046/T053/T066. Any that
   - empty operands as the empty set (FR-025a)
   - the inert tolerance attribute and its notice
   - the CSG statistics section (SC-009), including that the counters need `orender -x 3` (or `ORENDER_INSTR_LEVEL=info`), because `orender` defaults to log level NONE
-  - single-operand solids are a passthrough (no implied caps), and `Geometry "implicit"`/`"dlo"` primitives are not supported as solid operands
+  - single-operand solids are a passthrough (no implied caps), and implicit, DSO (`"dlo"`), point, curve and object-instance primitives are not supported as solid operands
 - [ ] T079 [P] Update `DEVNOTES.md` (status table entry for spec 021, superseding 013's resolution) and `DEVNOTES_DETAILS/RISPEC_GAPS.md` (CSG section).
 - [ ] T080 [P] Update the `CLAUDE.md` "Known gotchas":
   - CSG is spatial trimming via the generic region hook, inherited through `setChildren`
@@ -503,6 +507,7 @@ All four are verification of laziness delivered by T045/T046/T053/T066. Any that
   - T038 `--projected-curve` legs → raytrace: T047/T048/T050 (confirmed at T051); REYES: T053/T054 (confirmed at T055)
   - T043 and T045 → T047
   - T044 → T046
+  - T040's instanced-outside-world leg → T046/T047
   - T039 → T050
   - T034–T036 → T048–T054 (bilinear-patch acceptance in T049)
   - T040 → T053

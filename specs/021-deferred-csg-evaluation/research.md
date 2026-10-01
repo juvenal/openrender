@@ -164,10 +164,18 @@ surfaces and mesh materialization require it.
 **Operands the solid cannot trim**: `CImplicit` (`Geometry "implicit"`) and
 `CDLObject` (`Geometry "dlo"`) derive from `CSurface` but have their own
 `intersect()`/`dice()` that bypass every trimming hook, and count no crossings.
-They would render untrimmed and ignore the boolean. They report
-`honorsRegion() == FALSE` (a generic `CObject` virtual), and instance resolution
-drops them with one warning per offending operand per frame: they are not
-supported as solid operands (FR-018).
+`CPoints` dices straight to `drawPoints` (`geometryDispatch.cpp:555`, the
+untouched point-grid path), `CCurve` reaches `drawGrid` without the `CPatch`
+region stage, and `CCurveMesh` and `CDelayedInstance` (an `ObjectInstance`
+inside a solid, which spec 013 also rejected) are not among the materializable
+mesh types. All of them would render untrimmed, ignore the boolean, or enclose no
+volume. They report `honorsRegion() == FALSE` (a generic `CObject` virtual).
+Defensively, any member that is neither a `CSurface`, one of the five mesh types
+with `materialize()`, nor a `CDelayedObject` is treated the same way. Instance
+resolution drops them with one warning naming the primitive, deduplicated per
+(definition, operand) per frame like the "not closed" warning: they are not
+supported as solid operands (FR-018). This replaces spec 013's "Unsupported CSG
+operand type" error, which goes with `csgTessellateOperand`.
 
 1. **Bound rejection first**: if P lies outside the operand's bound, the answer is
    OUT, with no further work.
@@ -263,6 +271,14 @@ supported as solid operands (FR-018).
   it forced OUT, with every other operand classified at P.
   - Evaluation short-circuits: operands whose value cannot change the result are
     never classified.
+  - **Operands that contribute nothing never render.** The forced IN/OUT test
+    assumes P really lies on its own operand's boundary, which is false for an
+    empty or open operand (a lone disk, an open sheet, an open mesh): in
+    `union(A, Disk)` a disk point outside A would otherwise be accepted. So the
+    leaves of operands resolved as empty or open are left out of the solid's
+    children entirely (Decision 9, step 7). For identical shapes that cancel by
+    parity inside one operand, the coincident-face check below catches it,
+    because it also counts the other surfaces of the leaf's own operand.
 - **Orientation**: static per leaf. A leaf is *flipped* iff its operand sits at an
   odd number of subtrahend positions (non-first operands of a `difference`) on its
   path to the root.
@@ -273,7 +289,8 @@ supported as solid operands (FR-018).
     So shading and backface handling see an ordinary outward-facing surface
     (FR-011) with zero shading-side changes.
 - **Coincident faces (FR-022)**: when a classification is within ε of an operand
-  boundary (ON), classify at P ± ε·N̂g instead, where Ng is the normal passed
+  boundary (ON), including another surface of the leaf's own operand, classify
+  at P ± ε·N̂g instead, where Ng is the normal passed
   to `accepts()` (the leaf's own undisplaced geometric normal; at a coincident
   face it is ± the other face's normal), and use the two-sided rule: P is on
   the boundary iff the composite membership differs on the two sides. Ng is only
@@ -362,7 +379,11 @@ spec 013's approach, and it is meaningless without a mesh.
     (`reyes.cpp` ~1705). Point grids (`RASTER_POINT` branch, ~1380–1460) are
     untouched. The rasterizers' first
     existing trivial reject, `bounds[1] < left` (`stochasticQuad.h:703`,
-    `zbufferQuad.h:40`), then skips it, so **no rasterizer loop changes**.
+    `zbufferQuad.h:40`), then skips it. The motion-blurred xtreme path culls by
+    the per-time-stratum bounds `grid->quadStratumBounds` alone
+    (`stochasticQuad.h:518–534`), never by `bounds[]`, so the same value is also
+    written into each absent quad's stratum entries (computed at `reyes.cpp`
+    ~1715). Together, **no rasterizer loop changes**.
   - The mask is a generic `CRasterGrid` field ("geometry says this micropolygon
     does not exist"), with no CSG knowledge in the hider (FR-012).
 - Shading stays lazy, as today (`RASTER_UNSHADED`): only surviving grids reach the
@@ -420,8 +441,10 @@ proven. It is exact for quadrics and polygons.
 **Decision**:
 
 - Implied closure applies only to an operand that takes part in a boolean with
-  at least one other operand. A whole solid that collapses to one operand is a
-  passthrough: the operand renders as authored, with no caps (FR-019, spec 013
+  at least one other **non-empty** operand. Empty operands that change nothing
+  are removed first (FR-025a), so `difference(openCylinder, empty)` and
+  `union(openCylinder, Disk)` are single-operand solids. A whole solid that
+  collapses to one operand is a passthrough: the operand renders as authored, with no caps (FR-019, spec 013
   FR-017).
 - Implied closure is defined for operands consisting of **exactly one quadric**:
   the hero scene's case, and the common authoring pattern.
@@ -490,7 +513,9 @@ non-quadric surfaces were added during analysis (2026-09-30).
   branch in `RiProcedural()` (`rendererContext.cpp:5200`), not just the call,
   since the early `return` alone would still drop the procedural. Its definition
   (`csgTree.cpp:90`) goes too. `addObject()` then routes the `CDelayedObject`
-  into `leafObjects`.
+  into the `leafObjects` of whatever solid block is open, so a procedural placed
+  directly in a boolean block joins its first operand, like any direct leaf
+  (FR-024).
 - A procedural declared in a solid block becomes an *unexpanded operand member*.
 - When a solid instance is first needed (its first `dice()` or `intersect()`), its
   procedural operand members are expanded under `CRenderer::delayedMutex`, as
@@ -520,8 +545,11 @@ non-quadric surfaces were added during analysis (2026-09-30).
 - **Nested solid blocks**: `csgValidateNestedSolidBegin()` cannot be reused as is.
   It needs a parent node, `currentSolid` is NULL at render time, and the matching
   root-level `RiSolidEnd` would call `resolveCSGTree()` and create a new solid.
-  Instead, an expansion-scoped counter `swallowedSolidDepth` in `CRendererContext`
-  guards them:
+  Instead, an `expandingOperand` flag (set by `expandIntoOperand()` for the
+  duration of an expansion, saved and restored around it) and a counter
+  `swallowedSolidDepth`, both in `CRendererContext`, guard them. A `SolidBegin`
+  inside an ordinary procedural, outside any operand expansion, stays legal and
+  is not swallowed:
   - `RiSolidBegin` still validates the operation name
   - at the first nesting level it reports the nested-in-primitive message through
     a parent-less helper, `csgReportNestedSolidBegin()`, which
@@ -535,8 +563,8 @@ non-quadric surfaces were added during analysis (2026-09-30).
   if the instance is never needed.
 - **Operand kind is derived after expansion.** Single-quadric / multi-surface /
   empty / open, and therefore implied closure and caps, are decided per instance
-  from the *expanded* members. An archive holding the hero's open `Cylinder`
-  thus behaves "exactly as if written there directly" (FR-024).
+  from the *expanded* members. An archive holding a single open quadric thus
+  behaves "exactly as if written there directly" (FR-024), caps included.
   `CCSGDefinition` stores only the template structure.
 - A counter records expansions (SC-006).
 
@@ -566,9 +594,9 @@ trigger.
   instance. Without the rebase, the outer transform would be applied twice.
 - **Per-instance state** (`CCSGInstanceState`) is built on first use, under
   `delayedMutex`, in this order:
-  0. Members whose `honorsRegion()` is false (implicit and DSO primitives) are
-     dropped with one warning per offending operand per frame, for template and
-     expanded members alike (Decision 3).
+  0. Unsupported members (Decision 3: `honorsRegion()` false, or not a surface,
+     mesh or procedural) are dropped with one deduplicated warning per offending
+     operand per frame, for template and expanded members alike.
   1. **Capture target**: `instantiate()` hands its output to `addObject()`
      (e.g. `quadrics.cpp:512`). For each operand, the context's `delayed` points
      at a temporary holder, as `processDelayedSolid()` does
@@ -585,7 +613,11 @@ trigger.
      surfaces.
   6. Operand kinds derived from the resolved members (Decisions 7 and 8), with
      the "not closed" warning.
-  7. Caps, carrying the operand's flagged attributes.
+  7. Caps, carrying the operand's flagged attributes. The members of operands
+     resolved as empty or open are left out of `children` and get no caps
+     (Decision 4). If the tree then reduces to one non-empty operand, the
+     instance is a passthrough: that operand renders as authored, with no region
+     and no caps (FR-019).
 
   Mesh children copy their parent's `attributes` pointer when `create()` runs
   (`polygons.cpp:1313`, `patches.cpp:1650`, `subdivisionCreator.cpp:630`), and
@@ -615,8 +647,8 @@ trigger.
 - The first occurrence per frame emits a notice with `warning(CODE_BADTOKEN, …)`.
   Warnings are always printed, to stdout (`ri.cpp:2367–2370`). Do not use
   `CODE_LOG`, which silently drops messages.
-- A per-frame flag is reset at frame begin. "Render" in FR-023 means one frame
-  (spec Assumptions).
+- A per-frame flag is reset at `RiWorldBegin`. "Render" in FR-023 means one
+  frame, one `WorldBegin`/`WorldEnd` (spec Assumptions).
 
 ## Decision 11: Retiring the BSP path
 
@@ -645,10 +677,12 @@ still used elsewhere stay. These go with them:
 
 ## Decision 12: Statistics (SC-006)
 
-**Decision**: add counters to `CStats` (`src/ri/core/stats.h`). Like the other
+**Decision**: add counters to `CStats` (`src/ri/core/stats.h`) as `atomic_int32`,
+like the blobby counters (`stats.h:103–107`), because classification runs on
+every render thread. Like the other
 subsystem sections, they print at statistics level ≥ 2 (`stats.cpp:150`), but
 **always, zeros included, whenever the frame contains a solid**: a per-frame
-flag set by every outermost `RiSolidEnd` inside the world block, single-operand
+flag, reset at `RiWorldBegin`, set by every outermost `RiSolidEnd` inside the world block, single-operand
 collapses included (so a collapsed solid still prints its zeros), and by every
 `CCSGSolid::instantiate()` (a solid defined in an `ObjectBegin` outside the
 world block and instanced inside the frame). The counters are INFO-level

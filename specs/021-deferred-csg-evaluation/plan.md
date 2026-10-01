@@ -142,6 +142,8 @@ src/ri/geometry/
 │                            #      per-surface seed grid; no per-thread CTesselationPatch cache)
 ├── object.{h,cpp}           # MODIFY: generic CObject::region hook (inherited in setChildren), virtual
 │                            #         materialize(ctx), virtual regionCoverage(ctx, udiv, vdiv, coverage),
+│                            #         virtual honorsRegion() (FALSE overrides in implicitSurface.h, dlobject.h,
+│                            #         points.h, curves.h, delayed.h for CDelayedInstance),
 │                            #         CSurface::countCrossings(ctx, from, dir) virtual
 ├── surface.cpp              # MODIFY: CPatch::dice() (surface.cpp:142) region stage (uniform shortcut,
 │                            #         seam rate, undisplaced classifyBound, keep-at-cap);
@@ -169,7 +171,8 @@ src/ri/render/
 src/ri/hiders/
 ├── reyes.h                  # MODIFY: CRasterGrid generic `coverage` mask field
 └── reyes.cpp                # MODIFY: shadeGrid's P-only branch calls regionCoverage before displace(); per-quad bounds
-                             #         computation gives absent quads the {INT_MAX, INT_MIN, …} bound (no rasterizer loop changes)
+                             #         computation gives absent quads the {INT_MAX, INT_MIN, …} bound, in bounds[] and in
+                             #         quadStratumBounds (no rasterizer loop changes)
 
 src/ri/core/stats.{h,cpp}    # MODIFY: CSG counters (SC-006)
 src/ri/state/attributes.h    # MODIFY (comment only): tessellationTolerance documented as inert

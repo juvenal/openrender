@@ -133,8 +133,9 @@ NONE (`orender.cpp:611–612`), so a manual render must pass `-x 3` (or set
   render shows that sphere**. The old "cannot be declared inside a SolidBegin
   block" diagnostic must not appear.
 - `CsgProcedural_sphere` and `CsgProcedural_open_cylinder` match their inline
-  twins (SC-010). The open cylinder comes from the archive and still gets its
-  caps. The archives are copied into each test's scratch working directory
+  twins (SC-010). The open-cylinder case uses the implied-cap geometry
+  (`csg-open-quadric-caps`), with the half-sweep cylinder supplied by the
+  archive, so its caps are visible and must match the inline render. The archives are copied into each test's scratch working directory
   (`COPY examples/rib/tests/archives`).
 
 ## 6. Performance bound (SC-007)
