@@ -390,6 +390,11 @@ it before adding any cross-domain dependency).
   prepared textures as ordinary baked TIFF files (existing container
   format, unchanged) at a configurable cache root
   (020-runtime-tile-paging)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — the float BSP
+  kernel (`csgBoolean`) is retired in favor of geometry-owned spatial
+  trimming (021-deferred-csg-evaluation)
+- Storage: N/A — memory only: a shared, immutable CSG definition per solid
+  plus per-instance state built on first use (021-deferred-csg-evaluation)
 
 ## Recent Changes
 - 020-runtime-tile-paging: runtime bake-on-load for non-TIFF sources —
