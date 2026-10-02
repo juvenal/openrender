@@ -128,9 +128,13 @@ endif()
 # Shared + static libraries
 add_library(libshader_compiler SHARED
     $<TARGET_OBJECTS:libshader_compiler_obj>)
-target_link_libraries(libshader_compiler PUBLIC openrendercommon)
+# BUILD_INTERFACE: the shared library already contains openrendercommon's
+# objects; only in-tree consumers keep inheriting its usage requirements.
+target_link_libraries(libshader_compiler PUBLIC $<BUILD_INTERFACE:openrendercommon>)
 if(OPENRENDER_HAVE_LLVM)
-    target_link_libraries(libshader_compiler PUBLIC ${_compiler_llvm_libs})
+    # BUILD_INTERFACE: LLVM is linked into the shared library itself; exported
+    # consumers must not be handed LLVM component names they cannot resolve.
+    target_link_libraries(libshader_compiler PUBLIC "$<BUILD_INTERFACE:${_compiler_llvm_libs}>")
     # LLVM's component map produces overlapping transitive deps (Core, Support appear
     # in both explicit and transitive lists).  Suppress the harmless ld64 warning.
     if(APPLE)
@@ -143,17 +147,21 @@ set_target_properties(libshader_compiler PROPERTIES
     OUTPUT_NAME   shader_compiler
     VERSION       ${PROJECT_VERSION}
     SOVERSION     ${OPENRENDER_COMPAT_SOVERSION}
-    PREFIX        "lib")
+    PREFIX        "lib"
+    EXPORT_NAME   shader_compiler)
 
 add_library(libshader_compiler_static STATIC
     $<TARGET_OBJECTS:libshader_compiler_obj>)
 set_target_properties(libshader_compiler_static PROPERTIES
-    OUTPUT_NAME shader_compiler)
+    OUTPUT_NAME shader_compiler
+    EXPORT_NAME shader_compiler_static)
 target_link_libraries(libshader_compiler_static INTERFACE openrendercommon)
 
-install(TARGETS libshader_compiler
+install(TARGETS libshader_compiler EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS libshader_compiler_static
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(TARGETS libshader_compiler_static EXPORT openRenderStaticTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

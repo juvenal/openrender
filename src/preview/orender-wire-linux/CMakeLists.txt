@@ -87,4 +87,9 @@ set_target_properties(orender-wire-linux PROPERTIES
 )
 
 install(TARGETS orender-wire-linux DESTINATION libexec)
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../libexec/orender-wire ${CMAKE_INSTALL_PREFIX}/bin/orender-wire)")
+install(CODE
+    "file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+     execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        ../libexec/orender-wire
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-wire\")"
+)

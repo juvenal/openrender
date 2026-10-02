@@ -632,6 +632,51 @@ add_subdirectory(src)
 add_subdirectory(shaders)
 
 # ###########################################################################
+# ########## CMake package configuration (find_package(openRender))
+# ###########################################################################
+# Two export sets, so an install that only ships the shared libraries (e.g. a
+# self-contained tarball with bundled runtime deps, no TIFF/PNG dev files) still
+# yields a working find_package(): openRenderTargets holds the self-contained
+# shared libraries; openRenderStaticTargets holds the static archives plus
+# openRender::RIBCommon, whose external deps the config resolves at find time
+# (component "Static"). See CMake/openRenderConfig.cmake.in.
+include(CMakePackageConfigHelpers)
+set(OPENRENDER_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/openRender")
+
+set(OPENRENDER_CONFIG_STATIC_DEP_TARGETS ${openrendertiff_libs})
+if(UNIX)
+    list(APPEND OPENRENDER_CONFIG_STATIC_DEP_TARGETS Threads::Threads)
+endif()
+if(HAVE_OPENEXR)
+    set(OPENRENDER_CONFIG_HAVE_OPENEXR TRUE)
+    set(OPENRENDER_CONFIG_OPENEXR_NOTE ", OpenEXR, Imath")
+    list(APPEND OPENRENDER_CONFIG_STATIC_DEP_TARGETS ${OPENRENDER_OPENEXR_LIBS})
+else()
+    set(OPENRENDER_CONFIG_HAVE_OPENEXR FALSE)
+    set(OPENRENDER_CONFIG_OPENEXR_NOTE "")
+endif()
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/openRenderConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfig.cmake"
+    INSTALL_DESTINATION "${OPENRENDER_CMAKEDIR}")
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion)
+
+install(EXPORT openRenderTargets
+    NAMESPACE openRender::
+    DESTINATION "${OPENRENDER_CMAKEDIR}")
+install(EXPORT openRenderStaticTargets
+    NAMESPACE openRender::
+    DESTINATION "${OPENRENDER_CMAKEDIR}")
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfigVersion.cmake"
+    DESTINATION "${OPENRENDER_CMAKEDIR}")
+
+# ###########################################################################
 # ########## Self-contained dependency bundling
 # ###########################################################################
 # For INSTALL_SELFCONTAINED builds, copy any non-OS shared libraries (e.g.
@@ -647,7 +692,7 @@ if(INSTALL_SELFCONTAINED)
 
     install(CODE "
         cmake_policy(SET CMP0087 NEW)
-        set(_prefix  \"${CMAKE_INSTALL_PREFIX}\")
+        set(_prefix  \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}\")
         set(_bindir  \"${CMAKE_INSTALL_BINDIR}\")
         set(_libdir  \"${CMAKE_INSTALL_LIBDIR}\")
         set(_binpath \"\${_prefix}/\${_bindir}\")
@@ -671,104 +716,106 @@ if(INSTALL_SELFCONTAINED)
             endif()
         endforeach()
 
+        # if/else rather than an early return(): return() inside install code
+        # ends the entire cmake_install.cmake, silently skipping every later
+        # install rule and install_manifest.txt.
         if(NOT _scan_exes AND NOT _scan_libs)
             message(WARNING \"Bundling: no installed executables or libraries found in \${_prefix}\")
-            return()
-        endif()
+        else()
+            # Resolve non-OS dynamic dependencies.
+            file(GET_RUNTIME_DEPENDENCIES
+                EXECUTABLES \${_scan_exes}
+                LIBRARIES   \${_scan_libs}
+                RESOLVED_DEPENDENCIES_VAR   _resolved
+                UNRESOLVED_DEPENDENCIES_VAR _unresolved
+                PRE_EXCLUDE_REGEXES
+                    \"^/usr/lib\" \"^/lib\" \"^/System\" \"^/usr/libexec\"
+                    \"libSystem\" \"libobjc\" \"libc\\\\+\" \"libstdc\" \"libgcc_s\"
+                    \"libc\\\\.\" \"libm\\\\.\" \"libpthread\" \"libdl\\\\.\"
+                    \"ld-linux\" \"librt\\\\.\" \"libz\\\\.\"
+                POST_EXCLUDE_REGEXES
+                    \"^/usr/lib\" \"^/lib\" \"^/System\"
+            )
 
-        # Resolve non-OS dynamic dependencies.
-        file(GET_RUNTIME_DEPENDENCIES
-            EXECUTABLES \${_scan_exes}
-            LIBRARIES   \${_scan_libs}
-            RESOLVED_DEPENDENCIES_VAR   _resolved
-            UNRESOLVED_DEPENDENCIES_VAR _unresolved
-            PRE_EXCLUDE_REGEXES
-                \"^/usr/lib\" \"^/lib\" \"^/System\" \"^/usr/libexec\"
-                \"libSystem\" \"libobjc\" \"libc\\\\+\" \"libstdc\" \"libgcc_s\"
-                \"libc\\\\.\" \"libm\\\\.\" \"libpthread\" \"libdl\\\\.\"
-                \"ld-linux\" \"librt\\\\.\" \"libz\\\\.\"
-            POST_EXCLUDE_REGEXES
-                \"^/usr/lib\" \"^/lib\" \"^/System\"
-        )
-
-        foreach(_dep \${_resolved})
-            string(FIND \"\${_dep}\" \"\${_prefix}\" _in_prefix)
-            if(_in_prefix EQUAL -1)
-                message(STATUS \"Bundling: \${_dep}\")
-                file(INSTALL DESTINATION \"\${_libpath}\"
-                     TYPE SHARED_LIBRARY FOLLOW_SYMLINK_CHAIN FILES \"\${_dep}\")
-            endif()
-        endforeach()
-
-        if(_unresolved)
-            message(WARNING \"Unresolved runtime deps (manual bundling may be needed): \${_unresolved}\")
-        endif()
-
-        if(APPLE)
-            # Fix up all installed dylibs on macOS:
-            #   * Bundled external libs: rewrite their embedded ID to @rpath/<name>.
-            #     Only real files get -id; symlinks point to the same inode so we
-            #     skip them to avoid overwriting the SONAME with the unversioned name.
-            #   * All dylibs: replace every absolute Homebrew reference with @rpath/<name>.
-            #   * Executables: skip install_name_tool to preserve code signatures.
-            #     Executables only reference libRIBRender/libRIBVector (our own libs,
-            #     already @rpath) thanks to PRIVATE linkage of external deps in
-            #     src/ri/CMakeLists.txt.
-            #   * After modifying any binary, re-sign ad-hoc (required on Apple Silicon
-            #     when load commands change).
-
-            set(_modified_bins)
-
-            # 1. Rewrite IDs of bundled external libs (real files only, not symlinks)
             foreach(_dep \${_resolved})
-                get_filename_component(_dep_name \"\${_dep}\" NAME)
-                set(_dest \"\${_libpath}/\${_dep_name}\")
-                if(EXISTS \"\${_dest}\")
+                string(FIND \"\${_dep}\" \"\${_prefix}\" _in_prefix)
+                if(_in_prefix EQUAL -1)
+                    message(STATUS \"Bundling: \${_dep}\")
+                    file(INSTALL DESTINATION \"\${_libpath}\"
+                         TYPE SHARED_LIBRARY FOLLOW_SYMLINK_CHAIN FILES \"\${_dep}\")
+                endif()
+            endforeach()
+
+            if(_unresolved)
+                message(WARNING \"Unresolved runtime deps (manual bundling may be needed): \${_unresolved}\")
+            endif()
+
+            if(APPLE)
+                # Fix up all installed dylibs on macOS:
+                #   * Bundled external libs: rewrite their embedded ID to @rpath/<name>.
+                #     Only real files get -id; symlinks point to the same inode so we
+                #     skip them to avoid overwriting the SONAME with the unversioned name.
+                #   * All dylibs: replace every absolute Homebrew reference with @rpath/<name>.
+                #   * Executables: skip install_name_tool to preserve code signatures.
+                #     Executables only reference libRIBRender/libRIBVector (our own libs,
+                #     already @rpath) thanks to PRIVATE linkage of external deps in
+                #     src/ri/CMakeLists.txt.
+                #   * After modifying any binary, re-sign ad-hoc (required on Apple Silicon
+                #     when load commands change).
+
+                set(_modified_bins)
+
+                # 1. Rewrite IDs of bundled external libs (real files only, not symlinks)
+                foreach(_dep \${_resolved})
+                    get_filename_component(_dep_name \"\${_dep}\" NAME)
+                    set(_dest \"\${_libpath}/\${_dep_name}\")
+                    if(EXISTS \"\${_dest}\")
+                        execute_process(
+                            COMMAND bash -c \"test -L '\${_dest}'\"
+                            RESULT_VARIABLE _is_symlink)
+                        if(NOT _is_symlink EQUAL 0)
+                            execute_process(
+                                COMMAND install_name_tool -id \"@rpath/\${_dep_name}\" \"\${_dest}\"
+                                ERROR_QUIET)
+                            list(APPEND _modified_bins \"\${_dest}\")
+                        endif()
+                    endif()
+                endforeach()
+
+                # 2. Replace Homebrew paths in all installed dylibs
+                file(GLOB _installed_libs \"\${_libpath}/*.dylib\")
+                foreach(_lib \${_installed_libs})
                     execute_process(
-                        COMMAND bash -c \"test -L '\${_dest}'\"
+                        COMMAND bash -c \"test -L '\${_lib}'\"
                         RESULT_VARIABLE _is_symlink)
                     if(NOT _is_symlink EQUAL 0)
-                        execute_process(
-                            COMMAND install_name_tool -id \"@rpath/\${_dep_name}\" \"\${_dest}\"
-                            ERROR_QUIET)
-                        list(APPEND _modified_bins \"\${_dest}\")
-                    endif()
-                endif()
-            endforeach()
-
-            # 2. Replace Homebrew paths in all installed dylibs
-            file(GLOB _installed_libs \"\${_libpath}/*.dylib\")
-            foreach(_lib \${_installed_libs})
-                execute_process(
-                    COMMAND bash -c \"test -L '\${_lib}'\"
-                    RESULT_VARIABLE _is_symlink)
-                if(NOT _is_symlink EQUAL 0)
-                    set(_changed FALSE)
-                    foreach(_dep \${_resolved})
-                        get_filename_component(_dep_name \"\${_dep}\" NAME)
-                        execute_process(
-                            COMMAND install_name_tool
-                                -change \"\${_dep}\" \"@rpath/\${_dep_name}\" \"\${_lib}\"
-                            RESULT_VARIABLE _chg_result
-                            ERROR_QUIET)
-                        if(_chg_result EQUAL 0)
-                            set(_changed TRUE)
+                        set(_changed FALSE)
+                        foreach(_dep \${_resolved})
+                            get_filename_component(_dep_name \"\${_dep}\" NAME)
+                            execute_process(
+                                COMMAND install_name_tool
+                                    -change \"\${_dep}\" \"@rpath/\${_dep_name}\" \"\${_lib}\"
+                                RESULT_VARIABLE _chg_result
+                                ERROR_QUIET)
+                            if(_chg_result EQUAL 0)
+                                set(_changed TRUE)
+                            endif()
+                        endforeach()
+                        if(_changed)
+                            list(APPEND _modified_bins \"\${_lib}\")
                         endif()
-                    endforeach()
-                    if(_changed)
-                        list(APPEND _modified_bins \"\${_lib}\")
                     endif()
-                endif()
-            endforeach()
+                endforeach()
 
-            # 3. Re-sign all modified binaries (required on Apple Silicon after
-            #    any load-command modification — ad-hoc signing suffices for CLI tools)
-            list(REMOVE_DUPLICATES _modified_bins)
-            foreach(_bin \${_modified_bins})
-                execute_process(
-                    COMMAND codesign --force --sign - \"\${_bin}\"
-                    ERROR_QUIET)
-            endforeach()
+                # 3. Re-sign all modified binaries (required on Apple Silicon after
+                #    any load-command modification — ad-hoc signing suffices for CLI tools)
+                list(REMOVE_DUPLICATES _modified_bins)
+                foreach(_bin \${_modified_bins})
+                    execute_process(
+                        COMMAND codesign --force --sign - \"\${_bin}\"
+                        ERROR_QUIET)
+                endforeach()
+            endif()
         endif()
     ")
 endif()

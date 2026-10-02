@@ -46,14 +46,14 @@ file(GLOB_RECURSE WIRE_MACOS_SOURCES
 # with no LLVM/libshader_shading dependency -- see the domain-split plan and
 # src/ri/CMakeLists.txt's ribVector section for why.
 set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/libribpreview.a")
-set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libopenrendercommon.a")
+set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libRIBCommon.a")
 set(LIBRIBVECTOR_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
 set(LIBRIBVECTOR_VERSIONED  "libRIBVector.${OPENRENDER_COMPAT_SOVERSION}.dylib")
 
 add_custom_command(
     OUTPUT  "${WIRE_MACOS_BINARY}"
     # SPM's own incremental build tracks Swift source files, not the externally-linked
-    # libribpreview.a/libopenrendercommon.a passed via raw -Xlinker flags below -- when only
+    # libribpreview.a/libRIBCommon.a passed via raw -Xlinker flags below -- when only
     # those C++ static libraries change (no .swift file touched), `swift build` sees "no Swift
     # sources changed" and skips relinking entirely, leaving this stale binary in place even
     # though CMake correctly re-invoked this whole custom command because its OWN DEPENDS list
@@ -118,10 +118,10 @@ install(DIRECTORY "${WIRE_MACOS_APP_DIR}"
 )
 
 install(CODE
-    "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+    "file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
      execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
         ../libexec/orender-wire.app/Contents/MacOS/orender-wire
-        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-wire\")"
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-wire\")"
 )
 
 message(STATUS "  - orender-wire-macos (Swift/Metal .app bundle via swift build)")

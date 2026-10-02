@@ -70,11 +70,15 @@ general shared libraries.
 
 ---
 
-## Static Libraries (5 archives)
+## Static Libraries (6 archives)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
 Built from the same OBJECT library as the shared variants (one compilation pass, PIC enabled).
+
+Shared internal code (`os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpace`) lives **only** in `libRIBCommon.a`. Every other archive depends on it rather than embedding its own copy, so a program linking several of them gets exactly one copy and never sees duplicate symbols, even under whole-archive linking (`-force_load`/`-all_load`/`--whole-archive`). External dependencies: libtiff/libpng/zlib, OpenEXR when enabled, pthreads/dl, and `libshader_shading` (shared) for `libRIBRender.a`. Use the CMake package (below) rather than writing the link line by hand.
+
+**`libRIBRender.a` must be linked whole-archive.** `libshader_shading` resolves ~28 `libRIBRender` symbols at load time (GitHub #24), and a plain static link only pulls the archive members the program itself references, so the program aborts at launch (`symbol not found in flat namespace '__ZTV12CTraceBundle'`). The CMake package applies this automatically (`-force_load` on macOS; `--whole-archive` + `--export-dynamic` on Linux, the latter not yet verified on Linux).
 
 | Library | Description | Location |
 |---------|-------------|----------|
@@ -83,18 +87,36 @@ Built from the same OBJECT library as the shared variants (one compilation pass,
 | `libRIBOut.a` | RIB text output static archive | `/usr/local/lib/libRIBOut.a` |
 | `libshader_compiler.a` | Shader compiler static archive | `/usr/local/lib/libshader_compiler.a` |
 | `libshader_runtime.a` | Shader runtime static archive | `/usr/local/lib/libshader_runtime.a` |
+| `libRIBCommon.a` | Shared internal code the archives above depend on (linked once) | `/usr/local/lib/libRIBCommon.a` |
+
+### Using openRender from CMake
+
+The install ships a CMake package in `${CMAKE_INSTALL_LIBDIR}/cmake/openRender/`:
+
+```cmake
+find_package(openRender 1.0 CONFIG REQUIRED)                     # shared libraries
+target_link_libraries(app PRIVATE openRender::RIBRender)
+
+find_package(openRender 1.0 CONFIG REQUIRED COMPONENTS Static)   # static archives too
+target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls openRender::RIBCommon, TIFF, PNG, ...
+```
+
+| Component | Targets | Needs at `find_package()` time |
+|-----------|---------|--------------------------------|
+| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler` | nothing; the shared libraries are self-contained |
+| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBCommon` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR) |
+
+If the static component's dependencies aren't found, plain `find_package(openRender)` still succeeds with only the shared targets. `COMPONENTS Static` as a requirement fails and names the missing dependency. Point CMake at the install with `-DCMAKE_PREFIX_PATH=<prefix>`.
 
 ---
 
-## Development Libraries (2 build-only)
+## Development Libraries (1 build-only)
 
 **Not installed** (build artifact only)
 
 | Library | Description |
 |---------|-------------|
-| `libopenrendercommon.a` | Common utilities (object code embedded in the libRIB* libraries; not installed separately) |
 | `libribpreview.a` | Scene geometry extraction for wireframe preview (`ribpreview_api.h` C API) |
-| `libshader_shading.a` | JIT-callable `op_*`/`rsl_*` ops + builtins; linked by `libRIBRender` |
 
 ---
 
@@ -210,6 +232,8 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── libRIBVector.a       # static
 │   ├── libRIBOut.dylib      # shared (versioned: libRIBOut.1.dylib)
 │   ├── libRIBOut.a          # static
+│   ├── libRIBCommon.a       # static, shared internal code (static archives depend on it)
+│   ├── cmake/openRender/    # CMake package (find_package(openRender))
 │   ├── libri.{dylib,a}      # compat aliases -> libRIBRender
 │   ├── libribVector.{dylib,a}  # compat aliases (case-sensitive volumes only)
 │   ├── libribOut.{dylib,a}  # compat aliases (case-sensitive volumes only)

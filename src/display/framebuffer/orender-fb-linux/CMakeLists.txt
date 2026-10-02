@@ -93,9 +93,9 @@ install(TARGETS orender-fb-linux
 install(CODE
     "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
         orender-fb-linux
-        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/orender-fb\")
-     file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/orender-fb\")
+     file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
      execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
         ../libexec/orender-fb-linux
-        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-fb\")"
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-fb\")"
 )

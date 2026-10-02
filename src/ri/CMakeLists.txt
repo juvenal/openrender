@@ -203,7 +203,7 @@ endif()
 # Phase C: ri links against libshader_shading (shading engine in its own library).
 # LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
 add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj>)
-set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender)
+set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
 # any target that includes ri's headers transitively.
@@ -245,7 +245,7 @@ endif()
 
 # Static library — same object files, library consumers inherit the link requirements
 add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
-set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender)
+set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender_static)
 target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
@@ -384,7 +384,7 @@ target_link_libraries(ribVector_obj PRIVATE openrendercommon ${openrendertiff_li
 # Deliberately no libshader_shading, no LLVM: that is the entire point of this
 # target existing separately from ribRender.
 add_library(ribVector SHARED $<TARGET_OBJECTS:ribVector_obj>)
-set_target_properties(ribVector PROPERTIES OUTPUT_NAME RIBVector)
+set_target_properties(ribVector PROPERTIES OUTPUT_NAME RIBVector EXPORT_NAME RIBVector)
 target_include_directories(ribVector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
@@ -423,7 +423,7 @@ endif()
 # so `orender-wire` fails at load time with "cannot open shared object file".
 # Static library -- same object files, consumers inherit the link requirements.
 add_library(ribVector_static STATIC $<TARGET_OBJECTS:ribVector_obj>)
-set_target_properties(ribVector_static PROPERTIES OUTPUT_NAME RIBVector)
+set_target_properties(ribVector_static PROPERTIES OUTPUT_NAME RIBVector EXPORT_NAME RIBVector_static)
 target_link_libraries(ribVector_static INTERFACE ${openrendertiff_libs} openrendercommon)
 if(WIN32)
     target_link_libraries(ribVector_static INTERFACE zlib ws2_32)
@@ -432,11 +432,14 @@ if(UNIX)
     target_link_libraries(ribVector_static INTERFACE z)
 endif()
 
-install(TARGETS ribVector
+install(TARGETS ribVector EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS ribVector_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(TARGETS ribVector_static EXPORT openRenderStaticTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 # ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
 # and final CRiInterface implementation, needing even less than ribVector.
@@ -504,7 +507,7 @@ target_link_libraries(ribOut_obj PRIVATE openrendercommon ${openrendertiff_libs}
 # Deliberately no libshader_shading, no LLVM, no geometry/texture/hiders: same
 # rationale as ribVector.
 add_library(ribOut SHARED $<TARGET_OBJECTS:ribOut_obj>)
-set_target_properties(ribOut PROPERTIES OUTPUT_NAME RIBOut)
+set_target_properties(ribOut PROPERTIES OUTPUT_NAME RIBOut EXPORT_NAME RIBOut)
 target_include_directories(ribOut PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
@@ -540,7 +543,7 @@ endif()
 
 # Static library -- same object files, consumers inherit the link requirements.
 add_library(ribOut_static STATIC $<TARGET_OBJECTS:ribOut_obj>)
-set_target_properties(ribOut_static PROPERTIES OUTPUT_NAME RIBOut)
+set_target_properties(ribOut_static PROPERTIES OUTPUT_NAME RIBOut EXPORT_NAME RIBOut_static)
 target_link_libraries(ribOut_static INTERFACE ${openrendertiff_libs} openrendercommon)
 if(WIN32)
     target_link_libraries(ribOut_static INTERFACE zlib ws2_32)
@@ -551,17 +554,23 @@ endif()
 
 # Built since the domain split but never installed -- the shared and static
 # libraries both ship now, like ribRender and ribVector.
-install(TARGETS ribOut
+install(TARGETS ribOut EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS ribOut_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(TARGETS ribOut_static EXPORT openRenderStaticTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
-install(TARGETS ribRender
+install(TARGETS ribRender EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS ribRender_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(TARGETS ribRender_static EXPORT openRenderStaticTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 install(FILES
     geometry/dlo.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../display/dsply.h

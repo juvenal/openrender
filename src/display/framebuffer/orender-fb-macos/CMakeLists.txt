@@ -113,11 +113,11 @@ install(DIRECTORY "${FB_MACOS_APP_DIR}"
 install(CODE
     "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
         openRender.app/Contents/MacOS/openRender
-        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/orender-fb\")
-     file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/orender-fb\")
+     file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
      execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
         ../libexec/openRender.app/Contents/MacOS/openRender
-        \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-fb\")"
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-fb\")"
 )
 
 message(STATUS "  - orender-fb-macos (Swift/SwiftUI .app bundle via swift build)")
