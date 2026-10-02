@@ -589,11 +589,24 @@ install(FILES ${doc_files} DESTINATION ${OPENRENDER_DOCDIR})
 file(GLOB man_files man/*.1)
 install(FILES ${man_files} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-# Install shader sources and includes (pre-built .rslo/.sdr objects are NOT installed;
-# they are compiled from source at install time by the oshader binary below).
+# Install shader sources and includes. The compiled .rslo/.slo objects are
+# built by shaders/CMakeLists.txt and installed from there.
+#
+# MESSAGE_NEVER + one summary line per group: the default per-file
+# "-- Installing:" output was ~90 lines for these two groups alone. Every file
+# is still recorded in install_manifest.txt. (install(FILES) has no
+# MESSAGE_NEVER, hence DIRECTORY mode; it recurses, so includes/ is excluded
+# from the .sl pass and installed by its own rule.)
 file(GLOB shader_sl_files shaders/*.sl)
-install(FILES ${shader_sl_files} DESTINATION ${OPENRENDER_SHADERDIR})
-install(DIRECTORY shaders/includes/ DESTINATION ${OPENRENDER_SHADERDIR}/includes)
+list(LENGTH shader_sl_files _n_shader_sl)
+file(GLOB shader_slh_files shaders/includes/*)
+list(LENGTH shader_slh_files _n_shader_slh)
+install(DIRECTORY shaders/ DESTINATION ${OPENRENDER_SHADERDIR} MESSAGE_NEVER
+        FILES_MATCHING PATTERN "*.sl"
+        PATTERN "includes" EXCLUDE)
+install(CODE "message(STATUS \"Installing: ${_n_shader_sl} shader sources (.sl) -> \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")")
+install(DIRECTORY shaders/includes/ DESTINATION ${OPENRENDER_SHADERDIR}/includes MESSAGE_NEVER)
+install(CODE "message(STATUS \"Installing: ${_n_shader_slh} shader headers (includes/) -> \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}/includes\")")
 
 # Install geometry files
 file(GLOB geometry_rib_files geometry/*.rib)
@@ -648,9 +661,10 @@ if(INSTALL_SELFCONTAINED)
             endif()
         endforeach()
 
-        # Collect installed shared libraries.
+        # Collect installed shared libraries (the real libRIB* files, not the
+        # libri/libribVector/libribOut compatibility aliases).
         set(_scan_libs)
-        foreach(_lib libri librslo)
+        foreach(_lib libRIBRender libRIBVector libRIBOut)
             set(_full \"\${_libpath}/\${_lib}${_sc_shared_suffix}\")
             if(EXISTS \"\${_full}\")
                 list(APPEND _scan_libs \"\${_full}\")
@@ -697,8 +711,9 @@ if(INSTALL_SELFCONTAINED)
             #     skip them to avoid overwriting the SONAME with the unversioned name.
             #   * All dylibs: replace every absolute Homebrew reference with @rpath/<name>.
             #   * Executables: skip install_name_tool to preserve code signatures.
-            #     Executables only reference libri/librslo (our own libs, already @rpath)
-            #     thanks to PRIVATE linkage of external deps in libri's CMakeLists.
+            #     Executables only reference libRIBRender/libRIBVector (our own libs,
+            #     already @rpath) thanks to PRIVATE linkage of external deps in
+            #     src/ri/CMakeLists.txt.
             #   * After modifying any binary, re-sign ad-hoc (required on Apple Silicon
             #     when load commands change).
 

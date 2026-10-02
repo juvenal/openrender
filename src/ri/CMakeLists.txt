@@ -17,10 +17,9 @@ include_directories(.)
 # texture/ (texture/texture3d/texmake/brickmap/pointCloud/pointHierarchy)
 # are shared foundation too -- both ribRender and ribVector need most of
 # this content, just not always the same methods (see the real/stub
-# extractions above). output/ (ribOut) has no CMake target of its own yet;
-# it's still compiled as a plain source file into both ribRender and
-# ribVector -- carving out a real, minimal ribOut target is a separate,
-# larger undertaking left for later.
+# extractions above). output/ (ribOut) is compiled into ribRender and
+# ribVector as a plain source file, and is also the core of its own minimal
+# ribOut library (see the ribOut section below).
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hiders)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
@@ -385,6 +384,7 @@ target_link_libraries(ribVector_obj PRIVATE openrendercommon ${openrendertiff_li
 # Deliberately no libshader_shading, no LLVM: that is the entire point of this
 # target existing separately from ribRender.
 add_library(ribVector SHARED $<TARGET_OBJECTS:ribVector_obj>)
+set_target_properties(ribVector PROPERTIES OUTPUT_NAME RIBVector)
 target_include_directories(ribVector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
@@ -421,10 +421,22 @@ endif()
 # orender-wire (src/preview/) links this directly and needs it at runtime --
 # without an install rule it's built but never lands in the deploy tree,
 # so `orender-wire` fails at load time with "cannot open shared object file".
+# Static library -- same object files, consumers inherit the link requirements.
+add_library(ribVector_static STATIC $<TARGET_OBJECTS:ribVector_obj>)
+set_target_properties(ribVector_static PROPERTIES OUTPUT_NAME RIBVector)
+target_link_libraries(ribVector_static INTERFACE ${openrendertiff_libs} openrendercommon)
+if(WIN32)
+    target_link_libraries(ribVector_static INTERFACE zlib ws2_32)
+endif()
+if(UNIX)
+    target_link_libraries(ribVector_static INTERFACE z)
+endif()
+
 install(TARGETS ribVector
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS ribVector_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
 # ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
 # and final CRiInterface implementation, needing even less than ribVector.
@@ -492,6 +504,7 @@ target_link_libraries(ribOut_obj PRIVATE openrendercommon ${openrendertiff_libs}
 # Deliberately no libshader_shading, no LLVM, no geometry/texture/hiders: same
 # rationale as ribVector.
 add_library(ribOut SHARED $<TARGET_OBJECTS:ribOut_obj>)
+set_target_properties(ribOut PROPERTIES OUTPUT_NAME RIBOut)
 target_include_directories(ribOut PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hiders>
@@ -525,26 +538,24 @@ if(APPLE)
     endif()
 endif()
 
-# libri compatibility alias: a symlink next to the real libRIBRender artifact
-# (both in the build tree and once installed), for anything not yet updated
-# to the new name. Points at the unversioned dev name, which itself resolves
-# through CMake's own VERSION/SOVERSION symlink chain for the shared library.
-add_custom_command(TARGET ribRender POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink
-        "${CMAKE_SHARED_LIBRARY_PREFIX}RIBRender${CMAKE_SHARED_LIBRARY_SUFFIX}"
-        "${CMAKE_SHARED_LIBRARY_PREFIX}ri${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    WORKING_DIRECTORY "$<TARGET_FILE_DIR:ribRender>"
-    COMMENT "Creating libri -> libRIBRender compatibility alias"
-    VERBATIM
-)
-add_custom_command(TARGET ribRender_static POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink
-        "${CMAKE_STATIC_LIBRARY_PREFIX}RIBRender${CMAKE_STATIC_LIBRARY_SUFFIX}"
-        "${CMAKE_STATIC_LIBRARY_PREFIX}ri${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    WORKING_DIRECTORY "$<TARGET_FILE_DIR:ribRender_static>"
-    COMMENT "Creating libri.a -> libRIBRender.a compatibility alias"
-    VERBATIM
-)
+# Static library -- same object files, consumers inherit the link requirements.
+add_library(ribOut_static STATIC $<TARGET_OBJECTS:ribOut_obj>)
+set_target_properties(ribOut_static PROPERTIES OUTPUT_NAME RIBOut)
+target_link_libraries(ribOut_static INTERFACE ${openrendertiff_libs} openrendercommon)
+if(WIN32)
+    target_link_libraries(ribOut_static INTERFACE zlib ws2_32)
+endif()
+if(UNIX)
+    target_link_libraries(ribOut_static INTERFACE z)
+endif()
+
+# Built since the domain split but never installed -- the shared and static
+# libraries both ship now, like ribRender and ribVector.
+install(TARGETS ribOut
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS ribOut_static ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
 install(TARGETS ribRender
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -560,18 +571,63 @@ install(FILES
     render/shadeop.h
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
-# Recreate the libri alias at install time too -- install(TARGETS) only installs
-# the real files CMake generated for ribRender/ribRender_static (including its
-# own SONAME symlink chain), not the extra alias created above by POST_BUILD.
-install(CODE
-    "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
-        \"${CMAKE_SHARED_LIBRARY_PREFIX}RIBRender${CMAKE_SHARED_LIBRARY_SUFFIX}\"
-        \"${CMAKE_SHARED_LIBRARY_PREFIX}ri${CMAKE_SHARED_LIBRARY_SUFFIX}\"
-     WORKING_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")"
-)
-install(CODE
-    "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
-        \"${CMAKE_STATIC_LIBRARY_PREFIX}RIBRender${CMAKE_STATIC_LIBRARY_SUFFIX}\"
-        \"${CMAKE_STATIC_LIBRARY_PREFIX}ri${CMAKE_STATIC_LIBRARY_SUFFIX}\"
-     WORKING_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")"
-)
+# Compatibility aliases: a symlink next to each real libRIB* artifact (both in
+# the build tree and once installed), for anything not yet updated to the new
+# name -- libri -> libRIBRender, libribVector -> libRIBVector, libribOut ->
+# libRIBOut, shared and static. Each points at the unversioned dev name, which
+# itself resolves through CMake's own VERSION/SOVERSION symlink chain for the
+# shared library.
+#
+# Two of the three differ from their target only in letter case, which on a
+# case-insensitive filesystem (the macOS default) is the same directory entry
+# -- a plain `cmake -E create_symlink` would replace the real library with a
+# symlink to itself. CMake/createCompatAlias.cmake detects that case and skips
+# the (there redundant) alias; every alias goes through it so all six share one
+# mechanism.
+#
+# These install(CODE) rules must come after the install(TARGETS) above: install
+# rules run in declaration order, and the script refuses to alias a file that
+# isn't there yet.
+#
+# Not on Windows: a .dll lands in bin/ with only its import library in lib/,
+# and symlink aliases aren't how Windows consumers find libraries anyway.
+if(NOT WIN32)
+    set(_compat_alias_script "${PROJECT_SOURCE_DIR}/CMake/createCompatAlias.cmake")
+    set(_compat_aliases
+        "ribRender:RIBRender:ri"
+        "ribVector:RIBVector:ribVector"
+        "ribOut:RIBOut:ribOut")
+    foreach(_entry IN LISTS _compat_aliases)
+        string(REPLACE ":" ";" _parts "${_entry}")
+        list(GET _parts 0 _tgt)
+        list(GET _parts 1 _real)
+        list(GET _parts 2 _alias)
+        foreach(_kind SHARED STATIC)
+            if(_kind STREQUAL "SHARED")
+                set(_kind_tgt "${_tgt}")
+            else()
+                set(_kind_tgt "${_tgt}_static")
+            endif()
+            set(_real_file  "${CMAKE_${_kind}_LIBRARY_PREFIX}${_real}${CMAKE_${_kind}_LIBRARY_SUFFIX}")
+            set(_alias_file "${CMAKE_${_kind}_LIBRARY_PREFIX}${_alias}${CMAKE_${_kind}_LIBRARY_SUFFIX}")
+            add_custom_command(TARGET ${_kind_tgt} POST_BUILD
+                COMMAND "${CMAKE_COMMAND}"
+                    "-DDIR=$<TARGET_FILE_DIR:${_kind_tgt}>"
+                    "-DTARGET_NAME=${_real_file}"
+                    "-DALIAS_NAME=${_alias_file}"
+                    -P "${_compat_alias_script}"
+                COMMENT "Creating ${_alias_file} -> ${_real_file} compatibility alias"
+                VERBATIM
+            )
+            # install(TARGETS) only installs the real files CMake generated
+            # (including its own SONAME symlink chain), not the alias above.
+            install(CODE
+                "execute_process(COMMAND \"${CMAKE_COMMAND}\"
+                    \"-DDIR=\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\"
+                    \"-DTARGET_NAME=${_real_file}\"
+                    \"-DALIAS_NAME=${_alias_file}\"
+                    -P \"${_compat_alias_script}\"
+                 COMMAND_ERROR_IS_FATAL ANY)")
+        endforeach()
+    endforeach()
+endif()
