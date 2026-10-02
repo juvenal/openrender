@@ -2755,10 +2755,41 @@ add_parity_test(env
     examples/rib/tests/parity/env-raytrace.rib
     env-raytrace.tif  20)
 
+# --- Raytraced torus (GitHub #22): no scene rendered a torus before, so ---
+# --- CToroid::intersect() went untested -- and on master it renders ---
+# --- nothing: its quartic is set up about the y axis (the torus's axis is ---
+# --- z), and solveQuartic() loses its roots through an unparenthesized ---
+# --- cbrt macro. The REYES scenes (CToroid::sample(), correct) are the ---
+# --- reference; the parity pairs gate the raytrace intersector against ---
+# --- them. torus-* adds a sphere in front of the torus (ray-interval ---
+# --- check) and a torus behind the camera (t > 0 check); torus-partial-* ---
+# --- covers phimin/phimax/thetamax and one-sided back-face culling. ---
+add_visual_test(torus-reyes
+    examples/rib/tests/torus-reyes.rib
+    torus-reyes.tif
+    torus-reyes.tif)
+
+add_visual_test(torus-partial-reyes
+    examples/rib/tests/torus-partial-reyes.rib
+    torus-partial-reyes.tif
+    torus-partial-reyes.tif)
+
+add_parity_test(torus
+    examples/rib/tests/torus-reyes.rib
+    torus-reyes.tif
+    examples/rib/tests/torus-raytrace.rib
+    torus-raytrace.tif)
+
+add_parity_test(torus-partial
+    examples/rib/tests/torus-partial-reyes.rib
+    torus-partial-reyes.tif
+    examples/rib/tests/torus-partial-raytrace.rib
+    torus-partial-raytrace.tif)
+
 # ---------------------------------------------------------------------------
 message(STATUS "  - Visual regression tests (${VISUAL_THRESHOLD}/255 threshold):")
-message(STATUS "      185 scenes registered under label 'visual'")
-message(STATUS "  - Cross-hider parity tests: 79 scene pairs registered under label 'parity'")
+message(STATUS "      187 scenes registered under label 'visual'")
+message(STATUS "  - Cross-hider parity tests: 81 scene pairs registered under label 'parity'")
 message(STATUS "  - Blobby RIB round-trip parity: 1 pairing (writer vs. direct declaration)")
 message(STATUS "  - FR-011 manual-only perf comparisons: 6 scenes registered under label 'perf-manual' (never run by default/CI ctest)")
 message(STATUS "  - Authored-but-not-required tests: 7 scenes registered under label 'not-required'")

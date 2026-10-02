@@ -57,6 +57,7 @@ add_subdirectory(unit/csg)
 add_subdirectory(unit/blobby)
 add_subdirectory(unit/image_input)
 add_subdirectory(unit/texture_tile)
+add_subdirectory(unit/polynomial)
 
 # Print test information
 message(STATUS "Configured tests:")
