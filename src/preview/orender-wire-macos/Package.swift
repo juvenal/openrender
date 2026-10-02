@@ -49,7 +49,7 @@ let package = Package(
                 .linkedFramework("MetalKit"),
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),
-                // libribpreview.a/libopenrendercommon.a are raw C++ (exceptions + RTTI:
+                // libribpreview.a/libRIBCommon.a are raw C++ (exceptions + RTTI:
                 // ___cxa_throw/___dynamic_cast/___gxx_personality_v0), and swiftc's own
                 // driver -- unlike clang++ -- does not implicitly link libc++. Surfaced
                 // only after raising the platform floor to .v13 above; some other linked

@@ -61,6 +61,7 @@ endif()
 add_library(libshader_shading SHARED ${shading_sources})
 set_target_properties(libshader_shading PROPERTIES
     OUTPUT_NAME shader_shading
+    EXPORT_NAME shader_shading
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
 )
@@ -112,7 +113,7 @@ target_include_directories(libshader_shading PRIVATE
 )
 # Public headers: the RSLShading.h API consumed by ri/ and external callers.
 target_include_directories(libshader_shading PUBLIC
-    ${CMAKE_SOURCE_DIR}/src/libshader/include
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/libshader/include>
 )
 
 target_link_libraries(libshader_shading PRIVATE openrendercommon)
@@ -120,7 +121,9 @@ target_link_libraries(libshader_shading PRIVATE openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
     # PUBLIC so that ri (which links this shared lib) automatically gets LLVM
     # on its link line without ri/CMakeLists.txt having to add it again.
-    target_link_libraries(libshader_shading PUBLIC ${SHADING_LLVM_LIBS})
+    # BUILD_INTERFACE: only in-tree; LLVM is already linked into this shared
+    # library, and an exported consumer cannot resolve LLVM component names.
+    target_link_libraries(libshader_shading PUBLIC "$<BUILD_INTERFACE:${SHADING_LLVM_LIBS}>")
 # SYSTEM: emit LLVM's headers via -isystem so GCC stops diagnosing code we do
 # not own. LLVM 18 produces -Wredundant-move from its ORC headers, and
 # -Wnull-dereference from BasicBlock::getTerminator() inlined into our call
@@ -133,8 +136,9 @@ if(OPENRENDER_HAVE_LLVM)
 endif()
 
 # Install the shared library
-install(TARGETS libshader_shading
+install(TARGETS libshader_shading EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )

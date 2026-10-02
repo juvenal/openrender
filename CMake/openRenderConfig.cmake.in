@@ -1,0 +1,87 @@
+# openRenderConfig.cmake -- CMake package configuration for an installed openRender.
+#
+#   find_package(openRender CONFIG REQUIRED)                     # shared libraries
+#   find_package(openRender CONFIG REQUIRED COMPONENTS Static)   # + static archives
+#
+# Components
+#   Shared  (always available)
+#     openRender::RIBRender       full renderer (RenderMan Interface)
+#     openRender::RIBVector       geometry-only RI extraction, no shading/LLVM
+#     openRender::RIBOut          RIB text output
+#     openRender::shader_shading  shading engine
+#     openRender::shader_runtime  .rslo/.slo loader
+#     openRender::shader_compiler RSL compiler
+#   Static  (available when its external dependencies are found: TIFF, PNG,
+#            Threads@OPENRENDER_CONFIG_OPENEXR_NOTE@)
+#     openRender::RIBRender_static, RIBVector_static, RIBOut_static,
+#     shader_runtime_static, shader_compiler_static, and openRender::RIBCommon
+#     (shared internal code every static archive depends on; linked
+#     automatically, exactly once)
+#
+# The shared libraries are self-contained: they need nothing from this
+# machine's TIFF/PNG/OpenEXR/LLVM development files, so a find_package() that
+# only uses them works against a self-contained install that bundles its
+# runtime libraries. The static component is only offered when those
+# dependencies resolve here.
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/openRenderTargets.cmake")
+set(openRender_Shared_FOUND TRUE)
+
+# ---- Static component ------------------------------------------------------
+# Plain find_package(... QUIET), not find_dependency(): a missing static-only
+# dependency must leave the shared component usable, whereas find_dependency()
+# would mark the whole package as not found.
+set(_openRender_static_dep_targets "@OPENRENDER_CONFIG_STATIC_DEP_TARGETS@")
+if(UNIX)
+    find_package(Threads QUIET)
+endif()
+find_package(TIFF QUIET)
+find_package(PNG QUIET)
+if(@OPENRENDER_CONFIG_HAVE_OPENEXR@)
+    find_package(Imath CONFIG QUIET)
+    find_package(OpenEXR CONFIG QUIET)
+endif()
+
+set(_openRender_static_missing "")
+foreach(_dep IN LISTS _openRender_static_dep_targets)
+    if(NOT TARGET ${_dep})
+        list(APPEND _openRender_static_missing ${_dep})
+    endif()
+endforeach()
+
+if(_openRender_static_missing)
+    set(openRender_Static_FOUND FALSE)
+    set(openRender_Static_NOT_FOUND_MESSAGE
+        "openRender static archives need these dependencies, which were not found: ${_openRender_static_missing}")
+else()
+    include("${CMAKE_CURRENT_LIST_DIR}/openRenderStaticTargets.cmake")
+    set(openRender_Static_FOUND TRUE)
+
+    # libshader_shading resolves ~28 libRIBRender symbols at load time
+    # (flat-namespace / --allow-shlib-undefined; GitHub #24). A static link
+    # only pulls the archive members the program itself references, so those
+    # symbols would be missing and the program aborts at launch
+    # ("symbol not found in flat namespace '__ZTV12CTraceBundle'"). Load the
+    # whole archive, and on ELF export the executable's symbols so the shared
+    # library can bind to them.
+    if(APPLE)
+        set_property(TARGET openRender::RIBRender_static APPEND PROPERTY
+            INTERFACE_LINK_OPTIONS
+            "LINKER:-force_load,$<TARGET_FILE:openRender::RIBRender_static>")
+    elseif(UNIX)
+        set_property(TARGET openRender::RIBRender_static APPEND PROPERTY
+            INTERFACE_LINK_OPTIONS
+            "LINKER:--whole-archive,$<TARGET_FILE:openRender::RIBRender_static>,--no-whole-archive"
+            "LINKER:--export-dynamic")
+    endif()
+endif()
+unset(_openRender_static_missing)
+unset(_openRender_static_dep_targets)
+
+check_required_components(openRender)
+# check_required_components() only clears openRender_FOUND; say why.
+if(NOT openRender_FOUND AND openRender_Static_NOT_FOUND_MESSAGE)
+    set(openRender_NOT_FOUND_MESSAGE "${openRender_Static_NOT_FOUND_MESSAGE}")
+endif()

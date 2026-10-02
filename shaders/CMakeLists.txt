@@ -75,6 +75,23 @@ endif()
 
 # Install the compiled objects that the build just produced, instead of
 # recompiling them at install time.
+#
+# One summary line per format instead of CMake's per-file "-- Installing:"
+# output (138 lines with the JIT on). MESSAGE_NEVER only silences the
+# per-file messages -- every file is still recorded in install_manifest.txt.
+# The CMakeFiles exclusion stops DIRECTORY mode from recreating the build
+# dir's (empty, once filtered) CMakeFiles/ subdirectory in the install tree.
 install(DIRECTORY "${SHADER_BUILD_DIR}/"
         DESTINATION "${OPENRENDER_SHADERDIR}"
-        FILES_MATCHING PATTERN "*.rslo" PATTERN "*.slo")
+        MESSAGE_NEVER
+        FILES_MATCHING PATTERN "*.rslo"
+        PATTERN "CMakeFiles" EXCLUDE)
+install(CODE "message(STATUS \"Installing: ${_n_sl} compiled shaders (.rslo) -> \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")")
+if(OPENRENDER_HAVE_LLVM)
+    install(DIRECTORY "${SHADER_BUILD_DIR}/"
+            DESTINATION "${OPENRENDER_SHADERDIR}"
+            MESSAGE_NEVER
+            FILES_MATCHING PATTERN "*.slo"
+            PATTERN "CMakeFiles" EXCLUDE)
+    install(CODE "message(STATUS \"Installing: ${_n_sl} compiled shaders (.slo, JIT) -> \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${OPENRENDER_SHADERDIR}\")")
+endif()

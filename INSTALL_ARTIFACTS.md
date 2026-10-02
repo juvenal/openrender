@@ -24,16 +24,32 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 ---
 
-## Shared Libraries (2 dylibs)
+## Shared Libraries (6 dylibs)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
-Both libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libri.dylib → libri.1.dylib`). The SOVERSION defaults to the current major version and can be overridden with `-DOPENRENDER_COMPAT_SOVERSION=<n>`.
+All shared libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libRIBRender.dylib → libRIBRender.1.dylib → libRIBRender.1.0.0.dylib`). The SOVERSION defaults to the current major version and can be overridden with `-DOPENRENDER_COMPAT_SOVERSION=<n>`.
 
 | Library | Description | Location |
 |---------|-------------|----------|
-| `libri.dylib` | RenderMan Interface library (core) | `/usr/local/lib/libri.dylib` |
-| `librslo.dylib` | Shader runtime library | `/usr/local/lib/librslo.dylib` |
+| `libRIBRender.dylib` | RenderMan Interface library — full renderer | `/usr/local/lib/libRIBRender.dylib` |
+| `libRIBVector.dylib` | Geometry-only RI extraction (no shading/LLVM), used by `orender-wire` | `/usr/local/lib/libRIBVector.dylib` |
+| `libRIBOut.dylib` | RIB text output (`CRibOut`) — re-serializes Ri calls as RIB | `/usr/local/lib/libRIBOut.dylib` |
+| `libshader_compiler.dylib` | RSL shader compiler library | `/usr/local/lib/libshader_compiler.dylib` |
+| `libshader_runtime.dylib` | `.rslo`/`.slo` shader runtime loader | `/usr/local/lib/libshader_runtime.dylib` |
+| `libshader_shading.dylib` | Shading engine (JIT-callable `op_*`/`rsl_*` ops + builtins) | `/usr/local/lib/libshader_shading.dylib` |
+
+### Compatibility aliases
+
+Each `libRIB*` library also gets a lowercase-named symlink, shared and static, for consumers not yet updated to the new names:
+
+| Alias | Points to |
+|-------|-----------|
+| `libri.dylib` / `libri.a` | `libRIBRender.dylib` / `libRIBRender.a` |
+| `libribVector.dylib` / `libribVector.a` | `libRIBVector.dylib` / `libRIBVector.a` |
+| `libribOut.dylib` / `libribOut.a` | `libRIBOut.dylib` / `libRIBOut.a` |
+
+`libribVector`/`libribOut` differ from their targets only in letter case. On a case-insensitive filesystem (the macOS default) the old spelling already resolves to the real file, so those aliases are skipped there (`CMake/createCompatAlias.cmake`); creating them would overwrite the real library with a symlink to itself.
 
 ---
 
@@ -54,29 +70,53 @@ general shared libraries.
 
 ---
 
-## Static Libraries (2 archives)
+## Static Libraries (6 archives)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
 Built from the same OBJECT library as the shared variants (one compilation pass, PIC enabled).
 
+Shared internal code (`os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpace`) lives **only** in `libRIBCommon.a`. Every other archive depends on it rather than embedding its own copy, so a program linking several of them gets exactly one copy and never sees duplicate symbols, even under whole-archive linking (`-force_load`/`-all_load`/`--whole-archive`). External dependencies: libtiff/libpng/zlib, OpenEXR when enabled, pthreads/dl, and `libshader_shading` (shared) for `libRIBRender.a`. Use the CMake package (below) rather than writing the link line by hand.
+
+**`libRIBRender.a` must be linked whole-archive.** `libshader_shading` resolves ~28 `libRIBRender` symbols at load time (GitHub #24), and a plain static link only pulls the archive members the program itself references, so the program aborts at launch (`symbol not found in flat namespace '__ZTV12CTraceBundle'`). The CMake package applies this automatically (`-force_load` on macOS; `--whole-archive` + `--export-dynamic` on Linux, the latter not yet verified on Linux).
+
 | Library | Description | Location |
 |---------|-------------|----------|
-| `libri.a` | RenderMan Interface static archive | `/usr/local/lib/libri.a` |
-| `librslo.a` | Shader runtime static archive | `/usr/local/lib/librslo.a` |
+| `libRIBRender.a` | RenderMan Interface (full renderer) static archive | `/usr/local/lib/libRIBRender.a` |
+| `libRIBVector.a` | Geometry-only RI extraction static archive | `/usr/local/lib/libRIBVector.a` |
+| `libRIBOut.a` | RIB text output static archive | `/usr/local/lib/libRIBOut.a` |
+| `libshader_compiler.a` | Shader compiler static archive | `/usr/local/lib/libshader_compiler.a` |
+| `libshader_runtime.a` | Shader runtime static archive | `/usr/local/lib/libshader_runtime.a` |
+| `libRIBCommon.a` | Shared internal code the archives above depend on (linked once) | `/usr/local/lib/libRIBCommon.a` |
+
+### Using openRender from CMake
+
+The install ships a CMake package in `${CMAKE_INSTALL_LIBDIR}/cmake/openRender/`:
+
+```cmake
+find_package(openRender 1.0 CONFIG REQUIRED)                     # shared libraries
+target_link_libraries(app PRIVATE openRender::RIBRender)
+
+find_package(openRender 1.0 CONFIG REQUIRED COMPONENTS Static)   # static archives too
+target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls openRender::RIBCommon, TIFF, PNG, ...
+```
+
+| Component | Targets | Needs at `find_package()` time |
+|-----------|---------|--------------------------------|
+| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler` | nothing; the shared libraries are self-contained |
+| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBCommon` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR) |
+
+If the static component's dependencies aren't found, plain `find_package(openRender)` still succeeds with only the shared targets. `COMPONENTS Static` as a requirement fails and names the missing dependency. Point CMake at the install with `-DCMAKE_PREFIX_PATH=<prefix>`.
 
 ---
 
-## Development Libraries (2 build-only)
+## Development Libraries (1 build-only)
 
 **Not installed** (build artifact only)
 
 | Library | Description |
 |---------|-------------|
-| `libopenrendercommon.a` | Common utilities (object code embedded in libri/librslo; not installed separately) |
 | `libribpreview.a` | Scene geometry extraction for wireframe preview (`ribpreview_api.h` C API) |
-| `libshader_shading.a` | JIT-callable `op_*`/`rsl_*` ops + builtins; embedded in `libri` at link time |
-| `libshader_compiler.a` | Shader compiler library; embedded in `oshader` at link time |
 
 ---
 
@@ -117,13 +157,23 @@ From `src/file/CMakeLists.txt`:
 
 ---
 
-## Shader Files (54 files)
+## Shader Files
 
 Installed to: `${OPENRENDER_SHADERDIR}` → `/usr/local/shaders/`
 
 Includes:
 - `.sl` files - Shader source files (RenderMan Shading Language)
-- `.rslo` / `.slo` files - Compiled shader files (`.slo` = LLVM bitcode, produced on demand by `oshader --jit`)
+- `includes/*.slh` - Shader headers
+- `.rslo` / `.slo` files - Compiled shader files, built by `shaders/CMakeLists.txt` as a build step (`.slo` = LLVM bitcode, only when the JIT is enabled)
+
+Each group is installed in one go and reported with a single summary line instead of one `-- Installing:` line per file (every file is still recorded in `install_manifest.txt`):
+
+```
+-- Installing: 104 shader sources (.sl) -> /usr/local/shaders
+-- Installing: 20 shader headers (includes/) -> /usr/local/shaders/includes
+-- Installing: 104 compiled shaders (.rslo) -> /usr/local/shaders
+-- Installing: 104 compiled shaders (.slo, JIT) -> /usr/local/shaders
+```
 
 Examples:
 - Surface shaders: `plastic.sl`, `matte.sl`, `metal.sl`, etc.
@@ -176,10 +226,18 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── rsloinfo -> sloinfo
 │   └── otexmake
 ├── lib/
-│   ├── libri.dylib          # shared (versioned: libri.1.dylib)
-│   ├── libri.a              # static
-│   ├── librslo.dylib        # shared (versioned: librslo.1.dylib)
-│   └── librslo.a            # static
+│   ├── libRIBRender.dylib   # shared (versioned: libRIBRender.1.dylib)
+│   ├── libRIBRender.a       # static
+│   ├── libRIBVector.dylib   # shared (versioned: libRIBVector.1.dylib)
+│   ├── libRIBVector.a       # static
+│   ├── libRIBOut.dylib      # shared (versioned: libRIBOut.1.dylib)
+│   ├── libRIBOut.a          # static
+│   ├── libRIBCommon.a       # static, shared internal code (static archives depend on it)
+│   ├── cmake/openRender/    # CMake package (find_package(openRender))
+│   ├── libri.{dylib,a}      # compat aliases -> libRIBRender
+│   ├── libribVector.{dylib,a}  # compat aliases (case-sensitive volumes only)
+│   ├── libribOut.{dylib,a}  # compat aliases (case-sensitive volumes only)
+│   └── libshader_{compiler,runtime,shading}.*
 ├── include/
 │   ├── dlo.h
 │   ├── dsply.h
@@ -237,8 +295,8 @@ end
 ### Required Libraries
 ```ruby
 test do
-  assert_predicate lib/"libri.dylib", :exist?
-  assert_predicate lib/"librslo.dylib", :exist?
+  assert_predicate lib/"libRIBRender.dylib", :exist?
+  assert_predicate lib/"libRIBOut.dylib", :exist?
 end
 ```
 

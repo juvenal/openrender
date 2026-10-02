@@ -32,25 +32,31 @@ target_link_libraries(libshader_runtime_obj PRIVATE openrendercommon)
 # Shared + static libraries
 add_library(libshader_runtime SHARED
     $<TARGET_OBJECTS:libshader_runtime_obj>)
-target_link_libraries(libshader_runtime PUBLIC openrendercommon)
+# BUILD_INTERFACE: the shared library already contains openrendercommon's
+# objects; only in-tree consumers keep inheriting its usage requirements.
+target_link_libraries(libshader_runtime PUBLIC $<BUILD_INTERFACE:openrendercommon>)
 target_include_directories(libshader_runtime PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 set_target_properties(libshader_runtime PROPERTIES
     OUTPUT_NAME   shader_runtime
     VERSION       ${PROJECT_VERSION}
     SOVERSION     ${OPENRENDER_COMPAT_SOVERSION}
-    PREFIX        "lib")
+    PREFIX        "lib"
+    EXPORT_NAME   shader_runtime)
 
 add_library(libshader_runtime_static STATIC
     $<TARGET_OBJECTS:libshader_runtime_obj>)
 set_target_properties(libshader_runtime_static PROPERTIES
-    OUTPUT_NAME shader_runtime)
+    OUTPUT_NAME shader_runtime
+    EXPORT_NAME shader_runtime_static)
 target_link_libraries(libshader_runtime_static INTERFACE openrendercommon)
 
-install(TARGETS libshader_runtime
+install(TARGETS libshader_runtime EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-install(TARGETS libshader_runtime_static
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(TARGETS libshader_runtime_static EXPORT openRenderStaticTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 install(FILES rslo.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

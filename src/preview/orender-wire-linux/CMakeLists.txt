@@ -66,10 +66,10 @@ target_link_options(orender-wire-linux PRIVATE ${GTK4_LDFLAGS_OTHER} ${ADWAITA_L
 # still plain "orender-wire" on disk, in the build tree and once installed.
 #
 # BUILD_WITH_INSTALL_RPATH is intentionally left at its default (FALSE): setting it TRUE would
-# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libribVector.so)
+# bake INSTALL_RPATH ($ORIGIN/../lib, correct once installed to libexec/ next to lib/libRIBVector.so)
 # into the *build-tree* binary too, where $ORIGIN/../lib resolves to a directory that doesn't
-# exist (libribVector.so actually lives under build/src/ri/) -- the binary would fail to even start
-# ("error while loading shared libraries: libribVector.so.1: cannot open shared object file") when run
+# exist (libRIBVector.so actually lives under build/src/ri/) -- the binary would fail to even start
+# ("error while loading shared libraries: libRIBVector.so.1: cannot open shared object file") when run
 # directly from build/, which is exactly how this gets tested during development. Leaving this
 # unset lets CMake auto-compute a correct build-tree RPATH while still applying INSTALL_RPATH at
 # actual `cmake --install` time.
@@ -87,4 +87,9 @@ set_target_properties(orender-wire-linux PROPERTIES
 )
 
 install(TARGETS orender-wire-linux DESTINATION libexec)
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../libexec/orender-wire ${CMAKE_INSTALL_PREFIX}/bin/orender-wire)")
+install(CODE
+    "file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+     execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+        ../libexec/orender-wire
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/orender-wire\")"
+)
