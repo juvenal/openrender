@@ -30,6 +30,8 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include <algorithm>
+
 #include "common/os.h"
 #include "common/polynomial.h"
 #include "memory.h"
@@ -2917,143 +2919,111 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
     vector oFrom, oDir;
     transform(oFrom, oDir, xform, rv);
 
+    // nextData holds {rmin, rmax, vmin, vmax, umax}, as the constructor and
+    // sample() lay it out
     double rmin, rmax, umax, vmin, vmax;
 
     if (nextData != NULL) {
         rmin = (float)(this->rmin * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
         rmax = (float)(this->rmax * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
+        vmin = (float)(this->vmin * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
         vmax = (float)(this->vmax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
-        vmin = (float)(this->vmin * (1.0 - (double)rv->time) + nextData[4] * (double)rv->time);
+        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[4] * (double)rv->time);
     }
     else {
         rmin = this->rmin;
         rmax = this->rmax;
-        umax = this->umax;
-        vmax = this->vmax;
         vmin = this->vmin;
+        vmax = this->vmax;
+        umax = this->umax;
     }
 
-    {
-        int ns;
-        double s[5];
-        double c[5];
-        int i;
-        const float *from = oFrom;
-        const float *dir = oDir;
+    // The torus about the z axis (as sample() generates it), with major radius
+    // R = rmax and tube radius r = rmin:
+    //   (|P|^2 + R^2 - r^2)^2 - 4 R^2 (x^2 + y^2) = 0
+    // For P = F + t D (D as transformed, not normalized, so t stays the ray's
+    // own parameter): |P|^2 = a t^2 + b t + c
+    const double F[3] = {oFrom[COMP_X], oFrom[COMP_Y], oFrom[COMP_Z]};
+    const double D[3] = {oDir[COMP_X], oDir[COMP_Y], oDir[COMP_Z]};
+    const double R2 = rmax * rmax;
+    const double a = D[0] * D[0] + D[1] * D[1] + D[2] * D[2];
+    const double b = 2 * (F[0] * D[0] + F[1] * D[1] + F[2] * D[2]);
+    const double e = F[0] * F[0] + F[1] * F[1] + F[2] * F[2] + R2 - rmin * rmin;
+    double c[5], s[4];
+    c[4] = a * a;
+    c[3] = 2 * a * b;
+    c[2] = b * b + 2 * a * e - 4 * R2 * (D[0] * D[0] + D[1] * D[1]);
+    c[1] = 2 * b * e - 8 * R2 * (F[0] * D[0] + F[1] * D[1]);
+    c[0] = e * e - 4 * R2 * (F[0] * F[0] + F[1] * F[1]);
 
-        double R2 = rmax * rmax;
-        double r2 = rmin * rmin;
-        double Py2 = from[COMP_Y] * from[COMP_Y];
-        double Dy2 = dir[COMP_Y] * dir[COMP_Y];
-        double PDy2 = from[COMP_Y] * dir[COMP_Y];
-        double k1 = from[COMP_X] * from[COMP_X] + from[COMP_Z] * from[COMP_Z] + Py2 - R2 - r2;
-        double k2 = from[COMP_X] * dir[COMP_X] + from[COMP_Z] * dir[COMP_Z] + PDy2;
-        c[4] = 1.0;
-        c[3] = 4.0 * k2;
-        c[2] = 2.0 * (k1 + 2.0 * (k2 * k2 + R2 * Dy2));
-        c[1] = 4.0 * (k2 * k1 + 2.0 * R2 * PDy2);
-        c[0] = k1 * k1 + 4.0 * R2 * (Py2 - r2);
+    if (c[4] == 0)
+        return;
 
-        /*
-        double		ab	=	dotvv(from,dir);
-        double		aa	=	dotvv(from,from);
-        double		K	=	aa - rmin*rmin - rmax*rmax;
+    const int ns = solveQuartic<double>(c, s);
+    std::sort(s, s + ns); // Nearest first
 
-        c[4]	=	1;
-        c[3]	=	4*ab;
-        c[2]	=	2*(2*ab*ab + K + 2*rmax*rmax*dir[COMP_Z]*dir[COMP_Z]);
-        c[1]	=	4*(K*ab + 2*rmax*rmax*from[COMP_Z]*dir[COMP_Z]);
-        c[0]	=	K*K + 4*rmax*rmax*(from[COMP_Z]*from[COMP_Z] - rmin*rmin);
-        */
+    const double vlo = std::min(vmin, vmax), vhi = std::max(vmin, vmax);
 
-        // Solve the polynomial
-        ns = solveQuartic<double>(c, s);
+    for (int i = 0; i < ns; i++) {
+        const double t = s[i];
 
-        for (i = 0; i < ns; i++) {
-            float t;
-            double P[3];
-            int j, k;
-            double u, v, r;
-            vector Nt;
-
-            // Extract the minimum intersection (the intersections are not sorted)
-            t = C_INFINITY;
-            for (j = 0; j < ns; j++) {
-                if (s[j] < t) {
-                    t = (float)s[j];
-                    k = j;
-                }
-            }
-            s[k] = C_INFINITY;
-
-            v = c[4] * t * t * t * t + c[3] * t * t * t + c[2] * t * t + c[1] * t + c[0];
-            assert(v * v < C_EPSILON);
-
-            // if (t <= rv->tmin)	continue;
-            // if (t >= rv->t)		return;
-
-            P[0] = from[0] + dir[0] * t;
-            P[1] = from[1] + dir[1] * t;
-            P[2] = from[2] + dir[2] * t;
-
-            if (rmax > 0)
-                u = atan2(P[COMP_Y], P[COMP_X]);
-            else
-                u = atan2(-P[COMP_Y], -P[COMP_X]);
-            if (u < 0)
-                u = 2 * C_PI + u;
-
-            if (umax < 0) {
-                u = u - 2 * C_PI;
-                // if (u < umax) continue;
-            }
-            else {
-                // if (u > umax) continue;
-            }
-
-            r = sqrt(P[COMP_X] * P[COMP_X] + P[COMP_Y] * P[COMP_Y]) - fabs(rmax);
-
-            if (rmin > 0)
-                v = atan2(P[COMP_Z], r);
-            else
-                v = atan2(-P[COMP_Z], -r);
-            if (v < 0)
-                v = 2 * C_PI + v;
-
-            if (vmin < vmax) {
-                // if (v < vmin)	continue;
-                // if (v > vmax)	continue;
-            }
-            else {
-                // if (v < vmax)	continue;
-                // if (v > vmin)	continue;
-            }
-
-            // compute the normal vector
-            Nt[COMP_X] = (float)(rmin * umax * (vmax - vmin) * cos(u) * cos(v) * (rmax + rmin * cos(v)));
-            Nt[COMP_Y] = (float)(rmin * umax * (vmax - vmin) * cos(v) * (rmax + rmin * cos(v)) * sin(u));
-            Nt[COMP_Z] = (float)(rmin * umax * (vmax - vmin) * (rmax + rmin * cos(v)) * sin(v));
-
-            if ((attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ^ xform->flip) {
-                mulvf(Nt, -1);
-            }
-
-            if (!(attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED)) {
-                // if (dotvv(oDir,Nt) > 0) continue;
-            }
-
-            u = u / umax;
-            v = (v - vmin) / (vmax - vmin);
-
-            rv->object = this;
-            rv->u = (float)u;
-            rv->v = (float)v;
-            rv->t = (float)t;
-            mulmn(rv->N, xform->to, Nt);
-
+        if (t <= rv->tmin)
+            continue;
+        if (t >= rv->t)
             return;
+
+        const double P[3] = {F[0] + D[0] * t, F[1] + D[1] * t, F[2] + D[2] * t};
+
+        // Sweep around the axis
+        double u = (rmax > 0) ? atan2(P[COMP_Y], P[COMP_X]) : atan2(-P[COMP_Y], -P[COMP_X]);
+        if (u < 0)
+            u = 2 * C_PI + u;
+        if (umax < 0) {
+            u = u - 2 * C_PI;
+            if (u < umax)
+                continue;
         }
+        else {
+            if (u > umax)
+                continue;
+        }
+
+        // Angle around the tube, brought into [vmin, vmax] if any turn of it is
+        const double rho = sqrt(P[COMP_X] * P[COMP_X] + P[COMP_Y] * P[COMP_Y]) - fabs(rmax);
+        double v = (rmin > 0) ? atan2(P[COMP_Z], rho) : atan2(-P[COMP_Z], -rho);
+        bool inRange = false;
+        for (int k = -2; k <= 2 && !inRange; k++) {
+            const double w = v + k * 2 * C_PI;
+            if (w >= vlo && w <= vhi) {
+                v = w;
+                inRange = true;
+            }
+        }
+        if (!inRange)
+            continue;
+
+        // The normal sample() derives (dPdu x dPdv)
+        vector Nt;
+        const double scale = rmin * umax * (vmax - vmin) * (rmax + rmin * cos(v));
+        Nt[COMP_X] = (float)(scale * cos(u) * cos(v));
+        Nt[COMP_Y] = (float)(scale * sin(u) * cos(v));
+        Nt[COMP_Z] = (float)(scale * sin(v));
+
+        if ((attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ^ xform->flip) {
+            mulvf(Nt, -1);
+        }
+
+        if (!(attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED)) {
+            if (dotvv(oDir, Nt) > 0)
+                continue;
+        }
+
+        rv->object = this;
+        rv->u = (float)(u / umax);
+        rv->v = (float)((v - vmin) / (vmax - vmin));
+        rv->t = (float)t;
+        mulmn(rv->N, xform->to, Nt);
+        return;
     }
 }
 

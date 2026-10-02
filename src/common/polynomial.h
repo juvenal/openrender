@@ -21,6 +21,7 @@
 #define POLYNOMIAL_H
 
 #include "global.h"
+#include <cmath>
 #include <math.h>
 
 ////////////////////////////////////////////////////////////////////////////
@@ -32,7 +33,6 @@
 //
 //
 ////////////////////////////////////////////////////////////////////////////
-#define cbrt(x) ((x) > 0.0 ? pow(x, 1.0 / 3.0) : ((x) < 0.0 ? -pow(-x, 1.0 / 3.0) : 0.0))
 
 template <class T>
 inline int solveQuadric(T a, T b, T c, T *r) {
@@ -64,6 +64,12 @@ inline int solveQuadric(T a, T b, T c, T *r) {
     }
 }
 
+// u = z^2 - r and v = 2 z - p in solveQuartic() are differences of rounded
+// terms: for a quartic symmetric about its centre one is mathematically zero
+// but rounds to a tiny negative, which would lose every root. They count as
+// zero within this fraction of the terms' own magnitude.
+const double kQuarticRelativeZero = 1e-12;
+
 template <class T>
 inline int solveCubic(T c[4], T s[3]) {
     int i, num;
@@ -90,7 +96,7 @@ inline int solveCubic(T c[4], T s[3]) {
             num = 1;
         }
         else {
-            double u = (cbrt(-q));
+            double u = (std::cbrt(-q));
             sd[0] = 2 * u;
             sd[1] = -u;
             num = 2;
@@ -107,8 +113,8 @@ inline int solveCubic(T c[4], T s[3]) {
     }
     else {
         double sqrt_D = sqrt(D);
-        double u = cbrt(sqrt_D - q);
-        double v = -cbrt(sqrt_D + q);
+        double u = std::cbrt(sqrt_D - q);
+        double v = -std::cbrt(sqrt_D + q);
 
         sd[0] = (u + v);
         num = 1;
@@ -164,14 +170,14 @@ inline int solveQuartic(T c[5], T s[4]) {
         u = z * z - r;
         v = 2 * z - p;
 
-        if (u == 0)
+        if (fabs(u) <= kQuarticRelativeZero * fmax(1.0, fmax(z * z, fabs(r))))
             u = 0;
         else if (u > 0)
             u = sqrt(u);
         else
             return 0;
 
-        if (v == 0)
+        if (fabs(v) <= kQuarticRelativeZero * fmax(1.0, fmax(fabs(2 * z), fabs(p))))
             v = 0;
         else if (v > 0)
             v = sqrt(v);

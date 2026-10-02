@@ -71,6 +71,24 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: a raytraced torus rendered nothing — in the raytrace hider and in every raytraced lookup (FIXED —
+      GitHub #22, branch `fix/torus-raytrace`). Two defects that masked each other:
+      `src/common/polynomial.h` defined `#define cbrt(x) (... -pow(-x, 1.0 / 3.0) ...)` without parenthesizing
+      the negated argument, so `solveCubic()`'s `cbrt(sqrt_D + q)` became `pow(-sqrt_D + q, 1/3)`, a NaN, and
+      `solveQuartic()` lost every root for 77% of the rays that hit a torus. And `CToroid::intersect()`
+      (`src/ri/geometry/quadrics.cpp`) set its quartic up about the y axis, while `sample()` and RISpec put the
+      torus on z — fixing either one alone draws the wrong torus. The intersector also had its
+      `tmin`/`t`, `thetamax` and `phimin`/`phimax` checks commented out, no back-face test, an
+      assert compiled out in Release builds, and read the motion-blur `nextData` in the wrong order
+      (`{umax, vmax, vmin}` for the constructor's `{vmin, vmax, umax}`). Fixed by dropping the macro for
+      `std::cbrt`, giving `solveQuartic()`'s `u`/`v` zero tests a relative tolerance (a quartic symmetric
+      about its centre, e.g. roots 1, 2, 3, 4, otherwise rounded `u` to -1.7e-16 and lost all roots — the
+      Graphics Gems original used an `IsZero` epsilon there), and rewriting the intersector about z with
+      every range, interval and back-face check restored. `solveQuartic()`'s only caller is the torus, so no
+      other primitive changes. No scene rendered a torus before; covered now by `Polynomial_Solvers`
+      (`tests/unit/polynomial/`), `Visual_torus-{reyes,raytrace}`, `Visual_torus-partial-{reyes,raytrace}`
+      and `Parity_torus`/`Parity_torus-partial` (a sphere in front of the torus and a torus behind the camera
+      exercise the ray-interval checks; the partial torus, the parametric ranges and back-face culling).
 - [x] Bug: `.rslo` interpreter crashed on `usfroma` — a varying-index read of a `uniform string` array (e.g.
       `usarr[findex] == "a"` with `findex` varying) crashed inside `CShadingContext::execute`, while every
       sibling array opcode (matched-uniformity numeric reads, mismatched-uniformity numeric reads,
