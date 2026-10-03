@@ -42,6 +42,20 @@
 
 [Gates determined based on constitution file]
 
+**Principle VIII — Domain Separation and Modular Boundaries** (every plan):
+
+- [ ] Domains touched are named (Scene Interface, Graphics State, Geometry, Hiders, Shading,
+      Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs; or renderer core)
+- [ ] No new cross-domain dependency outside the constitution's allowed-dependency table, and no
+      dependency on the renderer core from inside a domain
+- [ ] Every added or altered cross-domain dependency has its interface change specified in the
+      design artifacts (contracts/ or data-model.md)
+- [ ] No hider-specific special case for a geometry primitive or rendering effect
+- [ ] Any changed plug-in interface (shadeop/procedural/display) bumps its Semantic Version
+      (MAJOR/MINOR/PATCH) and documents the change
+- [ ] Registered violations (`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`) touched by this work are not
+      extended; reductions are noted
+
 ## Project Structure
 
 ### Documentation (this feature)

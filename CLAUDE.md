@@ -242,7 +242,9 @@ branch).
 hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
 `BINDINGS_GUIDE.md`, `GEOMETRY_STATEMENT.md`, `HIDER_PARITY.md`,
 `RISPEC_GAPS.md`, `CXX20_MIGRATION.md`, `BUGS.md`, `VERIFICATION_LINUX_PREVIEW.md`,
-`PATH-TRACING_HIDER.md` (PBR + OSL feasibility analysis, not started).
+`PATH-TRACING_HIDER.md` (PBR + OSL feasibility analysis, not started),
+`DOMAIN_BOUNDARIES.md` (constitution Principle VIII violation registry — check
+it before adding any cross-domain dependency).
 
 ## Known gotchas (hard-won, not written elsewhere)
 
