@@ -40,6 +40,7 @@ class CImplicit : public CSurface {
     public:
         CImplicit(CAttributes *, CXform *, int, const char *, float, float);
         ~CImplicit();
+        int honorsRegion() const { return FALSE; } // Bypasses the region hook (spec 021)
 
         // Object interface
         void intersect(CShadingContext *, CRay *);

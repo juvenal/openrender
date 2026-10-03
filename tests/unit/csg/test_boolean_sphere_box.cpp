@@ -58,7 +58,11 @@ TEST(disjoint_sphere_and_box_intersection_is_empty) {
                                               makeOperand(s.ctx(), boxPatches(s, lo, hi))};
     ASSERT(volume(definition(2, N(CSG_INTERSECTION, {L(0), L(1)})), ops, s.ctx(), glo, ghi, 30) == 0.0);
     const double un = volume(definition(2, N(CSG_UNION, {L(0), L(1)})), ops, s.ctx(), glo, ghi, 30);
-    ASSERT(std::fabs(un - (SPHERE + 1.0)) < 0.05 * (SPHERE + 1.0));
+    // At this grid spacing (0.18) the box alone samples as 1.26, so compare
+    // with the analytic answer on the same grid
+    const double truth = truthVolume(glo, ghi, 30, [&](const float *P) { return insideSphere(P, 0, 0, 0, 1) || insideBox(P, lo, hi); });
+    ASSERT(std::fabs(un - truth) < 0.005 * truth);
+    ASSERT(std::fabs(un - (SPHERE + 1.0)) < 0.1 * (SPHERE + 1.0));
 }
 
 TEST(classification_is_exact_at_the_seam) {

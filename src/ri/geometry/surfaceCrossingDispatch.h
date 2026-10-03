@@ -60,7 +60,9 @@ class CCrossingSeedGrid {
         CCrossingSeedGrid(const CCrossingSurface &surface, int nu, int nv);
 
         int nu, nv;
-        std::vector<double> P; // (nu + 1) x (nv + 1) sample positions
+        std::vector<double> P;              // (nu + 1) x (nv + 1) sample positions
+        std::vector<double> cellMin, cellMax; // Per cell (nu x nv): conservative bound of the surface over it
+        double scale;                       // Diagonal of the whole grid's bound
 };
 
 struct CCrossingHit {

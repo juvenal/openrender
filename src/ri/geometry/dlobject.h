@@ -40,6 +40,7 @@ class CDLObject : public CSurface {
     public:
         CDLObject(CAttributes *, CXform *, void *, void *, const float *, const float *, dloInitFunction, dloIntersectFunction, dloTiniFunction);
         ~CDLObject();
+        int honorsRegion() const { return FALSE; } // Bypasses the region hook (spec 021)
 
         // Object interface
         void intersect(CShadingContext *, CRay *);

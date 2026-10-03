@@ -136,6 +136,14 @@ void CObject::setChildren(CShadingContext *, CObject *allChildren) {
             cObject->attach();
     }
 
+    // Children created lazily (a mesh's surfaces, a subdivision mesh's inner
+    // polygon mesh) are trimmed by the same region as their parent
+    if (region != NULL) {
+        for (CObject *cObject = allChildren; cObject != NULL; cObject = cObject->sibling)
+            if (cObject->region == NULL)
+                cObject->region = region;
+    }
+
     children = allChildren;
 }
 

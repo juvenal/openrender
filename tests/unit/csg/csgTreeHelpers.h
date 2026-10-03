@@ -78,6 +78,16 @@ namespace csgtest {
         return count * cell;
     }
 
+    // The volume the same grid gives an analytic membership test: the exact
+    // answer volume() must reproduce, free of the grid's own sampling error
+    inline double truthVolume(const float *lo, const float *hi, int n, const std::function<bool(const float *)> &in) {
+        int count = 0;
+        for (const std::vector<float> &p : gridPoints(lo, hi, n))
+            count += in(p.data()) ? 1 : 0;
+        const double cell = (double)(hi[0] - lo[0]) * (hi[1] - lo[1]) * (hi[2] - lo[2]) / ((double)n * n * n);
+        return count * cell;
+    }
+
     // accepts() for a point on a sphere leaf, with the sphere's normal
     inline int onSphere(const CCSGEvaluator &ev, int operand, float cx, float cy, float cz, float x, float y, float z) {
         const float P[3] = {x, y, z}, Ng[3] = {x - cx, y - cy, z - cz};

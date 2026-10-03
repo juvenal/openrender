@@ -32,6 +32,7 @@
 #include "patchUtils.h"
 #include "shading.h"
 #include "stats.h"
+#include "surfaceCrossingDispatch.h"
 
 // The inverse of the Bezier basis (float)
 static matrix invBezier = {0, 0, 0, 1.0f,
@@ -423,4 +424,15 @@ void CBSplinePatchGrid::interpolate(int numVertices, float **varying, float ***l
 
     if (parameters != NULL)
         parameters->dispatch(numVertices, varying, locals);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBSplinePatchGrid
+// Method				:	countCrossings
+// Description			:	Free-form crossings: forwarded to the renderer's
+//							Newton core (spec 021; ribVector links a stub)
+// Return Value			:	-
+// Comments				:
+int CBSplinePatchGrid::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+    return countFreeFormCrossings(context, this, from, dir);
 }

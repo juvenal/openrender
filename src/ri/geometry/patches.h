@@ -90,6 +90,7 @@ class CBilinearPatch : public CSurface {
     public:
         CBilinearPatch(CAttributes *, CXform *, CVertexData *, CParameter *, float, float, float, float, float *);
         ~CBilinearPatch();
+        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
         void intersect(CShadingContext *, CRay *);
@@ -115,6 +116,7 @@ class CBicubicPatch : public CSurface {
     public:
         CBicubicPatch(CAttributes *, CXform *, CVertexData *, CParameter *, float, float, float, float, float *, const float *uBasis = NULL, const float *vBasis = NULL);
         ~CBicubicPatch();
+        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
@@ -141,6 +143,7 @@ class CNURBSPatch : public CSurface {
     public:
         CNURBSPatch(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, float *, float *, float *, CTrimTest * = NULL);
         ~CNURBSPatch();
+        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
@@ -189,6 +192,7 @@ class CNURBSPatch : public CSurface {
 // Comments				:
 class CPatchMesh : public CObject {
     public:
+        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPatchMesh(CAttributes *, CXform *, CPl *, int, int, int, int, int);
         ~CPatchMesh();
 
@@ -297,6 +301,7 @@ bool trimClassifyPoint(const CTrimTest &test, float u, float v);
 // Comments				:
 class CNURBSPatchMesh : public CObject {
     public:
+        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         // The trailing CTrimTest*/eagerBuildTrim pair exists solely for
         // instantiate()'s use: it passes the template mesh's own already-
         // decided trimTest (attach()'d verbatim, even if NULL) with

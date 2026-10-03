@@ -64,6 +64,7 @@ class CCurve : public CSurface {
     public:
         CCurve(CAttributes *, CXform *, CBase *, float, float, float, float);
         ~CCurve();
+        int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
         void dice(CReyes *);
@@ -121,6 +122,7 @@ class CCurveMesh : public CObject {
     public:
         CCurveMesh(CAttributes *, CXform *, CPl *, int, int, int, int *, int);
         ~CCurveMesh();
+        int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
         void intersect(CShadingContext *, CRay *) {}

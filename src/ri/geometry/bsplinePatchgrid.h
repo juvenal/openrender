@@ -39,6 +39,7 @@ class CBSplinePatchGrid : public CSurface {
     public:
         CBSplinePatchGrid(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, float, float, float, float, float *);
         ~CBSplinePatchGrid();
+        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // Object interface
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }

@@ -176,7 +176,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Implementation for Phase 2
 
-- [ ] T025 In `src/ri/geometry/object.{h,cpp}`:
+- [X] T025 In `src/ri/geometry/object.{h,cpp}`:
   - add the generic `CRegionPredicate` interface (`accepts(CShadingContext *ctx, const float *P, const float *Ng)`, where `Ng` is the accepting surface's undisplaced geometric normal at P in camera space; only its direction matters, not its sign, because the two-sided ON rule uses it as a transverse axis; `classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax)` returning `ALL_IN`/`ALL_OUT`/`MIXED`)
   - add a nullable `CObject::region` member
   - propagate `region` in `CObject::setChildren()` (object.cpp:130) to children that have none
@@ -185,22 +185,22 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - add `virtual int CSurface::countCrossings(CShadingContext *ctx, const float *from, const float *dir) const`, returning an unsigned count, default 0
 
   All names must be generic (contract §0). Make T021 green.
-- [ ] T026 Override `materialize()` as `if (children == NULL) create(context);` in the five mesh types:
+- [X] T026 Override `materialize()` as `if (children == NULL) create(context);` in the five mesh types:
   - `CPolygonMesh` (`src/ri/geometry/polygons.{h,cpp}`)
   - `CPatchMesh` and `CNURBSPatchMesh` (`src/ri/geometry/patches.{h,cpp}`)
   - `CSubdivMesh` (`src/ri/geometry/subdivisionCreator.{h,cpp}`)
   - `CLoopSubdivMesh` (`src/ri/geometry/subdivisionLoop.{h,cpp}`)
 
   Each `create()` already calls `setChildren(context, …)` (polygons.cpp:1939, patches.cpp:1710/2203, subdivisionCreator.cpp:2256, subdivisionLoop.cpp:483) and is mutex-guarded and idempotent. `materialize()` itself is one level deep; T046's collector recurses, which reaches the inner `CPolygonMesh` that `CLoopSubdivMesh::create()` builds.
-- [ ] T027 [P] Implement `countCrossings` in `src/ri/geometry/quadrics.{h,cpp}` for every quadric class, analytically, counting every root in the valid u/v range (unlike `CSphere::intersect()` at quadrics.cpp:167, which stops at the nearest).
-- [ ] T028 [P] Implement `countCrossings` in `src/ri/geometry/polygons.{h,cpp}` for `CPolygonTriangle`/`CPolygonQuad` (exact). Sequence after T026, which edits the same files.
-- [ ] T029 Implement free-form crossings:
+- [X] T027 [P] Implement `countCrossings` in `src/ri/geometry/quadrics.{h,cpp}` for every quadric class, analytically, counting every root in the valid u/v range (unlike `CSphere::intersect()` at quadrics.cpp:167, which stops at the nearest).
+- [X] T028 [P] Implement `countCrossings` in `src/ri/geometry/polygons.{h,cpp}` for `CPolygonTriangle`/`CPolygonQuad` (exact). Sequence after T026, which edits the same files.
+- [X] T029 Implement free-form crossings:
   - in `src/ri/geometry/surfaceCrossingDispatch.{h,cpp}`: the pure Newton-refinement core over a surface-evaluation callback, plus a per-surface seed grid built from the surface's own evaluation, built once under a mutex and immutable afterwards, with no `CTesselationPatch` cache
   - in `src/ri/vector/surfaceCrossingDispatchStub.cpp`: a stub returning 0
   - `countCrossings` overrides that forward to it: `CBicubicPatch`/`CNURBSPatch` in `src/ri/geometry/patches.cpp` (`CBilinearPatch` is analytic, implemented directly there), `CPatchGrid` in `src/ri/geometry/patchgrid.cpp`, `CBSplinePatchGrid` in `src/ri/geometry/bsplinePatchgrid.cpp`, and `CSubdivision` in `src/ri/geometry/subdivision.cpp`
 
   Sequence after T026 (shared patches files).
-- [ ] T030 Implement `CCSGDefinition` in `src/ri/geometry/csgDefinition.{h,cpp}`. It holds the **template** structure only: flattened nodes, operand template member lists (direct leaves of a boolean block form one first operand), the `leafFlip[]` parity, and the CSG-aware template bound. Include:
+- [X] T030 Implement `CCSGDefinition` in `src/ri/geometry/csgDefinition.{h,cpp}`. It holds the **template** structure only: flattened nodes, operand template member lists (direct leaves of a boolean block form one first operand), the `leafFlip[]` parity, and the CSG-aware template bound. Include:
   - **rebasing**: captured leaves carry absolute transforms. Move `csgRebaseFragments`' logic (csgTree.cpp:687–722) here: each template leaf's xform becomes `outerXform⁻¹ · leafXform`, and the template bound is computed in that same local frame (each leaf's camera-space bound transformed by `outerXform⁻¹`). Without this, `instantiate()` with the solid's xform applies the outer transform twice.
   - blocks nested inside `"primitive"` contribute no geometry; only the primitive block's own leaves form the operand, as spec 013's resolver does (csgTree.cpp:494–497)
   - the `CCSGResolvedOperand { members, surfaces, kind, bound }` struct and a pure `deriveOperandKind(members, surfaces)` built on the closedness helper below. Closedness is decided per **member** (a quadric, a surface, or a whole mesh), not per surface: a mesh emits one surface per span or face (`CNURBSPatchMesh::create`, patches.cpp:2172–2190), so a member is closed iff every boundary edge of its surfaces collapses to a point or coincides with another boundary edge of the same member. One member ⇒ single (quadric or non-quadric) rules; several members ⇒ multi-surface parity. Unit tests build resolved operands directly; T046 step 6 calls it.
@@ -209,18 +209,29 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - the FR-021 closedness helper: a quadric is closed iff it is a full sphere or full torus; any other single member (surface or mesh) is closed iff every parametric boundary edge of its surfaces collapses to a point or coincides with another boundary edge of that member, or (polygon and subdivision meshes) every edge is shared by exactly two faces
 
   The operand *kind* and caps are not stored in the definition; they are derived per instance after expansion (T046, T066), with `deriveOperandKind()`.
-- [ ] T031 Implement classification in `src/ri/geometry/csgClassify.{h,cpp}`:
+- [X] T031 Implement classification in `src/ri/geometry/csgClassify.{h,cpp}`:
   - operand `classify(ctx, P)` over a `CCSGResolvedOperand` (T030): bound rejection first; analytic implied-closed test for a single-quadric operand; an empty operand (FR-025a: lone disk, lone open non-quadric surface, empty nested block, empty expansion) is always OUT, which yields the empty-set semantics with no special casing; otherwise deterministic fixed-direction parity over the operand's surfaces via `countCrossings`, with the grazing/edge fallback (thresholds from T017) and majority-of-three. The "operand is not closed" warning is emitted at instance resolution (T046), not here.
   - the boundary rule with short-circuit evaluation
   - the two-sided ±ε ON rule at P ± ε·N̂g, using the `Ng` passed to `accepts()` as a transverse axis (sign irrelevant; ε = `C_EPSILON` × solid bound size). P is on the boundary iff composite membership differs between the two sides. The ON check considers every other surface within ε, **including the other surfaces of the leaf's own operand**, so identical shapes that cancel by parity are correctly rejected. Where coincident leaves of several operands all report a boundary there, only the leaf of the **lowest-indexed** such operand accepts, so exactly one face renders, identically in every hider. Orientation is never read from `Ng`; it is the leaf's static `leafFlip`.
   - `CCSGRegion` implementing `CRegionPredicate`
 
   Make T015–T019, T022 and T023 green.
-- [ ] T032 Add the four counters to `CStats` in `src/ri/core/stats.h` as `atomic_int32`, like the blobby counters (stats.h:103–107), since classification runs on every render thread. Initialize them, and in `src/ri/core/stats.cpp` print them at level ≥ 2, zeros included, whenever the frame contains a solid, with the T020 labels. The four counters, the warning de-duplication sets (T046) and the "contains a solid" flag are reset at `RiWorldBegin` (`src/ri/render/rendererContext.cpp`, next to `stats.progress = 0` at :839), because `stats.reset()` runs only once per `RiBegin` (renderer.cpp:90) and multi-frame RIBs would otherwise accumulate. "Contains a solid" is a per-frame flag, set by every outermost `RiSolidEnd` inside the world block (`src/ri/render/rendererContext.cpp`), single-operand collapses included. T046 also sets it from `CCSGSolid::instantiate()`, which does not exist yet in this phase. Increment `numCsgClassifications` in `src/ri/geometry/csgClassify.cpp` (sequence after T031; same file). Make T020 green.
-- [ ] T033 Phase 2 gate:
+- [X] T032 Add the four counters to `CStats` in `src/ri/core/stats.h` as `atomic_int32`, like the blobby counters (stats.h:103–107), since classification runs on every render thread. Initialize them, and in `src/ri/core/stats.cpp` print them at level ≥ 2, zeros included, whenever the frame contains a solid, with the T020 labels. The four counters, the warning de-duplication sets (T046) and the "contains a solid" flag are reset at `RiWorldBegin` (`src/ri/render/rendererContext.cpp`, next to `stats.progress = 0` at :839), because `stats.reset()` runs only once per `RiBegin` (renderer.cpp:90) and multi-frame RIBs would otherwise accumulate. "Contains a solid" is a per-frame flag, set by every outermost `RiSolidEnd` inside the world block (`src/ri/render/rendererContext.cpp`), single-operand collapses included. T046 also sets it from `CCSGSolid::instantiate()`, which does not exist yet in this phase. Increment `numCsgClassifications` in `src/ri/geometry/csgClassify.cpp` (sequence after T031; same file). Make T020 green.
+- [X] T033 Phase 2 gate:
   - `ctest -L csg` is green, including the T013 guards
   - the full `ctest -L visual` (sequential) is unchanged versus master, apart from the known flaky and pre-existing failures listed in quickstart.md §3
   - the quickstart §7 grep gate returns no matches
+
+**Phase 2 implementation notes** (deviations and additions, recorded at the checkpoint):
+
+- **Generic `CSurface` additions** beyond contract §1 (all names generic, so the §0 grep gate holds): `impliesSolid()`, `impliedSolidContains(P)` and `impliedSolidIsConvex()` (quadrics only: the FR-021 implied solid, used by single-quadric classification and by `classifyBound`), and an owned, opaque `crossingCache` (`CCrossingCache`, deleted by `~CSurface`) that holds a free-form surface's seed grid. A pointer-keyed global map was rejected because a freed surface's address can be reused.
+- **New helper**: `src/ri/geometry/crossingMath.h` (exact triangle and bilinear-quad crossing counts, shared by `CPolygonTriangle`/`CPolygonQuad`/`CBilinearPatch`). The torus crossing count uses `solveQuartic()`, the same solver as `CToroid::intersect()`, so classification and ray hits agree on the roots. (A bisection-based `polynomialRoots()` stood in for it until `solveQuartic()` was fixed on master; see below.)
+- **Classification voting**: parity takes two fixed-direction votes and a third only when they disagree, instead of the per-crossing grazing/edge thresholds of research D3 (`countCrossings()` returns a count, not per-crossing data). This roughly doubles multi-surface classification cost; T017's grazing, edge and vertex cases pass.
+- **Own-operand probe** (beyond Decision 4): when P sits farther than ε off its own surface (a float-rounded or tessellated point), the own operand is re-probed at 10ε, 100ε, … (up to 4 times). A segment crossing count first rules out cancelling or coincident surfaces of the same operand.
+- **Free-form evaluation**: surfaces are evaluated through their own `sample()` with local buffers, and partials are taken by central differences of P (sample()'s `dPdu`/`dPdv` are not all per [0,1] parameter: a NURBS patch reports them per knot-space unit). Newton stops on a negligible step and accepts float-level residuals (1e-6 of the patch size), and roots closer than 1e-5 along the ray are merged. Verified outside the unit suites against real primitives: a rational NURBS sphere, a bicubic patch, and Catmull-Clark cubes producing `CSubdivision` and `CBicubicPatch`. Crossing counts and closedness were correct, with 0 of 1,728 grid points misclassified against the exact sphere. Cost is about 55 µs per NURBS classification, a Phase 3 performance concern (SC-007).
+- **Test corrections** (constitution III, re-approval requested): `test_boolean_sphere_box` (`disjoint_sphere_and_box_intersection_is_empty`) and `test_nested_tree` (`nested_union_then_difference`) compared grid-sampled volumes with exact volumes, using tolerances smaller than the grids' own sampling error (the box [3,4]³ samples as 1.26; the nested slab as 5.70 against 6). No correct classifier can pass that. Each now checks against the analytic membership on the same grid (within 0.5%), keeping the exact volume as a looser 10% sanity check; `truthVolume()` was added to `csgTreeHelpers.h`.
+- **Fixed on master before Phase 3 (GitHub #22, branch `fix/torus-raytrace`, 021 rebased onto it)**: a raytraced torus rendered nothing. `CToroid::intersect()` set its quartic up about the y axis, with its interval, range and back-face checks commented out; and `solveQuartic()` lost its roots through an unparenthesized `cbrt` macro in `common/polynomial.h`. Torus operands now raytrace correctly.
+- **Carry to T046**: ε = `C_EPSILON` × bound can fall below float resolution at the camera-space magnitude of a distant solid (P ± ε·n rounds back to P); use max(that, a few ulps of |P|).
 
 **Checkpoint (Phase 2)**: geometry core complete and tested; generic hooks in place; zero rendering change. Stage and pause for commit.
 

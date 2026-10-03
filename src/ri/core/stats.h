@@ -114,6 +114,8 @@ class CStats {
         atomic_int32 numCsgProceduralExpansions; // Procedural operands expanded
         int csgFrameHasSolid;                    // TRUE once this frame contains a solid (prints the four above)
 
+        void resetCsg(); // Zero the four counters above and the flag (every RiWorldBegin)
+
         int numTextureMisses;                   // The number of texture misses
         int transferredTextureData;             // The amount the texture data transmitted
         int textureSize;                        // The current amount of textures in the memory

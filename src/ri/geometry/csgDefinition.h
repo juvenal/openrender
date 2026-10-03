@@ -122,8 +122,13 @@ class CCSGDefinition : public CRefCounter {
         int root;
         vector bmin, bmax;         // Template bound, in the outer frame
 
+        std::vector<float> operandBmin, operandBmax; // Per operand template bound (3 floats each), in the outer frame
+
     private:
         template <class F> int evaluateNode(int node, F &membership) const;
+        void markFlips(int node, int parity);
+        void nodeBound(int node, float *lo, float *hi) const;
+        int hasLeaves(int node) const;
 };
 
 template <class F> int CCSGDefinition::evaluateNode(int node, F &membership) const {

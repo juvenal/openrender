@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "common/polynomial.h"
+#include "crossingMath.h"
 #include "error.h"
 #include "memory.h"
 #include "object.h"
@@ -2059,4 +2060,21 @@ CObject *csgTessellatePolygonMeshOperand(CPolygonMesh *mesh) {
     memoryTini(localMemory);
 
     return data.meshChildren;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPolygonTriangle / CPolygonQuad
+// Method				:	countCrossings
+// Description			:	Unsigned crossings of a ray with the face at
+//							shutter open (spec 021; see object.h)
+// Return Value			:	-
+// Comments				:	Vertices are already in camera space
+int CPolygonTriangle::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    const float *vertices = mesh->pl->data0;
+    return countTriangleCrossings(vertices + v0 * 3, vertices + v1 * 3, vertices + v2 * 3, from, dir);
+}
+
+int CPolygonQuad::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    const float *vertices = mesh->pl->data0;
+    return countBilinearCrossings(vertices + v0 * 3, vertices + v1 * 3, vertices + v2 * 3, vertices + v3 * 3, from, dir);
 }

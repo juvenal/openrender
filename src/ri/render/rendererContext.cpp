@@ -837,6 +837,7 @@ void CRendererContext::RiWorldBegin(void) {
 
     // Init the stats
     stats.progress = 0;
+    stats.resetCsg(); // Per-frame CSG counters (spec 021): reset() runs only once per RiBegin
 
     // Define the world coordinate system
     CRenderer::defineCoordinateSystem(coordinateWorldSystem, currentXform->from, currentXform->to, COORDINATE_WORLD);
@@ -5823,6 +5824,7 @@ void CRendererContext::RiSolidEnd(void) {
     else {
         // Root node: resolve the finished CSG tree into a Resolved Solid
         // Boundary and re-enter addObject() (research.md Decision 1)
+        stats.csgFrameHasSolid = TRUE; // Prints the CSG statistics (spec 021)
         resolveCSGTree(this, closedNode);
     }
 }

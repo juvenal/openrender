@@ -39,6 +39,7 @@ class CSubdivision : public CSurface {
     public:
         CSubdivision(CAttributes *, CXform *, CVertexData *, CParameter *, int, float, float, float, float, float *);
         ~CSubdivision();
+        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 

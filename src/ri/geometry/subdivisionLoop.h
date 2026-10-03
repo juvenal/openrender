@@ -51,6 +51,7 @@
 //							as CSubdivMesh itself never implements them either.
 class CLoopSubdivMesh : public CObject {
     public:
+        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CLoopSubdivMesh(CAttributes *a, CXform *x, CPl *pl, int numFaces, int *numVerticesPerFace, int *vertexIndices);
         ~CLoopSubdivMesh();
 

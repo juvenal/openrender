@@ -38,7 +38,14 @@ TEST(nested_union_then_difference) {
     ASSERT(inside(def, ops, s.ctx(), outside) == FALSE);
     // The volume: union [0,3] x [0,2]^2 = 12, minus [1.5,3] x [0,2]^2 = 6
     const float glo[3] = {-0.5f, -0.5f, -0.5f}, ghi[3] = {4.5f, 2.5f, 2.5f};
-    ASSERT(std::fabs(volume(def, ops, s.ctx(), glo, ghi, 40) - 6.0) < 0.05);
+    // The grid (0.125 x 0.075 x 0.075) samples that slab as 5.70, so compare
+    // with the analytic answer on the same grid
+    const double truth = truthVolume(glo, ghi, 40, [&](const float *P) {
+        return (insideBox(P, alo, ahi) || insideBox(P, blo, bhi)) && !insideBox(P, clo, chi);
+    });
+    const double v = volume(def, ops, s.ctx(), glo, ghi, 40);
+    ASSERT(std::fabs(v - truth) < 0.005 * truth);
+    ASSERT(std::fabs(v - 6.0) < 0.1 * 6.0);
 }
 
 TEST(difference_subtracts_every_operand_in_declaration_order) {

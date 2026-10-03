@@ -85,6 +85,7 @@ class CDelayedInstance : public CObject {
     public:
         CDelayedInstance(CAttributes *, CXform *, CObject *);
         ~CDelayedInstance();
+        int honorsRegion() const { return FALSE; } // An ObjectInstance cannot be an operand (spec 021)
 
         // Object interface
         void intersect(CShadingContext *, CRay *);

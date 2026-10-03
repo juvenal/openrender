@@ -100,6 +100,7 @@ void CStats::reset() {
     numBlobbySurfaceCells = 0;
     numBlobbyLatticeCells = 0;
     numBlobbyTriangles = 0;
+    resetCsg();
     numTextureMisses = 0;
     transferredTextureData = 0;
     textureSize = 0;
@@ -199,6 +200,15 @@ void CStats::printStats(int level) {
             }
         }
 
+        // Spec 021: printed whenever the frame contains a solid, zeros included
+        if (csgFrameHasSolid) {
+            info(CODE_STATS, "->CSG\n");
+            info(CODE_STATS, "     CSG classifications: %d\n", numCsgClassifications.load());
+            info(CODE_STATS, "          CSG seam splits: %d\n", numCsgSeamSplits.load());
+            info(CODE_STATS, "  CSG instances resolved: %d\n", numCsgInstancesResolved.load());
+            info(CODE_STATS, "CSG procedural expansions: %d\n", numCsgProceduralExpansions.load());
+        }
+
         info(CODE_STATS, "->Raytracer\n");
         info(CODE_STATS, "      Total Traced: %d\n", numTracedRays);
         info(CODE_STATS, "        Reflection: %d\n", numReflectionRays);
@@ -273,4 +283,19 @@ void CStats::check() {
 
     assert(textureMemory == 0);
     assert(zoneMemory == 0);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CStats
+// Method				:	resetCsg
+// Description			:	Zero the per-frame CSG counters (spec 021)
+// Return Value			:
+// Comments				:	Called by reset() and at every RiWorldBegin, since
+//							reset() runs only once per RiBegin
+void CStats::resetCsg() {
+    numCsgClassifications = 0;
+    numCsgSeamSplits = 0;
+    numCsgInstancesResolved = 0;
+    numCsgProceduralExpansions = 0;
+    csgFrameHasSolid = FALSE;
 }

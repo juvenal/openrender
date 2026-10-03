@@ -32,6 +32,7 @@
 #include "renderer.h"
 #include "shading.h"
 #include "stats.h"
+#include "surfaceCrossingDispatch.h"
 
 // Note:
 //	The patgrid is instantiated with a grid of (nu+2)*(nv+2) vertices which
@@ -399,4 +400,15 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
 void CPatchGrid::interpolate(int numVertices, float **varying, float ***locals) const {
     if (parameters != NULL)
         parameters->dispatch(numVertices, varying, locals);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPatchGrid
+// Method				:	countCrossings
+// Description			:	Free-form crossings: forwarded to the renderer's
+//							Newton core (spec 021; ribVector links a stub)
+// Return Value			:	-
+// Comments				:
+int CPatchGrid::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+    return countFreeFormCrossings(context, this, from, dir);
 }

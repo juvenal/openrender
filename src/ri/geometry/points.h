@@ -67,6 +67,7 @@ class CPoints : public CSurface {
         CPoints(CAttributes *, CXform *, CPl *, int);
         CPoints(CAttributes *, CXform *, CPointBase *, int, const float **);
         ~CPoints();
+        int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
         void intersect(CShadingContext *, CRay *) {}

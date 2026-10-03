@@ -3286,3 +3286,368 @@ void CToroid::computeObjectBound(float *bmin, float *bmax, float rmin, float rma
     bmin[COMP_Z] = -absf(rmin);
     bmax[COMP_Z] = absf(rmin);
 }
+
+//////////////////////////////////// C R O S S I N G S   /   I M P L I E D   S O L I D S ////////////////////////////////////
+//
+// Spec 021 (deferred CSG): unsigned ray-crossing counts and the closed solid
+// each quadric implies (FR-021). Both are geometric queries in the quadric's
+// object space at shutter open: they ignore ray flags, culling, LOD,
+// displacement and orientation.
+
+// Camera-space ray / point to object space (shutter open)
+static void quadricObjectRay(const CXform *xform, const float *from, const float *dir, double *oFrom, double *oDir) {
+    const float *m = xform->to;
+    for (int i = 0; i < 3; i++) {
+        oFrom[i] = (double)m[element(i, 0)] * from[0] + (double)m[element(i, 1)] * from[1] + (double)m[element(i, 2)] * from[2] + m[element(i, 3)];
+        oDir[i] = (double)m[element(i, 0)] * dir[0] + (double)m[element(i, 1)] * dir[1] + (double)m[element(i, 2)] * dir[2];
+    }
+    const double w = (double)m[element(3, 0)] * from[0] + (double)m[element(3, 1)] * from[1] + (double)m[element(3, 2)] * from[2] + m[element(3, 3)];
+    if (w != 1 && w != 0)
+        for (int i = 0; i < 3; i++)
+            oFrom[i] /= w;
+}
+
+static void quadricObjectPoint(const CXform *xform, const float *P, double *oP) {
+    const float dir[3] = {0, 0, 0};
+    double unused[3];
+    quadricObjectRay(xform, P, dir, oP, unused);
+}
+
+// Is the azimuth of (x, y) within the sweep [0, umax] (umax < 0 sweeps the
+// other way), measured from the azimuth `start`? Mirrors the intersectors.
+static int quadricInSweep(double x, double y, double umax, int negative, double start = 0) {
+    if (umax >= 2 * C_PI || umax <= -2 * C_PI)
+        return TRUE;
+    double u = negative ? atan2(-y, -x) : atan2(y, x);
+    if (u < 0)
+        u += 2 * C_PI;
+    u -= start;
+    if (u < 0)
+        u += 2 * C_PI;
+    if (umax < 0)
+        return u - 2 * C_PI >= umax;
+    return u <= umax;
+}
+
+// Roots t of a t^2 + b t + c = 0 (a may vanish)
+static int quadricRoots(double a, double b, double c, double *t) {
+    const double size = fabs(a) + fabs(b);
+    if (fabs(a) <= 1e-14 * size || a == 0) {
+        if (b == 0)
+            return 0;
+        t[0] = -c / b;
+        return 1;
+    }
+    const double disc = b * b - 4 * a * c;
+    if (disc < 0)
+        return 0;
+    const double sq = sqrt(disc);
+    const double q = -0.5 * (b + (b >= 0 ? sq : -sq));
+    int n = 0;
+    t[n++] = q / a;
+    if (q != 0)
+        t[n++] = c / q;
+    return n;
+}
+
+static double quadricZ(const double *f, const double *d, double t, int k) {
+    return f[k] + d[k] * t;
+}
+
+/////////////////////////////// Sphere
+
+int CSphere::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], d[3], t[2];
+    quadricObjectRay(xform, from, dir, f, d);
+    const int n = quadricRoots(d[0] * d[0] + d[1] * d[1] + d[2] * d[2], 2 * (d[0] * f[0] + d[1] * f[1] + d[2] * f[2]),
+                               f[0] * f[0] + f[1] * f[1] + f[2] * f[2] - (double)r * r, t);
+    // The angles are stored as floats: asin(+-1) overshoots +-pi/2 slightly,
+    // so allow the poles a hair of slack
+    const double z0 = r * sin((double)vmin), z1 = r * sin((double)vmax), slack = 1e-6 * fabs((double)r);
+    const double zlo = std::min(z0, z1) - slack, zhi = std::max(z0, z1) + slack;
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (t[i] <= 0)
+            continue;
+        const double z = quadricZ(f, d, t[i], 2);
+        if (z < zlo || z > zhi)
+            continue;
+        if (!quadricInSweep(quadricZ(f, d, t[i], 0), quadricZ(f, d, t[i], 1), umax, r < 0))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CSphere::impliedSolidContains(const float *P) const {
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    const double z0 = r * sin((double)vmin), z1 = r * sin((double)vmax);
+    if (o[2] < std::min(z0, z1) || o[2] > std::max(z0, z1))
+        return FALSE;
+    if (o[0] * o[0] + o[1] * o[1] + o[2] * o[2] >= (double)r * r)
+        return FALSE;
+    return quadricInSweep(o[0], o[1], umax, r < 0);
+}
+
+/////////////////////////////// Disk
+
+int CDisk::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], d[3];
+    quadricObjectRay(xform, from, dir, f, d);
+    if (d[2] == 0)
+        return 0;
+    const double t = (z - f[2]) / d[2];
+    if (t <= 0)
+        return 0;
+    const double x = f[0] + d[0] * t, y = f[1] + d[1] * t;
+    if (x * x + y * y > (double)r * r)
+        return 0;
+    return quadricInSweep(x, y, umax, r < 0);
+}
+
+/////////////////////////////// Cone
+
+int CCone::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], d[3], t[2];
+    quadricObjectRay(xform, from, dir, f, d);
+    const double h = height, rr = (double)r * r;
+    int n;
+    if (h * h < C_EPSILON) {
+        if (d[2] == 0)
+            return 0;
+        t[0] = -f[2] / d[2];
+        n = 1;
+    }
+    else
+        n = quadricRoots(h * h * (d[0] * d[0] + d[1] * d[1]) - rr * d[2] * d[2],
+                         h * h * 2 * (f[0] * d[0] + f[1] * d[1]) - rr * 2 * (f[2] - h) * d[2],
+                         h * h * (f[0] * f[0] + f[1] * f[1]) - rr * (f[2] - h) * (f[2] - h), t);
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (t[i] <= 0)
+            continue;
+        const double z = quadricZ(f, d, t[i], 2);
+        if (z < std::min(0.0, h) || z > std::max(0.0, h))
+            continue;
+        const double x = quadricZ(f, d, t[i], 0), y = quadricZ(f, d, t[i], 1);
+        if (h * h < C_EPSILON && x * x + y * y > rr)
+            continue;
+        if (!quadricInSweep(x, y, umax, r < 0))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CCone::impliedSolidContains(const float *P) const {
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    const double h = height;
+    if (h == 0)
+        return FALSE;
+    const double s = o[2] / h; // 0 at the base, 1 at the apex
+    if (s <= 0 || s >= 1)
+        return FALSE;
+    const double rad = fabs((double)r) * (1 - s);
+    if (o[0] * o[0] + o[1] * o[1] >= rad * rad)
+        return FALSE;
+    return quadricInSweep(o[0], o[1], umax, r < 0);
+}
+
+/////////////////////////////// Paraboloid
+
+int CParaboloid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], d[3], t[2];
+    quadricObjectRay(xform, from, dir, f, d);
+    const double k = (double)r * r / zmax;
+    const int n = quadricRoots(d[0] * d[0] + d[1] * d[1], 2 * (d[0] * f[0] + d[1] * f[1]) - k * d[2], f[0] * f[0] + f[1] * f[1] - k * f[2], t);
+    const double zlo = std::min((double)zmin, (double)zmax), zhi = std::max((double)zmin, (double)zmax);
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (t[i] <= 0)
+            continue;
+        const double z = quadricZ(f, d, t[i], 2);
+        if (z < zlo || z > zhi)
+            continue;
+        if (!quadricInSweep(quadricZ(f, d, t[i], 0), quadricZ(f, d, t[i], 1), umax, r < 0))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CParaboloid::impliedSolidContains(const float *P) const {
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    if (o[2] <= std::min((double)zmin, (double)zmax) || o[2] >= std::max((double)zmin, (double)zmax))
+        return FALSE;
+    if (o[0] * o[0] + o[1] * o[1] >= (double)r * r * o[2] / zmax)
+        return FALSE;
+    return quadricInSweep(o[0], o[1], umax, r < 0);
+}
+
+/////////////////////////////// Cylinder
+
+int CCylinder::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], d[3], t[2];
+    quadricObjectRay(xform, from, dir, f, d);
+    const double a = d[0] * d[0] + d[1] * d[1];
+    if (a == 0)
+        return 0; // Along the axis: never crosses the wall
+    const int n = quadricRoots(a, 2 * (d[0] * f[0] + d[1] * f[1]), f[0] * f[0] + f[1] * f[1] - (double)r * r, t);
+    const double zlo = std::min((double)zmin, (double)zmax), zhi = std::max((double)zmin, (double)zmax);
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (t[i] <= 0)
+            continue;
+        const double z = quadricZ(f, d, t[i], 2);
+        if (z < zlo || z > zhi)
+            continue;
+        if (!quadricInSweep(quadricZ(f, d, t[i], 0), quadricZ(f, d, t[i], 1), umax, r < 0))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CCylinder::impliedSolidContains(const float *P) const {
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    if (o[2] <= std::min((double)zmin, (double)zmax) || o[2] >= std::max((double)zmin, (double)zmax))
+        return FALSE;
+    if (o[0] * o[0] + o[1] * o[1] >= (double)r * r)
+        return FALSE;
+    return quadricInSweep(o[0], o[1], umax, r < 0);
+}
+
+/////////////////////////////// Hyperboloid
+
+// The sweep of a hyperboloid starts at the azimuth of its generating line at
+// height z, so it twists with z
+static double hyperboloidStart(const float *p1, const float *p2, double v) {
+    const double x = p1[0] * (1 - v) + p2[0] * v, y = p1[1] * (1 - v) + p2[1] * v;
+    double s = atan2(y, x);
+    if (s < 0)
+        s += 2 * C_PI;
+    return s;
+}
+
+int CHyperboloid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    if (p1[2] == p2[2])
+        return 0; // An annulus: no crossings counted for a flat ring (encloses nothing)
+    double f[3], d[3], t[2];
+    quadricObjectRay(xform, from, dir, f, d);
+
+    // Radius at height z: rho(z)^2 = |p1 + (p2 - p1) s|_xy^2, s = (z - z1) / (z2 - z1)
+    // x^2 + y^2 - (A s^2 + B s + C) = 0, with s linear in t
+    const double ex = p2[0] - p1[0], ey = p2[1] - p1[1], dz = p2[2] - p1[2];
+    const double A = ex * ex + ey * ey, B = 2 * (p1[0] * ex + p1[1] * ey), C = (double)p1[0] * p1[0] + (double)p1[1] * p1[1];
+    const double s0 = (f[2] - p1[2]) / dz, s1 = d[2] / dz; // s = s0 + s1 t
+    const int n = quadricRoots(d[0] * d[0] + d[1] * d[1] - A * s1 * s1, 2 * (f[0] * d[0] + f[1] * d[1]) - 2 * A * s0 * s1 - B * s1,
+                               f[0] * f[0] + f[1] * f[1] - A * s0 * s0 - B * s0 - C, t);
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (t[i] <= 0)
+            continue;
+        const double v = s0 + s1 * t[i];
+        if (v < 0 || v > 1)
+            continue;
+        if (!quadricInSweep(quadricZ(f, d, t[i], 0), quadricZ(f, d, t[i], 1), umax, FALSE, hyperboloidStart(p1, p2, v)))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CHyperboloid::impliesSolid() const {
+    return p1[2] != p2[2];
+}
+
+int CHyperboloid::impliedSolidContains(const float *P) const {
+    if (p1[2] == p2[2])
+        return FALSE;
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    const double v = (o[2] - p1[2]) / ((double)p2[2] - p1[2]);
+    if (v <= 0 || v >= 1)
+        return FALSE;
+    const double x = p1[0] * (1 - v) + p2[0] * v, y = p1[1] * (1 - v) + p2[1] * v;
+    if (o[0] * o[0] + o[1] * o[1] >= x * x + y * y)
+        return FALSE;
+    return quadricInSweep(o[0], o[1], umax, FALSE, hyperboloidStart(p1, p2, v));
+}
+
+/////////////////////////////// Torus (rmax: major radius, rmin: tube radius, v: tube angle phi)
+
+// Is the tube angle of (rho - R, z) within [vmin, vmax]?
+static int torusInPhi(double rr, double z, double R, double vmin, double vmax) {
+    if (fabs(vmax - vmin) >= 2 * C_PI)
+        return TRUE;
+    double v = atan2(z, rr - R);
+    const double lo = std::min(vmin, vmax), hi = std::max(vmin, vmax);
+    for (int k = -2; k <= 2; k++) {
+        const double w = v + k * 2 * C_PI;
+        if (w >= lo && w <= hi)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+int CToroid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    double f[3], dd[3];
+    quadricObjectRay(xform, from, dir, f, dd);
+    const double len = sqrt(dd[0] * dd[0] + dd[1] * dd[1] + dd[2] * dd[2]);
+    if (len == 0)
+        return 0;
+    const double d[3] = {dd[0] / len, dd[1] / len, dd[2] / len};
+
+    // (|P|^2 + R^2 - r^2)^2 - 4 R^2 (x^2 + y^2) = 0, the torus about z
+    const double R = fabs((double)rmax), r = fabs((double)rmin);
+    const double b = 2 * (f[0] * d[0] + f[1] * d[1] + f[2] * d[2]);
+    const double e = f[0] * f[0] + f[1] * f[1] + f[2] * f[2] + R * R - r * r;
+    const double dxy = d[0] * d[0] + d[1] * d[1], fdxy = f[0] * d[0] + f[1] * d[1], fxy = f[0] * f[0] + f[1] * f[1];
+    double c[5], s[4];
+    c[4] = 1;
+    c[3] = 2 * b;
+    c[2] = b * b + 2 * e - 4 * R * R * dxy;
+    c[1] = 2 * b * e - 8 * R * R * fdxy;
+    c[0] = e * e - 4 * R * R * fxy;
+    const int n = solveQuartic<double>(c, s); // The same roots CToroid::intersect() uses
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (s[i] <= 0)
+            continue;
+        const double x = f[0] + d[0] * s[i], y = f[1] + d[1] * s[i], z = f[2] + d[2] * s[i];
+        if (!quadricInSweep(x, y, umax, rmax < 0))
+            continue;
+        if (!torusInPhi(sqrt(x * x + y * y), z, R, vmin, vmax))
+            continue;
+        count++;
+    }
+    return count;
+}
+
+int CToroid::impliedSolidContains(const float *P) const {
+    double o[3];
+    quadricObjectPoint(xform, P, o);
+    const double R = fabs((double)rmax), r = fabs((double)rmin);
+    const double qx = sqrt(o[0] * o[0] + o[1] * o[1]) - R, qz = o[2];
+    if (qx * qx + qz * qz >= r * r)
+        return FALSE;
+    if (!quadricInSweep(o[0], o[1], umax, rmax < 0))
+        return FALSE;
+    if (fabs((double)vmax - vmin) >= 2 * C_PI)
+        return TRUE;
+
+    // A tube cut across: the circular segment between the arc [vmin, vmax]
+    // and the chord joining its ends, on the arc's side of the chord
+    const double ax = r * cos((double)vmin), az = r * sin((double)vmin);
+    const double bx = r * cos((double)vmax), bz = r * sin((double)vmax);
+    const double m = 0.5 * ((double)vmin + vmax);
+    const double mx = r * cos(m), mz = r * sin(m);
+    const double ex = bx - ax, ez = bz - az;
+    const double sideP = ex * (qz - az) - ez * (qx - ax);
+    const double sideM = ex * (mz - az) - ez * (mx - ax);
+    return (sideP > 0) == (sideM > 0) && sideP != 0;
+}

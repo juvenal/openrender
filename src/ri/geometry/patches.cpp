@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "common/polynomial.h"
+#include "crossingMath.h"
 #include "error.h"
 #include "memory.h"
 #include "patchUtils.h"
@@ -46,6 +47,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
 #include "shading.h"
 #include "stats.h"
 #include "surface.h"
+#include "surfaceCrossingDispatch.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Macro				:	gatherData
@@ -2213,3 +2215,38 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 //							tesselateQuadricAdaptive()); a loud stub lives in
 //							vector/csgTesselationDispatchStub.cpp -- its only
 //							caller, csgTree.cpp, is excluded from ribVector.
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBicubicPatch
+// Method				:	countCrossings
+// Description			:	Free-form crossings: forwarded to the renderer's
+//							Newton core (spec 021; ribVector links a stub)
+// Return Value			:	-
+// Comments				:
+int CBicubicPatch::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+    return countFreeFormCrossings(context, this, from, dir);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CNURBSPatch
+// Method				:	countCrossings
+// Description			:	Free-form crossings: forwarded to the renderer's
+//							Newton core (spec 021; ribVector links a stub)
+// Return Value			:	-
+// Comments				:
+int CNURBSPatch::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+    return countFreeFormCrossings(context, this, from, dir);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBilinearPatch
+// Method				:	countCrossings
+// Description			:	Analytic crossings of the bilinear patch at shutter
+//							open (spec 021)
+// Return Value			:	-
+// Comments				:	The vertices are already in camera space
+int CBilinearPatch::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+    const int vertexSize = variables->vertexSize;
+    const float *P00 = vertex;
+    return countBilinearCrossings(P00, P00 + vertexSize, P00 + 2 * vertexSize, P00 + 3 * vertexSize, from, dir);
+}

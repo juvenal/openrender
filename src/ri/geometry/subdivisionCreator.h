@@ -39,6 +39,7 @@
 // Comments				:
 class CSubdivMesh : public CObject {
     public:
+        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs, const CHierarchicalOverride *overrides = NULL);
         ~CSubdivMesh();
 

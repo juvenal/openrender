@@ -41,6 +41,7 @@ class CPolygonTriangle;
 // Comments				:
 class CPolygonMesh : public CObject {
     public:
+        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPolygonMesh(CAttributes *, CXform *, CPl *, int, int *, int *, int *);
         ~CPolygonMesh();
 
@@ -104,6 +105,7 @@ class CPolygonTriangle : public CSurface {
         ~CPolygonTriangle();
 
         void intersect(CShadingContext *, CRay *);
+        int countCrossings(CShadingContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
@@ -126,6 +128,7 @@ class CPolygonQuad : public CSurface {
         ~CPolygonQuad();
 
         void intersect(CShadingContext *, CRay *);
+        int countCrossings(CShadingContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }

@@ -27,6 +27,8 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include <atomic>
+
 #include "attributes.h"
 #include "common/global.h"
 #include "ray.h"
@@ -153,10 +155,21 @@ class CDummyObject : public CObject {
 // Class				:	CSurface
 // Description			:	This class encapsulates a 2D surface
 // Comments				:
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCrossingCache
+// Description			:	Opaque, immutable per-surface data a crossing query
+//							builds once on first use (spec 021); owned and
+//							deleted by its surface
+// Comments				:
+class CCrossingCache {
+    public:
+        virtual ~CCrossingCache() {}
+};
+
 class CSurface : public CObject {
     public:
-        CSurface(CAttributes *a, CXform *x) : CObject(a, x) {}
-        ~CSurface() {}
+        CSurface(CAttributes *a, CXform *x) : CObject(a, x), crossingCache(NULL) {}
+        ~CSurface() { delete crossingCache.load(); }
 
         // CObject interface
         virtual void intersect(CShadingContext *, CRay *); // Intersect a ray with the surface
@@ -187,6 +200,22 @@ class CSurface : public CObject {
         // LOD, backface culling and displacement are ignored. The default (a
         // surface type with no crossing query) reports 0.
         virtual int countCrossings(CShadingContext * /*ctx*/, const float * /*from*/, const float * /*dir*/) const { return 0; }
+
+        // TRUE for a surface that implies a closed solid on its own (a
+        // quadric other than a disk): closed by itself, or closed by flat caps
+        // at its parametric ends, z-cuts and sweep gaps (FR-021)
+        virtual int impliesSolid() const { return FALSE; }
+
+        // TRUE if the camera-space point P lies inside that implied solid.
+        // Only meaningful when impliesSolid() is TRUE.
+        virtual int impliedSolidContains(const float * /*P*/) const { return FALSE; }
+
+        // TRUE if that implied solid is convex, so a box whose corners all lie
+        // inside it lies inside it entirely
+        virtual int impliedSolidIsConvex() const { return FALSE; }
+
+        // Built once by the free-form crossing query, then read-only
+        mutable std::atomic<CCrossingCache *> crossingCache;
 
     protected:
         // Shared ray-rejection + displacement-tesselation guard used at the top
