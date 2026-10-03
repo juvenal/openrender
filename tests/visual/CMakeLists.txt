@@ -1820,6 +1820,25 @@ add_visual_test(csg-sphere-cube-difference-zbuffer
     csg-sphere-cube-difference-zbuffer.tif
     csg-sphere-cube-difference-zbuffer.tif)
 
+# Spec 021 T056: a single open quadric operand closed by its implied caps
+# (FR-021). References approved from 4x crops; see
+# specs/021-deferred-csg-evaluation/reference-regeneration.md.
+
+add_visual_test(csg-open-quadric-caps-raytrace
+    examples/rib/tests/csg-open-quadric-caps-raytrace.rib
+    csg-open-quadric-caps-raytrace.tif
+    csg-open-quadric-caps-raytrace.tif)
+
+add_visual_test(csg-open-quadric-caps-reyes
+    examples/rib/tests/csg-open-quadric-caps-reyes.rib
+    csg-open-quadric-caps-reyes.tif
+    csg-open-quadric-caps-reyes.tif)
+
+add_visual_test(csg-open-quadric-caps-zbuffer
+    examples/rib/tests/csg-open-quadric-caps-zbuffer.rib
+    csg-open-quadric-caps-zbuffer.tif
+    csg-open-quadric-caps-zbuffer.tif)
+
 # T027: adaptive-tesselation tolerance coverage (two spheres unioned with a
 # tight vs. loose "solid" "tessellationtolerance" attribute) plus coverage
 # for the two remaining FR-015 leaf-dispatch gaps fixed during this feature's

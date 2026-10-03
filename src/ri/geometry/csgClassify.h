@@ -62,8 +62,10 @@ class CCSGEvaluator {
 
         // TRUE if the point P (normal Ng) of a leaf of `operand` lies on the
         // composite boundary (the boundary rule, two-sided, with the lowest
-        // operand index winning between coincident faces)
-        int accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng) const;
+        // operand index winning between coincident faces). ownChanges: P is
+        // known to lie on the own operand's boundary (an implied cap), so its
+        // crossing test is skipped
+        int accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng, int ownChanges = FALSE) const;
 
         // REGION_ALL_IN / REGION_ALL_OUT / REGION_MIXED for a patch of a leaf
         // of `operand` inside [bmin, bmax]

@@ -113,3 +113,7 @@ void CDelayedInstance::dice(CReyes *) {
     error(CODE_BUG, "CDelayedInstance::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
+
+void CSurface::regionCoverage(CShadingContext *, int, int, const float *, const float *, unsigned char *) {
+    error(CODE_BUG, "CSurface::regionCoverage() reached in a build with no rendering pipeline\n");
+}

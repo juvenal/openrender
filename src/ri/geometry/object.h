@@ -122,6 +122,13 @@ class CObject : public CRefCounter {
         // its own rendering bypasses the region hook, or it encloses no volume.
         virtual int honorsRegion() const { return TRUE; }
 
+        // Fill a grid's per-micropolygon coverage mask (udiv x vdiv quads; 1 =
+        // present) from the region, given the grid's (udiv+1) x (vdiv+1)
+        // parametric coordinates u, v. A quad is absent iff none of its four
+        // corners is accepted. The default leaves the mask as it is.
+        virtual void regionCoverage(CShadingContext *, int /*udiv*/, int /*vdiv*/, const float * /*u*/, const float * /*v*/,
+                                    unsigned char * /*coverage*/) {}
+
         void destroy(); // Delete the children/siblings
 
         int flags;                   // Holds object flags
@@ -204,6 +211,9 @@ class CSurface : public CObject {
         // The undisplaced camera-space point P and geometric normal Ng at
         // (u, v), at shutter open, through this surface's own sample()
         void samplePoint(float u, float v, float *P, float *Ng) const;
+
+        // Coverage from the undisplaced surface at the grid's u, v (CObject)
+        void regionCoverage(CShadingContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage);
 
         // TRUE for a surface that implies a closed solid on its own (a
         // quadric other than a disk): closed by itself, or closed by flat caps

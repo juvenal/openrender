@@ -31,6 +31,8 @@
 #include "points.h"
 #include "rendererc.h"
 #include "reyes.h"
+
+#include <climits>
 #include "ri.h"
 #include "ri_config.h"
 #include "sampler.h"
@@ -951,6 +953,14 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             if ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) && (object->moving()))
                 grid->flags |= RASTER_MOVING;
 
+            // Which micropolygons exist: the object's region (a spatial trim)
+            // decides from its undisplaced surface, so ask before displacing
+            if (object->region != NULL && grid->coverage == NULL) {
+                grid->coverage = new unsigned char[udiv * vdiv];
+                memset(grid->coverage, 1, udiv * vdiv);
+                object->regionCoverage(this, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
+            }
+
             // Displace the sucker
             displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
 
@@ -1202,6 +1212,7 @@ CReyes::CRasterGrid *CReyes::newGrid(CSurface *object, int points, int numVertic
     }
     grid->quadStratumBounds = NULL; // Allocated in insertGrid for moving quad grids
     grid->timeStrata = 0;
+    grid->coverage = NULL; // Allocated by shadeGrid() when the object has a region
 
     object->attach();
 
@@ -1242,6 +1253,8 @@ void CReyes::deleteObject(CRasterObject *dObject) {
         delete[] grid->bounds;
         if (grid->quadStratumBounds != NULL)
             delete[] grid->quadStratumBounds;
+        if (grid->coverage != NULL)
+            delete[] grid->coverage;
         if (grid->sizes != NULL)
             delete[] grid->sizes;
         delete grid;
@@ -1744,6 +1757,25 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         qsb[1] = (int)floor(sxmax + quadCoc) + 2;
                         qsb[2] = (int)floor(symin - quadCoc) - 2;
                         qsb[3] = (int)floor(symax + quadCoc) + 2;
+                    }
+                }
+
+                // An absent quad (coverage mask) gets an empty bound, which every
+                // rasterizer's first trivial reject skips -- including the
+                // motion-blurred path, which culls by the stratum bounds alone
+                if (grid->coverage != NULL && !grid->coverage[j * udiv + i]) {
+                    bounds[0] = INT_MAX;
+                    bounds[1] = INT_MIN;
+                    bounds[2] = INT_MAX;
+                    bounds[3] = INT_MIN;
+                    if (timePos != NULL) {
+                        int *qsb = grid->quadStratumBounds + (j * udiv + i) * numStrata * 4;
+                        for (int k = 0; k < numStrata; k++, qsb += 4) {
+                            qsb[0] = INT_MAX;
+                            qsb[1] = INT_MIN;
+                            qsb[2] = INT_MAX;
+                            qsb[3] = INT_MIN;
+                        }
                     }
                 }
             }

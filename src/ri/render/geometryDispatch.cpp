@@ -49,6 +49,8 @@
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
  */
+#include <vector>
+
 #include <math.h>
 
 #include "curves.h"
@@ -763,4 +765,45 @@ void CDelayedInstance::dice(CReyes *r) {
 
     // Let the parent take care of the instance
     CObject::dice(r);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	regionCoverage
+// Description			:	See object.h: classify every grid vertex's
+//							undisplaced camera-space point and geometric normal
+//							(one batched sample() call), then mark each quad
+// Return Value			:	-
+// Comments				:	Keeps every quad touching an accepted corner, so a
+//							seam overlaps by under a micropolygon rather than
+//							opening a gap (spec 021)
+void CSurface::regionCoverage(CShadingContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage) {
+    if (region == NULL)
+        return;
+    const int nu = udiv + 1, nv = vdiv + 1, count = nu * nv;
+    std::vector<float> uu(u, u + count), vv(v, v + count), time(count, 0.0f), P(3 * count), Ng(3 * count), dPdu(3 * count),
+        dPdv(3 * count), dPdtime(3 * count), Pw(4 * count);
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
+    varying[VARIABLE_U] = uu.data();
+    varying[VARIABLE_V] = vv.data();
+    varying[VARIABLE_TIME] = time.data();
+    varying[VARIABLE_P] = P.data();
+    varying[VARIABLE_NG] = Ng.data();
+    varying[VARIABLE_DPDU] = dPdu.data();
+    varying[VARIABLE_DPDV] = dPdv.data();
+    varying[VARIABLE_DPDTIME] = dPdtime.data();
+    varying[VARIABLE_PW] = Pw.data();
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
+    sample(0, count, varying, NULL, up);
+
+    std::vector<unsigned char> accepted(count);
+    for (int k = 0; k < count; k++)
+        accepted[k] = (unsigned char)region->accepts(context, &P[3 * k], &Ng[3 * k]);
+    for (int j = 0; j < vdiv; j++)
+        for (int i = 0; i < udiv; i++) {
+            const int c = j * nu + i;
+            coverage[j * udiv + i] = (unsigned char)(accepted[c] | accepted[c + 1] | accepted[c + nu] | accepted[c + nu + 1]);
+        }
 }

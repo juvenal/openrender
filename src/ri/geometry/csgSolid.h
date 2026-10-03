@@ -56,7 +56,9 @@ class CCSGInstanceState : public CFrameResource {
 
         std::vector<CCSGResolvedOperand *> operands; // Per operand: members, surfaces, kind, bound
         std::vector<CCSGRegion *> regions;           // Per operand: the region its leaves carry
+        std::vector<CRegionPredicate *> capRegions;  // One per implied cap (FR-021)
         CCSGEvaluator *evaluator;                    // The boundary rule over operands
+        CCSGDefinition *definition;                  // Attached: the evaluator reads it after the solid is gone (REYES consumes it)
         int passthrough;                             // Operand rendered as authored (FR-019), or -1
 
     private:

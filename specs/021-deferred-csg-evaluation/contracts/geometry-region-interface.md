@@ -92,10 +92,14 @@ It lists what each domain may assume about the others.
    - `capture(object, attributes, xform)`: the objects
      `object->instantiate(attributes, xform, …)` creates, as a sibling chain,
      kept out of the scene
+   - `releaseAtFrameEnd(resource)`: hold a `CFrameResource` and call its
+     `frameEnded()` when the frame's rendering is over, before the scene
+     hierarchy is freed; the instance state releases its members and
+     surfaces there (added in T046; thread-safe)
    - `expand(procedural, flagged)`: a procedural's expansion under `flagged`
      attributes, returned the same way, with the nested-`SolidBegin` guard
      active (T066)
-   - both are serialized inside the host, and Geometry's own once-only
+   - `capture` and `expand` are serialized inside the host, and Geometry's own once-only
      resolution lock is per solid
    - with no host installed, a solid resolves to nothing
 

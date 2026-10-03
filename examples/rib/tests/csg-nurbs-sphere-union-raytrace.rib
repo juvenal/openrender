@@ -1,5 +1,10 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
+# A sphere unioned with a NURBS operand that is a single open, non-rational 4x4
+# bicubic sheet, not a sphere. Under spec 021 (FR-021, FR-025a) a lone open
+# non-quadric encloses no volume: the operand is empty, warns once ("A solid
+# operand is not closed and is ignored"), and none of the sheet renders. Only the
+# sphere is visible. The closed NURBS case is csg-nurbs-rational-sphere-union-*.
 Hider "raytrace"
 PixelSamples 4 4
 Display "csg-nurbs-sphere-union-raytrace.tif" "file" "rgba"

@@ -71,6 +71,57 @@ class CCSGResolvedOperand {
         std::vector<int> surfaceMember; // Index into members, per surface
         int kind;                       // ECSGOperandKind
         vector bmin, bmax;              // Camera-space bound of the surfaces
+
+        // Every surface whose bound passes `meets` (a test on a camera-space
+        // box), and every unbounded surface. Uses the bound hierarchy that
+        // buildIndex() makes, or visits all surfaces before that.
+        template <class Meets, class Visit> void forEachSurface(Meets meets, Visit visit) const {
+            if (index.empty()) {
+                for (const CSurface *surface : surfaces)
+                    visit(surface);
+                return;
+            }
+            for (int s : unbounded)
+                visit(surfaces[s]);
+            int stack[64];
+            int top = 0;
+            stack[top++] = 0;
+            while (top > 0) {
+                const CIndexNode &node = index[stack[--top]];
+                if (!meets(node.bmin, node.bmax))
+                    continue;
+                if (node.count > 0) {
+                    for (int k = node.first; k < node.first + node.count; k++) {
+                        const CSurface *surface = surfaces[order[k]];
+                        if (meets(surfaceBound[order[k]].bmin, surfaceBound[order[k]].bmax))
+                            visit(surface);
+                    }
+                }
+                else { // buildNodes() caps the depth, so the stack cannot overflow
+                    stack[top++] = node.child;
+                    stack[top++] = node.child + 1;
+                }
+            }
+        }
+
+        // The bound hierarchy over the bounded surfaces (called by deriveOperandKind)
+        void buildIndex();
+
+    private:
+        struct CBound {
+                vector bmin, bmax;
+        };
+        struct CIndexNode {
+                vector bmin, bmax;
+                int child;        // Interior: the first of two adjacent children
+                int first, count; // Leaf: a range of `order` (count > 0)
+        };
+        void buildNodes();
+
+        std::vector<CIndexNode> index;
+        std::vector<CBound> surfaceBound; // Per surface, copied at buildIndex()
+        std::vector<int> order;           // Bounded surfaces, grouped by leaf
+        std::vector<int> unbounded;       // Surfaces with an empty (unbounded) box
 };
 
 // Derive operand.kind (and its bound) from its members and surfaces: the

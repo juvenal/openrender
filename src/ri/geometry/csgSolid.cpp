@@ -22,6 +22,7 @@
 #include <cmath>
 
 #include "atomic.h"
+#include "csgCaps.h"
 #include "delayed.h"
 #include "error.h"
 #include "patches.h"
@@ -44,15 +45,19 @@ static const float kEpsilonUlps = 8.0f;
 // Description			:	Ctor / dtor
 // Return Value			:	-
 // Comments				:
-CCSGInstanceState::CCSGInstanceState() : evaluator(NULL), passthrough(-1) {}
+CCSGInstanceState::CCSGInstanceState() : evaluator(NULL), definition(NULL), passthrough(-1) {}
 
 CCSGInstanceState::~CCSGInstanceState() {
     frameEnded();
     for (CCSGRegion *r : regions)
         delete r;
+    for (CRegionPredicate *r : capRegions)
+        delete r;
     delete evaluator;
     for (CCSGResolvedOperand *op : operands)
         delete op;
+    if (definition != NULL)
+        definition->detach();
 }
 
 void CCSGInstanceState::hold(CObject *o) {
@@ -221,6 +226,8 @@ void CCSGSolid::resolve(CShadingContext *context) {
 //							core: the host does (constitution Principle VIII).
 CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
     CCSGInstanceState *s = new CCSGInstanceState();
+    s->definition = definition;
+    definition->attach();
     CGeometryHost *host = geometryHost();
     const int numOperands = definition->numOperands();
     for (int op = 0; op < numOperands; op++)
@@ -302,15 +309,43 @@ CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
     }
 
     CObject *chain = NULL, *tail = NULL;
-    for (int op : contributing)
-        for (CObject *m : s->operands[op]->members) {
-            m->sibling = NULL;
-            if (tail == NULL)
-                chain = m;
-            else
-                tail->sibling = m;
-            tail = m;
+    auto append = [&](CObject *o) {
+        o->sibling = NULL;
+        if (tail == NULL)
+            chain = o;
+        else
+            tail->sibling = o;
+        tail = o;
+    };
+    for (int op : contributing) {
+        CCSGResolvedOperand &operand = *s->operands[op];
+        for (CObject *m : operand.members)
+            append(m);
+
+        // 8. A lone open quadric is closed by its implied caps (FR-021); a
+        // passthrough renders as authored, uncapped
+        if (operand.kind != CSG_OPERAND_SINGLE_QUADRIC || op == s->passthrough)
+            continue;
+        const CSurface *quadric = operand.surfaces[0];
+        std::vector<CCSGCap> caps;
+        buildImpliedCaps(quadric, caps);
+        for (CCSGCap &cap : caps) {
+            // Oriented with the operand, as its members are
+            if (definition->operandFlip(op)) {
+                CAttributes *flipped = new CAttributes(cap.surface->attributes);
+                flipped->flags ^= ATTRIBUTES_FLAGS_INSIDE;
+                flipped->attach();
+                cap.surface->attributes->detach();
+                cap.surface->attributes = flipped;
+            }
+            CCSGCapRegion *region = new CCSGCapRegion(s->evaluator, op, quadric, cap);
+            s->capRegions.push_back(region);
+            cap.surface->region = region;
+            s->hold(cap.surface);
+            cap.surface->detach(); // buildImpliedCaps's reference: the state's hold() keeps it
+            append(cap.surface);
         }
+    }
     setChildren(context, chain);
     return s;
 }

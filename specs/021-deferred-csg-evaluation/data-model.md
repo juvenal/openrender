@@ -207,6 +207,7 @@ registers (`setGeometryHost()`; `geometryHost()` returns it, or NULL).
 | Operation | Meaning |
 |---|---|
 | `capture(object, attributes, xform)` | The objects `object->instantiate(attributes, xform, …)` creates, returned as a sibling chain instead of entering the scene. The core implements it with its `delayed` capture target under `delayedMutex` (T046) |
+| `releaseAtFrameEnd(resource)` | Keep a reference to a `CFrameResource` (here the `CCSGInstanceState`) and call its `frameEnded()` once rendering is over, in `CRenderer::endFrame()` before the scene hierarchy is freed. The state holds one reference to every captured member and materialized surface, because REYES consumes objects by refcount while raytracing frees the hierarchy regardless of refcounts (added in T046) |
 | `expand(procedural, flagged)` | A procedural's expansion, with `flagged` as the current attributes, returned the same way; the nested-`SolidBegin` guard runs for its duration (T066) |
 
 ## Relationships

@@ -25,6 +25,8 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
+#include <vector>
+#include <algorithm>
 
 #include "common/global.h"
 #include "common/polynomial.h"
@@ -133,6 +135,61 @@ static inline int cull(float *bmin, float *bmax, const float *P, const float *N,
     return FALSE;
 }
 
+// Deepest split a patch straddling a region boundary may reach: about float
+// mantissa precision. At the cap the patch is kept (spec 021): dropping it, as
+// a trim straddler is dropped, would open a gap in the composite surface.
+static const int kRegionMaxSplitDepth = 24;
+
+// Shading rate (pixel area per micropolygon) at a region seam: half-pixel edges
+static const float kRegionSeamShadingRate = 0.25f;
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	regionBound
+// Description			:	The camera-space bound of the undisplaced surface
+//							at the n probes (u, v), padded by the largest
+//							distance between neighbouring probes (nu per row)
+// Return Value			:	-
+// Comments				:	The probes' own P is displaced; the region decides
+//							on the undisplaced surface
+static void regionBound(const CSurface *object, int nu, int nv, const float *u, const float *v, float *lo, float *hi) {
+    const int n = nu * nv;
+    std::vector<float> uu(u, u + n), vv(v, v + n), time(n, 0.0f), P(3 * n), Ng(3 * n), dPdu(3 * n), dPdv(3 * n), dPdtime(3 * n), Pw(4 * n);
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
+    varying[VARIABLE_U] = uu.data();
+    varying[VARIABLE_V] = vv.data();
+    varying[VARIABLE_TIME] = time.data();
+    varying[VARIABLE_P] = P.data();
+    varying[VARIABLE_NG] = Ng.data();
+    varying[VARIABLE_DPDU] = dPdu.data();
+    varying[VARIABLE_DPDV] = dPdv.data();
+    varying[VARIABLE_DPDTIME] = dPdtime.data();
+    varying[VARIABLE_PW] = Pw.data();
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
+    object->sample(0, n, varying, NULL, up);
+
+    initv(lo, C_INFINITY);
+    initv(hi, -C_INFINITY);
+    float spacing = 0;
+    for (int j = 0; j < nv; j++)
+        for (int i = 0; i < nu; i++) {
+            const float *p = &P[(j * nu + i) * 3];
+            addBox(lo, hi, p);
+            vector d;
+            if (i + 1 < nu) {
+                subvv(d, p + 3, p);
+                spacing = std::max(spacing, lengthv(d));
+            }
+            if (j + 1 < nv) {
+                subvv(d, p + 3 * nu, p);
+                spacing = std::max(spacing, lengthv(d));
+            }
+        }
+    subvf(lo, spacing);
+    addvf(hi, spacing);
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPatch
 // Method				:	dice
@@ -157,6 +214,8 @@ void CPatch::dice(CReyes *r) {
         const int hasTrim = object->hasTrim();
         float *trimU = nullptr;
         float *trimV = nullptr;
+        const CRegionPredicate *const region = object->region;
+        int regionSeam = FALSE; // The patch straddles its region's boundary
 
         if (moving == TRUE) {
             Pmov = (float *)alloca(CRenderer::maxGridSize * 3 * 2 * sizeof(float));
@@ -170,7 +229,7 @@ void CPatch::dice(CReyes *r) {
         // below must not read varying[VARIABLE_U]/[VARIABLE_V] after
         // displaceEstimate() has run - doing so double-maps the coordinates.
         // Snapshot the local probe values before displaceEstimate() mutates them.
-        if (hasTrim) {
+        if (hasTrim || region != NULL) {
             trimU = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
             trimV = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
         }
@@ -243,7 +302,7 @@ void CPatch::dice(CReyes *r) {
 
             // Snapshot the local [0,1] probe coordinates before displaceEstimate()
             // below overwrites them with global surface parametric coordinates.
-            if (hasTrim) {
+            if (hasTrim || region != NULL) {
                 memcpy(trimU, uv, k * sizeof(float));
                 memcpy(trimV, vv, k * sizeof(float));
             }
@@ -363,6 +422,19 @@ void CPatch::dice(CReyes *r) {
                 }
             }
 
+            // Spatial trim (spec 021; e.g. a CSG solid's boundary rule): decide
+            // on the undisplaced surface's bound. Wholly rejected patches are
+            // skipped; patches straddling the region's boundary dice at the
+            // seam rate (below) and are split, never dropped.
+            if (region != NULL) {
+                vector rlo, rhi;
+                regionBound(object, numUprobes, numVprobes, trimU, trimV, rlo, rhi);
+                const int coverage = region->classifyBound(r, rlo, rhi);
+                if (coverage == REGION_ALL_OUT)
+                    return;
+                regionSeam = (coverage == REGION_MIXED);
+            }
+
             // Expand the bound
             float xDiff = bmax[COMP_X] - bmin[COMP_X];
             float yDiff = bmax[COMP_Y] - bmin[COMP_Y];
@@ -400,6 +472,12 @@ void CPatch::dice(CReyes *r) {
 
                 // Figure out the subdivision we want to make
                 float shadingRate = attributes->shadingRate;
+
+                // At a region seam, micropolygons of half a pixel: the coverage
+                // mask keeps every quad touching the seam, so the seam is drawn
+                // within one micropolygon of exact
+                if (regionSeam && shadingRate > kRegionSeamShadingRate)
+                    shadingRate = kRegionSeamShadingRate;
 
                 // Correct shading rate with dof factor
                 if (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) {
@@ -462,7 +540,19 @@ void CPatch::dice(CReyes *r) {
 
             // Check the size ... If we're too big, we should be split
             if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
-                break;
+                if (!regionSeam || depth < kRegionMaxSplitDepth) {
+                    if (regionSeam)
+                        atomicIncrement(stats.numCsgSeamSplits);
+                    break;
+                }
+
+                // A seam patch at the split cap is kept, at the finest grid that fits
+                while ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
+                    if (udiv >= vdiv)
+                        udiv = std::max(1, udiv / 2);
+                    else
+                        vdiv = std::max(1, vdiv / 2);
+                }
             }
 
             // Did we converge ?

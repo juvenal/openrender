@@ -71,9 +71,8 @@ static int boxesOverlap(const float *amin, const float *amax, const float *bmin,
 // Parity of the crossings of the ray from P along dir with the operand
 static int crossingParity(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
     int count = 0;
-    for (const CSurface *surface : operand.surfaces)
-        if (rayMeetsBox(P, dir, surface->bmin, surface->bmax))
-            count += surface->countCrossings(ctx, P, dir);
+    operand.forEachSurface([&](const float *bmin, const float *bmax) { return rayMeetsBox(P, dir, bmin, bmax); },
+                           [&](const CSurface *surface) { count += surface->countCrossings(ctx, P, dir); });
     return count & 1;
 }
 
@@ -127,11 +126,9 @@ static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &ope
         hi[k] = std::max(a[k], b[k]);
     }
     int count = 0;
-    for (const CSurface *surface : operand.surfaces) {
-        const int unbounded = surface->bmin[0] > surface->bmax[0];
-        if (unbounded || boxesOverlap(lo, hi, surface->bmin, surface->bmax))
-            count += surface->countCrossings(ctx, a, dir) - surface->countCrossings(ctx, b, dir);
-    }
+    operand.forEachSurface(
+        [&](const float *bmin, const float *bmax) { return bmin[0] > bmax[0] || boxesOverlap(lo, hi, bmin, bmax); },
+        [&](const CSurface *surface) { count += surface->countCrossings(ctx, a, dir) - surface->countCrossings(ctx, b, dir); });
     return count;
 }
 
@@ -155,7 +152,7 @@ static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &ope
 //							coincident face); otherwise the rule compares the
 //							tree with the own operand forced IN and OUT.
 //							Ng's sign is irrelevant: it is only the axis.
-int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng) const {
+int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng, int ownChanges) const {
     float n[3] = {Ng[0], Ng[1], Ng[2]};
     const float len = sqrtf(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
     if (!(len > 0))
@@ -174,7 +171,7 @@ int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, co
     // face) means nothing renders; none means P is merely off its surface by
     // more than epsilon (a rounded or tessellated point): look further out.
     const CCSGResolvedOperand &own = *operands[operand];
-    int ownCrossings = segmentCrossings(ctx, own, side[1], side[0]);
+    int ownCrossings = ownChanges ? 1 : segmentCrossings(ctx, own, side[1], side[0]);
     float reach = epsilon;
     for (int retry = 0; retry < kOwnProbeRetries && ownCrossings == 0; retry++) {
         reach *= kOwnProbeGrowth;
@@ -259,10 +256,12 @@ int CCSGEvaluator::classifyBound(CShadingContext *ctx, int operand, const float 
 
     // Another surface of the leaf's own operand in the box may coincide with it
     const CCSGResolvedOperand &own = *operands[operand];
+    auto overlapsBox = [&](const float *bmin, const float *bmax) { return boxesOverlap(lo, hi, bmin, bmax) != 0; };
     int ownSurfaces = 0;
-    for (const CSurface *surface : own.surfaces)
+    own.forEachSurface(overlapsBox, [&](const CSurface *surface) {
         if (boxesOverlap(lo, hi, surface->bmin, surface->bmax))
             ownSurfaces++;
+    });
     if (ownSurfaces > 1)
         return REGION_MIXED;
 
@@ -294,11 +293,10 @@ int CCSGEvaluator::classifyBound(CShadingContext *ctx, int operand, const float 
         // The operand's boundary (its surfaces, and any implied cap, which
         // lies within its quadric's bound) misses the box: one value throughout
         bool touches = false;
-        for (const CSurface *surface : other.surfaces)
-            if (boxesOverlap(lo, hi, surface->bmin, surface->bmax)) {
+        other.forEachSurface(overlapsBox, [&](const CSurface *surface) {
+            if (boxesOverlap(lo, hi, surface->bmin, surface->bmax))
                 touches = true;
-                break;
-            }
+        });
         if (touches)
             return REGION_MIXED;
         const float centre[3] = {0.5f * (lo[0] + hi[0]), 0.5f * (lo[1] + hi[1]), 0.5f * (lo[2] + hi[2])};

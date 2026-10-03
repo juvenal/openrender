@@ -133,6 +133,7 @@ class CReyes : public CShadingContext {
                 int *quadStratumBounds;                       // Per-quad bounds per time stratum (4*timeStrata numbers per quad; NULL unless a moving quad grid)
                 int stratumBounds[RASTER_MAX_TIME_STRATA][4]; // Grid-level bounds per time stratum (moving quad grids only)
                 int timeStrata;                               // Number of time strata in the stratum bounds (0 when absent)
+                unsigned char *coverage;                      // Per-quad: 0 = absent (the object's region rejects it); NULL = all present
                 float *sizes;                                 // The size of the primitive (only makes sense for points)
                 EShadingDim dim;                              // Dimensionality (0,1 or 2)
                 float umin, umax, vmin, vmax;                 // The parametric range

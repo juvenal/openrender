@@ -50,6 +50,88 @@ void CCSGResolvedOperand::addMember(CObject *member) {
 void CCSGResolvedOperand::addSurface(CSurface *surface, int member) {
     surfaces.push_back(surface);
     surfaceMember.push_back(member);
+    index.clear();
+}
+
+// Below this many surfaces a linear scan is as fast as the hierarchy
+static const int kIndexMinSurfaces = 16;
+static const int kIndexLeafSize = 4;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGResolvedOperand
+// Method				:	buildIndex
+// Description			:	A bound hierarchy over the surfaces, split at the
+//							median centre along the longest axis
+// Return Value			:	-
+// Comments				:	Classification asks for the few surfaces near a
+//							segment or along a ray; a mesh operand (a
+//							polygonized blobby, a subdivision mesh) has
+//							thousands, so a linear scan per query dominates
+void CCSGResolvedOperand::buildIndex() {
+    index.clear();
+    order.clear();
+    unbounded.clear();
+    surfaceBound.clear();
+    if ((int)surfaces.size() < kIndexMinSurfaces)
+        return;
+    surfaceBound.resize(surfaces.size());
+    for (size_t s = 0; s < surfaces.size(); s++) {
+        movvv(surfaceBound[s].bmin, surfaces[s]->bmin);
+        movvv(surfaceBound[s].bmax, surfaces[s]->bmax);
+        if (surfaces[s]->bmin[0] > surfaces[s]->bmax[0])
+            unbounded.push_back((int)s);
+        else
+            order.push_back((int)s);
+    }
+    if (order.empty())
+        return; // Nothing bounded: the linear scan visits every surface anyway
+    buildNodes();
+}
+
+// The nodes over `order`, root first; each split reserves its two children's
+// slots side by side, then fills them from a work list
+void CCSGResolvedOperand::buildNodes() {
+    struct CRange {
+            int node, first, count, depth;
+    };
+    index.reserve(2 * order.size() / kIndexLeafSize + 2);
+    index.push_back(CIndexNode());
+    std::vector<CRange> work;
+    work.push_back({0, 0, (int)order.size(), 0});
+    while (!work.empty()) {
+        const CRange r = work.back();
+        work.pop_back();
+        CIndexNode node;
+        initv(node.bmin, C_INFINITY);
+        initv(node.bmax, -C_INFINITY);
+        for (int k = r.first; k < r.first + r.count; k++) {
+            addBox(node.bmin, node.bmax, surfaceBound[order[k]].bmin);
+            addBox(node.bmin, node.bmax, surfaceBound[order[k]].bmax);
+        }
+        node.child = 0;
+        node.first = r.first;
+        node.count = r.count;
+        // forEachSurface()'s fixed stack grows by at most one entry per level
+        if (r.count > kIndexLeafSize && r.depth < 28) {
+            int axis = 0;
+            for (int a = 1; a < 3; a++)
+                if (node.bmax[a] - node.bmin[a] > node.bmax[axis] - node.bmin[axis])
+                    axis = a;
+            const int half = r.count / 2;
+            std::nth_element(order.begin() + r.first, order.begin() + r.first + half, order.begin() + r.first + r.count,
+                             [&](int a, int b) {
+                                 return surfaceBound[a].bmin[axis] + surfaceBound[a].bmax[axis] <
+                                        surfaceBound[b].bmin[axis] + surfaceBound[b].bmax[axis];
+                             });
+            node.child = (int)index.size();
+            node.count = 0;
+            index.push_back(CIndexNode());
+            index.push_back(CIndexNode());
+            work.push_back({node.child, r.first, half, r.depth + 1});
+            work.push_back({node.child + 1, r.first + half, r.count - half, r.depth + 1});
+        }
+        index[r.node] = node;
+    }
 }
 
 // A surface evaluated at (u, v) in [0, 1]^2 through its own sample(), at
@@ -178,6 +260,7 @@ void deriveOperandKind(CCSGResolvedOperand &operand) {
         addBox(operand.bmin, operand.bmax, surface->bmin);
         addBox(operand.bmin, operand.bmax, surface->bmax);
     }
+    operand.buildIndex();
 
     if (operand.surfaces.empty() || operand.members.empty()) {
         operand.kind = CSG_OPERAND_EMPTY;
