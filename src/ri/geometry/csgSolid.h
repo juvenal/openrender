@@ -34,6 +34,7 @@
 
 #include "csgClassify.h"
 #include "csgDefinition.h"
+#include "geometryHost.h"
 #include "object.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -42,15 +43,24 @@
 //							members, their classification surfaces and kinds,
 //							the evaluator and the per-operand regions
 // Comments				:	Built once, then read concurrently by every thread
-class CCSGInstanceState {
+class CCSGInstanceState : public CFrameResource {
     public:
         CCSGInstanceState();
         ~CCSGInstanceState();
+
+        // Keep o alive until the frame ends (or this state goes)
+        void hold(CObject *o);
+
+        // CFrameResource: rendering is over, drop every held object
+        void frameEnded();
 
         std::vector<CCSGResolvedOperand *> operands; // Per operand: members, surfaces, kind, bound
         std::vector<CCSGRegion *> regions;           // Per operand: the region its leaves carry
         CCSGEvaluator *evaluator;                    // The boundary rule over operands
         int passthrough;                             // Operand rendered as authored (FR-019), or -1
+
+    private:
+        std::vector<CObject *> held; // One reference each: members and their surfaces
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -77,7 +87,9 @@ class CCSGSolid : public CObject {
         CCSGDefinition *definition; // Shared, attached
 
     private:
-        std::atomic<CCSGInstanceState *> state;
+        CCSGInstanceState *build(CShadingContext *context);
+
+        std::atomic<CCSGInstanceState *> state; // Attached by the solid
         std::mutex resolveMutex;
 };
 

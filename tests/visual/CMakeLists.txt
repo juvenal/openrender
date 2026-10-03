@@ -1922,92 +1922,94 @@ add_csg_metric_test(NAME malformed-procedural-in-primitive
 # which are guards (T036, T041 and several T038 legs pass on master).
 
 # T034: the hero scene (sphere minus open cylinder): clear hole, solid ring, the far
-# rim, near seam (a luminance step) and silhouette within 1 px of their analytic radii,
-# and no see-through gaps.
+# rim, near seam (a colour step: the operands have their own colours, since the
+# lit hole wall and the sphere shade to the same brightness at some angles) and
+# silhouette within 1 px of their analytic radii, and no see-through gaps.
 add_csg_metric_test(NAME Seam_hero_raytrace_800
     RENDERS
         examples/rib/tests/csg-hero-raytrace-800.rib:csg-hero-raytrace-800.tif
     METRIC
-        "--annuli csg-hero-raytrace-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--annuli csg-hero-raytrace-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:rgb --seam 122.7 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-raytrace-800.tif --exclude disc:400,250,45.6")
 
 add_csg_metric_test(NAME Seam_hero_raytrace_1600
     RENDERS
         examples/rib/tests/csg-hero-raytrace-1600.rib:csg-hero-raytrace-1600.tif
     METRIC
-        "--annuli csg-hero-raytrace-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--annuli csg-hero-raytrace-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:rgb --seam 245.4 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-raytrace-1600.tif --exclude disc:800,500,91.2")
 
 add_csg_metric_test(NAME Seam_hero_reyes_800
     RENDERS
         examples/rib/tests/csg-hero-reyes-800.rib:csg-hero-reyes-800.tif
     METRIC
-        "--annuli csg-hero-reyes-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--annuli csg-hero-reyes-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:rgb --seam 122.7 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-reyes-800.tif --exclude disc:400,250,45.6")
 
 add_csg_metric_test(NAME Seam_hero_reyes_1600
     RENDERS
         examples/rib/tests/csg-hero-reyes-1600.rib:csg-hero-reyes-1600.tif
     METRIC
-        "--annuli csg-hero-reyes-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--annuli csg-hero-reyes-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:rgb --seam 245.4 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-reyes-1600.tif --exclude disc:800,500,91.2")
 
 add_csg_metric_test(NAME Seam_hero_zbuffer_800
     RENDERS
         examples/rib/tests/csg-hero-zbuffer-800.rib:csg-hero-zbuffer-800.tif
     METRIC
-        "--annuli csg-hero-zbuffer-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--annuli csg-hero-zbuffer-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:rgb --seam 122.7 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-zbuffer-800.tif --exclude disc:400,250,45.6")
 
 add_csg_metric_test(NAME Seam_hero_zbuffer_1600
     RENDERS
         examples/rib/tests/csg-hero-zbuffer-1600.rib:csg-hero-zbuffer-1600.tif
     METRIC
-        "--annuli csg-hero-zbuffer-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--annuli csg-hero-zbuffer-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:rgb --seam 245.4 --tolerance 1 --margin 2"
         "--enclosed-holes csg-hero-zbuffer-1600.tif --exclude disc:800,500,91.2")
 
 # T035: sphere minus cube: every seam within 1 px of the exact sphere/cube-face
-# circles (from the scene headers), in every hider.
+# circles (from the scene headers), in every hider; edges are colour steps
+# between the differently coloured operands (--edge-mode rgb).
 add_csg_metric_test(NAME Seam_spherecube_raytrace_800
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib:csg-sphere-cube-difference-raytrace-800.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-raytrace-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-raytrace-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-raytrace-800.tif")
 
 add_csg_metric_test(NAME Seam_spherecube_raytrace_1600
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib:csg-sphere-cube-difference-raytrace-1600.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-raytrace-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-raytrace-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-raytrace-1600.tif")
 
 add_csg_metric_test(NAME Seam_spherecube_reyes_800
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-reyes-800.rib:csg-sphere-cube-difference-reyes-800.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-reyes-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-reyes-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-reyes-800.tif")
 
 add_csg_metric_test(NAME Seam_spherecube_reyes_1600
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-reyes-1600.rib:csg-sphere-cube-difference-reyes-1600.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-reyes-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-reyes-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-reyes-1600.tif")
 
 add_csg_metric_test(NAME Seam_spherecube_zbuffer_800
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-zbuffer-800.rib:csg-sphere-cube-difference-zbuffer-800.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-zbuffer-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-zbuffer-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-zbuffer-800.tif")
 
 add_csg_metric_test(NAME Seam_spherecube_zbuffer_1600
     RENDERS
         examples/rib/tests/csg-sphere-cube-difference-zbuffer-1600.rib:csg-sphere-cube-difference-zbuffer-1600.tif
     METRIC
-        "--projected-curve csg-sphere-cube-difference-zbuffer-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--projected-curve csg-sphere-cube-difference-zbuffer-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1 --edge-mode rgb"
         "--enclosed-holes csg-sphere-cube-difference-zbuffer-1600.tif")
 
 # T036 (guard on master): flush and coincident faces leave no internal or leftover

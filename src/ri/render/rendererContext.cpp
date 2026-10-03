@@ -38,6 +38,7 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/os.h"
+#include "csgSolid.h"
 #include "csgTree.h"
 #include "curves.h"
 #include "delayed.h"
@@ -106,6 +107,9 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
     // Initiate the renderer
     CRenderer::beginRenderer(this, ribFile, riNetString);
 
+    // Serve Geometry's host requests (spec 021)
+    setGeometryHost(this);
+
     // Init the graphics state
     savedXforms = new CArray<CXform *>;
     savedAttributes = new CArray<CAttributes *>;
@@ -149,6 +153,11 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
 // Return Value			:
 // Comments				:
 CRendererContext::~CRendererContext() {
+
+    // No more host requests; release what a frame left behind
+    if (geometryHost() == this)
+        setGeometryHost(NULL);
+    endFrameResources();
 
     // Destroy the misc stuff
     if (keyTimes != NULL)
@@ -472,6 +481,74 @@ void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayed
 
     // Create the hierarchy
     cDelayed->setChildren(context, cDelayed->children);
+}
+
+// Collects the objects an instantiate() call creates (capture() below)
+class CCaptureHolder : public CObject {
+    public:
+        CCaptureHolder(CAttributes *a, CXform *x) : CObject(a, x) {}
+        void intersect(CShadingContext *, CRay *) {}
+        void instantiate(CAttributes *, CXform *, CRiInterface *) const {}
+};
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	capture
+// Description			:	CGeometryHost: instantiate object into a holder
+//							instead of the scene, and return what it created
+// Return Value			:	The created objects, a sibling chain, each
+//							attached once for the caller
+// Comments				:	Uses the delayed-object capture target, so it is
+//							serialized with delayed processing
+CObject *CRendererContext::capture(const CObject *object, CAttributes *attributes, CXform *xform) {
+    osLock(CRenderer::delayedMutex);
+
+    CObject *savedDelayed = delayed;
+    CInstance *savedInstance = instance;
+    CSGTreeNode *savedSolid = currentSolid;
+    instance = NULL;
+    currentSolid = NULL;
+
+    CCaptureHolder holder(attributes, xform);
+    delayed = &holder;
+    object->instantiate(attributes, xform, this);
+    CObject *created = holder.children;
+    holder.children = NULL;
+
+    delayed = savedDelayed;
+    instance = savedInstance;
+    currentSolid = savedSolid;
+    osUnlock(CRenderer::delayedMutex);
+
+    // addObject() attached the raytraced ones: give every object one reference
+    for (CObject *o = created; o != NULL; o = o->sibling)
+        if (!o->raytraced())
+            o->attach();
+    return created;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	releaseAtFrameEnd / endFrameResources
+// Description			:	CGeometryHost: frame-lifetime resources
+// Return Value			:	-
+// Comments				:
+void CRendererContext::releaseAtFrameEnd(CFrameResource *resource) {
+    std::lock_guard<std::mutex> lock(frameResourceMutex);
+    resource->attach();
+    frameResources.push_back(resource);
+}
+
+void CRendererContext::endFrameResources() {
+    std::vector<CFrameResource *> pending;
+    {
+        std::lock_guard<std::mutex> lock(frameResourceMutex);
+        pending.swap(frameResources);
+    }
+    for (CFrameResource *resource : pending) {
+        resource->frameEnded();
+        resource->detach();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -5822,10 +5899,19 @@ void CRendererContext::RiSolidEnd(void) {
         closedNode->parent->operands->push(closedNode);
     }
     else {
-        // Root node: resolve the finished CSG tree into a Resolved Solid
-        // Boundary and re-enter addObject() (research.md Decision 1)
+        // Root node: the finished tree becomes a persistent definition and a
+        // solid that resolves itself on first use (spec 021); an empty tree
+        // yields nothing (spec 013 FR-016)
         stats.csgFrameHasSolid = TRUE; // Prints the CSG statistics (spec 021)
-        resolveCSGTree(this, closedNode);
+        CCSGDefinition *definition = buildCSGDefinition(closedNode);
+        if (!definition->isEmpty()) {
+            addObject(new CCSGSolid(getAttributes(FALSE), closedNode->outerXform, definition));
+        }
+        else {
+            definition->attach();
+            definition->detach();
+        }
+        freeCSGTree(closedNode);
     }
 }
 

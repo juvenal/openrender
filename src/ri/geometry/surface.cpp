@@ -699,6 +699,20 @@ CTesselationPatch::~CTesselationPatch() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	regionKeepsSurfaceHit
+// Description			:	Does the surface's region keep a hit at (u, v)?
+// Return Value			:	TRUE if accepted
+// Comments				:	Classifies the surface's own undisplaced point and
+//							normal at (u, v), not the tessellated candidate, so
+//							a seam follows the true surface and membership
+//							ignores displacement (spec 021, T050)
+static int regionKeepsSurfaceHit(const CSurface *surface, CShadingContext *context, float u, float v) {
+    vector P, Ng;
+    surface->samplePoint(u, v, P, Ng);
+    return surface->region->accepts(context, P, Ng);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CTesselationPatch
 // Method				:	intersect
 // Description			:	intersect a ray with a tesselation patch
@@ -854,7 +868,8 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                 t = (float)((P[COMP_Z] - r[COMP_Z]) * iq[COMP_Z]);                                                    \
                                                                                                                       \
             if ((t > cRay->tmin) && (t < cRay->t) &&                                                                  \
-                (!objectHasTrim || object->trimAccepts(umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg))) {  \
+                (!objectHasTrim || object->trimAccepts(umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg)) && \
+                (objectRegion == NULL || regionKeepsSurfaceHit(object, context, umin + ((float)u + i) * urg, vmin + ((float)v + j) * vrg))) { \
                 vector dPdu, dPdv, N;                                                                                 \
                 vector tmp1, tmp2;                                                                                    \
                 subvv(tmp1, P10, P00);                                                                                \
@@ -1025,6 +1040,11 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
         // ray/object so solve()'s per-hit-candidate trim test below is a plain
         // bool check, not a virtual call, in this hot loop.
         const bool objectHasTrim = object->hasTrim();
+
+        // Spatial trim (spec 021): the region of the surface being tessellated
+        // -- this patch's own region is always NULL (children assigned
+        // without setChildren())
+        const CRegionPredicate *const objectRegion = object->region;
 
         // We treat moving patches differently
         if (!(flags & OBJECT_MOVING_TESSELATION)) {

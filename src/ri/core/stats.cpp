@@ -100,6 +100,7 @@ void CStats::reset() {
     numBlobbySurfaceCells = 0;
     numBlobbyLatticeCells = 0;
     numBlobbyTriangles = 0;
+    csgFrame = 0;
     resetCsg();
     numTextureMisses = 0;
     transferredTextureData = 0;
@@ -298,4 +299,5 @@ void CStats::resetCsg() {
     numCsgInstancesResolved = 0;
     numCsgProceduralExpansions = 0;
     csgFrameHasSolid = FALSE;
+    csgFrame++;
 }

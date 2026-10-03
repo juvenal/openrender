@@ -86,6 +86,25 @@
         }                                                                                                                                \
     }
 
+///////////////////////////////////////////////////////////////////////
+// Function				:	regionKeepsHit
+// Description			:	Does the surface's region (a spatial trim, e.g. a
+//							CSG solid's boundary rule) keep this ray hit?
+// Return Value			:	TRUE when there is no region or it accepts the
+//							camera-space hit point
+// Comments				:	The root loops run in object space: the point is
+//							taken on the camera-space ray, the normal moved to
+//							camera space the way an accepted hit's is (spec 021)
+static int regionKeepsHit(const CSurface *surface, CShadingContext *context, const CRay *rv, double t, const float *objectNormal) {
+    if (surface->region == NULL)
+        return TRUE;
+    vector P, N;
+    for (int k = 0; k < 3; k++)
+        P[k] = rv->from[k] + rv->dir[k] * (float)t;
+    mulmn(N, surface->xform->to, objectNormal);
+    return surface->region->accepts(context, P, N);
+}
+
 //////////////////////////////////////////// S P H E R E ///////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////
@@ -268,6 +287,9 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
         tmp[0] = (float)P[0];
         tmp[1] = (float)P[1];
         tmp[2] = (float)P[2];
+
+        if (!regionKeepsHit(this, context, rv, t, tmp))
+            continue;
 
         rv->object = this;
         rv->u = (float)(u / umax);
@@ -716,6 +738,9 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
         }
     }
 
+    if (!regionKeepsHit(this, context, rv, t, Nt))
+        return;
+
     rv->object = this;
     rv->u = (float)(u / umax);
     if (r > 0) {
@@ -1127,6 +1152,9 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
                 continue;
             }
         }
+
+        if (!regionKeepsHit(this, context, rv, t, Nt))
+            continue;
 
         rv->object = this;
         rv->u = (float)(u / umax);
@@ -1566,6 +1594,9 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
             if (dotvv(oDir, Nt) > 0)
                 continue;
         }
+
+        if (!regionKeepsHit(this, context, rv, t, Nt))
+            continue;
 
         rv->object = this;
         rv->u = (float)(u / umax);
@@ -2015,6 +2046,9 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
             if (dotvv(oDir, Nt) > 0)
                 continue;
         }
+
+        if (!regionKeepsHit(this, context, rv, t, Nt))
+            continue;
 
         rv->object = this;
         rv->u = (float)(u / umax);
@@ -2525,6 +2559,9 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
             }
         }
 
+        if (!regionKeepsHit(this, context, rv, t, Nt))
+            continue;
+
         rv->object = this;
         rv->u = (float)(u / umax);
         rv->v = (float)(v);
@@ -3023,6 +3060,9 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
             if (dotvv(oDir, Nt) > 0)
                 continue;
         }
+
+        if (!regionKeepsHit(this, context, rv, t, Nt))
+            continue;
 
         rv->object = this;
         rv->u = (float)(u / umax);

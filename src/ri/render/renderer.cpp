@@ -818,6 +818,11 @@ void CRenderer::endFrame() {
     assert(stats.numRasterGrids == 0);
     assert(stats.numRasterObjects == 0);
 
+    // Frame resources (spec 021 solids) let go of the objects they held,
+    // before the hierarchy below deletes its own
+    if (context != NULL)
+        context->endFrameResources();
+
     // Delete the root object and it's children
     root->destroy();
 

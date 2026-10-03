@@ -29,6 +29,7 @@
 #include "error.h"
 #include "memory.h"
 #include "object.h"
+#include "rendererc.h"
 #include "random.h"
 #include "renderer.h"
 #include "rendererContext.h"
@@ -58,6 +59,11 @@ CObject::CObject(CAttributes *a, CXform *x) {
     children = NULL;
     sibling = NULL;
     region = NULL;
+
+    // An empty bound until the object computes its own (every primitive's
+    // constructor does); queries can then tell "no bound" from a real one
+    initv(bmin, C_INFINITY);
+    initv(bmax, -C_INFINITY);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -426,4 +432,29 @@ void CSurface::sample(int, int, float **, float ***, unsigned int &) const {
 void CSurface::interpolate(int, float **, float ***) const {
     error(CODE_BUG, "An object is missing the \"interpolate\" function\n");
     assert(FALSE);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	samplePoint
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:	Local buffers for every variable a sampler writes
+//							unconditionally, so no shading context is needed
+void CSurface::samplePoint(float u, float v, float *P, float *Ng) const {
+    float uu = u, vv = v, time = 0, dPdu[3], dPdv[3], dPdtime[3], Pw[4];
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
+    varying[VARIABLE_U] = &uu;
+    varying[VARIABLE_V] = &vv;
+    varying[VARIABLE_TIME] = &time;
+    varying[VARIABLE_P] = P;
+    varying[VARIABLE_DPDU] = dPdu;
+    varying[VARIABLE_DPDV] = dPdv;
+    varying[VARIABLE_NG] = Ng;
+    varying[VARIABLE_DPDTIME] = dPdtime;
+    varying[VARIABLE_PW] = Pw;
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
+    sample(0, 1, varying, NULL, up);
 }

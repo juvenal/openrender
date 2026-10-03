@@ -417,3 +417,20 @@ int CCSGDefinition::passthroughOperand() const {
         node = only;
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGDefinition
+// Method				:	firstWarning
+// Description			:	See csgDefinition.h
+// Return Value			:	TRUE if the warning should be printed now
+// Comments				:
+int CCSGDefinition::firstWarning(EWarning warning, int operand, int frame) {
+    std::lock_guard<std::mutex> lock(warningMutex);
+    std::vector<int> &warned = warnedFrame[warning];
+    if ((int)warned.size() < numOperands())
+        warned.resize(numOperands(), 0);
+    if (warned[operand] == frame + 1)
+        return FALSE;
+    warned[operand] = frame + 1;
+    return TRUE;
+}

@@ -93,17 +93,31 @@ namespace csgtest {
         public:
             std::vector<CObject *> captured;
             bool capturing = false; // Inside CCsgSession::one()
+            int solidDepth = 0;     // Open SolidBegin blocks
 
-            // Primitives a test emits are captured. Objects created later --
-            // a solid's instance leaves, captured by the renderer through the
-            // geometry host at resolution time -- take the real path.
+            // What a test emits is captured -- a primitive, or the solid a
+            // closing SolidEnd adds. Primitives inside an open solid block
+            // take the real path into the capture tree, and so do objects
+            // created later, such as the instance leaves the renderer
+            // captures through the geometry host at resolution time.
             virtual void addObject(CObject *o) {
-                if (!capturing) {
+                if (!capturing || solidDepth > 0) {
                     CRendererContext::addObject(o);
                     return;
                 }
                 o->attach();
                 captured.push_back(o);
+            }
+
+            virtual void RiSolidBegin(const char *type) {
+                solidDepth++;
+                CRendererContext::RiSolidBegin(type);
+            }
+
+            // The depth drops first, so the solid the outermost SolidEnd adds is captured
+            virtual void RiSolidEnd() {
+                solidDepth--;
+                CRendererContext::RiSolidEnd();
             }
     };
 

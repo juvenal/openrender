@@ -187,6 +187,26 @@ CBilinearPatch::~CBilinearPatch() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	regionKeepsBilinearHit
+// Description			:	Does the surface's region (a spatial trim, e.g. a
+//							CSG solid's boundary rule) keep this ray hit?
+// Return Value			:	TRUE when there is no region or it accepts the hit
+// Comments				:	Spec 021; vertices are already in camera space
+static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *context, const CRay *ray, double t, double u,
+                                  double v, const float *P00, const float *P10, const float *P01, const float *P11) {
+    if (surface->region == NULL)
+        return TRUE;
+    vector P, dPdu, dPdv, N;
+    for (int k = 0; k < 3; k++) {
+        P[k] = ray->from[k] + ray->dir[k] * (float)t;
+        dPdu[k] = (float)((P10[k] - P00[k]) * (1 - v) + (P11[k] - P01[k]) * v);
+        dPdv[k] = (float)((P01[k] - P00[k]) * (1 - u) + (P11[k] - P10[k]) * u);
+    }
+    crossvv(N, dPdu, dPdv);
+    return surface->region->accepts(context, P, N);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CBilinearPatch
 // Method				:	intersect
 // Description			:	See object.h
@@ -260,7 +280,7 @@ void CBilinearPatch::intersect(CShadingContext *context, CRay *cRay) {
             else                                                                                                      \
                 t = (P[COMP_Z] - r[COMP_Z]) / q[COMP_Z];                                                              \
                                                                                                                       \
-            if ((t > cRay->tmin) && (t < cRay->t)) {                                                                  \
+            if ((t > cRay->tmin) && (t < cRay->t) && regionKeepsBilinearHit(this, context, cRay, t, u, v, P00, P10, P01, P11)) { \
                 vector dPdu, dPdv, N;                                                                                 \
                 vector tmp1, tmp2;                                                                                    \
                 subvv(tmp1, P10, P00);                                                                                \

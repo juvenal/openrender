@@ -72,7 +72,7 @@ for n in HERO:
     hole, seam, sil = 45.6 * k, 61.7 * k, 122.7 * k
     metric("T034 " + n, ["--annuli", n + ".tif", "--center", f"{cx},{cy}", "--clear", f"disc:{cx},{cy},{hole}",
                          "--solid", f"annulus:{cx},{cy},{hole},{sil}", "--seam", f"{hole}", "--seam",
-                         f"{seam}:luma", "--seam", f"{sil}", "--tolerance", "1", "--margin", "2"])
+                         f"{seam}:rgb", "--seam", f"{sil}", "--tolerance", "1", "--margin", "2"])
     metric("T034 " + n, ["--enclosed-holes", n + ".tif", "--exclude", f"disc:{cx},{cy},{hole}"])
 
 # --- T035 sphere-cube --------------------------------------------------------
@@ -82,7 +82,7 @@ for n in SPHERECUBE:
     args = ["--projected-curve", n + ".tif", "--camera"] + cam
     for c in circles:
         args += c.split()
-    metric("T035 " + n, args + ["--tolerance", "1"])
+    metric("T035 " + n, args + ["--tolerance", "1", "--edge-mode", "rgb"])
     metric("T035 " + n, ["--enclosed-holes", n + ".tif"])
 
 # --- T036 coincident ---------------------------------------------------------

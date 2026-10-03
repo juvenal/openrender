@@ -66,6 +66,7 @@
 #include "shading.h"
 #include "stats.h"
 #include "surface.h"
+#include "csgSolid.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CObject
@@ -84,6 +85,18 @@ void CObject::dice(CReyes *rasterizer) {
 
         cObject->detach();
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGSolid
+// Method				:	dice
+// Description			:	Resolve the solid instance on first use, then dice
+//							its leaves like any object's children (spec 021)
+// Return Value			:	-
+// Comments				:
+void CCSGSolid::dice(CReyes *rasterizer) {
+    resolve(rasterizer);
+    CObject::dice(rasterizer);
 }
 
 ///////////////////////////////////////////////////////////////////////

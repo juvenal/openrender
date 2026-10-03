@@ -29,7 +29,7 @@
 
 class CObject;
 class CXform;
-class CRendererContext;
+class CCSGDefinition;
 
 // The four recognized SolidBegin operation-type strings (FR-001)
 enum ECSGOperation {
@@ -71,10 +71,22 @@ void csgValidateNestedSolidBegin(CSGTreeNode *parent);
 // FALSE.
 int csgValidateProceduralCapture(CSGTreeNode *node);
 
-// Resolves a just-closed root CSGTreeNode (research.md Decision 1) into a
-// Resolved Solid Boundary and adds it to the scene via context->addObject(),
-// or adds nothing for an empty solid block (FR-016). Consumes and deletes
-// `node` (and its whole still-open sub-tree, if any) unconditionally.
-void resolveCSGTree(CRendererContext *context, CSGTreeNode *node);
+///////////////////////////////////////////////////////////////////////
+// Function				:	buildCSGDefinition
+// Description			:	The persistent definition of the finished tree
+//							rooted at node (spec 021): one operand per
+//							"primitive" block, a boolean block's direct
+//							leaves as its first operand, template leaves
+//							rebased into node's outer frame. Blocks nested
+//							inside "primitive" contribute nothing.
+// Return Value			:	A new, unattached definition (isEmpty() when the
+//							tree holds no operand)
+// Comments				:	Pure geometry: the caller (the renderer core)
+//							places the solid in the scene
+CCSGDefinition *buildCSGDefinition(const CSGTreeNode *node);
+
+// Free a capture tree (its nodes and the outer transform's reference); the
+// leaves were moved into a definition or discarded by buildCSGDefinition()
+void freeCSGTree(CSGTreeNode *node);
 
 #endif

@@ -128,7 +128,10 @@ for hider in ("raytrace", "reyes", "zbuffer"):
     for w, h in ((800, 500), (1600, 1000)):
         n = f"csg-hero-{hider}-{w}"
         hero_scene(n, hider, w, h, [f"Spec 021 hero scene (T005): sphere r=1.5 minus the open Cylinder 0.65 -2 2 360,",
-                                    "viewed straight down the hole.", "", *hero_header(w, h)])
+                                    "viewed straight down the hole. Each operand has its own colour (gold sphere,",
+                                    "blue cylinder), so every seam is a colour step even where the two surfaces",
+                                    "shade to the same brightness (measured with --seam r:rgb).", "", *hero_header(w, h)],
+                   solid=hero_solid(sphere_pre="Color [1 0.8 0.3]", cyl_pre="Color [0.2 0.35 1]"))
 
 # T010 stats scenes
 for w, h in ((800, 500), (1600, 1000)):
@@ -263,11 +266,13 @@ for hider in ("raytrace", "reyes", "zbuffer"):
             *arcs,
             "The arcs meet at x = sqrt(0.5). The cube's x = 0.1 face lies entirely inside the sphere and",
             "the x = 1.1 plane misses it, so neither carries a seam.",
+            "The cube operand is orange, the sphere lavender: every seam is a colour step even where",
+            "the two surfaces shade to the same brightness (measured with --edge-mode rgb).",
         ])
         body += HIDERS[hider] + "\nPixelSamples 4 4\n" + f'Display "{n}.tif" "file" "rgba"\n' + c.rib() + "\n"
         body += "WorldBegin\n" + SC_LIGHTS + '    Color [0.7 0.7 0.8]\n    Surface "matte"\n'
         body += '    SolidBegin "difference"\n        SolidBegin "primitive"\n            Sphere 1 -1 1 360\n'
-        body += '        SolidEnd\n        SolidBegin "primitive"\n'
+        body += '        SolidEnd\n        SolidBegin "primitive"\n            Color [0.9 0.5 0.2]\n'
         body += box("            ", 0.6, 0, 0, 1, 1, 1)
         body += '        SolidEnd\n    SolidEnd\nWorldEnd\n'
         write(n + ".rib", body)

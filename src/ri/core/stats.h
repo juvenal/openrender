@@ -113,6 +113,7 @@ class CStats {
         atomic_int32 numCsgInstancesResolved;    // Solid instances whose per-instance state was built
         atomic_int32 numCsgProceduralExpansions; // Procedural operands expanded
         int csgFrameHasSolid;                    // TRUE once this frame contains a solid (prints the four above)
+        int csgFrame;                            // Frame serial, bumped by resetCsg(): once-per-frame CSG warnings key on it
 
         void resetCsg(); // Zero the four counters above and the flag (every RiWorldBegin)
 

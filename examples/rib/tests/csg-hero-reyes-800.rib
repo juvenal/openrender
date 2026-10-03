@@ -1,7 +1,9 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
 # Spec 021 hero scene (T005): sphere r=1.5 minus the open Cylinder 0.65 -2 2 360,
-# viewed straight down the hole.
+# viewed straight down the hole. Each operand has its own colour (gold sphere,
+# blue cylinder), so every seam is a colour step even where the two surfaces
+# shade to the same brightness (measured with --seam r:rgb).
 #
 # Analytic image radii at 800x500, centred on (400, 250):
 #   clear through-hole disc (far rim)  r = 45.6 px
@@ -23,9 +25,11 @@ WorldBegin
     Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
     SolidBegin "difference"
         SolidBegin "primitive"
+            Color [1 0.8 0.3]
             Sphere 1.50 -1.50 1.50 360
         SolidEnd
         SolidBegin "primitive"
+            Color [0.2 0.35 1]
             Cylinder 0.65 -2 2 360
         SolidEnd
     SolidEnd

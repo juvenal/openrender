@@ -11,6 +11,8 @@ version 3.03
 #   --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0     (z = -0.5)
 # The arcs meet at x = sqrt(0.5). The cube's x = 0.1 face lies entirely inside the sphere and
 # the x = 1.1 plane misses it, so neither carries a seam.
+# The cube operand is orange, the sphere lavender: every seam is a colour step even where
+# the two surfaces shade to the same brightness (measured with --edge-mode rgb).
 Hider "raytrace"
 PixelSamples 4 4
 Display "csg-sphere-cube-difference-raytrace-1600.tif" "file" "rgba"
@@ -30,6 +32,7 @@ WorldBegin
             Sphere 1 -1 1 360
         SolidEnd
         SolidBegin "primitive"
+            Color [0.9 0.5 0.2]
             TransformBegin
                 Translate 0.6 0 0
                 Scale 1 1 1

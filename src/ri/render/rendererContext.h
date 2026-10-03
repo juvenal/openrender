@@ -27,8 +27,11 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include <mutex>
+#include <vector>
 #include "common/algebra.h"
 #include "common/global.h"
+#include "geometryHost.h"
 #include "object.h"
 #include "options.h"
 #include "rendererc.h" // Renderer constants
@@ -53,10 +56,19 @@ class CSolidObject;
 // Class				:	CRendererContext
 // Description			:	Holds the global rendering context
 // Comments				:
-class CRendererContext : public CRiInterface {
+class CRendererContext : public CRiInterface, public CGeometryHost {
     public:
         CRendererContext(const char *ribName = NULL, const char *netString = NULL);
         ~CRendererContext();
+
+        // CGeometryHost: the services Geometry asks of the renderer (spec 021,
+        // constitution Principle VIII)
+        CObject *capture(const CObject *object, CAttributes *attributes, CXform *xform) override;
+        void releaseAtFrameEnd(CFrameResource *resource) override;
+
+        // Rendering of the frame is over: hand every pending frame resource
+        // its frameEnded() call (CRenderer::endFrame, before the hierarchy goes)
+        void endFrameResources();
 
         ///////////////////////////////////////////////////////////////////////
         // Renderer interface
@@ -236,6 +248,8 @@ class CRendererContext : public CRiInterface {
         CArray<CInstance *> *instanceStack;      // The stack of object lists
         CArray<CInstance *> *allocatedInstances; // The list of allocated object instances
         CSGTreeNode *currentSolid;               // The current CSG tree node (SolidBegin/SolidEnd capture)
+        std::mutex frameResourceMutex;             // Guards frameResources
+        std::vector<CFrameResource *> frameResources; // Released at the end of the frame (attached)
         CArray<CSGTreeNode *> *savedSolids;      // The stack of enclosing CSG tree nodes
         CXform *currentXform;                    // The current graphics state
         CAttributes *currentAttributes;

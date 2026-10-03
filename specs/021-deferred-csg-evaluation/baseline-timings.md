@@ -44,6 +44,26 @@ Before trusting the master results, the tool was checked against renders with no
 | T042 | caps `--enclosed-holes` | PASS | guard |
 | T040 | CSG statistics counters | not printed on master | **red** by construction |
 
+## Revised T034/T035 seam measurement (2026-10-03)
+
+During Phase 3 (T051) the raytrace legs of T034's near seam and T035's curves stayed red on correct
+renders: at a few angles the two operands shade to the same brightness (the hero's lit hole wall
+against the sphere near 60° and 200°; the sphere's dark lower flank against the cavity face), so a
+correct seam has no luminance step to detect. Some of master's "missing rays" below were this
+effect, not seam spikes. With the maintainer's agreement the twelve scenes now give each operand
+its own colour (hero: gold sphere, blue cylinder; sphere-cube: lavender sphere, orange cube) and
+the checks measure colour steps (`--seam r:rgb`, `--edge-mode rgb`, new in the metric tool;
+luminance stays the default for every other check). Master, re-measured with the revised checks:
+
+| Check | Master |
+|---|---|
+| T034 hero 800, all hiders | FAIL: near seam 2.875 px off, **0** missing rays (the seam is found on every ray: these are master's spikes) |
+| T034 hero 1600, all hiders | FAIL: 23-38 stray pixels in the hole, near seam 3.0 px off (12-14 rays without a seam within 3 px) |
+| T034 `--enclosed-holes` | FAIL on zbuffer-800 (6 px) and raytrace-1600 (2 px); PASS elsewhere |
+| T035 sphere-cube, all hiders | FAIL: 2.04 px (800), 5.0 px (1600) |
+
+All twelve legs stay red on master, so they remain valid red tests; the branch's raytrace legs pass.
+
 ## Findings outside this spec
 
 - **Raytrace pole pixels on a plain sphere**: a plain `Sphere 1.5` viewed down its axis (no solid block) renders two pixels at the exact image centre (399,249 and 400,249) with alpha 242/255. The view ray passes through the sphere's pole. Pre-existing, unrelated to CSG; in the hero scene that pixel lies inside the clear hole, so no spec 021 test is affected.

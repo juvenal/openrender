@@ -102,8 +102,10 @@ TEST(template_leaves_are_rebased_into_the_outer_frame) {
         RiTranslate(1, 0, 0); // the outer frame, snapshotted at SolidBegin
         RiSolidBegin(RI_UNION);
         RiSolidBegin(RI_PRIMITIVE);
+        RiTransformBegin(); // SolidBegin/SolidEnd do not scope the transform
         RiTranslate(0, 2, 0); // the leaf's own offset
         RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiTransformEnd();
         RiSolidEnd();
         RiSolidBegin(RI_PRIMITIVE);
         RiSphere(0.5f, -0.5f, 0.5f, 360.0f, RI_NULL);
@@ -133,13 +135,17 @@ TEST(a_block_nested_in_primitive_contributes_nothing) {
         RiSolidBegin(RI_PRIMITIVE);
         RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
         RiSolidBegin(RI_UNION); // diagnosed and ignored, with its contents
+        RiTransformBegin();
         RiTranslate(5, 0, 0);
         RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiTransformEnd();
         RiSolidEnd();
         RiSolidEnd();
         RiSolidBegin(RI_PRIMITIVE);
+        RiTransformBegin();
         RiTranslate(0, 3, 0);
         RiSphere(0.5f, -0.5f, 0.5f, 360.0f, RI_NULL);
+        RiTransformEnd();
         RiSolidEnd();
         RiSolidEnd();
     });

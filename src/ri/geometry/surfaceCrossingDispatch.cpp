@@ -23,20 +23,18 @@
 #include <mutex>
 
 #include "object.h"
+#include "crossingMath.h"
 #include "rendererc.h"
 
 // Newton refinement limits. Surfaces evaluate in float (sample()), so the
 // residual bottoms out near float resolution: iteration stops once the
 // parametric step is negligible, and a root is accepted at float-level residual.
 static const int kNewtonIterations = 32;
-static const double kNewtonTolerance = 1e-10; // Residual for early exit, relative to the grid's size
-static const double kNewtonStep = 1e-12;      // Parametric step below which iteration stops
+static const double kNewtonTolerance = 1e-7; // Residual for early exit, relative to the grid's size (float level)
+static const double kNewtonStep = 1e-7;      // Parametric step below which iteration stops (float noise is ~1e-7)
 static const double kAcceptTolerance = 1e-6;  // Residual a converged root must reach, relative to the grid's size
 static const double kDuplicateDistance = 1e-5; // Roots closer than this along the ray (relative to the grid's size) are one
 
-// Free-form seed grid resolution per surface (spec 021, research.md Decision 3)
-static const int kSeedGridU = 8;
-static const int kSeedGridV = 8;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCrossingSeedGrid
@@ -267,21 +265,165 @@ class CSampledCrossingSurface : public CCrossingSurface {
         const CSurface *surface;
 };
 
-// What a free-form surface caches for its crossing queries
+// Sample n x n points of the surface over [0, 1]^2 in one sample() call
+static void sampleGrid(const CSurface *surface, int n, std::vector<float> &P) {
+    const int count = n * n;
+    std::vector<float> u(count), v(count), time(count, 0.0f), du(3 * count), dv(3 * count), ng(3 * count), dt(3 * count), pw(4 * count);
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < n; i++) {
+            u[j * n + i] = (float)i / (n - 1);
+            v[j * n + i] = (float)j / (n - 1);
+        }
+    P.resize(3 * count);
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
+    varying[VARIABLE_U] = u.data();
+    varying[VARIABLE_V] = v.data();
+    varying[VARIABLE_TIME] = time.data();
+    varying[VARIABLE_P] = P.data();
+    varying[VARIABLE_DPDU] = du.data();
+    varying[VARIABLE_DPDV] = dv.data();
+    varying[VARIABLE_NG] = ng.data();
+    varying[VARIABLE_DPDTIME] = dt.data();
+    varying[VARIABLE_PW] = pw.data();
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
+    surface->sample(0, count, varying, NULL, up);
+}
+
+// Grid resolution of the fast path: cells per side, and cells per culling block side
+static const int kFastCells = 16;
+static const int kFastBlock = 4;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CFreeFormCrossingCache
+// Description			:	What a free-form surface caches for its crossing
+//							queries: a kFastCells^2 grid of bilinear cells over
+//							the surface with each cell's deviation from it,
+//							culling blocks padded by that deviation, and the
+//							Newton refinement for crossings near the query
+// Comments				:	Built once from one batched sample() call, then
+//							read-only
 class CFreeFormCrossingCache : public CCrossingCache {
     public:
-        explicit CFreeFormCrossingCache(const CSurface *s) : surface(s), grid(surface, kSeedGridU, kSeedGridV) {}
+        explicit CFreeFormCrossingCache(const CSurface *s) : surface(s) {
+            // Corners at the even samples, cell midpoints at the odd ones
+            const int n = 2 * kFastCells + 1;
+            std::vector<float> P;
+            sampleGrid(s, n, P);
+            const int c = kFastCells + 1;
+            corners.resize(3 * c * c);
+            for (int j = 0; j < c; j++)
+                for (int i = 0; i < c; i++)
+                    for (int k = 0; k < 3; k++)
+                        corners[(j * c + i) * 3 + k] = P[((2 * j) * n + 2 * i) * 3 + k];
+
+            deviation.resize(kFastCells * kFastCells);
+            double gmin[3] = {HUGE_VAL, HUGE_VAL, HUGE_VAL}, gmax[3] = {-HUGE_VAL, -HUGE_VAL, -HUGE_VAL};
+            for (int j = 0; j < kFastCells; j++)
+                for (int i = 0; i < kFastCells; i++) {
+                    const float *m = &P[((2 * j + 1) * n + 2 * i + 1) * 3];
+                    double dev = 0;
+                    for (int k = 0; k < 3; k++) {
+                        const double b = 0.25 * ((double)corner(i, j)[k] + corner(i + 1, j)[k] + corner(i, j + 1)[k] + corner(i + 1, j + 1)[k]);
+                        dev = std::max(dev, std::fabs(m[k] - b));
+                        gmin[k] = std::min(gmin[k], (double)m[k]);
+                        gmax[k] = std::max(gmax[k], (double)m[k]);
+                    }
+                    deviation[j * kFastCells + i] = (float)dev;
+                    for (int q = 0; q < 4; q++)
+                        for (int k = 0; k < 3; k++) {
+                            const float x = corner(i + (q & 1), j + (q >> 1))[k];
+                            gmin[k] = std::min(gmin[k], (double)x);
+                            gmax[k] = std::max(gmax[k], (double)x);
+                        }
+                }
+            scale = std::sqrt((gmax[0] - gmin[0]) * (gmax[0] - gmin[0]) + (gmax[1] - gmin[1]) * (gmax[1] - gmin[1]) +
+                              (gmax[2] - gmin[2]) * (gmax[2] - gmin[2]));
+            if (!(scale > 0))
+                scale = 1;
+
+            // Culling blocks: the cells' corners, padded by twice their largest deviation
+            const int nb = kFastCells / kFastBlock;
+            blockMin.assign(3 * nb * nb, HUGE_VAL);
+            blockMax.assign(3 * nb * nb, -HUGE_VAL);
+            for (int bj = 0; bj < nb; bj++)
+                for (int bi = 0; bi < nb; bi++) {
+                    double *lo = &blockMin[(bj * nb + bi) * 3], *hi = &blockMax[(bj * nb + bi) * 3];
+                    double dev = 0;
+                    for (int j = bj * kFastBlock; j <= (bj + 1) * kFastBlock; j++)
+                        for (int i = bi * kFastBlock; i <= (bi + 1) * kFastBlock; i++)
+                            for (int k = 0; k < 3; k++) {
+                                lo[k] = std::min(lo[k], (double)corner(i, j)[k]);
+                                hi[k] = std::max(hi[k], (double)corner(i, j)[k]);
+                            }
+                    for (int j = bj * kFastBlock; j < (bj + 1) * kFastBlock; j++)
+                        for (int i = bi * kFastBlock; i < (bi + 1) * kFastBlock; i++)
+                            dev = std::max(dev, (double)deviation[j * kFastCells + i]);
+                    for (int k = 0; k < 3; k++) {
+                        lo[k] -= 2 * dev + 1e-6 * scale;
+                        hi[k] += 2 * dev + 1e-6 * scale;
+                    }
+                }
+        }
+
+        const float *corner(int i, int j) const { return &corners[(j * (kFastCells + 1) + i) * 3]; }
+
+        // Unsigned crossings of the ray from + t dir, t > 0
+        int count(const float *from, const float *dir) const {
+            const double f[3] = {from[0], from[1], from[2]}, d[3] = {dir[0], dir[1], dir[2]};
+            const double dirLength = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+            const int nb = kFastCells / kFastBlock;
+            int crossings = 0;
+            for (int bj = 0; bj < nb; bj++)
+                for (int bi = 0; bi < nb; bi++) {
+                    if (!rayHitsBox(f, d, &blockMin[(bj * nb + bi) * 3], &blockMax[(bj * nb + bi) * 3]))
+                        continue;
+                    for (int j = bj * kFastBlock; j < (bj + 1) * kFastBlock; j++)
+                        for (int i = bi * kFastBlock; i < (bi + 1) * kFastBlock; i++)
+                            crossings += cellCrossings(i, j, f, d, dirLength);
+                }
+            return crossings;
+        }
+
+    private:
+        // Crossings in front of the origin through cell (i, j). A crossing
+        // within the cell's deviation band of the origin may lie on the other
+        // side on the true surface, so its t is refined there
+        int cellCrossings(int i, int j, const double *f, const double *d, double dirLength) const {
+            double us[2], vs[2], ts[2];
+            const int n = bilinearRayRoots(corner(i, j), corner(i + 1, j), corner(i, j + 1), corner(i + 1, j + 1), f, d, us, vs, ts);
+            const double band = 2.0 * deviation[j * kFastCells + i] + 1e-6 * scale;
+            int count = 0;
+            for (int k = 0; k < n; k++) {
+                double t = ts[k];
+                if (std::fabs(t) * dirLength <= band) {
+                    const double h = 1.0 / kFastCells;
+                    double u = (i + us[k]) * h, v = (j + vs[k]) * h;
+                    double tr;
+                    if (newton(surface, f, d, scale, std::max(0.0, (i - 0.5) * h), std::min(1.0, (i + 1.5) * h), std::max(0.0, (j - 0.5) * h),
+                               std::min(1.0, (j + 1.5) * h), u, v, tr))
+                        t = tr;
+                }
+                count += t > 0 ? 1 : 0;
+            }
+            return count;
+        }
 
         CSampledCrossingSurface surface;
-        CCrossingSeedGrid grid;
+        std::vector<float> corners;   // (kFastCells + 1)^2 grid points
+        std::vector<float> deviation; // Per cell: the surface's distance from the bilinear cell at its middle
+        std::vector<double> blockMin, blockMax;
+        double scale; // Diagonal of the surface's bound
 };
 
 static std::mutex crossingCacheMutex;
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	countFreeFormCrossings
-// Description			:	Crossings of a free-form CSurface, through its seed
-//							grid (built once, under a mutex, on first use)
+// Description			:	Crossings of a free-form CSurface, through its
+//							cached cell grid (built once, under a mutex, on
+//							first use)
 // Return Value			:	The unsigned number of crossings
 // Comments				:
 int countFreeFormCrossings(CShadingContext *, const CSurface *surface, const float *from, const float *dir) {
@@ -294,8 +436,5 @@ int countFreeFormCrossings(CShadingContext *, const CSurface *surface, const flo
             surface->crossingCache.store(cache, std::memory_order_release);
         }
     }
-    const CFreeFormCrossingCache *ff = static_cast<const CFreeFormCrossingCache *>(cache);
-    const double f[3] = {from[0], from[1], from[2]}, d[3] = {dir[0], dir[1], dir[2]};
-    std::vector<CCrossingHit> hits;
-    return findSurfaceCrossings(ff->surface, ff->grid, f, d, hits);
+    return static_cast<const CFreeFormCrossingCache *>(cache)->count(from, dir);
 }

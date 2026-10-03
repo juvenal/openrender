@@ -213,7 +213,17 @@ struct Region {
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-static float sampleBilinear(const Image &img, double x, double y, bool useLuma) {
+// What a seam or edge is a step in: alpha, Rec.709 luminance, or colour (the
+// largest step in any of R, G, B, which sees a seam between two equally
+// bright but differently coloured surfaces)
+enum EStep { STEP_ALPHA = 0, STEP_LUMA, STEP_RGB };
+
+static float channelValue(const Image &img, int x, int y, int channel) {
+    return channel == 3 ? img.alpha(x, y) : channel == 4 ? img.luma(x, y) : img.at(x, y, channel);
+}
+
+// channel: 0-2 R, G, B; 3 alpha; 4 luminance
+static float sampleBilinear(const Image &img, double x, double y, int channel) {
     x -= 0.5;
     y -= 0.5;
     int x0 = (int)std::floor(x), y0 = (int)std::floor(y);
@@ -221,16 +231,17 @@ static float sampleBilinear(const Image &img, double x, double y, bool useLuma) 
     auto value = [&](int xi, int yi) -> float {
         xi = std::clamp(xi, 0, img.width - 1);
         yi = std::clamp(yi, 0, img.height - 1);
-        return useLuma ? img.luma(xi, yi) : img.alpha(xi, yi);
+        return channelValue(img, xi, yi, channel);
     };
     double top = value(x0, y0) * (1 - fx) + value(x0 + 1, y0) * fx;
     double bottom = value(x0, y0 + 1) * (1 - fx) + value(x0 + 1, y0 + 1) * fx;
     return (float)(top * (1 - fy) + bottom * fy);
 }
 
-// Edge pixels: an alpha crossing of 0.5, or a luminance step larger than
-// `lumaThreshold`, between the pixel and one of its 4-neighbours.
-static std::vector<uint8_t> detectEdges(const Image &img, float lumaThreshold) {
+// Edge pixels: an alpha crossing of 0.5, or a luminance (STEP_LUMA) or colour
+// (STEP_RGB) step larger than `threshold`, between the pixel and one of its
+// 4-neighbours.
+static std::vector<uint8_t> detectEdges(const Image &img, float threshold, int step = STEP_LUMA) {
     std::vector<uint8_t> edge((size_t)img.width * img.height, 0);
     const int dx[2] = {1, 0}, dy[2] = {0, 1};
     for (int y = 0; y < img.height; ++y)
@@ -240,8 +251,14 @@ static std::vector<uint8_t> detectEdges(const Image &img, float lumaThreshold) {
                 if (nx >= img.width || ny >= img.height)
                     continue;
                 bool alphaCross = (img.alpha(x, y) < 0.5f) != (img.alpha(nx, ny) < 0.5f);
-                bool lumaStep = std::fabs(img.luma(x, y) - img.luma(nx, ny)) > lumaThreshold;
-                if (alphaCross || lumaStep) {
+                float diff = 0;
+                if (step == STEP_RGB) {
+                    for (int c = 0; c < 3; ++c)
+                        diff = std::max(diff, std::fabs(img.at(x, y, c) - img.at(nx, ny, c)));
+                }
+                else
+                    diff = std::fabs(img.luma(x, y) - img.luma(nx, ny));
+                if (alphaCross || diff > threshold) {
                     edge[(size_t)y * img.width + x] = 1;
                     edge[(size_t)ny * img.width + nx] = 1;
                 }
@@ -278,7 +295,7 @@ static std::string fmt(const char *format, double v) {
 
 struct Seam {
         double radius = 0;
-        bool luma = false;
+        int step = STEP_ALPHA;
 };
 
 // (a) --annuli
@@ -313,15 +330,28 @@ static int runAnnuli(const Image &img, const Region &region, double cx, double c
             const double ux = std::cos(theta), uy = std::sin(theta);
             double found = -1, bestGrad = 0;
             double prevR = seam.radius - window;
-            float prev = sampleBilinear(img, cx + ux * prevR, cy + uy * prevR, seam.luma);
+            // The channels the seam is measured on: alpha, luminance, or R, G and B
+            const int first = seam.step == STEP_ALPHA ? 3 : seam.step == STEP_LUMA ? 4 : 0;
+            const int last = seam.step == STEP_RGB ? 2 : first;
+            float prevC[3];
+            for (int c = first; c <= last; ++c)
+                prevC[c - first] = sampleBilinear(img, cx + ux * prevR, cy + uy * prevR, c);
+            float prev = prevC[0];
             for (double r = prevR + 0.25; r <= seam.radius + window; r += 0.25) {
-                float cur = sampleBilinear(img, cx + ux * r, cy + uy * r, seam.luma);
-                if (seam.luma) {
-                    double grad = std::fabs(cur - prev) / 0.25;
+                float curC[3];
+                for (int c = first; c <= last; ++c)
+                    curC[c - first] = sampleBilinear(img, cx + ux * r, cy + uy * r, c);
+                float cur = curC[0];
+                if (seam.step != STEP_ALPHA) {
+                    double grad = 0;
+                    for (int c = 0; c <= last - first; ++c)
+                        grad = std::max(grad, std::fabs((double)curC[c] - prevC[c]) / 0.25);
                     if (grad > bestGrad) {
                         bestGrad = grad;
                         found = r - 0.125;
                     }
+                    for (int c = 0; c <= last - first; ++c)
+                        prevC[c] = curC[c];
                 }
                 else if ((prev < 0.5f) != (cur < 0.5f)) {
                     double crossing = r - 0.25 + 0.25 * (0.5 - prev) / (cur - prev);
@@ -330,16 +360,17 @@ static int runAnnuli(const Image &img, const Region &region, double cx, double c
                 }
                 prev = cur;
             }
-            if (seam.luma && bestGrad < 0.02)
-                found = -1; // no luminance step at all along this ray
+            if (seam.step != STEP_ALPHA && bestGrad < 0.02)
+                found = -1; // no luminance or colour step at all along this ray
             if (found < 0)
                 ++missing;
             const double deviation = found < 0 ? window : std::fabs(found - seam.radius);
             seamMax = std::max(seamMax, deviation);
         }
         maxDeviation = std::max(maxDeviation, seamMax);
-        perSeam += ",seam_" + fmt("%g", seam.radius) + (seam.luma ? "_luma" : "") + "_max_px=" + fmt("%.3f", seamMax) +
-                   ",seam_" + fmt("%g", seam.radius) + (seam.luma ? "_luma" : "") + "_missing_rays=" +
+        const char *suffix = seam.step == STEP_LUMA ? "_luma" : seam.step == STEP_RGB ? "_rgb" : "";
+        perSeam += ",seam_" + fmt("%g", seam.radius) + suffix + "_max_px=" + fmt("%.3f", seamMax) + ",seam_" +
+                   fmt("%g", seam.radius) + suffix + "_missing_rays=" +
                    std::to_string(missing);
     }
 
@@ -353,7 +384,7 @@ static int runAnnuli(const Image &img, const Region &region, double cx, double c
 
 // (b) --edge-compare
 static int runEdgeCompare(const Image &cand, const Image &ref, const Region &region, double tolerance,
-                          float lumaThreshold) {
+                          float lumaThreshold, int step) {
     if (cand.width != ref.width || cand.height != ref.height) {
         fprintf(stderr, "Image sizes differ\n");
         return 2;
@@ -361,10 +392,10 @@ static int runEdgeCompare(const Image &cand, const Image &ref, const Region &reg
     // Hysteresis: a strong edge in one image (step > lumaThreshold) needs only
     // a weak edge (step > lumaThreshold / 3) nearby in the other, so an edge
     // whose step sits near the threshold cannot flicker in and out of one image.
-    const std::vector<uint8_t> ec = detectEdges(cand, lumaThreshold);
-    const std::vector<uint8_t> er = detectEdges(ref, lumaThreshold);
-    const std::vector<uint8_t> ecWeak = detectEdges(cand, lumaThreshold / 3.0f);
-    const std::vector<uint8_t> erWeak = detectEdges(ref, lumaThreshold / 3.0f);
+    const std::vector<uint8_t> ec = detectEdges(cand, lumaThreshold, step);
+    const std::vector<uint8_t> er = detectEdges(ref, lumaThreshold, step);
+    const std::vector<uint8_t> ecWeak = detectEdges(cand, lumaThreshold / 3.0f, step);
+    const std::vector<uint8_t> erWeak = detectEdges(ref, lumaThreshold / 3.0f, step);
     const int radius = (int)std::ceil(tolerance) + 3;
     double maxDistance = 0;
     long edgePixels = 0;
@@ -485,12 +516,12 @@ static void transformPoint(const double m[16], const double p[3], double out[3])
 }
 
 static int runProjectedCurve(const Image &img, const Region &region, double fov, int w, int h, const double m[16],
-                             const std::vector<Circle> &circles, double tolerance, float lumaThreshold) {
+                             const std::vector<Circle> &circles, double tolerance, float lumaThreshold, int step) {
     if (w != img.width || h != img.height) {
         fprintf(stderr, "--camera resolution %dx%d does not match the image %dx%d\n", w, h, img.width, img.height);
         return 2;
     }
-    const std::vector<uint8_t> edge = detectEdges(img, lumaThreshold);
+    const std::vector<uint8_t> edge = detectEdges(img, lumaThreshold, step);
     const double scale = 0.5 * std::min(w, h) / std::tan(0.5 * fov * M_PI / 180.0);
     const int radius = (int)std::ceil(tolerance) + 3;
     const int samples = 720;
@@ -663,14 +694,15 @@ static void printHelp(const char *argv0) {
         "\n"
         "Modes:\n"
         "  --annuli <image> --center cx,cy [--clear <shape>]... [--solid <shape>]...\n"
-        "          [--seam r | --seam r:luma]... [--tolerance px]\n"
+        "          [--seam r | --seam r:luma | --seam r:rgb]... [--tolerance px]\n"
         "      Counts stray pixels (alpha >= 0.01) in --clear shapes and gap\n"
         "      pixels (alpha < 0.95) in --solid shapes; for each --seam radius,\n"
-        "      finds the alpha 0.5 crossing (or, with :luma, the strongest\n"
-        "      luminance step) along 720 rays and reports the largest radial\n"
+        "      finds the alpha 0.5 crossing (or, with :luma / :rgb, the strongest\n"
+        "      luminance / colour step) along 720 rays and reports the largest radial\n"
         "      deviation. Passes when both counts are 0 and the deviation is\n"
         "      within --tolerance (default 1 px).\n"
         "  --edge-compare <candidate> <reference> [--tolerance px] [--edge-threshold l]\n"
+        "          [--edge-mode luma|rgb]\n"
         "      Largest distance from each edge of either image (an alpha crossing\n"
         "      or a luminance step above --edge-threshold, default 0.05) to the\n"
         "      nearest weak edge (a third of the threshold) of the other image.\n"
@@ -685,7 +717,7 @@ static void printHelp(const char *argv0) {
         "      region, checked against the expected shares (c is r, g or b).\n"
         "  --projected-curve <image> --camera <fov> <w> <h> <m00> ... <m33>\n"
         "          --circle cx,cy,cz,nx,ny,nz,r [--clip-box x0,y0,z0,x1,y1,z1]\n"
-        "          [--facing cx,cy,cz] ... [--tolerance px] [--edge-threshold l]\n"
+        "          [--facing cx,cy,cz] ... [--tolerance px] [--edge-threshold l]\n"        "          [--edge-mode luma|rgb]\n"
         "      Samples each exact 3D intersection circle (object space), keeps\n"
         "      the samples inside its --clip-box and, with --facing (repeatable),\n"
         "      on the camera-facing side of every convex operand centred there,\n"
@@ -693,6 +725,10 @@ static void printHelp(const char *argv0) {
         "      object-to-camera matrix in RIB row-vector order) and requires a\n"
         "      detected edge within --tolerance (default 1 px) of every one.\n"
         "      --clip-box and --facing apply to the preceding --circle.\n"
+        "  --edge-mode luma|rgb  (edge-compare, projected-curve) what counts as an\n"
+        "      edge besides an alpha crossing: a luminance step (default) or a\n"
+        "      colour step (the largest change in R, G or B), which also sees a\n"
+        "      seam between two equally bright, differently coloured surfaces.\n"
         "  --enclosed-holes <image> [--opaque a]\n"
         "      Counts pixels with alpha < --opaque (default 0.99) inside the\n"
         "      region that are not connected to the image border: see-through\n"
@@ -738,6 +774,7 @@ int main(int argc, char **argv) {
     Region region;
     double tolerance = 1.0, threshold = 20.0, opaque = 0.99, lo = 0.0, hi = HUGE_VAL;
     float edgeThreshold = 0.05f;
+    int edgeStep = STEP_LUMA;
     double center[2] = {0, 0};
     bool hasCenter = false;
     std::vector<Shape> clear, solid;
@@ -799,6 +836,15 @@ int main(int argc, char **argv) {
             else
                 edgeThreshold = (float)d;
         }
+        else if (arg == "--edge-mode") {
+            const char *s = next();
+            if (s && std::string(s) == "rgb")
+                edgeStep = STEP_RGB;
+            else if (s && std::string(s) == "luma")
+                edgeStep = STEP_LUMA;
+            else
+                return usage("--edge-mode expects luma or rgb");
+        }
         else if (arg == "--center") {
             std::vector<double> v;
             const char *s = next();
@@ -815,8 +861,12 @@ int main(int argc, char **argv) {
             Seam seam;
             std::string text = s;
             if (text.size() > 5 && text.substr(text.size() - 5) == ":luma") {
-                seam.luma = true;
+                seam.step = STEP_LUMA;
                 text = text.substr(0, text.size() - 5);
+            }
+            else if (text.size() > 4 && text.substr(text.size() - 4) == ":rgb") {
+                seam.step = STEP_RGB;
+                text = text.substr(0, text.size() - 4);
             }
             seam.radius = atof(text.c_str());
             seams.push_back(seam);
@@ -901,7 +951,7 @@ int main(int argc, char **argv) {
         return runAnnuli(loaded[0], region, center[0], center[1], clear, solid, seams, tolerance);
     }
     if (mode == "--edge-compare")
-        return runEdgeCompare(loaded[0], loaded[1], region, tolerance, edgeThreshold);
+        return runEdgeCompare(loaded[0], loaded[1], region, tolerance, edgeThreshold, edgeStep);
     if (mode == "--region-compare")
         return runRegionCompare(loaded[0], loaded[1], region, threshold);
     if (mode == "--region-chroma") {
@@ -912,7 +962,7 @@ int main(int argc, char **argv) {
     if (mode == "--projected-curve") {
         if (!hasCamera || circles.empty())
             return usage("--projected-curve needs --camera and at least one --circle");
-        return runProjectedCurve(loaded[0], region, fov, camW, camH, matrix, circles, tolerance, edgeThreshold);
+        return runProjectedCurve(loaded[0], region, fov, camW, camH, matrix, circles, tolerance, edgeThreshold, edgeStep);
     }
     if (mode == "--enclosed-holes")
         return runEnclosedHoles(loaded[0], region, opaque);

@@ -29,9 +29,24 @@
 #ifndef GEOMETRYHOST_H
 #define GEOMETRYHOST_H
 
+#include "refCounter.h"
+
 class CObject;
 class CAttributes;
 class CXform;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CFrameResource
+// Description			:	Something that holds objects for the rest of the
+//							frame and must let go of them once rendering has
+//							finished, before the scene hierarchy is freed
+// Comments				:	The host keeps a reference until it has called
+//							frameEnded()
+class CFrameResource : public CRefCounter {
+    public:
+        // Rendering is over: release every object reference held
+        virtual void frameEnded() = 0;
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CGeometryHost
@@ -47,6 +62,11 @@ class CGeometryHost {
         // returned as a sibling chain (attached for the caller) instead of
         // entering the scene. Serialized by the host.
         virtual CObject *capture(const CObject *object, CAttributes *attributes, CXform *xform) = 0;
+
+        // Call resource->frameEnded() when the current frame's rendering is
+        // over, before the scene hierarchy is freed; the host holds a
+        // reference until then. Thread-safe.
+        virtual void releaseAtFrameEnd(CFrameResource *resource) = 0;
 };
 
 // Registration hook: the host installs itself (NULL uninstalls). Geometry

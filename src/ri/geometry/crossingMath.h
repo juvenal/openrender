@@ -64,9 +64,12 @@ inline int countTriangleCrossings(const T *v0, const T *v1, const T *v2, const f
 }
 
 // Crossings (0, 1 or 2) of the ray with the bilinear quad
-// P(u, v) = (1-u)(1-v) P00 + u(1-v) P10 + (1-u)v P01 + uv P11, u, v in [0, 1]
-template <class T>
-inline int countBilinearCrossings(const T *P00, const T *P10, const T *P01, const T *P11, const float *from, const float *dir) {
+// P(u, v) = (1-u)(1-v) P00 + u(1-v) P10 + (1-u)v P01 + uv P11, u, v in [0, 1],
+// at any t (also behind the origin). Writes each crossing's u, v and t
+// (t in units of dir) when the arrays are given; returns their number.
+template <class T, class R>
+inline int bilinearRayRoots(const T *P00, const T *P10, const T *P01, const T *P11, const R *from, const R *dir, double *us = nullptr,
+                            double *vs = nullptr, double *ts = nullptr) {
     double a[3], b[3], c[3], d[3], q[3];
     for (int k = 0; k < 3; k++) {
         a[k] = (double)P11[k] - P10[k] - P01[k] + P00[k];
@@ -153,9 +156,24 @@ inline int countBilinearCrossings(const T *P00, const T *P10, const T *P01, cons
         const double t = ((a[0] * u * v + b[0] * u + c[0] * v + d[0]) * q[0] + (a[1] * u * v + b[1] * u + c[1] * v + d[1]) * q[1] +
                           (a[2] * u * v + b[2] * u + c[2] * v + d[2]) * q[2]) /
                          qq;
-        if (t > 0)
-            count++;
+        if (us != nullptr) {
+            us[count] = u;
+            vs[count] = v;
+            ts[count] = t;
+        }
+        count++;
     }
+    return count;
+}
+
+// Crossings (0, 1 or 2) of the ray from + t*dir, t > 0, with the bilinear quad
+template <class T>
+inline int countBilinearCrossings(const T *P00, const T *P10, const T *P01, const T *P11, const float *from, const float *dir) {
+    double us[2], vs[2], ts[2];
+    const int n = bilinearRayRoots(P00, P10, P01, P11, from, dir, us, vs, ts);
+    int count = 0;
+    for (int i = 0; i < n; i++)
+        count += ts[i] > 0 ? 1 : 0;
     return count;
 }
 

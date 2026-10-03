@@ -28,6 +28,7 @@
 #ifndef CSGDEFINITION_H
 #define CSGDEFINITION_H
 
+#include <mutex>
 #include <vector>
 
 #include "common/algebra.h"
@@ -124,7 +125,16 @@ class CCSGDefinition : public CRefCounter {
 
         std::vector<float> operandBmin, operandBmax; // Per operand template bound (3 floats each), in the outer frame
 
+        // TRUE the first time a given warning is due for operand in frame
+        // (frame serial, CStats::csgFrame), so every instance of the solid
+        // shares one warning per offending operand per frame
+        enum EWarning { WARNING_UNSUPPORTED = 0, WARNING_NOT_CLOSED, NUM_WARNINGS };
+        int firstWarning(EWarning warning, int operand, int frame);
+
     private:
+        std::mutex warningMutex;
+        std::vector<int> warnedFrame[NUM_WARNINGS]; // Per operand: the last frame warned, + 1
+
         template <class F> int evaluateNode(int node, F &membership) const;
         void markFlips(int node, int parity);
         void nodeBound(int node, float *lo, float *hi) const;

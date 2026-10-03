@@ -201,6 +201,10 @@ class CSurface : public CObject {
         // surface type with no crossing query) reports 0.
         virtual int countCrossings(CShadingContext * /*ctx*/, const float * /*from*/, const float * /*dir*/) const { return 0; }
 
+        // The undisplaced camera-space point P and geometric normal Ng at
+        // (u, v), at shutter open, through this surface's own sample()
+        void samplePoint(float u, float v, float *P, float *Ng) const;
+
         // TRUE for a surface that implies a closed solid on its own (a
         // quadric other than a disk): closed by itself, or closed by flat caps
         // at its parametric ends, z-cuts and sweep gaps (FR-021)

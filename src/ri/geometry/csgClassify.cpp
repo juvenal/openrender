@@ -37,6 +37,29 @@ static const float kRayDirections[3][3] = {
 static const float kOwnProbeGrowth = 10.0f;
 static const int kOwnProbeRetries = 4;
 
+// Does the ray from + t dir, t > 0, meet the box? An empty box (no bound
+// known) counts as met, so the surface is still asked
+static int rayMeetsBox(const float *from, const float *dir, const float *bmin, const float *bmax) {
+    if (bmin[0] > bmax[0] || bmin[1] > bmax[1] || bmin[2] > bmax[2])
+        return TRUE;
+    double t0 = 0, t1 = HUGE_VAL;
+    for (int k = 0; k < 3; k++) {
+        if (dir[k] == 0) {
+            if (from[k] < bmin[k] || from[k] > bmax[k])
+                return FALSE;
+            continue;
+        }
+        double a = (bmin[k] - from[k]) / (double)dir[k], b = (bmax[k] - from[k]) / (double)dir[k];
+        if (a > b)
+            std::swap(a, b);
+        t0 = std::max(t0, a);
+        t1 = std::min(t1, b);
+        if (t0 > t1)
+            return FALSE;
+    }
+    return TRUE;
+}
+
 static int insideBox(const float *P, const float *bmin, const float *bmax) {
     return P[0] >= bmin[0] && P[0] <= bmax[0] && P[1] >= bmin[1] && P[1] <= bmax[1] && P[2] >= bmin[2] && P[2] <= bmax[2];
 }
@@ -49,7 +72,8 @@ static int boxesOverlap(const float *amin, const float *amax, const float *bmin,
 static int crossingParity(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
     int count = 0;
     for (const CSurface *surface : operand.surfaces)
-        count += surface->countCrossings(ctx, P, dir);
+        if (rayMeetsBox(P, dir, surface->bmin, surface->bmax))
+            count += surface->countCrossings(ctx, P, dir);
     return count & 1;
 }
 
@@ -103,9 +127,11 @@ static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &ope
         hi[k] = std::max(a[k], b[k]);
     }
     int count = 0;
-    for (const CSurface *surface : operand.surfaces)
-        if (boxesOverlap(lo, hi, surface->bmin, surface->bmax))
+    for (const CSurface *surface : operand.surfaces) {
+        const int unbounded = surface->bmin[0] > surface->bmax[0];
+        if (unbounded || boxesOverlap(lo, hi, surface->bmin, surface->bmax))
             count += surface->countCrossings(ctx, a, dir) - surface->countCrossings(ctx, b, dir);
+    }
     return count;
 }
 
@@ -119,8 +145,15 @@ static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &ope
 //							and no lower-indexed operand changes across P too
 //							(between coincident faces the lowest index wins)
 // Return Value			:	TRUE if the point renders
-// Comments				:	Every other operand is classified lazily, only when
-//							the tree evaluation (short-circuit) asks for it.
+// Comments				:	Whether an operand changes across P is the parity
+//							of its surfaces crossing the short segment between
+//							the two sides, which only surfaces right at P can
+//							meet. Each other operand is classified once, at
+//							P - e.Ng, and only when the tree evaluation (short-
+//							circuit) asks for it. The own operand's side values
+//							are needed only when another operand changes too (a
+//							coincident face); otherwise the rule compares the
+//							tree with the own operand forced IN and OUT.
 //							Ng's sign is irrelevant: it is only the axis.
 int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng) const {
     float n[3] = {Ng[0], Ng[1], Ng[2]};
@@ -136,52 +169,71 @@ int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, co
         side[1][k] = P[k] - epsilon * n[k];
     }
 
-    // The leaf's own operand on either side
+    // The leaf's own operand must change across P. An even, non-zero number of
+    // its surfaces here (identical shapes cancelling by parity, an internal
+    // face) means nothing renders; none means P is merely off its surface by
+    // more than epsilon (a rounded or tessellated point): look further out.
     const CCSGResolvedOperand &own = *operands[operand];
-    int ownSide[2] = {classify(ctx, operand, side[0]), classify(ctx, operand, side[1])};
-    if (ownSide[0] == ownSide[1]) {
-        // Another surface of the same operand also crosses here (identical
-        // shapes cancelling by parity, an internal face): nothing renders
-        if (segmentCrossings(ctx, own, side[1], side[0]) != 0)
-            return FALSE;
-
-        // Otherwise P is merely off its own surface by more than epsilon:
-        // probe the own operand further out
-        float reach = epsilon;
-        for (int retry = 0; retry < kOwnProbeRetries && ownSide[0] == ownSide[1]; retry++) {
-            reach *= kOwnProbeGrowth;
-            float far[2][3];
-            for (int k = 0; k < 3; k++) {
-                far[0][k] = P[k] + reach * n[k];
-                far[1][k] = P[k] - reach * n[k];
-            }
-            ownSide[0] = classify(ctx, operand, far[0]);
-            ownSide[1] = classify(ctx, operand, far[1]);
+    int ownCrossings = segmentCrossings(ctx, own, side[1], side[0]);
+    float reach = epsilon;
+    for (int retry = 0; retry < kOwnProbeRetries && ownCrossings == 0; retry++) {
+        reach *= kOwnProbeGrowth;
+        float far[2][3];
+        for (int k = 0; k < 3; k++) {
+            far[0][k] = P[k] + reach * n[k];
+            far[1][k] = P[k] - reach * n[k];
         }
-        if (ownSide[0] == ownSide[1])
-            return FALSE;
+        ownCrossings = segmentCrossings(ctx, own, far[1], far[0]);
     }
+    if ((ownCrossings & 1) == 0)
+        return FALSE;
 
-    // Lazily classified memberships of every other operand, per side
+    // Every other operand, lazily: its value at P - e.Ng, and whether it changes across P
     const int numOperands = (int)operands.size();
-    std::vector<signed char> memo(2 * numOperands, -1);
-    auto membership = [&](int s, int op) -> int {
-        if (op == operand)
-            return ownSide[s] == CSG_IN;
-        signed char &m = memo[s * numOperands + op];
-        if (m < 0)
-            m = (signed char)(classify(ctx, op, side[s]) == CSG_IN);
-        return m;
+    std::vector<signed char> below(numOperands, -1), changes(numOperands, -1);
+    bool anotherChanges = false;
+    auto valueBelow = [&](int op) -> int {
+        if (below[op] < 0)
+            below[op] = (signed char)(classify(ctx, op, side[1]) == CSG_IN);
+        return below[op];
+    };
+    auto changesAcross = [&](int op) -> int {
+        if (changes[op] < 0)
+            changes[op] = (signed char)(segmentCrossings(ctx, *operands[op], side[1], side[0]) & 1);
+        return changes[op];
+    };
+    auto other = [&](int s, int op) -> int {
+        const int v = valueBelow(op);
+        if (s == 0 && changesAcross(op)) {
+            anotherChanges = true;
+            return !v;
+        }
+        return v;
     };
 
-    const int plus = definition->evaluate([&](int op) { return membership(0, op); });
-    const int minus = definition->evaluate([&](int op) { return membership(1, op); });
-    if (plus == minus)
+    // The forced comparison, valid while no operand it consulted changes across P
+    const int forcedIn = definition->evaluate([&](int op) { return op == operand ? 1 : other(1, op); });
+    const int forcedOut = definition->evaluate([&](int op) { return op == operand ? 0 : other(1, op); });
+    int boundary;
+    for (int op = 0; op < numOperands && !anotherChanges; op++)
+        if (op != operand && below[op] >= 0 && changesAcross(op))
+            anotherChanges = true;
+    if (!anotherChanges) {
+        boundary = forcedIn != forcedOut;
+    }
+    else {
+        // A coincident face: the two-sided rule with the own operand's real side values
+        const int ownBelow = classify(ctx, operand, side[1]) == CSG_IN;
+        const int plus = definition->evaluate([&](int op) { return op == operand ? !ownBelow : other(0, op); });
+        const int minus = definition->evaluate([&](int op) { return op == operand ? ownBelow : other(1, op); });
+        boundary = plus != minus;
+    }
+    if (!boundary)
         return FALSE;
 
     // A coincident face of a lower-indexed operand renders instead
     for (int op = 0; op < operand; op++)
-        if (membership(0, op) != membership(1, op))
+        if (changesAcross(op))
             return FALSE;
 
     return TRUE;
