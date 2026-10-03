@@ -84,6 +84,21 @@ It lists what each domain may assume about the others.
    attributes (`ATTRIBUTES_FLAGS_INSIDE`), which the sampler and intersector
    already honor.
 
+6. **Geometry host** (new; constitution Principle VIII). Geometry owns
+   `CGeometryHost` (`src/ri/geometry/geometryHost.h`); the renderer core, the
+   composition root, implements it and installs itself with
+   `setGeometryHost()`. A solid resolving its instance calls only this
+   interface, never `CRenderer` or `CRendererContext`:
+   - `capture(object, attributes, xform)`: the objects
+     `object->instantiate(attributes, xform, …)` creates, as a sibling chain,
+     kept out of the scene
+   - `expand(procedural, flagged)`: a procedural's expansion under `flagged`
+     attributes, returned the same way, with the nested-`SolidBegin` guard
+     active (T066)
+   - both are serialized inside the host, and Geometry's own once-only
+     resolution lock is per solid
+   - with no host installed, a solid resolves to nothing
+
 ## Hider domain (`src/ri/hiders/`)
 
 1. The hiders receive **no** CSG types, calls or flags.

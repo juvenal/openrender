@@ -17,6 +17,12 @@
  *   the queried side has no shader assigned, even though the fragment flag
  *   is set and the *other* side does have one.
  *
+ *   Spec 021 (T044): ATTRIBUTES_FLAGS_SOLID_FRAGMENT and the orientation flip
+ *   (ATTRIBUTES_FLAGS_INSIDE toggled per leafFlip) now live on each resolved
+ *   instance leaf's cloned attributes -- not on fragment meshes, and never on
+ *   the template leaves' own attributes -- while selectVolumeShader() and the
+ *   shading-side selection keyed on that flag are unchanged.
+ *
  *   selectVolumeShader() never dereferences the CShaderInstance pointers it
  *   is given -- it only compares/returns them -- so these tests use opaque
  *   non-null sentinel addresses in place of real CShaderInstance objects.
@@ -37,33 +43,10 @@
 #include <cstdio>
 
 #include "attributes.h"
+#include "csgSolid.h"
+#include "csgTestUtils.h"
 
-static int tests_passed = 0;
-static int tests_failed = 0;
-
-#define TEST(name)                              \
-    void test_##name();                         \
-    void run_test_##name() {                    \
-        printf("Running test: %s ... ", #name); \
-        fflush(stdout);                         \
-        int failedBefore = tests_failed;        \
-        test_##name();                          \
-        if (tests_failed == failedBefore) {     \
-            tests_passed++;                     \
-            printf("PASSED\n");                 \
-        }                                       \
-    }                                           \
-    void test_##name()
-
-#define ASSERT(condition)                                          \
-    do {                                                           \
-        if (!(condition)) {                                        \
-            printf("\nAssertion failed: %s\nFile: %s, Line: %d\n", \
-                   #condition, __FILE__, __LINE__);                \
-            tests_failed++;                                        \
-            return;                                                \
-        }                                                          \
-    } while (0)
+using namespace csgtest;
 
 // Opaque, never-dereferenced sentinel "shader instance" addresses.
 static CShaderInstance *const kInterior = reinterpret_cast<CShaderInstance *>(0x1);
@@ -128,6 +111,44 @@ TEST(fragment_hit_returns_null_when_neither_shader_assigned) {
     ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/true) == NULL);
 }
 
+// Spec 021 (T044): difference(A, B) resolved through RiSolidEnd
+TEST(instance_leaves_carry_the_fragment_flag_and_the_flip) {
+    CCsgSession s;
+    CCSGSolid *solid = dynamic_cast<CCSGSolid *>(s.one([] {
+        RiSolidBegin(RI_DIFFERENCE);
+        RiSolidBegin(RI_PRIMITIVE);
+        RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiSolidEnd();
+        RiSolidBegin(RI_PRIMITIVE);
+        RiTranslate(0.8f, 0, 0);
+        RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiSolidEnd();
+        RiSolidEnd();
+    }));
+    ASSERT(solid != NULL);
+    solid->resolve(s.ctx());
+    const CCSGInstanceState *state = solid->instanceState();
+    ASSERT(state != NULL);
+    ASSERT(state->operands.size() == 2);
+    for (int op = 0; op < 2; op++) {
+        const CObject *templ = solid->definition->operandMembers[op][0];
+        ASSERT(state->operands[op]->members.size() == 1);
+        const CObject *leaf = state->operands[op]->members[0];
+        ASSERT(leaf != templ);
+        ASSERT(leaf->attributes != templ->attributes); // a clone
+        ASSERT((leaf->attributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) != 0);
+        ASSERT((templ->attributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) == 0);
+        // Only the subtrahend's leaf is flipped
+        const unsigned int toggled = (leaf->attributes->flags ^ templ->attributes->flags) & ATTRIBUTES_FLAGS_INSIDE;
+        ASSERT(toggled == (op == 1 ? ATTRIBUTES_FLAGS_INSIDE : 0u));
+    }
+    // The selection the shading side makes from a leaf's attributes is the
+    // spec 013 one: a fragment with no Interior/Exterior shader runs its surface shader
+    const CObject *leaf = state->operands[0]->members[0];
+    ASSERT(selectVolumeShader(leaf->attributes, true, true) == leaf->attributes->exterior);
+    ASSERT(selectVolumeShader(leaf->attributes, true, false) == leaf->attributes->interior);
+}
+
 int main() {
     printf("=== CSG Interior/Exterior Selection Tests (T032) ===\n\n");
 
@@ -136,6 +157,7 @@ int main() {
     run_test_fragment_hit_exterior_side_returns_exterior_shader();
     run_test_fragment_hit_falls_back_to_null_when_side_unset();
     run_test_fragment_hit_returns_null_when_neither_shader_assigned();
+    run_test_instance_leaves_carry_the_fragment_flag_and_the_flip();
 
     printf("\n=== Results: %d passed, %d failed ===\n", tests_passed, tests_failed);
 

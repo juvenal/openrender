@@ -66,6 +66,7 @@ set(ri_sources
 	geometry/csgDefinition.cpp
 	geometry/csgSolid.cpp
 	geometry/surfaceCrossingDispatch.cpp
+	geometry/geometryHost.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp

@@ -92,8 +92,16 @@ namespace csgtest {
     class CCaptureContext : public CRendererContext {
         public:
             std::vector<CObject *> captured;
+            bool capturing = false; // Inside CCsgSession::one()
 
+            // Primitives a test emits are captured. Objects created later --
+            // a solid's instance leaves, captured by the renderer through the
+            // geometry host at resolution time -- take the real path.
             virtual void addObject(CObject *o) {
+                if (!capturing) {
+                    CRendererContext::addObject(o);
+                    return;
+                }
                 o->attach();
                 captured.push_back(o);
             }
@@ -138,9 +146,11 @@ namespace csgtest {
             // object they created (NULL if they created none or several)
             CObject *one(const std::function<void()> &emit) {
                 size_t before = capture()->captured.size();
+                capture()->capturing = true;
                 RiAttributeBegin();
                 emit();
                 RiAttributeEnd();
+                capture()->capturing = false;
                 size_t after = capture()->captured.size();
                 return after == before + 1 ? capture()->captured.back() : NULL;
             }

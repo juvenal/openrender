@@ -523,14 +523,16 @@ non-quadric surfaces were added during analysis (2026-09-30).
   (FR-024).
 - A procedural declared in a solid block becomes an *unexpanded operand member*.
 - When a solid instance is first needed (its first `dice()` or `intersect()`), its
-  procedural operand members are expanded under `CRenderer::delayedMutex`, as
-  `CDelayedObject::intersect()` does (`src/ri/render/geometryDispatch.cpp:679`).
+  procedural operand members are expanded through the Geometry-owned host
+  interface (`CGeometryHost::expand()`, Decision 9), which the renderer core
+  implements under its own `delayedMutex`.
 - **Capture-aware expansion**: `processDelayedObject()` (`rendererContext.cpp:421`)
   cannot be reused. It targets the delayed object's own children, resets
   `delayed = NULL` on return (so later leaves of the same operand would land in
   the scene), and calls `setChildren()` before any region is set (so the
-  expansion would render untrimmed). A new helper,
-  `CRendererContext::expandIntoOperand(ctx, cDelayed, holder, flagged)`:
+  expansion would render untrimmed). The renderer core's implementation of
+  `CGeometryHost::expand()` (amended for constitution Principle VIII; first
+  planned as `CRendererContext::expandIntoOperand()` called from Geometry):
   - saves `delayed`, `currentAttributes` and `currentXform`
   - sets `delayed = holder`, the current attributes to a copy of `flagged`, and
     the current xform to the delayed object's xform
@@ -598,15 +600,23 @@ trigger.
   the absolute transform for a direct placement and the composed one for an
   instance. Without the rebase, the outer transform would be applied twice.
 - **Per-instance state** (`CCSGInstanceState`) is built on first use, under
-  `delayedMutex`, in this order:
+  the solid's own mutex, in this order:
   0. Unsupported members (Decision 3: `honorsRegion()` false, or not a surface,
      mesh or procedural) are dropped with one deduplicated warning per offending
      operand per frame, for template and expanded members alike.
-  1. **Capture target**: `instantiate()` hands its output to `addObject()`
-     (e.g. `quadrics.cpp:512`). For each operand, the context's `delayed` points
-     at a temporary holder, as `processDelayedSolid()` does
-     (`rendererContext.cpp:485`), so the output lands in the operand's member
-     list, not in the scene.
+  1. **Capture through the geometry host**: `instantiate()` hands its output to
+     `addObject()` (e.g. `quadrics.cpp:512`), which the renderer core owns. Under
+     constitution Principle VIII (v1.2.0, ratified after this research) Geometry
+     may not depend on the renderer core, so the capture is inverted: Geometry
+     declares `CGeometryHost` (`capture()`, `expand()`), and the core implements
+     it by pointing its `delayed` at a temporary holder under `delayedMutex`, as
+     `processDelayedSolid()` does (`rendererContext.cpp:485`), returning the
+     created objects as the operand's members. *Rejected*: copying
+     `CSolidObject`'s direct `CRenderer::delayedMutex` /
+     `CRenderer::context->processDelayed*` calls (extends registered violation
+     DB-004); a Geometry-local `CRiInterface` collector (constructing a
+     `CRiInterface` installs it as the global `renderMan`, which would hijack a
+     running render).
   2. **Flagged clones**: each template leaf's attributes are cloned, with
      `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` set and `ATTRIBUTES_FLAGS_INSIDE` toggled
      per `leafFlip`, and the leaf is instantiated with that clone and the solid's

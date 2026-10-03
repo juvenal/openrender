@@ -73,7 +73,9 @@ REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s at 800×500 / 1600×1000.
   in quickstart §7).
 - Non-CSG output bit-identical (FR-020).
 - Classification deterministic per point (FR-008).
-- Thread-safe lazy state (`CRenderer::delayedMutex`).
+- Thread-safe lazy state: a per-solid mutex in Geometry; the renderer core's
+  `delayedMutex` stays inside its own `CGeometryHost` implementation
+  (Principle VIII).
 
 **Scale/Scope**:
 - 4 new CSG geometry source pairs (`csgDefinition`, `csgSolid`, `csgClassify`,
@@ -97,6 +99,7 @@ REYES 0.19 s / 0.40 s; Z-buffer 0.16 s / 0.34 s at 800×500 / 1600×1000.
 | IV. CLI | PASS | The behavior is reached through the existing `orender` CLI and RIB. The new statistics counters appear in the existing statistics output. |
 | V. Minimal Dependencies | PASS | No new dependency; the BSP kernel is removed rather than a geometry library added. |
 | VI. Platform Targeting | PASS | Portable C++; no platform code. Linux validation via the existing CI and Linux builds. |
+| VIII. Domain Separation | PASS (amended 2026-10-03) | Domains touched: **Geometry** (definition, classification, regions, solid, caps), **Hiders** (generic coverage mask only; Hiders → Geometry is allowed), and the **renderer core** as composition root (`RiSolidEnd`, statistics, and implementing the Geometry-owned `CGeometryHost`). No Shading change. Geometry reaches the renderer core only through `CGeometryHost` (`capture()`, `expand()`), registered by the core: no `CRenderer`/`CRendererContext` use in the new CSG units. Pre-existing Geometry → renderer-core coupling is registered as DB-004 (#27); this feature does not extend it. |
 | VII. Documentation | PASS (plan) | Updates: the Hugo page `docs/site/content/manual/reference/solid-csg-operations.md`, `DEVNOTES.md`, `DEVNOTES_DETAILS/RISPEC_GAPS.md`, `CLAUDE.md` known-gotchas, and superseded notes in `specs/013-solid-csg-operations/research.md` (SC-009). |
 
 **Post-design re-check (after Phase 1)**: still PASS.
@@ -255,7 +258,7 @@ tests, for test approval (constitution III), and at its end, for commit.
 5. **Implied closure caps** (FR-021) for single-quadric operands, then the
    deliberate regeneration of the existing CSG references (before/after crops).
    This closes US1 with everything green.
-6. **Procedural operands** (FR-024/025): capture through the instance's `delayed` target via `expandIntoOperand()` (not `processDelayedObject()`), lazy recursive
+6. **Procedural operands** (FR-024/025): capture through the Geometry-owned host interface (`CGeometryHost::expand()`, implemented by the renderer core; not `processDelayedObject()`), lazy recursive
    expansion with flagged attributes, nested-`SolidBegin` guard, empty operands
    per FR-025a. The
    archive is copied into the test's scratch directory. The old

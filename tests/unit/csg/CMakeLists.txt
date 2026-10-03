@@ -53,6 +53,12 @@ add_csg_unit_test(CSG_ClassifyDeterminism test_classify_determinism.cpp)
 add_csg_unit_test(CSG_Stats               test_csg_stats.cpp)
 add_csg_unit_test(CSG_RegionInheritance   test_region_inheritance.cpp)
 
+# Solid capture, lazy instance resolution and implied caps (spec 021,
+# Phase 3: T042, T043, T045)
+add_csg_unit_test(CSG_ImpliedCaps         test_implied_caps.cpp)
+add_csg_unit_test(CSG_CapturePath         test_capture_path.cpp)
+add_csg_unit_test(CSG_LazyResolution      test_lazy_resolution.cpp)
+
 # Interior/Exterior shader selection (spec 013; updated by spec 021 T044)
 add_csg_unit_test(CSG_InteriorExteriorSelection test_interior_exterior_selection.cpp)
 

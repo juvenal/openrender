@@ -75,12 +75,14 @@ instance.
 
 ### Per-instance state — `CCSGInstanceState` (new)
 
-Built on first `dice()`/`intersect()` under `CRenderer::delayedMutex`, at most
-once per instance.
+Built on first `dice()`/`intersect()` under the solid's own mutex, at most
+once per instance. Leaves and procedural expansions are captured through the
+Geometry-owned `CGeometryHost` (below); Geometry never locks or calls into the
+renderer core (constitution Principle VIII).
 
 | Field | Meaning |
 |---|---|
-| `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through the context's `delayed` target, because `instantiate()` hands its output to `addObject()` |
+| `operandMembers[op][]` | This instance's leaf objects per operand: templates instantiated with a flagged attribute clone and the composed transform, plus procedural expansions. Captured through `CGeometryHost::capture()`/`expand()`, because `instantiate()` hands its output to `addObject()`, which the renderer core owns |
 | `resolved[op]` | A `CCSGResolvedOperand { members, surfaces, kind, bound }`: the operand's members (declared primitives, minus unsupported members per research Decision 3), every `CSurface` descendant of them after depth-first `materialize(ctx)` (the classification surfaces for parity), and the kind (single-quadric / multi-surface / empty / open) from the pure `deriveOperandKind(members, surfaces)`. Closedness is judged per member, because a mesh splits into many surfaces. An empty operand classifies every point OUT (FR-025a). Unit tests build these directly |
 | `caps[op][]` | Synthesized cap surfaces, for operands resolved as single-quadric (FR-021) |
 | `regions[]` | One `CCSGRegion` per leaf and cap (below) |
@@ -92,12 +94,12 @@ once per instance.
      curves, curve meshes, object instances; or not a surface, mesh or
      procedural)
      dropped, with one warning per offending operand per frame (FR-018)
-  1. capture target set (`delayed` → per-operand holder)
+  1. capture through the geometry host (`CGeometryHost::capture()` per leaf)
   2. each template leaf instantiated with a clone of its attributes carrying
      `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` and the `leafFlip` toggle of
      `ATTRIBUTES_FLAGS_INSIDE`, and with the solid's xform (the leaves were
      rebased, so this reproduces their absolute placement); then every captured
-     `CDelayedObject` replaced by its expansion through `expandIntoOperand()`,
+     `CDelayedObject` replaced by its expansion through `CGeometryHost::expand()`,
      with a flagged clone as the current attributes, until none remains
   3. `region` set on every member
   4. depth-first materialization
@@ -193,6 +195,19 @@ contains a solid (a per-frame flag, reset at `RiWorldBegin`, set by every outerm
 the world block, single-operand collapses included, and by every
 `CCSGSolid::instantiate()`), with the labels `CSG classifications:`, `CSG seam splits:`,
 `CSG instances resolved:` and `CSG procedural expansions:`.
+
+### Geometry host — `CGeometryHost` (new; Geometry-owned interface)
+
+Constitution Principle VIII forbids Geometry from depending on the renderer
+core. The services a solid needs from it at resolution time are therefore
+inverted through an interface Geometry declares
+(`src/ri/geometry/geometryHost.h`) and the renderer core implements and
+registers (`setGeometryHost()`; `geometryHost()` returns it, or NULL).
+
+| Operation | Meaning |
+|---|---|
+| `capture(object, attributes, xform)` | The objects `object->instantiate(attributes, xform, …)` creates, returned as a sibling chain instead of entering the scene. The core implements it with its `delayed` capture target under `delayedMutex` (T046) |
+| `expand(procedural, flagged)` | A procedural's expansion, with `flagged` as the current attributes, returned the same way; the nested-`SolidBegin` guard runs for its duration (T066) |
 
 ## Relationships
 

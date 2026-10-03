@@ -16,3 +16,14 @@
  *
  */
 #include "csgCaps.h"
+
+// Spec 021 Phase 3 skeleton: inert answers so the tests compile and fail.
+// Cap synthesis arrives with T056.
+
+void buildImpliedCaps(const CSurface *, std::vector<CCSGCap> &caps) {
+    caps.clear();
+}
+
+int capCrossSectionAccepts(const CSurface *, const CCSGCap &, const float *) {
+    return FALSE;
+}

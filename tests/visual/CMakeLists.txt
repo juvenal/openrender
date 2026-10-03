@@ -1916,6 +1916,294 @@ add_csg_metric_test(NAME malformed-procedural-in-primitive
     LOG_PASS "RiProcedural cannot be declared inside a SolidBegin block"
     ALLOW_RENDER_ERROR)
 
+# --- Phase 3, User Story 1 (T034-T042): render-and-measure checks ----------
+# Arguments mirror specs/021-deferred-csg-evaluation/tools/baseline.py, which ran
+# them on master; baseline-timings.md records which legs were red there and
+# which are guards (T036, T041 and several T038 legs pass on master).
+
+# T034: the hero scene (sphere minus open cylinder): clear hole, solid ring, the far
+# rim, near seam (a luminance step) and silhouette within 1 px of their analytic radii,
+# and no see-through gaps.
+add_csg_metric_test(NAME Seam_hero_raytrace_800
+    RENDERS
+        examples/rib/tests/csg-hero-raytrace-800.rib:csg-hero-raytrace-800.tif
+    METRIC
+        "--annuli csg-hero-raytrace-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-raytrace-800.tif --exclude disc:400,250,45.6")
+
+add_csg_metric_test(NAME Seam_hero_raytrace_1600
+    RENDERS
+        examples/rib/tests/csg-hero-raytrace-1600.rib:csg-hero-raytrace-1600.tif
+    METRIC
+        "--annuli csg-hero-raytrace-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-raytrace-1600.tif --exclude disc:800,500,91.2")
+
+add_csg_metric_test(NAME Seam_hero_reyes_800
+    RENDERS
+        examples/rib/tests/csg-hero-reyes-800.rib:csg-hero-reyes-800.tif
+    METRIC
+        "--annuli csg-hero-reyes-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-reyes-800.tif --exclude disc:400,250,45.6")
+
+add_csg_metric_test(NAME Seam_hero_reyes_1600
+    RENDERS
+        examples/rib/tests/csg-hero-reyes-1600.rib:csg-hero-reyes-1600.tif
+    METRIC
+        "--annuli csg-hero-reyes-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-reyes-1600.tif --exclude disc:800,500,91.2")
+
+add_csg_metric_test(NAME Seam_hero_zbuffer_800
+    RENDERS
+        examples/rib/tests/csg-hero-zbuffer-800.rib:csg-hero-zbuffer-800.tif
+    METRIC
+        "--annuli csg-hero-zbuffer-800.tif --center 400,250 --clear disc:400,250,45.6 --solid annulus:400,250,45.6,122.7 --seam 45.6 --seam 61.7:luma --seam 122.7 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-zbuffer-800.tif --exclude disc:400,250,45.6")
+
+add_csg_metric_test(NAME Seam_hero_zbuffer_1600
+    RENDERS
+        examples/rib/tests/csg-hero-zbuffer-1600.rib:csg-hero-zbuffer-1600.tif
+    METRIC
+        "--annuli csg-hero-zbuffer-1600.tif --center 800,500 --clear disc:800,500,91.2 --solid annulus:800,500,91.2,245.4 --seam 91.2 --seam 123.4:luma --seam 245.4 --tolerance 1 --margin 2"
+        "--enclosed-holes csg-hero-zbuffer-1600.tif --exclude disc:800,500,91.2")
+
+# T035: sphere minus cube: every seam within 1 px of the exact sphere/cube-face
+# circles (from the scene headers), in every hider.
+add_csg_metric_test(NAME Seam_spherecube_raytrace_800
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib:csg-sphere-cube-difference-raytrace-800.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-raytrace-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-raytrace-800.tif")
+
+add_csg_metric_test(NAME Seam_spherecube_raytrace_1600
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib:csg-sphere-cube-difference-raytrace-1600.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-raytrace-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-raytrace-1600.tif")
+
+add_csg_metric_test(NAME Seam_spherecube_reyes_800
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-reyes-800.rib:csg-sphere-cube-difference-reyes-800.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-reyes-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-reyes-800.tif")
+
+add_csg_metric_test(NAME Seam_spherecube_reyes_1600
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-reyes-1600.rib:csg-sphere-cube-difference-reyes-1600.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-reyes-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-reyes-1600.tif")
+
+add_csg_metric_test(NAME Seam_spherecube_zbuffer_800
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-zbuffer-800.rib:csg-sphere-cube-difference-zbuffer-800.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-zbuffer-800.tif --camera 40 800 500 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-zbuffer-800.tif")
+
+add_csg_metric_test(NAME Seam_spherecube_zbuffer_1600
+    RENDERS
+        examples/rib/tests/csg-sphere-cube-difference-zbuffer-1600.rib:csg-sphere-cube-difference-zbuffer-1600.tif
+    METRIC
+        "--projected-curve csg-sphere-cube-difference-zbuffer-1600.tif --camera 40 1600 1000 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0,0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,-0.5,0,0,1,0,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --circle 0,0,-0.5,0,0,1,0.866025 --clip-box 0.1,-0.5,-0.5,1.1,0.5,0.5 --facing 0,0,0 --tolerance 1"
+        "--enclosed-holes csg-sphere-cube-difference-zbuffer-1600.tif")
+
+# T036 (guard on master): flush and coincident faces leave no internal or leftover
+# skin (FR-022).
+add_csg_metric_test(NAME Seam_coincident_union_raytrace
+    RENDERS
+        examples/rib/tests/csg-coincident-union-raytrace.rib:csg-coincident-union-raytrace.tif
+        examples/rib/tests/csg-coincident-union-expected-raytrace.rib:csg-coincident-union-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-union-raytrace.tif"
+        "--region-compare csg-coincident-union-raytrace.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20")
+
+add_csg_metric_test(NAME Seam_coincident_union_reyes
+    RENDERS
+        examples/rib/tests/csg-coincident-union-reyes.rib:csg-coincident-union-reyes.tif
+        examples/rib/tests/csg-coincident-union-expected-raytrace.rib:csg-coincident-union-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-union-reyes.tif"
+        "--region-compare csg-coincident-union-reyes.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20")
+
+add_csg_metric_test(NAME Seam_coincident_union_zbuffer
+    RENDERS
+        examples/rib/tests/csg-coincident-union-zbuffer.rib:csg-coincident-union-zbuffer.tif
+        examples/rib/tests/csg-coincident-union-expected-raytrace.rib:csg-coincident-union-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-union-zbuffer.tif"
+        "--region-compare csg-coincident-union-zbuffer.tif csg-coincident-union-expected-raytrace.tif --include frame --threshold 20")
+
+add_csg_metric_test(NAME Seam_coincident_difference_raytrace
+    RENDERS
+        examples/rib/tests/csg-coincident-difference-raytrace.rib:csg-coincident-difference-raytrace.tif
+        examples/rib/tests/csg-coincident-difference-expected-raytrace.rib:csg-coincident-difference-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-difference-raytrace.tif"
+        "--region-compare csg-coincident-difference-raytrace.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20")
+
+add_csg_metric_test(NAME Seam_coincident_difference_reyes
+    RENDERS
+        examples/rib/tests/csg-coincident-difference-reyes.rib:csg-coincident-difference-reyes.tif
+        examples/rib/tests/csg-coincident-difference-expected-raytrace.rib:csg-coincident-difference-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-difference-reyes.tif"
+        "--region-compare csg-coincident-difference-reyes.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20")
+
+add_csg_metric_test(NAME Seam_coincident_difference_zbuffer
+    RENDERS
+        examples/rib/tests/csg-coincident-difference-zbuffer.rib:csg-coincident-difference-zbuffer.tif
+        examples/rib/tests/csg-coincident-difference-expected-raytrace.rib:csg-coincident-difference-expected-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-coincident-difference-zbuffer.tif"
+        "--region-compare csg-coincident-difference-zbuffer.tif csg-coincident-difference-expected-raytrace.tif --include frame --threshold 20")
+
+# T037 (guard): faces keep their operand's shader: the hole wall is the blue
+# cylinder's, the outer surface the red sphere's (FR-016).
+add_csg_metric_test(NAME PerOperandShader_hero_raytrace
+    RENDERS
+        examples/rib/tests/csg-hero-two-shaders-raytrace.rib:csg-hero-two-shaders-raytrace.tif
+    METRIC
+        "--region-chroma csg-hero-two-shaders-raytrace.tif --include annulus:400,250,45.6,61.7 --min-share b=0.4 --max-share r=0.3"
+        "--region-chroma csg-hero-two-shaders-raytrace.tif --include annulus:400,250,62,122 --min-share r=0.45 --max-share b=0.15")
+
+add_csg_metric_test(NAME PerOperandShader_hero_reyes
+    RENDERS
+        examples/rib/tests/csg-hero-two-shaders-reyes.rib:csg-hero-two-shaders-reyes.tif
+    METRIC
+        "--region-chroma csg-hero-two-shaders-reyes.tif --include annulus:400,250,45.6,61.7 --min-share b=0.4 --max-share r=0.3"
+        "--region-chroma csg-hero-two-shaders-reyes.tif --include annulus:400,250,62,122 --min-share r=0.45 --max-share b=0.15")
+
+# T038: free-form and mesh operands. The rational NURBS sphere represents a sphere
+# exactly, so its seam must sit within 1 px of the exact circle (red on master); the
+# holes, REYES-vs-raytrace edges and untouched areas are guards.
+add_csg_metric_test(NAME Seam_freeform_nurbs
+    RENDERS
+        examples/rib/tests/csg-nurbs-rational-sphere-union-raytrace.rib:csg-nurbs-rational-sphere-union-raytrace.tif
+        examples/rib/tests/csg-nurbs-rational-sphere-union-reyes.rib:csg-nurbs-rational-sphere-union-reyes.tif
+        examples/rib/tests/csg-nurbs-rational-sphere-alone-raytrace.rib:csg-nurbs-rational-sphere-alone-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-nurbs-rational-sphere-union-raytrace.tif"
+        "--enclosed-holes csg-nurbs-rational-sphere-union-reyes.tif"
+        "--edge-compare csg-nurbs-rational-sphere-union-reyes.tif csg-nurbs-rational-sphere-union-raytrace.tif --tolerance 1"
+        "--region-compare csg-nurbs-rational-sphere-union-raytrace.tif csg-nurbs-rational-sphere-alone-raytrace.tif --margin 0 --include mask:${CMAKE_SOURCE_DIR}/examples/rib/tests/masks/csg-nurbs-rational-untouched.png"
+        "--projected-curve csg-nurbs-rational-sphere-union-raytrace.tif --camera 40 400 400 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0.391154,0.000000,-0.304231,0.789352,0.000000,-0.613941,0.494411 --facing 0,0,0 --facing 0.45,0.0,-0.35 --tolerance 1"
+        "--projected-curve csg-nurbs-rational-sphere-union-reyes.tif --camera 40 400 400 0.866025 -0.211309 -0.453154 0.000000 0.000000 0.906308 -0.422618 0.000000 0.500000 0.365998 0.784886 0.000000 0.000000 0.000000 5.000000 1.000000 --circle 0.391154,0.000000,-0.304231,0.789352,0.000000,-0.613941,0.494411 --facing 0,0,0 --facing 0.45,0.0,-0.35 --tolerance 1")
+
+add_csg_metric_test(NAME Seam_freeform_subdiv
+    RENDERS
+        examples/rib/tests/csg-subdivision-sphere-union-raytrace.rib:csg-subdivision-sphere-union-raytrace.tif
+        examples/rib/tests/csg-subdivision-sphere-union-reyes.rib:csg-subdivision-sphere-union-reyes.tif
+        examples/rib/tests/csg-subdivision-sphere-alone-raytrace.rib:csg-subdivision-sphere-alone-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-subdivision-sphere-union-raytrace.tif"
+        "--enclosed-holes csg-subdivision-sphere-union-reyes.tif"
+        "--edge-compare csg-subdivision-sphere-union-reyes.tif csg-subdivision-sphere-union-raytrace.tif --tolerance 1"
+        "--region-compare csg-subdivision-sphere-union-raytrace.tif csg-subdivision-sphere-alone-raytrace.tif --margin 0 --include mask:${CMAKE_SOURCE_DIR}/examples/rib/tests/masks/csg-subdivision-untouched.png")
+
+add_csg_metric_test(NAME Seam_polymesh_box
+    RENDERS
+        examples/rib/tests/csg-polymesh-box-difference-raytrace.rib:csg-polymesh-box-difference-raytrace.tif
+        examples/rib/tests/csg-polymesh-box-difference-reyes.rib:csg-polymesh-box-difference-reyes.tif
+    METRIC
+        "--enclosed-holes csg-polymesh-box-difference-raytrace.tif"
+        "--enclosed-holes csg-polymesh-box-difference-reyes.tif"
+        "--edge-compare csg-polymesh-box-difference-reyes.tif csg-polymesh-box-difference-raytrace.tif --tolerance 1")
+
+# T038 closedness (FR-021): the closed NURBS sphere draws no warning (guard); an open
+# sheet is an empty operand with exactly one warning per frame, however many instances.
+add_csg_metric_test(NAME Closedness_nurbs_closed
+    RENDERS
+        examples/rib/tests/csg-nurbs-rational-sphere-union-raytrace.rib:csg-nurbs-rational-sphere-union-raytrace.tif
+    LOG_FAIL
+        "operand is not closed")
+
+add_csg_metric_test(NAME Closedness_nurbs_open
+    RENDERS
+        examples/rib/tests/csg-nurbs-sphere-union-raytrace.rib:csg-nurbs-sphere-union-raytrace.tif
+        examples/rib/tests/csg-nurbs-sheet-expected-raytrace.rib:csg-nurbs-sheet-expected-raytrace.tif
+    METRIC
+        "--region-compare csg-nurbs-sphere-union-raytrace.tif csg-nurbs-sheet-expected-raytrace.tif --include frame"
+    LOG_PASS
+        "operand is not closed"
+    LOG_FAIL
+        "operand is not closed.*operand is not closed")
+
+add_csg_metric_test(NAME Closedness_nurbs_instanced
+    RENDERS
+        examples/rib/tests/csg-nurbs-sheet-instanced-raytrace.rib:csg-nurbs-sheet-instanced-raytrace.tif
+    LOG_PASS
+        "operand is not closed"
+    LOG_FAIL
+        "operand is not closed.*operand is not closed")
+
+add_csg_metric_test(NAME Closedness_polymesh_open
+    RENDERS
+        examples/rib/tests/csg-polymesh-open-raytrace.rib:csg-polymesh-open-raytrace.tif
+    LOG_PASS
+        "operand is not closed"
+    LOG_FAIL
+        "operand is not closed.*operand is not closed")
+
+# T039: displaced leaf: membership follows the undisplaced shape, so the alpha seams
+# stay within 1 px plus the projected displacement (4.7 px) of the analytic radii.
+add_csg_metric_test(NAME Seam_hero_displaced_raytrace
+    RENDERS
+        examples/rib/tests/csg-hero-displaced-raytrace.rib:csg-hero-displaced-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-hero-displaced-raytrace.tif --exclude disc:400,250,45.6"
+        "--annuli csg-hero-displaced-raytrace.tif --center 400,250 --clear disc:400,250,40.9 --seam 45.6 --seam 122.7 --tolerance 5.7")
+
+# T040: seam splits happen at a REYES seam and never for a single-operand solid; a
+# solid defined outside the world block and instanced inside still prints its counters.
+add_csg_metric_test(NAME SeamSplitCounter
+    RENDERS
+        examples/rib/tests/csg-hero-stats-800-reyes.rib:csg-hero-stats-800-reyes.tif
+        examples/rib/tests/csg-hero-single-operand-stats-800-reyes.rib:csg-hero-single-operand-stats-800-reyes.tif
+        examples/rib/tests/csg-hero-instanced-outside-world-reyes.rib:csg-hero-instanced-outside-world-reyes.tif
+    STATS
+        csg-hero-stats-800-reyes "CSG seam splits:" ">" 0
+        csg-hero-single-operand-stats-800-reyes "CSG seam splits:" "==" 0
+        csg-hero-instanced-outside-world-reyes "CSG instances resolved:" ">" 0)
+
+# T041 (guard): each ObjectInstance of a solid renders whole, with no gaps.
+add_csg_metric_test(NAME Instance_seams
+    RENDERS
+        examples/rib/tests/csg-object-instance-reuse-raytrace.rib:csg-object-instance-reuse-raytrace.tif
+    METRIC
+        "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:184.6,110.0,22.9"
+        "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:300.0,110.0,21.8"
+        "--annuli csg-object-instance-reuse-raytrace.tif --center 0,0 --solid disc:392.5,110.0,18.7"
+        "--enclosed-holes csg-object-instance-reuse-raytrace.tif")
+
+# T042: an open quadric operand is closed by implied caps that render with its
+# shader (FR-021): each visible cap region is the cylinder's blue.
+add_csg_metric_test(NAME Caps_raytrace
+    RENDERS
+        examples/rib/tests/csg-open-quadric-caps-raytrace.rib:csg-open-quadric-caps-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-open-quadric-caps-raytrace.tif"
+        "--region-chroma csg-open-quadric-caps-raytrace.tif --include disc:267.7,139.2,24.9 --min-share b=0.5"
+        "--region-chroma csg-open-quadric-caps-raytrace.tif --include disc:300.0,225.0,24.5 --min-share b=0.5")
+
+add_csg_metric_test(NAME Caps_reyes
+    RENDERS
+        examples/rib/tests/csg-open-quadric-caps-reyes.rib:csg-open-quadric-caps-reyes.tif
+    METRIC
+        "--enclosed-holes csg-open-quadric-caps-reyes.tif"
+        "--region-chroma csg-open-quadric-caps-reyes.tif --include disc:267.7,139.2,24.9 --min-share b=0.5"
+        "--region-chroma csg-open-quadric-caps-reyes.tif --include disc:300.0,225.0,24.5 --min-share b=0.5")
+
+add_csg_metric_test(NAME Caps_zbuffer
+    RENDERS
+        examples/rib/tests/csg-open-quadric-caps-zbuffer.rib:csg-open-quadric-caps-zbuffer.tif
+    METRIC
+        "--enclosed-holes csg-open-quadric-caps-zbuffer.tif"
+        "--region-chroma csg-open-quadric-caps-zbuffer.tif --include disc:267.7,139.2,24.9 --min-share b=0.5"
+        "--region-chroma csg-open-quadric-caps-zbuffer.tif --include disc:300.0,225.0,24.5 --min-share b=0.5")
+
 # ---------------------------------------------------------------------------
 # Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)
 # ---------------------------------------------------------------------------
