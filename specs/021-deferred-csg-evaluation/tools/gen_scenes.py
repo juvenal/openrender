@@ -179,8 +179,8 @@ hero_scene("csg-tolerance-inert-raytrace", "raytrace", 800, 500,
             "on different operands. It must render exactly like csg-hero-raytrace-800.rib and print",
             "exactly one notice (FR-023)."],
            world_pre='    Attribute "solid" "float tessellationtolerance" [0.01]\n',
-           solid=hero_solid(sphere_pre='Attribute "solid" "float tessellationtolerance" [0.01]',
-                            cyl_pre='Attribute "solid" "float tessellationtolerance" [0.01]'))
+           solid=hero_solid(sphere_pre='Color [1 0.8 0.3]\nAttribute "solid" "float tessellationtolerance" [0.01]',
+                            cyl_pre='Color [0.2 0.35 1]\nAttribute "solid" "float tessellationtolerance" [0.01]'))
 
 # T011 two shaders
 for hider in ("raytrace", "reyes"):

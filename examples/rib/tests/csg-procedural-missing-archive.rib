@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Spec 021 (T063; formerly csg-malformed-procedural-in-primitive.rib, spec 013 T037):
+# a Procedural inside a SolidBegin "primitive" block whose archive does not exist.
+# Procedural operands are supported (FR-024), so the procedural is accepted at
+# capture, without the old "cannot be declared inside a SolidBegin block"
+# diagnostic. Its expansion, on the solid's first use, reports exactly one
+# archive-open diagnostic and contributes nothing, so the operand is the block's
+# own Sphere 1 -1 1 360, and the render shows that sphere. The renderer must not
+# crash.
+Hider "raytrace"
+Display "csg-procedural-missing-archive.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 4
+Rotate -20 1 0 0
+Rotate 25 0 1 0
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.15]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.7 0.7 0.8]
+    Surface "matte"
+    SolidBegin "primitive"
+        Sphere 1 -1 1 360
+        Procedural "DelayedReadArchive" ["nonexistent.rib"] [-1 1 -1 1 -1 1]
+    SolidEnd
+WorldEnd

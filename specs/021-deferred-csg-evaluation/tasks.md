@@ -398,7 +398,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Implementation for User Story 2
 
-- [ ] T061 [US2] T058–T060 are verification of US1's work and may pass when written. If any fails, that failure is the red test for this task: investigate and fix every divergence surfaced by T058–T060, inside the geometry domain only: for example, displaced-leaf evaluation in `src/ri/geometry/surface.cpp`, seam-threshold or ε calibration in `src/ri/geometry/csgClassify.cpp`, cap orientation in `src/ri/geometry/csgCaps.cpp`. No hider or shading edits beyond T052/T054. Re-run until green.
+- [X] T061 [US2] T058–T060 are verification of US1's work and may pass when written. If any fails, that failure is the red test for this task: investigate and fix every divergence surfaced by T058–T060, inside the geometry domain only: for example, displaced-leaf evaluation in `src/ri/geometry/surface.cpp`, seam-threshold or ε calibration in `src/ri/geometry/csgClassify.cpp`, cap orientation in `src/ri/geometry/csgCaps.cpp`. No hider or shading edits beyond T052/T054. Re-run until green.
 
 **Checkpoint (Phase 4)**: all hiders agree. Stage and pause for commit.
 
@@ -412,7 +412,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Tests for User Story 3 (write first, confirm they FAIL) ⚠️
 
-- [ ] T062 [P] [US3] Create `tests/unit/csg/test_procedural_operand.cpp`. Assert:
+- [X] T062 [P] [US3] Create `tests/unit/csg/test_procedural_operand.cpp`. Assert:
   - a `Procedural` inside `SolidBegin "primitive"` is captured without error
   - a `Procedural` placed directly in a `union` or `difference` block (FR-024) is captured without error and expands into that block's first operand, parity-combined with the block's other direct leaves
   - it is not expanded at `SolidEnd`
@@ -426,11 +426,19 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - `numCsgProceduralExpansions` counts correctly
 
   Register it in `tests/unit/csg/CMakeLists.txt`.
-- [ ] T063 [US3] Rename `examples/rib/tests/csg-malformed-procedural-in-primitive.rib` to `examples/rib/tests/csg-procedural-missing-archive.rib` and rewrite its header comment: the procedural (still pointing at `nonexistent.rib`) is **accepted at capture** (FR-024), expansion reports exactly one archive-open diagnostic, and the procedural contributes nothing, so the operand is the block's `Sphere 1 -1 1 360` and **the render shows that sphere**. Update its T013 registration: `LOG_PASS` on the archive diagnostic, `LOG_FAIL` on the old "cannot be declared inside a SolidBegin block" text, and `--enclosed-holes` plus non-empty coverage. Red until T066.
-- [ ] T064 [US3] Register `CsgProcedural_sphere` and `CsgProcedural_open_cylinder` via `add_csg_metric_test` with `COPY examples/rib/tests/archives`. Each renders the procedural scene and its inline twin and compares them with `--region-compare --include frame` (SC-010).
-- [ ] T065 [US3] Register `CsgToleranceInert` via `add_csg_metric_test`: `LOG_PASS` on exactly one tessellation-tolerance notice (`LOG_FAIL` on a second), plus `--region-compare --include frame` against the hero raytrace render (FR-023).
+- [X] T063 [US3] Rename `examples/rib/tests/csg-malformed-procedural-in-primitive.rib` to `examples/rib/tests/csg-procedural-missing-archive.rib` and rewrite its header comment: the procedural (still pointing at `nonexistent.rib`) is **accepted at capture** (FR-024), expansion reports exactly one archive-open diagnostic, and the procedural contributes nothing, so the operand is the block's `Sphere 1 -1 1 360` and **the render shows that sphere**. Update its T013 registration: `LOG_PASS` on the archive diagnostic, `LOG_FAIL` on the old "cannot be declared inside a SolidBegin block" text, and `--enclosed-holes` plus non-empty coverage. Red until T066.
+- [X] T064 [US3] Register `CsgProcedural_sphere` and `CsgProcedural_open_cylinder` via `add_csg_metric_test` with `COPY examples/rib/tests/archives`. Each renders the procedural scene and its inline twin and compares them with `--region-compare --include frame` (SC-010).
+- [X] T065 [US3] Register `CsgToleranceInert` via `add_csg_metric_test`: `LOG_PASS` on exactly one tessellation-tolerance notice (`LOG_FAIL` on a second), plus `--region-compare --include frame` against the hero raytrace render (FR-023).
 
 **Checkpoint (red tests — maintainer approval)**: stage the new and rewritten tests with their confirmed-red evidence, and stop for the maintainer to approve the tests before any implementation task below starts (constitution III: Tests written → User approved → Tests fail → Then implement).
+
+**Phase 5 red evidence (2026-10-03)**. T061 (Phase 4) was closed with nothing to fix, because T058–T060 passed when written.
+- **`CSG_ProceduralOperand` (T062)**: 9 cases, 9 red. Each fails at its first assertion: the capture still rejects the procedural ("cannot be declared inside a SolidBegin block"), so no `CDelayedObject` reaches the definition. Every case first asserts that the procedural was captured, so none passes by accident (for example, an empty operand that is empty only because the procedural was dropped).
+- **`Csg_procedural-missing-archive` (T063)**: red on its log checks. There is no archive-open diagnostic yet (expansion never runs), and the old capture diagnostic is still printed. Its coverage checks (`--enclosed-holes`, a solid centre disc) already pass, because the block's sphere renders today too.
+- **`Csg_Procedural_sphere` / `Csg_Procedural_open_cylinder` (T064)**: red. orender exits 255 on the capture error, and the procedural operand is missing: max block diffs are 255.00 and 254.70 against the inline twins.
+- **`Csg_ToleranceInert` (T065)**: red only on the missing notice. The image already matches the hero (2.37). To get there, the scene had to gain the hero's operand colours (`gen_scenes.py`, hero `sphere_pre`/`cyl_pre`): T034's colour change had left it rendering default-coloured operands, a 195-unit difference unrelated to FR-023.
+- The notice text these tests pin is `The "solid" "tessellationtolerance" attribute no longer has any effect`.
+- **Generator gotcha**: `gen_scenes.py` copies `csg-nurbs-sphere-union-raytrace.rib`'s body, including the header comment T057 added, into `csg-nurbs-sheet-{expected,instanced}-raytrace.rib`. Those two diffs were reverted; check them after any regeneration.
 
 ### Implementation for User Story 3
 

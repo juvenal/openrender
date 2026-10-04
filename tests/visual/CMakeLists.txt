@@ -1930,9 +1930,18 @@ add_csg_metric_test(NAME malformed-unmatched-solidend
     RENDERS examples/rib/tests/csg-malformed-unmatched-solidend.rib
     LOG_PASS "Bad scope for \"RiSolidEnd\""
     ALLOW_RENDER_ERROR)
-add_csg_metric_test(NAME malformed-procedural-in-primitive
-    RENDERS examples/rib/tests/csg-malformed-procedural-in-primitive.rib
-    LOG_PASS "RiProcedural cannot be declared inside a SolidBegin block"
+# T063 (spec 021, formerly malformed-procedural-in-primitive): a procedural
+# operand whose archive is missing is accepted at capture (FR-024); its
+# expansion reports exactly one archive-open diagnostic and contributes
+# nothing, so the block's sphere renders, solid and without gaps.
+add_csg_metric_test(NAME procedural-missing-archive
+    RENDERS examples/rib/tests/csg-procedural-missing-archive.rib:csg-procedural-missing-archive.tif
+    METRIC
+        "--enclosed-holes csg-procedural-missing-archive.tif"
+        "--annuli csg-procedural-missing-archive.tif --center 100,100 --solid disc:100,100,40"
+    LOG_PASS "Failed to (find|open) \"nonexistent\\.rib"
+    LOG_FAIL "nonexistent\\.rib.*nonexistent\\.rib"
+    LOG_FAIL "RiProcedural cannot be declared inside a SolidBegin block"
     ALLOW_RENDER_ERROR)
 
 # --- Phase 3, User Story 1 (T034-T042): render-and-measure checks ----------
@@ -2378,6 +2387,39 @@ add_csg_metric_test(NAME UntouchedRegion_hero
     METRIC
         "--region-compare csg-hero-raytrace-800.tif csg-hero-plain-sphere-raytrace.tif --exclude disc:400,250,64"
     LABELS "csg;visual;parity")
+
+# ---------------------------------------------------------------------------
+# Spec 021 Phase 5 (US3): everything solids could already do keeps working.
+#
+# T064: procedural operands render exactly like their inline twins (SC-010).
+# The scenes reference their archives by relative path, so the archives are
+# copied into the scratch directory.
+add_csg_metric_test(NAME Procedural_sphere
+    RENDERS
+        examples/rib/tests/csg-procedural-operand-raytrace.rib:csg-procedural-operand-raytrace.tif
+        examples/rib/tests/csg-procedural-operand-inline-raytrace.rib:csg-procedural-operand-inline-raytrace.tif
+    COPY examples/rib/tests/archives
+    METRIC
+        "--region-compare csg-procedural-operand-raytrace.tif csg-procedural-operand-inline-raytrace.tif --include frame")
+
+add_csg_metric_test(NAME Procedural_open_cylinder
+    RENDERS
+        examples/rib/tests/csg-procedural-open-cylinder-raytrace.rib:csg-procedural-open-cylinder-raytrace.tif
+        examples/rib/tests/csg-procedural-open-cylinder-inline-raytrace.rib:csg-procedural-open-cylinder-inline-raytrace.tif
+    COPY examples/rib/tests/archives
+    METRIC
+        "--region-compare csg-procedural-open-cylinder-raytrace.tif csg-procedural-open-cylinder-inline-raytrace.tif --include frame")
+
+# T065: the retired tessellation tolerance is accepted, has no effect, and prints
+# exactly one notice per frame however often it appears (FR-023).
+add_csg_metric_test(NAME ToleranceInert
+    RENDERS
+        examples/rib/tests/csg-tolerance-inert-raytrace.rib:csg-tolerance-inert-raytrace.tif
+        examples/rib/tests/csg-hero-raytrace-800.rib:csg-hero-raytrace-800.tif
+    METRIC
+        "--region-compare csg-tolerance-inert-raytrace.tif csg-hero-raytrace-800.tif --include frame"
+    LOG_PASS "The \"solid\" \"tessellationtolerance\" attribute no longer has any effect"
+    LOG_FAIL "tessellationtolerance\" attribute no longer has any effect.*tessellationtolerance\" attribute no longer has any effect")
 
 # ---------------------------------------------------------------------------
 # Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)

@@ -18,10 +18,12 @@ WorldBegin
     Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
     SolidBegin "difference"
         SolidBegin "primitive"
+            Color [1 0.8 0.3]
             Attribute "solid" "float tessellationtolerance" [0.01]
             Sphere 1.50 -1.50 1.50 360
         SolidEnd
         SolidBegin "primitive"
+            Color [0.2 0.35 1]
             Attribute "solid" "float tessellationtolerance" [0.01]
             Cylinder 0.65 -2 2 360
         SolidEnd
