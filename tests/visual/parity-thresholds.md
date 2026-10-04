@@ -14,6 +14,27 @@ catch a real regression (verified via T013 — see below).
 | aov           | 25        | ~10.08                | Same shading-interpolation residual as flatshade, carried through the "N" AOV channel. |
 | depthdefault  | 500000    | 437495.8125           | D7: raytrace has no depth-filter modes / `zvisibilityThreshold` yet, so silhouette-edge pixels blend the ~1e30 background sentinel into an averaged z sample. Reyes cleanly separates real hits from background. Closes in Phase 6/S3; threshold re-measured/tightened in T045. |
 
+## Spec 021: solid (CSG) scenes (T058)
+
+Every `Parity_csg-*` pair uses the default threshold (`VISUAL_THRESHOLD`, 20):
+no CSG scene needs a wider one. These are the worst 8x8 block-average differences
+measured when the tests were added (2026-10-03, throttled, sequential):
+
+| Pair | Measured | Pair | Measured |
+|---|---|---|---|
+| sphere-cube-union raytrace-reyes / -zbuffer | 4.84 / 5.02 | hero-800 raytrace-reyes / -zbuffer | 9.08 / 7.23 |
+| sphere-cube-difference raytrace-reyes / -zbuffer | 9.11 / 6.94 | hero-1600 raytrace-reyes / -zbuffer | 9.33 / 7.47 |
+| sphere-cube-intersection raytrace-reyes / -zbuffer | 5.84 / 5.89 | coincident-union raytrace-reyes / -zbuffer | 1.86 / 1.70 |
+| sphere-cube-difference-800 raytrace-reyes / -zbuffer | 7.58 / 8.38 | coincident-difference raytrace-reyes / -zbuffer | 14.30 / 14.86 |
+| sphere-cube-difference-1600 raytrace-reyes / -zbuffer | 8.48 / 9.05 | open-quadric-caps raytrace-reyes / -zbuffer | 8.77 / 8.73 |
+| hero-two-shaders raytrace-reyes | 9.16 | hero-displaced raytrace-reyes | 11.11 |
+| hero-translucent raytrace-reyes | 5.52 | secondary-rays raytrace-reyes | 12.44 |
+| polymesh-box-difference raytrace-reyes | 2.98 | nurbs-rational-sphere-union raytrace-reyes | 2.14 |
+| subdivision-sphere-union raytrace-reyes | 3.06 | | |
+
+The largest residual is the coincident difference (14.86). Its source has not
+been isolated; it still leaves a 5-unit margin.
+
 ## Background-sentinel handling (depth scenes)
 
 Both hiders write a large sentinel for "no geometry hit" pixels in `z`-mode

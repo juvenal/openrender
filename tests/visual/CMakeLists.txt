@@ -2226,6 +2226,160 @@ add_csg_metric_test(NAME Caps_zbuffer
         "--region-chroma csg-open-quadric-caps-zbuffer.tif --include disc:300.0,225.0,24.5 --min-share b=0.5")
 
 # ---------------------------------------------------------------------------
+# Spec 021 Phase 4 (US2): the same solid looks the same in every visibility
+# method (FR-013, FR-015, SC-004, SC-008).
+#
+# T058: cross-hider parity at the default threshold (VISUAL_THRESHOLD, see
+# parity-thresholds.md). Three-hider scenes pair raytrace with REYES and with
+# Z-buffer; two-hider scenes pair raytrace with REYES. blobby-csg-difference keeps
+# its existing reyes<->raytrace and reyes<->zbuffer pairs (spec 015) below.
+add_parity_test(csg-sphere-cube-union-raytrace-reyes
+    examples/rib/tests/csg-sphere-cube-union-raytrace.rib  csg-sphere-cube-union-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-union-reyes.rib  csg-sphere-cube-union-reyes.tif)
+add_parity_test(csg-sphere-cube-union-raytrace-zbuffer
+    examples/rib/tests/csg-sphere-cube-union-raytrace.rib  csg-sphere-cube-union-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-union-zbuffer.rib  csg-sphere-cube-union-zbuffer.tif)
+add_parity_test(csg-sphere-cube-difference-raytrace-reyes
+    examples/rib/tests/csg-sphere-cube-difference-raytrace.rib  csg-sphere-cube-difference-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-difference-reyes.rib  csg-sphere-cube-difference-reyes.tif)
+add_parity_test(csg-sphere-cube-difference-raytrace-zbuffer
+    examples/rib/tests/csg-sphere-cube-difference-raytrace.rib  csg-sphere-cube-difference-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-difference-zbuffer.rib  csg-sphere-cube-difference-zbuffer.tif)
+add_parity_test(csg-sphere-cube-intersection-raytrace-reyes
+    examples/rib/tests/csg-sphere-cube-intersection-raytrace.rib  csg-sphere-cube-intersection-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-intersection-reyes.rib  csg-sphere-cube-intersection-reyes.tif)
+add_parity_test(csg-sphere-cube-intersection-raytrace-zbuffer
+    examples/rib/tests/csg-sphere-cube-intersection-raytrace.rib  csg-sphere-cube-intersection-raytrace.tif
+    examples/rib/tests/csg-sphere-cube-intersection-zbuffer.rib  csg-sphere-cube-intersection-zbuffer.tif)
+add_parity_test(csg-sphere-cube-difference-800-raytrace-reyes
+    examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib  csg-sphere-cube-difference-raytrace-800.tif
+    examples/rib/tests/csg-sphere-cube-difference-reyes-800.rib  csg-sphere-cube-difference-reyes-800.tif)
+add_parity_test(csg-sphere-cube-difference-800-raytrace-zbuffer
+    examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib  csg-sphere-cube-difference-raytrace-800.tif
+    examples/rib/tests/csg-sphere-cube-difference-zbuffer-800.rib  csg-sphere-cube-difference-zbuffer-800.tif)
+add_parity_test(csg-hero-800-raytrace-reyes
+    examples/rib/tests/csg-hero-raytrace-800.rib  csg-hero-raytrace-800.tif
+    examples/rib/tests/csg-hero-reyes-800.rib  csg-hero-reyes-800.tif)
+add_parity_test(csg-hero-800-raytrace-zbuffer
+    examples/rib/tests/csg-hero-raytrace-800.rib  csg-hero-raytrace-800.tif
+    examples/rib/tests/csg-hero-zbuffer-800.rib  csg-hero-zbuffer-800.tif)
+add_parity_test(csg-sphere-cube-difference-1600-raytrace-reyes
+    examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib  csg-sphere-cube-difference-raytrace-1600.tif
+    examples/rib/tests/csg-sphere-cube-difference-reyes-1600.rib  csg-sphere-cube-difference-reyes-1600.tif)
+add_parity_test(csg-sphere-cube-difference-1600-raytrace-zbuffer
+    examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib  csg-sphere-cube-difference-raytrace-1600.tif
+    examples/rib/tests/csg-sphere-cube-difference-zbuffer-1600.rib  csg-sphere-cube-difference-zbuffer-1600.tif)
+add_parity_test(csg-hero-1600-raytrace-reyes
+    examples/rib/tests/csg-hero-raytrace-1600.rib  csg-hero-raytrace-1600.tif
+    examples/rib/tests/csg-hero-reyes-1600.rib  csg-hero-reyes-1600.tif)
+add_parity_test(csg-hero-1600-raytrace-zbuffer
+    examples/rib/tests/csg-hero-raytrace-1600.rib  csg-hero-raytrace-1600.tif
+    examples/rib/tests/csg-hero-zbuffer-1600.rib  csg-hero-zbuffer-1600.tif)
+add_parity_test(csg-coincident-union-raytrace-reyes
+    examples/rib/tests/csg-coincident-union-raytrace.rib  csg-coincident-union-raytrace.tif
+    examples/rib/tests/csg-coincident-union-reyes.rib  csg-coincident-union-reyes.tif)
+add_parity_test(csg-coincident-union-raytrace-zbuffer
+    examples/rib/tests/csg-coincident-union-raytrace.rib  csg-coincident-union-raytrace.tif
+    examples/rib/tests/csg-coincident-union-zbuffer.rib  csg-coincident-union-zbuffer.tif)
+add_parity_test(csg-coincident-difference-raytrace-reyes
+    examples/rib/tests/csg-coincident-difference-raytrace.rib  csg-coincident-difference-raytrace.tif
+    examples/rib/tests/csg-coincident-difference-reyes.rib  csg-coincident-difference-reyes.tif)
+add_parity_test(csg-coincident-difference-raytrace-zbuffer
+    examples/rib/tests/csg-coincident-difference-raytrace.rib  csg-coincident-difference-raytrace.tif
+    examples/rib/tests/csg-coincident-difference-zbuffer.rib  csg-coincident-difference-zbuffer.tif)
+add_parity_test(csg-open-quadric-caps-raytrace-reyes
+    examples/rib/tests/csg-open-quadric-caps-raytrace.rib  csg-open-quadric-caps-raytrace.tif
+    examples/rib/tests/csg-open-quadric-caps-reyes.rib  csg-open-quadric-caps-reyes.tif)
+add_parity_test(csg-open-quadric-caps-raytrace-zbuffer
+    examples/rib/tests/csg-open-quadric-caps-raytrace.rib  csg-open-quadric-caps-raytrace.tif
+    examples/rib/tests/csg-open-quadric-caps-zbuffer.rib  csg-open-quadric-caps-zbuffer.tif)
+add_parity_test(csg-hero-two-shaders-raytrace-reyes
+    examples/rib/tests/csg-hero-two-shaders-raytrace.rib  csg-hero-two-shaders-raytrace.tif
+    examples/rib/tests/csg-hero-two-shaders-reyes.rib  csg-hero-two-shaders-reyes.tif)
+add_parity_test(csg-hero-displaced-raytrace-reyes
+    examples/rib/tests/csg-hero-displaced-raytrace.rib  csg-hero-displaced-raytrace.tif
+    examples/rib/tests/csg-hero-displaced-reyes.rib  csg-hero-displaced-reyes.tif)
+add_parity_test(csg-hero-translucent-raytrace-reyes
+    examples/rib/tests/csg-hero-translucent-raytrace.rib  csg-hero-translucent-raytrace.tif
+    examples/rib/tests/csg-hero-translucent-reyes.rib  csg-hero-translucent-reyes.tif)
+add_parity_test(csg-secondary-rays-raytrace-reyes
+    examples/rib/tests/csg-secondary-rays-raytrace.rib  csg-secondary-rays-raytrace.tif
+    examples/rib/tests/csg-secondary-rays-reyes.rib  csg-secondary-rays-reyes.tif)
+add_parity_test(csg-polymesh-box-difference-raytrace-reyes
+    examples/rib/tests/csg-polymesh-box-difference-raytrace.rib  csg-polymesh-box-difference-raytrace.tif
+    examples/rib/tests/csg-polymesh-box-difference-reyes.rib  csg-polymesh-box-difference-reyes.tif)
+add_parity_test(csg-nurbs-rational-sphere-union-raytrace-reyes
+    examples/rib/tests/csg-nurbs-rational-sphere-union-raytrace.rib  csg-nurbs-rational-sphere-union-raytrace.tif
+    examples/rib/tests/csg-nurbs-rational-sphere-union-reyes.rib  csg-nurbs-rational-sphere-union-reyes.tif)
+add_parity_test(csg-subdivision-sphere-union-raytrace-reyes
+    examples/rib/tests/csg-subdivision-sphere-union-raytrace.rib  csg-subdivision-sphere-union-raytrace.tif
+    examples/rib/tests/csg-subdivision-sphere-union-reyes.rib  csg-subdivision-sphere-union-reyes.tif)
+
+# T058: no see-through gaps in the translucent and displaced heroes in either
+# hider. The through-hole (the far rim disc, r = 45.6 px) is a real opening; the
+# translucent sphere's own alpha is 0.5, so only pixels below 0.45 count.
+add_csg_metric_test(NAME EnclosedHoles_hero_translucent_raytrace
+    RENDERS
+        examples/rib/tests/csg-hero-translucent-raytrace.rib:csg-hero-translucent-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-hero-translucent-raytrace.tif --opaque 0.45 --exclude disc:400,250,45.6"
+    LABELS "csg;visual;parity")
+
+add_csg_metric_test(NAME EnclosedHoles_hero_translucent_reyes
+    RENDERS
+        examples/rib/tests/csg-hero-translucent-reyes.rib:csg-hero-translucent-reyes.tif
+    METRIC
+        "--enclosed-holes csg-hero-translucent-reyes.tif --opaque 0.45 --exclude disc:400,250,45.6"
+    LABELS "csg;visual;parity")
+
+add_csg_metric_test(NAME EnclosedHoles_hero_displaced_raytrace
+    RENDERS
+        examples/rib/tests/csg-hero-displaced-raytrace.rib:csg-hero-displaced-raytrace.tif
+    METRIC
+        "--enclosed-holes csg-hero-displaced-raytrace.tif --exclude disc:400,250,45.6"
+    LABELS "csg;visual;parity")
+
+add_csg_metric_test(NAME EnclosedHoles_hero_displaced_reyes
+    RENDERS
+        examples/rib/tests/csg-hero-displaced-reyes.rib:csg-hero-displaced-reyes.tif
+    METRIC
+        "--enclosed-holes csg-hero-displaced-reyes.tif --exclude disc:400,250,45.6"
+    LABELS "csg;visual;parity")
+
+# T059: secondary rays respect the solid (FR-013). Alpha cannot tell lit, shadowed
+# and reflected pixels apart, so these compare luminance between the regions
+# recorded in the scene header: light passes through the hole into the shadow,
+# the shadow body is dark, and the reflected hole shows the shadow, not sphere.
+add_csg_metric_test(NAME SecondaryRays_raytrace
+    RENDERS
+        examples/rib/tests/csg-secondary-rays-raytrace.rib:csg-secondary-rays-raytrace.tif
+    METRIC
+        "--luminance-ratio csg-secondary-rays-raytrace.tif --numerator disc:400,250,30.7 --denominator annulus:400,250,137.7,182.7 --min 0.8"
+        "--luminance-ratio csg-secondary-rays-raytrace.tif --numerator annulus:400,250,36.7,42.6 --denominator annulus:400,250,137.7,182.7 --max 0.5"
+        "--luminance-ratio csg-secondary-rays-raytrace.tif --numerator annulus:400,250,36.7,42.6 --denominator annulus:400,250,65.7,118.7 --max 0.3"
+    LABELS "csg;visual;parity")
+
+add_csg_metric_test(NAME SecondaryRays_reyes
+    RENDERS
+        examples/rib/tests/csg-secondary-rays-reyes.rib:csg-secondary-rays-reyes.tif
+    METRIC
+        "--luminance-ratio csg-secondary-rays-reyes.tif --numerator disc:400,250,30.7 --denominator annulus:400,250,137.7,182.7 --min 0.8"
+        "--luminance-ratio csg-secondary-rays-reyes.tif --numerator annulus:400,250,36.7,42.6 --denominator annulus:400,250,137.7,182.7 --max 0.5"
+        "--luminance-ratio csg-secondary-rays-reyes.tif --numerator annulus:400,250,36.7,42.6 --denominator annulus:400,250,65.7,118.7 --max 0.3"
+    LABELS "csg;visual;parity")
+
+# T060: outside the seams the solid is the untouched sphere (SC-008): compare the
+# hero with a plain Sphere everywhere beyond the near seam ring (r = 61.7 px)
+# plus a 2 px margin.
+add_csg_metric_test(NAME UntouchedRegion_hero
+    RENDERS
+        examples/rib/tests/csg-hero-raytrace-800.rib:csg-hero-raytrace-800.tif
+        examples/rib/tests/csg-hero-plain-sphere-raytrace.rib:csg-hero-plain-sphere-raytrace.tif
+    METRIC
+        "--region-compare csg-hero-raytrace-800.tif csg-hero-plain-sphere-raytrace.tif --exclude disc:400,250,64"
+    LABELS "csg;visual;parity")
+
+# ---------------------------------------------------------------------------
 # Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)
 # ---------------------------------------------------------------------------
 

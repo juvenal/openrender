@@ -174,6 +174,12 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 **Checkpoint (red tests — maintainer approval)**: stage the new and rewritten tests with their confirmed-red evidence, and stop for the maintainer to approve the tests before any implementation task below starts (constitution III: Tests written → User approved → Tests fail → Then implement).
 
+**Phase 4 test notes (2026-10-03)**: T058–T060 are verification of US1, and all 36 parity-labelled CSG tests (`ctest -L parity -R 'csg|Csg'`) **passed when written**: there is no red test, so T061 has nothing to fix unless review asks for tighter checks. Parity margins are recorded in `tests/visual/parity-thresholds.md` (worst: 14.86 against 20). Discrimination was checked by perturbation, and each check below **fails** as it should:
+- `UntouchedRegion_hero` without its seam exclusion: 254.88 against 20.
+- `EnclosedHoles_hero_translucent_*` without the through-hole exclusion: 6563 hole pixels.
+- `SecondaryRays_*` on the same scene with the cylinder removed (no hole): the shadow-hole ratio is 0.63 against the 0.8 minimum (1.00 when passing), and the reflected-hole ratio is 1.35 against the 0.3 maximum (0.146 when passing).
+- The shadow-body ratio (0.043 passing, 0.397 with no hole) only asserts that the shadow is dark, so it passes either way by design.
+
 ### Implementation for Phase 2
 
 - [X] T025 In `src/ri/geometry/object.{h,cpp}`:
@@ -377,16 +383,16 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T058 [US2] (verification) Add cross-hider parity registrations in `tests/visual/CMakeLists.txt` (label `parity`, thresholds from `tests/visual/parity-thresholds.md`), keeping any pair already registered instead of duplicating it. For `blobby-csg-difference`, keep the existing reyes↔raytrace and reyes↔zbuffer pairs (~L2560–2566) instead of adding raytrace↔zbuffer:
+- [X] T058 [US2] (verification) Add cross-hider parity registrations in `tests/visual/CMakeLists.txt` (label `parity`, thresholds from `tests/visual/parity-thresholds.md`), keeping any pair already registered instead of duplicating it. For `blobby-csg-difference`, keep the existing reyes↔raytrace and reyes↔zbuffer pairs (~L2560–2566) instead of adding raytrace↔zbuffer:
   - **three-hider scenes**, pairs raytrace↔reyes and raytrace↔zbuffer: `csg-sphere-cube-{union,difference,intersection}`, `csg-sphere-cube-difference-*-{800,1600}`, `blobby-csg-difference`, `csg-hero-*-{800,1600}`, `csg-coincident-{union,difference}`, `csg-open-quadric-caps`
   - **two-hider scenes**, pair raytrace↔reyes: `csg-hero-two-shaders`, `csg-hero-displaced`, `csg-hero-translucent`, `csg-secondary-rays`, `csg-polymesh-box-difference`, `csg-nurbs-rational-sphere-union`, `csg-subdivision-sphere-union`
 
   The translucent pair additionally runs `--enclosed-holes --opaque 0.45 --exclude disc:<hole>`; the displaced pair runs `--enclosed-holes --exclude disc:<hole>` (the hero's through-hole is a legitimate opening). Both are via `add_csg_metric_test`.
-- [ ] T059 [US2] (verification) Register `CsgSecondaryRays_{raytrace,reyes}` via `add_csg_metric_test` for `csg-secondary-rays-{raytrace,reyes}.rib`, using `--luminance-ratio` with the regions recorded in each scene header, because alpha cannot tell lit, shadowed and reflected pixels apart (FR-013):
+- [X] T059 [US2] (verification) Register `CsgSecondaryRays_{raytrace,reyes}` via `add_csg_metric_test` for `csg-secondary-rays-{raytrace,reyes}.rib`, using `--luminance-ratio` with the regions recorded in each scene header, because alpha cannot tell lit, shadowed and reflected pixels apart (FR-013):
   - shadow-hole spot ÷ open lit ground ≥ 0.8 (the hole lets light through the shadow)
   - shadow body ÷ open lit ground ≤ 0.5
   - reflected hole disc ÷ reflected sphere ring ≤ 0.3 (the background shows through the reflected hole)
-- [ ] T060 [US2] (verification) Register `CsgUntouchedRegion_hero`: render the hero scene and the same scene with a plain `Sphere`, no solid block (add `examples/rib/tests/csg-hero-plain-sphere-raytrace.rib`), and compare at 800×500 with `--region-compare --exclude disc:400,250,64` (everything inside the near seam ring, r = 61.7 px, plus a 2 px margin), so only the untouched sphere surface is compared (SC-008).
+- [X] T060 [US2] (verification) Register `CsgUntouchedRegion_hero`: render the hero scene and the same scene with a plain `Sphere`, no solid block (add `examples/rib/tests/csg-hero-plain-sphere-raytrace.rib`), and compare at 800×500 with `--region-compare --exclude disc:400,250,64` (everything inside the near seam ring, r = 61.7 px, plus a 2 px margin), so only the untouched sphere surface is compared (SC-008).
 
 **Checkpoint (red tests — maintainer approval)**: stage the new and rewritten tests with their confirmed-red evidence, and stop for the maintainer to approve the tests before any implementation task below starts (constitution III: Tests written → User approved → Tests fail → Then implement).
 
