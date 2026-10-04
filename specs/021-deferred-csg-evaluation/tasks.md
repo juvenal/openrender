@@ -503,12 +503,30 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 All four are verification of laziness delivered by T045/T046/T053/T066. Any that fails drives T075.
 
-- [ ] T071 [US4] Register `CsgOffscreenStats_{raytrace,reyes}` via `add_csg_metric_test` `STATS` (with `COPY examples/rib/tests/archives`) for `csg-offscreen-stats-{raytrace,reyes}.rib`: `CSG instances resolved:`, `CSG classifications:`, `CSG seam splits:` and `CSG procedural expansions:` are all `== 0` (SC-006).
-- [ ] T072 [US4] Register `CsgPartialVisibilityStats` via `STATS` ratio: `CSG seam splits:` of `csg-hero-partial-stats-reyes.rib` must be ≤ 0.75 × that of `csg-hero-stats-800-reyes.rib` (US4 scenario 2, FR-004).
-- [ ] T073 [US4] Register `CsgResolutionScaling` via `STATS`: `CSG seam splits:` of `csg-hero-stats-1600-reyes.rib` must be > that of `csg-hero-stats-800-reyes.rib` (FR-003 proxy).
-- [ ] T074 [US4] Register `CsgTinySolidStats` via `STATS`: `CSG seam splits:` for `csg-tiny-solid-stats-reyes.rib` must be `<= 16` (spec edge case, very small solids).
+- [X] T071 [US4] Register `CsgOffscreenStats_{raytrace,reyes}` via `add_csg_metric_test` `STATS` (with `COPY examples/rib/tests/archives`) for `csg-offscreen-stats-{raytrace,reyes}.rib`: `CSG instances resolved:`, `CSG classifications:`, `CSG seam splits:` and `CSG procedural expansions:` are all `== 0` (SC-006).
+- [X] T072 [US4] Register `CsgPartialVisibilityStats` via `STATS` ratio: `CSG seam splits:` of `csg-hero-partial-stats-reyes.rib` must be ≤ 0.75 × that of `csg-hero-stats-800-reyes.rib` (US4 scenario 2, FR-004).
+- [X] T073 [US4] Register `CsgResolutionScaling` via `STATS`: `CSG seam splits:` of `csg-hero-stats-1600-reyes.rib` must be > that of `csg-hero-stats-800-reyes.rib` (FR-003 proxy).
+- [X] T074 [US4] Register `CsgTinySolidStats` via `STATS`: `CSG seam splits:` for `csg-tiny-solid-stats-reyes.rib` must be `<= 16` (spec edge case, very small solids).
 
 **Checkpoint (red tests — maintainer approval)**: stage the new and rewritten tests with their confirmed-red evidence, and stop for the maintainer to approve the tests before any implementation task below starts (constitution III: Tests written → User approved → Tests fail → Then implement).
+
+**Phase 6 test notes (2026-10-04)**: T071–T074 are verification of laziness built in earlier phases, and all five tests **passed when written**: there is no red test, so T075 has nothing to remove unless review asks for tighter checks. Measured counters (`orender -x 3`, throttled):
+
+| Scene | Classifications | Seam splits | Instances resolved | Procedural expansions |
+|---|---|---|---|---|
+| `csg-offscreen-stats-raytrace` | 0 | 0 | 0 | 0 |
+| `csg-offscreen-stats-reyes` | 0 | 0 | 0 | 0 |
+| `csg-hero-partial-stats-reyes` (left half) | 188429 | 1727 | 1 | 0 |
+| `csg-hero-stats-800-reyes` | 344015 | 2750 | 1 | 0 |
+| `csg-hero-stats-1600-reyes` | 972081 | 6542 | 1 | 0 |
+| `csg-tiny-solid-stats-reyes` | 874 | 3 | 1 | 0 |
+
+Margins:
+- partial ÷ full seam splits = 0.63 against the limit of 0.75
+- 1600 against 800: 6542 > 2750
+- tiny solid: 3 against the limit of 16
+
+Discrimination: the offscreen scenes with the solid moved in front of the camera (`Translate 0 0 -20` replaced by `0 0 0`) give 1 instance resolved, 1 procedural expansion, and 1303821 (raytrace) and 272368 (REYES) classifications, plus 2127 REYES seam splits. So every offscreen zero would fail if work ran eagerly. The exception is the raytrace offscreen test's seam-split leg, which cannot fail: raytracing never splits seams, and the onscreen raytrace scene also reports 0.
 
 ### Implementation for User Story 4
 

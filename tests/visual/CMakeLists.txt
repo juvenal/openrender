@@ -2422,6 +2422,58 @@ add_csg_metric_test(NAME ToleranceInert
     LOG_FAIL "tessellationtolerance\" attribute no longer has any effect.*tessellationtolerance\" attribute no longer has any effect")
 
 # ---------------------------------------------------------------------------
+# Spec 021 Phase 6 (US4): solids only cost work where they are actually seen
+# (FR-001 to FR-004, SC-006). The CSG counters print whenever a frame holds a
+# solid, zeros included.
+#
+# T071: a solid behind the camera (its sphere a procedural) is never resolved,
+# classified, split or expanded.
+add_csg_metric_test(NAME OffscreenStats_raytrace
+    RENDERS
+        examples/rib/tests/csg-offscreen-stats-raytrace.rib:csg-offscreen-stats-raytrace.tif
+    COPY examples/rib/tests/archives
+    STATS
+        csg-offscreen-stats-raytrace "CSG instances resolved:" "==" 0
+        csg-offscreen-stats-raytrace "CSG classifications:" "==" 0
+        csg-offscreen-stats-raytrace "CSG seam splits:" "==" 0
+        csg-offscreen-stats-raytrace "CSG procedural expansions:" "==" 0)
+
+add_csg_metric_test(NAME OffscreenStats_reyes
+    RENDERS
+        examples/rib/tests/csg-offscreen-stats-reyes.rib:csg-offscreen-stats-reyes.tif
+    COPY examples/rib/tests/archives
+    STATS
+        csg-offscreen-stats-reyes "CSG instances resolved:" "==" 0
+        csg-offscreen-stats-reyes "CSG classifications:" "==" 0
+        csg-offscreen-stats-reyes "CSG seam splits:" "==" 0
+        csg-offscreen-stats-reyes "CSG procedural expansions:" "==" 0)
+
+# T072: rendering only the left half of the hero's frame (CropWindow) splits at
+# most three quarters as many seam patches as the whole frame (US4 scenario 2).
+add_csg_metric_test(NAME PartialVisibilityStats
+    RENDERS
+        examples/rib/tests/csg-hero-partial-stats-reyes.rib:csg-hero-partial-stats-reyes.tif
+        examples/rib/tests/csg-hero-stats-800-reyes.rib:csg-hero-stats-800-reyes.tif
+    STATS
+        csg-hero-partial-stats-reyes "CSG seam splits:" "<=" 0.75*csg-hero-stats-800-reyes)
+
+# T073: refinement follows the view: twice the resolution splits more seam patches
+# (FR-003).
+add_csg_metric_test(NAME ResolutionScaling
+    RENDERS
+        examples/rib/tests/csg-hero-stats-1600-reyes.rib:csg-hero-stats-1600-reyes.tif
+        examples/rib/tests/csg-hero-stats-800-reyes.rib:csg-hero-stats-800-reyes.tif
+    STATS
+        csg-hero-stats-1600-reyes "CSG seam splits:" ">" csg-hero-stats-800-reyes)
+
+# T074: a solid under 4x4 pixels stays cheap: at most 16 seam splits.
+add_csg_metric_test(NAME TinySolidStats
+    RENDERS
+        examples/rib/tests/csg-tiny-solid-stats-reyes.rib:csg-tiny-solid-stats-reyes.tif
+    STATS
+        csg-tiny-solid-stats-reyes "CSG seam splits:" "<=" 16)
+
+# ---------------------------------------------------------------------------
 # Blobby implicit surfaces (spec 015-blobby-implicit-surfaces)
 # ---------------------------------------------------------------------------
 
