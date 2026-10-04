@@ -66,21 +66,18 @@ CSGTreeNode::~CSGTreeNode() {
 // Return Value			:
 // Comments				:
 void csgValidateNestedSolidBegin(CSGTreeNode *parent) {
-    if (parent->operation == CSG_PRIMITIVE) {
-        error(CODE_BADTOKEN, "SolidBegin/SolidEnd cannot be nested inside a \"primitive\" solid block\n");
-    }
+    if (parent->operation == CSG_PRIMITIVE)
+        csgReportNestedSolidBegin();
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	csgValidateProceduralCapture
-// Description			:	FR-021
+// Function				:	csgReportNestedSolidBegin
+// Description			:	FR-019, and a SolidBegin inside a procedural
+//							operand's expansion (spec 021)
 // Return Value			:
 // Comments				:
-int csgValidateProceduralCapture([[maybe_unused]] CSGTreeNode *node) {
-    assert(node != NULL);
-
-    error(CODE_BADTOKEN, "RiProcedural cannot be declared inside a SolidBegin block\n");
-    return FALSE;
+void csgReportNestedSolidBegin() {
+    error(CODE_BADTOKEN, "SolidBegin/SolidEnd cannot be nested inside a \"primitive\" solid block\n");
 }
 
 // A node's captured leaves, in declaration order (addObject() prepends)

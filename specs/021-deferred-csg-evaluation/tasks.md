@@ -442,7 +442,7 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
 
 ### Implementation for User Story 3
 
-- [ ] T066 [US3] Support procedural operands (research D8):
+- [X] T066 [US3] Support procedural operands (research D8):
   - remove the whole `if (currentSolid != NULL) { csgValidateProceduralCapture(currentSolid); return; }` branch in `RiProcedural()` (`src/ri/render/rendererContext.cpp:5200`), so `addObject()` routes the `CDelayedObject` into `leafObjects` of any open solid block. A procedural placed directly in a boolean block therefore joins that block's first operand, like any direct leaf (FR-024), and delete the function's definition (`src/ri/geometry/csgTree.cpp:90`)
   - add `virtual CObject *expand(const CObject *procedural, CAttributes *flagged)` to the Geometry-owned `CGeometryHost` (`src/ri/geometry/geometryHost.h`; Principle VIII: Geometry never calls the renderer core), and implement it in `CRendererContext` (`src/ri/render/rendererContext.{h,cpp}`) as a capture-aware expansion under `CRenderer::delayedMutex`. `processDelayedObject()` (rendererContext.cpp:421) cannot be reused, because it targets the delayed object's own children, resets `delayed = NULL` and calls `setChildren()` before any region is set. The implementation:
     - saves `delayed`, `currentAttributes` and `currentXform`
@@ -461,18 +461,35 @@ Single project at the repository root: `src/ri/...`, `tests/...`, `examples/rib/
   - increment `numCsgProceduralExpansions`
 
   Make T062–T064 green.
-- [ ] T067 [US3] Make `tessellationtolerance` inert (research D10):
+- [X] T067 [US3] Make `tessellationtolerance` inert (research D10):
   - remove every remaining read of `CAttributes::tessellationTolerance`
   - keep parsing in all four attribute layers
   - in `RiAttributeV()` (`src/ri/render/rendererContext.cpp`), emit the notice with `warning(CODE_BADTOKEN, …)` (always printed, to stdout; never `CODE_LOG`) on the first occurrence per frame, using a per-frame flag reset at `RiWorldBegin`
   - update the field comment in `src/ri/state/attributes.h:165`
 
   Make T065 green.
-- [ ] T068 [US3] (verification) Re-verify `csg-object-instance-reuse-raytrace` and `csg-nested-tree-4-level-raytrace` after the US3 changes; fix `src/ri/geometry/csgSolid.cpp` if needed.
-- [ ] T069 [US3] (verification) Re-run every T057 scene and the T034–T041 tests after the US3 changes; all stay green with no reference changes.
-- [ ] T070 [US3] (verification) Confirm the T013 diagnostic guards for `csg-malformed-{bogus-operation,nested-in-primitive,unmatched-solidend}` are still green (FR-019), along with empty-block and single-operand-block behavior.
+- [X] T068 [US3] (verification) Re-verify `csg-object-instance-reuse-raytrace` and `csg-nested-tree-4-level-raytrace` after the US3 changes; fix `src/ri/geometry/csgSolid.cpp` if needed.
+- [X] T069 [US3] (verification) Re-run every T057 scene and the T034–T041 tests after the US3 changes; all stay green with no reference changes.
+- [X] T070 [US3] (verification) Confirm the T013 diagnostic guards for `csg-malformed-{bogus-operation,nested-in-primitive,unmatched-solidend}` are still green (FR-019), along with empty-block and single-operand-block behavior.
 
 **Checkpoint (Phase 5)**: `ctest -R "CSG|Csg|csg"` is green. Stage and pause for commit.
+
+**Phase 5 implementation notes (2026-10-04)**:
+- **Procedural expansion (T066)**: `CGeometryHost::expand()` is implemented by `CRendererContext::expand()`.
+  - It saves `delayed`, `instance`, `currentSolid`, the current attributes, the current xform and the swallow state, and restores them all afterwards.
+  - It runs the subdivision into a holder, under a copy of the member's flagged attributes and the member's own xform.
+  - `CCSGSolid::build` then runs step 2b: it expands every captured `CDelayedObject` (nested ones are appended and expanded in turn), and step 0's supported-member filter runs again over the result.
+  - `RiProcedural`'s capture rejection and `csgValidateProceduralCapture()` are gone. `csgReportNestedSolidBegin()` carries the shared diagnostic.
+  - The guard is `expandingOperand` plus `swallowedSolidDepth` in `CRendererContext`: `addObject()` discards objects while a swallowed block is open, and `RiSolidEnd` only decrements the depth.
+- **Tolerance notice (T067)**: `RiAttributeV` prints the notice through `warning(CODE_BADTOKEN, …)` the first time the attribute appears in a frame. The flag `toleranceNoticeGiven` is reset at `RiWorldBegin`. The attribute is still parsed and stored in all four layers; nothing reads it.
+- **Pre-existing lexer bug, fixed here at the maintainer's choice (no GitHub issue)**:
+  - `parserCleanup()` (`src/ri/parse/rib.y`, run by every `RiEnd`) set `yy_init = 1`, which flex 2.6 reads as "already initialized".
+  - The first RIB parse of any later `RiBegin`/`RiEnd` session in the same process therefore wrote through a NULL lexer buffer and segfaulted. It reproduces on master with just two sessions that each `RiReadArchive`; orender runs one session per process and never hit it.
+  - `parserCleanup()` now calls `riblex_destroy()`.
+  - The regression test is `RibParse_SessionsReadArchives` (`tests/unit/rib_parse/`): three sessions, each checking that its own archive's `#!` structure comment reached the `RiReadArchive` callback. It was red (segfault) before the fix and is green after. It exposed this bug because `CSG_ProceduralOperand` reads archives in several sessions.
+  - This is a Scene Interface change outside the geometry domain, and it adds no new dependency.
+- **Verification (T068–T070)**: the full suite passes, 535/535 (sequential, throttled, 1810 s), after a clean rebuild. That covers `csg-object-instance-reuse` and `csg-nested-tree-4-level`, every T057 scene, the T034–T041 tests, the three malformed guards, and `CSG_LazyResolution` (empty and single-operand blocks). No reference image changed.
+- **Environment note**: the vcpkg binary cache (`~/.cache/vcpkg/archives`) and the shared install tree were found wiped after a machine restart and OS update. The configure triggered by this phase's new test directory rebuilt all nine ports from source, LLVM included: about 6 h throttled. The cache is repopulated now.
 
 ---
 

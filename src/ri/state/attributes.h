@@ -162,7 +162,7 @@ class CAttributes : public CRefCounter {
         float rasterExpand;         // The expansion coefficient during the sampling
         float bias;                 // The bias amount expressed in the camera coordinates
 
-        float tessellationTolerance; // Tessellation tolerance for solid (CSG) boundary resolution
+        float tessellationTolerance; // Retired (spec 021, FR-023): parsed and stored, read by nothing
 
         char transmissionHitMode; // Either: 'p' = Look at the primitive   or   's' = Execute the shader
         char specularHitMode;     // Either: 'p' = Look at the primitive   or   's' = Execute the shader

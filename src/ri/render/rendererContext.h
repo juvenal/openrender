@@ -64,6 +64,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         // CGeometryHost: the services Geometry asks of the renderer (spec 021,
         // constitution Principle VIII)
         CObject *capture(const CObject *object, CAttributes *attributes, CXform *xform) override;
+        CObject *expand(const CObject *procedural, CAttributes *flagged) override;
         void releaseAtFrameEnd(CFrameResource *resource) override;
 
         // Rendering of the frame is over: hand every pending frame resource
@@ -248,6 +249,9 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         CArray<CInstance *> *instanceStack;      // The stack of object lists
         CArray<CInstance *> *allocatedInstances; // The list of allocated object instances
         CSGTreeNode *currentSolid;               // The current CSG tree node (SolidBegin/SolidEnd capture)
+        int expandingOperand;                    // Inside expand(): a procedural operand is expanding
+        int swallowedSolidDepth;                 // SolidBegin blocks open inside that expansion (discarded)
+        int toleranceNoticeGiven;                // The retired tessellation-tolerance notice was printed this frame
         std::mutex frameResourceMutex;             // Guards frameResources
         std::vector<CFrameResource *> frameResources; // Released at the end of the frame (attached)
         CArray<CSGTreeNode *> *savedSolids;      // The stack of enclosing CSG tree nodes

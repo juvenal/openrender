@@ -63,6 +63,14 @@ class CGeometryHost {
         // entering the scene. Serialized by the host.
         virtual CObject *capture(const CObject *object, CAttributes *attributes, CXform *xform) = 0;
 
+        // A procedural's expansion, made under a copy of `flagged` as the
+        // current attributes and the procedural's own transform, returned as
+        // a sibling chain (attached for the caller) instead of entering the
+        // scene. Nested procedurals come back unexpanded. A SolidBegin block
+        // emitted during the expansion is reported once and discarded with
+        // its contents. Serialized by the host.
+        virtual CObject *expand(const CObject *procedural, CAttributes *flagged) = 0;
+
         // Call resource->frameEnded() when the current frame's rendering is
         // over, before the scene hierarchy is freed; the host holds a
         // reference until then. Thread-safe.

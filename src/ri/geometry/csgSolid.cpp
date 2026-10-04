@@ -248,6 +248,17 @@ CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
         CCSGResolvedOperand &operand = *s->operands[op];
         int unsupported = 0;
 
+        // Objects from the host, each with one reference of ours
+        std::vector<CObject *> captured;
+        auto take = [&](CObject *chain) {
+            CObject *next;
+            for (CObject *o = chain; o != NULL; o = next) {
+                next = o->sibling;
+                o->sibling = NULL;
+                captured.push_back(o);
+            }
+        };
+
         for (CObject *templ : definition->operandMembers[op]) {
             // 0. Members that cannot take part in a solid are dropped
             if (!supportedMember(templ)) {
@@ -263,15 +274,34 @@ CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
             if (definition->operandFlip(op))
                 clone->flags ^= ATTRIBUTES_FLAGS_INSIDE;
             clone->attach();
-            CObject *next;
-            for (CObject *o = host->capture(templ, clone, xform); o != NULL; o = next) {
-                next = o->sibling;
-                o->sibling = NULL;
+            take(host->capture(templ, clone, xform));
+            clone->detach();
+        }
+
+        // 2b. Procedural members expand into the operand, under their own
+        // flagged attributes, until none remains (nested ones are appended and
+        // expanded in turn) (FR-024, FR-025)
+        for (size_t k = 0; k < captured.size(); k++) {
+            CDelayedObject *procedural = dynamic_cast<CDelayedObject *>(captured[k]);
+            if (procedural == NULL)
+                continue;
+            take(host->expand(procedural, procedural->attributes));
+            atomicIncrement(stats.numCsgProceduralExpansions);
+            procedural->detach();
+            captured[k] = NULL;
+        }
+
+        // 0 again, over what the expansions produced; the rest join the operand
+        for (CObject *o : captured) {
+            if (o == NULL)
+                continue;
+            if (!supportedMember(o))
+                unsupported++;
+            else {
                 operand.addMember(o);
                 s->hold(o);
-                o->detach(); // capture's reference: the state's hold() keeps it
             }
-            clone->detach();
+            o->detach(); // the host's reference: the state's hold() keeps a member
         }
         if (unsupported > 0 && definition->firstWarning(CCSGDefinition::WARNING_UNSUPPORTED, op, stats.csgFrame))
             warning(CODE_BADTOKEN, "A primitive in a SolidBegin block is not supported as a solid operand and is ignored "

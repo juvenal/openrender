@@ -126,6 +126,9 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
 
     // Init the CSG solid stack
     currentSolid = NULL;
+    expandingOperand = FALSE;
+    swallowedSolidDepth = 0;
+    toleranceNoticeGiven = FALSE;
     savedSolids = new CArray<CSGTreeNode *>;
 
     // Allocate the initial graphics state
@@ -529,6 +532,69 @@ CObject *CRendererContext::capture(const CObject *object, CAttributes *attribute
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
+// Method				:	expand
+// Description			:	CGeometryHost: run a procedural's subdivision into a
+//							holder instead of the scene, with a copy of
+//							`flagged` as the current attributes, and return
+//							what it created
+// Return Value			:	The created objects, a sibling chain, each
+//							attached once for the caller
+// Comments				:	Unlike processDelayedObject(), it targets a holder,
+//							restores the saved state (never NULL) and builds no
+//							hierarchy: the solid assigns regions first. Nested
+//							procedurals are added unexpanded; the solid expands
+//							them in turn.
+CObject *CRendererContext::expand(const CObject *procedural, CAttributes *flagged) {
+    const CDelayedObject *source = dynamic_cast<const CDelayedObject *>(procedural);
+    if (source == NULL)
+        return NULL;
+
+    osLock(CRenderer::delayedMutex);
+
+    CObject *savedDelayed = delayed;
+    CInstance *savedInstance = instance;
+    CSGTreeNode *savedSolid = currentSolid;
+    CAttributes *savedAttributes = currentAttributes;
+    CXform *savedXform = currentXform;
+    const int savedExpanding = expandingOperand;
+    const int savedSwallowed = swallowedSolidDepth;
+    instance = NULL;
+    currentSolid = NULL;
+    expandingOperand = TRUE;
+    swallowedSolidDepth = 0;
+
+    CCaptureHolder holder(flagged, source->xform);
+    delayed = &holder;
+    currentAttributes = new CAttributes(flagged);
+    currentXform = new CXform(source->xform);
+    currentAttributes->attach();
+    currentXform->attach();
+
+    source->subdivisionFunction(source->data, screenArea(source->xform, source->objectBmin, source->objectBmax));
+
+    currentAttributes->detach();
+    currentXform->detach();
+    CObject *created = holder.children;
+    holder.children = NULL;
+
+    delayed = savedDelayed;
+    instance = savedInstance;
+    currentSolid = savedSolid;
+    currentAttributes = savedAttributes;
+    currentXform = savedXform;
+    expandingOperand = savedExpanding;
+    swallowedSolidDepth = savedSwallowed;
+    osUnlock(CRenderer::delayedMutex);
+
+    // addObject() attached the raytraced ones: give every object one reference
+    for (CObject *o = created; o != NULL; o = o->sibling)
+        if (!o->raytraced())
+            o->attach();
+    return created;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
 // Method				:	releaseAtFrameEnd / endFrameResources
 // Description			:	CGeometryHost: frame-lifetime resources
 // Return Value			:	-
@@ -591,6 +657,14 @@ void CRendererContext::processDelayedSolid(CShadingContext *context, CSolidObjec
 void CRendererContext::addObject(CObject *o) {
     assert(currentAttributes != NULL);
     assert(o != NULL);
+
+    // Inside a SolidBegin block emitted by a procedural operand's expansion:
+    // the block was reported and its contents are discarded (spec 021)
+    if (swallowedSolidDepth > 0) {
+        o->attach();
+        o->detach();
+        return;
+    }
 
     // Are we inside an open SolidBegin/SolidEnd block ?
     if (currentSolid != NULL) {
@@ -868,6 +942,7 @@ void CRendererContext::RiFrameEnd(void) {
 // WorldBegin - End stuff
 void CRendererContext::RiWorldBegin(void) {
     inWorld = true;
+    toleranceNoticeGiven = FALSE; // FR-023: one tessellation-tolerance notice per frame
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.
     if (riAddFramebuffer()) {
@@ -3326,6 +3401,13 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 if (strcmp(tokens[i], RI_TESSELLATIONTOLERANCE) == 0) {
                     const float *val = (const float *)params[i];
 
+                    // Retired by spec 021 (FR-023): still accepted and stored,
+                    // read by nothing; one notice per frame
+                    if (!toleranceNoticeGiven) {
+                        warning(CODE_BADTOKEN, "The \"solid\" \"%s\" attribute no longer has any effect\n", RI_TESSELLATIONTOLERANCE);
+                        toleranceNoticeGiven = TRUE;
+                    }
+
                     if (val[0] < 0) {
                         error(CODE_RANGE, "Invalid value for \"%s\"\n", RI_TESSELLATIONTOLERANCE);
                     }
@@ -5275,11 +5357,8 @@ void CRendererContext::RiProcedural(void *data, float *bound, void (*subdivfunc)
 
     checkGeometryOrDiscard();
 
-    if (currentSolid != NULL) {
-        csgValidateProceduralCapture(currentSolid);
-        return;
-    }
-
+    // Inside an open solid block, addObject() captures the procedural as a leaf;
+    // it expands when the solid's instance is first used (spec 021, FR-024)
     if ((xform != NULL) && (attributes != NULL)) {
         bmin[COMP_X] = bound[0];
         bmax[COMP_X] = bound[1];
@@ -5871,6 +5950,15 @@ void CRendererContext::RiSolidBegin(const char *type) {
         operation = CSG_UNION; // Recover permissively; the error was already reported
     }
 
+    // A procedural operand's expansion may not open a solid of its own: report
+    // it once and discard the block and everything in it (spec 021)
+    if (expandingOperand) {
+        if (swallowedSolidDepth == 0)
+            csgReportNestedSolidBegin();
+        swallowedSolidDepth++;
+        return;
+    }
+
     if (currentSolid != NULL)
         csgValidateNestedSolidBegin(currentSolid);
 
@@ -5888,6 +5976,11 @@ void CRendererContext::RiSolidBegin(const char *type) {
 void CRendererContext::RiSolidEnd(void) {
     if (CRenderer::netNumServers > 0)
         return;
+
+    if (swallowedSolidDepth > 0) {
+        swallowedSolidDepth--;
+        return;
+    }
 
     assert(currentSolid != NULL);
 

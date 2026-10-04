@@ -3171,9 +3171,13 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 // Function				:	parserCleanup
 // Description			:	Clean the memory allocated by the parser
 // Return Value			:	-
-// Comments				:
+// Comments				:	riblex_destroy() frees the lexer's buffers and
+//							resets its globals, so the next session's first
+//							parse initializes the lexer again. (Setting
+//							yy_init = 1 here, as this used to, means "already
+//							initialized" to flex 2.6: that parse then wrote
+//							through a NULL buffer.)
 void		parserCleanup() {
-	rib_delete_buffer(YY_CURRENT_BUFFER);
-	yy_init				= 1;
+	riblex_destroy();
 }
 

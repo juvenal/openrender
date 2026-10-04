@@ -108,7 +108,7 @@ CAttributes::CAttributes() {
     rasterExpand = 0.5f; // This could be significantly lowered for many primitives
     bias = 0.01f;
 
-    tessellationTolerance = 0; // 0 = unset; CSG resolution derives a default from the operand's own object-space bound diagonal (research.md Decision 4)
+    tessellationTolerance = 0; // Retired (spec 021, FR-023): accepted for compatibility, has no effect
 
     transmissionHitMode = 'p';
     diffuseHitMode = 'p';

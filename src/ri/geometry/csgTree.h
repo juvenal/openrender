@@ -63,13 +63,9 @@ class CSGTreeNode {
 // sub-tree). Always safe to call; only a "primitive" parent produces an error.
 void csgValidateNestedSolidBegin(CSGTreeNode *parent);
 
-// FR-021: report a clear diagnostic that an RiProcedural (or other
-// delayed/procedural primitive) cannot be captured directly inside an open
-// solid block, since it does not exist yet at SolidEnd time and cannot be
-// tessellated for CSG boundary resolution. `node` must be non-NULL (callers
-// only invoke this while a solid block is actually open). Always returns
-// FALSE.
-int csgValidateProceduralCapture(CSGTreeNode *node);
+// The nested-in-primitive diagnostic itself, for a caller with no parent node
+// (a SolidBegin emitted while a procedural operand expands, spec 021)
+void csgReportNestedSolidBegin();
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	buildCSGDefinition
