@@ -2960,7 +2960,13 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     const int ns = solveQuartic<double>(c, s);
-    std::sort(s, s + ns); // Nearest first
+
+    // Nearest first. An insertion sort, not std::sort: GCC 13 analyses
+    // std::sort's 16-element insertion threshold against s[4] and reports a
+    // false -Warray-bounds (an error under -Werror), though ns <= 4
+    for (int i = 1; i < ns; i++)
+        for (int j = i; j > 0 && s[j] < s[j - 1]; j--)
+            std::swap(s[j], s[j - 1]);
 
     const double vlo = std::min(vmin, vmax), vhi = std::max(vmin, vmax);
 
