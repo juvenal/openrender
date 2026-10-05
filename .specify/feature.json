@@ -1,1 +1,3 @@
-{"feature_directory":"specs/021-deferred-csg-evaluation"}
+{
+  "feature_directory": "specs/022-domain-dependency-guardrails"
+}
