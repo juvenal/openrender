@@ -2,10 +2,8 @@
 #
 # Spec 013 introduced these suites for the BSP boolean kernel; spec 021
 # (deferred CSG evaluation) rewrote the kernel suites as classification and
-# boundary-rule tests and added the suites below. The tessellation suites
-# (test_quadric_tesselation, test_patchmesh_tesselation,
-# test_tesselation_flatness) cover spec 013 helpers that spec 021 retires
-# with them (T077).
+# boundary-rule tests and added the suites below. Spec 013's tessellation
+# suites were retired with the helpers they covered (spec 021 T077).
 #
 # `ctest --test-dir build -L csg` runs every test registered here.
 
@@ -64,8 +62,3 @@ add_csg_unit_test(CSG_ProceduralOperand   test_procedural_operand.cpp)
 
 # Interior/Exterior shader selection (spec 013; updated by spec 021 T044)
 add_csg_unit_test(CSG_InteriorExteriorSelection test_interior_exterior_selection.cpp)
-
-# Spec 013 tessellation helpers, retired by spec 021 T077
-add_csg_unit_test(CSG_TesselationFlatness   test_tesselation_flatness.cpp)
-add_csg_unit_test(CSG_QuadricTesselation    test_quadric_tesselation.cpp)
-add_csg_unit_test(CSG_PatchMeshTesselation  test_patchmesh_tesselation.cpp)

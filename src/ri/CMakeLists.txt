@@ -12,8 +12,8 @@ include_directories(.)
 # CRiInterface, error reporting) are not ribRender-only the way hiders/
 # render are -- both are shared foundation ribVector also needs. geometry/
 # (object/curves/points/polygons/quadrics/patches/patchgrid/
-# bsplinePatchgrid/surface/implicitSurface/delayed/solidObject/csgTree/
-# csgBoolean/csgTesselationDispatch/subdivision family/blobby family) and
+# bsplinePatchgrid/surface/implicitSurface/delayed/csg family/
+# subdivision family/blobby family) and
 # texture/ (texture/texture3d/texmake/brickmap/pointCloud/pointHierarchy)
 # are shared foundation too -- both ribRender and ribVector need most of
 # this content, just not always the same methods (see the real/stub
@@ -58,8 +58,6 @@ set(ri_sources
 	hiders/compositor.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
-	geometry/csgBoolean.cpp
-	geometry/csgTesselationDispatch.cpp
 	geometry/csgTree.cpp
 	geometry/csgCaps.cpp
 	geometry/csgClassify.cpp
@@ -128,7 +126,6 @@ set(ri_sources
 	parse/riInterface.cpp
 	output/ribOut.cpp
 #	sl.cpp
-	geometry/solidObject.cpp
 	core/stats.cpp
 	geometry/subdivision.cpp
 	geometry/subdivisionCreator.cpp
@@ -297,14 +294,11 @@ endif()
 # (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
 # render/rendererDisplay.cpp (CRenderer::dispatch() -> CImagerExecutor) are
 # both full-pipeline-only, reached only from beginFrame()/render(), which
-# ribpreview_load() never calls. csgTree.cpp and solidObject.cpp are RIB
-# `Solid`/CSG support: CRibGeometryContext has no RiSolidBegin/RiSolidEnd
-# override at all, so CSG is structurally unsupported on the preview path,
-# and CSolidObject is constructed only from csgTree.cpp (confirmed by
-# grepping every "new CSolidObject"/"CSolidObject(" site repo-wide) -- so
-# excluding csgTree.cpp makes solidObject.cpp dead too. Spec 021's
-# deferred CSG units (csgDefinition/csgSolid/csgClassify/csgCaps.cpp) are
-# excluded for the same reason, and surfaceCrossingDispatch.cpp (free-form
+# ribpreview_load() never calls. The CSG units (csgTree/csgDefinition/
+# csgSolid/csgClassify/csgCaps.cpp) are RIB `Solid` support:
+# CRibGeometryContext has no RiSolidBegin/RiSolidEnd override at all, so
+# CSG is structurally unsupported on the preview path, and
+# surfaceCrossingDispatch.cpp (free-form
 # crossing counts, only ever reached from CSG classification) is swapped for
 # vector/surfaceCrossingDispatchStub.cpp. parse/ifexpr_generated.cpp
 # (the RIB `if()`-conditional grammar) defines CRendererContext::ifParse(),
@@ -353,7 +347,6 @@ list(REMOVE_ITEM ribVector_sources
     geometry/csgClassify.cpp
     geometry/csgDefinition.cpp
     geometry/csgSolid.cpp
-    geometry/csgTesselationDispatch.cpp
     geometry/csgTree.cpp
     geometry/dlobject.cpp
     hcshader.cpp
@@ -379,12 +372,10 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererFiles.cpp
     render/rendererJobs.cpp
     render/rendererShadingServices.cpp
-    geometry/solidObject.cpp
     geometry/surface.cpp
     geometry/surfaceCrossingDispatch.cpp
 )
 list(APPEND ribVector_sources
-    vector/csgTesselationDispatchStub.cpp
     vector/geometryDispatchStub.cpp
     vector/irradianceDispatchStub.cpp
     vector/rendererDeclarationsDispatchStub.cpp

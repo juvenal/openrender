@@ -222,7 +222,7 @@ int findSurfaceCrossings(const CCrossingSurface &surface, const CCrossingSeedGri
 //							shutter open and undisplaced
 // Comments				:	sample() needs no shading context when given local
 //							buffers for every variable any free-form sampler
-//							writes unconditionally (see tesselateSurfaceGrid).
+//							writes unconditionally.
 //							The partials sample() reports are not all with
 //							respect to the [0, 1] patch parameters (a NURBS
 //							patch reports them per knot-space unit), so they

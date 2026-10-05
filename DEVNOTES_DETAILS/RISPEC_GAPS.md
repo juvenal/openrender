@@ -21,15 +21,25 @@ date in the footer, not carried forward.
 **7 of 11 implemented, 2 partial, 2 absent.**
 
 - [x] **Solid Modeling** — `RiSolidBegin`/`RiSolidEnd`
-  (`rendererContext.cpp:5738`). All three set operations plus `"primitive"`;
-  arbitrarily nested trees (`src/ri/csgTree.{h,cpp}`) resolved by interval
-  boolean classification over ray spans (`src/ri/csgBoolean.{h,cpp}`).
-  Operands may be any primitive that reaches `addObject()`, which includes
-  quadrics, polygon meshes, NURBS, subdivision meshes and blobbies — all four
-  combinations have scenes. Malformed input (an unmatched `SolidEnd`, a
-  nesting or procedural inside `"primitive"`, an unknown operation) is
-  diagnosed rather than crashed. See `specs/013-solid-csg-operations/` and
-  the manual's *Solid CSG Operations*.
+  (`rendererContext.cpp`). All three set operations plus `"primitive"`, over
+  arbitrarily nested trees. Since spec 021 the solid is evaluated **lazily and
+  on demand**: `RiSolidEnd` builds an immutable `CCSGDefinition`
+  (`src/ri/geometry/csgDefinition.{h,cpp}`) and adds one `CCSGSolid`
+  (`csgSolid.{h,cpp}`) that resolves on its first `dice()`/`intersect()`.
+  Composition is spatial trimming: every operand leaf carries a region
+  predicate (`csgClassify.{h,cpp}`) that the intersectors and the REYES dicer
+  honour, so seams are exact to pixel precision in raytrace, REYES and
+  Z-buffer alike (spec 013's BSP boolean of tessellated meshes is retired).
+  Operands may be quadrics, polygon and patch meshes, NURBS, subdivision
+  meshes, blobbies and procedurals (expanded lazily into their operand). A
+  single open quadric is closed by implied caps; any other open operand is
+  empty, with a warning. Implicit (`Geometry "implicit"`), DSO (`"dlo"`),
+  point, curve and object-instance primitives are not supported as operands
+  (dropped with a warning). `Attribute "solid" "tessellationtolerance"` is
+  accepted but inert (one notice per frame). Malformed input (an unmatched
+  `SolidEnd`, nesting inside `"primitive"`, an unknown operation) is
+  diagnosed rather than crashed. See `specs/021-deferred-csg-evaluation/`,
+  `specs/013-solid-csg-operations/` and the manual's *Solid CSG Operations*.
 
 - [x] **Level of Detail** — `RiDetail` projects the given bound to screen
   space and stores `lodSize` (`rendererContext.cpp:2202`); `RiDetailRange`

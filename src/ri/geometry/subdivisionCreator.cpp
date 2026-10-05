@@ -2257,22 +2257,3 @@ void CSubdivMesh::create(CShadingContext *context) {
 
     osUnlock(mutex);
 }
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSubdivMesh
-// Method				:	tessellateToSurfaces
-// Description			:	Tessellates this mesh into a sibling chain of
-//							CSurface patches using a standalone memory pool
-//							-- for CSG leaf dispatch, which resolves in the
-//							geometry domain, independent of any
-//							hider/CShadingContext. The returned patches'
-//							vertex data is ralloc'd from `mem`, not copied,
-//							so the caller must keep `mem` alive for as long
-//							as it uses the patches, and is responsible for
-//							memoryTini(mem) once done.
-// Return Value			:	The sibling chain of CSurface patches
-// Comments				:
-CObject *CSubdivMesh::tessellateToSurfaces(CMemPage *&mem) {
-    memoryInit(mem);
-    return buildSurfaces(mem);
-}

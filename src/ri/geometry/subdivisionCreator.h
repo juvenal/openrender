@@ -49,19 +49,6 @@ class CSubdivMesh : public CObject {
 
         int moving() const { return pl->data1 != NULL; }
 
-        // Tessellates this mesh into a sibling chain of CSurface patches
-        // (CSubdivision / CBicubicPatch / CPatchGrid / CBSplinePatchGrid)
-        // using a standalone memory pool instead of a CShadingContext's
-        // threadMemory -- for CSG leaf dispatch, which resolves entirely
-        // in the geometry domain, outside any hider. The returned
-        // patches hold raw pointers into `mem` (their vertex data is
-        // ralloc'd from it, never copied), so `mem` must stay alive for
-        // as long as the caller uses the patches; the caller owns both
-        // the returned chain and `mem` (pass an initially-NULL pointer
-        // in, and memoryTini() it only after the last patch is done
-        // being read/deleted).
-        CObject *tessellateToSurfaces(CMemPage *&mem);
-
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
         void wireData(const float *&positions, int &numFaces, const int *&numVerticesPerFace, const int *&vertexIndices) const {

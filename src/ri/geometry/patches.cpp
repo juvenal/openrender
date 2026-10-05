@@ -1735,14 +1735,6 @@ void CPatchMesh::create(CShadingContext *context) {
     osUnlock(mutex);
 }
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	tesselatePatchMeshAdaptive
-// Comments				:	Real body lives in csgTesselationDispatch.cpp
-//							(needs surface.cpp's tesselateSurfaceGrid()/
-//							tesselateQuadricAdaptive()); a loud stub lives in
-//							vector/csgTesselationDispatchStub.cpp -- its only
-//							caller, csgTree.cpp, is excluded from ribVector.
-
 // Validates and flattens any RiTrimCurve loops pending on the given
 // attributes into a Shared Trim Test (FR-004: absent pending state yields
 // NULL, leaving callers on the untrimmed path). Defined below, after the
@@ -2227,14 +2219,6 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
     // Release the lock
     osUnlock(mutex);
 }
-
-///////////////////////////////////////////////////////////////////////
-// Function				:	tesselateNURBSPatchMeshAdaptive
-// Comments				:	Real body lives in csgTesselationDispatch.cpp
-//							(needs surface.cpp's tesselateSurfaceGrid()/
-//							tesselateQuadricAdaptive()); a loud stub lives in
-//							vector/csgTesselationDispatchStub.cpp -- its only
-//							caller, csgTree.cpp, is excluded from ribVector.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CBicubicPatch

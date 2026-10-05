@@ -70,7 +70,6 @@
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
-#include "solidObject.h"
 #include "stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
@@ -615,37 +614,6 @@ void CRendererContext::endFrameResources() {
         resource->frameEnded();
         resource->detach();
     }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRendererContext
-// Method				:	processDelayedSolid
-// Description			:	Instantiate a Resolved Solid Boundary's template
-//							fragments into its own children, once per
-//							CSolidObject (mirrors processDelayedInstance)
-// Return Value			:
-// Comments				:
-void CRendererContext::processDelayedSolid(CShadingContext *context, CSolidObject *cSolid) {
-
-    // Set the delayed object
-    delayed = cSolid;
-
-    // Unlike processDelayedInstance(), fragments are not object templates
-    // awaiting attribute assignment: each fragment already carries its own
-    // resolved CAttributes (cloned per boundary-region provenance in
-    // csgBuildMeshForAttributeGroup(), tagged ATTRIBUTES_FLAGS_SOLID_FRAGMENT).
-    // Passing a non-NULL attributes here would make every instantiate()
-    // override (a == NULL ? attributes : a) discard that per-fragment state,
-    // so pass NULL and let each fragment fall back to its own attributes.
-    CObject *cObject;
-    for (cObject = cSolid->fragments; cObject != NULL; cObject = cObject->sibling)
-        cObject->instantiate(NULL, cSolid->xform, this);
-
-    // We're not processing a delayed object anymore
-    delayed = NULL;
-
-    // Create the hierarchy
-    cSolid->setChildren(context, cSolid->children);
 }
 
 ///////////////////////////////////////////////////////////////////////

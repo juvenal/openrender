@@ -42,9 +42,8 @@ enum ECSGOperation {
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSGTreeNode
 // Description			:	Exists only while a solid block is open;
-//							discarded once resolved into a Resolved
-//							Solid Boundary (CSolidObject) at the
-//							outermost RiSolidEnd.
+//							discarded once the outermost RiSolidEnd has
+//							built its CCSGDefinition (spec 021).
 // Comments				:
 class CSGTreeNode {
     public:

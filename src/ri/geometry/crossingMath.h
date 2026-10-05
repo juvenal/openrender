@@ -30,6 +30,8 @@
 #ifndef CROSSINGMATH_H
 #define CROSSINGMATH_H
 
+#include <algorithm>
+#include <cfloat>
 #include <cmath>
 
 // Crossings (0 or 1) of the ray with the triangle (v0, v1, v2)
@@ -167,8 +169,44 @@ inline int bilinearRayRoots(const T *P00, const T *P10, const T *P01, const T *P
 }
 
 // Crossings (0, 1 or 2) of the ray from + t*dir, t > 0, with the bilinear quad
+// A flat quad (a parallelogram: P11 = P10 + P01 - P00, as a box face is)
+// takes the plane-and-parameters path; any other goes through the general
+// bilinear solver. Both accept u, v in [0, 1] inclusive.
 template <class T>
 inline int countBilinearCrossings(const T *P00, const T *P10, const T *P01, const T *P11, const float *from, const float *dir) {
+    // Flat to within the corners' own rounding: a float corner carries an
+    // error of about FLT_EPSILON times its magnitude, so a twist that small
+    // is noise, not curvature
+    double a[3], b[3], c[3];
+    double aMax = 0, scale = 0;
+    for (int k = 0; k < 3; k++) {
+        a[k] = (double)P11[k] - P10[k] - P01[k] + P00[k];
+        b[k] = (double)P10[k] - P00[k];
+        c[k] = (double)P01[k] - P00[k];
+        aMax = std::max(aMax, std::fabs(a[k]));
+        scale = std::max(scale, std::max(std::max(std::fabs((double)P00[k]), std::fabs((double)P10[k])),
+                                         std::max(std::fabs((double)P01[k]), std::fabs((double)P11[k]))));
+    }
+    if (aMax <= 8 * FLT_EPSILON * scale) {
+        const double n[3] = {b[1] * c[2] - b[2] * c[1], b[2] * c[0] - b[0] * c[2], b[0] * c[1] - b[1] * c[0]};
+        const double nn = n[0] * n[0] + n[1] * n[1] + n[2] * n[2];
+        const double qq = (double)dir[0] * dir[0] + (double)dir[1] * dir[1] + (double)dir[2] * dir[2];
+        const double den = n[0] * dir[0] + n[1] * dir[1] + n[2] * dir[2];
+        if (!(nn > 0) || std::fabs(den) <= 1e-12 * std::sqrt(nn * qq))
+            return 0; // Degenerate, or the ray runs along the plane
+        const double d[3] = {(double)P00[0] - from[0], (double)P00[1] - from[1], (double)P00[2] - from[2]};
+        const double t = (n[0] * d[0] + n[1] * d[1] + n[2] * d[2]) / den;
+        if (!(t > 0))
+            return 0;
+        // The hit relative to P00, r = u b + v c
+        const double r[3] = {t * dir[0] - d[0], t * dir[1] - d[1], t * dir[2] - d[2]};
+        const double rc[3] = {r[1] * c[2] - r[2] * c[1], r[2] * c[0] - r[0] * c[2], r[0] * c[1] - r[1] * c[0]};
+        const double br[3] = {b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]};
+        const double u = (rc[0] * n[0] + rc[1] * n[1] + rc[2] * n[2]) / nn;
+        const double v = (br[0] * n[0] + br[1] * n[1] + br[2] * n[2]) / nn;
+        return (u >= 0 && u <= 1 && v >= 0 && v <= 1) ? 1 : 0;
+    }
+
     double us[2], vs[2], ts[2];
     const int n = bilinearRayRoots(P00, P10, P01, P11, from, dir, us, vs, ts);
     int count = 0;

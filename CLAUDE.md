@@ -234,8 +234,9 @@ feature branches: `001-hugo-docs-migration`, `002-wayland-display-driver`,
 `005-imager-shader-support`, `006-scene-wireframe-viewer` (orender-wire),
 `007-dof-disk-sampling`, `008-hider-parity-convergence`,
 `009-nurbs-trim-curves`, `010-full-subdivision-support`,
-`011-jit-opcode-parity` (LLVM JIT opcode-coverage parity sweep, current
-branch).
+`011-jit-opcode-parity` (LLVM JIT opcode-coverage parity sweep), ...,
+`021-deferred-csg-evaluation` (deferred, on-demand CSG evaluation,
+superseding spec 013's resolution).
 
 `DEVNOTES.md` is the living status/status-table doc — check it first for
 "what's done / in progress" and for planned future work. `DEVNOTES_DETAILS/*.md`
@@ -371,6 +372,72 @@ it before adding any cross-domain dependency).
    overload dispatches as the string-space overload), and **#11**
    (`printf()`, above). See `specs/017-jit-builtin-function-coverage/`
    for the full inventory and verification detail.
+13. **CSG is spatial trimming through a generic region hook (spec 021).**
+   Every leaf of a solid's operand carries a `CRegionPredicate`
+   (`CObject::region`, `object.h`), inherited by mesh children through
+   `setChildren()`. The analytic intersectors, the `CPatch::dice` region
+   stage and `CTesselationPatch` all consult it; nothing is pre-baked at
+   `RiSolidEnd`. The hook and the REYES coverage mask must keep **generic**
+   names: `reyes.cpp` references them, and hiders may not name CSG types
+   (constitution Principle VIII).
+14. **CSG classification bypasses ray filters and is orientation-independent.**
+   Point membership is crossing parity along fixed directions (with a
+   fallback and a majority vote), counted by each surface's own
+   `countCrossings()`, never through `trace()`'s visibility/ray filters.
+   `CCSGResolvedOperand::buildIndex()` builds a per-operand bound hierarchy:
+   a linear scan over a mesh operand's thousands of surfaces made
+   `blobby-csg-difference` REYES ~35x slower than master and timed out its
+   parity test. Free-form (NURBS/subdivision/bicubic) crossings live in the
+   renderer-only `geometry/surfaceCrossingDispatch.cpp`, with
+   `vector/surfaceCrossingDispatchStub.cpp` for ribVector.
+15. **Trims drop straddling patches; CSG must keep them.** The trim stage in
+   `CPatch::dice` discards patches still straddling a trim at
+   `maxEyeSplits`. The CSG region stage instead dices MIXED patches at a
+   seam shading rate (`kRegionSeamShadingRate = 0.25`), splits up to
+   `kRegionMaxSplitDepth = 24`, and at the cap keeps the patch at halved
+   divisions; dropping it would open cracks along the seam.
+16. **The REYES coverage mask comes from undisplaced P.** The P-only grid's
+   P is already displaced and in sample space, so `shadeGrid` fills
+   `CRasterGrid::coverage` through the generic `CObject::regionCoverage()`
+   hook **before** `displace()`. A quad is absent only when none of its
+   corners is accepted, and absent quads get the sentinel bound
+   `{INT_MAX, INT_MIN, INT_MAX, INT_MIN}` in `bounds[]` *and*
+   `quadStratumBounds` (the motion path culls by the latter alone).
+17. **Geometry never calls the renderer core: use `CGeometryHost`.**
+   `instantiate()` hands its output to `addObject()`, which the renderer
+   core owns, so a solid captures its per-instance leaves and procedural
+   expansions through the Geometry-owned `CGeometryHost`
+   (`geometry/geometryHost.h`: `capture()`, `expand()`,
+   `releaseAtFrameEnd()`), implemented and registered by
+   `CRendererContext`. Never reach `CRenderer`/`CRendererContext` from
+   Geometry (Principle VIII; registered violations live in
+   `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`). The instance state holds a
+   reference to every captured object until `endFrameResources()` runs in
+   `CRenderer::endFrame()` before `root->destroy()`: REYES consumes objects
+   by refcount, while raytracing frees the hierarchy regardless of it.
+18. **Captured CSG leaves carry absolute transforms.** A leaf recorded inside
+   a solid block holds the full current transform, so the definition
+   rebases every leaf into the outer frame snapshotted at the outermost
+   `SolidBegin` (`CCSGDefinition::finalize`); applying the solid's own
+   transform on top without rebasing would place it twice. `SolidBegin` does
+   not scope the transform: use `TransformBegin`/`End` around a leaf's
+   own offset.
+19. **Render-only `CSurface` overrides live in `render/geometryDispatch.cpp`.**
+   `surface.cpp` is not in the shared ribVector library, so overrides such
+   as `CSurface::regionCoverage` (and `CCSGSolid::dice`, which keeps the CSG
+   unit free of hider types) are defined in `render/geometryDispatch.cpp`,
+   with a `CODE_BUG` stub in `vector/geometryDispatchStub.cpp`.
+20. **The RIB lexer must be reset with `riblex_destroy()`.** `parserCleanup()`
+   (`parse/rib.y`, run by every `RiEnd`) used to set `yy_init = 1`, which
+   flex 2.6 reads as "already initialized": the first RIB parse of any
+   later `RiBegin`/`RiEnd` session in the same process wrote through a NULL
+   lexer buffer and segfaulted. orender runs one session per process and
+   never hit it; in-process tests do (`RibParse_SessionsReadArchives`).
+21. **`gen_scenes.py` copies headers between CSG scenes.**
+   `specs/021-deferred-csg-evaluation/tools/gen_scenes.py` derives
+   `csg-nurbs-sheet-{expected,instanced}-raytrace.rib` from
+   `csg-nurbs-sphere-union-raytrace.rib`'s body, header comment included.
+   Check those two diffs after any regeneration.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,

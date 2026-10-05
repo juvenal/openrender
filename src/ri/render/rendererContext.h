@@ -50,7 +50,6 @@ class CDelayedObject;
 class CDelayedInstance;
 class CNetFileMapping;
 class CSGTreeNode;
-class CSolidObject;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
@@ -223,7 +222,6 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         // Delayed object junk
         void processDelayedObject(CShadingContext *context, CDelayedObject *, void (*subdivisionFunction)(void *, float), void *, const float *, const float *);
         void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
-        void processDelayedSolid(CShadingContext *context, CSolidObject *solid);
 
         virtual void addObject(CObject *) override; // Add an object into the scene
         void addInstance(const void *);    // Add an instance into the scene

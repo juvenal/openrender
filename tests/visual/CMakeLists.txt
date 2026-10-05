@@ -1839,12 +1839,10 @@ add_visual_test(csg-open-quadric-caps-zbuffer
     csg-open-quadric-caps-zbuffer.tif
     csg-open-quadric-caps-zbuffer.tif)
 
-# T027: adaptive-tesselation tolerance coverage (two spheres unioned with a
-# tight vs. loose "solid" "tessellationtolerance" attribute) plus coverage
-# for the two remaining FR-015 leaf-dispatch gaps fixed during this feature's
-# implementation -- CNURBSPatchMesh (RiNuPatch) via
-# tesselateNURBSPatchMeshAdaptive() and CSubdivMesh (Catmull-Clark) via
-# tessellateToSurfaces() -- each unioned with a sphere primitive.
+# Spec 013 T027: two spheres unioned with a tight vs. loose "solid"
+# "tessellationtolerance" attribute (inert since spec 021, FR-023), plus a
+# NURBS (RiNuPatch) and a Catmull-Clark subdivision operand, each unioned
+# with a sphere primitive.
 add_visual_test(csg-sphere-sphere-tight-tolerance-raytrace
     examples/rib/tests/csg-sphere-sphere-tight-tolerance-raytrace.rib
     csg-sphere-sphere-tight-tolerance-raytrace.tif

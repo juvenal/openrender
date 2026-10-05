@@ -40,13 +40,14 @@ SolidBegin "difference"
 SolidEnd
 ```
 
-Every check below is a test registered with the `add_csg_metric_test` macro
+Every check below is a test registered with the `add_csg_metric_test` macro,
+which names it `Csg_<NAME>`
 (`tests/visual/CMakeLists.txt`). It renders the scenes through the
 `tests/visual/csg_metric_test.cmake` driver, runs `test_csg_seam_metric` on the
 output, and checks logs and statistics. Run the seam-metric tests:
 
 ```bash
-ctest --test-dir build -R "CsgSeam_(hero|spherecube)" --output-on-failure
+ctest --test-dir build -R "Csg_Seam_(hero|spherecube)" --output-on-failure
 ```
 
 **Expected**:
@@ -97,22 +98,22 @@ labelled `CSG classifications:`, `CSG seam splits:`, `CSG instances resolved:`
 and `CSG procedural expansions:` (zeros included whenever the frame has a solid).
 
 ```bash
-ctest --test-dir build -R "Csg(OffscreenStats|PartialVisibilityStats|ResolutionScaling|TinySolidStats)" \
+ctest --test-dir build -R "Csg_(OffscreenStats|PartialVisibilityStats|ResolutionScaling|TinySolidStats)" \
       --output-on-failure
 ```
 
 **Expected**:
-- `CsgOffscreenStats_{raytrace,reyes}`: `csg-offscreen-stats-{raytrace,reyes}.rib`
+- `Csg_OffscreenStats_{raytrace,reyes}`: `csg-offscreen-stats-{raytrace,reyes}.rib`
   (a hero solid behind the camera whose sphere operand is a procedural) reports 0
   instances resolved, 0 classifications, 0 seam splits and 0 procedural
   expansions.
-- `CsgPartialVisibilityStats`: the hero rendered with `CropWindow 0 0.5 0 1`
+- `Csg_PartialVisibilityStats`: the hero rendered with `CropWindow 0 0.5 0 1`
   (`csg-hero-partial-stats-reyes.rib`) needs at most 0.75× the seam splits of the
   full frame (`csg-hero-stats-800-reyes.rib`). Seam splits are counted by REYES
   dicing, so the statistics scenes use REYES.
-- `CsgResolutionScaling`: the REYES hero at 1600×1000 reports more seam splits
+- `Csg_ResolutionScaling`: the REYES hero at 1600×1000 reports more seam splits
   than at 800×500 (precision follows resolution).
-- `CsgTinySolidStats`: a hero solid covering under 4×4 pixels
+- `Csg_TinySolidStats`: a hero solid covering under 4×4 pixels
   (`csg-tiny-solid-stats-reyes.rib`) needs at most 16 seam splits.
 
 Statistics are INFO-level messages on stdout, and `orender` starts at log level
@@ -132,7 +133,7 @@ NONE (`orender.cpp:611–612`), so a manual render must pass `-x 3` (or set
   (FR-025). The operand is then the block's own `Sphere 1 -1 1 360`, so **the
   render shows that sphere**. The old "cannot be declared inside a SolidBegin
   block" diagnostic must not appear.
-- `CsgProcedural_sphere` and `CsgProcedural_open_cylinder` match their inline
+- `Csg_Procedural_sphere` and `Csg_Procedural_open_cylinder` match their inline
   twins (SC-010). The open-cylinder case uses the implied-cap geometry
   (`csg-open-quadric-caps`), with the half-sweep cylinder supplied by the
   archive, so its caps are visible and must match the inline render. The archives are copied into each test's scratch working directory

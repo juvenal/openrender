@@ -530,7 +530,7 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
 
 ### Implementation for User Story 4
 
-- [ ] T075 [US4] Remove any eager work found by T071–T074 in `src/ri/geometry/csgSolid.cpp`, `src/ri/geometry/csgDefinition.cpp`, `src/ri/geometry/csgTree.cpp` and the seam rate in `src/ri/geometry/surface.cpp`. For example, compute the solid's bound from the template without instantiating, never touch `CCSGInstanceState` from culling or bound queries, and stop seam splitting at pixel precision.
+- [X] T075 [US4] Remove any eager work found by T071–T074 in `src/ri/geometry/csgSolid.cpp`, `src/ri/geometry/csgDefinition.cpp`, `src/ri/geometry/csgTree.cpp` and the seam rate in `src/ri/geometry/surface.cpp`. For example, compute the solid's bound from the template without instantiating, never touch `CCSGInstanceState` from culling or bound queries, and stop seam splitting at pixel precision.
 
 **Checkpoint (Phase 6)**: laziness and view-driven refinement proven. Stage and pause for commit.
 
@@ -538,12 +538,12 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T076 Delete `src/ri/geometry/csgBoolean.{h,cpp}`, `src/ri/geometry/solidObject.{h,cpp}` and `CRendererContext::processDelayedSolid` (`src/ri/render/rendererContext.{h,cpp}`). Remove them from `src/ri/CMakeLists.txt`: `geometry/csgBoolean.cpp` at L62 (the shared `ri_sources` list, so it leaves both ribRender and ribVector), and `geometry/solidObject.cpp` at L126 and in the ribVector exclusion list at L369. Remove the related libribpreview comment text (~L295–300) and the names `solidObject`, `csgBoolean` and `csgTesselationDispatch` from the header comment at L13–16. `geometry/csgTree.cpp` (L344) stays.
-- [ ] T077 For each spec 013 tessellation helper (`tesselateQuadricAdaptive`, `tesselatePatchMeshAdaptive`, `tesselateNURBSPatchMeshAdaptive`, `csgTessellatePolygonMeshOperand`, `tessellateToSurfaces`), grep for remaining non-CSG callers and delete every helper left unused. In the same pass:
+- [X] T076 Delete `src/ri/geometry/csgBoolean.{h,cpp}`, `src/ri/geometry/solidObject.{h,cpp}` and `CRendererContext::processDelayedSolid` (`src/ri/render/rendererContext.{h,cpp}`). Remove them from `src/ri/CMakeLists.txt`: `geometry/csgBoolean.cpp` at L62 (the shared `ri_sources` list, so it leaves both ribRender and ribVector), and `geometry/solidObject.cpp` at L126 and in the ribVector exclusion list at L369. Remove the related libribpreview comment text (~L295–300) and the names `solidObject`, `csgBoolean` and `csgTesselationDispatch` from the header comment at L13–16. `geometry/csgTree.cpp` (L344) stays.
+- [X] T077 For each spec 013 tessellation helper (`tesselateQuadricAdaptive`, `tesselatePatchMeshAdaptive`, `tesselateNURBSPatchMeshAdaptive`, `csgTessellatePolygonMeshOperand`, `tessellateToSurfaces`), grep for remaining non-CSG callers and delete every helper left unused. In the same pass:
   - delete `src/ri/geometry/csgTesselationDispatch.cpp` and `src/ri/vector/csgTesselationDispatchStub.cpp`, with their CMake entries (L63, L343, L373)
   - remove the friend declaration at `src/ri/geometry/polygons.h:73`
   - retire `tests/unit/csg/test_quadric_tesselation.cpp`, `test_patchmesh_tesselation.cpp` and `test_tesselation_flatness.cpp` with their registrations, keeping any whose helper survives
-- [ ] T078 [P] Update `docs/site/content/manual/reference/solid-csg-operations.md` (Hugo, constitution VII) to cover:
+- [X] T078 [P] Update `docs/site/content/manual/reference/solid-csg-operations.md` (Hugo, constitution VII) to cover:
   - deferred evaluation and seam quality
   - open single-quadric operands and implied caps, including the cone-shaped cap of a torus cut across its tube
   - closedness rules and the "not closed" diagnostic
@@ -554,8 +554,8 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
   - the inert tolerance attribute and its notice
   - the CSG statistics section (SC-009), including that the counters need `orender -x 3` (or `ORENDER_INSTR_LEVEL=info`), because `orender` defaults to log level NONE
   - single-operand solids are a passthrough (no implied caps), and implicit, DSO (`"dlo"`), point, curve and object-instance primitives are not supported as solid operands
-- [ ] T079 [P] Update `DEVNOTES.md` (status table entry for spec 021, superseding 013's resolution) and `DEVNOTES_DETAILS/RISPEC_GAPS.md` (CSG section).
-- [ ] T080 [P] Update the `CLAUDE.md` "Known gotchas":
+- [X] T079 [P] Update `DEVNOTES.md` (status table entry for spec 021, superseding 013's resolution) and `DEVNOTES_DETAILS/RISPEC_GAPS.md` (CSG section).
+- [X] T080 [P] Update the `CLAUDE.md` "Known gotchas":
   - CSG is spatial trimming via the generic region hook, inherited through `setChildren`
   - the hook must keep generic names because `reyes.cpp` references it
   - classification bypasses ray filters and uses orientation-independent parity
@@ -567,10 +567,18 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
   - render-only `CSurface` overrides such as `regionCoverage` live in `render/geometryDispatch.cpp` with a stub in `vector/geometryDispatchStub.cpp`, because `surface.cpp` is not in the shared ribVector library
 
   Also add a superseded-by-021 note under Decisions 1, 3 and 4 of `specs/013-solid-csg-operations/research.md`.
-- [ ] T081 Performance (SC-007): time every scene in `specs/021-deferred-csg-evaluation/baseline-timings.md` on the same machine and build, throttled. Record new times and ratios there; every ratio must be under 10×.
-- [ ] T082 Full regression: run `ctest --test-dir build -L visual` sequentially, then a full `ctest`. Classify every failure against quickstart.md §3's known-flaky / pre-existing list, and re-run flaky failures in isolation before attributing them.
-- [ ] T083 Run every quickstart.md check (§1–§7) end to end and record the results in `specs/021-deferred-csg-evaluation/validation.md`.
+- [X] T081 Performance (SC-007): time every scene in `specs/021-deferred-csg-evaluation/baseline-timings.md` on the same machine and build, throttled. Record new times and ratios there; every ratio must be under 10×.
+- [X] T082 Full regression: run `ctest --test-dir build -L visual` sequentially, then a full `ctest`. Classify every failure against quickstart.md §3's known-flaky / pre-existing list, and re-run flaky failures in isolation before attributing them.
+- [X] T083 Run every quickstart.md check (§1–§7) end to end and record the results in `specs/021-deferred-csg-evaluation/validation.md`.
 - [ ] T084 Linux validation (constitution VI): hand the branch to the maintainer's Linux validation path (Maestri / Ubuntu 24.04) and confirm the build is warning-free and `ctest -L csg` plus the CSG visual and parity tests pass there.
+
+**Phase 7 notes (2026-10-04)**:
+- **T075**: closed with nothing to remove, because T071–T074 passed when written.
+- **T076–T077**: removed `csgBoolean.{h,cpp}`, `solidObject.{h,cpp}`, `processDelayedSolid`, `csgTesselationDispatch.cpp` and its ribVector stub. Every spec 013 tessellation helper had no caller outside the CSG path, so all of them went too: `tesselateQuadricAdaptive`, `tesselatePatchMeshAdaptive`, `tesselateNURBSPatchMeshAdaptive` with their operand result types, `csgTessellatePolygonMeshOperand`, `CSubdivMesh::tessellateToSurfaces`, `tesselateSurfaceGrid`, `tesselationSagittaWithinTolerance`, `extractEvenSubgrid` and `CTesselatedGrid`. The three spec 013 tessellation suites were retired. `measureLength` stays, because `CTesselationPatch` uses it.
+- **T078–T080**: written by two parallel agents and reviewed. One claim they had not verified (that `CCSGDefinition::finalize` rebases leaves) was checked against the source.
+- **T081**: two coincident-face scenes first measured 17.1× and 14.4×. A profile pointed at the general bilinear patch-ray solve. `countBilinearCrossings()` now has a flat-quad fast path, and its flatness test scales with the corners' float rounding (the first attempt, relative to edge length only, was almost never taken on translated, camera-space boxes). After the change every scene is under 10×: worst 8.35×, median 0.92× (`baseline-timings.md`).
+- **T082 / T083**: full suite 537/537. The quickstart's test-name patterns were corrected (`Csg_<NAME>`). Results are in `validation.md`.
+- **T084**: pending; it needs the maintainer's Linux validation path.
 
 **Checkpoint (Phase 7)**: feature complete. Stage and pause for commit.
 

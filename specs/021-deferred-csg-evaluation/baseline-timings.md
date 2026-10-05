@@ -205,3 +205,71 @@ All twelve legs stay red on master, so they remain valid red tests; the branch's
 | T042 `region-chroma` | csg-open-quadric-caps-zbuffer | FAIL | pixels=1648, share_r=0.4767, share_g=0.3812, share_b=0.1421 |
 | T042 `region-chroma` | csg-open-quadric-caps-zbuffer | FAIL | pixels=1576, share_r=0.4771, share_g=0.3813, share_b=0.1416 |
 
+
+## Spec 021 render times (T081, 2026-10-04)
+
+Same machine and method as the master table above: `tools/baseline.py`, one render at a time under `nice -n 15 taskpolicy -b`, `orender -x 3` (raw results: `tools/baseline-021.json`). Background priority makes these throttled wall-clock times, so they are only comparable with the master column. Every ratio is under 10× (SC-007): the largest is 8.35×, the median 0.92×, and every render exited 0.
+
+Two scenes were over the limit in a first run: `csg-coincident-difference-zbuffer` at 17.1× and `csg-coincident-difference-reyes` at 14.4×. A profile showed the cost was in solving the general bilinear patch-ray equation for every face of the coincident boxes; on a coincident face every REYES vertex is a boundary point. `countBilinearCrossings()` now takes a plane-and-parameters path for flat (parallelogram) quads. Flatness is judged against the corners' own float rounding (8·FLT_EPSILON × their magnitude), because the camera-space corners of a translated box are not exactly flat. Best-of-3 unthrottled times went from 0.58 s to 0.32 s (Z-buffer) and from 0.60 s to 0.34 s (REYES), against master's 0.07 s and 0.08 s. This table was taken after that change.
+
+| Scene | Master (s) | Spec 021 (s) | Ratio |
+|---|---|---|---|
+| `csg-sphere-cube-union-raytrace` | 1.06 | 0.30 | 0.28× |
+| `csg-sphere-cube-union-reyes` | 0.69 | 0.48 | 0.70× |
+| `csg-sphere-cube-union-zbuffer` | 0.44 | 0.50 | 1.14× |
+| `csg-sphere-cube-difference-raytrace` | 0.72 | 0.16 | 0.22× |
+| `csg-sphere-cube-difference-reyes` | 0.72 | 0.54 | 0.75× |
+| `csg-sphere-cube-difference-zbuffer` | 0.55 | 0.54 | 0.98× |
+| `csg-sphere-cube-intersection-raytrace` | 0.50 | 0.22 | 0.44× |
+| `csg-sphere-cube-intersection-reyes` | 0.53 | 0.57 | 1.08× |
+| `csg-sphere-cube-intersection-zbuffer` | 0.47 | 0.54 | 1.15× |
+| `csg-sphere-sphere-tight-tolerance-raytrace` | 1.93 | 0.57 | 0.30× |
+| `csg-sphere-sphere-loose-tolerance-raytrace` | 1.36 | 0.55 | 0.40× |
+| `csg-subdivision-sphere-union-raytrace` | 1.38 | 6.05 | 4.38× |
+| `csg-nurbs-sphere-union-raytrace` | 1.07 | 0.60 | 0.56× |
+| `csg-nested-tree-4-level-raytrace` | 3.11 | 0.51 | 0.16× |
+| `csg-object-instance-reuse-raytrace` | 3.03 | 1.06 | 0.35× |
+| `csg-sphere-sphere-difference-interior-raytrace` | 1.69 | 0.21 | 0.12× |
+| `csg-sphere-sphere-difference-interior-raytrace-inside` | 1.88 | 0.31 | 0.16× |
+| `blobby-csg-difference-raytrace` | 69.22 | 0.48 | 0.01× |
+| `blobby-csg-difference-reyes` | 63.09 | 1.85 | 0.03× |
+| `blobby-csg-difference-zbuffer` | 49.75 | 1.66 | 0.03× |
+| `csg-hero-raytrace-800` | 4.75 | 2.46 | 0.52× |
+| `csg-hero-raytrace-1600` | 16.03 | 11.80 | 0.74× |
+| `csg-hero-reyes-800` | 1.94 | 1.31 | 0.68× |
+| `csg-hero-reyes-1600` | 5.11 | 4.71 | 0.92× |
+| `csg-hero-zbuffer-800` | 1.44 | 1.11 | 0.77× |
+| `csg-hero-zbuffer-1600` | 3.58 | 3.47 | 0.97× |
+| `csg-sphere-cube-difference-raytrace-800` | 3.68 | 5.44 | 1.48× |
+| `csg-sphere-cube-difference-raytrace-1600` | 14.89 | 19.43 | 1.30× |
+| `csg-sphere-cube-difference-reyes-800` | 1.80 | 4.01 | 2.23× |
+| `csg-sphere-cube-difference-reyes-1600` | 5.06 | 13.75 | 2.72× |
+| `csg-sphere-cube-difference-zbuffer-800` | 1.15 | 3.46 | 3.01× |
+| `csg-sphere-cube-difference-zbuffer-1600` | 3.16 | 12.16 | 3.85× |
+| `csg-coincident-union-raytrace` | 0.82 | 1.36 | 1.66× |
+| `csg-coincident-union-reyes` | 0.45 | 1.35 | 3.00× |
+| `csg-coincident-union-zbuffer` | 0.25 | 1.14 | 4.56× |
+| `csg-coincident-difference-raytrace` | 0.64 | 1.93 | 3.02× |
+| `csg-coincident-difference-reyes` | 0.28 | 2.15 | 7.68× |
+| `csg-coincident-difference-zbuffer` | 0.23 | 1.92 | 8.35× |
+| `csg-coincident-union-expected-raytrace` | 0.88 | 0.80 | 0.91× |
+| `csg-coincident-difference-expected-raytrace` | 0.67 | 0.54 | 0.81× |
+| `csg-open-quadric-caps-raytrace` | 4.23 | 5.37 | 1.27× |
+| `csg-open-quadric-caps-reyes` | 1.44 | 5.59 | 3.88× |
+| `csg-open-quadric-caps-zbuffer` | 1.17 | 5.35 | 4.57× |
+| `csg-nurbs-rational-sphere-union-raytrace` | 2.37 | 9.00 | 3.80× |
+| `csg-nurbs-rational-sphere-union-reyes` | 1.50 | 7.31 | 4.87× |
+| `csg-nurbs-rational-sphere-alone-raytrace` | 1.84 | 1.66 | 0.90× |
+| `csg-subdivision-sphere-union-reyes` | 1.07 | 8.41 | 7.86× |
+| `csg-subdivision-sphere-alone-raytrace` | 0.81 | 0.99 | 1.22× |
+| `csg-polymesh-box-difference-raytrace` | 1.62 | 2.33 | 1.44× |
+| `csg-polymesh-box-difference-reyes` | 0.70 | 2.10 | 3.00× |
+| `csg-polymesh-open-raytrace` | 1.86 | 0.95 | 0.51× |
+| `csg-nurbs-sheet-expected-raytrace` | 0.29 | 0.29 | 1.00× |
+| `csg-nurbs-sheet-instanced-raytrace` | 1.25 | 0.44 | 0.35× |
+| `csg-hero-two-shaders-raytrace` | 4.57 | 3.06 | 0.67× |
+| `csg-hero-two-shaders-reyes` | 2.05 | 1.54 | 0.75× |
+| `csg-hero-displaced-raytrace` | 17.49 | 11.71 | 0.67× |
+| `csg-hero-stats-800-reyes` | 1.90 | 1.41 | 0.74× |
+| `csg-hero-single-operand-stats-800-reyes` | 1.13 | 1.13 | 1.00× |
+| `csg-hero-instanced-outside-world-reyes` | 1.75 | 1.34 | 0.77× |

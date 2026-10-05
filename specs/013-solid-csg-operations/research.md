@@ -12,6 +12,11 @@ primitive interface, with zero hider-specific CSG code.
 
 ## Decision 1: Where resolution happens — the `addObject()` chokepoint
 
+> **Superseded by spec 021** (`specs/021-deferred-csg-evaluation/`): capture still
+> happens at the `addObject()` chokepoint, but nothing is resolved at `RiSolidEnd`.
+> It stores an immutable definition and adds one lazy solid, which resolves itself
+> (geometry-owned) on its first `dice()`/`intersect()`.
+
 **Decision**: Intercept `RiSolidBegin`/`RiSolidEnd` in `CRendererContext`
 (currently an unimplemented error stub, `rendererContext.cpp:5502-5513`) by
 adding `currentSolid` / `savedSolids` state that mirrors the existing
@@ -86,6 +91,11 @@ codebase for "a resolved concrete boundary every hider reaches identically."
 
 ## Decision 3: Boolean algorithm — BSP-tree CSG on tessellated operand meshes
 
+> **Superseded by spec 021**: the BSP kernel (`csgBoolean.{h,cpp}`) is deleted.
+> Composition is now spatial trimming of the original primitives by point
+> classification (crossing parity and a two-sided boundary rule), evaluated where
+> and when rendering needs it, so seams are exact rather than chord-faceted.
+
 **Decision**: Each solid-tree leaf is first tessellated into a concrete
 triangle mesh (Decision 4 covers density). Each operand mesh is used to build
 a BSP tree; boolean combination (union/intersection/difference) is performed
@@ -129,6 +139,11 @@ classification, and cover coplanar-face scenarios explicitly in the unit-test
 suite (Decision 6) rather than discovering them via visual-test flakiness.
 
 ## Decision 4: Operand tessellation density — reuse flatness-based adaptive refinement, not a fixed uniform density
+
+> **Superseded by spec 021**: operands are no longer tessellated by the solid at
+> all; each renders through its own dicer or intersector. The adaptive
+> tessellation helpers are deleted, and `Attribute "solid" "tessellationtolerance"`
+> is accepted but inert (one notice per frame, FR-023).
 
 **Decision**: At `RiSolidEnd` time, each leaf operand is tessellated into a
 triangle mesh by a new, standalone flatness/chordal-deviation adaptive
