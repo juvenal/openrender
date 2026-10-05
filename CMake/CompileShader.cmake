@@ -5,10 +5,11 @@
 #         [-DJIT=ON] -P CompileShader.cmake
 #
 # oshader prints two progress lines per shader ("Compiling x.sl" and
-# "... compiled x.rslo") that its -q flag does not yet silence. Across 69
-# shaders and two formats that buried the build log, so this wrapper captures
-# oshader's output and drops those two lines. Anything else on success (e.g.
-# warnings) is passed through; on failure everything is printed, unfiltered.
+# "... compiled x.rslo") that its -q flag does not yet silence (GitHub #28).
+# Across every shader and both formats that buried the build log, so this
+# wrapper captures oshader's output and drops those two lines. Anything else
+# on success (e.g. warnings) is passed through; on failure everything is
+# printed, unfiltered.
 # ShaderBuildSummary.cmake reports the per-format totals instead.
 
 foreach(_var OSHADER SRC OUT INCDIR)

@@ -102,7 +102,7 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 inside it.
 
 **Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
-69 `.rslo` (+ 69 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+104 `.rslo` (+ 104 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
 as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
 `includes/`; compiled objects never land next to them. `cmake --install` copies
 the build-tree objects into the deploy tree — it no longer compiles anything.

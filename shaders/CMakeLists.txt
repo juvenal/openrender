@@ -35,10 +35,8 @@ file(MAKE_DIRECTORY "${SHADER_BUILD_DIR}")
 file(GLOB _shader_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.sl")
 file(GLOB _shader_headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/includes/*.slh")
 
-# Includes are read straight from the source tree. SHADERS_INCLUDE rather than
-# -I: combining -I with -o and a positional input trips oshader's argument
-# parser ("Output file specified with multiple input files") even with exactly
-# one input. See the CLI-quirk note in CLAUDE.md.
+# Includes are read straight from the source tree; CompileShader.cmake hands
+# the directory to oshader through SHADERS_INCLUDE.
 set(_shader_incdir "${CMAKE_CURRENT_SOURCE_DIR}/includes")
 set(_compile_shader "${PROJECT_SOURCE_DIR}/CMake/CompileShader.cmake")
 
