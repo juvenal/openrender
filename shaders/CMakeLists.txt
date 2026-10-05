@@ -21,6 +21,13 @@
 # lines out of each .sl. Only 7 of 69 shaders include anything, and a full
 # recompile of all 138 objects measures ~2s at -j8, so the precision is not worth
 # the machinery. Correct and over-eager beats clever and stale.
+#
+# Build output is one summary line per format ("69 .rslo shaders compiled"),
+# not three lines per shader. Each compile runs through
+# CMake/CompileShader.cmake, which hides oshader's progress lines (errors and
+# warnings still show), with an empty COMMENT so make echoes nothing per
+# shader. The openrender_shaders target then runs
+# CMake/ShaderBuildSummary.cmake, which counts the objects this build rebuilt.
 
 set(SHADER_BUILD_DIR "${CMAKE_BINARY_DIR}/shaders")
 file(MAKE_DIRECTORY "${SHADER_BUILD_DIR}")
@@ -33,6 +40,7 @@ file(GLOB _shader_headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include
 # parser ("Output file specified with multiple input files") even with exactly
 # one input. See the CLI-quirk note in CLAUDE.md.
 set(_shader_incdir "${CMAKE_CURRENT_SOURCE_DIR}/includes")
+set(_compile_shader "${PROJECT_SOURCE_DIR}/CMake/CompileShader.cmake")
 
 set(_shader_outputs "")
 foreach(_sl IN LISTS _shader_sources)
@@ -42,11 +50,12 @@ foreach(_sl IN LISTS _shader_sources)
     # format and the fallback whenever a .slo is absent.
     add_custom_command(
         OUTPUT  "${SHADER_BUILD_DIR}/${_base}.rslo"
-        COMMAND ${CMAKE_COMMAND} -E env "SHADERS_INCLUDE=${_shader_incdir}"
-                $<TARGET_FILE:oshader> -o "${SHADER_BUILD_DIR}/${_base}.rslo" "${_sl}"
-        DEPENDS "${_sl}" ${_shader_headers} oshader
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_sl}
+                -DOUT=${SHADER_BUILD_DIR}/${_base}.rslo -DINCDIR=${_shader_incdir}
+                -P ${_compile_shader}
+        DEPENDS "${_sl}" ${_shader_headers} oshader "${_compile_shader}"
         WORKING_DIRECTORY "${SHADER_BUILD_DIR}"
-        COMMENT "Compiling shader ${_base}.rslo"
+        COMMENT ""
         VERBATIM)
     list(APPEND _shader_outputs "${SHADER_BUILD_DIR}/${_base}.rslo")
 
@@ -54,17 +63,29 @@ foreach(_sl IN LISTS _shader_sources)
     if(OPENRENDER_HAVE_LLVM)
         add_custom_command(
             OUTPUT  "${SHADER_BUILD_DIR}/${_base}.slo"
-            COMMAND ${CMAKE_COMMAND} -E env "SHADERS_INCLUDE=${_shader_incdir}"
-                    $<TARGET_FILE:oshader> --jit -o "${SHADER_BUILD_DIR}/${_base}.slo" "${_sl}"
-            DEPENDS "${_sl}" ${_shader_headers} oshader
+            COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_sl}
+                    -DOUT=${SHADER_BUILD_DIR}/${_base}.slo -DINCDIR=${_shader_incdir}
+                    -DJIT=ON -P ${_compile_shader}
+            DEPENDS "${_sl}" ${_shader_headers} oshader "${_compile_shader}"
             WORKING_DIRECTORY "${SHADER_BUILD_DIR}"
-            COMMENT "Compiling shader ${_base}.slo (JIT)"
+            COMMENT ""
             VERBATIM)
         list(APPEND _shader_outputs "${SHADER_BUILD_DIR}/${_base}.slo")
     endif()
 endforeach()
 
-add_custom_target(openrender_shaders ALL DEPENDS ${_shader_outputs})
+set(_shader_formats rslo)
+if(OPENRENDER_HAVE_LLVM)
+    list(APPEND _shader_formats slo)
+endif()
+
+# A target's own COMMAND runs after its DEPENDS are built, so the summary
+# always follows the last compile.
+add_custom_target(openrender_shaders ALL
+    COMMAND ${CMAKE_COMMAND} -DDIR=${SHADER_BUILD_DIR} "-DFORMATS=${_shader_formats}"
+            -P ${PROJECT_SOURCE_DIR}/CMake/ShaderBuildSummary.cmake
+    DEPENDS ${_shader_outputs}
+    VERBATIM)
 
 list(LENGTH _shader_sources _n_sl)
 if(OPENRENDER_HAVE_LLVM)
