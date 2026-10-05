@@ -570,7 +570,7 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
 - [X] T081 Performance (SC-007): time every scene in `specs/021-deferred-csg-evaluation/baseline-timings.md` on the same machine and build, throttled. Record new times and ratios there; every ratio must be under 10×.
 - [X] T082 Full regression: run `ctest --test-dir build -L visual` sequentially, then a full `ctest`. Classify every failure against quickstart.md §3's known-flaky / pre-existing list, and re-run flaky failures in isolation before attributing them.
 - [X] T083 Run every quickstart.md check (§1–§7) end to end and record the results in `specs/021-deferred-csg-evaluation/validation.md`.
-- [ ] T084 Linux validation (constitution VI): hand the branch to the maintainer's Linux validation path (Maestri / Ubuntu 24.04) and confirm the build is warning-free and `ctest -L csg` plus the CSG visual and parity tests pass there.
+- [X] T084 Linux validation (constitution VI): hand the branch to the maintainer's Linux validation path (Maestri / Ubuntu 24.04) and confirm the build is warning-free and `ctest -L csg` plus the CSG visual and parity tests pass there.
 
 **Phase 7 notes (2026-10-04)**:
 - **T075**: closed with nothing to remove, because T071–T074 passed when written.
@@ -578,7 +578,10 @@ Discrimination: the offscreen scenes with the solid moved in front of the camera
 - **T078–T080**: written by two parallel agents and reviewed. One claim they had not verified (that `CCSGDefinition::finalize` rebases leaves) was checked against the source.
 - **T081**: two coincident-face scenes first measured 17.1× and 14.4×. A profile pointed at the general bilinear patch-ray solve. `countBilinearCrossings()` now has a flat-quad fast path, and its flatness test scales with the corners' float rounding (the first attempt, relative to edge length only, was almost never taken on translated, camera-space boxes). After the change every scene is under 10×: worst 8.35×, median 0.92× (`baseline-timings.md`).
 - **T082 / T083**: full suite 537/537. The quickstart's test-name patterns were corrected (`Csg_<NAME>`). Results are in `validation.md`.
-- **T084**: pending; it needs the maintainer's Linux validation path.
+- **T084** (2026-10-05): passes on Ubuntu 24.04 (GCC 13.3, LLVM 18.1.3, JIT on, Release, `INSTALL_SELFCONTAINED=OFF`). The build is warning-free; `ctest -L csg` passes 70/70 and the CSG regex selection 123/123.
+  - The first build hit two GCC-only `-Werror` failures. One is a false `array-bounds` in `CToroid::intersect` from master's torus fix, fixed on the separate branch `fix/torus-gcc13-array-bounds`; 021 needs a rebase onto master once that merges.
+  - The other is a `sign-compare` in `test_procedural_operand.cpp`, fixed here: `templateInside` became `unsigned`. This is a change to an approved test, with the same assertion.
+  - Details are in `validation.md`.
 
 **Checkpoint (Phase 7)**: feature complete. Stage and pause for commit.
 

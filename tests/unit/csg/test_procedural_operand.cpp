@@ -372,7 +372,7 @@ TEST(expanded_objects_carry_the_fragment_flag_and_inside_parity) {
     });
     ASSERT(capturedProcedural(solid, 2, 1));
     ASSERT(solid->definition->operandFlip(1) == 1);
-    const int templateInside = solid->definition->operandMembers[1][0]->attributes->flags & ATTRIBUTES_FLAGS_INSIDE;
+    const unsigned int templateInside = solid->definition->operandMembers[1][0]->attributes->flags & ATTRIBUTES_FLAGS_INSIDE;
     solid->resolve(s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL && fullyExpanded(state));
