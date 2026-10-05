@@ -67,6 +67,45 @@ not yet comply.
   header's version history. Existing plug-ins without the symbol need a defined transition rule
   (e.g. treated as `1.0.0` with a warning for one release).
 
+### DB-004 — Geometry depends on the renderer core and on Scene Interface
+
+- **Rule**: the renderer-core rule ("no domain MAY depend on the renderer core"); the
+  allowed-dependency table (Geometry may depend only on Graphics State and Geometric Procedures, not
+  on Scene Interface); and 2 (an upward capability must be inverted through an interface the lower
+  domain owns).
+- **Tracking**: [#27](https://github.com/juvenal/openrender/issues/27)
+- **Evidence**:
+  - 19 files under `src/ri/geometry/` include `renderer.h`/`rendererContext.h` and use 24 distinct
+    renderer-core symbols (`grep` over `src/ri/geometry/*.{h,cpp}`, master `079feda`).
+  - Frame and camera parameters:
+    - `CRenderer::invShutterTime` (24 uses), `numThreads` (9), `maxGridSize` (9), `relRotQ` (4),
+      `maxEyeSplits` (3), `flags` (3)
+    - `dPixeldx`/`dPixeldy` (3 each), `projection`, `imagePlane` (2 each)
+    - `toWorld`, `cameraHasRotation`, `inFrustrum`, `raytracingFlags` (1 each)
+  - Locks: `CRenderer::tesselateMutex` (5), `CRenderer::delayedMutex` (4).
+  - Upward calls into the scene context, for lazy instancing and procedurals:
+    `CRenderer::context->processDelayedSolid` (2), `processDelayedObject`, `processDelayedInstance`.
+  - Services: `CRenderer::retrieveVariable` (5), `locateFile`, `texturePath`, `environmentLoad`,
+    `findCoordinateSystem`.
+  - Related: `src/ri/render/geometryDispatch.cpp` implements Geometry methods (`CObject::dice`,
+    `CSurface::dice`, `CDelayedObject::intersect`, and others) from the renderer directory.
+  - Scene Interface: Geometry's base-class contract
+    `CObject::instantiate(CAttributes *, CXform *, CRiInterface *)` (pure virtual, `object.h:77`)
+    takes the Scene Interface class `CRiInterface`. 27 files under `src/ri/geometry/` reference it,
+    and `riInterface.h` is included by `object.cpp`, `subdivisionCreator.cpp` and
+    `subdivisionLoop.cpp`. The only use is reporting created objects through
+    `CRiInterface::addObject()`: 25 call sites across 10 files (14 in `quadrics.cpp`).
+- **Direction**: invert through interfaces Geometry owns and the renderer core implements:
+  - a frame/camera-parameters interface (or pass these values through the dice/intersect context)
+  - a host interface for locks and for capturing instantiated or expanded objects, replacing the
+    `processDelayed*` calls
+  - service interfaces for file, texture and coordinate-system lookups
+  - a Geometry-owned object sink in `instantiate()` in place of `CRiInterface` (its only use is
+    `addObject()`), implemented by the renderer core and the RIB/preview back-ends
+- **History**: spec 021 (deferred CSG) resolves solids and procedural operands through a new
+  Geometry-owned host interface rather than extending `processDelayed*`/`delayedMutex`; the
+  existing uses remain.
+
 ## Resolved
 
 _None yet._
