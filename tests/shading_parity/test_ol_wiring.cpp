@@ -133,11 +133,11 @@ static void test_ol_used_parameters_bit() {
         }
     }
 
-    if (sloInstance)
-        sloInstance->detach();
-    if (rsloInstance)
-        rsloInstance->detach();
-
+    // Both instances are lights, owned solely by CRenderer::allLights (one
+    // attach() in CShaderInstance's ctor, one matching detach() in
+    // endRenderer()) -- they must not be detach()'d here too. Doing so freed
+    // them before RiEnd()'s endRenderer() detached them a second time, a
+    // heap-use-after-free (same class as GitHub #2).
     RiEnd();
 
     // Reported rather than discarded: a silent failure here would leave every

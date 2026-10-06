@@ -147,10 +147,17 @@ static void runOracleFixture(const char *label, const char *shaderKind, const ch
         }
     }
 
-    if (sloInstance)
-        sloInstance->detach();
-    if (rsloInstance)
-        rsloInstance->detach();
+    // A light is owned solely by CRenderer::allLights (one attach() in
+    // CShaderInstance's ctor, one matching detach() in endRenderer()), so it
+    // must not be detach()'d here too: that freed it before RiEnd()'s
+    // endRenderer() detached it a second time, a heap-use-after-free (same
+    // class as GitHub #2). Other shader kinds are the caller's to release.
+    if (slType != SL_LIGHTSOURCE) {
+        if (sloInstance)
+            sloInstance->detach();
+        if (rsloInstance)
+            rsloInstance->detach();
+    }
 
     RiEnd();
 
@@ -210,21 +217,13 @@ static void test_derivative_via_builtin() {
 }
 
 int main() {
-    // test_nonambient() must run LAST. Empirically (bisected via lldb),
-    // loading a "light" (SL_LIGHTSOURCE) shader through getShader() --
-    // which pushes onto the CRenderer::allLights global and calls
-    // CShaderInstance::createCategories() (shader.cpp:242) -- corrupts
-    // process state such that the *next* CLLVMJitEngine::compileShader()
-    // call in this same process (llvmJit.cpp:117, a persistent
-    // process-wide ORC LLJIT singleton) aborts with "recursive_mutex lock
-    // failed: Invalid argument" deep in LLVM ORC internals. Reproduced with
-    // light-then-derivative adjacent; light-last (this order) and
-    // light-first (tested separately) both run clean, so this is not a
-    // texture()-specific interaction, and not a general Nth-cycle issue --
-    // it is specifically "another .slo compiled in-process after a light
-    // shader's .slo." Root cause is in the LLJIT/light-instance lifecycle,
-    // outside spec 014's scope (usedParameters/Cl parity); ordering
-    // fixtures to avoid it is the correct fix for this test harness.
+    // test_nonambient() used to have to run last: a fixture run after it
+    // aborted inside LLVM ORC ("recursive_mutex lock failed"),
+    // which was blamed on the LLJIT/light-instance lifecycle. The real cause
+    // was this harness detach()'ing the light instances that
+    // CRenderer::allLights owns (see runOracleFixture()); the corrupted heap
+    // surfaced in whatever ran next, or, with the light last, at exit. Any
+    // order is now safe; this one is kept only for stable output.
     test_never_ci_oi();
     test_raytrace();
     test_messagepassing();
