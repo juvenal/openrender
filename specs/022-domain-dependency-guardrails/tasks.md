@@ -56,7 +56,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Tests first (must fail before T008–T016)
 
-- [ ] T007 Write parser unit tests in `tests/architecture/unit/test_archcheck_parsers.cpp`, covering:
+- [X] T007 Write parser unit tests in `tests/architecture/unit/test_archcheck_parsers.cpp`, covering:
   - (a) domain-map rules: a `file` rule beats a `prefix` rule; the longest prefix wins; a duplicate pattern is an error; an unknown class is an error; `@build/` paths;
   - (b) rule table: wildcards (`Core -> *`, `Consumer -> *`, `* -> Infra`); "same-class edges are always allowed"; a cyclic domain+Infra subgraph is rejected; an `Infra -> X` entry is rejected;
   - (c) allowlist lines: `<id>` must be "`DB-` + ≥3 digits"; `<kind>` is `include` | `link`; optional `macos` | `linux` tag; a trailing `#` comment is ignored; duplicate `(kind, from, to, platform)` is an error; the same `(kind, from, to)` both tagged and untagged is an error;

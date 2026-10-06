@@ -8,19 +8,23 @@
 
 # The tool itself. Test-only, never installed, and deliberately linked against
 # no renderer library: it inspects the renderer's build output from outside.
+# Everything but main.cpp goes into archcheck_core, which the unit tests link.
 file(GLOB ARCHCHECK_SOURCES CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/archcheck/*.cpp)
-add_executable(archcheck ${ARCHCHECK_SOURCES})
-target_compile_features(archcheck PRIVATE cxx_std_20)
-target_link_libraries(archcheck PRIVATE openrender_common_flags)
+list(REMOVE_ITEM ARCHCHECK_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/archcheck/main.cpp)
+add_library(archcheck_core STATIC ${ARCHCHECK_SOURCES})
+target_compile_features(archcheck_core PUBLIC cxx_std_20)
+target_include_directories(archcheck_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/archcheck)
+target_link_libraries(archcheck_core PRIVATE openrender_common_flags)
+
+add_executable(archcheck archcheck/main.cpp)
+target_link_libraries(archcheck PRIVATE archcheck_core openrender_common_flags)
 
 # Parser unit tests (depfile, include directive, allowlist line, registry
 # heading, domain-map rule).
 add_executable(test_archcheck_parsers unit/test_archcheck_parsers.cpp)
-target_compile_features(test_archcheck_parsers PRIVATE cxx_std_20)
-target_include_directories(test_archcheck_parsers PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/archcheck)
-target_link_libraries(test_archcheck_parsers PRIVATE openrender_common_flags)
+target_link_libraries(test_archcheck_parsers PRIVATE archcheck_core openrender_common_flags)
 add_test(NAME Architecture_Parsers COMMAND test_archcheck_parsers)
 set_tests_properties(Architecture_Parsers PROPERTIES
     TIMEOUT 60 LABELS "architecture;unit")
