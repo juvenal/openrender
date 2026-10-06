@@ -9,3 +9,72 @@
 # kind is prefix | file. A file rule beats a prefix rule; among prefixes the
 # longest wins. Paths are repo-relative; @build/ marks generated sources in
 # the build tree. Every scanned file must classify, or archcheck exits 2.
+#
+# Files are classified by location (research R4), so misplaced code shows up
+# as a violation instead of being reclassified away. File rules exist only
+# for the forwarding shims, the plug-in ABI headers and generated sources.
+
+# --- Infra: the shared floor ------------------------------------------------
+prefix  src/common/                                  Infra
+prefix  src/includes/                                Infra
+prefix  src/ri/core/                                 Infra
+file    @build/config.h                              Infra
+file    @build/version_config.h                      Infra
+
+# Forwarding shims in src/ri/core belong to Shading, so forwarding through
+# them cannot hide a Shading edge.
+file    src/ri/core/shader.h                         Shading
+file    src/ri/core/shading.h                        Shading
+file    src/ri/core/shaderPl.h                       Shading
+file    src/ri/core/noise.h                          Shading
+
+# --- Scene Interface ---------------------------------------------------------
+prefix  src/ri/parse/                                SceneInterface
+prefix  src/ri/output/                               SceneInterface
+file    @build/src/ri/rib_generated.cpp              SceneInterface
+file    @build/src/ri/lex.rib.cpp                    SceneInterface
+file    @build/src/ri/dso_generated.cpp              SceneInterface
+file    @build/src/ri/lex.dso.cpp                    SceneInterface
+file    @build/src/ri/variable_generated.cpp         SceneInterface
+file    @build/src/ri/lex.var.cpp                    SceneInterface
+file    @build/src/ri/ifexpr_generated.cpp           SceneInterface
+file    @build/src/ri/lex.if.cpp                     SceneInterface
+
+# --- Graphics State ----------------------------------------------------------
+prefix  src/ri/state/                                GraphicsState
+
+# --- Geometry, with the Geometric Procedures ABI headers ---------------------
+prefix  src/ri/geometry/                             Geometry
+file    src/ri/geometry/dlo.h                        Procedures
+file    src/ri/geometry/implicit.h                   Procedures
+
+# --- Hiders ------------------------------------------------------------------
+prefix  src/ri/hiders/                               Hiders
+
+# --- Texturing ---------------------------------------------------------------
+prefix  src/ri/texture/                              Texturing
+
+# --- Shading (compiler, runtime, shading, include; rslo grammars) ------------
+prefix  src/libshader/                               Shading
+prefix  @build/src/libshader/                        Shading
+
+# --- Display Outputs ---------------------------------------------------------
+prefix  src/display/                                 Display
+
+# --- Core: the composition root, with the Shader DSO ABI header --------------
+prefix  src/ri/render/                               Core
+file    src/ri/render/shadeop.h                      ShaderDSO
+prefix  src/ri/vector/                               Core
+prefix  src/ri/hcshader.                             Core
+
+# --- Consumers: executables, tools, bindings, preview, dataviewer ------------
+prefix  src/ri/dataviewer/                           Consumer
+prefix  src/orender/                                 Consumer
+prefix  src/oshader/                                 Consumer
+prefix  src/otexmake/                                Consumer
+prefix  src/precomp/                                 Consumer
+prefix  src/preview/                                 Consumer
+prefix  src/sloinfo/                                 Consumer
+prefix  src/rslo/                                    Consumer
+prefix  src/python/                                  Consumer
+prefix  src/lua/                                     Consumer

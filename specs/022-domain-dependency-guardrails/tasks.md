@@ -71,19 +71,19 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Implementation
 
-- [ ] T008 Define the core types in `tests/architecture/archcheck/config.h`, exactly as in data-model.md:
+- [X] T008 Define the core types in `tests/architecture/archcheck/config.h`, exactly as in data-model.md:
   - `Class` = `SceneInterface | GraphicsState | Geometry | Hiders | Shading | Texturing | ShaderDSO | Procedures | Display | Core | Infra | Consumer`;
   - `Rule`, `Allow`, `AllowlistEntry` with identity `(kind, from_file, to, platform)`;
   - `RegistryEntry` with `status` Open/Resolved;
   - `MetricBaseline`.
-- [ ] T009 Implement the domain-map loader and resolver in `tests/architecture/archcheck/config.cpp`. A `file` rule beats a `prefix` rule; among prefixes the longest match wins; duplicate patterns are an error. Unresolved scanned files are reported as `unclassified: <path>` (exit 2).
-- [ ] T010 Implement the rule-table loader in `tests/architecture/archcheck/config.cpp`:
+- [X] T009 Implement the domain-map loader and resolver in `tests/architecture/archcheck/config.cpp`. A `file` rule beats a `prefix` rule; among prefixes the longest match wins; duplicate patterns are an error. Unresolved scanned files are reported as `unclassified: <path>` (exit 2).
+- [X] T010 Implement the rule-table loader in `tests/architecture/archcheck/config.cpp`:
   - wildcards, plus "same-class edges are always allowed";
   - at load, "the graph restricted to domains plus Infra MUST be acyclic, and `Infra -> <domain>` MUST NOT appear", otherwise exit 2.
-- [ ] T011 Implement the allowlist, registry and baseline loaders in `tests/architecture/archcheck/config.cpp`, with the validation rules of contracts/data-files.md. Parse errors are exit 2 with `file:line`.
-- [ ] T012 Implement path canonicalization (`std::filesystem::weakly_canonical`) and repo-relative/`@build/` path mapping in `tests/architecture/archcheck/config.cpp`. Research R2 requires this because depfiles may record `/Users/...` while the checkout is reached through `/Volumes/...`.
-- [ ] T013 Fill `tests/architecture/domain-rules.txt` as a verbatim mirror of the constitution v1.2.0 table, per contracts/data-files.md: `SceneInterface -> GraphicsState Geometry`; `Geometry -> GraphicsState Procedures`; `Shading -> GraphicsState Texturing ShaderDSO`; `Hiders -> GraphicsState Geometry Shading Display`; empty rows for the other domains; `Core -> *`; `Consumer -> *`; `* -> Infra`. Cite constitution v1.2.0 in a header comment.
-- [ ] T014 Fill `tests/architecture/domain-map.txt` for the real tree, per research R4:
+- [X] T011 Implement the allowlist, registry and baseline loaders in `tests/architecture/archcheck/config.cpp`, with the validation rules of contracts/data-files.md. Parse errors are exit 2 with `file:line`.
+- [X] T012 Implement path canonicalization (`std::filesystem::weakly_canonical`) and repo-relative/`@build/` path mapping in `tests/architecture/archcheck/config.cpp`. Research R2 requires this because depfiles may record `/Users/...` while the checkout is reached through `/Volumes/...`.
+- [X] T013 Fill `tests/architecture/domain-rules.txt` as a verbatim mirror of the constitution v1.2.0 table, per contracts/data-files.md: `SceneInterface -> GraphicsState Geometry`; `Geometry -> GraphicsState Procedures`; `Shading -> GraphicsState Texturing ShaderDSO`; `Hiders -> GraphicsState Geometry Shading Display`; empty rows for the other domains; `Core -> *`; `Consumer -> *`; `* -> Infra`. Cite constitution v1.2.0 in a header comment.
+- [X] T014 Fill `tests/architecture/domain-map.txt` for the real tree, per research R4:
   - **Infra:** `src/common/`, `src/includes/`, `src/ri/core/`;
   - **Shading** overrides for the `src/ri/core` shims: `shader.h`, `shading.h`, `shaderPl.h`, `noise.h`;
   - **SceneInterface:** `src/ri/parse/`, `src/ri/output/`;
@@ -99,12 +99,12 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - **generated sources:** `@build/` rules sending `rib`, `dso`, `variable` and `ifexpr` to SceneInterface, and the `rslo` grammars to Shading.
 
   Then enumerate the scanned files (`src/**/*.{c,cc,cpp,h,hpp,y,l}`, FR-002) and confirm every one resolves. Other files (e.g. `src/CMakeLists.txt`, `src/ri/CMakeLists.txt`, Swift/Python/Lua, assets) are ignored and need no rule.
-- [ ] T015 Implement the report model and writers in `tests/architecture/archcheck/report.{h,cpp}`:
+- [X] T015 Implement the report model and writers in `tests/architecture/archcheck/report.{h,cpp}`:
   - text lines `VIOLATION`/`STALE`/`BADID`/`CYCLE`/`ALLOWED`/`CONSUMER`/`NOTBUILT`/`UNRESOLVED`/`METRIC`/`WARNING`/`NOTE`/`RESULT`;
   - JSON with the contract's keys;
   - deterministic ordering, "sorted by class, then file, then target" (SC-007);
   - exit codes: 0 pass, 1 check failed, 2 configuration/environment error.
-- [ ] T016 Run `ctest --test-dir build -R Architecture_Parsers`. All parser tests pass, and the full existing suite stays green.
+- [X] T016 Run `ctest --test-dir build -R Architecture_Parsers`. All parser tests pass, and the full existing suite stays green.
 
 **Checkpoint (PAUSE 2)**: the configuration layer is complete and unit-tested. Stage, summarize, wait for review and commit.
 

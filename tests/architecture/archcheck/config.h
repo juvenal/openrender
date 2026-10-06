@@ -28,10 +28,12 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace archcheck {
@@ -156,6 +158,31 @@ struct MetricCounts {
 // Keyed by class name, plus "TOTAL".
 Parsed<std::map<std::string, MetricCounts>> parseMetricsBaseline(std::string_view text,
                                                                  std::string_view label);
+
+// ---------------------------------------------------------------------------
+// Path mapping (research R2)
+// ---------------------------------------------------------------------------
+
+// Maps compiler-recorded paths onto the names the data files use. Both roots
+// and every mapped path are canonicalized first, because depfiles may record
+// /Users/... while the checkout is reached through /Volumes/... .
+class PathMapper {
+public:
+    PathMapper(const std::filesystem::path &sourceDir, const std::filesystem::path &buildDir);
+
+    // Absolute, or relative to the build dir (depfile targets are). Returns
+    // "@build/<rel>" inside the build tree (checked first: it may sit inside
+    // the source tree), "<rel>" inside the source tree, nullopt elsewhere.
+    std::optional<std::string> map(std::string_view path) const;
+
+    const std::string &sourceDir() const { return sourceDir_; }
+    const std::string &buildDir() const { return buildDir_; }
+
+private:
+    std::string sourceDir_; // canonical, with a trailing '/'
+    std::string buildDir_;
+    mutable std::unordered_map<std::string, std::optional<std::string>> cache_;
+};
 
 } // namespace archcheck
 

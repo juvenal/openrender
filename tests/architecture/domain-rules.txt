@@ -7,3 +7,24 @@
 # Same-class edges are always allowed. The right-hand side is the complete
 # allow set for that class. The domain + Infra subgraph must be acyclic and
 # Infra may depend on nothing, or archcheck exits 2.
+#
+# Source: .specify/memory/constitution.md v1.2.0, Principle VIII,
+# "Allowed dependencies". Core is the composition root; Consumer covers
+# executables, tools, bindings and preview (research R6); Infra is the shared
+# floor every class may use (research R5). The plug-in domains (ShaderDSO,
+# Procedures, Display) may use only their own ABI header, which is part of
+# their own class, plus Infra.
+
+Core           -> *
+Consumer       -> *
+*              -> Infra
+
+GraphicsState  ->
+Texturing      ->
+SceneInterface -> GraphicsState Geometry
+Geometry       -> GraphicsState Procedures
+Shading        -> GraphicsState Texturing ShaderDSO
+Hiders         -> GraphicsState Geometry Shading Display
+ShaderDSO      ->
+Procedures     ->
+Display        ->

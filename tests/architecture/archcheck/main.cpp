@@ -24,10 +24,12 @@
 #include <string>
 #include <string_view>
 
-namespace {
+#include "report.h"
 
-constexpr int kExitPass = 0;
-constexpr int kExitError = 2;
+using archcheck::kExitError;
+using archcheck::kExitPass;
+
+namespace {
 
 struct Options {
     std::string sourceDir;
