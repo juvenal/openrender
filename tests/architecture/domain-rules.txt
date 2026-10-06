@@ -1,0 +1,9 @@
+# archcheck rule table: mirrors constitution v1.2.0, Principle VIII
+# allowed-dependency table. Change only by constitution amendment.
+# Format: specs/022-domain-dependency-guardrails/contracts/data-files.md
+#
+#   <class> -> <allowed target class>...
+#
+# Same-class edges are always allowed. The right-hand side is the complete
+# allow set for that class. The domain + Infra subgraph must be acyclic and
+# Infra may depend on nothing, or archcheck exits 2.

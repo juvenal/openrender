@@ -1,0 +1,8 @@
+# archcheck renderer-core metric baseline: CRenderer:: / CRendererContext::
+# references and distinct members per class, plus TOTAL.
+# Format: specs/022-domain-dependency-guardrails/contracts/data-files.md
+#
+#   <class>   <refs>  <distinct>
+#
+# Lower it when a spec reduces usage. Never raise it to silence a warning
+# without a stated reason in the PR.

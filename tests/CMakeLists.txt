@@ -59,6 +59,7 @@ add_subdirectory(unit/image_input)
 add_subdirectory(unit/texture_tile)
 add_subdirectory(unit/polynomial)
 add_subdirectory(unit/rib_parse)
+add_subdirectory(architecture)
 
 # Print test information
 message(STATUS "Configured tests:")

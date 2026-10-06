@@ -1,0 +1,11 @@
+# archcheck domain map: which Principle VIII class each source belongs to.
+# Format: specs/022-domain-dependency-guardrails/contracts/data-files.md
+#
+#   <kind>  <pattern>                         <class>
+#   prefix  src/ri/geometry/                  Geometry
+#   file    src/ri/geometry/dlo.h             Procedures
+#   file    @build/src/ri/rib_generated.cpp   SceneInterface
+#
+# kind is prefix | file. A file rule beats a prefix rule; among prefixes the
+# longest wins. Paths are repo-relative; @build/ marks generated sources in
+# the build tree. Every scanned file must classify, or archcheck exits 2.

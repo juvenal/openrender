@@ -26,23 +26,23 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 **Purpose**: the `tests/architecture/` scaffold and build wiring. No behavior yet.
 
-- [ ] T001 Create directory layout `tests/architecture/{archcheck,unit,fixtures}/` per plan.md › Project Structure
-- [ ] T002 Create `tests/architecture/CMakeLists.txt`:
+- [X] T001 Create directory layout `tests/architecture/{archcheck,unit,fixtures}/` per plan.md › Project Structure
+- [X] T002 Create `tests/architecture/CMakeLists.txt`:
   - build an `archcheck` executable from `tests/architecture/archcheck/*.cpp` (C++20, the project's warning flags via `openrender_common_flags`; no link to renderer libraries);
   - build a `test_archcheck_parsers` executable from `tests/architecture/unit/test_archcheck_parsers.cpp`, registered as ctest `Architecture_Parsers` with `LABELS "architecture;unit"`;
   - add `add_subdirectory(architecture)` to `tests/CMakeLists.txt`.
-- [ ] T003 [P] Create a minimal `tests/architecture/archcheck/main.cpp` that parses the contract options (`--source-dir`, `--build-dir`, `--config`, `--registry`, `--platform`, `--format`, `--emit-allowlist`, `--quiet`, `--help`) and exits 2 with "not implemented", so the target links and every fixture fails before implementation (TDD red)
-- [ ] T004 [P] Create the four data files with header comments only, in the formats of contracts/data-files.md:
+- [X] T003 [P] Create a minimal `tests/architecture/archcheck/main.cpp` that parses the contract options (`--source-dir`, `--build-dir`, `--config`, `--registry`, `--platform`, `--format`, `--emit-allowlist`, `--quiet`, `--help`) and exits 2 with "not implemented", so the target links and every fixture fails before implementation (TDD red)
+- [X] T004 [P] Create the four data files with header comments only, in the formats of contracts/data-files.md:
   - `tests/architecture/domain-map.txt`
   - `tests/architecture/domain-rules.txt`
   - `tests/architecture/allowlist.txt`
   - `tests/architecture/metrics-baseline.txt`
-- [ ] T005 Add a CMake helper `archcheck_add_fixture(<name> <expected-exit> <pass-regex>)` in `tests/architecture/CMakeLists.txt`. It must:
+- [X] T005 Add a CMake helper `archcheck_add_fixture(<name> <expected-exit> <pass-regex>)` in `tests/architecture/CMakeLists.txt`. It must:
   - compile `tests/architecture/fixtures/<name>/src/**` as an OBJECT library, so real `.o` and `.o.d` files exist;
   - register ctest `ArchFixture_<name>`, with every `-` in the fixture directory name replaced by `_` so names stay regex-friendly (e.g. `fixtures/metric-increase/` → `ArchFixture_metric_increase`), label `architecture`, running `archcheck` with `--source-dir`/`--config`/`--registry` pointed at the fixture and `--build-dir ${CMAKE_BINARY_DIR}`;
   - assert the exit code and `PASS_REGULAR_EXPRESSION`.
   - **Isolation is by `--source-dir` scoping** (research R10): only sources under `<source-dir>/src/` (plus mapped `@build/` sources) are analysed, so a fixture sees only its own objects in the shared build tree. No new option.
-- [ ] T006 Configure and build: `cmake -B build -S . && cmake --build build -j`. `archcheck` and `test_archcheck_parsers` build under `-Werror`.
+- [X] T006 Configure and build: `cmake -B build -S . && cmake --build build -j`. `archcheck` and `test_archcheck_parsers` build under `-Werror`.
 
 **Checkpoint (PAUSE 1)**: the scaffold builds; the full existing `ctest` suite is still green. Stage, summarize, wait for review and commit.
 
