@@ -39,9 +39,9 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - `tests/architecture/metrics-baseline.txt`
 - [ ] T005 Add a CMake helper `archcheck_add_fixture(<name> <expected-exit> <pass-regex>)` in `tests/architecture/CMakeLists.txt`. It must:
   - compile `tests/architecture/fixtures/<name>/src/**` as an OBJECT library, so real `.o` and `.o.d` files exist;
-  - register ctest `ArchFixture_<name>` (label `architecture`) running `archcheck` with `--source-dir`/`--config`/`--registry` pointed at the fixture and `--build-dir ${CMAKE_BINARY_DIR}`;
+  - register ctest `ArchFixture_<name>`, with every `-` in the fixture directory name replaced by `_` so names stay regex-friendly (e.g. `fixtures/metric-increase/` → `ArchFixture_metric_increase`), label `architecture`, running `archcheck` with `--source-dir`/`--config`/`--registry` pointed at the fixture and `--build-dir ${CMAKE_BINARY_DIR}`;
   - assert the exit code and `PASS_REGULAR_EXPRESSION`.
-  - **Restriction:** fixture domain maps must only classify their own `src/`. Use a per-fixture build sub-dir or a scan-root argument, so a fixture never sees the real tree's objects. Record the chosen mechanism in research.md R10 if it adds a CLI option.
+  - **Isolation is by `--source-dir` scoping** (research R10): only sources under `<source-dir>/src/` (plus mapped `@build/` sources) are analysed, so a fixture sees only its own objects in the shared build tree. No new option.
 - [ ] T006 Configure and build: `cmake -B build -S . && cmake --build build -j`. `archcheck` and `test_archcheck_parsers` build under `-Werror`.
 
 **Checkpoint (PAUSE 1)**: the scaffold builds; the full existing `ctest` suite is still green. Stage, summarize, wait for review and commit.
@@ -54,7 +54,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 **⚠️ CRITICAL**: no user-story work begins until this phase is complete.
 
-### Tests first (must fail before T012–T017)
+### Tests first (must fail before T008–T016)
 
 - [ ] T007 Write parser unit tests in `tests/architecture/unit/test_archcheck_parsers.cpp`, covering:
   - (a) domain-map rules: a `file` rule beats a `prefix` rule; the longest prefix wins; a duplicate pattern is an error; an unknown class is an error; `@build/` paths;
@@ -66,6 +66,8 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - (g) `#include` directive extraction: quoted vs angle, comments, and preprocessor conditionals left to depfile resolution.
 
   Errors carry `file:line`.
+
+**Checkpoint (TEST-APPROVAL 2a)**: the parser unit tests are written and failing (red). Stage, show the failing output, and wait for the maintainer's approval of the tests before T008.
 
 ### Implementation
 
@@ -96,7 +98,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - **Consumer:** `src/ri/dataviewer/`, `src/orender/`, `src/oshader/`, `src/otexmake/`, `src/precomp/`, `src/preview/`, `src/sloinfo/`, `src/rslo/`, `src/python/`, `src/lua/`;
   - **generated sources:** `@build/` rules sending `rib`, `dso`, `variable` and `ifexpr` to SceneInterface, and the `rslo` grammars to Shading.
 
-  Then enumerate `src/**` and confirm every file resolves.
+  Then enumerate the scanned files (`src/**/*.{c,cc,cpp,h,hpp,y,l}`, FR-002) and confirm every one resolves. Other files (e.g. `src/CMakeLists.txt`, `src/ri/CMakeLists.txt`, Swift/Python/Lua, assets) are ignored and need no rule.
 - [ ] T015 Implement the report model and writers in `tests/architecture/archcheck/report.{h,cpp}`:
   - text lines `VIOLATION`/`STALE`/`BADID`/`CYCLE`/`ALLOWED`/`CONSUMER`/`NOTBUILT`/`UNRESOLVED`/`METRIC`/`WARNING`/`NOTE`/`RESULT`;
   - JSON with the contract's keys;
@@ -114,15 +116,17 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 **Independent Test**: the fixture scenarios below pass (each asserts exit code and message), without touching production sources (spec US1, SC-001).
 
-### Fixtures first (must fail until T024–T029 land)
+### Fixtures first (must fail until T024–T028 land)
 
 - [ ] T017 [P] [US1] Fixture `tests/architecture/fixtures/clean/`: a tiny tree with Geometry, GraphicsState, Hiders and Infra files using only allowed edges (e.g. Hiders → Geometry include and link). Expect exit 0 and `RESULT PASS` (US1 #5).
 - [ ] T018 [P] [US1] Fixture `tests/architecture/fixtures/forbidden-include/`: a GraphicsState file including a Shading header. Expect exit 1 and the regex `VIOLATION include .*\[GraphicsState -> Shading\] rule:` (US1 #2).
 - [ ] T019 [P] [US1] Fixture `tests/architecture/fixtures/forbidden-link/`: a Texturing `.cpp` calling a function defined only in a Hiders `.cpp`, with no header include of a Hiders header. Expect exit 1 and the regex `VIOLATION link .*\[Texturing -> Hiders\] defined in:` (US1 #3).
 - [ ] T020 [P] [US1] Fixture `tests/architecture/fixtures/new-cycle/`: Geometry → Shading and Shading → Geometry edges, neither allowlisted. Expect exit 1 and a `CYCLE` line without `[allowlisted]` (US1 #4). Add a second fixture `new-cycle-allowlisted/` where both edges are allowlisted against an Open registry ID: expect exit 0 and `CYCLE … [allowlisted]`.
-- [ ] T021 [P] [US1] Fixture `tests/architecture/fixtures/unclassified/`: a source file outside every map rule. Expect exit 2 and `unclassified: ` (US1 #6).
+- [ ] T021 [P] [US1] Fixture `tests/architecture/fixtures/unclassified/`: a source file outside every map rule. Expect exit 2 and `unclassified: ` (US1 #6). The unclassified file must be a scanned type (e.g. a `.cpp`). Add a non-scanned file (e.g. `notes.txt`) outside every rule to the same fixture, and assert that it does **not** appear in the output.
 - [ ] T022 [P] [US1] Fixture `tests/architecture/fixtures/forwarding-shim/`: an Infra-located forwarding header mapped to Shading by a `file` rule, included from GraphicsState. Expect exit 1 with `[GraphicsState -> Shading]` (spec Edge Cases: forwarding can't hide an edge).
 - [ ] T023 [P] [US1] Fixture `tests/architecture/fixtures/incomplete-build/`: run with `--build-dir` pointing at an empty directory. Expect exit 2 and a message naming the missing build data (US1 #7, FR-001).
+
+**Checkpoint (TEST-APPROVAL 3a)**: the US1 fixtures are written and failing (exit 2, "not implemented", via the T003 stub). Stage, show the failing output, and wait for the maintainer's approval of the tests before T024.
 
 ### Implementation
 
@@ -134,7 +138,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - read Makefiles `<obj>.o.d`, and Ninja via `ninja -t deps`;
   - any other generator, or missing deps data, is exit 2.
 - [ ] T025 [US1] Implement batched `nm -g -A` collection and symbol tables in `tests/architecture/archcheck/symbols.{h,cpp}`, per research R3 and FR-004:
-  - scan objects of non-test targets only;
+  - scan only objects whose source is under `<source-dir>/src/` or `@build/`-mapped (non-test code; research R10 scan scope);
   - normalize by stripping the macOS leading `_`;
   - demangle with `abi::__cxa_demangle` for display only (the mangled name stays the key);
   - de-duplicate sources compiled into several object libraries;
@@ -148,7 +152,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - statuses `allowed` / `allowlisted` / `violation` / `consumer-reach`, per data-model.md › Edge;
   - consumers never fail;
   - SCC-based cycle detection, reporting each cycle's path and edges; a cycle fails only if it contains a non-allowlisted edge (FR-006).
-- [ ] T028 [US1] Wire `tests/architecture/archcheck/main.cpp`: load the configuration, extract edges, classify, report, exit code. `--platform` defaults to the detected host. Every `VIOLATION` line names the referencing file, the header or symbol (raw + demangled + defined-in), both classes and the rule (FR-007).
+- [ ] T028 [US1] Wire `tests/architecture/archcheck/main.cpp`: load the configuration, extract edges, classify, report, exit code. `--platform` defaults to the detected host. Every `VIOLATION` line names the referencing file, the header or symbol (raw + demangled + defined-in), both classes and the rule (FR-007). `--help` documents every option, exit code and data file, per contracts/archcheck-cli.md (constitution IV).
 - [ ] T029 [US1] Register fixtures T017–T023 via `archcheck_add_fixture` in `tests/architecture/CMakeLists.txt`, then run `ctest --test-dir build -L architecture`. All US1 fixtures pass, and the full existing suite is unchanged.
 
 **Checkpoint (PAUSE 3, MVP)**: detection works end to end on fixtures. Stage, summarize, wait for review and commit.
@@ -161,13 +165,15 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 **Independent Test**: the allowlist fixtures below pass; `Architecture_DomainBoundaries` passes on the real tree; `registry-reconciliation.md` accounts for V1–V21 (SC-002, SC-003).
 
-### Fixtures first (must fail until T037–T039 land)
+### Fixtures first (must fail until T035–T037 land)
 
 - [ ] T030 [P] [US2] Fixture `tests/architecture/fixtures/stale-entry/`: an allowlist entry whose `from` file *was* compiled but whose edge doesn't occur. Expect exit 1 and `STALE ` (US2 #3). Add a variant `stale-now-allowed/`: the entry's edge exists but is allowed by the fixture rules. Expect exit 1 and `STALE` (US2 #7).
 - [ ] T031 [P] [US2] Fixtures `tests/architecture/fixtures/unknown-id/` and `tests/architecture/fixtures/resolved-id/`: entries referencing `DB-099` (absent) and an ID listed after `## Resolved` in the fixture's `REGISTRY.md`. Expect exit 1 and `BADID` (US2 #2, FR-009).
 - [ ] T032 [P] [US2] Fixture `tests/architecture/fixtures/other-platform-tag/`: two entries, one tagged for the non-host platform whose edge doesn't occur (expect it ignored), and one tagged for the host whose edge doesn't occur (expect `STALE`). Pass `--platform` explicitly so the test is host-independent (US2 #5, FR-010a).
 - [ ] T033 [P] [US2] Fixture `tests/architecture/fixtures/not-built/`: an entry whose `from` file exists in the fixture tree but is excluded from the fixture's OBJECT library. Expect exit 0 and `NOTBUILT` (US2 #6, FR-010).
 - [ ] T034 [P] [US2] Fixture `tests/architecture/fixtures/tagged-untagged-dup/`: the same edge listed both untagged and tagged `macos`. Expect exit 2 with the file:line of the duplicate (FR-010a, contracts/data-files.md).
+
+**Checkpoint (TEST-APPROVAL 4a)**: the US2 fixtures are written and failing. Stage, show the failing output, and wait for the maintainer's approval of the tests before T035.
 
 ### Implementation
 
@@ -208,7 +214,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - add `linux`/`macos` tags in `tests/architecture/allowlist.txt` for the edges that exist on one platform only;
   - re-run on both platforms.
 
-  If the Linux path isn't available at this pause, leave the entries untagged and record "Linux-unverified" in `specs/022-domain-dependency-guardrails/validation.md`.
+  Linux `ctest -L architecture` passing is a **merge prerequisite**, because the release Ubuntu job runs `ctest` (spec FR-010a). If the Linux path is unavailable at this pause, the phase stays open (not ready to merge) until it is. Record the results in `specs/022-domain-dependency-guardrails/validation.md`.
 - [ ] T044 [US2] Draft the 16 tracking-issue texts, one per remediation spec 023–038, in `specs/022-domain-dependency-guardrails/tracking-issues.md`. Each gives: title, label (`enhancement`), the scope from the remediation plan, the DB entries it resolves, and acceptance. **Do not file.**
 
 **Checkpoint (PAUSE 4)**: the real tree is fully registered and the check passes. **The maintainer approves filing the 16 issues** (an outward-facing action) and commits.
@@ -227,6 +233,8 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 - [ ] T046 [P] [US3] Fixture `tests/architecture/fixtures/metric-increase/`: a Geometry file with `CRenderer::a` used twice and `CRendererContext::b` once, plus one reference inside a comment and one inside a string literal (neither counted). Its baseline is `Geometry 2 1`. Expect exit 0, `WARNING metric Geometry refs 3 > baseline 2 (+1)`, and `distinct 2 > baseline 1 (+1)` (US3 #2, FR-012).
 - [ ] T047 [P] [US3] Fixture `tests/architecture/fixtures/metric-decrease/`: the same tree with baseline `Geometry 5 3`. Expect exit 0 and `NOTE metric Geometry refs 3 < baseline 5` (US3 #3).
+
+**Checkpoint (TEST-APPROVAL 5a)**: the US3 fixtures are written and failing. Stage, show the failing output, and wait for the maintainer's approval of the tests before T048.
 
 ### Implementation
 
@@ -263,7 +271,7 @@ If the build breaks, restore the include, keep its allowlist line, and note it i
 - [ ] T054 [US4] Remove `object.h` and `raytracer.h` includes from `src/ri/texture/pointCloud.cpp`, one at a time, each verified
 - [ ] T055 [US4] Remove `#include "points.h"` from `src/ri/hiders/reyes.cpp`
 - [ ] T056 [US4] From the T038 bootstrap, list any further cross-domain include whose target header provides no symbol used by the including file. Attempt each removal with the same procedure, and record the outcomes in `specs/022-domain-dependency-guardrails/registry-reconciliation.md` (V19 row).
-- [ ] T057 [US4] Linux validation of all removals (GCC 13, `-Werror`) via the existing Linux path. If unavailable, record "Linux-unverified" for each removal in `specs/022-domain-dependency-guardrails/validation.md`, to be raised at the pause (US4 #1).
+- [ ] T057 [US4] Linux validation of all removals (GCC 13, `-Werror`) via the existing Linux path. This is a **merge prerequisite**: if the Linux path is unavailable, the phase stays open (not ready to merge) until it is. Record the results in `specs/022-domain-dependency-guardrails/validation.md` (US4 #1).
 
 **Checkpoint (PAUSE 6)**: removals complete, full suite identical. Stage, summarize, wait for review and commit.
 
@@ -275,13 +283,16 @@ If the build breaks, restore the include, keep its allowlist line, and note it i
   - purpose; how to run it (`ctest -L architecture`, direct invocation); how to read each report line type; the data files;
   - **two worked examples of at most 5 steps each:** classifying a new file, and retiring a fixed violation (delete the allowlist line(s), move the registry entry to Resolved with commit and date, lower the metric baseline if applicable) (SC-006);
   - the known limitation that the release workflow runs only on releases.
+
+  Verify that each worked example has at most 5 steps (SC-006).
 - [ ] T059 [P] Add a pointer to the check and its documentation in `CLAUDE.md`, under the dev-workflow notes (FR-014).
 - [ ] T060 Move registry entry DB-002 to `## Resolved` in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, recording "resolved by spec 022" and the date; the commit hash is added after the maintainer's merge. Prepare the closing comment text for issue #25 in `specs/022-domain-dependency-guardrails/tracking-issues.md`; it is closed **only after the maintainer merges** (FR-016).
-- [ ] T061 Measure the runtime budget. Time `ctest --test-dir build -L architecture` on a Release build, on the Apple Silicon machine, and on Linux if available. Record the results in `specs/022-domain-dependency-guardrails/validation.md`; each must be at most 60 s (SC-005).
+- [ ] T061 Measure the runtime budget. Time `ctest --test-dir build -L architecture` on a Release build, on the Apple Silicon machine and on Linux. Both measurements are required (SC-005); like T043/T057, the phase stays open until the Linux timing exists. Record the results in `specs/022-domain-dependency-guardrails/validation.md`; each must be at most 60 s (SC-005).
 - [ ] T062 Run the quickstart.md validation scenarios 1–7 and record the results in `specs/022-domain-dependency-guardrails/validation.md`, including:
   - the manual injection spot check on the real tree, reverted afterwards and never staged;
   - CI coverage, i.e. confirming `release.yml` runs plain `ctest` in all three jobs.
-- [ ] T063 Run the full `ctest --test-dir build`. It must equal the pre-feature baseline (FR-015, SC-004), apart from the new `architecture` tests, which all pass.
+- [ ] T063 Format all new sources under `tests/architecture/` with the repo's `.clang-format` (`clang-format -i`), rebuild, and confirm a second run produces no diff (constitution › Code Quality).
+- [ ] T064 Run the full `ctest --test-dir build`. It must equal the pre-feature baseline (FR-015, SC-004), apart from the new `architecture` tests, which all pass.
 
 **Checkpoint (PAUSE 7, final)**: the feature is complete. Stage, summarize, wait for review and commit; then `/speckit-converge`.
 

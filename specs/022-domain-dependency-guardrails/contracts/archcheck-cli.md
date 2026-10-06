@@ -18,7 +18,7 @@ archcheck --help
 
 | Option | Meaning | Default |
 |---|---|---|
-| `--source-dir` | Repository root (paths in the data files are relative to it) | required |
+| `--source-dir` | Repository root (paths in the data files are relative to it). Also bounds the scan: only sources under `<source-dir>/src/` and mapped `@build/` sources are analysed | required |
 | `--build-dir` | CMake build tree to read objects and depfiles from | required |
 | `--config` | Directory holding `domain-map.txt`, `domain-rules.txt`, `allowlist.txt`, `metrics-baseline.txt` | required |
 | `--registry` | Registry markdown file | `<source-dir>/DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` |
@@ -42,7 +42,7 @@ Fixture scenarios run the same binary with `--config`/`--source-dir`/`--registry
 |---|---|
 | 0 | Pass. No violations and no invalid or stale allowlist entries. Warnings (metric increases, consumer reach) may be present |
 | 1 | Check failed: at least one violation, stale entry, unknown/resolved registry ID, or cycle containing a non-allowlisted edge |
-| 2 | Configuration or environment error: unclassified file, malformed data file, cyclic or illegal rule table, `nm` (or `ninja` for Ninja trees) not found, build tree incomplete or not a CMake build |
+| 2 | Configuration or environment error: unclassified file, malformed data file (including the same edge listed tagged and untagged), cyclic or illegal rule table, `nm` (or `ninja` for Ninja trees) not found, unsupported generator, build tree incomplete or not a CMake build |
 
 ## Text output (stable shape; tests match on these line prefixes)
 
@@ -55,9 +55,12 @@ BADID     DB-099 include src/... -> ...  (no Open registry entry DB-099)
 CYCLE     Geometry -> Shading -> Geometry  (via src/ri/geometry/object.h -> .../shading.h; src/libshader/shading/shading.cpp -> .../surface.h)  [allowlisted]
 ALLOWED   DB-004 x 57   DB-005 x 212   ...
 CONSUMER  src/sloinfo/sloinfo.cpp -> src/libshader/shading/llvmJit.h  [Consumer -> Shading]
+NOTBUILT  DB-007 link src/libshader/shading/llvmJit.cpp -> _ZN...  (referencing file not compiled in this build; skipped)
+UNRESOLVED src/ri/foo/unused.h  (no compiled translation unit includes it; no edges derived)
+NOTE      metric Hiders refs 598 < baseline 611 (-13); consider lowering the baseline
 METRIC    Geometry refs 88 (baseline 88)  distinct 24 (baseline 24)
 WARNING   metric Texturing refs 116 > baseline 115 (+1)
-RESULT    FAIL violations=2 stale=1 badid=1 failing-cycles=0
+RESULT    FAIL violations=2 stale=1 badid=1 failing-cycles=0 notbuilt=1
 ```
 
 - Every `VIOLATION` line carries the file, the target (header or symbol plus its demangled form), both classes, and the rule. That makes FR-007 and SC-001 checkable by regex.
@@ -76,6 +79,8 @@ RESULT    FAIL violations=2 stale=1 badid=1 failing-cycles=0
   "cycles": [{"path": ["Geometry", "Shading", "Geometry"], "failing": false, "edges": ["..."]}],
   "allowlisted": {"DB-004": 57},
   "consumer_reach": [{"from": "...", "to": "...", "to_class": "Shading"}],
+  "not_built": [{"id": "DB-007", "kind": "link", "from": "...", "to": "..."}],
+  "unresolved_headers": ["..."],
   "metrics": [{"class": "Geometry", "refs": 88, "refs_baseline": 88, "distinct": 24, "distinct_baseline": 24}],
   "result": "PASS"
 }

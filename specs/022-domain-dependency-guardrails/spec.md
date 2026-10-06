@@ -29,7 +29,7 @@ It deliberately fixes nothing except trivially dead includes.
 
 ### Session 2026-10-05
 
-- Q: How precisely should the allowlist record each known violation? → A: One entry per concrete edge: an exact `file → header` include or `library → symbol` reference, each with its registry ID. A new instance of a known violation fails; a fixed instance becomes stale.
+- Q: How precisely should the allowlist record each known violation? → A: One entry per concrete edge: an exact `file → header` include or `library → symbol` reference, each with its registry ID. A new instance of a known violation fails; a fixed instance becomes stale. *(Refined in planning: the referencing side is the source file compiled into the library, because one library can mix several domains; see FR-004.)*
 - Q: How should the new registry entries (DB-005 onward) be linked to GitHub tracking issues? → A: One issue per remediation spec (023–038). Each registry entry links the issue of the spec that will fix it, or all of them if several specs fix it.
 - Q: What exactly should the per-domain renderer-core usage metric count? → A: Both: the number of source references to renderer-core members (`CRenderer::x` / `CRendererContext::x`), and the number of distinct renderer-core members referenced, per domain, each with its own baseline.
 - Q: Should the allowlist be one shared list for macOS and Linux, or may entries apply to only one platform? → A: One shared list, with an optional platform tag per entry (`macos`, `linux`; untagged means both). Each platform checks presence and staleness only for the entries that apply to it.
@@ -48,9 +48,11 @@ A contributor changes code and accidentally adds a dependency the constitution f
 
 1. **Given** the current tree with all known violations allowlisted, **When** the architecture check runs, **Then** it passes and reports the known violations as allowlisted.
 2. **Given** a Graphics State source file that newly includes a Shading header, **When** the check runs, **Then** it fails, naming the file, the included header, both domains, and the broken rule.
-3. **Given** a newly added reference from a Texturing file to a Hiders symbol that only shows up at link level, **When** the check runs, **Then** it fails, naming the referencing library, the symbol, and both domains.
-4. **Given** a change that creates a dependency cycle between two domains not already recorded as a violation, **When** the check runs, **Then** it fails and reports the cycle path.
+3. **Given** a newly added reference from a Texturing file to a Hiders symbol that only shows up at link level, **When** the check runs, **Then** it fails, naming the referencing source file, the symbol, and both domains.
+4. **Given** a change that creates a dependency cycle between two domains through at least one edge that is not allowlisted, **When** the check runs, **Then** it fails and reports the cycle path.
 5. **Given** a dependency the allowed-dependency table permits (e.g. Hiders → Geometry through Geometry's headers), **When** the check runs, **Then** it does not report it.
+6. **Given** a new source file under a location the domain map doesn't cover, **When** the check runs, **Then** it fails as a configuration error naming the unclassified file.
+7. **Given** a build tree that is incomplete or missing the dependency information the check needs, **When** the check runs, **Then** it fails as an environment error naming what is missing, instead of reporting fewer edges.
 
 ---
 
@@ -65,9 +67,12 @@ A maintainer can open the violation registry and see every current Principle VII
 **Acceptance Scenarios**:
 
 1. **Given** the audit findings V1–V21 re-measured on current master, **When** this feature is complete, **Then** the registry contains an entry for each finding still present, numbered from DB-005, each with evidence, the rule broken, and a direction for the fix. Findings already covered by DB-004 cross-reference DB-004 instead of duplicating it.
-2. **Given** an allowlist entry that references no existing registry entry, **When** the check runs, **Then** it fails and names the entry.
+2. **Given** an allowlist entry that references an unknown or Resolved registry entry, **When** the check runs, **Then** it fails and names the entry.
 3. **Given** an allowlist entry whose violation no longer occurs in the code, **When** the check runs, **Then** it fails and names the entry as stale, so it gets removed (and its registry entry moved to Resolved).
-4. **Given** an audit finding that turns out to be gone on current master, **When** the registry is populated, **Then** no entry is created for it, and the reason is recorded in the spec's evidence notes.
+4. **Given** an audit finding that turns out to be gone on current master, **When** the registry is populated, **Then** no entry is created for it, and the reason is recorded in the reconciliation record (`registry-reconciliation.md`, FR-011).
+5. **Given** an entry tagged for the other platform, **When** the check runs, **Then** it is ignored. **Given** an entry tagged for the platform being run whose edge doesn't occur, **Then** it fails as stale.
+6. **Given** an entry whose referencing file was not compiled in this build (e.g. JIT code in a build without the JIT), **When** the check runs, **Then** the entry is neither matched nor reported as stale, and the report counts it as not built.
+7. **Given** an entry whose edge still exists but is now allowed by the rule table, **When** the check runs, **Then** it fails as stale, because the entry is unnecessary.
 
 ---
 
@@ -83,6 +88,7 @@ A maintainer reviewing a remediation spec can see, per domain, how many times th
 
 1. **Given** the current tree, **When** the check runs, **Then** it reports, per domain and in total, both the number of references to renderer-core members and the number of distinct renderer-core members referenced.
 2. **Given** a recorded baseline, **When** a domain's count rises above it, **Then** the check reports the increase, naming the domain and the difference. It may only warn here, not fail (see FR-012).
+3. **Given** a recorded baseline, **When** a domain's count falls below it, **Then** the check prints an informational note suggesting the baseline be lowered, and does not fail.
 
 ---
 
@@ -96,7 +102,7 @@ Includes that cross a domain boundary but are not actually used (audit finding V
 
 **Acceptance Scenarios**:
 
-1. **Given** each include the audit flagged as vestigial, **When** it is removed and the tree rebuilt, **Then** the build succeeds with no new warnings and the full test suite stays green. If an include turns out to be needed, it stays and is registered as a real violation.
+1. **Given** each include the audit flagged as vestigial, **When** it is removed and the tree rebuilt, **Then** the build succeeds with warnings-as-errors and no new warnings, and the full test suite stays green, validated on macOS and Linux before merge. If an include turns out to be needed, it stays and is registered as a real violation.
 
 ---
 
@@ -106,11 +112,12 @@ Includes that cross a domain boundary but are not actually used (audit finding V
 - **Files outside the nine domains:**
   - Renderer core (composition root): may depend on every domain.
   - Infrastructure/common: every domain may depend on it, but it may not depend on any domain.
-  - Executables, tools, language bindings and the preview subsystem: act as consumers. Their reach into domain internals is reported against the registry (V21) instead of being silently allowed.
-  - Link-time stub/substitution sources: classified explicitly.
+  - Executables, tools, language bindings and the preview subsystem: act as consumers. Consumers may depend on anything, so their edges never fail the check and need no allowlist entries. Their reach into domain internals is listed in a separate report section, and that evidence is recorded in the V21 registry entry.
+  - Link-time stub/substitution sources: classified by location (renderer core), like the dispatch files they pair with.
 - **Generated parser/lexer sources:** classified by the domain of the grammar they come from.
 - **Platform differences:** the link-level analysis works on both supported platforms (macOS and Linux). It uses whatever symbol-inspection tooling each platform provides, and reports clearly (rather than passing silently) if that tooling is missing. A link edge that exists on only one platform is allowlisted with that platform's tag (FR-010a), so it never fails the other platform's run, either as a violation or as stale.
 - **Build options that remove code** (e.g. building without the JIT, or without optional image formats): the check still runs, and judges only the code actually built.
+- **Headers no compiled file includes:** their includes can't be resolved against a real compilation, so they produce no edges. The report lists them as unresolved headers for information, and they never fail the check.
 - **Symbols defined twice** (infrastructure code compiled into more than one library): not reported as a cross-domain edge.
 - **A violation that appears at both source and link level:** these are two distinct edges (an include and a symbol reference), each needing its own allowlist entry under FR-008. Both entries reference the same registry entry, and the report groups them under it.
 
@@ -119,25 +126,27 @@ Includes that cross a domain boundary but are not actually used (audit finding V
 ### Functional Requirements
 
 - **FR-001**: The project MUST provide an architecture check that runs as part of the standard test suite under a dedicated `architecture` label, can be run on its own, and runs in every CI configuration that runs the test suite.
-- **FR-002**: The check MUST classify every source file and every built library into exactly one of:
+- **FR-002**: The check MUST classify every scanned source file into exactly one of the classes below. Scanned source files are the C/C++ sources and grammars under `src/` (extensions `.c`, `.cc`, `.cpp`, `.h`, `.hpp`, `.y`, `.l`), plus the generated sources the build produces from them. Anything else under `src/` is ignored, as are `tests/` and system, SDK and third-party headers. Examples of ignored files: build scripts, Swift/Python/Lua, assets, plists. Classes:
   - the nine Principle VIII domains;
   - the renderer core (composition root);
   - the common/infrastructure layer;
   - consumers (executables, tools, bindings, preview).
   The classification MUST live in one reviewable, version-controlled mapping, and an unclassified file MUST make the check fail and name the file.
-- **FR-003**: The check MUST derive source-level dependency edges from the includes actually used when compiling each file (not from a hand-maintained list), mapping both ends to their domains.
-- **FR-004**: The check MUST derive link-level dependency edges from each built library's undefined and defined symbols, attributing each cross-library symbol reference to the domains of the referencing code and of the defining code.
+- **FR-003**: The check MUST derive source-level dependency edges from each file's **direct** includes (never the transitive closure, and for headers too), resolved to the actual file the compiler used, as recorded in the build's own dependency information (not a hand-maintained list). An include that was not active in the build (e.g. inside a disabled conditional) produces no edge. Both ends map to their classes.
+- **FR-004**: The check MUST derive link-level dependency edges from the undefined and defined symbols of every compiled object of the project's non-test code. An edge is **referencing source file → symbol**, attributed to the referencing file's class and to every class that defines the symbol, excluding the referencing class and infrastructure. A reference is ignored when any definer belongs to the referencing class or to infrastructure, or when nothing in the project defines the symbol (system and third-party libraries).
 - **FR-005**: The check MUST encode the constitution's allowed-dependency table exactly, including:
   - the renderer core may depend on everything, and no domain may depend on it;
   - every domain may depend on infrastructure, and infrastructure may depend on no domain;
-  - each plug-in domain may depend only on its own published interface.
+  - each plug-in domain may depend only on its own published interface and on infrastructure (statically linked helpers are not a host dependency);
+  - consumers may depend on anything;
+  - same-class edges are always allowed.
   It MUST report any edge outside the table.
-- **FR-006**: The check MUST detect dependency cycles between domains and report each cycle with its full path.
-- **FR-007**: Every reported violation MUST name: the source file or library, the included header or referenced symbol, the source and target domains, and the constitutional rule broken.
-- **FR-008**: Known violations MUST be listed in a version-controlled allowlist with **one entry per concrete edge**: an exact `file → header` include (source level) or `library → symbol` reference (link level). Allowlisted edges are reported as known and do not fail the check. Any edge not listed fails it, including a new instance of an already-registered violation (e.g. one more include in a file that already has a listed violation), so an existing violation can never be extended unnoticed.
-- **FR-009**: Every allowlist entry MUST reference an existing registry entry ID in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`. An entry without a valid registry reference MUST fail the check.
-- **FR-010**: An allowlist entry whose violation no longer occurs MUST fail the check as stale, so the allowlist only shrinks as violations are fixed.
-- **FR-010a**: There MUST be a single allowlist shared by all supported platforms. An entry MAY carry a platform tag (`macos` or `linux`); an untagged entry applies to both. A platform's run MUST treat only the entries that apply to it as allowed, and MUST check only those for staleness. An entry tagged for the other platform is neither allowed nor reported as stale.
+- **FR-006**: The check MUST detect dependency cycles between domains and report each cycle with its full path. A cycle containing at least one non-allowlisted edge MUST fail the check; a cycle made only of allowlisted edges is reported as known and does not fail.
+- **FR-007**: Every reported violation MUST name: the referencing source file, the included header or referenced symbol, the source and target domains, and the constitutional rule broken.
+- **FR-008**: Known violations MUST be listed in a version-controlled allowlist with **one entry per concrete edge**: an exact `file → header` include (source level) or `source file → symbol` reference (link level). Allowlisted edges are reported as known and do not fail the check. Any edge not listed fails it, including a new instance of an already-registered violation (e.g. one more include in a file that already has a listed violation), so an existing violation can never be extended unnoticed.
+- **FR-009**: Every allowlist entry MUST reference a registry entry ID in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` that exists and is **Open** (not moved to Resolved). An unknown or Resolved ID MUST fail the check.
+- **FR-010**: An allowlist entry whose violation no longer occurs MUST fail the check as stale, so the allowlist only shrinks as violations are fixed. An entry whose referencing file was not compiled in this build (e.g. a build-option-dependent file) MUST be neither matched nor treated as stale; the report counts it as not built.
+- **FR-010a**: There MUST be a single allowlist shared by all supported platforms. An entry MAY carry a platform tag (`macos` or `linux`); an untagged entry applies to both. A platform's run MUST treat only the entries that apply to it as allowed, and MUST check only those for staleness. An entry tagged for the other platform is neither allowed nor reported as stale. Listing the same edge both tagged and untagged is a configuration error. The check MUST pass on both platforms before the change is merged.
 - **FR-011**: The registry MUST gain entries, numbered from DB-005, for every audit finding (V1–V21) still present when re-measured on current master. Each entry gives:
   - the rule broken;
   - concrete evidence (file and line, or symbol);
@@ -150,17 +159,25 @@ Includes that cross a domain boundary but are not actually used (audit finding V
   - the number of source references to renderer-core members (`CRenderer::x` / `CRendererContext::x`);
   - the number of distinct renderer-core members referenced.
 
-  An increase in either is reported as a warning naming the domain, the metric and the difference; it does not fail the check.
+  Counting rules:
+  - covers every scanned file outside the renderer core and the consumers, grouped by class, plus a total;
+  - comments and string literals are excluded;
+  - definitions count as references;
+  - generated sources are counted through their grammar files, not twice.
+
+  An increase in either is reported as a warning naming the domain, the metric and the difference; a decrease is reported as an informational note suggesting the baseline be lowered. Neither fails the check.
 - **FR-013**: The includes the audit flagged as vestigial (V19) MUST be removed where removal leaves the build and test suite unchanged. Any that prove necessary MUST be kept and registered as real violations.
 - **FR-014**: The check's purpose, how to read its output, how to classify a new file, and how to update the allowlist and registry when fixing a violation MUST be documented for contributors, and referenced from the existing developer documentation.
 - **FR-015**: Adding the check MUST NOT change rendering output or any existing test result; the full test suite MUST stay green.
+- **FR-016**: Registry entry DB-002 MUST move to Resolved, and issue #25 MUST be closed, once the maintainer has merged this feature.
 
 ### Key Entities
 
-- **Domain map:** the mapping from source locations and built libraries to the nine domains, the renderer core, the infrastructure layer and consumers. Version-controlled, reviewable, and exhaustive: every file maps to exactly one entry.
+- **Class:** one of the nine domains, the renderer core, infrastructure, or consumers. Reports use "class" for the edge endpoints.
+- **Domain map:** the mapping from source locations (including generated sources) to the nine domains, the renderer core, the infrastructure layer and consumers. Version-controlled, reviewable, and exhaustive: every file maps to exactly one entry.
 - **Allowed-dependency table:** the constitution's table of which domain may depend on which. The check's only source of truth for allowed edges.
-- **Dependency edge:** a source → target relationship between two domains, of kind *source-level* (an include) or *link-level* (a symbol reference), carrying the concrete file/header or library/symbol evidence.
-- **Allowlist entry:** exactly one known violating edge (a concrete `file → header` include or `library → symbol` reference; never a pattern or a count), tied to exactly one registry ID, with an optional platform tag (`macos`/`linux`; untagged = both).
+- **Dependency edge:** a source → target relationship between two domains, of kind *source-level* (an include) or *link-level* (a symbol reference), carrying the concrete file/header or source-file/symbol evidence.
+- **Allowlist entry:** exactly one known violating edge (a concrete `file → header` include or `source file → symbol` reference; never a pattern or a count), tied to exactly one registry ID, with an optional platform tag (`macos`/`linux`; untagged = both).
 - **Registry entry (DB-NNN):** a recorded violation in `DOMAIN_BOUNDARIES.md`, with rule, evidence, size, direction and tracking reference; moves to Resolved when fixed.
 - **Renderer-core usage metric:** two per-domain numbers (source references to renderer-core members, and distinct members referenced), each with its own recorded baseline.
 
@@ -172,8 +189,8 @@ Includes that cross a domain boundary but are not actually used (audit finding V
 - **SC-002**: On the current tree the check passes, and every violation it reports maps to a registry entry. There are no unregistered violations and no allowlist entries without a registry reference.
 - **SC-003**: Every audit finding (V1–V21) ends in exactly one of three states: registered (DB-005 onward), cross-referenced to DB-004, or documented as no longer present. None is left unaccounted for.
 - **SC-004**: The full test suite passes with the check included, with no change to rendering output or to any existing test result.
-- **SC-005**: The check adds no more than 60 seconds to a full test-suite run on a typical development machine.
-- **SC-006**: A contributor following the documentation can classify a new file, or retire a fixed violation (allowlist entry removed, registry entry moved to Resolved), in under 15 minutes.
+- **SC-005**: The check adds no more than 60 seconds to a full test-suite run for a Release build, measured on the maintainer's Apple Silicon development machine and on Linux.
+- **SC-006**: The contributor documentation contains a worked example for each of two procedures, classifying a new file and retiring a fixed violation (allowlist entry removed, registry entry moved to Resolved). Each needs at most 5 steps and no knowledge beyond the documentation itself.
 - **SC-007**: The per-domain renderer-core usage counts are reported on every run and are reproducible: two runs on the same tree give identical numbers.
 
 ## Assumptions
@@ -182,6 +199,6 @@ Includes that cross a domain boundary but are not actually used (audit finding V
 - "CI" means every automated configuration that already runs the test suite (currently the release workflow). Adding a new per-change CI workflow is out of scope, but the check must be included wherever the suite runs.
 - Link-level analysis covers the libraries and executables the project builds, on macOS and Linux, using the symbol tools standard on each platform. A missing tool is reported clearly, never silently skipped.
 - When the audit's evidence and current master disagree, current master wins. Every registry entry is re-measured, not copied from the audit.
-- Tracking is **one GitHub issue per remediation spec (023–038)**, filed as part of this work (about 15 issues), so that rule 8 is met. Each new registry entry links the issue(s) of the spec(s) that will fix it. Filing is outward-facing and done only with the maintainer's approval at the relevant pause.
+- Tracking is **one GitHub issue per remediation spec (023–038)**, filed as part of this work (16 issues, specs 023–038), so that rule 8 is met. Each new registry entry links the issue(s) of the spec(s) that will fix it. Filing is outward-facing and done only with the maintainer's approval at the relevant pause.
 - Fixing any registered violation, other than removing dead includes, is out of scope. Specs 023–038 do that work.
 - Per the maintainer's workflow, all work happens in this spec's worktree, changes are staged but never committed by the agent, and work pauses for review at each phase.

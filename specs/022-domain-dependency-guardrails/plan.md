@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add `archcheck`, a C++20 test-only tool run by ctest (`Architecture_DomainBoundaries`, label `architecture`, so it also runs in the release workflow's existing `ctest` steps). It classifies every source file into the Principle VIII domains, renderer core, infrastructure or consumers, through a reviewable domain map. It extracts two kinds of edges:
+Add `archcheck`, a C++20 test-only tool run by ctest (`Architecture_DomainBoundaries`, label `architecture`, so it also runs in the release workflow's existing `ctest` steps). It classifies every scanned C/C++ source and grammar file (FR-002) into the Principle VIII domains, renderer core, infrastructure or consumers, through a reviewable domain map. It extracts two kinds of edges:
 - **source-level:** each file's direct `#include`s, resolved through the compiler depfiles;
 - **link-level:** per-object `nm` undefined→defined symbol references.
 
@@ -72,7 +72,7 @@ No new third-party dependency (research R1).
 |---|---|---|
 | I. Clean Code | Small focused units (map, rules, edge extraction, allowlist, report, metric), no magic numbers (thresholds and paths come from the config), "why" comments only | PASS |
 | II. Language Standards | C++20 under the project's `-Werror` flags; no compiler extensions; POSIX `popen` for `nm` (Unix-only per Principle VI) | PASS |
-| III. TDD (non-negotiable) | Fixture scenarios and parser unit tests are written first and fail before the tool exists (research R10); the user-approval gate is the task review pause | PASS |
+| III. TDD (non-negotiable) | Fixture scenarios and parser unit tests are written first and fail before the tool exists (research R10); each story's tests-first block ends in a dedicated test-approval pause (tasks.md gates 2a, 3a, 4a, 5a) before any implementation task starts | PASS |
 | IV. CLI | `archcheck` takes POSIX options and `--help`, writes text or `--format json` to stdout and diagnostics to stderr, and uses exit codes 0/1/2 (contracts/archcheck-cli.md) | PASS |
 | V. Minimal Dependencies | No new dependency: C++ stdlib plus the toolchain's own `nm`; Python deliberately avoided (research R1) | PASS |
 | VI. Platform Targeting | macOS + Linux; per-platform allowlist tags; the macOS leading-underscore difference is normalized | PASS |
@@ -107,6 +107,8 @@ specs/022-domain-dependency-guardrails/
 │   ├── archcheck-cli.md         # CLI, exit codes, text/JSON report
 │   └── data-files.md            # domain-map / rules / allowlist / baseline / registry formats
 ├── registry-reconciliation.md   # created in implement: V1–V21 → DB-NNN | see DB-004 | gone (reason)
+├── validation.md                # created in implement: Linux validation, runtime (SC-005), quickstart results
+├── tracking-issues.md           # created in implement: 16 issue drafts (filed only after approval) + #25 closing text
 ├── checklists/requirements.md
 └── tasks.md                     # /speckit-tasks
 ```
@@ -133,12 +135,15 @@ tests/architecture/
     ├── clean/                   # passes
     ├── forbidden-include/       # GraphicsState -> Shading include
     ├── forbidden-link/          # Texturing -> Hiders symbol
-    ├── new-cycle/
-    ├── stale-entry/
+    ├── new-cycle/  new-cycle-allowlisted/
+    ├── incomplete-build/        # empty --build-dir → environment error, exit 2
+    ├── stale-entry/  stale-now-allowed/
     ├── unknown-id/  resolved-id/
     ├── unclassified/
     ├── other-platform-tag/
-    ├── metric-increase/
+    ├── metric-increase/  metric-decrease/
+    ├── not-built/              # entry for a file excluded from the fixture build → NOTBUILT, exit 0
+    ├── tagged-untagged-dup/    # configuration error, exit 2
     └── forwarding-shim/
         # each: src/<domains>/…, domain-map.txt, domain-rules.txt, allowlist.txt, metrics-baseline.txt, REGISTRY.md
 
@@ -157,14 +162,16 @@ Each phase ends with a pause for the maintainer's review and commit.
 
 1. **Setup:** the `tests/architecture/` scaffold, CMake wiring, empty data files.
 2. **Foundational (tests first):**
-   - parser unit tests and the fixture scenarios, written and failing;
+   - parser unit tests written and failing (test-approval gate 2a);
    - config loading, domain map, rule table with the acyclicity check.
+
+   Fixture scenarios are written in each story phase, behind gates 3a, 4a and 5a.
 3. **US1 (P1), detection:**
    - include-edge extraction (depfile resolution), link-edge extraction (`nm`), classification, violation and cycle reporting;
    - fixture scenarios pass;
    - text and JSON report.
 4. **US2 (P1), registry and allowlist:**
-   - allowlist parsing with platform tags, registry Open/Resolved parsing, stale and bad-ID detection;
+   - allowlist parsing with platform tags, registry Open/Resolved parsing, stale / not-built / bad-ID detection;
    - `--emit-allowlist` bootstrap;
    - **re-measure V1–V21**, write DB-005…, write `registry-reconciliation.md`, seed `allowlist.txt`;
    - the real-tree test passes;
@@ -174,7 +181,9 @@ Each phase ends with a pause for the maintainer's review and commit.
 7. **Polish:**
    - contributor documentation (`DOMAIN_BOUNDARIES.md` section, `CLAUDE.md` pointer);
    - DB-002 → Resolved;
-   - runtime check against SC-005;
+   - runtime check against SC-005 on macOS and Linux;
+   - quickstart validation (T062);
+   - format the new sources with `.clang-format` (T063);
    - full suite.
 
 ## Complexity Tracking

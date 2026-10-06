@@ -60,6 +60,8 @@ Fixture scenarios cover these cases:
 | unknown ID | `BADID … no Open registry entry`, exit 1 |
 | resolved ID | `BADID`, exit 1 |
 | entry tagged for the other platform | ignored, exit 0 |
+| entry whose file isn't compiled in this build | `NOTBUILT`, exit 0 (never stale) |
+| same edge tagged and untagged | configuration error, exit 2 |
 
 Integrity of the real files (manual review):
 - every `DB-NNN` in `tests/architecture/allowlist.txt` appears as an Open heading in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`;
@@ -80,7 +82,7 @@ Expected: `deterministic`. The whole report, metrics included, is byte-identical
 
 - `git diff master -- src/` shows only removed `#include` lines, each listed in `research.md` R12 (plus any the tool found).
 - Clean rebuild with `-Werror`; full `ctest` green; the check no longer reports those edges.
-- GCC 13 / Linux: the build is validated through the Linux path, or the change is explicitly flagged as Linux-unverified at the pause.
+- GCC 13 / Linux: the build is validated through the Linux path. This is required before merge (spec US4 #1); there is no "unverified" escape.
 
 ## 6. Runtime budget (SC-005)
 

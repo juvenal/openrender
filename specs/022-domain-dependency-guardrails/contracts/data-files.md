@@ -59,7 +59,8 @@ DB-005   link      src/ri/hiders/foo.cpp               ->  _ZN...               
 - `<kind>` is `include` | `link`.
 - `<to>` is a resolved repo-relative header path (`include`) or a mangled symbol, without the macOS leading underscore (`link`).
 - Optional last field: `macos` or `linux`.
-- Duplicate `(kind, from, to, platform)` is an error.
+- Duplicate `(kind, from, to, platform)` is an error, and so is the same `(kind, from, to)` listed both untagged and tagged.
+- Staleness applies only to entries whose `from` file was compiled in the current build. Entries for files not compiled under this build's options are reported as `NOTBUILT`, never stale (spec FR-010).
 - **Shrink-only policy (process, enforced by review and by stale detection):** after this spec, lines are only deleted. A new line needs an Open registry entry and an explicit reviewer sign-off in the PR.
 
 ## `metrics-baseline.txt`

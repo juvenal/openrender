@@ -19,7 +19,7 @@ The ownership category of a file.
   - `kind` is `prefix` (directory prefix, repo-relative) or `file` (exact repo-relative path, or a build-relative path for generated sources marked `@build/`).
 - **Resolution:** a `file` rule beats a `prefix` rule; among prefixes, the longest match wins.
 - **Validation:**
-  - Every scanned file (under `src/`, plus generated sources referenced by depfiles) MUST resolve to exactly one class, or the run fails with `unclassified: <path>` (FR-002).
+  - Every scanned file MUST resolve to exactly one class, or the run fails with `unclassified: <path>` (FR-002). "Scanned" means a C/C++ source or grammar under `src/` (`.c .cc .cpp .h .hpp .y .l`), plus generated sources referenced by depfiles. Every other file is ignored.
   - Duplicate patterns are an error.
   - `tests/` is never scanned.
 
@@ -54,9 +54,10 @@ The ownership category of a file.
 - **Identity:** `(kind, from_file, to, platform)`. Duplicates are an error.
 - **Validation (per run):**
   - `registry_id` MUST be an **Open** RegistryEntry, else `unknown-registry-id` or `resolved-registry-id` (fail, FR-009).
-  - If the entry applies to the current platform and no edge with the same `(kind, from_file, to)` exists, it fails as **stale** (FR-010).
-  - An entry for the other platform is neither matched nor checked (FR-010a).
-  - An entry whose edge exists but is *allowed* (e.g. after a rule change) also fails as stale, since it is unnecessary.
+  - The entry *applies* when its platform tag matches the run, or it has no tag. An entry for the other platform is neither matched nor checked (FR-010a).
+  - **not-built:** an applying entry whose `from_file` was not compiled in this build is skipped and counted; it never fails (FR-010). For `include` entries, "compiled" means the file appears in some translation unit's depfile; for `link` entries, that it was compiled into an object.
+  - **stale (fail):** an applying entry whose `from_file` *was* compiled, and whose `(kind, from_file, to)` edge either doesn't exist or exists but is now *allowed* (FR-010).
+  - The same edge listed both tagged and untagged is a configuration error (exit 2).
 - **Lifecycle:** created only during this spec's bootstrap. Afterwards entries are only deleted, when a violation is fixed. Adding one requires a new or existing Open registry entry and review.
 
 ## RegistryEntry
@@ -73,7 +74,7 @@ The ownership category of a file.
   - plus totals.
   - Counted over comment- and string-stripped source text (research R8).
 - **MetricBaseline:** the same shape, stored in `metrics-baseline.txt`.
-- **Comparison:** `sample > baseline` → warning; `sample < baseline` → reminder to lower the baseline; never a failure (FR-012). Deterministic (SC-007).
+- **Comparison:** `sample > baseline` → warning; `sample < baseline` → informational note suggesting the baseline be lowered; never a failure (FR-012). Deterministic (SC-007).
 
 ## Report
 
@@ -84,9 +85,11 @@ The ownership category of a file.
   4. cycles (each with path; failing ones marked);
   5. allowlisted edges grouped by registry ID, with counts;
   6. consumer reach;
-  7. metric table with baseline deltas.
+  7. not-built entries (count, plus list in verbose/JSON);
+  8. unresolved headers (informational);
+  9. metric table with baseline deltas (increase = warning, decrease = note).
 - **Exit code:**
   - `0` = no violations and no allowlist errors (warnings allowed);
   - `1` = one or more violations, stale or invalid entries, or failing cycles;
-  - `2` = configuration or environment error (unclassified file, bad rule table, missing `nm`, incomplete build tree).
+  - `2` = configuration or environment error. The full list is in [contracts/archcheck-cli.md](contracts/archcheck-cli.md) › Exit codes: unclassified file, malformed data file (including the same edge listed tagged and untagged), cyclic or illegal rule table, missing `nm`/`ninja`, unsupported generator, incomplete build tree.
 - **Formats:** human-readable text (default) or `--format json` (Principle IV). Schema in [contracts/archcheck-cli.md](contracts/archcheck-cli.md).

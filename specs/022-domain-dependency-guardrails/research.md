@@ -26,6 +26,8 @@ Every decision below was checked against the tree at master `1f456ea` / branch h
     - it drops includes in inactive `#if` branches (Windows, `HAVE_OPENEXR`, …), because those never reach the depfile.
   - Headers get edges too: a header's direct includes are resolved against the depfile of any TU that includes the header.
 - **Ninja:** Ninja folds depfiles into `.ninja_deps`. The tool reads them through `ninja -t deps`, which prints the same "object: deps…" shape. Makefiles stays the primary path, since it is what CI and local builds use.
+- **Unresolvable headers:** a header that no compiled translation unit includes can't be resolved, so it yields no edges. It's listed under `UNRESOLVED` in the report for information, and never fails the run.
+- **Unsupported generators** (anything but Unix Makefiles / Ninja) are an environment error (exit 2).
 - **Path normalization:** depfiles contain the real path (`/Users/juvenal/Projects/...`) while the checkout may be reached through `/Volumes/...`. All paths are canonicalized (`std::filesystem::weakly_canonical`) before comparison.
 - **Alternatives considered:**
   - **Pure textual include resolution** (emulating `-I` order): fragile with the flat include path and conditional includes.
@@ -105,8 +107,12 @@ Every decision below was checked against the tree at master `1f456ea` / branch h
   Paths are repo-relative. The `# demangled` comment is informational and ignored by the parser.
 - **Validation:**
   - A referenced `DB-NNN` must exist as an **Open** entry (`### DB-NNN` heading above `## Resolved`) in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`. Unknown or resolved IDs fail (FR-009).
-  - An entry applying to this platform with no matching edge fails as stale (FR-010).
+  - An entry applies to this run when its platform tag matches, or it has none. An applicable entry is **stale** (fail, FR-010) when its `from` file was compiled in this build and its edge is absent, or present but now allowed.
+  - **Not built:** an applicable entry whose `from` file wasn't compiled in this build is skipped and counted as not built, never stale. This covers configuration-dependent code (JIT off, OpenEXR off).
+    - For `include` entries, "compiled" means the file appears in at least one translation unit's depfile.
+    - For `link` entries, it means the file was compiled into an object.
   - Entries tagged for the other platform are ignored (FR-010a).
+  - The same edge listed both tagged and untagged is a configuration error.
 - **Bootstrap:** `archcheck --emit-allowlist` prints today's violating edges in this format with `DB-???` placeholders. It is used once in this spec, with IDs assigned while writing the registry entries; later specs only ever delete lines.
 - **Alternatives considered:**
   - **JSON/TOML:** JSON can't carry comments, and TOML needs a parser (Python 3.11 `tomllib` or a library).
@@ -139,16 +145,20 @@ Every decision below was checked against the tree at master `1f456ea` / branch h
     - clean pass;
     - forbidden include;
     - forbidden link reference;
-    - new cycle;
-    - stale entry;
+    - new cycle, and a cycle made only of allowlisted edges (reported, passes);
+    - incomplete build tree (environment error);
+    - stale entry, and an entry whose edge is now allowed (stale);
     - unknown registry ID;
     - resolved registry ID;
     - unclassified file;
     - tagged entry on the other platform;
-    - metric-increase warning;
+    - entry whose file isn't compiled (not built);
+    - same edge tagged and untagged (configuration error);
+    - metric-increase warning, and metric-decrease note;
     - forwarding-shim attribution.
   - **Parser unit tests** in a C++ test executable: depfile, include directive, allowlist line, registry heading, domain-map rule.
   - Tests are written first and fail before the tool exists.
+- **Scan scope:** archcheck only considers objects and depfiles whose source file lies under `<source-dir>/src/` (or matches an `@build/` rule of the domain map). Fixtures pass `--source-dir tests/architecture/fixtures/<name>` and so see only their own objects, sharing the one build tree. No extra CLI option.
 - **Rationale:** these are exactly SC-001's injection trials, automated and repeatable, without ever modifying production sources.
 
 ## R11. Registry population and tracking issues
@@ -173,7 +183,7 @@ Every decision below was checked against the tree at master `1f456ea` / branch h
   - `reyes.cpp` → `points.h`;
   - any others the tool shows to be unused cross-domain includes.
 
-  After each removal: a clean build with `-Werror` on both compilers if available, then the full suite.
+  After each removal: a clean build with `-Werror` on both compilers (Clang on macOS, GCC 13 on Linux; Linux is a merge prerequisite, see caveat), then the full suite.
   - If the build breaks: the include is genuinely needed, so restore it and register it as a real violation.
   - If the build passes: removal is behaviour-neutral, since an unused include changes no code generation. That is confirmed by the visual suite staying identical.
-- **Caveat:** a header may be needed only for a macro or inline. Build success on both compilers is the arbiter. Linux/GCC 13 validation follows the existing rsync + Maestri path (project memory) when available. If Linux validation is unavailable at that pause, the removal stays staged and is flagged as Linux-unverified.
+- **Caveat:** a header may be needed only for a macro or inline. Build success on both compilers is the arbiter. Linux/GCC 13 validation follows the existing rsync + Maestri path (project memory) and is a merge prerequisite (spec US4 #1, FR-010a). If the Linux path is unavailable at that pause, the phase stays open (not ready to merge) until it is.
