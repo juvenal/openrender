@@ -27,17 +27,17 @@
 
 namespace archcheck {
 
-// The source with comments and the contents of string and character literals
-// (raw strings included) replaced by spaces; newlines are kept.
-std::string stripCommentsAndLiterals(std::string_view source);
+    // The source with comments and the contents of string and character literals
+    // (raw strings included) replaced by spaces; newlines are kept.
+    std::string stripCommentsAndLiterals(std::string_view source);
 
-struct CoreUsage {
-    long refs = 0;
-    std::set<std::string> members; // "CRenderer::x", "CRendererContext::y"
-};
+    struct CoreUsage {
+            long refs = 0;
+            std::set<std::string> members; // "CRenderer::x", "CRendererContext::y"
+    };
 
-// Adds the renderer-core references found in already-stripped text.
-void countCoreUsage(std::string_view stripped, CoreUsage &usage);
+    // Adds the renderer-core references found in already-stripped text.
+    void countCoreUsage(std::string_view stripped, CoreUsage &usage);
 
 } // namespace archcheck
 

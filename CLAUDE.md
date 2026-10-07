@@ -247,6 +247,14 @@ hold deep dives: `OSHADER_UPDATES.md`, `RIB_GUIDE.md`, `FRAMEBUFFER_GUIDE.md`,
 `DOMAIN_BOUNDARIES.md` (constitution Principle VIII violation registry — check
 it before adding any cross-domain dependency).
 
+**Architecture check (spec 022):** `ctest --test-dir build -L architecture` runs
+`archcheck` (`tests/architecture/`) over a *complete* build: it fails on any
+include or link edge outside Principle VIII's allowed-dependency table that
+`tests/architecture/allowlist.txt` doesn't name against an Open registry entry,
+and on stale allowlist lines. How to read it, classify a new file and retire a
+fixed violation: the "Architecture check" section of
+`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`.
+
 ## Known gotchas (hard-won, not written elsewhere)
 
 1. **`C_EPSILON`** (`common/algebra.h`) = `1e-6`. `normalFix()` has two

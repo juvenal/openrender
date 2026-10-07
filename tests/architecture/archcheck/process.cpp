@@ -23,40 +23,40 @@
 
 namespace archcheck {
 
-namespace {
+    namespace {
 
-std::string shellQuote(const std::string &s) {
-    std::string q = "'";
-    for (const char c : s) {
-        if (c == '\'')
-            q += "'\\''";
-        else
-            q += c;
-    }
-    return q + "'";
-}
+        std::string shellQuote(const std::string &s) {
+            std::string q = "'";
+            for (const char c : s) {
+                if (c == '\'')
+                    q += "'\\''";
+                else
+                    q += c;
+            }
+            return q + "'";
+        }
 
-} // namespace
+    } // namespace
 
-ProcessResult runProcess(const std::vector<std::string> &argv) {
-    std::string cmd;
-    for (const std::string &a : argv) {
-        if (!cmd.empty())
-            cmd += ' ';
-        cmd += shellQuote(a);
-    }
+    ProcessResult runProcess(const std::vector<std::string> &argv) {
+        std::string cmd;
+        for (const std::string &a : argv) {
+            if (!cmd.empty())
+                cmd += ' ';
+            cmd += shellQuote(a);
+        }
 
-    ProcessResult r;
-    FILE *pipe = popen(cmd.c_str(), "r");
-    if (pipe == nullptr)
+        ProcessResult r;
+        FILE *pipe = popen(cmd.c_str(), "r");
+        if (pipe == nullptr)
+            return r;
+        std::array<char, 65536> buf;
+        std::size_t n;
+        while ((n = std::fread(buf.data(), 1, buf.size(), pipe)) > 0)
+            r.output.append(buf.data(), n);
+        const int status = pclose(pipe);
+        r.status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
         return r;
-    std::array<char, 65536> buf;
-    std::size_t n;
-    while ((n = std::fread(buf.data(), 1, buf.size(), pipe)) > 0)
-        r.output.append(buf.data(), n);
-    const int status = pclose(pipe);
-    r.status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-    return r;
-}
+    }
 
 } // namespace archcheck

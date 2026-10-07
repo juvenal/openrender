@@ -279,20 +279,20 @@ If the build breaks, restore the include, keep its allowlist line, and note it i
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T058 [P] Write the "Architecture check" section in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-014):
+- [X] T058 [P] Write the "Architecture check" section in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-014):
   - purpose; how to run it (`ctest -L architecture`, direct invocation); how to read each report line type; the data files;
   - **two worked examples of at most 5 steps each:** classifying a new file, and retiring a fixed violation (delete the allowlist line(s), move the registry entry to Resolved with commit and date, lower the metric baseline if applicable) (SC-006);
   - the known limitation that the release workflow runs only on releases.
 
   Verify that each worked example has at most 5 steps (SC-006).
-- [ ] T059 [P] Add a pointer to the check and its documentation in `CLAUDE.md`, under the dev-workflow notes (FR-014).
-- [ ] T060 Move registry entry DB-002 to `## Resolved` in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, recording "resolved by spec 022" and the date; the commit hash is added after the maintainer's merge. Prepare the closing comment text for issue #25 in `specs/022-domain-dependency-guardrails/tracking-issues.md`; it is closed **only after the maintainer merges** (FR-016).
-- [ ] T061 Measure the runtime budget. Time `ctest --test-dir build -L architecture` on a Release build, on the Apple Silicon machine and on Linux. Both measurements are required (SC-005); like T043/T057, the phase stays open until the Linux timing exists. Record the results in `specs/022-domain-dependency-guardrails/validation.md`; each must be at most 60 s (SC-005).
-- [ ] T062 Run the quickstart.md validation scenarios 1–7 and record the results in `specs/022-domain-dependency-guardrails/validation.md`, including:
+- [X] T059 [P] Add a pointer to the check and its documentation in `CLAUDE.md`, under the dev-workflow notes (FR-014).
+- [X] T060 Move registry entry DB-002 to `## Resolved` in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, recording "resolved by spec 022" and the date; the commit hash is added after the maintainer's merge. Prepare the closing comment text for issue #25 in `specs/022-domain-dependency-guardrails/tracking-issues.md`; it is closed **only after the maintainer merges** (FR-016).
+- [X] T061 Measure the runtime budget. Time `ctest --test-dir build -L architecture` on a Release build, on the Apple Silicon machine and on Linux. Both measurements are required (SC-005); like T043/T057, the phase stays open until the Linux timing exists. Record the results in `specs/022-domain-dependency-guardrails/validation.md`; each must be at most 60 s (SC-005).
+- [X] T062 Run the quickstart.md validation scenarios 1–7 and record the results in `specs/022-domain-dependency-guardrails/validation.md`, including:
   - the manual injection spot check on the real tree, reverted afterwards and never staged;
   - CI coverage, i.e. confirming `release.yml` runs plain `ctest` in all three jobs.
-- [ ] T063 Format all new sources under `tests/architecture/` with the repo's `.clang-format` (`clang-format -i`), rebuild, and confirm a second run produces no diff (constitution › Code Quality).
-- [ ] T064 Run the full `ctest --test-dir build`. It must equal the pre-feature baseline (FR-015, SC-004), apart from the new `architecture` tests, which all pass.
+- [X] T063 Format all new sources under `tests/architecture/` with the repo's `.clang-format` (`clang-format -i`), rebuild, and confirm a second run produces no diff (constitution › Code Quality).
+- [X] T064 Run the full `ctest --test-dir build`. It must equal the pre-feature baseline (FR-015, SC-004), apart from the new `architecture` tests, which all pass.
 
 **Checkpoint (PAUSE 7, final)**: the feature is complete. Stage, summarize, wait for review and commit; then `/speckit-converge`.
 

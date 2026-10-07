@@ -23,14 +23,14 @@
 
 namespace archcheck {
 
-struct ProcessResult {
-    int status = -1;     // exit status; 127 = command not found
-    std::string output;  // stdout only; stderr goes to archcheck's stderr
-};
+    struct ProcessResult {
+            int status = -1;    // exit status; 127 = command not found
+            std::string output; // stdout only; stderr goes to archcheck's stderr
+    };
 
-// Runs argv[0] with the given arguments through /bin/sh, every argument
-// single-quoted, so paths with spaces are safe.
-ProcessResult runProcess(const std::vector<std::string> &argv);
+    // Runs argv[0] with the given arguments through /bin/sh, every argument
+    // single-quoted, so paths with spaces are safe.
+    ProcessResult runProcess(const std::vector<std::string> &argv);
 
 } // namespace archcheck
 

@@ -1,4 +1,4 @@
 #pragma once
 struct Attributes {
-    int sides = 2;
+        int sides = 2;
 };

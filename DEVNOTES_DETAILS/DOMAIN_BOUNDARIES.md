@@ -15,6 +15,76 @@ not yet comply.
 - When an entry is fully resolved, move it to **Resolved** with the commit and date — don't delete it.
 - Only record what the code demonstrably shows (a symbol list, a header, a link line), not suspicion.
 
+## Architecture check
+
+`archcheck` (spec 022, `tests/architecture/`) enforces this registry. It maps every source under
+`src/` to its domain and reads the build tree for two kinds of dependency edge:
+- **include edges**: each file's direct `#include`s, resolved the way its compiler resolved them
+  (the search path from `flags.make`, confirmed by the translation unit's depfile, so includes in
+  inactive `#if` branches drop out);
+- **link edges**: an undefined symbol in a source file's object, attributed to the classes whose
+  sources define it (`nm`).
+
+An edge outside the constitution's allowed-dependency table fails the check unless the allowlist
+names it against an **Open** entry below. The allowlist only shrinks: an entry whose edge is gone
+fails as stale.
+
+**Run it**
+
+- `ctest --test-dir build -L architecture`: the real-tree check (`Architecture_DomainBoundaries`),
+  the fixture scenarios, the parser tests and the determinism test. Needs a complete build.
+- Directly, for the full report:
+  `build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture`
+  (`--format json`, `--quiet`, `--platform macos|linux`, `--emit-allowlist`; see `--help`).
+- Exit codes: 0 pass, 1 check failed, 2 configuration or environment error (unclassified file,
+  malformed data file, incomplete build tree, missing `nm`).
+
+**Read the report**
+
+| Line | Meaning | Fails? |
+|---|---|---|
+| `VIOLATION` | an edge the table forbids and no allowlist line covers: file, header or symbol (raw, demangled, defining file), both classes, the rule | yes |
+| `STALE` | an allowlist line whose edge no longer exists, or is now allowed: delete the line | yes |
+| `BADID` | an allowlist line naming an unknown or Resolved registry ID | yes |
+| `CYCLE` | a cycle between classes, with one example edge per hop; `[FAILING]` if a hop is a violation, `[allowlisted]` otherwise | if `[FAILING]` |
+| `ALLOWED` | allowlisted edges per registry ID | no |
+| `CONSUMER` | a tool, binding or preview including a domain's headers (recorded under DB-024) | no |
+| `NOTBUILT` | an allowlist line for a file this build does not compile | no |
+| `UNRESOLVED` | a header no compiled translation unit includes, so it yields no edges | no |
+| `METRIC` / `WARNING` / `NOTE` | renderer-core usage (`CRenderer::` / `CRendererContext::` references and distinct members) per class against the baseline; an increase warns, a decrease suggests lowering the baseline | no |
+
+**Data files** (`tests/architecture/`, formats in
+`specs/022-domain-dependency-guardrails/contracts/data-files.md`)
+
+- `domain-map.txt`: path prefix or exact file → class. Classification is by location; file rules
+  exist only for forwarding shims, plug-in ABI headers and generated sources.
+- `domain-rules.txt`: the constitution's allowed-dependency table. Change only by amendment.
+- `allowlist.txt`: one line per known violating edge, with its registry ID and an optional
+  `macos`/`linux` tag for edges the two toolchains spell differently.
+- `metrics-baseline.txt`: renderer-core usage per class.
+
+**Classify a new file** (the check stops with `unclassified: <path>`)
+
+1. Find the domain that owns the code (constitution Principle VIII). A file in an existing domain
+   directory is already classified; this applies only to a new directory or a misplaced file.
+2. Prefer moving the file into its domain's directory over adding a rule.
+3. Otherwise add one `prefix` line for the new directory (or a `file` line for a single file) to
+   `domain-map.txt`.
+4. Rebuild and run `ctest -L architecture`; fix or register any `VIOLATION` it now reports.
+
+**Retire a fixed violation**
+
+1. Make the fix and rebuild; `ctest -L architecture` reports the now-missing edges as `STALE`.
+2. Delete exactly those lines from `allowlist.txt`.
+3. If the entry has no allowlist lines left and its finding is gone, move it under **Resolved**
+   with the commit and date.
+4. If `NOTE metric … < baseline` appears, lower `metrics-baseline.txt` to the reported values.
+5. Re-run `ctest -L architecture` on macOS and Linux.
+
+**Known limitation:** CI runs the check only where `ctest` runs, i.e. in
+`.github/workflows/release.yml`, which runs on version-tag pushes, not on every push or pull
+request. Run `ctest -L architecture` locally before review.
+
 ## Open
 
 ### DB-001 — Shading resolves renderer-core symbols at load time
@@ -53,19 +123,6 @@ not yet comply.
   renderer-core calls through interfaces Shading owns (trace/gather, photon/texture3d lookup,
   filter/variable/DSO services), implemented and registered by the higher layers. Options are
   analysed in #24.
-
-### DB-002 — No automated domain-dependency check in CI
-
-- **Rule**: 7 (CI MUST fail on dependency cycles and on cross-domain dependencies outside the
-  allowed-dependency table).
-- **Tracking**: [#25](https://github.com/juvenal/openrender/issues/25) (enhancement)
-- **Evidence**: `.github/workflows/` holds only `deploy-site.yml` and `release.yml`; neither runs a
-  dependency-graph check, and no such test exists under `tests/`.
-- **Direction**: a check over the CMake target graph (e.g. `cmake --graphviz`) and/or the link-level
-  symbol graph (`nm`/`dyld_info`, which is what exposes DB-001), mapping targets/paths to domains
-  and failing on any edge the table forbids. Until the source tree is split into one target per
-  domain, the check has to map by source directory; it should start by encoding DB-001 as a known,
-  allowed-for-now exception rather than failing on day one.
 
 ### DB-003 — Plug-in ABI headers carry no interface version
 
@@ -449,6 +506,25 @@ not yet comply.
   driver and the texture decoder.
 
 ## Resolved
+
+### DB-002 — No automated domain-dependency check in CI
+
+- **Rule**: 7 (CI MUST fail on dependency cycles and on cross-domain dependencies outside the
+  allowed-dependency table).
+- **Tracking**: [#25](https://github.com/juvenal/openrender/issues/25) (enhancement)
+- **Evidence**: `.github/workflows/` holds only `deploy-site.yml` and `release.yml`; neither runs a
+  dependency-graph check, and no such test exists under `tests/`.
+- **Direction**: a check over the CMake target graph (e.g. `cmake --graphviz`) and/or the link-level
+  symbol graph (`nm`/`dyld_info`, which is what exposes DB-001), mapping targets/paths to domains
+  and failing on any edge the table forbids. Until the source tree is split into one target per
+  domain, the check has to map by source directory; it should start by encoding DB-001 as a known,
+  allowed-for-now exception rather than failing on day one.
+- **Resolved** by spec 022 (domain-dependency guardrails), 2026-10-07; merge commit: _added after
+  merge_. `ctest -L architecture` runs `archcheck` (see **Architecture check** above) wherever
+  `ctest` runs, including all three jobs of `.github/workflows/release.yml`. The direction above
+  was taken with two refinements: edges come from compiler depfiles and per-object `nm` rather than
+  `cmake --graphviz`, and every current violation (DB-001 and DB-004 included) is allowlisted per
+  edge instead of being exempted as a whole. #25 is closed after the merge.
 
 ### DB-022 — Vestigial cross-domain includes
 

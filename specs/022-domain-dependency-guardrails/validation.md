@@ -59,6 +59,35 @@ Spec 022 changes nothing under `src/` and no build file outside `tests/architect
 | `Visual_blobby-max-union-reyes` | 1 block at 20.09 against a threshold of 20 | stochastic noise at the threshold edge |
 | `Perf_sphere-gather`, `Visual_teapot-motion-raytrace` | failed without a diff report | probably time limits under `-j4` with `nice` on the shared host; not investigated |
 
+## Phase 7: polish and final validation
+
+### Runtime budget (T061, SC-005: at most 60 s each)
+
+| Platform | `ctest -L architecture` (20 tests) | `archcheck` alone |
+|---|---|---|
+| macOS, Apple M2, Release | 2.6 s | 0.6 s |
+| Linux, Ubuntu 24.04 (GCC 13.3), Release | 2.9 s (20/20) | 0.5 s |
+
+### Quickstart scenarios (T062)
+
+| # | Scenario | Result |
+|---|---|---|
+| 1 | Check passes on the current tree | `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; every `CYCLE` line is `[allowlisted]` |
+| 2 | Injected violations | all fixture scenarios pass. Manual spot check on the real tree: `#include "shader.h"` appended to `src/ri/state/options.cpp` (instead of the quickstart's `xform.h`, to recompile 3 objects rather than most of the tree) gave `VIOLATION include src/ri/state/options.cpp -> src/ri/core/shader.h [GraphicsState -> Shading] rule: …`, two `[FAILING]` cycles and exit 1; reverted with `git checkout`, rebuilt, `RESULT PASS` again. Never staged. |
+| 3 | Registry and allowlist integrity | fixtures pass; on the real files `badid=0`, every DB-005+ entry carries rule, tracking, evidence, size and direction, and `registry-reconciliation.md` maps V1–V21 one to one |
+| 4 | Metric and determinism | `Architecture_Determinism` passes (two JSON runs byte-identical); the metric fixtures pass |
+| 5 | Vestigial includes removed | `git diff 607ccc1 -- src`: 12 files, 19 deleted lines, all `#include`; clean `-Werror` build on both compilers; the check no longer reports those edges |
+| 6 | Runtime budget | see the table above |
+| 7 | CI coverage | `.github/workflows/release.yml` runs plain `ctest` in all three jobs (lines 149, 248, 370), so `Architecture_DomainBoundaries` runs there. The workflow triggers on version-tag pushes only. |
+
+### Formatting (T063)
+
+`clang-format -i` (repo `.clang-format`, clang-format 23.1.2) over the 54 C/C++ sources under `tests/architecture/`: 18 files reflowed (namespace and struct-member indentation); a second pass reports nothing. Rebuilt under `-Werror`; `ctest -L architecture` 20/20.
+
+### Final full suite (T064, FR-015, SC-004)
+
+macOS, clean `-Werror` build, `nice -n 19 ctest -j4`: **557/557** passed (105 s). That is the pre-feature suite (537 tests on master `607ccc1`) plus the 20 new `architecture` tests, all passing; no existing result changed.
+
 ## Caveat: build configuration
 
 The allowlist is measured on a **Release, JIT-on** build. A Debug tree can add link references that `-O3` eliminated (assert-only and debug-only paths, out-of-line inline functions), and a JIT-off build compiles fewer files. `NOTBUILT` covers files a configuration doesn't compile, not different edges inside a file that it does compile. A Debug or JIT-off run may therefore report violations that Release doesn't. The check is defined against the Release configuration CI builds; other configurations are informational until measured.

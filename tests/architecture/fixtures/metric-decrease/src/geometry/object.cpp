@@ -1,10 +1,10 @@
 // Stand-ins for the renderer core: the metric reads source text only, and the
 // in-class initializers add no "CRenderer::" text of their own.
 struct CRenderer {
-    static inline int a = 0;
+        static inline int a = 0;
 };
 struct CRendererContext {
-    static inline int b = 0;
+        static inline int b = 0;
 };
 
 // CRenderer::inComment must not be counted.

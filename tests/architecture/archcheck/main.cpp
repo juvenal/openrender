@@ -39,172 +39,172 @@ using namespace archcheck;
 
 namespace {
 
-namespace fs = std::filesystem;
+    namespace fs = std::filesystem;
 
-struct Options {
-    std::string sourceDir;
-    std::string buildDir;
-    std::string configDir;
-    std::string registry;
-    std::string platform;
-    std::string format = "text";
-    bool emitAllowlist = false;
-    bool quiet = false;
-};
+    struct Options {
+            std::string sourceDir;
+            std::string buildDir;
+            std::string configDir;
+            std::string registry;
+            std::string platform;
+            std::string format = "text";
+            bool emitAllowlist = false;
+            bool quiet = false;
+    };
 
-void printUsage(FILE *out) {
-    std::fputs("usage: archcheck --source-dir <repo> --build-dir <build> --config <dir>\n"
-               "                 [--platform macos|linux] [--format text|json]\n"
-               "                 [--emit-allowlist] [--registry <file>] [--quiet]\n"
-               "       archcheck --help\n"
-               "\n"
-               "Checks a CMake build tree against the Principle VIII allowed-dependency\n"
-               "table (include edges from compiler depfiles, link edges from nm).\n"
-               "\n"
-               "  --source-dir      repository root; only <source-dir>/src/ is scanned\n"
-               "  --build-dir       CMake build tree holding objects and depfiles\n"
-               "  --config          directory with domain-map.txt, domain-rules.txt,\n"
-               "                    allowlist.txt and metrics-baseline.txt\n"
-               "  --registry        registry markdown file\n"
-               "                    (default <source-dir>/DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md)\n"
-               "  --platform        allowlist platform tag to apply (default: host)\n"
-               "  --format          text (default) or json\n"
-               "  --emit-allowlist  print every current non-allowed edge as allowlist lines\n"
-               "  --quiet           text mode: only failures, warnings and the summary\n"
-               "\n"
-               "Data files (in --config):\n"
-               "  domain-map.txt        file/prefix -> class (SceneInterface, GraphicsState,\n"
-               "                        Geometry, Hiders, Shading, Texturing, ShaderDSO,\n"
-               "                        Procedures, Display, Core, Infra, Consumer)\n"
-               "  domain-rules.txt      the constitution's allowed-dependency table\n"
-               "  allowlist.txt         known violating edges, one per line, each with an\n"
-               "                        Open registry id and an optional macos|linux tag\n"
-               "  metrics-baseline.txt  renderer-core usage baseline per class\n"
-               "\n"
-               "Exit: 0 pass, 1 check failed (violation, stale or invalid allowlist entry,\n"
-               "      failing cycle), 2 configuration or environment error.\n",
-               out);
-}
+    void printUsage(FILE *out) {
+        std::fputs("usage: archcheck --source-dir <repo> --build-dir <build> --config <dir>\n"
+                   "                 [--platform macos|linux] [--format text|json]\n"
+                   "                 [--emit-allowlist] [--registry <file>] [--quiet]\n"
+                   "       archcheck --help\n"
+                   "\n"
+                   "Checks a CMake build tree against the Principle VIII allowed-dependency\n"
+                   "table (include edges from compiler depfiles, link edges from nm).\n"
+                   "\n"
+                   "  --source-dir      repository root; only <source-dir>/src/ is scanned\n"
+                   "  --build-dir       CMake build tree holding objects and depfiles\n"
+                   "  --config          directory with domain-map.txt, domain-rules.txt,\n"
+                   "                    allowlist.txt and metrics-baseline.txt\n"
+                   "  --registry        registry markdown file\n"
+                   "                    (default <source-dir>/DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md)\n"
+                   "  --platform        allowlist platform tag to apply (default: host)\n"
+                   "  --format          text (default) or json\n"
+                   "  --emit-allowlist  print every current non-allowed edge as allowlist lines\n"
+                   "  --quiet           text mode: only failures, warnings and the summary\n"
+                   "\n"
+                   "Data files (in --config):\n"
+                   "  domain-map.txt        file/prefix -> class (SceneInterface, GraphicsState,\n"
+                   "                        Geometry, Hiders, Shading, Texturing, ShaderDSO,\n"
+                   "                        Procedures, Display, Core, Infra, Consumer)\n"
+                   "  domain-rules.txt      the constitution's allowed-dependency table\n"
+                   "  allowlist.txt         known violating edges, one per line, each with an\n"
+                   "                        Open registry id and an optional macos|linux tag\n"
+                   "  metrics-baseline.txt  renderer-core usage baseline per class\n"
+                   "\n"
+                   "Exit: 0 pass, 1 check failed (violation, stale or invalid allowlist entry,\n"
+                   "      failing cycle), 2 configuration or environment error.\n",
+                   out);
+    }
 
-// Returns kExitPass to continue, or the exit code to stop with.
-int parseArgs(int argc, char **argv, Options &opt, bool &helpOnly) {
-    for (int i = 1; i < argc; i++) {
-        const std::string_view arg = argv[i];
-        auto value = [&](std::string &dst) {
-            if (i + 1 >= argc) {
-                std::fprintf(stderr, "archcheck: %s expects a value\n", argv[i]);
-                return false;
+    // Returns kExitPass to continue, or the exit code to stop with.
+    int parseArgs(int argc, char **argv, Options &opt, bool &helpOnly) {
+        for (int i = 1; i < argc; i++) {
+            const std::string_view arg = argv[i];
+            auto value = [&](std::string &dst) {
+                if (i + 1 >= argc) {
+                    std::fprintf(stderr, "archcheck: %s expects a value\n", argv[i]);
+                    return false;
+                }
+                dst = argv[++i];
+                return true;
+            };
+
+            if (arg == "--help" || arg == "-h") {
+                helpOnly = true;
+                return kExitPass;
             }
-            dst = argv[++i];
-            return true;
-        };
+            else if (arg == "--source-dir") {
+                if (!value(opt.sourceDir))
+                    return kExitError;
+            }
+            else if (arg == "--build-dir") {
+                if (!value(opt.buildDir))
+                    return kExitError;
+            }
+            else if (arg == "--config") {
+                if (!value(opt.configDir))
+                    return kExitError;
+            }
+            else if (arg == "--registry") {
+                if (!value(opt.registry))
+                    return kExitError;
+            }
+            else if (arg == "--platform") {
+                if (!value(opt.platform))
+                    return kExitError;
+                if (opt.platform != "macos" && opt.platform != "linux") {
+                    std::fprintf(stderr, "archcheck: --platform must be macos or linux\n");
+                    return kExitError;
+                }
+            }
+            else if (arg == "--format") {
+                if (!value(opt.format))
+                    return kExitError;
+                if (opt.format != "text" && opt.format != "json") {
+                    std::fprintf(stderr, "archcheck: --format must be text or json\n");
+                    return kExitError;
+                }
+            }
+            else if (arg == "--emit-allowlist") {
+                opt.emitAllowlist = true;
+            }
+            else if (arg == "--quiet") {
+                opt.quiet = true;
+            }
+            else {
+                std::fprintf(stderr, "archcheck: unknown option %s\n", argv[i]);
+                printUsage(stderr);
+                return kExitError;
+            }
+        }
 
-        if (arg == "--help" || arg == "-h") {
-            helpOnly = true;
-            return kExitPass;
-        }
-        else if (arg == "--source-dir") {
-            if (!value(opt.sourceDir))
-                return kExitError;
-        }
-        else if (arg == "--build-dir") {
-            if (!value(opt.buildDir))
-                return kExitError;
-        }
-        else if (arg == "--config") {
-            if (!value(opt.configDir))
-                return kExitError;
-        }
-        else if (arg == "--registry") {
-            if (!value(opt.registry))
-                return kExitError;
-        }
-        else if (arg == "--platform") {
-            if (!value(opt.platform))
-                return kExitError;
-            if (opt.platform != "macos" && opt.platform != "linux") {
-                std::fprintf(stderr, "archcheck: --platform must be macos or linux\n");
-                return kExitError;
-            }
-        }
-        else if (arg == "--format") {
-            if (!value(opt.format))
-                return kExitError;
-            if (opt.format != "text" && opt.format != "json") {
-                std::fprintf(stderr, "archcheck: --format must be text or json\n");
-                return kExitError;
-            }
-        }
-        else if (arg == "--emit-allowlist") {
-            opt.emitAllowlist = true;
-        }
-        else if (arg == "--quiet") {
-            opt.quiet = true;
-        }
-        else {
-            std::fprintf(stderr, "archcheck: unknown option %s\n", argv[i]);
+        if (opt.sourceDir.empty() || opt.buildDir.empty() || opt.configDir.empty()) {
+            std::fprintf(stderr, "archcheck: --source-dir, --build-dir and --config are required\n");
             printUsage(stderr);
             return kExitError;
         }
-    }
-
-    if (opt.sourceDir.empty() || opt.buildDir.empty() || opt.configDir.empty()) {
-        std::fprintf(stderr, "archcheck: --source-dir, --build-dir and --config are required\n");
-        printUsage(stderr);
-        return kExitError;
-    }
-    if (opt.registry.empty())
-        opt.registry = (fs::path(opt.sourceDir) / "DEVNOTES_DETAILS" / "DOMAIN_BOUNDARIES.md").string();
-    if (opt.platform.empty()) {
+        if (opt.registry.empty())
+            opt.registry = (fs::path(opt.sourceDir) / "DEVNOTES_DETAILS" / "DOMAIN_BOUNDARIES.md").string();
+        if (opt.platform.empty()) {
 #if defined(__APPLE__)
-        opt.platform = "macos";
+            opt.platform = "macos";
 #else
-        opt.platform = "linux";
+            opt.platform = "linux";
 #endif
+        }
+        return kExitPass;
     }
-    return kExitPass;
-}
 
-bool readFile(const fs::path &p, std::string &out) {
-    std::ifstream f(p, std::ios::binary);
-    if (!f)
-        return false;
-    std::ostringstream ss;
-    ss << f.rdbuf();
-    out = ss.str();
-    return true;
-}
-
-// Loads one data file through its parser; prints errors and returns false.
-template <class T, class Parser>
-bool load(const fs::path &path, Parser parse, T &out) {
-    std::string text;
-    if (!readFile(path, text)) {
-        std::fprintf(stderr, "archcheck: cannot read %s\n", path.string().c_str());
-        return false;
+    bool readFile(const fs::path &p, std::string &out) {
+        std::ifstream f(p, std::ios::binary);
+        if (!f)
+            return false;
+        std::ostringstream ss;
+        ss << f.rdbuf();
+        out = ss.str();
+        return true;
     }
-    auto parsed = parse(text, path.string());
-    for (const Diagnostic &d : parsed.errors)
-        std::fprintf(stderr, "archcheck: %s\n", d.str().c_str());
-    if (!parsed.ok())
-        return false;
-    out = std::move(*parsed.value);
-    return true;
-}
 
-bool isScanned(const fs::path &p) {
-    static const std::set<std::string> kExt = {".c", ".cc", ".cpp", ".h", ".hpp", ".y", ".l"};
-    return kExt.count(p.extension().string()) != 0;
-}
+    // Loads one data file through its parser; prints errors and returns false.
+    template <class T, class Parser>
+    bool load(const fs::path &path, Parser parse, T &out) {
+        std::string text;
+        if (!readFile(path, text)) {
+            std::fprintf(stderr, "archcheck: cannot read %s\n", path.string().c_str());
+            return false;
+        }
+        auto parsed = parse(text, path.string());
+        for (const Diagnostic &d : parsed.errors)
+            std::fprintf(stderr, "archcheck: %s\n", d.str().c_str());
+        if (!parsed.ok())
+            return false;
+        out = std::move(*parsed.value);
+        return true;
+    }
 
-bool isHeader(std::string_view path) {
-    return path.ends_with(".h") || path.ends_with(".hpp");
-}
+    bool isScanned(const fs::path &p) {
+        static const std::set<std::string> kExt = {".c", ".cc", ".cpp", ".h", ".hpp", ".y", ".l"};
+        return kExt.count(p.extension().string()) != 0;
+    }
 
-// A domain proper: not Core, Infra or Consumer.
-bool isDomain(Class c) {
-    return c != Class::Core && c != Class::Infra && c != Class::Consumer;
-}
+    bool isHeader(std::string_view path) {
+        return path.ends_with(".h") || path.ends_with(".hpp");
+    }
+
+    // A domain proper: not Core, Infra or Consumer.
+    bool isDomain(Class c) {
+        return c != Class::Core && c != Class::Infra && c != Class::Consumer;
+    }
 
 } // namespace
 
