@@ -238,13 +238,13 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Implementation
 
-- [ ] T048 [US3] Implement the scanner in `tests/architecture/archcheck/metrics.{h,cpp}`, per FR-012 / research R8:
+- [X] T048 [US3] Implement the scanner in `tests/architecture/archcheck/metrics.{h,cpp}`, per FR-012 / research R8:
   - strip comments and string/char literals;
   - match `CRenderer::<member>` and `CRendererContext::<member>`, with definitions counted;
   - scan every scanned file outside Core and Consumer, grouped by class, plus `TOTAL`;
   - count generated sources through their `.y`/`.l` grammars only.
-- [ ] T049 [US3] Implement the baseline comparison and `METRIC`/`WARNING`/`NOTE` output in `tests/architecture/archcheck/report.cpp`: an increase is a warning, a decrease is a note, neither fails. Register fixtures T046–T047.
-- [ ] T050 [US3] Seed `tests/architecture/metrics-baseline.txt` from a real-tree run. Add ctest `Architecture_Determinism` (label `architecture`): run `archcheck --format json` twice into `${CMAKE_BINARY_DIR}` and compare with `${CMAKE_COMMAND} -E compare_files` (SC-007; no Python).
+- [X] T049 [US3] Implement the baseline comparison and `METRIC`/`WARNING`/`NOTE` output in `tests/architecture/archcheck/report.cpp`: an increase is a warning, a decrease is a note, neither fails. Register fixtures T046–T047.
+- [X] T050 [US3] Seed `tests/architecture/metrics-baseline.txt` from a real-tree run. Add ctest `Architecture_Determinism` (label `architecture`): run `archcheck --format json` twice into `${CMAKE_BINARY_DIR}` and compare with `${CMAKE_COMMAND} -E compare_files` (SC-007; no Python).
 
 **Checkpoint (PAUSE 5)**: the metric is reported, compared and deterministic. Stage, summarize, wait for review and commit.
 

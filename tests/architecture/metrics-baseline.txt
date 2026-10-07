@@ -6,3 +6,14 @@
 #
 # Lower it when a spec reduces usage. Never raise it to silence a warning
 # without a stated reason in the PR.
+#
+# Seeded by spec 022 (T050) from the real tree on 2026-10-07 (macOS; the
+# metric reads source text, so it is platform-independent).
+
+Geometry           76    19
+Hiders            588    88
+Infra              10     2
+SceneInterface     19     7
+Shading            16     6
+Texturing         104    17
+TOTAL             813   118

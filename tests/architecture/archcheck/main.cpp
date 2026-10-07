@@ -31,6 +31,7 @@
 #include "config.h"
 #include "graph.h"
 #include "includes.h"
+#include "metrics.h"
 #include "report.h"
 #include "symbols.h"
 
@@ -384,6 +385,43 @@ int main(int argc, char **argv) {
     for (const auto &[file, cls] : classOfFile)
         if (isHeader(file) && !inc.seen.count(file))
             report.unresolvedHeaders.push_back(file);
+
+    // Renderer-core usage per class (FR-012). Only files under src/ are read:
+    // generated parsers count through their .y/.l grammars, never twice.
+    {
+        std::map<std::string, CoreUsage> usage;
+        CoreUsage total;
+        for (const auto &[file, cls] : classOfFile) {
+            if (cls == Class::Core || cls == Class::Consumer)
+                continue;
+            std::string text;
+            if (!readFile(fs::path(mapper.sourceDir()) / file, text))
+                continue;
+            CoreUsage &u = usage[std::string(className(cls))];
+            CoreUsage one;
+            countCoreUsage(stripCommentsAndLiterals(text), one);
+            u.refs += one.refs;
+            u.members.insert(one.members.begin(), one.members.end());
+            total.refs += one.refs;
+            total.members.insert(one.members.begin(), one.members.end());
+        }
+        auto row = [&](const std::string &name, long refs, long distinct) {
+            MetricRow m;
+            m.cls = name;
+            m.refs = refs;
+            m.distinct = distinct;
+            if (const auto b = baseline.find(name); b != baseline.end())
+                m.baseline = b->second;
+            if (refs != 0 || distinct != 0 || m.baseline)
+                report.metrics.push_back(std::move(m));
+        };
+        for (const auto &[name, u] : usage)
+            row(name, u.refs, static_cast<long>(u.members.size()));
+        for (const auto &[name, b] : baseline)
+            if (name != "TOTAL" && !usage.count(name))
+                row(name, 0, 0);
+        row("TOTAL", total.refs, static_cast<long>(total.members.size()));
+    }
 
     if (opt.format == "json")
         writeJson(report, stdout);

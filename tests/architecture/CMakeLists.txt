@@ -38,6 +38,16 @@ add_test(NAME Architecture_DomainBoundaries
 set_tests_properties(Architecture_DomainBoundaries PROPERTIES
     TIMEOUT 120 LABELS "architecture")
 
+# The report must be byte-identical from run to run (SC-007).
+add_test(NAME Architecture_Determinism
+    COMMAND ${CMAKE_COMMAND}
+        -DARCHCHECK=$<TARGET_FILE:archcheck>
+        "-DARCHCHECK_ARGS=--source-dir;${CMAKE_SOURCE_DIR};--build-dir;${CMAKE_BINARY_DIR};--config;${CMAKE_SOURCE_DIR}/tests/architecture"
+        -DOUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/run_determinism.cmake)
+set_tests_properties(Architecture_Determinism PROPERTIES
+    TIMEOUT 120 LABELS "architecture")
+
 # archcheck_add_fixture(<name> <expected-exit> <pass-regex>
 #                       [FAIL_REGEX <regex>] [BUILD_DIR <dir>]
 #                       [EXCLUDE <relpath>...] [ARGS <arg>...])
