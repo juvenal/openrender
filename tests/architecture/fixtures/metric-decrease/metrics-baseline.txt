@@ -1,0 +1,3 @@
+# Fixture metric baseline: above the measured 3 refs / 2 distinct.
+Geometry  5  3
+TOTAL     5  3

@@ -142,3 +142,10 @@ archcheck_add_fixture(not-built 0
     EXCLUDE state/legacy.cpp)
 archcheck_add_fixture(tagged-untagged-dup 2
     "allowlist\\.txt:3: same edge listed tagged and untagged")
+
+# --- User Story 3: renderer-core usage metric (spec 022 T046-T047) ----------
+archcheck_add_fixture(metric-increase 0
+    "WARNING +metric Geometry refs 3 > baseline 2 \\(\\+1\\).*WARNING +metric Geometry distinct 2 > baseline 1 \\(\\+1\\).*RESULT +PASS")
+archcheck_add_fixture(metric-decrease 0
+    "NOTE +metric Geometry refs 3 < baseline 5 \\(-2\\).*NOTE +metric Geometry distinct 2 < baseline 3 \\(-1\\).*RESULT +PASS"
+    FAIL_REGEX "WARNING")

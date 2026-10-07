@@ -231,8 +231,8 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Fixtures first
 
-- [ ] T046 [P] [US3] Fixture `tests/architecture/fixtures/metric-increase/`: a Geometry file with `CRenderer::a` used twice and `CRendererContext::b` once, plus one reference inside a comment and one inside a string literal (neither counted). Its baseline is `Geometry 2 1`. Expect exit 0, `WARNING metric Geometry refs 3 > baseline 2 (+1)`, and `distinct 2 > baseline 1 (+1)` (US3 #2, FR-012).
-- [ ] T047 [P] [US3] Fixture `tests/architecture/fixtures/metric-decrease/`: the same tree with baseline `Geometry 5 3`. Expect exit 0 and `NOTE metric Geometry refs 3 < baseline 5` (US3 #3).
+- [X] T046 [P] [US3] Fixture `tests/architecture/fixtures/metric-increase/`: a Geometry file with `CRenderer::a` used twice and `CRendererContext::b` once, plus one reference inside a comment and one inside a string literal (neither counted). Its baseline is `Geometry 2 1`. Expect exit 0, `WARNING metric Geometry refs 3 > baseline 2 (+1)`, and `distinct 2 > baseline 1 (+1)` (US3 #2, FR-012).
+- [X] T047 [P] [US3] Fixture `tests/architecture/fixtures/metric-decrease/`: the same tree with baseline `Geometry 5 3`. Expect exit 0 and `NOTE metric Geometry refs 3 < baseline 5` (US3 #3).
 
 **Checkpoint (TEST-APPROVAL 5a)**: the US3 fixtures are written and failing. Stage, show the failing output, and wait for the maintainer's approval of the tests before T048.
 
