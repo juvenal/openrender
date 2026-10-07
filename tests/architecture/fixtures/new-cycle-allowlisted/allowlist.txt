@@ -1,0 +1,3 @@
+# Fixture allowlist: both cycle edges registered against Open DB-001.
+DB-001  include  src/geometry/surface.cpp  ->  src/shading/shader.h
+DB-001  include  src/shading/shader.cpp   ->  src/geometry/object.h

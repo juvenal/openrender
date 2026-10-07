@@ -1,0 +1,13 @@
+# Copy of tests/architecture/domain-rules.txt (constitution v1.2.0).
+Core           -> *
+Consumer       -> *
+*              -> Infra
+GraphicsState  ->
+Texturing      ->
+SceneInterface -> GraphicsState Geometry
+Geometry       -> GraphicsState Procedures
+Shading        -> GraphicsState Texturing ShaderDSO
+Hiders         -> GraphicsState Geometry Shading Display
+ShaderDSO      ->
+Procedures     ->
+Display        ->

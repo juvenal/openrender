@@ -30,7 +30,8 @@ set_tests_properties(Architecture_Parsers PROPERTIES
     TIMEOUT 60 LABELS "architecture;unit")
 
 # archcheck_add_fixture(<name> <expected-exit> <pass-regex>
-#                       [BUILD_DIR <dir>] [EXCLUDE <relpath>...] [ARGS <arg>...])
+#                       [FAIL_REGEX <regex>] [BUILD_DIR <dir>]
+#                       [EXCLUDE <relpath>...] [ARGS <arg>...])
 #
 # Compiles tests/architecture/fixtures/<name>/src/** as an OBJECT library, so
 # the fixture has real .o and .o.d files in this build tree, and registers
@@ -44,13 +45,14 @@ set_tests_properties(Architecture_Parsers PROPERTIES
 # output matches <pass-regex>; run_fixture.cmake checks both, because ctest's
 # PASS_REGULAR_EXPRESSION alone would ignore the exit status.
 #
+#   FAIL_REGEX output that must NOT appear
 #   BUILD_DIR  overrides --build-dir (e.g. an empty directory, for the
 #              incomplete-build scenario)
 #   EXCLUDE    fixture sources (relative to the fixture's src/) left out of
 #              the OBJECT library, for the not-built scenario
 #   ARGS       extra archcheck arguments (e.g. --platform linux)
 function(archcheck_add_fixture name expected_exit pass_regex)
-    cmake_parse_arguments(PARSE_ARGV 3 FX "" "BUILD_DIR" "EXCLUDE;ARGS")
+    cmake_parse_arguments(PARSE_ARGV 3 FX "" "BUILD_DIR;FAIL_REGEX" "EXCLUDE;ARGS")
 
     set(fixture_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/${name})
     string(REPLACE "-" "_" id "${name}")
@@ -78,8 +80,34 @@ function(archcheck_add_fixture name expected_exit pass_regex)
             -DARCHCHECK=$<TARGET_FILE:archcheck>
             -DEXPECTED_EXIT=${expected_exit}
             -DPASS_REGEX=${pass_regex}
+            -DFAIL_REGEX=${FX_FAIL_REGEX}
             "-DARCHCHECK_ARGS=--source-dir;${fixture_dir};--build-dir;${build_dir};--config;${fixture_dir};--registry;${fixture_dir}/REGISTRY.md;${FX_ARGS}"
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_fixture.cmake)
     set_tests_properties(ArchFixture_${id} PROPERTIES
         TIMEOUT 60 LABELS "architecture")
 endfunction()
+
+# An existing directory that is not a build tree (incomplete-build fixture).
+set(ARCHCHECK_EMPTY_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/empty-build-dir)
+file(MAKE_DIRECTORY ${ARCHCHECK_EMPTY_BUILD_DIR})
+
+# --- User Story 1: new boundary violations are caught (spec 022 T017-T023) ---
+archcheck_add_fixture(clean 0 "RESULT +PASS"
+    FAIL_REGEX "VIOLATION|CYCLE")
+archcheck_add_fixture(forbidden-include 1
+    "VIOLATION include src/state/options.cpp -> src/shading/shader.h +\\[GraphicsState -> Shading\\] rule:")
+archcheck_add_fixture(forbidden-link 1
+    "VIOLATION link +src/texture/lookup.cpp -> _Z8traceRayi \\(traceRay\\(int\\)\\) +\\[Texturing -> Hiders\\] defined in: src/hiders/raytracer.cpp"
+    FAIL_REGEX "VIOLATION include")
+archcheck_add_fixture(new-cycle 1
+    "CYCLE +[A-Za-z >-]*Geometry[A-Za-z >-]*Shading[^[]*\\[FAILING\\]"
+    FAIL_REGEX "\\[allowlisted\\]")
+archcheck_add_fixture(new-cycle-allowlisted 0
+    "CYCLE +[A-Za-z >-]*Geometry[A-Za-z >-]*Shading[^[]*\\[allowlisted\\]"
+    FAIL_REGEX "VIOLATION|FAILING")
+archcheck_add_fixture(unclassified 2 "unclassified: src/misc/stray.cpp"
+    FAIL_REGEX "notes\\.txt")
+archcheck_add_fixture(forwarding-shim 1
+    "VIOLATION include src/state/options.cpp -> src/common/shader.h +\\[GraphicsState -> Shading\\]")
+archcheck_add_fixture(incomplete-build 2 "CMakeCache\\.txt"
+    BUILD_DIR ${ARCHCHECK_EMPTY_BUILD_DIR})
