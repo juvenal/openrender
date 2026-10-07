@@ -177,16 +177,16 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Implementation
 
-- [ ] T035 [US2] Implement allowlist matching in `tests/architecture/archcheck/graph.cpp`:
+- [X] T035 [US2] Implement allowlist matching in `tests/architecture/archcheck/graph.cpp`:
   - an entry applies when its platform tag matches `--platform`, or it has none;
   - `allowlisted` = an applying entry with the exact `(kind, from, to)` edge;
   - `NOTBUILT` = an applying entry whose `from_file` wasn't compiled (`include`: absent from every TU depfile; `link`: not compiled into an object);
   - `STALE` = an applying, compiled entry whose edge is absent or now allowed;
   - `BADID` = an ID that is unknown, or Resolved in the registry.
-- [ ] T036 [US2] Implement `--emit-allowlist` in `tests/architecture/archcheck/main.cpp`: print every current non-allowed edge in allowlist format with `DB-???` IDs, sorted, then exit 0 (research R7).
-- [ ] T037 [US2] Register fixtures T030–T034 in `tests/architecture/CMakeLists.txt`. All US2 fixtures pass.
-- [ ] T038 [US2] Bootstrap the real tree: run `build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture --emit-allowlist`, and save the output (not committed) to `build/arch-bootstrap.txt`. Group the edges by `(from class → to class)` and by file, to drive the re-measurement.
-- [ ] T039 [US2] Re-measure V1–V21 on the current tree. Use the bootstrap groups for the edge-based findings, and targeted greps for the non-edge findings:
+- [X] T036 [US2] Implement `--emit-allowlist` in `tests/architecture/archcheck/main.cpp`: print every current non-allowed edge in allowlist format with `DB-???` IDs, sorted, then exit 0 (research R7).
+- [X] T037 [US2] Register fixtures T030–T034 in `tests/architecture/CMakeLists.txt`. All US2 fixtures pass.
+- [X] T038 [US2] Bootstrap the real tree: run `build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture --emit-allowlist`, and save the output (not committed) to `build/arch-bootstrap.txt`. Group the edges by `(from class → to class)` and by file, to drive the re-measurement.
+- [X] T039 [US2] Re-measure V1–V21 on the current tree. Use the bootstrap groups for the edge-based findings, and targeted greps for the non-edge findings:
   - V6: duplicated motion-blur/DOF code;
   - V9: the JIT illumination-hook mismatch;
   - V10: the hider `strcmp` chains and `hcshader` fallback;
@@ -198,7 +198,7 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - V21: consumer reach.
 
   Write `specs/022-domain-dependency-guardrails/registry-reconciliation.md`, mapping each of V1–V21 to exactly one outcome: a new DB-NNN, "see DB-004", or "no longer present" with the reason (FR-011, SC-003).
-- [ ] T040 [US2] Write the new registry entries DB-005… in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, above `## Resolved`, in the existing DB-001…DB-004 shape. Each gives:
+- [X] T040 [US2] Write the new registry entries DB-005… in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, above `## Resolved`, in the existing DB-001…DB-004 shape. Each gives:
   - the rule;
   - evidence re-measured on the current tree (file:line or symbol);
   - size ("the number of files and sites … as measured by the check");
@@ -206,20 +206,20 @@ description: "Task list for spec 022: domain-dependency guardrails"
   - tracking.
 
   Until the issues exist, tracking is "remediation spec NNN (issue pending approval)". Overlaps with DB-004 say "see DB-004" (FR-011).
-- [ ] T041 [US2] Seed `tests/architecture/allowlist.txt` from `build/arch-bootstrap.txt`, replacing every `DB-???` with the registry ID T040 assigned. Keep one line per concrete edge, with the demangled `#` comment for link entries. No line may reference DB-001…DB-004 unless the edge belongs to that entry.
-- [ ] T042 [US2] Register the real-tree test `Architecture_DomainBoundaries` in `tests/architecture/CMakeLists.txt`: label `architecture`, `TIMEOUT 120`, command `archcheck --source-dir ${CMAKE_SOURCE_DIR} --build-dir ${CMAKE_BINARY_DIR} --config ${CMAKE_SOURCE_DIR}/tests/architecture`. It passes on macOS with `RESULT PASS`, and the `ALLOWED` lines cover every new DB ID (SC-002).
-- [ ] T043 [US2] Linux validation through the existing path (rsync + Maestri Linux/GCC 13, project memory):
+- [X] T041 [US2] Seed `tests/architecture/allowlist.txt` from `build/arch-bootstrap.txt`, replacing every `DB-???` with the registry ID T040 assigned. Keep one line per concrete edge, with the demangled `#` comment for link entries. No line may reference DB-001…DB-004 unless the edge belongs to that entry.
+- [X] T042 [US2] Register the real-tree test `Architecture_DomainBoundaries` in `tests/architecture/CMakeLists.txt`: label `architecture`, `TIMEOUT 120`, command `archcheck --source-dir ${CMAKE_SOURCE_DIR} --build-dir ${CMAKE_BINARY_DIR} --config ${CMAKE_SOURCE_DIR}/tests/architecture`. It passes on macOS with `RESULT PASS`, and the `ALLOWED` lines cover every new DB ID (SC-002).
+- [X] T043 [US2] Linux validation through the existing path (rsync + Maestri Linux/GCC 13, project memory):
   - build;
   - run `ctest -L architecture`;
   - add `linux`/`macos` tags in `tests/architecture/allowlist.txt` for the edges that exist on one platform only;
   - re-run on both platforms.
 
   Linux `ctest -L architecture` passing is a **merge prerequisite**, because the release Ubuntu job runs `ctest` (spec FR-010a). If the Linux path is unavailable at this pause, the phase stays open (not ready to merge) until it is. Record the results in `specs/022-domain-dependency-guardrails/validation.md`.
-- [ ] T044 [US2] Draft the 16 tracking-issue texts, one per remediation spec 023–038, in `specs/022-domain-dependency-guardrails/tracking-issues.md`. Each gives: title, label (`enhancement`), the scope from the remediation plan, the DB entries it resolves, and acceptance. **Do not file.**
+- [X] T044 [US2] Draft the 16 tracking-issue texts, one per remediation spec 023–038, in `specs/022-domain-dependency-guardrails/tracking-issues.md`. Each gives: title, label (`enhancement`), the scope from the remediation plan, the DB entries it resolves, and acceptance. **Do not file.**
 
 **Checkpoint (PAUSE 4)**: the real tree is fully registered and the check passes. **The maintainer approves filing the 16 issues** (an outward-facing action) and commits.
 
-- [ ] T045 [US2] **After the maintainer's explicit approval at PAUSE 4:** file the 16 issues from `tracking-issues.md` with `gh issue create`, then replace each "issue pending approval" in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` with the issue link(s) (SC-003). Re-run `Architecture_DomainBoundaries`.
+- [X] T045 [US2] **After the maintainer's explicit approval at PAUSE 4:** file the 16 issues from `tracking-issues.md` with `gh issue create`, then replace each "issue pending approval" in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` with the issue link(s) (SC-003). Re-run `Architecture_DomainBoundaries`.
 
 ---
 

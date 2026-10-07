@@ -17,6 +17,7 @@
  *
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -25,6 +26,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 
 #include "config.h"
 #include "graph.h"
@@ -322,14 +324,22 @@ int main(int argc, char **argv) {
     std::vector<bool> matched;
     classifyEdges(edges, rules, allowlist, platform, matched);
 
+    // Bootstrap aid (research R7): every non-allowed edge as an allowlist
+    // line, keeping the id of an entry that already covers it.
     if (opt.emitAllowlist) {
-        for (const Edge &e : edges) {
-            if (e.status == EdgeStatus::Allowed)
-                continue;
-            std::printf("DB-???  %-7s  %s  ->  %s", e.kind == EdgeKind::Include ? "include" : "link", e.from.c_str(),
-                        e.to.c_str());
-            if (e.kind == EdgeKind::Link)
-                std::printf("   # %s", e.display.c_str());
+        std::vector<const Edge *> listed;
+        for (const Edge &e : edges)
+            if (e.status != EdgeStatus::Allowed)
+                listed.push_back(&e);
+        std::sort(listed.begin(), listed.end(), [](const Edge *a, const Edge *b) {
+            return std::tie(a->kind, a->from, a->to) < std::tie(b->kind, b->from, b->to);
+        });
+        for (const Edge *e : listed) {
+            const std::string id = e->status == EdgeStatus::Allowlisted ? e->registryId : "DB-???";
+            std::printf("%-7s  %-7s  %s  ->  %s", id.c_str(), e->kind == EdgeKind::Include ? "include" : "link",
+                        e->from.c_str(), e->to.c_str());
+            if (e->kind == EdgeKind::Link)
+                std::printf("   # %s", e->display.c_str());
             std::printf("\n");
         }
         return kExitPass;
@@ -364,6 +374,12 @@ int main(int argc, char **argv) {
             report.consumerReach.push_back({e.from, e.to, e.toClasses.front()});
     }
     report.cycles = findCycles(edges);
+
+    const AllowlistCheck entries =
+        checkAllowlist(allowlist, matched, edges, registry, platform, inc.seen, sources);
+    report.stale = entries.stale;
+    report.badIds = entries.badIds;
+    report.notBuilt = entries.notBuilt;
 
     for (const auto &[file, cls] : classOfFile)
         if (isHeader(file) && !inc.seen.count(file))

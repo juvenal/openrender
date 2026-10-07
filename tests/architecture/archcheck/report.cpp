@@ -70,7 +70,7 @@ std::vector<Violation> sortedViolations(const Report &r) {
 
 std::vector<EntryIssue> sortedIssues(std::vector<EntryIssue> v) {
     std::sort(v.begin(), v.end(), [](const EntryIssue &a, const EntryIssue &b) {
-        return std::tie(a.id, a.from, a.to, a.kind, a.line) < std::tie(b.id, b.from, b.to, b.kind, b.line);
+        return std::tie(a.id, a.kind, a.from, a.to, a.line) < std::tie(b.id, b.kind, b.from, b.to, b.line);
     });
     return v;
 }

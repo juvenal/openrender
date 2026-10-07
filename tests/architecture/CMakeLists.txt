@@ -29,6 +29,15 @@ add_test(NAME Architecture_Parsers COMMAND test_archcheck_parsers)
 set_tests_properties(Architecture_Parsers PROPERTIES
     TIMEOUT 60 LABELS "architecture;unit")
 
+# The check itself, on this build tree (spec 022 T042). It needs the whole
+# tree built: an in-scope object or depfile that is missing is an
+# environment error (exit 2), never a silently smaller report.
+add_test(NAME Architecture_DomainBoundaries
+    COMMAND archcheck --source-dir ${CMAKE_SOURCE_DIR} --build-dir ${CMAKE_BINARY_DIR}
+            --config ${CMAKE_SOURCE_DIR}/tests/architecture)
+set_tests_properties(Architecture_DomainBoundaries PROPERTIES
+    TIMEOUT 120 LABELS "architecture")
+
 # archcheck_add_fixture(<name> <expected-exit> <pass-regex>
 #                       [FAIL_REGEX <regex>] [BUILD_DIR <dir>]
 #                       [EXCLUDE <relpath>...] [ARGS <arg>...])

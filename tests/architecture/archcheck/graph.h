@@ -20,6 +20,8 @@
 #ifndef ARCHCHECK_GRAPH_H
 #define ARCHCHECK_GRAPH_H
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -46,6 +48,21 @@ struct Edge {
 // that matched an edge (US2 uses the rest for staleness).
 void classifyEdges(std::vector<Edge> &edges, const RuleTable &rules, const std::vector<AllowlistEntry> &allowlist,
                    Platform platform, std::vector<bool> &matched);
+
+struct AllowlistCheck {
+    std::vector<EntryIssue> stale;    // applying, compiled, edge gone or now allowed
+    std::vector<EntryIssue> badIds;   // registry id unknown or Resolved
+    std::vector<EntryIssue> notBuilt; // applying, referencing file not compiled
+};
+
+// Validates every allowlist entry that applies to `platform` (FR-009,
+// FR-010, FR-010a). A file counts as compiled for an include entry when some
+// translation unit read it (`includeCompiled`), and for a link entry when it
+// was compiled into an object (`linkCompiled`).
+AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched,
+                              const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry,
+                              Platform platform, const std::set<std::string> &includeCompiled,
+                              const std::set<std::string> &linkCompiled);
 
 // "allowed-dependency table (<From> may depend on: <classes>)"
 std::string ruleText(const RuleTable &rules, Class from);

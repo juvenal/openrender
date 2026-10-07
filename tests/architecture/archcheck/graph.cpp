@@ -155,6 +155,42 @@ void classifyEdges(std::vector<Edge> &edges, const RuleTable &rules, const std::
     }
 }
 
+AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched,
+                              const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry,
+                              Platform platform, const std::set<std::string> &includeCompiled,
+                              const std::set<std::string> &linkCompiled) {
+    std::map<std::tuple<EdgeKind, std::string, std::string>, EdgeStatus> present;
+    for (const Edge &e : edges)
+        present.emplace(std::make_tuple(e.kind, e.from, e.to), e.status);
+
+    AllowlistCheck out;
+    for (std::size_t i = 0; i < allowlist.size(); i++) {
+        const AllowlistEntry &a = allowlist[i];
+        // An entry tagged for the other platform is neither matched nor checked.
+        if (a.platform && *a.platform != platform)
+            continue;
+        auto issue = [&](std::string reason) { return EntryIssue{a.registryId, a.kind, a.fromFile, a.to, std::move(reason), a.line}; };
+
+        const auto reg = registry.find(a.registryId);
+        if (reg == registry.end())
+            out.badIds.push_back(issue("unknown"));
+        else if (reg->second.status == RegistryStatus::Resolved)
+            out.badIds.push_back(issue("resolved"));
+
+        if (matched[i])
+            continue;
+        const auto &compiled = a.kind == EdgeKind::Include ? includeCompiled : linkCompiled;
+        if (!compiled.count(a.fromFile)) {
+            out.notBuilt.push_back(issue(""));
+            continue;
+        }
+        const auto p = present.find(std::make_tuple(a.kind, a.fromFile, a.to));
+        out.stale.push_back(issue(p != present.end() && p->second == EdgeStatus::Allowed ? "now allowed"
+                                                                                      : "no longer present"));
+    }
+    return out;
+}
+
 std::string ruleText(const RuleTable &rules, Class from) {
     std::string allowed;
     for (std::size_t i = 0; i < kClassCount; i++) {
