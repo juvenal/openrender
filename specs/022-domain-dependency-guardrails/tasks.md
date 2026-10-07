@@ -130,30 +130,30 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Implementation
 
-- [ ] T024 [US1] Implement direct-include extraction plus depfile resolution in `tests/architecture/archcheck/includes.{h,cpp}`, per research R2 and FR-003:
+- [X] T024 [US1] Implement direct-include extraction plus depfile resolution in `tests/architecture/archcheck/includes.{h,cpp}`, per research R2 and FR-003:
   - parse each scanned file's direct `#include`s;
   - resolve each against the depfile of a translation unit that compiled the file; count an include only if the resolved file is in that TU's depfile (inactive conditional branches drop out);
   - headers are resolved through any TU that includes them;
   - headers no TU includes are listed `UNRESOLVED` and never fail;
   - read Makefiles `<obj>.o.d`, and Ninja via `ninja -t deps`;
   - any other generator, or missing deps data, is exit 2.
-- [ ] T025 [US1] Implement batched `nm -g -A` collection and symbol tables in `tests/architecture/archcheck/symbols.{h,cpp}`, per research R3 and FR-004:
+- [X] T025 [US1] Implement batched `nm -g -A` collection and symbol tables in `tests/architecture/archcheck/symbols.{h,cpp}`, per research R3 and FR-004:
   - scan only objects whose source is under `<source-dir>/src/` or `@build/`-mapped (non-test code; research R10 scan scope);
   - normalize by stripping the macOS leading `_`;
   - demangle with `abi::__cxa_demangle` for display only (the mangled name stays the key);
   - de-duplicate sources compiled into several object libraries;
   - missing `nm` is exit 2.
-- [ ] T026 [US1] Implement link-edge attribution in `tests/architecture/archcheck/symbols.cpp`:
+- [X] T026 [US1] Implement link-edge attribution in `tests/architecture/archcheck/symbols.cpp`:
   - an edge is "referencing source file → symbol";
   - ignore it if any definer is in the referencing class or Infra;
   - ignore it if the project defines the symbol nowhere;
   - otherwise attribute it to every remaining definer class (covers the substitution pairs).
-- [ ] T027 [US1] Implement edge classification in `tests/architecture/archcheck/graph.{h,cpp}`:
+- [X] T027 [US1] Implement edge classification in `tests/architecture/archcheck/graph.{h,cpp}`:
   - statuses `allowed` / `allowlisted` / `violation` / `consumer-reach`, per data-model.md › Edge;
   - consumers never fail;
   - SCC-based cycle detection, reporting each cycle's path and edges; a cycle fails only if it contains a non-allowlisted edge (FR-006).
-- [ ] T028 [US1] Wire `tests/architecture/archcheck/main.cpp`: load the configuration, extract edges, classify, report, exit code. `--platform` defaults to the detected host. Every `VIOLATION` line names the referencing file, the header or symbol (raw + demangled + defined-in), both classes and the rule (FR-007). `--help` documents every option, exit code and data file, per contracts/archcheck-cli.md (constitution IV).
-- [ ] T029 [US1] Register fixtures T017–T023 via `archcheck_add_fixture` in `tests/architecture/CMakeLists.txt`, then run `ctest --test-dir build -L architecture`. All US1 fixtures pass, and the full existing suite is unchanged.
+- [X] T028 [US1] Wire `tests/architecture/archcheck/main.cpp`: load the configuration, extract edges, classify, report, exit code. `--platform` defaults to the detected host. Every `VIOLATION` line names the referencing file, the header or symbol (raw + demangled + defined-in), both classes and the rule (FR-007). `--help` documents every option, exit code and data file, per contracts/archcheck-cli.md (constitution IV).
+- [X] T029 [US1] Register fixtures T017–T023 via `archcheck_add_fixture` in `tests/architecture/CMakeLists.txt`, then run `ctest --test-dir build -L architecture`. All US1 fixtures pass, and the full existing suite is unchanged.
 
 **Checkpoint (PAUSE 3, MVP)**: detection works end to end on fixtures. Stage, summarize, wait for review and commit.
 
