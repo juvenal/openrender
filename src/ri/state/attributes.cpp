@@ -30,7 +30,6 @@
 #include "atomic.h"
 #include "attributes.h"
 #include "error.h"
-#include "irradiance.h"
 #include "photonMap.h"
 #include "ri.h"
 #include "ri_config.h"

@@ -15,6 +15,14 @@ Run on 2026-10-07 in the worktree `022-domain-dependency-guardrails` (branch bas
 | Determinism (SC-007) | two runs: byte-identical text and JSON |
 | Incomplete tree (US1 #7) | one object moved aside → exit 2, `incomplete build tree: 1 of 248 …`, naming the object |
 
+### Phase 6 (US4): vestigial-include removal, macOS
+
+- 19 includes removed (10 for V19, 9 more from T056), each with a clean incremental `-Werror` build; 5 more candidates were tried and restored because the build needs them.
+- Full build after all removals: clean. Full `ctest -j4`: **557/557** passed (118 s).
+- `ctest -L architecture`: 20/20, with 17 stale allowlist lines deleted (704 → 687).
+- The renderer-core metric is unchanged (the removed includes carry no `CRenderer::` text).
+- Linux validation of the removals (T057), 2026-10-07, by the maintainer on Ubuntu 24.04 / GCC 13.3 (full re-sync, SHA-256 compared, incremental build of `build-022`): build clean under `-Werror`; `ctest -L architecture` **20/20**; full `ctest -j4` gives the same 9 non-architecture failures as the earlier Linux run (#44, #45, #46 and the noise listed below), nothing new. The removals hold on both compilers.
+
 ## Linux (Ubuntu 24.04, GCC 13.3)
 
 Run by the maintainer on 2026-10-07 on the Ubuntu host (rsync of the git-tracked files, SHA-256 compared), build directory `build-022`, `-DINSTALL_SELFCONTAINED=OFF`, Release, JIT on, Unix Makefiles.

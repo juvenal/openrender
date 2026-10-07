@@ -22,7 +22,6 @@
 
 #include "object.h"
 #include "quadrics.h"
-#include "rendererc.h"
 #include "xform.h"
 
 // Boundary edges of one surface are compared at this many points

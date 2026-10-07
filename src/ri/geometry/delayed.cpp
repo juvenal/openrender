@@ -29,7 +29,6 @@
 #include "delayed.h"
 #include "renderer.h"
 #include "rendererContext.h"
-#include "reyes.h"
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////

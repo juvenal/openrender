@@ -32,7 +32,6 @@
 #include "options.h"
 #include "ri_config.h"
 #include "stats.h"
-#include "texture.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	COptions

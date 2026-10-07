@@ -265,13 +265,13 @@ For each task:
 
 If the build breaks, restore the include, keep its allowlist line, and note it in `registry-reconciliation.md` as a real violation.
 
-- [ ] T051 [US4] Remove `#include "texture.h"` from `src/ri/state/options.cpp`
-- [ ] T052 [US4] Remove `#include "irradiance.h"` from `src/ri/state/attributes.cpp`
-- [ ] T053 [US4] Remove `raytracer.h`, `remoteChannel.h`, `brickmap.h`, `pointCloud.h` and `points.h` includes from `src/libshader/shading/shading.cpp`, one include at a time, each verified
-- [ ] T054 [US4] Remove `object.h` and `raytracer.h` includes from `src/ri/texture/pointCloud.cpp`, one at a time, each verified
-- [ ] T055 [US4] Remove `#include "points.h"` from `src/ri/hiders/reyes.cpp`
-- [ ] T056 [US4] From the T038 bootstrap, list any further cross-domain include whose target header provides no symbol used by the including file. Attempt each removal with the same procedure, and record the outcomes in `specs/022-domain-dependency-guardrails/registry-reconciliation.md` (V19 row).
-- [ ] T057 [US4] Linux validation of all removals (GCC 13, `-Werror`) via the existing Linux path. This is a **merge prerequisite**: if the Linux path is unavailable, the phase stays open (not ready to merge) until it is. Record the results in `specs/022-domain-dependency-guardrails/validation.md` (US4 #1).
+- [X] T051 [US4] Remove `#include "texture.h"` from `src/ri/state/options.cpp`
+- [X] T052 [US4] Remove `#include "irradiance.h"` from `src/ri/state/attributes.cpp`
+- [X] T053 [US4] Remove `raytracer.h`, `remoteChannel.h`, `brickmap.h`, `pointCloud.h` and `points.h` includes from `src/libshader/shading/shading.cpp`, one include at a time, each verified
+- [X] T054 [US4] Remove `object.h` and `raytracer.h` includes from `src/ri/texture/pointCloud.cpp`, one at a time, each verified
+- [X] T055 [US4] Remove `#include "points.h"` from `src/ri/hiders/reyes.cpp`
+- [X] T056 [US4] From the T038 bootstrap, list any further cross-domain include whose target header provides no symbol used by the including file. Attempt each removal with the same procedure, and record the outcomes in `specs/022-domain-dependency-guardrails/registry-reconciliation.md` (V19 row).
+- [X] T057 [US4] Linux validation of all removals (GCC 13, `-Werror`) via the existing Linux path. This is a **merge prerequisite**: if the Linux path is unavailable, the phase stays open (not ready to merge) until it is. Record the results in `specs/022-domain-dependency-guardrails/validation.md` (US4 #1).
 
 **Checkpoint (PAUSE 6)**: removals complete, full suite identical. Stage, summarize, wait for review and commit.
 

@@ -29,7 +29,6 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "brickmap.h"
 #include "bundles.h"
 #include "error.h"
 #include "includes/logging.hpp"
@@ -37,11 +36,7 @@
 #include "memory.h"
 #include "object.h"
 #include "photonMap.h"
-#include "pointCloud.h"
-#include "points.h"
 #include "random.h"
-#include "raytracer.h"
-#include "remoteChannel.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"

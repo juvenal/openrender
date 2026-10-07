@@ -52,7 +52,6 @@
 
 #include "bundles.h"
 #include "common/portable_io.h"
-#include "debug.h"
 #include "error.h"
 #include "irradiance.h"
 #include "memory.h"

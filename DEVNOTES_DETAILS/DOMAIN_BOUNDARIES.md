@@ -119,7 +119,7 @@ not yet comply.
   - 28 includes: `renderer.h` (17), `rendererContext.h` (9), `riInterface.h` (2).
   - 37 link references to `CRenderer` members.
   - Geometry's other cross-domain edges are registered elsewhere, so they are not counted
-    here: diagnostics, RI tokens and `rendererc.h` under DB-016 (44 edges); symbols defined by
+    here: diagnostics, RI tokens and `rendererc.h` under DB-016 (41 edges); symbols defined by
     `geometryDispatch.cpp`/`geometryDispatchStub.cpp` under DB-017; Shading and Hiders
     coupling under DB-006; the data viewer under DB-025.
 - **History**: spec 021 (deferred CSG) resolves solids and procedural operands through a new
@@ -137,8 +137,8 @@ not yet comply.
     (`src/libshader/shading/shading.h`).
   - Its trace bodies are defined in Hiders: `CShadingContext::trace` and `traceEx` in
     `src/ri/hiders/trace.cpp:47,240,289`.
-  - Shading includes hider headers: `bundles.h` (5), `irradiance.h` (2), `photonMap.h` (2).
-- **Size**: 9 include edges. The matching link references (trace, bundles, photon map) are
+  - Shading includes hider headers: `bundles.h` (4), `irradiance.h` (2), `photonMap.h` (2).
+- **Size**: 8 include edges. The matching link references (trace, bundles, photon map) are
   counted under DB-001.
 - **Direction**: composition. Shading's `ShadingContext` keeps state and execution with no hider
   knowledge, and is owned by Hiders' `CHider`; the hiders implement a Shading-owned `ITracer`.
@@ -152,10 +152,10 @@ not yet comply.
 - **Evidence**:
   - Geometry includes Shading headers 15 times (13 through the `src/ri/core/shading.h` forwarding
     shim) and calls `CShadingContext::shade`, `saveState` and `restoreState`.
-  - Geometry includes `src/ri/hiders/reyes.h` from 11 files and calls `CReyes::drawObject` and
+  - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
     `CReyes::drawGrid` (`surface.cpp`).
-  - Shading includes `surface.h`, `object.h` and `points.h`, closing a Geometry ↔ Shading cycle.
-- **Size**: 36 edges (29 include, 7 link).
+  - Shading includes `surface.h` and `object.h`, closing a Geometry ↔ Shading cycle.
+- **Size**: 33 edges (26 include, 7 link).
 - **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
   Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
   `CReyes*`/`CShadingContext*` (031).
@@ -187,7 +187,7 @@ not yet comply.
     `src/ri/geometry/blobbyField.h`.
   - `attributes.cpp` includes `src/ri/hiders/photonMap.h` (photon-map attach/detach).
 - **Size**: 7 include edges. Graphics State's diagnostics and RI-token edges are under DB-016
-  (81 edges); `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` are under DB-022.
+  (81 edges). `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` were unused and are removed (DB-022, Resolved).
 - **Direction**: state stores opaque handles only (`ShaderGroupRef` with a `bxdf` slot, `MapRef`)
   plus a scoped pattern-node table; shader-parameter logic moves to Shading; a state-owned
   vocabulary header.
@@ -219,8 +219,8 @@ not yet comply.
     includes `renderer.h`.
   - Texturing includes `options.h`, `attributes.h` and `xform.h` from Graphics State.
   - The hiders' GI caches use Texturing: `irradiance`/`photon` code includes `texture.h`,
-    `texture3d.h`, `pointHierarchy.h`, `tiff.h` and constructs `CTexture3d`.
-- **Size**: 36 edges (19 include, 17 link).
+    `texture3d.h` and `pointHierarchy.h` and constructs `CTexture3d`.
+- **Size**: 35 edges (18 include, 17 link).
 - **Direction**: a Texturing-owned `TextureSystem` (opaque handles, `TextureOpt`, per-thread
   data, cache and paging) that Shading reaches only through services (027); GI-cache storage
   moves to Texturing with sampling left in Hiders (032).
@@ -317,8 +317,8 @@ not yet comply.
   - Infrastructure itself reaches up: `src/ri/core` and `src/common` include `error.h`, `ri.h`,
     `rendererc.h`, `attributes.h` and `xform.h`, and call `CAttributes::findParameter`,
     `CRenderer::retrieveVariable`.
-- **Size**: 220 edges (80 include, 140 link) across Graphics State (81), Geometry (44), Texturing
-  (36), Hiders (19), Infra (20), Shading (15) and Scene Interface (5). Shading's link
+- **Size**: 216 edges (76 include, 140 link) across Graphics State (81), Geometry (41), Texturing
+  (36), Hiders (18), Infra (20), Shading (15) and Scene Interface (5). Shading's link
   references to these symbols are counted under DB-001.
 - **Direction**: move diagnostics (an installable `IDiagnosticSink`), the vocabulary headers,
   `CVariable` and an `Arena` object into `libRIBCommon`; behavior-preserving moves with
@@ -394,22 +394,6 @@ not yet comply.
 - **Direction**: the registry is owned by Graphics State (025) and passed to its consumers as
   channel descriptors (037).
 
-### DB-022 — Vestigial cross-domain includes
-
-- **Rules**: the allowed-dependency table.
-- **Tracking**: spec 022 (this spec removes them, Phase 6)
-- **Evidence**: includes the audit found unused, still present and still violations:
-  - `src/ri/state/options.cpp` → `texture.h`; `src/ri/state/attributes.cpp` → `irradiance.h`;
-  - `src/libshader/shading/shading.cpp` → `raytracer.h`, `remoteChannel.h`, `points.h`;
-  - `src/ri/texture/pointCloud.cpp` → `object.h`, `raytracer.h`.
-
-  The audit's other three candidates are not violations: `shading.cpp` → `brickmap.h` and
-  `pointCloud.h` (Shading → Texturing) and `reyes.cpp` → `points.h` (Hiders → Geometry) are
-  allowed.
-- **Size**: 7 include edges.
-- **Direction**: delete each one, with a clean `-Werror` build after each removal; any that turns
-  out to be needed moves to the entry that owns its dependency.
-
 ### DB-023 — Domains are not build targets
 
 - **Rules**: 1 (each domain is a separately buildable unit).
@@ -444,11 +428,11 @@ not yet comply.
 - **Rules**: the allowed-dependency table (no domain may depend on a consumer).
 - **Tracking**: remediation spec 032 ([#38](https://github.com/juvenal/openrender/issues/38))
 - **Evidence**: Texturing (`pointCloud.cpp`, `brickmap.cpp`, `texture3d.h`) and Hiders
-  (`irradiance.cpp`, `irradianceDispatch.cpp`, `photonMap.{h,cpp}`) include
+  (`irradiance.cpp`, `photonMap.{h,cpp}`) include
   `src/ri/dataviewer/dataView.h`/`debug.h` and call `CDataView::drawPoints`, `drawDisks` and
   `drawTriangles`; Geometry's `surface.cpp` includes `debug.h`. Found by the check; not one of
   the audit's V1–V21.
-- **Size**: 13 edges (5 include, 8 link).
+- **Size**: 12 edges (4 include, 8 link).
 - **Direction**: the data viewer reads the GI and texture data through adapters it owns
   (spec 032's `CDataView` adapters), so the domains no longer know it exists.
 
@@ -466,4 +450,29 @@ not yet comply.
 
 ## Resolved
 
-_None yet._
+### DB-022 — Vestigial cross-domain includes
+
+- **Rules**: the allowed-dependency table.
+- **Tracking**: spec 022 Phase 6 (T051–T056)
+- **Evidence**: includes the audit found unused, still present and still violations:
+  - `src/ri/state/options.cpp` → `texture.h`; `src/ri/state/attributes.cpp` → `irradiance.h`;
+  - `src/libshader/shading/shading.cpp` → `raytracer.h`, `remoteChannel.h`, `points.h`;
+  - `src/ri/texture/pointCloud.cpp` → `object.h`, `raytracer.h`.
+
+  The audit's other three candidates are not violations: `shading.cpp` → `brickmap.h` and
+  `pointCloud.h` (Shading → Texturing) and `reyes.cpp` → `points.h` (Hiders → Geometry) are
+  allowed.
+- **Size**: 7 include edges.
+- **Direction**: delete each one, with a clean `-Werror` build after each removal; any that turns
+  out to be needed moves to the entry that owns its dependency.
+- **Resolved** 2026-10-07 by spec 022 Phase 6:
+  - all 7 edges removed (T051–T055), each with a clean `-Werror` build, and their allowlist lines
+    deleted; the full suite is unchanged;
+  - the audit's three allowed-but-unused candidates were removed too (`shading.cpp` →
+    `brickmap.h`, `pointCloud.h`; `reyes.cpp` → `points.h`);
+  - T056 tried 14 further cross-domain includes whose target declares nothing the including file
+    names: 9 were unused and are removed (`shader.cpp` → `bundles.h`; `delayed.cpp`, `object.cpp`
+    → `reyes.h`; `photonMap.cpp` → `tiff.h`; `csgDefinition.cpp`, `object.cpp`,
+    `surfaceCrossingDispatch.cpp`, `reyes.cpp` → `rendererc.h`; `irradianceDispatch.cpp` →
+    `debug.h`); their edges belonged to DB-005, DB-006, DB-010, DB-016 and DB-025, whose sizes
+    above are updated. The other 5 are needed and stay registered under their entries.

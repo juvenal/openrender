@@ -34,7 +34,6 @@
 #include "random.h"
 #include "raytracer.h"
 #include "stats.h"
-#include "tiff.h"
 #include "tiffio.h"
 
 // Precomputed conversion tables for the sin/cosine

@@ -28,8 +28,6 @@
 
 #include "error.h"
 #include "memory.h"
-#include "points.h"
-#include "rendererc.h"
 #include "reyes.h"
 
 #include <climits>

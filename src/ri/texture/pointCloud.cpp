@@ -29,10 +29,8 @@
 #include "common/portable_io.h"
 #include "error.h"
 #include "memory.h"
-#include "object.h"
 #include "pointCloud.h"
 #include "random.h"
-#include "raytracer.h"
 
 ///////////////////////////////////////////////////////////////////////
 // globals

@@ -24,7 +24,6 @@
 
 #include "object.h"
 #include "crossingMath.h"
-#include "rendererc.h"
 
 // Newton refinement limits. Surfaces evaluate in float (sample()), so the
 // residual bottoms out near float resolution: iteration stops once the
