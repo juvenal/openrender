@@ -167,11 +167,11 @@ description: "Task list for spec 022: domain-dependency guardrails"
 
 ### Fixtures first (must fail until T035–T037 land)
 
-- [ ] T030 [P] [US2] Fixture `tests/architecture/fixtures/stale-entry/`: an allowlist entry whose `from` file *was* compiled but whose edge doesn't occur. Expect exit 1 and `STALE ` (US2 #3). Add a variant `stale-now-allowed/`: the entry's edge exists but is allowed by the fixture rules. Expect exit 1 and `STALE` (US2 #7).
-- [ ] T031 [P] [US2] Fixtures `tests/architecture/fixtures/unknown-id/` and `tests/architecture/fixtures/resolved-id/`: entries referencing `DB-099` (absent) and an ID listed after `## Resolved` in the fixture's `REGISTRY.md`. Expect exit 1 and `BADID` (US2 #2, FR-009).
-- [ ] T032 [P] [US2] Fixture `tests/architecture/fixtures/other-platform-tag/`: two entries, one tagged for the non-host platform whose edge doesn't occur (expect it ignored), and one tagged for the host whose edge doesn't occur (expect `STALE`). Pass `--platform` explicitly so the test is host-independent (US2 #5, FR-010a).
-- [ ] T033 [P] [US2] Fixture `tests/architecture/fixtures/not-built/`: an entry whose `from` file exists in the fixture tree but is excluded from the fixture's OBJECT library. Expect exit 0 and `NOTBUILT` (US2 #6, FR-010).
-- [ ] T034 [P] [US2] Fixture `tests/architecture/fixtures/tagged-untagged-dup/`: the same edge listed both untagged and tagged `macos`. Expect exit 2 with the file:line of the duplicate (FR-010a, contracts/data-files.md).
+- [X] T030 [P] [US2] Fixture `tests/architecture/fixtures/stale-entry/`: an allowlist entry whose `from` file *was* compiled but whose edge doesn't occur. Expect exit 1 and `STALE ` (US2 #3). Add a variant `stale-now-allowed/`: the entry's edge exists but is allowed by the fixture rules. Expect exit 1 and `STALE` (US2 #7).
+- [X] T031 [P] [US2] Fixtures `tests/architecture/fixtures/unknown-id/` and `tests/architecture/fixtures/resolved-id/`: entries referencing `DB-099` (absent) and an ID listed after `## Resolved` in the fixture's `REGISTRY.md`. Expect exit 1 and `BADID` (US2 #2, FR-009).
+- [X] T032 [P] [US2] Fixture `tests/architecture/fixtures/other-platform-tag/`: two entries, one tagged for the non-host platform whose edge doesn't occur (expect it ignored), and one tagged for the host whose edge doesn't occur (expect `STALE`). Pass `--platform` explicitly so the test is host-independent (US2 #5, FR-010a).
+- [X] T033 [P] [US2] Fixture `tests/architecture/fixtures/not-built/`: an entry whose `from` file exists in the fixture tree but is excluded from the fixture's OBJECT library. Expect exit 0 and `NOTBUILT` (US2 #6, FR-010).
+- [X] T034 [P] [US2] Fixture `tests/architecture/fixtures/tagged-untagged-dup/`: the same edge listed both untagged and tagged `macos`. Expect exit 2 with the file:line of the duplicate (FR-010a, contracts/data-files.md).
 
 **Checkpoint (TEST-APPROVAL 4a)**: the US2 fixtures are written and failing. Stage, show the failing output, and wait for the maintainer's approval of the tests before T035.
 

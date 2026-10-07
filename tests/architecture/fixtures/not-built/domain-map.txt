@@ -1,0 +1,7 @@
+# Fixture domain map.
+prefix  src/common/    Infra
+prefix  src/state/     GraphicsState
+prefix  src/geometry/  Geometry
+prefix  src/hiders/    Hiders
+prefix  src/shading/   Shading
+prefix  src/texture/   Texturing

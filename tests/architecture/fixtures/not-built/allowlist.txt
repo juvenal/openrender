@@ -1,0 +1,3 @@
+# Fixture allowlist.
+DB-001  include  src/state/legacy.cpp  ->  src/shading/shader.h
+DB-001  link     src/state/legacy.cpp  ->  _Z8traceRayi   # traceRay(int)

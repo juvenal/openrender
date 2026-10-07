@@ -111,3 +111,25 @@ archcheck_add_fixture(forwarding-shim 1
     "VIOLATION include src/state/options.cpp -> src/common/shader.h +\\[GraphicsState -> Shading\\]")
 archcheck_add_fixture(incomplete-build 2 "CMakeCache\\.txt"
     BUILD_DIR ${ARCHCHECK_EMPTY_BUILD_DIR})
+
+# --- User Story 2: allowlist and registry integrity (spec 022 T030-T034) -----
+archcheck_add_fixture(stale-entry 1
+    "STALE +DB-001 include src/state/options.cpp -> src/shading/shader.h +\\(edge no longer present")
+archcheck_add_fixture(stale-now-allowed 1
+    "STALE +DB-001 include src/hiders/reyes.cpp -> src/geometry/object.h +\\(edge now allowed")
+archcheck_add_fixture(unknown-id 1
+    "BADID +DB-099 include src/state/options.cpp -> src/shading/shader.h +\\(no Open registry entry DB-099\\)"
+    FAIL_REGEX "VIOLATION")
+archcheck_add_fixture(resolved-id 1
+    "BADID +DB-002 include src/state/options.cpp -> src/shading/shader.h +\\(registry entry DB-002 is Resolved\\)"
+    FAIL_REGEX "VIOLATION")
+archcheck_add_fixture(other-platform-tag 1
+    "STALE +DB-001 include src/state/options.cpp -> src/texture/gone\\.h"
+    FAIL_REGEX "missing\\.h"
+    ARGS --platform linux)
+archcheck_add_fixture(not-built 0
+    "NOTBUILT +DB-001 include src/state/legacy\\.cpp -> src/shading/shader\\.h.*NOTBUILT +DB-001 link src/state/legacy\\.cpp -> _Z8traceRayi.*RESULT +PASS"
+    FAIL_REGEX "STALE|VIOLATION"
+    EXCLUDE state/legacy.cpp)
+archcheck_add_fixture(tagged-untagged-dup 2
+    "allowlist\\.txt:3: same edge listed tagged and untagged")

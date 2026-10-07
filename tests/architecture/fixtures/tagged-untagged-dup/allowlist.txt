@@ -1,0 +1,3 @@
+# Fixture allowlist.
+DB-001  include  src/state/options.cpp  ->  src/shading/shader.h
+DB-001  include  src/state/options.cpp  ->  src/shading/shader.h  macos

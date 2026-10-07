@@ -1,0 +1,3 @@
+# Fixture allowlist.
+# DB-002 is listed under "## Resolved" in REGISTRY.md.
+DB-002  include  src/state/options.cpp  ->  src/shading/shader.h

@@ -1,0 +1,5 @@
+# Fixture allowlist.
+# Tagged for the other platform (the test runs --platform linux): ignored.
+DB-001  include  src/state/options.cpp  ->  src/shading/missing.h  macos
+# Tagged for the platform being run, edge absent: stale.
+DB-001  include  src/state/options.cpp  ->  src/texture/gone.h     linux

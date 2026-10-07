@@ -1,0 +1,2 @@
+# Fixture allowlist.
+DB-001  include  src/hiders/reyes.cpp  ->  src/geometry/object.h

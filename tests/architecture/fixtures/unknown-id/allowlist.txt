@@ -1,0 +1,2 @@
+# Fixture allowlist.
+DB-099  include  src/state/options.cpp  ->  src/shading/shader.h
