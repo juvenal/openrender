@@ -88,6 +88,12 @@ Spec 022 changes nothing under `src/` and no build file outside `tests/architect
 
 macOS, clean `-Werror` build, `nice -n 19 ctest -j4`: **557/557** passed (105 s). That is the pre-feature suite (537 tests on master `607ccc1`) plus the 20 new `architecture` tests, all passing; no existing result changed.
 
+## Convergence (Phase 8)
+
+- **T065–T068** (macOS): link violations name their rule; include violations show `file:line` (JSON `line`); an allowlisted include that is written but inactive in the build is `NOTBUILT`, not `STALE` (new fixture `ArchFixture_conditional_include`); `src/libshader/tests/` is classified Consumer and its one DB-016 line is gone (686 allowlist lines). `ctest -L architecture` **21/21**; the real tree `RESULT PASS`; metric unchanged.
+- **T069, CI configurations:** the Linux `build-022` tree used for T043/T057/T061 is `INSTALL_SELFCONTAINED=OFF` with Ubuntu 24.04's system libraries and GCC 13, i.e. the configuration of `release.yml`'s Ubuntu non-self-contained build; the check passed there 20/20. **The macOS Homebrew-based (`INSTALL_SELFCONTAINED=OFF`, no vcpkg) and `macos-13` Intel builds are deferred to the first tagged CI run** (maintainer's decision, 2026-10-08): building a second, vcpkg-free tree on the development Mac is not worth its cost. If that run fails only on edges spelled differently there, tag them as in T043.
+- **T071, Ninja path** (2026-10-08, maintainer, Ubuntu 24.04 / GCC 13.3): a scratch `-G Ninja` tree (`build-022-ninja`, Release, `INSTALL_SELFCONTAINED=OFF`) built with `cmake --build -j4`. `archcheck` against it and against the Makefiles tree `build-022` gives identical results: `objects=253 sources=171 edges=2666 (include=1398 link=1268)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. `ctest -L architecture` on the Ninja tree: **21/21**. The Makefiles tree, rebuilt with the Phase 8 `archcheck` under GCC 13 `-Werror`, also passes 21/21.
+
 ## Caveat: build configuration
 
 The allowlist is measured on a **Release, JIT-on** build. A Debug tree can add link references that `-O3` eliminated (assert-only and debug-only paths, out-of-line inline functions), and a JIT-off build compiles fewer files. `NOTBUILT` covers files a configuration doesn't compile, not different edges inside a file that it does compile. A Debug or JIT-off run may therefore report violations that Release doesn't. The check is defined against the Release configuration CI builds; other configurations are informational until measured.

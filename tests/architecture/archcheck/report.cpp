@@ -183,12 +183,15 @@ namespace archcheck {
 
         for (const Violation &v : sortedViolations(r)) {
             const std::string classes = "[" + std::string(className(v.fromClass)) + " -> " + classList(v.toClasses) + "]";
-            if (v.kind == EdgeKind::Include)
-                std::fprintf(out, "VIOLATION include %s -> %s  %s rule: %s\n", v.from.c_str(), v.to.c_str(),
+            if (v.kind == EdgeKind::Include) {
+                const std::string where = v.line > 0 ? v.from + ":" + std::to_string(v.line) : v.from;
+                std::fprintf(out, "VIOLATION include %s -> %s  %s rule: %s\n", where.c_str(), v.to.c_str(),
                              classes.c_str(), v.rule.c_str());
+            }
             else
-                std::fprintf(out, "VIOLATION link    %s -> %s (%s)  %s defined in: %s\n", v.from.c_str(), v.to.c_str(),
-                             v.display.c_str(), classes.c_str(), joined(v.definedIn, ", ").c_str());
+                std::fprintf(out, "VIOLATION link    %s -> %s (%s)  %s rule: %s  defined in: %s\n", v.from.c_str(),
+                             v.to.c_str(), v.display.c_str(), classes.c_str(), v.rule.c_str(),
+                             joined(v.definedIn, ", ").c_str());
         }
 
         for (const EntryIssue &e : sortedIssues(r.stale))
@@ -220,8 +223,10 @@ namespace archcheck {
                 std::fprintf(out, "CONSUMER  %s -> %s  [Consumer -> %s]\n", c.from.c_str(), c.to.c_str(),
                              std::string(className(c.toClass)).c_str());
             for (const EntryIssue &e : sortedIssues(r.notBuilt))
-                std::fprintf(out, "NOTBUILT  %s %s %s -> %s  (referencing file not compiled in this build; skipped)\n",
-                             e.id.c_str(), kindName(e.kind), e.from.c_str(), e.to.c_str());
+                std::fprintf(out, "NOTBUILT  %s %s %s -> %s  (%s; skipped)\n", e.id.c_str(), kindName(e.kind),
+                             e.from.c_str(), e.to.c_str(),
+                             e.reason == "inactive" ? "directive inactive in this build"
+                                                    : "referencing file not compiled in this build");
             auto unresolved = r.unresolvedHeaders;
             std::sort(unresolved.begin(), unresolved.end());
             for (const std::string &h : unresolved)
@@ -259,6 +264,7 @@ namespace archcheck {
             jsonString(out, kindName(v.kind));
             std::fputs(", \"from\": ", out);
             jsonString(out, v.from);
+            std::fprintf(out, ", \"line\": %d", v.line);
             std::fputs(", \"to\": ", out);
             jsonString(out, v.to);
             std::fputs(", \"display\": ", out);
@@ -321,7 +327,7 @@ namespace archcheck {
         });
 
         std::fputs(",\n  \"not_built\": ", out);
-        jsonArray(out, sortedIssues(r.notBuilt), [&](const EntryIssue &e) { jsonIssue(out, e, false); });
+        jsonArray(out, sortedIssues(r.notBuilt), [&](const EntryIssue &e) { jsonIssue(out, e, true); });
 
         auto unresolved = r.unresolvedHeaders;
         std::sort(unresolved.begin(), unresolved.end());

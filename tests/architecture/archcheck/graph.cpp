@@ -154,7 +154,7 @@ namespace archcheck {
         }
     }
 
-    AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched, const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry, Platform platform, const std::set<std::string> &includeCompiled, const std::set<std::string> &linkCompiled) {
+    AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched, const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry, Platform platform, const std::set<std::string> &includeCompiled, const std::set<std::string> &linkCompiled, const std::map<std::string, std::set<std::string>> &inactiveDirectives) {
         std::map<std::tuple<EdgeKind, std::string, std::string>, EdgeStatus> present;
         for (const Edge &e : edges)
             present.emplace(std::make_tuple(e.kind, e.from, e.to), e.status);
@@ -179,6 +179,19 @@ namespace archcheck {
             if (!compiled.count(a.fromFile)) {
                 out.notBuilt.push_back(issue(""));
                 continue;
+            }
+            // An #include naming the header is still written but inactive here.
+            if (a.kind == EdgeKind::Include) {
+                const auto in = inactiveDirectives.find(a.fromFile);
+                const bool inactive = in != inactiveDirectives.end() &&
+                                      std::any_of(in->second.begin(), in->second.end(), [&](const std::string &name) {
+                                          return a.to == name || (a.to.size() > name.size() &&
+                                                                  a.to.compare(a.to.size() - name.size() - 1, std::string::npos, "/" + name) == 0);
+                                      });
+                if (inactive) {
+                    out.notBuilt.push_back(issue("inactive"));
+                    continue;
+                }
             }
             const auto p = present.find(std::make_tuple(a.kind, a.fromFile, a.to));
             out.stale.push_back(issue(p != present.end() && p->second == EdgeStatus::Allowed ? "now allowed"

@@ -42,7 +42,8 @@ namespace archcheck {
             std::string display; // demangled symbol (link only)
             Class fromClass = Class::Infra;
             std::vector<Class> toClasses;
-            std::string rule;                   // why it is not allowed (include)
+            std::string rule;                   // why it is not allowed
+            int line = 0;                       // include: line of the #include
             std::vector<std::string> definedIn; // defining source files (link)
     };
 

@@ -56,6 +56,9 @@ prefix  src/ri/texture/                              Texturing
 
 # --- Shading (compiler, runtime, shading, include; rslo grammars) ------------
 prefix  src/libshader/                               Shading
+# Test code under src/ (FR-004 analyses non-test code only): tests may
+# depend on anything, like the other consumers.
+prefix  src/libshader/tests/                         Consumer
 prefix  @build/src/libshader/                        Shading
 
 # --- Display Outputs ---------------------------------------------------------

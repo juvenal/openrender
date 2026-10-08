@@ -22,6 +22,7 @@
 #define ARCHCHECK_INCLUDES_H
 
 #include <functional>
+#include <map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -89,6 +90,11 @@ namespace archcheck {
     struct IncludeResolution {
             std::set<std::pair<std::string, std::string>> edges; // (from, to), mapped
             std::set<std::string> seen;                          // in-scope files some TU read
+            // (from, to) -> line of the first #include that produced the edge.
+            std::map<std::pair<std::string, std::string>, int> lines;
+            // File -> #include names that were active in none of the translation
+            // units that read it (e.g. inside an #if the build leaves off).
+            std::map<std::string, std::set<std::string>> inactive;
     };
 
     // Resolves each in-scope file's direct includes the way its compiler did:

@@ -43,13 +43,13 @@ fails as stale.
 
 | Line | Meaning | Fails? |
 |---|---|---|
-| `VIOLATION` | an edge the table forbids and no allowlist line covers: file, header or symbol (raw, demangled, defining file), both classes, the rule | yes |
+| `VIOLATION` | an edge the table forbids and no allowlist line covers: `file:line` of the include (or the referencing file and symbol, raw and demangled, with its defining file), both classes, the rule | yes |
 | `STALE` | an allowlist line whose edge no longer exists, or is now allowed: delete the line | yes |
 | `BADID` | an allowlist line naming an unknown or Resolved registry ID | yes |
-| `CYCLE` | a cycle between classes, with one example edge per hop; `[FAILING]` if a hop is a violation, `[allowlisted]` otherwise | if `[FAILING]` |
+| `CYCLE` | the shortest cycle through each disallowed class-to-class step (not every cycle), with one example edge per step; `[FAILING]` if a step holds a violation, `[allowlisted]` otherwise | if `[FAILING]` |
 | `ALLOWED` | allowlisted edges per registry ID | no |
 | `CONSUMER` | a tool, binding or preview including a domain's headers (recorded under DB-024) | no |
-| `NOTBUILT` | an allowlist line for a file this build does not compile | no |
+| `NOTBUILT` | an allowlist line for a file this build does not compile, or an include line whose `#include` is still written but inactive in this build (e.g. inside an `#ifdef` the build options leave off) | no |
 | `UNRESOLVED` | a header no compiled translation unit includes, so it yields no edges | no |
 | `METRIC` / `WARNING` / `NOTE` | renderer-core usage (`CRenderer::` / `CRendererContext::` references and distinct members) per class against the baseline; an increase warns, a decrease suggests lowering the baseline | no |
 
@@ -80,6 +80,8 @@ fails as stale.
    with the commit and date.
 4. If `NOTE metric … < baseline` appears, lower `metrics-baseline.txt` to the reported values.
 5. Re-run `ctest -L architecture` on macOS and Linux.
+
+**Build options:** an allowlisted include inside an `#if` that a configuration leaves off is reported as `NOTBUILT` there, not `STALE`. Link entries have no such rule (`nm` can't tell an inactive block from deleted code): a link entry whose reference exists only under a build option needs a platform tag, or that option on in every configuration that runs the check. None is known today.
 
 **Known limitation:** CI runs the check only where `ctest` runs, i.e. in
 `.github/workflows/release.yml`, which runs on version-tag pushes, not on every push or pull
@@ -374,8 +376,8 @@ request. Run `ctest -L architecture` locally before review.
   - Infrastructure itself reaches up: `src/ri/core` and `src/common` include `error.h`, `ri.h`,
     `rendererc.h`, `attributes.h` and `xform.h`, and call `CAttributes::findParameter`,
     `CRenderer::retrieveVariable`.
-- **Size**: 216 edges (76 include, 140 link) across Graphics State (81), Geometry (41), Texturing
-  (36), Hiders (18), Infra (20), Shading (15) and Scene Interface (5). Shading's link
+- **Size**: 215 edges (75 include, 140 link) across Graphics State (81), Geometry (41), Texturing
+  (36), Hiders (18), Infra (20), Shading (14) and Scene Interface (5). Shading's link
   references to these symbols are counted under DB-001.
 - **Direction**: move diagnostics (an installable `IDiagnosticSink`), the vocabulary headers,
   `CVariable` and an `Arena` object into `libRIBCommon`; behavior-preserving moves with

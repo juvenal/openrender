@@ -597,6 +597,7 @@ namespace archcheck {
             return memo.emplace(key, f).first->second;
         };
 
+        std::set<std::pair<std::string, std::string>> active; // (file, directive name)
         for (const TranslationUnit &u : tree.units) {
             const SearchPath &sp = tree.searchPaths[u.searchPath];
             for (const std::string &file : u.deps) {
@@ -614,12 +615,22 @@ namespace archcheck {
                     const Found &f = search(sp, u.searchPath, d, includerDir);
                     if (!f.found || !f.mapped || *f.mapped == file)
                         continue;
-                    if (!u.deps.count(*f.mapped) || !inScope(*f.mapped))
+                    if (!u.deps.count(*f.mapped))
+                        continue;
+                    active.emplace(file, d.name);
+                    if (!inScope(*f.mapped))
                         continue;
                     res.edges.emplace(file, *f.mapped);
+                    const auto [it, added] = res.lines.emplace(std::make_pair(file, *f.mapped), d.line);
+                    if (!added && d.line < it->second)
+                        it->second = d.line;
                 }
             }
         }
+        for (const auto &[file, list] : directives)
+            for (const IncludeDirective &d : list)
+                if (!active.count({file, d.name}))
+                    res.inactive[file].insert(d.name);
         return res;
     }
 

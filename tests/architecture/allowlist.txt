@@ -397,7 +397,7 @@ DB-015  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer16retrieveVar
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer16initDeclarationsEv   # CRenderer::initDeclarations()
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer20shutdownDeclarationsEv   # CRenderer::shutdownDeclarations()
 
-# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (216) ---
+# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (215) ---
 DB-016  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/error.h
 DB-016  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/common/colorSpace.h  ->  src/ri/render/rendererc.h
@@ -415,7 +415,6 @@ DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/parse/variable.h
 DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/libshader/shading/shaderPl.h  ->  src/ri/parse/ri.h
 DB-016  include  src/libshader/shading/shading.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/libshader/tests/test_used_parameters_table.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/ri/core/fileResource.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/core/pl.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/core/pl.cpp  ->  src/ri/render/renderer.h

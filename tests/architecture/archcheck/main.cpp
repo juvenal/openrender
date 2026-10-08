@@ -287,6 +287,7 @@ int main(int argc, char **argv) {
         e.kind = EdgeKind::Include;
         e.from = from;
         e.to = to;
+        e.line = inc.lines.at({from, to});
         e.fromClass = *classOf(from);
         e.toClasses = {*classOf(to)};
         edges.push_back(std::move(e));
@@ -364,6 +365,7 @@ int main(int argc, char **argv) {
             v.toClasses = e.toClasses;
             v.rule = ruleText(rules, e.fromClass);
             v.definedIn = e.definedIn;
+            v.line = e.line;
             report.violations.push_back(std::move(v));
         }
         else if (e.status == EdgeStatus::Allowlisted) {
@@ -377,7 +379,7 @@ int main(int argc, char **argv) {
     report.cycles = findCycles(edges);
 
     const AllowlistCheck entries =
-        checkAllowlist(allowlist, matched, edges, registry, platform, inc.seen, sources);
+        checkAllowlist(allowlist, matched, edges, registry, platform, inc.seen, sources, inc.inactive);
     report.stale = entries.stale;
     report.badIds = entries.badIds;
     report.notBuilt = entries.notBuilt;

@@ -48,14 +48,15 @@ Fixture scenarios run the same binary with `--config`/`--source-dir`/`--registry
 
 ```
 archcheck: platform=macos objects=248 sources=612 edges=1834 (include=1022 link=812)
-VIOLATION include src/ri/state/options.h -> src/libshader/shading/shader.h  [GraphicsState -> Shading] rule: allowed-dependency table (Graphics State depends on none)
-VIOLATION link    src/ri/texture/pointCloud.cpp -> _ZN10CRaytracer5traceEP4CRay (CRaytracer::trace(CRay*))  [Texturing -> Hiders] defined in: src/ri/hiders/raytracer.cpp
+VIOLATION include src/ri/state/options.h:31 -> src/libshader/shading/shader.h  [GraphicsState -> Shading] rule: allowed-dependency table (GraphicsState may depend on: Infra)
+VIOLATION link    src/ri/texture/pointCloud.cpp -> _ZN10CRaytracer5traceEP4CRay (CRaytracer::trace(CRay*))  [Texturing -> Hiders] rule: allowed-dependency table (Texturing may depend on: Infra)  defined in: src/ri/hiders/raytracer.cpp
 STALE     DB-012 include src/ri/state/attributes.cpp -> src/ri/hiders/irradiance.h  (edge no longer present; delete the entry)
 BADID     DB-099 include src/... -> ...  (no Open registry entry DB-099)
 CYCLE     Geometry -> Shading -> Geometry  (via src/ri/geometry/object.h -> .../shading.h; src/libshader/shading/shading.cpp -> .../surface.h)  [allowlisted]
 ALLOWED   DB-004 x 57   DB-005 x 212   ...
 CONSUMER  src/sloinfo/sloinfo.cpp -> src/libshader/shading/llvmJit.h  [Consumer -> Shading]
 NOTBUILT  DB-007 link src/libshader/shading/llvmJit.cpp -> _ZN...  (referencing file not compiled in this build; skipped)
+NOTBUILT  DB-010 include src/ri/texture/imageInputExr.cpp -> src/ri/parse/error.h  (directive inactive in this build; skipped)
 UNRESOLVED src/ri/foo/unused.h  (no compiled translation unit includes it; no edges derived)
 NOTE      metric Hiders refs 598 < baseline 611 (-13); consider lowering the baseline
 METRIC    Geometry refs 88 (baseline 88)  distinct 24 (baseline 24)
@@ -63,7 +64,7 @@ WARNING   metric Texturing refs 116 > baseline 115 (+1)
 RESULT    FAIL violations=2 stale=1 badid=1 failing-cycles=0 notbuilt=1
 ```
 
-- Every `VIOLATION` line carries the file, the target (header or symbol plus its demangled form), both classes, and the rule. That makes FR-007 and SC-001 checkable by regex.
+- Every `VIOLATION` line carries the file (`file:line` of the `#include` for include edges), the target (header, or symbol plus its demangled form and defining file), both classes, and the rule. That makes FR-007 and SC-001 checkable by regex.
 - The final line is always `RESULT PASS …` or `RESULT FAIL …`.
 
 ## JSON output (`--format json`)
@@ -72,14 +73,14 @@ RESULT    FAIL violations=2 stale=1 badid=1 failing-cycles=0 notbuilt=1
 {
   "platform": "macos",
   "counts": {"objects": 248, "sources": 612, "include_edges": 1022, "link_edges": 812},
-  "violations": [{"kind": "include", "from": "...", "to": "...", "display": null,
+  "violations": [{"kind": "include", "from": "...", "line": 31, "to": "...", "display": null,
                   "from_class": "GraphicsState", "to_class": ["Shading"], "rule": "..."}],
   "stale": [{"id": "DB-012", "kind": "include", "from": "...", "to": "..."}],
   "bad_ids": [{"id": "DB-099", "reason": "unknown|resolved", "line": 42}],
   "cycles": [{"path": ["Geometry", "Shading", "Geometry"], "failing": false, "edges": ["..."]}],
   "allowlisted": {"DB-004": 57},
   "consumer_reach": [{"from": "...", "to": "...", "to_class": "Shading"}],
-  "not_built": [{"id": "DB-007", "kind": "link", "from": "...", "to": "..."}],
+  "not_built": [{"id": "DB-007", "reason": "", "line": 12, "kind": "link", "from": "...", "to": "..."}],
   "unresolved_headers": ["..."],
   "metrics": [{"class": "Geometry", "refs": 88, "refs_baseline": 88, "distinct": 24, "distinct_baseline": 24}],
   "result": "PASS"

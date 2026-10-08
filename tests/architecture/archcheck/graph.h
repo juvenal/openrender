@@ -42,6 +42,7 @@ namespace archcheck {
             Class fromClass = Class::Infra;
             std::vector<Class> toClasses;
             std::vector<std::string> definedIn; // link only
+            int line = 0;                       // include only: line of the #include
             EdgeStatus status = EdgeStatus::Allowed;
             std::string registryId; // when allowlisted
     };
@@ -59,8 +60,12 @@ namespace archcheck {
     // Validates every allowlist entry that applies to `platform` (FR-009,
     // FR-010, FR-010a). A file counts as compiled for an include entry when some
     // translation unit read it (`includeCompiled`), and for a link entry when it
-    // was compiled into an object (`linkCompiled`).
-    AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched, const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry, Platform platform, const std::set<std::string> &includeCompiled, const std::set<std::string> &linkCompiled);
+    // was compiled into an object (`linkCompiled`). An unmatched include entry
+    // whose file still has an #include naming the header, but one active in no
+    // translation unit (`inactiveDirectives`), is not built rather than stale:
+    // the build options leave that code out. Link entries have no equivalent,
+    // since nm cannot tell an inactive #if block from deleted code.
+    AllowlistCheck checkAllowlist(const std::vector<AllowlistEntry> &allowlist, const std::vector<bool> &matched, const std::vector<Edge> &edges, const std::map<std::string, RegistryEntry> &registry, Platform platform, const std::set<std::string> &includeCompiled, const std::set<std::string> &linkCompiled, const std::map<std::string, std::set<std::string>> &inactiveDirectives);
 
     // "allowed-dependency table (<From> may depend on: <classes>)"
     std::string ruleText(const RuleTable &rules, Class from);

@@ -60,7 +60,7 @@ No finding turned out to be gone on current master.
 | 15 | DB-011 | Hiders → renderer core |
 | 16 | DB-015 | Scene Interface → renderer core |
 
-Result at seeding: 700 edges per platform, all assigned. 696 occur on both platforms and are untagged; 4 are spelled differently by each toolchain (see DB-011 and DB-026) and are listed once per platform with a `macos`/`linux` tag, for 704 allowlist lines. Per entry, after Phase 6's removals (683 edges per platform, 687 allowlist lines; macOS counts, Linux identical):
+Result at seeding: 700 edges per platform, all assigned. 696 occur on both platforms and are untagged; 4 are spelled differently by each toolchain (see DB-011 and DB-026) and are listed once per platform with a `macos`/`linux` tag, for 704 allowlist lines. Per entry, after Phase 6's removals and T068 (682 edges per platform, 686 allowlist lines; macOS counts, Linux identical):
 
 | Entry | Edges | Include | Link |
 |---|---:|---:|---:|
@@ -72,13 +72,13 @@ Result at seeding: 700 edges per platform, all assigned. 696 occur on both platf
 | DB-010 | 35 | 18 | 17 |
 | DB-011 | 180 (+2 tagged lines) | 9 | 171 |
 | DB-015 | 11 | 7 | 4 |
-| DB-016 | 216 | 76 | 140 |
+| DB-016 | 215 | 75 | 140 |
 | DB-017 | 78 | 0 | 78 |
 | DB-019 | 4 | 4 | 0 |
 | DB-021 | 1 | 1 | 0 |
 | DB-025 | 12 | 4 | 8 |
 | DB-026 | 3 (+2 tagged lines) | 1 | 2 |
-| **Total** | **683** | **193** | **490** |
+| **Total** | **682** | **192** | **490** |
 
 Entries with no allowlist lines (DB-007, DB-009, DB-012, DB-013, DB-014, DB-018, DB-020, DB-023, DB-024) are findings that are not dependency edges, or not failing ones; the check cannot see them, so SC-002's "the `ALLOWED` lines cover every new DB ID" applies to the 15 edge entries above, not to these nine.
 
