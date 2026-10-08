@@ -1,0 +1,22 @@
+Hider "reyes"
+Display "hero.tif" "file" "rgba"
+Format 800 500 1
+Projection "perspective" "fov" [38]
+
+Translate 0 0 9
+
+WorldBegin
+    LightSource "raydistant" 2 "intensity" [2.2]
+        "lightcolor" [1.0 0.82 0.42]
+        "from" [7 8 -6] "to" [0 0 0]
+
+    Surface "plastic" "float Ks" [0.88] "float roughness" [0.05]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1.50 -1.50 1.50 360
+        SolidEnd
+        SolidBegin "primitive"
+            Cylinder 0.65 -2 2 360
+        SolidEnd
+    SolidEnd
+WorldEnd
