@@ -1,0 +1,2 @@
+# Fixture allowlist: the edge exists only when ARCHFIXTURE_WITH_SHADING is set.
+DB-001  include  src/state/options.cpp  ->  src/shading/shader.h

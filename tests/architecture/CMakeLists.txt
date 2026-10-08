@@ -114,9 +114,9 @@ file(MAKE_DIRECTORY ${ARCHCHECK_EMPTY_BUILD_DIR})
 archcheck_add_fixture(clean 0 "RESULT +PASS"
     FAIL_REGEX "VIOLATION|CYCLE")
 archcheck_add_fixture(forbidden-include 1
-    "VIOLATION include src/state/options.cpp -> src/shading/shader.h +\\[GraphicsState -> Shading\\] rule:")
+    "VIOLATION include src/state/options.cpp:1 -> src/shading/shader.h +\\[GraphicsState -> Shading\\] rule:")
 archcheck_add_fixture(forbidden-link 1
-    "VIOLATION link +src/texture/lookup.cpp -> _Z8traceRayi \\(traceRay\\(int\\)\\) +\\[Texturing -> Hiders\\] defined in: src/hiders/raytracer.cpp"
+    "VIOLATION link +src/texture/lookup.cpp -> _Z8traceRayi \\(traceRay\\(int\\)\\) +\\[Texturing -> Hiders\\] rule: allowed-dependency table \\(Texturing may depend on: Infra\\) +defined in: src/hiders/raytracer.cpp"
     FAIL_REGEX "VIOLATION include")
 archcheck_add_fixture(new-cycle 1
     "CYCLE +[A-Za-z >-]*Geometry[A-Za-z >-]*Shading[^[]*\\[FAILING\\]"
@@ -127,7 +127,7 @@ archcheck_add_fixture(new-cycle-allowlisted 0
 archcheck_add_fixture(unclassified 2 "unclassified: src/misc/stray.cpp"
     FAIL_REGEX "notes\\.txt")
 archcheck_add_fixture(forwarding-shim 1
-    "VIOLATION include src/state/options.cpp -> src/common/shader.h +\\[GraphicsState -> Shading\\]")
+    "VIOLATION include src/state/options.cpp:1 -> src/common/shader.h +\\[GraphicsState -> Shading\\]")
 archcheck_add_fixture(incomplete-build 2 "CMakeCache\\.txt"
     BUILD_DIR ${ARCHCHECK_EMPTY_BUILD_DIR})
 
@@ -159,3 +159,8 @@ archcheck_add_fixture(metric-increase 0
 archcheck_add_fixture(metric-decrease 0
     "NOTE +metric Geometry refs 3 < baseline 5 \\(-2\\).*NOTE +metric Geometry distinct 2 < baseline 3 \\(-1\\).*RESULT +PASS"
     FAIL_REGEX "WARNING")
+
+# --- Convergence (spec 022 T067): build options that remove code ------------
+archcheck_add_fixture(conditional-include 0
+    "NOTBUILT +DB-001 include src/state/options.cpp -> src/shading/shader.h +\\(directive inactive in this build; skipped\\).*RESULT +PASS"
+    FAIL_REGEX "STALE")
