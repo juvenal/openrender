@@ -521,8 +521,8 @@ request. Run `ctest -L architecture` locally before review.
   and failing on any edge the table forbids. Until the source tree is split into one target per
   domain, the check has to map by source directory; it should start by encoding DB-001 as a known,
   allowed-for-now exception rather than failing on day one.
-- **Resolved** by spec 022 (domain-dependency guardrails), 2026-10-07; merge commit: _added after
-  merge_. `ctest -L architecture` runs `archcheck` (see **Architecture check** above) wherever
+- **Resolved** by spec 022 (domain-dependency guardrails), 2026-10-07; merged into master by
+  fast-forward up to `6870d01` (2026-10-08). `ctest -L architecture` runs `archcheck` (see **Architecture check** above) wherever
   `ctest` runs, including all three jobs of `.github/workflows/release.yml`. The direction above
   was taken with two refinements: edges come from compiler depfiles and per-object `nm` rather than
   `cmake --graphviz`, and every current violation (DB-001 and DB-004 included) is allowlisted per
