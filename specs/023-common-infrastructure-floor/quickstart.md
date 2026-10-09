@@ -26,7 +26,8 @@ specs/023-common-infrastructure-floor/tools/compat-consumer/build.sh "$S/023-inp
 "$S/023-compat/run.sh" "$S/023-inplace" base  # expect: exit 0 for each
 # B2. determinism probe: run again and compare
 "$S/023-compat/run.sh" "$S/023-inplace" base2
-for f in "$S"/023-compat/out-*-base.*; do cmp "$f" "${f/-base./-base2.}" || echo "NONDETERMINISTIC: $f"; done
+#    expect: tif identical in bytes; rib identical except the ##CreationDate header line
+"$S/023-compat/compare.sh" "$S/023-compat" base base2
 
 # C. shading-library "before" list (macOS, already captured)
 ls "$S/023-libshader-undef-before.txt"
@@ -83,7 +84,7 @@ nm -m build/src/libshader/shading/libshader_shading.1.dylib | c++filt \
   | grep -E 'error\(|warning\(|info\(|stats|globalArena|memory(Init|Tini|NewPage)|parseVariable|sample(Cosine)?Hemisphere|CRefCounter|CFileResource'
 # expect: each line "(from libRIBCommon)" or a local definition, never "(dynamically looked up)"
 nm -m build/src/libshader/shading/libshader_shading.1.dylib | grep 'dynamically looked up' | c++filt \
-  | diff - <(grep 'dynamically looked up' "$S/023-libshader-undef-before.txt" | c++filt)
+  | diff - <(grep 'dynamically looked up' specs/023-common-infrastructure-floor/tools/libshader-nm-m-before-macos.txt | c++filt)
 # expect: only removals (the 17 infrastructure symbols); what remains is DB-001's scope
 ```
 
@@ -110,10 +111,7 @@ build/tests/unit/common/test_common_diagnostics fatal   ; echo "status=$?"  # st
 # UNCHANGED §0 binaries (built before any source change) with no DYLD_/LD_ variables
 DESTDIR="$S/023-inplace" nice -n 19 cmake --install build      # with the /usr/local snapshot/diff of §0
 "$S/023-compat/run.sh" "$S/023-inplace" new                    # expect: exit 0 for each, libRIB* resolved inside the root
-for l in RIBRender RIBVector RIBOut; do
-  # cmp for outputs the §0 probe found deterministic; block metric otherwise (tasks T004a)
-  for f in "$S/023-compat"/out-$l-base.*; do cmp "$f" "${f/-base./-new.}"; done
-done
+"$S/023-compat/compare.sh" "$S/023-compat" base new       # rule from the §0 probe (tasks T004a)
 # Fresh install for the remaining checks
 DESTDIR="$S/023-new" nice -n 19 cmake --install build
 # Installed RI libraries find libRIBCommon when loaded by absolute path (no loader variables)

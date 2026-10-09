@@ -69,19 +69,19 @@ is wrong: stop and report it; don't allowlist it.
 
 **Purpose**: capture everything that can only be captured before the feature exists (research R11).
 
-- [ ] T001 Confirm the baseline is pristine.
+- [X] T001 Confirm the baseline is pristine.
   - `git diff --stat 010ce04 -- src tests CMake CMakeLists.txt` must print nothing; only `specs/`
     may differ.
   - `nice -n 19 cmake --build build --config Release -j4` must be a no-op.
   - Record `git rev-parse HEAD` and the build type in a new
     `specs/023-common-infrastructure-floor/validation.md`.
-- [ ] T002 Create the frozen baseline install.
+- [X] T002 Create the frozen baseline install.
   - Snapshot: `ls -laR /usr/local > $S/023-usrlocal-before.txt`.
   - Install: `DESTDIR=$S/023-base nice -n 19 cmake --install build`.
   - Snapshot again to `$S/023-usrlocal-after.txt` and `diff` the two. Any difference means stop
     and report (memory: install(CODE) once leaked outside DESTDIR).
   - Record the install's lib, bin, shaders and displays directories in `validation.md`.
-- [ ] T003 [P] Write the SC-006 compatibility consumer under
+- [X] T003 [P] Write the SC-006 compatibility consumer under
   `specs/023-common-infrastructure-floor/tools/compat-consumer/`.
   - `consumer.cpp` uses only the installed `ri.h`: `RiErrorHandler(RiErrorPrint)`, `RI_*` tokens
     (`RI_P`, `RI_CS`, `RI_RGBA`, `RI_FILE`), `RiDeclare("foo", "uniform float")`, and a
@@ -113,7 +113,7 @@ is wrong: stop and report it; don't allowlist it.
   - `build-package.sh <install-root> <out-dir>` builds a two-target out-of-tree project with
     `find_package(openRender COMPONENTS Shared Static)`: one target linking `openRender::RIBRender`
     and one linking `openRender::RIBRender_static`. Both must render a sphere.
-- [ ] T004 Build and run the baseline consumers, keeping the binaries **unchanged** for Phase 7.
+- [X] T004 Build and run the baseline consumers, keeping the binaries **unchanged** for Phase 7.
   - Create the in-place root, a copy of the frozen install that T051 later installs the new
     libraries over: `cp -a $S/023-base $S/023-inplace`. `$S/023-base` itself stays untouched as
     the performance A side.
@@ -124,20 +124,24 @@ is wrong: stop and report it; don't allowlist it.
   - `build-package.sh $S/023-base $S/023-pkg-base`
 
   Record the outputs and exit codes in `validation.md`.
-- [ ] T004a Determinism probe: run `$S/023-compat/run.sh $S/023-inplace base2` and compare every
+- [X] T004a Determinism probe: run `$S/023-compat/run.sh $S/023-inplace base2` and compare every
   `out-*-base` file with `out-*-base2` using `cmp`.
   - If all files match, T051 compares bytes.
   - If any TIFF differs, record it in `validation.md`. T051 then compares that TIFF with the
     visual-test 8×8 block-average metric (the `tests/visual` comparator, threshold 0), and exact
     `cmp` applies only to the RIB outputs.
-- [ ] T005 [P] Copy the macOS "before" list `$S/023-libshader-undef-before.txt` to
+  - **Result (2026-10-09)**: the TIFF is byte-identical. The RIB outputs differ only in the
+    `##CreationDate` header line, which `libRIBOut`/`libRIBVector` stamp with the wall-clock time.
+    The rule is encoded in `tools/compat-consumer/compare.sh <dir> <tag-a> <tag-b>`: `cmp` for
+    `.tif`, `diff` with `##CreationDate` excluded for `.rib`.
+- [X] T005 [P] Copy the macOS "before" list `$S/023-libshader-undef-before.txt` to
   `specs/023-common-infrastructure-floor/tools/libshader-undef-before-macos.txt`, so it survives
   the session.
   - Add quickstart §0's Linux "before" commands to `validation.md` as a block for the maintainer
     to run on `build-022`.
   - The maintainer pastes the results into `tools/libshader-undef-before-linux.txt` and
     `tools/libshader-bindings-before-linux.txt`.
-- [ ] T006 Write the golden variable-declaration test, `Common_VariableDeclarations` (label
+- [X] T006 Write the golden variable-declaration test, `Common_VariableDeclarations` (label
   `common`, FR-005), against the **current** `src/ri/parse/variable.h`.
   - Create `tests/unit/common/CMakeLists.txt` and add `add_subdirectory(unit/common)` to
     `tests/CMakeLists.txt` after `unit/rib_parse`.
@@ -153,7 +157,8 @@ is wrong: stop and report it; don't allowlist it.
 
     The test links `ribRender openrendercommon`.
   - Run `--dump` once on the baseline and commit its output verbatim as
-    `tests/unit/common/variable_golden.inc`. The test compares the live result to it.
+    `tests/unit/common/variable_golden.txt`, a plain-text table the test reads at runtime, so it
+    diffs cleanly in review. The test compares the live result to it.
   - It must **pass now**; that is the baseline for the Phase 5 move.
 
 **Checkpoint (TEST-APPROVAL 1a + PAUSE 1)**: the compatibility test programs (T003) and the golden
@@ -683,8 +688,8 @@ result on macOS (SC-002).
     snapshot and diff.
   - Run T004's **unchanged** binaries, built before any source change, with no loader variables:
     `$S/023-compat/run.sh $S/023-inplace new`.
-  - Compare each `out-<lib>-base` with `out-<lib>-new` using the method T004a established: `cmp`
-    for byte-deterministic outputs, the block metric otherwise.
+  - Compare each `out-<lib>-base` with `out-<lib>-new` using the method T004a established:
+    `$S/023-compat/compare.sh $S/023-compat base new`.
   - Also install fresh to `$S/023-new` (same `/usr/local` check), and run
     `render-installed.sh $S/023-new`, which must render.
 - [ ] T052 [P] [US4] Check the re-export and source compatibility.
@@ -699,7 +704,7 @@ result on macOS (SC-002).
     - From a scratch program run with no loader variables, `dlopen` each library by absolute path;
       each must load and resolve `libRIBCommon`.
 - [ ] T053 [P] [US2] Check the shading binding (quickstart §3): diff the
-  `dynamically looked up` list against `tools/libshader-undef-before-macos.txt`. Only removals are
+  `dynamically looked up` list against `tools/libshader-nm-m-before-macos.txt` (29 entries). Only removals are
   allowed, and the removals must be exactly the infrastructure symbols.
 - [ ] T054 [US4] Run the full suite, including the python/lua binding tests. Confirm
   `grep -c '^DB-001' tests/architecture/allowlist.txt` is ≤ 18, and that the allowlist diff

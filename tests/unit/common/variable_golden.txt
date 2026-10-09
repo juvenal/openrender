@@ -1,0 +1,958 @@
+decl="float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="facevarying string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=3 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="vertex string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global uniform string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=0 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying float [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=0 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying integer [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying int [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=10 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying vector [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=2 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying color [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=1 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying normal [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=3 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=3 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=3 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=12 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=12 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=9 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying point [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=9 type=4 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying matrix [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=5 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=16 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=16 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=64 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=64 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=48 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying mpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=48 type=7 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying htpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=4 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=16 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=16 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=12 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying hpoint [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=12 type=6 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=2 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=2 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=8 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=8 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=6 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying double [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=6 type=8 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string[1]" name=NULL -> ok=1 name="" numItems=1 numFloats=1 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string[1] foo" name=NULL -> ok=1 name="foo" numItems=1 numFloats=1 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string[4]" name=NULL -> ok=1 name="" numItems=4 numFloats=4 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string[4] foo" name=NULL -> ok=1 name="foo" numItems=4 numFloats=4 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string [ 3 ] " name=NULL -> ok=1 name="" numItems=3 numFloats=3 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global varying string [ 3 ]  foo" name=NULL -> ok=1 name="foo" numItems=3 numFloats=3 type=9 container=2 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform color" name="Cs_given" -> ok=1 name="Cs_given" numItems=1 numFloats=3 type=1 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="varying float[2] inline" name="given" -> ok=1 name="given" numItems=2 numFloats=2 type=0 container=2 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="bogus float" name="given" -> ok=0 name="bogus" numItems=-7 numFloats=-7 type=-7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform float nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn" name=NULL -> ok=1 name="nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=-7 type=-7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=-7 type=-7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="bogus float" name=NULL -> ok=0 name="bogus" numItems=-7 numFloats=-7 type=-7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform bogus" name=NULL -> ok=0 name="bogus" numItems=-7 numFloats=-7 type=-7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float [" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float [4" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float []" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float [x]" name=NULL -> ok=0 name="x" numItems=-7 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="uniform varying float" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=-7 type=-7 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float float" name=NULL -> ok=0 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float x y" name=NULL -> ok=0 name="y" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[2.5]" name=NULL -> ok=1 name="" numItems=2 numFloats=6 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="color[0]" name=NULL -> ok=1 name="" numItems=0 numFloats=0 type=1 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="   uniform   float   spaced   " name=NULL -> ok=1 name="spaced" numItems=1 numFloats=1 type=0 container=0 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="UNIFORM FLOAT" name=NULL -> ok=0 name="UNIFORM" numItems=-7 numFloats=-7 type=-7 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="global" name=NULL -> ok=0 name="<unset>" numItems=-7 numFloats=-7 type=-7 container=1 storage=1 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="constant string[2] s" name=NULL -> ok=1 name="s" numItems=2 numFloats=2 type=9 container=4 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
+decl="float 7" name=NULL -> ok=0 name="" numItems=1 numFloats=1 type=0 container=1 storage=0 entry=-7 usageMarker=-7 accessor=-7 defaultValue=null next=null
