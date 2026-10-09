@@ -124,6 +124,19 @@ CMake package.
   - DB-001 shrinks by at least 12 lines (30 → ≤ 18).
   - The allowlist only shrinks (686 → ≤ 459). The metric baseline is lowered: Infra 10 → 0, and
     every domain loses its `globalMemory` references.
+- [x] **Rule 1 (no mutable globals shared across a boundary).**
+  - The process-wide state this spec places in `libRIBCommon` (`globalArena`, `stats`, the
+    diagnostic sink slot, `current_log_level`, the RI tokens) belongs to the common layer, which
+    is not a domain. Every domain may depend on the common layer (`* -> Infra`), and reaches this
+    state only through the common layer's declared interfaces: `installDiagnosticSink`, `CArena`,
+    `CStats`.
+  - The state isn't new. It moves out of the renderer core (`CRenderer::globalMemory`) and Scene
+    Interface (`renderMan` routing), which *reduces* coupling.
+  - The Graphics State lookup hook is a registration hook, which rule 1 explicitly allows.
+  - **Residual, tracked:** every domain still shares one mutable arena and one set of statistics.
+    Passing them explicitly (per-context arenas, per-thread statistics) is deferred by the spec's
+    assumptions to spec 029 (hider/shading separation, which owns per-context arenas) and spec 039
+    (per-sample state), and recorded in DB-016's Resolved note as a follow-up (task T057).
 
 **Post-design re-check (after Phase 1)**: all PASS.
 - The design adds no allowlist line. The only new cross-domain interface is the Core → Graphics

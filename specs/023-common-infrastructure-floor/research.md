@@ -110,8 +110,9 @@ resolve every symbol it uses from itself or the system.
 - `variable.y` doesn't constrain the order: its `varerror()` reporting is commented out, and it
   calls nothing else outside common.
 
-**Display plug-ins**: they keep linking the `openrendercommon` target, which is now the shared
-library.
+**Display plug-ins**: the file, framebuffer, OpenEXR and RGBE display modules
+(`src/display/{file,framebuffer,openexr,rgbe}`) keep linking the `openrendercommon` target, which
+is now the shared library.
 - They already call into common (`logging.hpp`, `os*`). With the static archive they would also
   pull `logging.o` and hold a private `current_log_level` that `orender -x` never sets.
 - Their install-time rpath must find `libRIBCommon` in the lib directory. This is verified by an
@@ -407,12 +408,13 @@ the old code) before the change it guards.
 | `Common_VocabularyConsistency` (`common`) | FR-004 | fails until `riVocabulary.h`/`riTokens.cpp` exist |
 | `Common_StateOwnership` (`common`) | FR-008, R2 | fails until the moves land |
 | `Common_DiagnosticsNoContext_{error,warning,info,info_quiet,fatal}` (`common`) | FR-002, FR-015, SC-003 | fails (crash or symbol missing) until the sink lands; a `cmake -P` runner captures stdout, stderr and the exit status per severity, the fatal case expecting status `255` and its message on stderr |
-| `Common_DiagnosticsCrossLibrary` (`common`) | FR-008, FR-015 | fails until the sink lands. Case 0: a capture sink installed before `RiBegin` is back in place after `RiEnd` (idempotent attach/detach). Case 1: inside `RiBegin`, a handler installed with `RiErrorHandler` receives a diagnostic reported through `libRIBCommon`'s `error()`, with code, severity and text as today. Case 2: a capture sink installed by the test receives a diagnostic raised by code compiled into `libshader_shading` itself. The entry point (a `shaderPl.cpp`/`shader.cpp` function that calls `error()` directly, e.g. the unknown-parameter path at `shaderPl.cpp:74`) is pinned in tasks.md; if none is callable standalone, a test-only exported hook in the shading library's test support is used |
-| `Common_DiagnosticsCrossLibraryStatic` (`common`) | advisor point 1 | the case-2 test, linked the way the package's `Static` component links (`ribRender_static` + force-load) |
+| `Common_DiagnosticsCrossLibrary` (`common`) | FR-008, FR-015, spec edge cases | fails until the sink lands. Case 0: a capture sink installed before two consecutive `RiBegin`/`RiEnd` sessions receives reports before, between and after them, and is back in place after the last `RiEnd` (idempotent attach/detach). Case 1: inside `RiBegin`, a handler installed with `RiErrorHandler` receives `RIE_BADTOKEN` with `RIE_ERROR`/`RIE_WARNING`/`RIE_INFO` and the text, as today. Case 2: the `error` that `libshader_shading` binds to (`dlsym` on its handle) is `libRIBCommon`'s (`dladdr`), is the same address the test sees, and reaches the installed capture sink. Case 3: 8 threads report while the main thread swaps sinks; no report is lost and nothing crashes |
+| `Common_DiagnosticsCrossLibraryStatic` (`common`) | advisor point 1 | cases 0 and 2, linked the way the package's `Static` component links (`ribRender_static` + force-load) |
+| `Common_VariableLookupHook` (`common`) | contracts/variable-lookup.md §1 | fails (doesn't compile) until `state/variableLookup.h` exists; checks nullptr when nothing is installed, the fake lookup, and install/clear across `RiBegin`/`RiEnd` |
 | `Common_ArenaSemantics` (`common`) | FR-006 | nested begin/end, save/restore and page growth on a local `CArena`; fails until `CArena` exists |
 | `Common_ShadingInfraBinding` (`common`) | SC-002 | macOS: `nm -m libshader_shading` shows each of the 17 symbols as "(from libRIBCommon)" or defined locally, never "(dynamically looked up)". Linux: `readelf -d` lists `libRIBCommon.so.1`, and `nm -D --defined-only libRIBRender.so` defines none of the 17. Fails on baseline |
 | `ctest -L architecture` | FR-010/011 | stale lines reported as each move lands; the allowlist is then pruned |
-| full suite | FR-013, SC-004 | unchanged results; deterministic renders byte-identical |
+| full suite | FR-013, SC-004 | unchanged results; deterministic renders (byte-identical across two baseline runs, R11 item 2a) byte-identical |
 
 The **binary-compatibility proof (SC-006)** and the **performance proof (SC-007)** need artifacts
 from before the feature, so they are quickstart procedures with baselines captured in the first
@@ -430,13 +432,25 @@ master `010ce04`:
      performance runs.
 2. **SC-006 consumer**: `specs/023-common-infrastructure-floor/tools/compat-consumer/` is a tiny C++
    program that:
-   - uses `RiBegin("out.rib")`, because `RiBegin(RI_NULL)` is unsafe against `libRIBOut`;
+   - against `libRIBVector`/`libRIBOut`, uses `RiBegin("out-<lib>-<tag>.rib")`, because
+     `RiBegin(RI_NULL)` is unsafe against those two;
+   - against `libRIBRender`, renders a 64×64 sphere to a TIFF through the installed file display
+     driver, with one thread and one pixel sample, so the output is reproducible;
    - uses tokens, `RiErrorHandler(RiErrorPrint)`, `RiDeclare` and a sphere.
+
    It is built and linked against the baseline install **three times**, once against each of
    `libRIBRender`, `libRIBVector` and `libRIBOut`. Two-level bindings are recorded per library, so
    each re-export needs its own proof; the `otool` check shows the re-export exists, not that a
    binding resolves through it. The three resulting binaries are kept **unchanged** for the
    after-run.
+   - The binaries are built in Phase 1 against `$S/023-inplace`, a copy of the frozen install, and
+     each carries an rpath into it. `$S/023-base` stays untouched as the performance A side.
+   - The after-run installs the new libraries **over** `$S/023-inplace` ("installed in their
+     place", spec US4) and runs those same Phase 1 binaries with no `DYLD_*`/`LD_*` variables, so
+     the loader's own resolution of the new `@rpath/libRIBCommon` dependency is what gets tested.
+2a. **Determinism probe**: the baseline consumers run twice. Only outputs that are byte-identical
+    between those two runs are compared byte for byte after the feature; any other output is
+    compared with the visual-test block metric.
 3. **Shading binding "before" lists**:
    - macOS: already captured at `$S/023-libshader-undef-before.txt`.
    - Linux: the commands are prepared for the user, run from master's `build-022` (see
@@ -444,10 +458,13 @@ master `010ce04`:
 4. **Variable golden table**: captured by `Common_VariableDeclarations` against the old code.
 
 **Loader isolation**: a DESTDIR install keeps the install-time rpaths, which point at the real
-prefix. Every script that runs an installed binary therefore pins the library directory:
-- `run.sh` and `perf_ab.sh` export `DYLD_LIBRARY_PATH` (macOS) or `LD_LIBRARY_PATH` (Linux;
-  CMake emits `RUNPATH`, which `LD_LIBRARY_PATH` overrides) to `<root>/<prefix>/lib`.
-- They also print the resolved libraries once (`DYLD_PRINT_LIBRARIES=1` / `ldd`), so a stray
+prefix.
+- The compatibility consumers avoid this by carrying their own rpath into the install root, and
+  run without loader variables (item 2); `run.sh --pinned` is a diagnostic aid only.
+- Every other script that runs an installed binary (`render-installed.sh`, `perf_ab.sh`) pins the
+  library directory: it exports `DYLD_LIBRARY_PATH` (macOS) or `LD_LIBRARY_PATH` (Linux; CMake
+  emits `RUNPATH`, which `LD_LIBRARY_PATH` overrides) to `<root>/<prefix>/lib`.
+- All scripts print the resolved libraries once (`DYLD_PRINT_LIBRARIES=1` / `ldd`), so a stray
   `/usr/local` install can't masquerade as either side.
 - Each side uses its own shaders: `SHADERS` points at the install's shader dir (A) or
   `build/shaders` (B).
@@ -467,6 +484,10 @@ scenes in both variants: 12 RIBs from `examples/rib/tests/sphere-*-reyes{,-slo}.
   fanless M2's thermal drift.
 - It reports the median wall time per RIB and side, plus the after/before ratio.
 - **Pass**: every scene's median ratio ≤ 1.02.
+
+**Interpretation of SC-007**: the gate applies to each of the 12 RIBs (every scene, in both its
+`.rslo` and `.slo` variants), which is stricter than one median per scene. A RIB above 1.02 is
+re-measured once with 7 more rounds before it counts as a failure (T056).
 
 The Release build configuration is the same on both sides.
 

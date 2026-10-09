@@ -11,7 +11,7 @@
 | `libshader_shading` | shared | links `libRIBCommon` (no longer embeds the archive) | infrastructure bound two-level to `libRIBCommon` (macOS) |
 | `libshader_compiler`, `libshader_runtime` (shared) | shared | link `libRIBCommon` instead of embedding it | — |
 | `libshader_*_static` | static | depend on `libRIBCommon.a` | — |
-| Display plug-ins (file drivers via `openrenderfilebase`, `framebuffer`) | shared modules | link `libRIBCommon` instead of embedding it | share `current_log_level` with the host; the installed rpath must find `libRIBCommon` |
+| Display modules (`file`, `framebuffer`, `rgbe`, and `openexr` when built) | shared modules | link `libRIBCommon` instead of embedding it | share `current_log_level` with the host; the installed rpath must find `libRIBCommon` |
 
 The compatibility symlinks (`libri`, `libribVector`, `libribOut`) are unchanged.
 `libRIBCommon` needs no alias, because it has never had another name.

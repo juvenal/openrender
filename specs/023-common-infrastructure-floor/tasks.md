@@ -21,6 +21,11 @@ description: "Task list for spec 023: common infrastructure floor"
 first and fail before the implementation tasks that make them pass. The exceptions are the golden
 and consistency tables, which must pass on the old code and keep passing.
 
+Phases 7 and 8 add only verification-only tooling: T052's scratch `dlopen` program and T055's
+`perf_ab.sh`. They measure what earlier phases built and drive no implementation, so they have no
+red-then-green cycle and no TEST-APPROVAL gate. They are reviewed at that phase's PAUSE (7 or 8)
+instead.
+
 **Organization**: phases follow plan.md's implementation sequence. Diagnostics (US3) come before
 the generic-core moves (US2) because `libRIBCommon` may not reference symbols upward (research R1).
 Every phase ends in two pauses:
@@ -82,17 +87,26 @@ is wrong: stop and report it; don't allowlist it.
     (`RI_P`, `RI_CS`, `RI_RGBA`, `RI_FILE`), `RiDeclare("foo", "uniform float")`, and a
     `RiSphere` in a world block.
   - The library under test is chosen at link time:
-    - `libRIBRender`: `RiBegin(RI_NULL)`, then
-      `RiDisplay("out-RIBRender-<tag>.tif", "file", "rgba")`. This also exercises the installed
-      file display driver.
+    - `libRIBRender`: `RiBegin(RI_NULL)`, then before `RiWorldBegin`:
+      `RiOption("limits", "numthreads", &one)` (one = 1), `RiPixelSamples(1, 1)`,
+      `RiFormat(64, 64, 1)`, then `RiDisplay("out-RIBRender-<tag>.tif", "file", "rgba")`.
+      A single thread and one sample per pixel remove the run-to-run variation from per-thread
+      random numbers and dynamic bucket assignment. This also exercises the installed file display
+      driver.
     - `libRIBVector` and `libRIBOut`: `RiBegin("out-<lib>-<tag>.rib")`. Memory warns that
       `RiBegin(RI_NULL)` crashes on those two.
   - `build.sh <install-root> <out-dir>` compiles three binaries, `consumer-RIBRender`,
     `consumer-RIBVector` and `consumer-RIBOut`, each linked against exactly one of the baseline RI
-    libraries in `<install-root>`.
-  - `run.sh <install-root> <tag>` runs all three. It exports `DYLD_LIBRARY_PATH`/`LD_LIBRARY_PATH`
-    to the install's lib dir and `DISPLAYS` to its displays dir, prints the resolved libraries
-    once (`DYLD_PRINT_LIBRARIES=1` or `ldd`), and fails on any non-zero exit.
+    libraries in `<install-root>`, with `-Wl,-rpath,<install-root>/<prefix>/lib`.
+  - `run.sh <install-root> <tag> [--pinned]` runs all three.
+    - It sets `DISPLAYS`, `SHADERS` and `ORENDERHOME` to the install's displays, shaders and home
+      directories.
+    - By default it sets **no** `DYLD_*`/`LD_*` library-path variables, so the binaries resolve
+      their libraries only through their own rpath.
+    - It prints the resolved libraries once (`DYLD_PRINT_LIBRARIES=1` or `ldd`), and fails if any
+      `libRIB*` resolves outside `<install-root>` or any run exits non-zero.
+    - `--pinned` additionally exports `DYLD_LIBRARY_PATH`/`LD_LIBRARY_PATH` to the install's lib
+      dir. It is a diagnostic aid only, never the proof.
   - `render-installed.sh <install-root>` runs the install's own `orender` on
     `examples/rib/camera-dof.rib`, with the same pinning plus `SHADERS`/`ORENDERHOME` set to the
     install. It expects exit 0 and a TIFF.
@@ -100,12 +114,22 @@ is wrong: stop and report it; don't allowlist it.
     `find_package(openRender COMPONENTS Shared Static)`: one target linking `openRender::RIBRender`
     and one linking `openRender::RIBRender_static`. Both must render a sphere.
 - [ ] T004 Build and run the baseline consumers, keeping the binaries **unchanged** for Phase 7.
-  - `tools/compat-consumer/build.sh $S/023-base $S/023-compat`
-  - `$S/023-compat/run.sh $S/023-base base`
+  - Create the in-place root, a copy of the frozen install that T051 later installs the new
+    libraries over: `cp -a $S/023-base $S/023-inplace`. `$S/023-base` itself stays untouched as
+    the performance A side.
+  - `tools/compat-consumer/build.sh $S/023-inplace $S/023-compat`: the binaries are built **now,
+    before any source change**, with an rpath into `$S/023-inplace`.
+  - `$S/023-compat/run.sh $S/023-inplace base`
   - `render-installed.sh $S/023-base`
   - `build-package.sh $S/023-base $S/023-pkg-base`
 
   Record the outputs and exit codes in `validation.md`.
+- [ ] T004a Determinism probe: run `$S/023-compat/run.sh $S/023-inplace base2` and compare every
+  `out-*-base` file with `out-*-base2` using `cmp`.
+  - If all files match, T051 compares bytes.
+  - If any TIFF differs, record it in `validation.md`. T051 then compares that TIFF with the
+    visual-test 8×8 block-average metric (the `tests/visual` comparator, threshold 0), and exact
+    `cmp` applies only to the RIB outputs.
 - [ ] T005 [P] Copy the macOS "before" list `$S/023-libshader-undef-before.txt` to
   `specs/023-common-infrastructure-floor/tools/libshader-undef-before-macos.txt`, so it survives
   the session.
@@ -132,12 +156,14 @@ is wrong: stop and report it; don't allowlist it.
     `tests/unit/common/variable_golden.inc`. The test compares the live result to it.
   - It must **pass now**; that is the baseline for the Phase 5 move.
 
-**Checkpoint (PAUSE 1)**:
-- baselines captured and recorded in `validation.md`;
-- `Common_VariableDeclarations` passes;
-- full suite unchanged.
+**Checkpoint (TEST-APPROVAL 1a + PAUSE 1)**: the compatibility test programs (T003) and the golden
+variable test (T006) are this feature's first tests.
+- Baselines are captured and recorded in `validation.md`, including T004a's determinism result.
+- `Common_VariableDeclarations` passes on the old code.
+- The full suite is unchanged.
 
-Stage, summarize, and wait for review and commit. Hand the Linux "before" block to the maintainer.
+Show T006 passing and T004/T004a's baseline outputs. Stage, and wait for the maintainer to approve
+these tests, review and commit. Hand the Linux "before" block to the maintainer.
 
 ---
 
@@ -155,8 +181,9 @@ Stage, summarize, and wait for review and commit. Hand the Linux "before" block 
   - The script gets `-DIMAGES=<;-list>` and `-DCOMMON=<path to libRIBCommon>` from
     `tests/unit/common/CMakeLists.txt`. Build `IMAGES` from `$<TARGET_FILE:…>` of every shared
     library and executable target in the tree: the `libRIB*` shared libraries, `libshader_*`
-    shared libraries, display drivers, `orender`, `oshader`, `otexmake`, `precomp`, `sloinfo`,
-    `rsloinfo`, and the test executables of `tests/unit/common`.
+    shared libraries, the display modules `file`, `framebuffer`, `rgbe` and (when OpenEXR is
+    found) `openexr`, `orender`, `oshader`, `otexmake`, `precomp`, `sloinfo`, and the test
+    executables of `tests/unit/common`.
   - Each listed symbol must have **exactly one** defining image, and it must be `COMMON`.
     - macOS: `nm -gU`.
     - Linux shared objects: `nm -D --defined-only`.
@@ -223,7 +250,7 @@ Stage, and wait for approval of the test before T008.
     `Contents/Frameworks`, exactly like `libRIBVector`, and add `openrendercommon` to the bundle
     target's dependencies.
   - Check that the Linux preview target finds the library through the build RPATH.
-  - Check that the display drivers (`src/display/file/`, `src/display/framebuffer/`) installed into
+  - Check that the display modules (`src/display/{file,framebuffer,openexr,rgbe}/`) installed into
     the displays directory resolve `@loader_path/../lib` / `$ORIGIN/../lib` to the lib dir
     holding `libRIBCommon`. Set `INSTALL_RPATH` on those targets if the displays dir isn't a
     sibling of `lib/`.
@@ -236,8 +263,9 @@ Stage, and wait for approval of the test before T008.
   - `Common_StateOwnership` is green for the seed list;
   - `ctest -L architecture` is green; nothing should change, since no symbol moved;
   - the full suite is unchanged;
-  - `build/orender-wire.app` launches its dylib check: `otool -L` of the app binary resolves inside
-    `Frameworks`.
+  - `otool -L build/orender-wire.app/Contents/MacOS/orender-wire` lists `libRIBCommon` through
+    `@rpath`, and the bundle's `Contents/Frameworks` contains
+    `libRIBCommon.${OPENRENDER_COMPAT_SOVERSION}.dylib`.
 
 **Checkpoint (PAUSE 2)**:
 - `libRIBCommon` is shared, the single definer of the seed symbols, and re-exported;
@@ -257,7 +285,7 @@ This phase also removes the 45 `error.h` include edges and the `error`/`warning`
 (US1).
 
 **Independent test**: `Common_DiagnosticsNoContext_*` and `Common_DiagnosticsCrossLibrary{,Static}`
-pass; the full suite is byte-identical.
+pass; the full suite is unchanged (SC-004).
 
 ### Tests first
 
@@ -282,18 +310,31 @@ pass; the full suite is byte-identical.
 - [ ] T016 [P] [US3] Write the cross-library test, `Common_DiagnosticsCrossLibrary`
   (`tests/unit/common/test_common_crosslib.cpp`, `EXCLUDE_FROM_ALL` until T021). It links
   `ribRender libshader_shading openrendercommon`.
-  - **Case 0**: install a capture sink → `RiBegin(RI_NULL)` → `RiEnd()`. The capture sink must be
-    the installed one again: `installDiagnosticSink(x)` returns the capture sink. This covers the
-    idempotent attach/detach in data-model.md.
+  - **Case 0**: install a capture sink, then run two RI sessions in a row
+    (`RiBegin(RI_NULL)`/`RiEnd()` twice).
+    - Before the first session, between the sessions and after the last one,
+      `error(CODE_BUG, "between\n")` must reach the capture sink.
+    - After the last `RiEnd`, `installDiagnosticSink(x)` returns the capture sink.
+    - This covers the idempotent attach/detach in data-model.md and the spec's
+      "several RI sessions" edge case.
   - **Case 1**: `RiBegin(RI_NULL)` → `RiErrorHandler(captureHandler)` →
-    `error(CODE_BADTOKEN, "m1\n")` → the handler receives `translate(CODE_BADTOKEN)`, `RIE_ERROR`
-    and `"m1\n"`. Repeat with `warning` → `RIE_WARNING` and `info` → `RIE_INFO`. Then `RiEnd()`.
+    `error(CODE_BADTOKEN, "m1\n")` → the handler receives `RIE_BADTOKEN`, `RIE_ERROR` and
+    `"m1\n"` (`error.cpp:101-102` maps `CODE_BADTOKEN` to `RIE_BADTOKEN`).
+    - Repeat with `warning(CODE_BADTOKEN, "m2\n")` → `RIE_BADTOKEN`/`RIE_WARNING`.
+    - Repeat with `info(CODE_BADTOKEN, "m3\n")` → `RIE_BADTOKEN`/`RIE_INFO`.
+    - The constants come from the public `ri.h`. Then `RiEnd()`.
   - **Case 2**: obtain the `error` that `libshader_shading` binds to:
     `dlopen` libshader_shading, then `dlsym(handle, "_Z5error10EErrorCodePKcz")`. On macOS, dlsym
     with a handle searches that image and its dependents.
     - `dladdr(ptr).dli_fname` must end in `libRIBCommon…`.
     - `ptr` must equal `&error` as seen by the test.
     - Calling it with a capture sink installed must reach the capture sink.
+  - **Case 3 (threads)**: 8 `std::thread`s each report 1000 `info()` diagnostics into a
+    thread-safe capture sink, while the main thread swaps between two capture sinks 1000 times
+    with `installDiagnosticSink`.
+    - Assert the two capture sinks' totals sum to 8000, with no crash.
+    - On Linux, the maintainer may run this case once under `-fsanitize=thread`; this is optional
+      and reported in `validation.md`.
 - [ ] T017 [P] [US3] Write `Common_DiagnosticsCrossLibraryStatic`
   (`tests/unit/common/test_common_crosslib_static.cpp`, `EXCLUDE_FROM_ALL` until T021).
   - Same cases 0 and 2, linked the way the package `Static` component links: `ribRender_static`
@@ -361,9 +402,10 @@ Stage, and wait for approval before T019.
   - run `ctest -L common`, which must be green, including the ownership check for the new symbols;
   - run `ctest -L architecture`, prune the stale lines (the `error.h` includes and the
     `error`/`warning`/`info` link lines under DB-016 and DB-001), and re-run until green;
-  - run the full suite, which must be unchanged; spot-check that `orender` output on
-    `examples/rib/camera-dof.rib` is byte-identical, stdout and stderr included, against T002's
-    install via `run.sh`-style pinning;
+  - run the full suite, which must be unchanged;
+  - spot-check that the text output of `orender` on `examples/rib/camera-dof.rib` (stdout and
+    stderr, with timing lines filtered out) is identical to T002's install. Images are covered by
+    the visual suite's thresholds, not compared byte for byte;
   - record the line counts removed in `validation.md`.
 
 **Checkpoint (PAUSE 3)**:
@@ -634,18 +676,28 @@ result on macOS (SC-002).
 
 **Independent test**: quickstart §3 and §5 pass on macOS.
 
-- [ ] T051 [US4] Run the new install and the unchanged baseline consumers.
-  - `DESTDIR=$S/023-new nice -n 19 cmake --install build`, with the `/usr/local` snapshot and diff
-    as in T002.
-  - `$S/023-compat/run.sh $S/023-new new`, using the **unchanged** T004 binaries.
-  - Every `diff` of `out-<lib>-base` against `out-<lib>-new` must be empty (RIB text, TIFF bytes).
-  - `render-installed.sh $S/023-new` must render.
+- [ ] T051 [US4] Install the new libraries in place of the old ones, and run unchanged consumers
+  against them (spec US4 scenario 2).
+  - **Install the new tree over the in-place root** that T004 created and built against:
+    `DESTDIR=$S/023-inplace nice -n 19 cmake --install build`, keeping T002's `/usr/local`
+    snapshot and diff.
+  - Run T004's **unchanged** binaries, built before any source change, with no loader variables:
+    `$S/023-compat/run.sh $S/023-inplace new`.
+  - Compare each `out-<lib>-base` with `out-<lib>-new` using the method T004a established: `cmp`
+    for byte-deterministic outputs, the block metric otherwise.
+  - Also install fresh to `$S/023-new` (same `/usr/local` check), and run
+    `render-installed.sh $S/023-new`, which must render.
 - [ ] T052 [P] [US4] Check the re-export and source compatibility.
   - `otool -l` of all three RI libraries shows `LC_REEXPORT_DYLIB … libRIBCommon`.
   - `git diff --quiet master -- src/ri/parse/ri.h`.
   - `build-package.sh $S/023-new $S/023-pkg-new`: both the Shared and Static targets build and
     render.
   - `build/orender-wire.app/Contents/Frameworks` contains `libRIBCommon`.
+  - The installed RI libraries can find `libRIBCommon` when loaded by absolute path.
+    - Inspect `otool -l $S/023-new/<prefix>/lib/libRIB{Render,Vector,Out}.1.dylib | grep -A2 LC_RPATH`,
+      or `readelf -d … | grep RUNPATH` on Linux.
+    - From a scratch program run with no loader variables, `dlopen` each library by absolute path;
+      each must load and resolve `libRIBCommon`.
 - [ ] T053 [P] [US2] Check the shading binding (quickstart §3): diff the
   `dynamically looked up` list against `tools/libshader-undef-before-macos.txt`. Only removals are
   allowed, and the removals must be exactly the infrastructure symbols.
@@ -681,6 +733,8 @@ commit.
     `parseVariable` service is no longer needed.
   - Update the sizes of any other entry whose allowlist count changed; compare per-entry counts
     against master.
+  - In DB-016's Resolved entry, add "Follow-up: the shared `globalArena`/`stats` become injected
+    per-context state in specs 029 and 039 (constitution rule 1)."
 - [ ] T058 [P] Add a *Known gotchas* item to `CLAUDE.md` covering four rules:
   - `libRIBCommon` is the only definer of process-wide state;
   - `ribRender_static` must link the shared `libRIBCommon`;
@@ -700,9 +754,17 @@ commit.
   - then `ctest -L architecture`, `ctest -L common`, and the full suite, which should show the same 9
     pre-existing non-architecture failures as master;
   - the Linux checks from quickstart §3 (`readelf -d`, `nm -D`, `LD_DEBUG=bindings` against the
-    T005 "before" files) and §5 (compat consumers with `LD_LIBRARY_PATH`).
+    T005 "before" files) and §5 (the in-place compat run with no loader variables, as in T051).
 
   Wait for the maintainer's results and record them. Linux green is a merge prerequisite.
+- [ ] T060a Reduced-feature builds, in scratch build directories inside the worktree, deleted
+  afterwards (spec Edge Cases, "Build options"):
+  - `cmake -B build-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF` and
+    `cmake -B build-noexr -S . -DCMAKE_DISABLE_FIND_PACKAGE_OpenEXR=ON`;
+  - for each: `nice -n 19 cmake --build <dir> --config Release -j4`, then
+    `nice -n 19 ctest --test-dir <dir> -L "common|architecture" --output-on-failure -j4`.
+
+  Record the results in `validation.md`.
 - [ ] T061 Final pass on macOS:
   - `ctest -L architecture`, `ctest -L common`, and the full suite;
   - confirm the allowlist diff against master contains only deletions, and the metric diff only
@@ -774,10 +836,10 @@ links.
 The rest is incremental:
 - Phase 5 removes the vocabulary and variable edges (117 lines).
 - Phase 6 removes the last 5 `pl` lines and resolves DB-016.
-
-Expected DB-016 deletions per phase: 84 + 9 + 117 + 5 = 215.
 - Phase 7 proves compatibility.
 - Phase 8 measures performance, updates the docs and validates on Linux.
+
+Expected DB-016 deletions per phase: 84 + 9 + 117 + 5 = 215.
 
 Each phase leaves the tree green, with a shorter allowlist and a lower metric, so any pause is a
 safe stopping point.
