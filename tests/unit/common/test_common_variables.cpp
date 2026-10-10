@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "variable.h"
+#include "common/variable.h"
 
 namespace {
 

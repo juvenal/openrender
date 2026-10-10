@@ -27,9 +27,11 @@
 #ifndef VARIABLE_H
 #define VARIABLE_H
 
-#include "common/global.h" // The global header file
+#include "global.h" // The global header file
 #include "rendererc.h"
-#include "ri_config.h"
+
+// The maximum length of the variable name
+#define VARIABLE_NAME_LENGTH 64
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CVariable

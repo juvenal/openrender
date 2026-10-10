@@ -30,8 +30,8 @@
 #include "attributes.h"
 #include "common/global.h"
 #include "common/refCounter.h"
-#include "rendererc.h"
-#include "variable.h"
+#include "common/rendererc.h"
+#include "common/variable.h"
 #include "xform.h"
 
 const unsigned int PL_VARYING_TO_VERTEX = 1; // Force varying variables to be vertex

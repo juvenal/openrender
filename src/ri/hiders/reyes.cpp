@@ -31,7 +31,7 @@
 #include "reyes.h"
 
 #include <climits>
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "sampler.h"
 #include "common/stats.h"

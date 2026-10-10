@@ -156,7 +156,7 @@ static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
 // here — unlike rslo_code.h, which never references `params` and so never
 // needed it.
 // =========================================================================
-#include "rendererc.h"
+#include "common/rendererc.h"
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
 #define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
@@ -322,7 +322,7 @@ unsigned int computeUsedParameters(const IRModule &ir) {
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 //
 // Indices reference the interpreter's own VARIABLE_* constants
-// (src/ri/render/rendererc.h, already #include'd above at line 115 for
+// (src/common/rendererc.h, already #include'd above at line 159 for
 // kOpcodeParamTable's `params` macro expansions) instead of hand-transcribed
 // literals (spec 014-jit-shading-parity, research.md D7a) -- a future
 // addition/removal in rendererc.h now either compiles or fails to compile

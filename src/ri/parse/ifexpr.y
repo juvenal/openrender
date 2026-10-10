@@ -24,7 +24,7 @@
 #include "common/os.h"
 #include "ri_config.h"
 #include "common/diagnostics.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 #include "renderer.h"
 #include "rendererContext.h"
 

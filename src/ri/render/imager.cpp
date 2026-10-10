@@ -25,7 +25,7 @@
 #include "imager.h"
 #include "common/memory.h"
 #include "renderer.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 #include "shader.h"
 #include "shading.h"
 

@@ -34,13 +34,13 @@
 #include "geometryHost.h"
 #include "object.h"
 #include "options.h"
-#include "rendererc.h" // Renderer constants
+#include "common/rendererc.h" // Renderer constants
 #include "resource.h"
 #include "riInterface.h"
 #include "shadeop.h"
 #include "shader.h"
 #include "texture.h"
-#include "variable.h"
+#include "common/variable.h"
 
 class CShadingContext;
 class CIrradianceCache;

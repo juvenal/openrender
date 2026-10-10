@@ -28,7 +28,7 @@
 #define SHADERPL_H
 
 #include "common/global.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include <cstddef>
 

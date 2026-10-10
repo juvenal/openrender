@@ -31,7 +31,7 @@
 #include "common/os.h"
 #include "dataView.h"
 #include "common/fileResource.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 #include "xform.h"
 
 class CShadingContext;

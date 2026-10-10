@@ -1,7 +1,7 @@
 #define LOGGING_IMPLEMENTATION
 #include "llvmEmitter.h"
 #include "logging.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 
 #include <cstdio>
 #include <cstring>

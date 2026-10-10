@@ -34,7 +34,7 @@
 #include "riHooks.h"
 #include "ri_config.h"
 #include "ribOut.h"
-#include "variable.h"
+#include "common/variable.h"
 
 // This is the size of the temporary buffer we use before going to the file
 const int ribOutScratchSize = 1000;

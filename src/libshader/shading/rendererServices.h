@@ -25,8 +25,8 @@
 #define RENDERER_SERVICES_H
 
 #include "common/global.h"       // basic types
-#include "ri/parse/ri.h"         // RtFilterFunc, RtStepFilterFunc, RtFloat
-#include "ri/render/rendererc.h" // ECoordinateSystem
+#include "common/riVocabulary.h" // RtFilterFunc, RtStepFilterFunc, RtFloat
+#include "common/rendererc.h" // ECoordinateSystem
 
 // Forward declarations (defined in src/ri/)
 class CTexture;

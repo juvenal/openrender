@@ -7,12 +7,9 @@
 # path below changes, and the table must still match byte for byte.
 add_executable(test_common_variables test_common_variables.cpp)
 target_compile_features(test_common_variables PRIVATE cxx_std_20)
-target_include_directories(test_common_variables PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/ri/parse
-    ${CMAKE_SOURCE_DIR}/src/ri/render
-    ${CMAKE_SOURCE_DIR}/src/ri/core)
-target_link_libraries(test_common_variables PRIVATE ribRender openrendercommon)
+# Since T042 the grammar lives in libRIBCommon alone: no renderer library.
+target_include_directories(test_common_variables PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_common_variables PRIVATE openrendercommon)
 add_test(NAME Common_VariableDeclarations
     COMMAND test_common_variables ${CMAKE_CURRENT_SOURCE_DIR}/variable_golden.txt)
 set_tests_properties(Common_VariableDeclarations PROPERTIES TIMEOUT 60 LABELS "common;unit")
@@ -120,8 +117,7 @@ add_test(NAME Common_VocabularyConsistency
         -P ${CMAKE_CURRENT_SOURCE_DIR}/vocabulary_consistency.cmake)
 set_tests_properties(Common_VocabularyConsistency PROPERTIES TIMEOUT 60 LABELS "common;unit")
 # ... and a translation unit including both headers compiles and agrees.
-# EXCLUDE_FROM_ALL until T040 adds common/riVocabulary.h.
-add_executable(test_vocabulary_both_headers EXCLUDE_FROM_ALL test_vocabulary_both_headers.cpp)
+add_executable(test_vocabulary_both_headers test_vocabulary_both_headers.cpp)
 target_compile_features(test_vocabulary_both_headers PRIVATE cxx_std_20)
 target_include_directories(test_vocabulary_both_headers PRIVATE
     ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)

@@ -10,10 +10,17 @@ file(GLOB openrendercommon_headers *.h)
 # A shared image must never embed the archive: each embedding image would
 # carry its own copy of that state (two sinks, two arenas, two token tables).
 # Common_StateOwnership (tests/unit/common) enforces this.
+# The variable-declaration grammar (CVariable / parseVariable, spec 023 R5).
+# The generated parser #includes the generated scanner, so only the parser is
+# a source; the binary directory goes on the include path for lex.var.cpp.
+flex_file(variable.l lex.var.cpp var)
+bison_file(variable.y variable_generated.cpp var)
+
 add_library(openrendercommon_obj OBJECT
     os.cpp
     algebra.cpp
     rslConstants.cpp  # RiBSplineBasis, filter functions (moved from ri.cpp for libshader)
+    riTokens.cpp      # the RI_* token definitions (spec 023, from parse/ri.cpp)
     sobolTables.cpp   # Sobol sequence tables (moved from random.cpp for libshader)
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
@@ -25,8 +32,11 @@ add_library(openrendercommon_obj OBJECT
     random.cpp        # sampleHemisphere / sampleCosineHemisphere
     refCounter.cpp
     stats.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/variable_generated.cpp
     ${openrendercommon_headers}
 )
+target_include_directories(openrendercommon_obj PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set_target_properties(openrendercommon_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # BUILD_INTERFACE: the project's warning flags (-Werror included), generated
 # config.h directory and HAVE_CONFIG_H are for building this tree only -- they

@@ -34,7 +34,7 @@
 #include "ray.h"
 #include "common/refCounter.h"
 #include "renderer.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 #include "xform.h"
 
 const unsigned int GEOMETRY_FORCE_VARYING = 1; // Force vertex variables to be varying

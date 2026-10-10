@@ -41,8 +41,8 @@
 #include "blobbyField.h"
 #include "blobbyPolygonize.h"
 #include "common/algebra.h"
-#include "rendererc.h"
-#include "variable.h"
+#include "common/rendererc.h"
+#include "common/variable.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;

@@ -26,7 +26,7 @@
 
 #include "csgCaps.h"
 #include "csgTestUtils.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 
 using namespace csgtest;
 

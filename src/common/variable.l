@@ -1,25 +1,8 @@
 %{
    #include <stdlib.h>
 
-   int boolwrap() { return 1; }
-
-   /* ----------------------------------------------------- */
-   /* The following code is used to parse in-memory data    */
-   /*   -> init_lexical_parser: must be called before the   */
-   /*      grammatical analyzer.                            */
-   /*   -> close_lexical_parser: must be called after the   */
-   /*      end of the grammatical analyzer.                 */
-   /* ----------------------------------------------------- */
-
-   static YY_BUFFER_STATE buf_state;
-   void init_lexical_parser(char *src) { buf_state = yy_scan_string(src); }
-   void close_lexical_parser() { yy_delete_buffer(buf_state); }
-
-   /* ----------------------------------------------------- */
-   /* Allocatd memory for words                             */
-   /* ----------------------------------------------------- */
-
-   char *found_mot;
+   // Included into variable_generated.cpp (variable.y), the only user of
+   // this scanner: everything it needs is the generated var* interface.
 %}
 %option never-interactive
 %option noyywrap

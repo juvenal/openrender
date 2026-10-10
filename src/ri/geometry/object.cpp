@@ -32,7 +32,7 @@
 #include "common/random.h"
 #include "renderer.h"
 #include "rendererContext.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "shading.h"
 #include "common/stats.h"

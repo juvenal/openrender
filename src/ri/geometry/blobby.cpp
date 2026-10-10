@@ -36,7 +36,7 @@
 #include "polygons.h"
 #include "renderer.h"
 #include "common/stats.h"
-#include "variable.h"
+#include "common/variable.h"
 #include "xform.h"
 
 ///////////////////////////////////////////////////////////////////////

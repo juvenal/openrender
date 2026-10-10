@@ -22,7 +22,6 @@ DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
-DB-001  link     src/libshader/shading/shader.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 DB-001  link     src/libshader/shading/shader.cpp  ->  _ZN9CRenderer11getGlobalIDEPKc   # CRenderer::getGlobalID(char const*)
 DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer13getStepFilterEPKc   # CRenderer::getStepFilter(char const*)
 DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
@@ -378,7 +377,6 @@ DB-015  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/renderer.
 DB-015  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererContext.h
 DB-015  include  @build/src/ri/rib_generated.cpp  ->  src/ri/render/renderer.h
 DB-015  include  @build/src/ri/rib_generated.cpp  ->  src/ri/render/rendererContext.h
-DB-015  include  @build/src/ri/variable_generated.cpp  ->  src/ri/render/renderer.h
 DB-015  include  src/ri/output/ribOut.cpp  ->  src/ri/render/riHooks.h
 DB-015  include  src/ri/parse/ri.cpp  ->  src/ri/render/riHooks.h
 DB-015  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
@@ -387,128 +385,11 @@ DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer16initDeclarationsEv   # 
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer20shutdownDeclarationsEv   # CRenderer::shutdownDeclarations()
 
 # --- DB-016: Infrastructure lives in Scene Interface and the renderer core (122) ---
-DB-016  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererc.h
-DB-016  include  src/common/colorSpace.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/common/rslConstants.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/libshader/shading/rendererServices.h  ->  src/ri/parse/ri.h
-DB-016  include  src/libshader/shading/rendererServices.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/libshader/shading/shader.h  ->  src/ri/parse/ri.h
-DB-016  include  src/libshader/shading/shader.h  ->  src/ri/parse/variable.h
-DB-016  include  src/libshader/shading/shader.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/parse/variable.h
-DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/rendererc.h
-DB-016  include  src/libshader/shading/shaderPl.h  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/core/pl.cpp  ->  src/ri/render/renderer.h
-DB-016  include  src/ri/core/pl.h  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/core/pl.h  ->  src/ri/render/rendererc.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/state/attributes.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/state/xform.h
-DB-016  include  src/ri/geometry/blobby.cpp  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/geometry/object.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/geometry/object.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/hiders/reyes.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/parse/variable.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/ri/state/attributes.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/state/displayChannel.h  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/state/options.h  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/state/options.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/ri/state/userAttributes.h  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/texture/texmake.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/texture/texmake.h  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/texture/texture3d.h  ->  src/ri/render/rendererc.h
-DB-016  link     src/ri/core/pl.cpp  ->  RI_S   # RI_S
-DB-016  link     src/ri/core/pl.cpp  ->  RI_T   # RI_T
-DB-016  link     src/ri/core/pl.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN11CAttributes13findParameterEPKc   # CAttributes::findParameter(char const*)
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
-DB-016  link     src/ri/geometry/blobby.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CORNER   # RI_CORNER
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CREASE   # RI_CREASE
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CREASEMETHOD   # RI_CREASEMETHOD
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGINTERPOLATEBOUNDARY   # RI_FACEVARYINGINTERPOLATEBOUNDARY
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGPROPAGATECORNERS   # RI_FACEVARYINGPROPAGATECORNERS
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_HOLE   # RI_HOLE
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_INTERPOLATEBOUNDARY   # RI_INTERPOLATEBOUNDARY
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BACKFACING   # RI_BACKFACING
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BIAS   # RI_BIAS
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BINARY   # RI_BINARY
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BLOBBY   # RI_BLOBBY
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BLOBBYTOLERANCE   # RI_BLOBBYTOLERANCE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_BOUNDEXPAND   # RI_BOUNDEXPAND
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_CAMERA   # RI_CAMERA
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_CAMERAHITMODE   # RI_CAMERAHITMODE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_CAUSTICMAP   # RI_CAUSTICMAP
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_COORDINATESYSYTEM   # RI_COORDINATESYSYTEM
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_CULL   # RI_CULL
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_DICE   # RI_DICE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_DIFFUSE   # RI_DIFFUSE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_DIFFUSEHITMODE   # RI_DIFFUSEHITMODE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_DISPLACEMENTBOUND   # RI_DISPLACEMENTBOUND
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_DISPLACEMENTS   # RI_DISPLACEMENTS
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_ESTIMATOR   # RI_ESTIMATOR
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_FILEMODE   # RI_FILEMODE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_GLOBALMAP   # RI_GLOBALMAP
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_HANDLE   # RI_HANDLE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_HIDDEN   # RI_HIDDEN
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_IDENTIFIER   # RI_IDENTIFIER
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_IOR   # RI_IOR
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_IORRANGE   # RI_IORRANGE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_IRRADIANCE   # RI_IRRADIANCE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_MAXDIFFUSEDEPTH   # RI_MAXDIFFUSEDEPTH
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_MAXERROR   # RI_MAXERROR
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_MAXSPECULARDEPTH   # RI_MAXSPECULARDEPTH
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_MINSPLITS   # RI_MINSPLITS
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_NAME   # RI_NAME
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_NUMPROBES   # RI_NUMPROBES
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_PHOTON   # RI_PHOTON
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_RASTERORIENT   # RI_RASTERORIENT
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SHADE   # RI_SHADE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SHADERFORMAT   # RI_SHADERFORMAT
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SHADINGMODEL   # RI_SHADINGMODEL
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SOLID   # RI_SOLID
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SPECULAR   # RI_SPECULAR
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SPECULARHITMODE   # RI_SPECULARHITMODE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_SPHERE   # RI_SPHERE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_TESSELLATIONTOLERANCE   # RI_TESSELLATIONTOLERANCE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_TRACE   # RI_TRACE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_TRANSMISSION   # RI_TRANSMISSION
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_TRANSMISSIONHITMODE   # RI_TRANSMISSIONHITMODE
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_USER   # RI_USER
-DB-016  link     src/ri/state/attributes.cpp  ->  RI_VISIBILITY   # RI_VISIBILITY
-DB-016  link     src/ri/state/options.cpp  ->  RI_BRICKMEMORY   # RI_BRICKMEMORY
-DB-016  link     src/ri/state/options.cpp  ->  RI_BUCKETSIZE   # RI_BUCKETSIZE
-DB-016  link     src/ri/state/options.cpp  ->  RI_EMIT   # RI_EMIT
-DB-016  link     src/ri/state/options.cpp  ->  RI_ENDOFFRAME   # RI_ENDOFFRAME
-DB-016  link     src/ri/state/options.cpp  ->  RI_EYESPLITS   # RI_EYESPLITS
-DB-016  link     src/ri/state/options.cpp  ->  RI_FILELOG   # RI_FILELOG
-DB-016  link     src/ri/state/options.cpp  ->  RI_GEOCACHEMEMORY   # RI_GEOCACHEMEMORY
-DB-016  link     src/ri/state/options.cpp  ->  RI_GRIDSIZE   # RI_GRIDSIZE
-DB-016  link     src/ri/state/options.cpp  ->  RI_HIDER   # RI_HIDER
-DB-016  link     src/ri/state/options.cpp  ->  RI_INHERITATTRIBUTES   # RI_INHERITATTRIBUTES
-DB-016  link     src/ri/state/options.cpp  ->  RI_JITTER   # RI_JITTER
-DB-016  link     src/ri/state/options.cpp  ->  RI_LIMITS   # RI_LIMITS
-DB-016  link     src/ri/state/options.cpp  ->  RI_MAXDEPTH   # RI_MAXDEPTH
-DB-016  link     src/ri/state/options.cpp  ->  RI_METABUCKETS   # RI_METABUCKETS
-DB-016  link     src/ri/state/options.cpp  ->  RI_NUMTHREADS   # RI_NUMTHREADS
-DB-016  link     src/ri/state/options.cpp  ->  RI_OFFSET   # RI_OFFSET
-DB-016  link     src/ri/state/options.cpp  ->  RI_PROGRESS   # RI_PROGRESS
-DB-016  link     src/ri/state/options.cpp  ->  RI_SAMPLEMOTION   # RI_SAMPLEMOTION
-DB-016  link     src/ri/state/options.cpp  ->  RI_SAMPLESPECTRUM   # RI_SAMPLESPECTRUM
-DB-016  link     src/ri/state/options.cpp  ->  RI_SHUTTER   # RI_SHUTTER
-DB-016  link     src/ri/state/options.cpp  ->  RI_STATISTICS   # RI_STATISTICS
-DB-016  link     src/ri/state/options.cpp  ->  RI_TEXTUREMEMORY   # RI_TEXTUREMEMORY
-DB-016  link     src/ri/state/options.cpp  ->  RI_THREADSTRIDE   # RI_THREADSTRIDE
-DB-016  link     src/ri/state/options.cpp  ->  RI_TRACE   # RI_TRACE
-DB-016  link     src/ri/state/options.cpp  ->  RI_USER   # RI_USER
-DB-016  link     src/ri/texture/texmake.cpp  ->  RI_BLACK   # RI_BLACK
-DB-016  link     src/ri/texture/texmake.cpp  ->  RI_CLAMP   # RI_CLAMP
-DB-016  link     src/ri/texture/texmake.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texture.cpp  ->  RI_BLACK   # RI_BLACK
-DB-016  link     src/ri/texture/texture.cpp  ->  RI_CLAMP   # RI_CLAMP
-DB-016  link     src/ri/texture/texture.cpp  ->  RI_NONPERIODIC   # RI_NONPERIODIC
-DB-016  link     src/ri/texture/texture.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texture3d.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 
 # --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---
 DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
@@ -593,7 +474,6 @@ DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterEP15CShadingCon
 # --- DB-019: Shader compiler depends on Scene Interface / renderer-core headers (4) ---
 DB-019  include  @build/src/libshader/compiler/dso_generated.cpp  ->  src/ri/parse/dso.h
 DB-019  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/dso.h
-DB-019  include  src/libshader/compiler/llvmEmitter.cpp  ->  src/ri/render/rendererc.h
 DB-019  include  src/libshader/compiler/rslo.cpp  ->  src/ri/parse/dso.h
 
 # --- DB-021: Texturing reads the AOV/channel registry (1) ---

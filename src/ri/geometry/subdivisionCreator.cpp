@@ -36,7 +36,7 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "shading.h"
 #include "common/stats.h"

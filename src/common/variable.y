@@ -28,11 +28,9 @@
 #undef alloca
 #include	<math.h>
 
-#include	"common/global.h"
-#include	"common/containers.h"
-#include	"renderer.h"
-#include	"common/diagnostics.h"
-#include	"ri_config.h"
+#include	"global.h"
+#include	"containers.h"
+#include	"variable.h"
 
 // Some forward definitions
 		void							varerror(const char *);		// Forward definition for stupid yacc

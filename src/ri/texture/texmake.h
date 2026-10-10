@@ -31,7 +31,7 @@
 #include "common/memory.h"
 #include "options.h"
 #include "renderer.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 
 #include <math.h>

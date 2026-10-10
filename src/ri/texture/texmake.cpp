@@ -30,7 +30,7 @@
 #include "imageInputTiff.h"
 #include "common/memory.h"
 #include "renderer.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "tiff.h"
 

@@ -567,22 +567,22 @@ wait for approval before T038.
 
 ### Implementation
 
-- [ ] T038 [US1] `git mv src/ri/render/rendererc.h src/common/rendererc.h`. Switch every includer
+- [X] T038 [US1] `git mv src/ri/render/rendererc.h src/common/rendererc.h`. Switch every includer
   (≈12, `grep -rln '"rendererc.h"'`) to `"common/rendererc.h"`. That covers `common/colorSpace.h`,
   `variable.h`, `pl.h`, the libshader headers and `ifexpr.y`.
-- [ ] T039 [US1] Create `src/common/riVocabulary.h` (contracts/common-api.md §4).
+- [X] T039 [US1] Create `src/common/riVocabulary.h` (contracts/common-api.md §4).
   - `extern "C"` declarations of the `Rt*` typedefs and RI macros, character-identical to
     `ri.h`'s type section.
   - Every `RI_*` token, as `extern RtToken RI_X;`, in `ri.h`'s order.
   - The basis matrices and filter functions defined in `src/common/rslConstants.cpp`.
   - No `EXTERN` or `RENDERER` dependency.
-- [ ] T040 [US1] Create `src/common/riTokens.cpp` by moving the token definitions verbatim from
+- [X] T040 [US1] Create `src/common/riTokens.cpp` by moving the token definitions verbatim from
   `src/ri/parse/ri.cpp:51-372`.
   - Delete them from `ri.cpp`.
   - Add the file to `src/common/CMakeLists.txt`.
   - Switch `src/common/rslConstants.cpp:21` from `ri.h` to `"common/riVocabulary.h"`.
   - Remove `EXCLUDE_FROM_ALL` from T037's translation unit.
-- [ ] T041 [US1] Switch the 10 `ri.h` includers outside Scene Interface to `"common/riVocabulary.h"`:
+- [X] T041 [US1] Switch the 10 `ri.h` includers outside Scene Interface to `"common/riVocabulary.h"`:
   - `src/libshader/shading/{rendererServices.h,shader.h,shaderPl.h}`;
   - `src/ri/geometry/{object.cpp,subdivisionCreator.cpp}`;
   - `src/ri/hiders/reyes.cpp`;
@@ -591,7 +591,7 @@ wait for approval before T038.
 
   If any needs a symbol `riVocabulary.h` doesn't declare (an `Ri*` function), stop and report it:
   R0 says none should.
-- [ ] T042 [US1] Move the variable grammar: `git mv src/ri/parse/{variable.h,variable.y,variable.l} src/common/`.
+- [X] T042 [US1] Move the variable grammar: `git mv src/ri/parse/{variable.h,variable.y,variable.l} src/common/`.
   - In `src/common/CMakeLists.txt`, add `flex_file(variable.l lex.var.cpp var)` and
     `bison_file(variable.y variable_generated.cpp var)`, and add the generated sources to the
     OBJECT library.
@@ -604,14 +604,14 @@ wait for approval before T038.
     - make `boolwrap`, `found_mot` and `buf_state` `static` if they are only used in that file;
     - rename `init_lexical_parser`/`close_lexical_parser` to `varInitLexer`/`varCloseLexer` if
       `variable.y` calls them, or make them `static` otherwise.
-- [ ] T043 [US1] Switch the 9 `variable.h` includers to `"common/variable.h"`:
+- [X] T043 [US1] Switch the 9 `variable.h` includers to `"common/variable.h"`:
   - `shader.h`, `shaderPl.cpp`, `pl.h`, `blobby.cpp`, `displayChannel.h`, `userAttributes.h`,
     `rendererFiles.cpp`, …
   - Find them with `grep -rln '"variable.h"'`.
-- [ ] T044 [US1] Update `tests/architecture/domain-map.txt`:
+- [X] T044 [US1] Update `tests/architecture/domain-map.txt`:
   - delete the `@build/src/ri/variable_generated.cpp` and `@build/src/ri/lex.var.cpp` lines;
   - add `prefix  @build/src/common/  Infra`.
-- [ ] T045 [US1] Build, then:
+- [X] T045 [US1] Build, then:
   - `ctest -L common`: green, with `VariableDeclarations` still matching the **unchanged** golden
     file, plus `VocabularyConsistency` and `StateOwnership` for every token;
   - `ctest -L architecture`: prune the stale lines (the `ri.h`, `rendererc.h` and `variable.h`

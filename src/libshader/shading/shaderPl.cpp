@@ -31,9 +31,9 @@
 #include "common/os.h"
 #include "common/diagnostics.h"
 #include "renderer.h"
-#include "rendererc.h"
+#include "common/rendererc.h"
 #include "shading.h"
-#include "variable.h"
+#include "common/variable.h"
 #include <cstdio>
 #include <stddef.h>
 

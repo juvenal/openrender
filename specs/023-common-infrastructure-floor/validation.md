@@ -469,3 +469,72 @@ The tools live in `tools/compat-consumer/`:
   - The fourth is a static-package program that carries its own copy of every token pulled in
     with `libRIBRender.a`, exactly the per-image copy FR-008 removes.
 - `ctest -L common`: 9 of 13 pass.
+
+### T038–T045: vocabulary + variables in common (implementation)
+
+**Moves and new files**:
+- `rendererc.h`: `git mv` to `src/common/`. 16 includers switched to `"common/rendererc.h"`;
+  `colorSpace.h` uses the same-directory form.
+- `common/riVocabulary.h` (new): generated from `ri.h`.
+  - The `Rt*` typedefs and RI macros are character-identical.
+  - The 235 tokens are declared as `extern RtToken` groups in `ri.h`'s order, without the six
+    redeclarations.
+  - It also declares the basis matrices, the 8 filters and 5 step filters defined in
+    `rslConstants.cpp`, and the `RIE_*` codes.
+  - `RiDiskFilter` is defined in `ri.cpp` (Scene), so it isn't declared here.
+- `common/riTokens.cpp` (new): the 235 definitions are moved verbatim from `ri.cpp`. `RiLastError`
+  stays in `ri.cpp`.
+- `rslConstants.cpp` includes `riVocabulary.h`. Its filter definitions spelled `EXTERN(RtFloat)`,
+  which is `ri.h`'s macro, so they now read `RtFloat`; C linkage comes from the declarations.
+- The 10 non-Scene `ri.h` includers use `"common/riVocabulary.h"`. None uses an `Ri*` procedure;
+  `subdivisionCreator.cpp`'s only mention is in a comment.
+- `variable.{h,y,l}`: `git mv` to `src/common/`, with `flex_file`/`bison_file` in common's CMake.
+  - Only `variable_generated.cpp` is a source, since it `#include`s `lex.var.cpp`. The binary
+    directory is a private include path.
+  - The ri CMake drops the rules, the `ri_sources` entry, the ribOut entry and a stale
+    commented-out `variable.cpp`.
+  - `variable.y` includes `global.h`, `containers.h` and `variable.h`; `renderer.h`,
+    `diagnostics.h` and `ri_config.h` are gone. `VARIABLE_NAME_LENGTH` moved from `ri_config.h`
+    into `variable.h`.
+  - **Deviation in `variable.l`**: `boolwrap`, `init_lexical_parser`, `close_lexical_parser`,
+    `buf_state` and `found_mot` were referenced nowhere in the tree. They are deleted rather than
+    made `static`, because `static` would trip `-Wunused-function`/`-Wunused-variable` under
+    `-Werror`. `noyywrap` already makes `boolwrap` unnecessary.
+- 12 `variable.h` includers switched to `"common/variable.h"`.
+- `Common_VariableDeclarations` now links `openrendercommon` alone, with no `ribRender`. That
+  proves the grammar no longer needs the renderer library. The golden file is unchanged.
+- `domain-map.txt`: `prefix @build/src/common/ Infra`; the two `@build/src/ri` variable lines are
+  removed.
+- Comment paths updated in `llvmEmitter.cpp`, `test_used_parameters_gating.cpp` and
+  `src/ri/CMakeLists.txt`.
+
+**Symbols (macOS, `nm -gU`)**:
+- `libRIBCommon` defines all 235 tokens and `parseVariable`.
+- `libRIBRender`/`libRIBVector`/`libRIBOut` define none of them.
+- `libshader_shading` imports `parseVariable` `(from libRIBCommon)`.
+- The 14 `RI_*` data symbols still in each RI library are procedure-pointer aliases, not
+  `RtToken`s: `RI_BEZIERBASIS`…, `RI_ERROR{PRINT,ABORT,IGNORE}` (plus the underscore spellings) and
+  `RI_PROC*`. They point at Scene-owned `Ri*` functions, so they stay in `ri.cpp`.
+
+**Results**:
+- `ctest -L common`: **13/13**, including `StateOwnership` (263 symbols, one definer each),
+  `ShadingInfraBinding` (17), `VocabularyConsistency` (235 tokens) and `VocabularyBothHeaders`.
+- `ctest -L architecture`: the first run reported `stale=118 notbuilt=2`. All 120 lines were
+  pruned, and the re-run passes with `violations=0 stale=0 notbuilt=0`. The allowlist went from
+  582 to **462** lines:
+
+  | Entry | Removed | Lines (before → after) | What |
+  |---|---|---|---|
+  | DB-016 | 117 | 122 → **5** | 26 includes, 86 token links, 4 `parseVariable` links, plus the NOTBUILT `parse/variable.h → rendererc.h` |
+  | DB-001 | 1 | 19 → 18 | `shader.cpp → parseVariable` |
+  | DB-019 | 1 | | `llvmEmitter.cpp → rendererc.h`, now an allowed Shading→Infra include; the registry text needs updating in Phase 8 |
+  | DB-015 | 1 | | the NOTBUILT `@build/src/ri/variable_generated.cpp → renderer.h`; the edge is gone with the `renderer.h` include |
+
+  - The 5 DB-016 lines left are exactly what Phase 6 (`pl`) is predicted to retire.
+  - The `CRenderer::` metric is unchanged at 744/117; no renderer statics were touched in this
+    phase.
+- Full suite: **571/571** (130 s; 569 plus the two new vocabulary tests).
+  - A first run was stopped and discarded: I rebuilt mid-run after a comment edit in
+    `llvmEmitter.cpp`, which relinks `oshader` and recompiles every shader. The rerun on a quiescent
+    build is the one recorded.
+- `git diff master -- src/ri/parse/ri.h` is empty.

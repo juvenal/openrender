@@ -28,7 +28,7 @@
 #define DISPLAYCHANNEL_H
 
 #include "common/os.h"
-#include "variable.h"
+#include "common/variable.h"
 
 // This is the AOV filter type
 typedef enum {

@@ -59,7 +59,7 @@ CShader *parseShader(const char *, const char *);
 #include "libshader/shading/sloMetadata.h"
 #include "rslo_code.h" // SL_VARYING_OPERAND
 #include "shader.h"    // CShader, SL_SURFACE, SL_LIGHTSOURCE, …
-#include "variable.h"  // CVariable, EVariableType, EVariableStorage
+#include "common/variable.h"  // CVariable, EVariableType, EVariableStorage
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

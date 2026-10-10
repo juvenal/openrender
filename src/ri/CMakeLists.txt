@@ -20,7 +20,7 @@ include_directories(.)
 # #include "reyes.h"/"renderer.h"/"attributes.h"/"ri.h" style reference
 # elsewhere in the tree keeps working unqualified, exactly like "." itself
 # already does. state/ (attributes, options, xform, displayChannel) and
-# parse/ (RIB/DSO/variable/ifexpr grammars, ri.cpp's Ri*() dispatch,
+# parse/ (RIB/DSO/ifexpr grammars, ri.cpp's Ri*() dispatch,
 # CRiInterface, error reporting) are not ribRender-only the way hiders/
 # render are -- both are shared foundation ribVector also needs. geometry/
 # (object/curves/points/polygons/quadrics/patches/patchgrid/
@@ -141,7 +141,6 @@ set(ri_sources
 	texture/texmake.cpp
 	texture/texture.cpp
 	texture/texture3d.cpp
-#	variable.cpp
 	state/xform.cpp
 )
 
@@ -157,17 +156,15 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 # are unaffected by this move.
 flex_file(parse/dso.l lex.dso.cpp dso)
 flex_file(parse/rib.l lex.rib.cpp rib)
-flex_file(parse/variable.l lex.var.cpp var)
 flex_file(parse/ifexpr.l lex.if.cpp if)
 
 # define bison targets (they depend on flex ones, via prefix - third arg)
 bison_file(parse/dso.y dso_generated.cpp dso)
 bison_file(parse/rib.y rib_generated.cpp rib)
-bison_file(parse/variable.y variable_generated.cpp var)
 bison_file(parse/ifexpr.y ifexpr_generated.cpp if)
 
 # add the generated bison cpp's
-set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp variable_generated.cpp ifexpr_generated.cpp)
+set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp ifexpr_generated.cpp)
 
 # Compile once with PIC so the same objects serve both the shared and static lib.
 #
@@ -511,7 +508,6 @@ set(ribOut_sources
     vector/rendererDeclarationsDispatchStub.cpp
     dso_generated.cpp
     rib_generated.cpp
-    variable_generated.cpp
 )
 
 add_library(ribOut_obj OBJECT ${ribOut_sources} ${ri_headers})

@@ -67,9 +67,6 @@
 //	The maximum allowed string size that can be handled
 #define MAX_SCRIPT_STRING_SIZE 256
 
-// The maximum length of the variable name
-#define VARIABLE_NAME_LENGTH 64
-
 // The size of the hash that maps object pointers
 #define SHADING_OBJECT_CACHE_SIZE 512
 

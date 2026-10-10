@@ -18,7 +18,7 @@
  *
  */
 
-#include "../ri/parse/ri.h" // RtBasis, RtFloat, EXTERN macro
+#include "riVocabulary.h" // RtBasis, RtFloat
 #include "algebra.h"        // C_PI
 #include <cmath>
 
@@ -66,7 +66,7 @@ RtBasis RiLinearBasis = {
 // Filter functions
 ////////////////////////////////////////////////////////////////////////
 
-EXTERN(RtFloat)
+RtFloat
 RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     x = 2 * x / xwidth;
     y = 2 * y / ywidth;
@@ -74,12 +74,12 @@ RiGaussianFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     return expf(-2 * (x * x + y * y));
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiBoxFilter(RtFloat, RtFloat, RtFloat, RtFloat) {
     return 1;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiTriangleFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     if (x < 0.0)
         x = -x;
@@ -97,7 +97,7 @@ RiTriangleFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     }
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiCatmullRomFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     float r2 = (x * x + y * y);
     float r = sqrtf(r2);
@@ -113,7 +113,7 @@ RiCatmullRomFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     }
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiMitchellFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     x /= xwidth;
     y /= ywidth;
@@ -139,7 +139,7 @@ RiMitchellFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     return x * y;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiBesselFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     const float x2 = x * x;
     const float y2 = y * y;
@@ -151,7 +151,7 @@ RiBesselFilter(RtFloat x, RtFloat y, RtFloat, RtFloat) {
     return (float)(j1(d * 2) / d);
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiSincFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     if (x != 0.0) {
         x *= (float)C_PI;
@@ -172,7 +172,7 @@ RiSincFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     return x * y;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiBlackmanHarrisFilter(RtFloat x, RtFloat y, RtFloat xwidth, RtFloat ywidth) {
     float xc = x / xwidth;
     float yc = y / ywidth;
@@ -233,7 +233,7 @@ inline double erfc(double x) {
 }
 #endif
 
-EXTERN(RtFloat)
+RtFloat
 RiGaussianStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     const double t = _t, edge = _edge, w = _w;
     double res = 0.0;
@@ -243,7 +243,7 @@ RiGaussianStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     return (RtFloat)res;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiCatmullRomStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     const double t = _t, edge = _edge, w = _w;
     double res = 0.0;
@@ -281,7 +281,7 @@ RiCatmullRomStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     return (RtFloat)res;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiMitchellStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     const double t = _t, edge = _edge, w = _w;
     double res = 0.0;
@@ -319,7 +319,7 @@ RiMitchellStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     return (RtFloat)res;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiTriangleStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     const double t = _t, edge = _edge, w = _w;
     double res = 0.0;
@@ -337,7 +337,7 @@ RiTriangleStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     return (RtFloat)res;
 }
 
-EXTERN(RtFloat)
+RtFloat
 RiBoxStepFilter(RtFloat _t, RtFloat _edge, RtFloat _w) {
     const double t = _t, edge = _edge, w = _w;
     double res = 0.0;

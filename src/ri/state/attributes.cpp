@@ -31,7 +31,7 @@
 #include "attributes.h"
 #include "common/diagnostics.h"
 #include "photonMap.h"
-#include "ri.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "common/stats.h"
 

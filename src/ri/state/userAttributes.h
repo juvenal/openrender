@@ -27,7 +27,7 @@
 #ifndef USER_ATTRIBUTES_H
 #define USER_ATTRIBUTES_H
 
-#include "variable.h"
+#include "common/variable.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CUserAttributeDictionary

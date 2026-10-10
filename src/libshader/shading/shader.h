@@ -37,10 +37,10 @@
 #ifdef OPENRENDER_HAVE_LLVM
 #include "llvmJit.h"
 #endif
-#include "rendererc.h"
-#include "ri.h"
+#include "common/rendererc.h"
+#include "common/riVocabulary.h"
 #include "ri_config.h"
-#include "variable.h"
+#include "common/variable.h"
 #include "xform.h"
 
 // Forward references

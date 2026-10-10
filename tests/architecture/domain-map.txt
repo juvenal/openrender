@@ -16,6 +16,7 @@
 
 # --- Infra: the shared floor ------------------------------------------------
 prefix  src/common/                                  Infra
+prefix  @build/src/common/                           Infra
 prefix  src/includes/                                Infra
 prefix  src/ri/core/                                 Infra
 file    @build/config.h                              Infra
@@ -35,8 +36,6 @@ file    @build/src/ri/rib_generated.cpp              SceneInterface
 file    @build/src/ri/lex.rib.cpp                    SceneInterface
 file    @build/src/ri/dso_generated.cpp              SceneInterface
 file    @build/src/ri/lex.dso.cpp                    SceneInterface
-file    @build/src/ri/variable_generated.cpp         SceneInterface
-file    @build/src/ri/lex.var.cpp                    SceneInterface
 file    @build/src/ri/ifexpr_generated.cpp           SceneInterface
 file    @build/src/ri/lex.if.cpp                     SceneInterface
 
