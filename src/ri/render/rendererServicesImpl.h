@@ -22,7 +22,7 @@
 #define RENDERER_SERVICES_IMPL_H
 
 #include "libshader/shading/rendererServices.h"
-#include "memory.h"    // CMemPage
+#include "common/memory.h"    // CMemPage
 #include "photonMap.h" // CPhotonMap
 #include "renderer.h"
 #include "texture.h"        // CTexture, CTextureInfoBase, CEnvironment
@@ -35,7 +35,6 @@ class CRendererServicesImpl final : public CRendererServices {
         int maxGridSize() const override { return CRenderer::maxGridSize; }
         int numGlobalVariables() const override { return CRenderer::globalVariables->numItems; }
         CVariable *globalVariable(int i) const override { return CRenderer::globalVariables->array[i]; }
-        CMemPage *globalMemory() const override { return CRenderer::globalMemory; }
 
         // Timing
         float shutterOpen() const override { return CRenderer::shutterOpen; }

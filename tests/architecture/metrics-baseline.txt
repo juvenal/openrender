@@ -11,9 +11,9 @@
 # metric reads source text, so it is platform-independent).
 
 Geometry           76    19
-Hiders            588    88
-Infra              10     2
-SceneInterface     19     7
-Shading            16     6
-Texturing         104    17
-TOTAL             813   118
+Hiders            581    87
+Infra               2     1
+SceneInterface      6     6
+Shading             9     5
+Texturing          70    16
+TOTAL             744   117

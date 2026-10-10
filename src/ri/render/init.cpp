@@ -28,9 +28,9 @@
 
 #include "common/colorSpace.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "noise.h"
-#include "random.h"
+#include "common/random.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri_config.h"
@@ -56,7 +56,11 @@
 #define debugFunction(a)
 #define illuminateBegin(a, b, c, d, e, f)
 #define findCoordinateSystem CRenderer::findCoordinateSystem
-#define threadMemory CRenderer::globalMemory
+// The shared opcode/builtin bodies included below allocate from threadMemory,
+// a CShadingContext member when they run while shading. Shader init code runs
+// outside any shading context, so here they allocate from the process-wide
+// scratch arena instead (spec 023: globalArena, formerly CRenderer::globalMemory).
+#define threadMemory globalArena.top
 #define urand() _urand()
 
 ///////////////////////////////////////////////////////////////////////

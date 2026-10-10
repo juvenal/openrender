@@ -326,8 +326,16 @@ Removed:
   `rendererServicesImpl.h:38`). Shading now uses `globalArena` directly, since Shading → Infra is
   allowed. This is a change to a Shading-owned interface, recorded in
   contracts/variable-lookup.md §2.
-- The alias `#define threadMemory CRenderer::globalMemory` (`render/init.cpp:59`). FR-009 forbids
-  forwarding aliases; its uses are written out against `globalArena`.
+- The alias `#define threadMemory CRenderer::globalMemory` (`render/init.cpp:59`) is **repointed,
+  not removed** (corrected at T035, 2026-10-10). It is now `#define threadMemory globalArena.top`.
+  - It is not a forwarding alias for an old name. `init.cpp` compiles the shared opcode/builtin
+    bodies (`scriptFunctions.h`, `shaderFunctions.h`, `shaderOpcodes.h`), which allocate from
+    `threadMemory`.
+  - While shading, `threadMemory` is a `CShadingContext` member. Shader init code runs outside any
+    shading context, and the macro redirects those bodies to the process-wide arena.
+  - Writing the uses out would mean duplicating those headers.
+  - The macro now names the new location (`globalArena.top`, the same `CMemPage *&` lvalue). The
+    old static is gone, as FR-009 requires.
 
 Allocation semantics are unchanged: same page sizes, 8-byte alignment and stack discipline.
 

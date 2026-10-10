@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#include "random.h" // sampleDisk()
+#include "common/random.h" // sampleDisk()
 
 ///////////////////////////////////////////////////////////////////////
 // CSampleValue - one pixel-sample's worth of jitter/time/lens/importance.

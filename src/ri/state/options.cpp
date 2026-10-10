@@ -31,7 +31,7 @@
 
 #include "options.h"
 #include "ri_config.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	COptions

@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 #include "csgTestUtils.h"
-#include "stats.h"
+#include "common/stats.h"
 
 using namespace csgtest;
 

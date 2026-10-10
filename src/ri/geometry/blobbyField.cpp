@@ -28,10 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "atomic.h"
+#include "common/atomic.h"
 #include "blobbyRepeller.h"
 #include "common/diagnostics.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // How many floats each primitive-field opcode consumes at its float

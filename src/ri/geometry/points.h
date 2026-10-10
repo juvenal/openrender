@@ -30,7 +30,7 @@
 #include "common/global.h"
 #include "pl.h"
 #include "ray.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 #include "shading.h"
 #include "surface.h"
 

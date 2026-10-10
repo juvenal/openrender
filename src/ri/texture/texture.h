@@ -31,8 +31,8 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
-#include "fileResource.h"
-#include "stats.h"
+#include "common/fileResource.h"
+#include "common/stats.h"
 
 class CShadingContext;
 class CVaryingTextureLookup;

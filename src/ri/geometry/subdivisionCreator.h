@@ -29,7 +29,7 @@
 
 #include "attributes.h"
 #include "common/global.h" // The global header file
-#include "memory.h"
+#include "common/memory.h"
 #include "subdivisionHierarchical.h"
 #include "xform.h"
 

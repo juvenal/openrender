@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 
-#include "common/global.h" // The global header file
+#include "global.h" // The global header file
 
 // Come textual definitions for various binary files
 extern const char *filePhotonMap;

@@ -33,11 +33,11 @@
 #include "attributes.h"
 #include "common/align.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "shader.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShader

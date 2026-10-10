@@ -25,7 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "common/diagnostics.h"
-#include "fileResource.h"
+#include "common/fileResource.h"
 #include "pointCloud.h"
 
 #include "ptcapi.h"

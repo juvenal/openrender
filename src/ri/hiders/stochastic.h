@@ -29,7 +29,7 @@
 
 #include "common/global.h"
 #include "occlusion.h"
-#include "random.h"
+#include "common/random.h"
 #include "reyes.h"
 
 ///////////////////////////////////////////////////////////////////////

@@ -27,7 +27,7 @@
 #include "pointHierarchy.h"
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "random.h"
+#include "common/random.h"
 #include "shading.h"
 
 // The predefined names for the area and the radiosity channels

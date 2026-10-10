@@ -28,9 +28,9 @@
 
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "pointCloud.h"
-#include "random.h"
+#include "common/random.h"
 
 ///////////////////////////////////////////////////////////////////////
 // globals

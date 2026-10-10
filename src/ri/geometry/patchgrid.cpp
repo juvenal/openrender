@@ -26,12 +26,12 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "patchgrid.h"
 #include "renderer.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "surfaceCrossingDispatch.h"
 
 // Note:

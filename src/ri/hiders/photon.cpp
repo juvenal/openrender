@@ -27,14 +27,14 @@
 #include <math.h>
 
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "photon.h"
 #include "photonMap.h"
-#include "random.h"
+#include "common/random.h"
 #include "renderer.h"
 #include "ri_config.h"
-#include "stats.h"
+#include "common/stats.h"
 
 static vector spectrumSpline[] = {{0, 0, 0},
                                   {0, 0, 0},

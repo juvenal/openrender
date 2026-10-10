@@ -830,7 +830,7 @@ ribCommands:	ribCommands
 					numParameters			=	0;
 
 					// Restore the memory
-					memRestore(memoryCheckpoint,CRenderer::globalMemory);
+					arenaRestore(memoryCheckpoint, globalArena);
 				}
 				ribComm
 				{
@@ -878,7 +878,7 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					RiWorldBegin();
 
 					// Create a new checkpoint because we allocate some stuff in RiWorldBegin
-					memSave(memoryCheckpoint,CRenderer::globalMemory);
+					arenaSave(memoryCheckpoint, globalArena);
 
 				}
 				|
@@ -3102,13 +3102,13 @@ void	ribParse(const char *fileName,void (*c)(const char *,...)) {
 
 		// Put a checkpoint in the global memory
 		// This checkpoint is restored after every RIB command
-		memSave(memoryCheckpoint,CRenderer::globalMemory);
+		arenaSave(memoryCheckpoint, globalArena);
 
 		// Parse the RIB
 		ribparse();
 
 		// Restore the memory to the latest checkpoint
-		memRestore(memoryCheckpoint,CRenderer::globalMemory);
+		arenaRestore(memoryCheckpoint, globalArena);
 
 		if (ribin != NULL) {
 #ifdef HAVE_ZLIB

@@ -367,3 +367,69 @@ The tools live in `tools/compat-consumer/`:
   - `stats` and the 4 `memory*` functions have 4 definers each;
   - the sampling, `CRefCounter` and `CFileResource` symbols have 3 each.
 - `ctest -L common`: 8 of 11 pass. The 8 are the tests from Phases 1–3.
+
+### T027–T036: generic core + arena (implementation)
+
+**What changed**:
+
+| Task | File(s) | Change |
+|---|---|---|
+| T027 | 11 files, `src/ri/core/` → `src/common/` (`git mv`) | `refCounter.{h,cpp}`, `fileResource.{h,cpp}`, `memory.{h,cpp}`, `stats.{h,cpp}`, `random.{h,cpp}`, `atomic.h`. Their `.cpp` files are added to `openrendercommon_obj`, and removed from `ri_sources` and the ribOut list. Includes between common files now use same-directory names (`"global.h"`), because `src/` is not on `libRIBCommon`'s own include path |
+| T028 | `ri_config.h`, `memory.cpp` | `ZONE_INIT_SIZE`/`ZONE_BASE_SIZE`/`ZONE_INCREMENT_SIZE` move into `memory.cpp`, their only user |
+| T029 | 88 includers | Now `"common/<name>.h"`. Two path-style forms were caught by the build: `tests/test_disk_sampling.cpp` (`../src/ri/core/random.h`) and `tests/shading_parity/test_ambient_accumulation.cpp` (`ri/core/memory.h`). The `ri/core/stats.h` string in `test_archcheck_parsers.cpp` is depfile fixture data and stays |
+| T030 | `common/memory.{h,cpp}` | `CArena` (`constexpr` constructor, `top`, `init`/`tini`), the `ralloc`/`rstrdup` overloads taking `CArena&`, `arenaBegin`/`End`/`Save`/`Restore`, and the single `CArena globalArena` |
+| T031–T035 | call sites | All 135 `CRenderer::globalMemory` uses rewritten mechanically: region and lifecycle forms first, then `ralloc`/`rstrdup` arguments |
+| T035 | `renderer.h`, `rendererStatics.cpp` | The static is deleted |
+| T035 | `renderer.cpp` | Its four unqualified uses become `globalArena.init()`/`tini()` and `arenaSave`/`arenaRestore` |
+| T034 | `rendererServices.h`, `rendererServicesImpl.h`, `shading.cpp` | `CRendererServices::globalMemory()` and its override are deleted. `shading.cpp` keeps its exact conditions: it allocates only with services *and* an initialized arena |
+| T035 | `init.cpp` | `threadMemory` is **repointed, not removed**: `#define threadMemory globalArena.top`, with a comment. It retargets the shared opcode/builtin headers that `init.cpp` compiles outside any shading context; research R6 and T035 were corrected |
+| — | comments | Six comments now say `globalArena` |
+
+`grep -rn globalMemory src` now finds only the explanatory comment in `common/memory.h`.
+
+**Verification**:
+- **Build**: clean (no errors and no new warnings).
+- **`ctest -L common`: 11/11 pass**:
+  - `ArenaSemantics`;
+  - `ShadingInfraBinding`: 16 symbols come from libRIBCommon, and `CRenderer::globalMemory` is
+    gone;
+  - `StateOwnership`: 27 symbols are defined once, in `libRIBCommon`;
+  - the eight tests from earlier phases.
+- **archcheck** before the prune: `violations=0 stale=10` — 9 DB-016 lines and 1 DB-001 line, all
+  `_ZN9CRenderer12globalMemoryE`, as research R0 predicted.
+  - The 10 lines were deleted (0 unmatched): DB-016 131 → **122**, DB-001 20 → **19**,
+    allowlist 592 → **582**.
+  - The metric baseline is lowered (no domain rose):
+
+    | Domain | Refs | Distinct |
+    |---|---|---|
+    | Hiders | 588 → 581 | 88 → 87 |
+    | Infra | 10 → 2 | 2 → 1 |
+    | Scene Interface | 19 → 6 | 7 → 6 |
+    | Shading | 16 → 9 | 6 → 5 |
+    | Texturing | 104 → 70 | 17 → 16 |
+    | Geometry | 76 (unchanged) | 19 (unchanged) |
+    | **TOTAL** | **813 → 744** | **118 → 117** |
+
+    Infra's remaining 2/1 is `pl.cpp`'s `retrieveVariable`, which Phase 6 removes.
+  - archcheck: `RESULT PASS`.
+- **Full suite**: the first run passed **568/569**. `Parity_depthdefault` failed once: 1 of 4800
+  blocks at 515620 against a depth threshold of 500000, at block (11,26).
+  - **Investigation**: in isolation it passed 6/6. With the same parity tool and scene under
+    4-way concurrency (`$S/023-depthprobe.sh`, 60 runs per side), neither the **frozen baseline
+    `orender`** nor the new build failed.
+
+    | Side | min | median | max |
+    |---|---|---|---|
+    | Baseline | 390621 | 437496 | 484370 |
+    | New | 390621 | 437496 | 499995 |
+
+  - Both sides land on the **same quantized lattice**, in steps of 15625: one 8×8-block depth
+    sample flipping between hiders, at 1e6/64 per sample.
+  - The failing 515620 is two steps beyond the largest value seen on either side.
+  - **Conclusion**: run-to-run nondeterminism in this scene, which predates spec 023. Its threshold
+    sits inside the scene's own tail, and this phase did not cause it. The threshold was **not**
+    changed (project noise methodology: more samples or a re-rendered reference, never a wider
+    threshold). It is reported to the maintainer as a candidate `fix/` item and added to the
+    known-intermittent-tests memory.
+  - **Rerun**: the full suite passes **569/569** (133 s).

@@ -24,7 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
-#include "atomic.h"
+#include "common/atomic.h"
 #include "common/diagnostics.h"
 #include "renderer.h"
 
@@ -149,7 +149,7 @@ TMutex CRenderer::atomicMutex;
 //	the whole decode/resize/pyramid-reduction body inside
 //	CRenderer::textureLoad()'s fallback in texture.cpp, since
 //	adjustSize<T>/filterScaleImage<T>/filterImage<T> share
-//	CRenderer::globalMemory, an unsynchronized bump allocator, and
+//	globalArena, an unsynchronized bump allocator, and
 //	textureLoad() is reachable from multiple shading threads
 //	concurrently. Deliberately separate from textureMutex, whose
 //	current role (under TEXTURE_PERBLOCK_LOCK) is narrowly

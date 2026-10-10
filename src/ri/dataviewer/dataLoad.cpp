@@ -4,9 +4,9 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "debug.h"
-#include "fileResource.h"
+#include "common/fileResource.h"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "photonMap.h"
 #include "pointCloud.h"
 #include "renderer.h"
@@ -140,7 +140,7 @@ CDataDocument::~CDataDocument() {
     if (declarationsInitialized) {
         delete renderMan;
         renderMan = NULL;
-        memoryTini(CRenderer::globalMemory);
+        globalArena.tini();
         CRenderer::shutdownDeclarations();
     }
 }
@@ -163,7 +163,7 @@ EDataFileType CDataDocument::open(const char *fileName) {
     // ribdata_key()'s re-emit cycle, unlike ribpreview_load's fully-materialized-then-torn-
     // down RIB scene).
     CRenderer::initDeclarations();
-    memoryInit(CRenderer::globalMemory);
+    globalArena.init();
     declarationsInitialized = TRUE;
 
     // Several reader constructors (e.g. CBrickMap's read path) call info()/error() for

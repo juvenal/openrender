@@ -32,7 +32,7 @@
 #include "attributes.h"
 #include "common/global.h"
 #include "ray.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 #include "renderer.h"
 #include "rendererc.h"
 #include "xform.h"

@@ -38,7 +38,7 @@
 #include "polygons.h"
 #include "reyes.h"
 #include "riInterface.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "subdivisionLoop.h"
 
 // Fixed number of uniform refinement passes. Per research.md R7, Loop only

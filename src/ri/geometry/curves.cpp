@@ -27,11 +27,11 @@
 #include <math.h>
 
 #include "curves.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
-#include "stats.h"
+#include "common/stats.h"
 
 // The inverse of the Bezier basis
 static matrix invBezier = {0, 0, 0, 1,

@@ -32,8 +32,8 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "config.h" // OPENRENDER_HAVE_LLVM
-#include "fileResource.h"
-#include "refCounter.h"
+#include "common/fileResource.h"
+#include "common/refCounter.h"
 #ifdef OPENRENDER_HAVE_LLVM
 #include "llvmJit.h"
 #endif

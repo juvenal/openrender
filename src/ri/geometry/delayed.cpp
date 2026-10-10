@@ -29,7 +29,7 @@
 #include "delayed.h"
 #include "renderer.h"
 #include "rendererContext.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject

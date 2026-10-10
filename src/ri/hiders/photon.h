@@ -30,7 +30,7 @@
 #include "attributes.h"
 #include "common/global.h" // The global header file
 #include "options.h"
-#include "random.h"
+#include "common/random.h"
 #include "ray.h"
 #include "shading.h"
 

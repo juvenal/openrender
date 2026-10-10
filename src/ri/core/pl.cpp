@@ -29,10 +29,10 @@
 
 #include "common/align.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "pl.h"
 #include "renderer.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Note:	if locals[accessor] is NULL it means we will not be running
@@ -1362,15 +1362,15 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
         if (strcmp(cVar->name, "st") == 0) {
             CPl *npl;
 
-            memBegin(CRenderer::globalMemory);
+            arenaBegin(globalArena);
 
-            const char **ntokens = (const char **)ralloc((numParams + 1) * sizeof(char *), CRenderer::globalMemory);
-            const void **nvals = (const void **)ralloc((numParams + 1) * sizeof(void *), CRenderer::globalMemory);
+            const char **ntokens = (const char **)ralloc((numParams + 1) * sizeof(char *), globalArena);
+            const void **nvals = (const void **)ralloc((numParams + 1) * sizeof(void *), globalArena);
             int j;
             float *sval, *tval, *src;
 
-            sval = (float *)ralloc(numItems * sizeof(float), CRenderer::globalMemory);
-            tval = (float *)ralloc(numItems * sizeof(float), CRenderer::globalMemory);
+            sval = (float *)ralloc(numItems * sizeof(float), globalArena);
+            tval = (float *)ralloc(numItems * sizeof(float), globalArena);
             src = (float *)vals[i];
 
             // Separate s and t
@@ -1412,8 +1412,8 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                         decl = "uniform float";
                         break;
                 }
-                char *sDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_S) + 2, CRenderer::globalMemory);
-                char *tDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_T) + 2, CRenderer::globalMemory);
+                char *sDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_S) + 2, globalArena);
+                char *tDeclTemp = (char *)ralloc((int)strlen(decl) + (int)strlen(RI_T) + 2, globalArena);
                 snprintf(sDeclTemp, strlen(decl) + strlen(RI_S) + 2, "%s %s", decl, RI_S);
                 snprintf(tDeclTemp, strlen(decl) + strlen(RI_T) + 2, "%s %s", decl, RI_T);
 
@@ -1436,7 +1436,7 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
 
             npl = parseParameterList(numUniform, numVertex, numVarying, numFaceVarying, j, ntokens, nvals, required, flags, attributes);
 
-            memEnd(CRenderer::globalMemory);
+            arenaEnd(globalArena);
 
             return npl;
         }

@@ -30,10 +30,10 @@
 #include "attributes.h"
 #include "bundles.h"
 #include "common/global.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "ri_config.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "surface.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

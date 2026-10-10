@@ -29,7 +29,7 @@
 #ifndef GEOMETRYHOST_H
 #define GEOMETRYHOST_H
 
-#include "refCounter.h"
+#include "common/refCounter.h"
 
 class CObject;
 class CAttributes;

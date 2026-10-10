@@ -30,7 +30,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "dataView.h"
-#include "fileResource.h"
+#include "common/fileResource.h"
 #include "rendererc.h"
 #include "xform.h"
 

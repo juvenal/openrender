@@ -35,7 +35,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "csgTree.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 
 class CObject;
 class CSurface;

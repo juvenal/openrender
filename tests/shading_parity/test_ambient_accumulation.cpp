@@ -36,7 +36,7 @@
 #include <unistd.h>
 
 #include "libshader/include/openrender/RSLShading.h"
-#include "ri/core/memory.h"
+#include "common/memory.h"
 #include "ri/core/shader.h"
 #include "ri/core/shading.h"
 #include "ri/geometry/object.h"

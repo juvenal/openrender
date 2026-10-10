@@ -25,11 +25,22 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "memory.h"
-#include "common/align.h"
-#include "common/global.h"
-#include "common/os.h"
-#include "ri_config.h"
+#include "align.h"
+#include "global.h"
+#include "os.h"
 #include "stats.h"
+
+//	The initial zone size
+#define ZONE_INIT_SIZE 500000
+
+//	The default page size for the zone
+#define ZONE_BASE_SIZE 1000000
+
+//	If we have threashing in the zone memory, we gradually increase the page size by this amount
+#define ZONE_INCREMENT_SIZE 100000
+
+// The process-wide scratch arena
+CArena globalArena;
 
 // Some global variables
 static int allocatedZoneMemory = 0;

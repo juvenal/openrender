@@ -28,12 +28,12 @@
 
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "photonMap.h"
-#include "random.h"
+#include "common/random.h"
 #include "raytracer.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "tiffio.h"
 
 // Precomputed conversion tables for the sin/cosine

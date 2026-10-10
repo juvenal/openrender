@@ -28,7 +28,7 @@
 #include "common/diagnostics.h"
 #include "imageInput.h"
 #include "imageInputTiff.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "ri.h"
 #include "ri_config.h"
@@ -173,9 +173,9 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
         pixelSize = numSamples * sizeof(float);
     }
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
-    tileData = (unsigned char *)ralloc(pixelSize * tileSize * tileSize, CRenderer::globalMemory);
+    tileData = (unsigned char *)ralloc(pixelSize * tileSize * tileSize, globalArena);
 
     assert(TIFFTileSize(out) == (tileSize * tileSize * pixelSize));
 
@@ -193,7 +193,7 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
 
     TIFFWriteDirectory(out);
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -216,7 +216,7 @@ static void appendPyramid(TIFF *out, int &dstart, int numSamples, int bitsperpix
     currentHeight = height;
     currentLevel = data;
 
-    fnextLevel = (float *)ralloc(width * height * numSamples * sizeof(float), CRenderer::globalMemory);
+    fnextLevel = (float *)ralloc(width * height * numSamples * sizeof(float), globalArena);
 
     int numLevels = tiffNumLevels(width, height);
     int i;
@@ -308,7 +308,7 @@ void *readLayer(TIFF *in, int *width, int *height, int *bitsperpixel, int *numSa
         pixelSize = 0;
     }
 
-    data = (unsigned char *)ralloc(pixelSize * w * h, CRenderer::globalMemory);
+    data = (unsigned char *)ralloc(pixelSize * w * h, globalArena);
 
     for (i = 0; i < (int)h; i++) {
         TIFFReadScanline(in, &data[i * pixelSize * w], i, 0);
@@ -408,10 +408,10 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
                 float filterHeight = fheight;
                 char modes[128];
 
-                memBegin(CRenderer::globalMemory);
+                arenaBegin(globalArena);
 
                 // Read the texture
-                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, globalArena);
                 imageInput->readImage(data);
                 imageInput->close();
                 delete imageInput;
@@ -431,7 +431,7 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
                     TIFFClose(outHandle);
                 }
 
-                memEnd(CRenderer::globalMemory);
+                arenaEnd(globalArena);
             }
         }
     }
@@ -477,7 +477,7 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
                 matrix worldToCamera, worldToScreen;
                 float *tmp;
 
-                memBegin(CRenderer::globalMemory);
+                arenaBegin(globalArena);
 
                 // Read off the from world transformation from the image if possible.
                 // These are Pixar-private TIFF tags with no equivalent in any other
@@ -504,7 +504,7 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
                 }
 
                 // Read the data
-                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, globalArena);
                 imageInput->readImage(data);
 
                 // Close the input
@@ -528,7 +528,7 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
                     error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
                 }
 
-                memEnd(CRenderer::globalMemory);
+                arenaEnd(globalArena);
             }
         }
     }
@@ -596,7 +596,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                             break;
                         }
 
-                        memBegin(CRenderer::globalMemory);
+                        arenaBegin(globalArena);
 
                         width = faceInfo.width;
                         height = faceInfo.height;
@@ -604,7 +604,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                         bitspersample = faceInfo.bitsPerSample;
 
                         // Read the data
-                        data = ralloc(pixelSizeFromInfo(faceInfo) * width * height, CRenderer::globalMemory);
+                        data = ralloc(pixelSizeFromInfo(faceInfo) * width * height, globalArena);
                         faceInput->readImage(data);
                         faceInput->close();
                         delete faceInput;
@@ -612,7 +612,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                         // Write the data
                         appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
 
-                        memEnd(CRenderer::globalMemory);
+                        arenaEnd(globalArena);
                     }
                 }
 
@@ -665,10 +665,10 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
                 float filterHeight = fheight;
                 char modes[128];
 
-                memBegin(CRenderer::globalMemory);
+                arenaBegin(globalArena);
 
                 // Read the texture
-                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+                data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, globalArena);
                 imageInput->readImage(data);
                 imageInput->close();
                 delete imageInput;
@@ -687,7 +687,7 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
                     TIFFClose(outHandle);
                 }
 
-                memEnd(CRenderer::globalMemory);
+                arenaEnd(globalArena);
             }
         }
     }
@@ -733,9 +733,9 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
             float filterHeight = fheight;
             char modes[128];
 
-            memBegin(CRenderer::globalMemory);
+            arenaBegin(globalArena);
 
-            data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, CRenderer::globalMemory);
+            data = ralloc(pixelSizeFromInfo(imageInfo) * width * height, globalArena);
             imageInput->readImage(data);
             imageInput->close();
             delete imageInput;
@@ -753,7 +753,7 @@ void makeCylindericalEnvironment(const char *input, const char *output, TSearchp
                 TIFFClose(outHandle);
             }
 
-            memEnd(CRenderer::globalMemory);
+            arenaEnd(globalArena);
             }
         }
     }

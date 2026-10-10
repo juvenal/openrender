@@ -26,13 +26,13 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "brickmap.h"
-#include "atomic.h"
+#include "common/atomic.h"
 #include "common/os.h"
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "pointCloud.h"
-#include "random.h"
+#include "common/random.h"
 #include "renderer.h"
 
 // The static members of the CBrickMap class

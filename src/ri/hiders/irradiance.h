@@ -32,7 +32,7 @@
 #include "common/os.h"
 #include "depository.h"
 #include "options.h"
-#include "random.h"
+#include "common/random.h"
 #include "shader.h"
 #include "texture3d.h"
 

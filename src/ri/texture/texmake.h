@@ -28,7 +28,7 @@
 #define TEXMAKE_H
 
 #include "common/global.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "options.h"
 #include "renderer.h"
 #include "ri.h"
@@ -108,10 +108,10 @@ void initDataValues(T *to, int width, int, int x, int y, int w, int h, int numSa
 template <class T>
 void filterImage(int width, int height, int numSamples, int bitspersample, float filterWidth, float filterHeight, RtFilterFunc filter, T *data) {
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
-    float *filteredData = (float *)ralloc(width * height * numSamples * sizeof(float), CRenderer::globalMemory);
-    float *normalizer = (float *)ralloc(width * height * sizeof(float), CRenderer::globalMemory);
+    float *filteredData = (float *)ralloc(width * height * numSamples * sizeof(float), globalArena);
+    float *normalizer = (float *)ralloc(width * height * sizeof(float), globalArena);
     int x, y, i;
     int fw = (int)ceil((filterWidth - 1) / 2);
     int fh = (int)ceil((filterHeight - 1) / 2);
@@ -209,16 +209,16 @@ void filterImage(int width, int height, int numSamples, int bitspersample, float
         norm++;
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 template <class T>
 void filterScaleImage(int width, int height, int targetWidth, int targetHeight, int newWidth, int newHeight, int numSamples, int bitspersample, float filterWidth, float filterHeight, RtFilterFunc filter, T *dataIn, T *dataOut) {
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
-    float *filteredData = (float *)ralloc(newWidth * newHeight * numSamples * sizeof(float), CRenderer::globalMemory);
-    float *normalizer = (float *)ralloc(newWidth * newHeight * sizeof(float), CRenderer::globalMemory);
+    float *filteredData = (float *)ralloc(newWidth * newHeight * numSamples * sizeof(float), globalArena);
+    float *normalizer = (float *)ralloc(newWidth * newHeight * sizeof(float), globalArena);
     float widthRatio = (float)width / (float)targetWidth;
     float heightRatio = (float)height / (float)targetHeight;
     int x, y, i;
@@ -332,7 +332,7 @@ void filterScaleImage(int width, int height, int targetWidth, int targetHeight, 
         norm++;
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 template <class T>
@@ -406,7 +406,7 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
         if (!((width[0] == newWidth) && (height[0] == newHeight))) {
             T *newData;
 
-            newData = (T *)ralloc(newWidth * newHeight * numSamples * sizeof(T), CRenderer::globalMemory);
+            newData = (T *)ralloc(newWidth * newHeight * numSamples * sizeof(T), globalArena);
             memset(newData, 0, newWidth * newHeight * numSamples * sizeof(T));
 
             filterScaleImage<T>(width[0], height[0], targetWidth, targetHeight, newWidth, newHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, data[0], newData);
@@ -425,7 +425,7 @@ void adjustSize(T **data, int *width, int *height, int *validWidth, int *validHe
         if (!((width[0] == newWidth) && (height[0] == newHeight))) {
             T *newData;
 
-            newData = (T *)ralloc(newWidth * newHeight * numSamples * sizeof(T), CRenderer::globalMemory);
+            newData = (T *)ralloc(newWidth * newHeight * numSamples * sizeof(T), globalArena);
             memset(newData, 0, newWidth * newHeight * numSamples * sizeof(T));
 
             copyData<T>(data[0], width[0], height[0], 0, 0, width[0], height[0], newData, newWidth, newHeight, 0, 0, numSamples);

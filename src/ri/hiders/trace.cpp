@@ -26,12 +26,12 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "memory.h"
+#include "common/memory.h"
 #include "options.h"
 #include "points.h"
 #include "renderer.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext

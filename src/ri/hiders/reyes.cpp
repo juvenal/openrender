@@ -27,14 +27,14 @@
 #include <math.h>
 
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "reyes.h"
 
 #include <climits>
 #include "ri.h"
 #include "ri_config.h"
 #include "sampler.h"
-#include "stats.h"
+#include "common/stats.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Some misc macros

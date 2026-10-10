@@ -31,12 +31,12 @@
 #include "common/diagnostics.h"
 #include "imager.h"
 #include "includes/logging.hpp"
-#include "memory.h"
+#include "common/memory.h"
 #include "options.h"
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
-#include "stats.h"
+#include "common/stats.h"
 
 static COptions::CDisplay *currentDisplay = NULL;
 

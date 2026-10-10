@@ -27,7 +27,7 @@
 #include "common/diagnostics.h"
 #include "renderer.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 
 void (*CRenderer::dispatchJob)(int thread, CJob &job) = NULL;
 

@@ -31,7 +31,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "libshader/shading/rendererServices.h"
-#include "random.h"
+#include "common/random.h"
 #include "shader.h"
 
 // Some forward definitions

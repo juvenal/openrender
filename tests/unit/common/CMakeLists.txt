@@ -90,9 +90,8 @@ set_tests_properties(Common_DiagnosticsCrossLibraryStatic PROPERTIES
     TIMEOUT 120 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")
 
 # --- Phase 4 (US2): generic core + arena ---------------------------------------
-# FR-006: CArena semantics on a local arena. EXCLUDE_FROM_ALL until T030 adds
-# CArena to common/memory.h.
-add_executable(test_common_arena EXCLUDE_FROM_ALL test_common_arena.cpp)
+# FR-006: CArena semantics on a local arena.
+add_executable(test_common_arena test_common_arena.cpp)
 target_compile_features(test_common_arena PRIVATE cxx_std_20)
 target_include_directories(test_common_arena PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_common_arena PRIVATE openrendercommon)

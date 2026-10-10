@@ -28,11 +28,11 @@
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
 #include "imageInput.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "ri_config.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "texmake.h"
 #include "tiff.h"
 #include "tileSource.h"
@@ -632,7 +632,7 @@ static void buildSynthesizedPyramidTyped(const CImageInfo &info, void *decodedDa
     memcpy(pyramid->levels[0].data.data(), data, level0Bytes);
 
     if (numLevels > 1) {
-        float *fnextLevel = (float *)ralloc((size_t)width * height * numSamples * sizeof(float), CRenderer::globalMemory);
+        float *fnextLevel = (float *)ralloc((size_t)width * height * numSamples * sizeof(float), globalArena);
         int currentWidth = width;
         int currentHeight = height;
 
@@ -667,7 +667,7 @@ static void buildSynthesizedPyramidTyped(const CImageInfo &info, void *decodedDa
 //							body behind CRenderer::synthesizeMutex, because
 //							adjustSize<T>/filterScaleImage<T>/filterImage<T>
 //							(and this function's own reduction step) share
-//							CRenderer::globalMemory, an unsynchronized bump
+//							globalArena, an unsynchronized bump
 //							allocator, and this function is reachable from
 //							multiple shading threads concurrently via
 //							CRenderer::textureLoad() (research.md SS4a).
@@ -697,12 +697,12 @@ static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *
     bool readOk;
 
     osLock(CRenderer::synthesizeMutex);
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     int bytesPerSample = (info.bitsPerSample == 8) ? (int)sizeof(unsigned char) : (info.bitsPerSample == 16) ? (int)sizeof(unsigned short)
                                                                                                               : (int)sizeof(float);
     size_t decodeSize = (size_t)info.width * info.height * info.numChannels * bytesPerSample;
-    void *decodedData = ralloc(decodeSize, CRenderer::globalMemory);
+    void *decodedData = ralloc(decodeSize, globalArena);
 
     readOk = input->readImage(decodedData);
 
@@ -719,7 +719,7 @@ static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *
         }
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
     osUnlock(CRenderer::synthesizeMutex);
 
     input->close();

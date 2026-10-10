@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 #include "common/diagnostics.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "xform.h"
 
 ///////////////////////////////////////////////////////////////////////

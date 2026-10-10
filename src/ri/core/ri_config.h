@@ -67,15 +67,6 @@
 //	The maximum allowed string size that can be handled
 #define MAX_SCRIPT_STRING_SIZE 256
 
-//	The initial zone size
-#define ZONE_INIT_SIZE 500000
-
-//	The default page size for the zone
-#define ZONE_BASE_SIZE 1000000
-
-//	If we have threashing in the zone memory, we gradually increase the page size by this amount
-#define ZONE_INCREMENT_SIZE 100000
-
 // The maximum length of the variable name
 #define VARIABLE_NAME_LENGTH 64
 

@@ -49,7 +49,7 @@
 #include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "noise.h"
 #include "object.h"
 #include "patches.h"
@@ -59,7 +59,7 @@
 #include "points.h"
 #include "polygons.h"
 #include "quadrics.h"
-#include "random.h"
+#include "common/random.h"
 #include "ray.h"
 #include "raytracer.h"
 #include "rendererContext.h"
@@ -70,7 +70,7 @@
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
@@ -327,9 +327,9 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
         assert(instance != NULL);
 
         // Execute the init code of the shader
-        memBegin(CRenderer::globalMemory);
+        arenaBegin(globalArena);
         init(instance);
-        memEnd(CRenderer::globalMemory);
+        arenaEnd(globalArena);
 
         cInstance = instance;
     }
@@ -3963,9 +3963,9 @@ void CRendererContext::RiPointsPolygonsV(int npolys, int *nverts, int *verts, in
     }
 
     // Get the core and allocate the polygon
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
-    int *nloops = (int *)ralloc(npolys * sizeof(int), CRenderer::globalMemory);
+    int *nloops = (int *)ralloc(npolys * sizeof(int), globalArena);
     int i;
 
     for (i = 0; i < npolys; i++) {
@@ -3974,7 +3974,7 @@ void CRendererContext::RiPointsPolygonsV(int npolys, int *nverts, int *verts, in
 
     addObject(new CPolygonMesh(attributes, xform, pl, npolys, nloops, nverts, verts));
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiPointsGeneralPolygonsV(int npolys, int *nloops, int *nverts, int *verts, int n, const char *tokens[], const void *params[]) {
@@ -4069,12 +4069,12 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
 #define correct3begin(xv, yv)                                                                           \
     {                                                                                                   \
         int i;                                                                                          \
-        const char **newTokens = (const char **)ralloc(n * sizeof(char *), CRenderer::globalMemory);    \
+        const char **newTokens = (const char **)ralloc(n * sizeof(char *), globalArena);    \
         memcpy(newTokens, tokens, n * sizeof(char *));                                                  \
         tokens = newTokens;                                                                             \
         for (i = 0; i < n; i++) {                                                                       \
             if (strcmp(tokens[i], RI_PZ) == 0) {                                                        \
-                float *newData = (float *)ralloc(xv * yv * 3 * sizeof(float), CRenderer::globalMemory); \
+                float *newData = (float *)ralloc(xv * yv * 3 * sizeof(float), globalArena); \
                 float *oldData = (float *)params[i];                                                    \
                 int x, y;                                                                               \
                 params[i] = (char *)newData;                                                            \
@@ -4089,7 +4089,7 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
                 }                                                                                       \
             }                                                                                           \
             else if (strcmp(tokens[i], RI_PW) == 0) {                                                   \
-                float *newData = (float *)ralloc(xv * yv * 3 * sizeof(float), CRenderer::globalMemory); \
+                float *newData = (float *)ralloc(xv * yv * 3 * sizeof(float), globalArena); \
                 float *oldData = (float *)params[i];                                                    \
                 int x, y;                                                                               \
                 params[i] = (char *)newData;                                                            \
@@ -4110,12 +4110,12 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
 #define correct3cbegin(xv)                                                                           \
     {                                                                                                \
         int i;                                                                                       \
-        const char **newTokens = (const char **)ralloc(n * sizeof(char *), CRenderer::globalMemory); \
+        const char **newTokens = (const char **)ralloc(n * sizeof(char *), globalArena); \
         memcpy(newTokens, tokens, n * sizeof(char *));                                               \
         tokens = newTokens;                                                                          \
         for (i = 0; i < n; i++) {                                                                    \
             if (strcmp(tokens[i], RI_PW) == 0) {                                                     \
-                float *newData = (float *)ralloc(xv * 3 * sizeof(float), CRenderer::globalMemory);   \
+                float *newData = (float *)ralloc(xv * 3 * sizeof(float), globalArena);   \
                 float *oldData = (float *)params[i];                                                 \
                 int x;                                                                               \
                 params[i] = (char *)newData;                                                         \
@@ -4134,12 +4134,12 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
 #define correct4begin(xv, yv)                                                                           \
     {                                                                                                   \
         int i;                                                                                          \
-        const char **newTokens = (const char **)ralloc(n * sizeof(char *), CRenderer::globalMemory);    \
+        const char **newTokens = (const char **)ralloc(n * sizeof(char *), globalArena);    \
         memcpy(newTokens, tokens, n * sizeof(char *));                                                  \
         tokens = newTokens;                                                                             \
         for (i = 0; i < n; i++) {                                                                       \
             if (strcmp(tokens[i], RI_PZ) == 0) {                                                        \
-                float *newData = (float *)ralloc(xv * yv * 4 * sizeof(float), CRenderer::globalMemory); \
+                float *newData = (float *)ralloc(xv * yv * 4 * sizeof(float), globalArena); \
                 float *oldData = (float *)params[i];                                                    \
                 int x, y;                                                                               \
                 params[i] = (char *)newData;                                                            \
@@ -4155,7 +4155,7 @@ void CRendererContext::RiBasis(float ubasis[][4], int ustep, float vbasis[][4], 
                 }                                                                                       \
             }                                                                                           \
             else if (strcmp(tokens[i], RI_P) == 0) {                                                    \
-                float *newData = (float *)ralloc(xv * yv * 4 * sizeof(float), CRenderer::globalMemory); \
+                float *newData = (float *)ralloc(xv * yv * 4 * sizeof(float), globalArena); \
                 float *oldData = (float *)params[i];                                                    \
                 int x, y;                                                                               \
                 params[i] = (char *)newData;                                                            \
@@ -4204,7 +4204,7 @@ void CRendererContext::RiPatchV(const char *type, int n, const char *tokens[], c
         return;
     }
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     correct3begin(uver, vver);
 
@@ -4236,7 +4236,7 @@ void CRendererContext::RiPatchV(const char *type, int n, const char *tokens[], c
         }
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiPatchMeshV(const char *type, int nu, const char *uwrap, int nv, const char *vwrap, int n, const char *tokens[], const void *params[]) {
@@ -4340,7 +4340,7 @@ void CRendererContext::RiPatchMeshV(const char *type, int nu, const char *uwrap,
         return;
     }
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     correct3begin(nu, nv);
 
@@ -4371,7 +4371,7 @@ void CRendererContext::RiPatchMeshV(const char *type, int nu, const char *uwrap,
         }
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float /*umin*/, float /*umax*/, int nv, int vorder, float *vknot, float /*vmin*/, float /*vmax*/, int n, const char *tokens[], const void *params[]) {
@@ -4390,7 +4390,7 @@ void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float /*umin
 
     checkGeometryOrDiscard();
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     correct4begin(nu, nv);
 
@@ -4425,7 +4425,7 @@ void CRendererContext::RiNuPatchV(int nu, int uorder, float *uknot, float /*umin
         }
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiTrimCurve(int nloops, int *ncurves, int *order, float *knot, float *amin, float *amax, int *n, float *u, float *v, float *w) {
@@ -4552,7 +4552,7 @@ void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const
         return;
     }
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     correct3cbegin(numVertices);
 
@@ -4585,7 +4585,7 @@ void CRendererContext::RiCurvesV(const char *d, int ncurves, int nverts[], const
             break;
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 #undef correct3begin
@@ -4613,15 +4613,15 @@ void CRendererContext::RiSphereV(float radius, float zmin, float zmax, float the
 
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(4 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(4 * sizeof(float), globalArena);
         dataSize = 4;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), globalArena);
         dataSize = 4 + pl->dataSize;
         memcpy(&data[4], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -4770,7 +4770,7 @@ void CRendererContext::RiSphereV(float radius, float zmin, float zmax, float the
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiConeV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -4793,15 +4793,15 @@ void CRendererContext::RiConeV(float height, float radius, float thetamax, int n
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(3 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(3 * sizeof(float), globalArena);
         dataSize = 3;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 3) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 3) * sizeof(float), globalArena);
         dataSize = 3 + pl->dataSize;
         memcpy(&data[3], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -4855,7 +4855,7 @@ void CRendererContext::RiConeV(float height, float radius, float thetamax, int n
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiCylinderV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -4878,15 +4878,15 @@ void CRendererContext::RiCylinderV(float radius, float zmin, float zmax, float t
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(4 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(4 * sizeof(float), globalArena);
         dataSize = 4;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), globalArena);
         dataSize = 4 + pl->dataSize;
         memcpy(&data[4], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -4945,7 +4945,7 @@ void CRendererContext::RiCylinderV(float radius, float zmin, float zmax, float t
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiHyperboloidV(float *point1, float *point2, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -4969,15 +4969,15 @@ void CRendererContext::RiHyperboloidV(float *point1, float *point2, float thetam
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(7 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(7 * sizeof(float), globalArena);
         dataSize = 7;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 7) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 7) * sizeof(float), globalArena);
         dataSize = 7 + pl->dataSize;
         memcpy(&data[7], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -5040,7 +5040,7 @@ void CRendererContext::RiHyperboloidV(float *point1, float *point2, float thetam
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiParaboloidV(float radius, float zmin, float zmax, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -5063,15 +5063,15 @@ void CRendererContext::RiParaboloidV(float radius, float zmin, float zmax, float
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(4 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(4 * sizeof(float), globalArena);
         dataSize = 4;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 4) * sizeof(float), globalArena);
         dataSize = 4 + pl->dataSize;
         memcpy(&data[4], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -5132,7 +5132,7 @@ void CRendererContext::RiParaboloidV(float radius, float zmin, float zmax, float
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiDiskV(float height, float radius, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -5155,15 +5155,15 @@ void CRendererContext::RiDiskV(float height, float radius, float thetamax, int n
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(3 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(3 * sizeof(float), globalArena);
         dataSize = 3;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 3) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 3) * sizeof(float), globalArena);
         dataSize = 3 + pl->dataSize;
         memcpy(&data[3], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -5219,7 +5219,7 @@ void CRendererContext::RiDiskV(float height, float radius, float thetamax, int n
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiTorusV(float majorrad, float minorrad, float phimin, float phimax, float thetamax, int n, const char *tokens[], const void *params[]) {
@@ -5242,15 +5242,15 @@ void CRendererContext::RiTorusV(float majorrad, float minorrad, float phimin, fl
     xform = getXform(FALSE);
     pl = parseParameterList(1, 0, 4, 0, n, tokens, params, NULL, PL_VERTEX_TO_VARYING, attributes);
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     if (pl == NULL) {
-        data = (float *)ralloc(5 * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc(5 * sizeof(float), globalArena);
         dataSize = 5;
         parametersF = 0;
     }
     else {
-        data = (float *)ralloc((pl->dataSize + 5) * sizeof(float), CRenderer::globalMemory);
+        data = (float *)ralloc((pl->dataSize + 5) * sizeof(float), globalArena);
         dataSize = 5 + pl->dataSize;
         memcpy(&data[5], pl->data0, pl->dataSize * sizeof(float));
         parametersF = pl->parameterUsage();
@@ -5308,7 +5308,7 @@ void CRendererContext::RiTorusV(float majorrad, float minorrad, float phimin, fl
     if (pl != NULL)
         delete pl;
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiProcedural(void *data, float *bound, void (*subdivfunc)(void *, float), void (*freefunc)(void *)) {
@@ -5616,7 +5616,7 @@ void CRendererContext::RiPointsV(int npts, int n, const char *tokens[], const vo
     if (pl == NULL)
         return;
 
-    memBegin(CRenderer::globalMemory);
+    arenaBegin(globalArena);
 
     // We have the core
     switch (addMotion(pl->data0, pl->dataSize, "CRendererContext::RiPoints", p0, p1)) {
@@ -5641,7 +5641,7 @@ void CRendererContext::RiPointsV(int npts, int n, const char *tokens[], const vo
             break;
     }
 
-    memEnd(CRenderer::globalMemory);
+    arenaEnd(globalArena);
 }
 
 void CRendererContext::RiSubdivisionMeshV(const char *scheme, int nfaces, int nvertices[], int vertices[], int ntags, const char *tags[], int nargs[], int intargs[], float floatargs[], int n, const char *tokens[], const void *params[]) {

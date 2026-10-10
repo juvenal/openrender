@@ -39,8 +39,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geometry)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/texture)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/output)
-# core/ (memory, refCounter, stats, random, pl, fileResource, atomic,
-# ray/map/noise, ri_config, and the Phase C1 shader/shading/shaderPl
+# core/ (pl, ray/map/noise, ri_config, and the Phase C1 shader/shading/shaderPl
 # forwarding shims) and dataviewer/ (dataLoad/dataView/debug -- the
 # orender-wire data-file inspection helpers) are two more domains split out
 # of the historically flat src/ri/ tree, same flat-include treatment as the
@@ -85,7 +84,6 @@ set(ri_sources
 	geometry/dlobject.cpp
 #	dso.cpp
 	parse/error.cpp
-	core/fileResource.cpp
 	hcshader.cpp
 	hiders/irradiance.cpp
 	hiders/irradianceDispatch.cpp
@@ -103,7 +101,6 @@ set(ri_sources
 	geometry/implicitSurface.cpp
 	render/init.cpp
 	hiders/linsys.cpp
-	core/memory.cpp
 	geometry/object.cpp
 	state/options.cpp
 	geometry/patches.cpp
@@ -115,8 +112,6 @@ set(ri_sources
 	geometry/polygons.cpp
 	texture/ptcapi.cpp
 	geometry/quadrics.cpp
-	core/random.cpp
-	core/refCounter.cpp
 	render/remoteChannel.cpp
 	render/geometryDispatch.cpp
 	render/renderer.cpp
@@ -138,7 +133,6 @@ set(ri_sources
 	parse/riInterface.cpp
 	output/ribOut.cpp
 #	sl.cpp
-	core/stats.cpp
 	geometry/subdivision.cpp
 	geometry/subdivisionCreator.cpp
 	geometry/subdivisionHierarchical.cpp
@@ -508,14 +502,12 @@ set(ribOut_sources
     parse/error.cpp
     parse/ri.cpp
     parse/riInterface.cpp
-    core/memory.cpp
     render/rendererDeclarations.cpp
     render/rendererFileSearch.cpp
     render/rendererMutexes.cpp
     render/rendererNetwork.cpp
     render/rendererStatics.cpp
     state/displayChannel.cpp
-    core/stats.cpp
     vector/rendererDeclarationsDispatchStub.cpp
     dso_generated.cpp
     rib_generated.cpp

@@ -27,13 +27,13 @@
 #include <math.h>
 #include <string.h>
 
-#include "atomic.h"
+#include "common/atomic.h"
 #include "attributes.h"
 #include "common/diagnostics.h"
 #include "photonMap.h"
 #include "ri.h"
 #include "ri_config.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes

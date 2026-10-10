@@ -33,14 +33,14 @@
 #include "common/diagnostics.h"
 #include "includes/logging.hpp"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "photonMap.h"
-#include "random.h"
+#include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "texture.h"
 #include "texture3d.h"
 
@@ -430,12 +430,9 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     freeStates = NULL;
     inShadow = FALSE;
 
-    // (globalMemory is checkpointed)
-    if (s_defaultServices) {
-        CMemPage *gMem = s_defaultServices->globalMemory();
-        if (gMem)
-            traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, gMem);
-    }
+    // (globalArena is checkpointed)
+    if (s_defaultServices && globalArena.top)
+        traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, globalArena);
 
     // Fill the object pointers with impossible data
     for (int i = 0; i < SHADING_OBJECT_CACHE_SIZE; i++)

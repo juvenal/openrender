@@ -31,7 +31,7 @@
 
 #include "attributes.h" // ETrimSense
 #include "common/global.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "pl.h"
 #include "surface.h"

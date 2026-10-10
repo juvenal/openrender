@@ -26,12 +26,12 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "memory.h"
+#include "common/memory.h"
 #include "points.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPoints

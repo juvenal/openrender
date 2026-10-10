@@ -31,7 +31,7 @@
 #include "csgTestUtils.h"
 #include "delayed.h"
 #include "quadrics.h"
-#include "stats.h"
+#include "common/stats.h"
 
 using namespace csgtest;
 

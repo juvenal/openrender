@@ -55,7 +55,6 @@ class CRendererServices {
         virtual int maxGridSize() const = 0;
         virtual int numGlobalVariables() const = 0;
         virtual CVariable *globalVariable(int i) const = 0;
-        virtual CMemPage *globalMemory() const = 0;
 
         ///////////////////////////////////////////////////////////////
         // Shutter / timing  (used by shade() for motion interpolation)

@@ -29,7 +29,7 @@
 #include "attributes.h"
 #include "common/os.h"
 #include "hcshader.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "renderer.h"
 #include "ri_config.h"

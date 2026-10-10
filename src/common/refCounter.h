@@ -28,7 +28,7 @@
 #define REFCOUNTER_H
 
 #include "atomic.h"
-#include "common/global.h"
+#include "global.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRefCounter

@@ -28,11 +28,11 @@
 #include <string.h>
 
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "netFileMapping.h"
 #include "renderer.h"
 #include "ri_config.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	rcRecv

@@ -29,7 +29,7 @@
 
 #include "common/algebra.h"
 #include "common/global.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CXform

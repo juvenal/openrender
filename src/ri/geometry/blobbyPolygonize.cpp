@@ -33,9 +33,9 @@
 #include <set>
 #include <vector>
 
-#include "atomic.h"
+#include "common/atomic.h"
 #include "common/diagnostics.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // A hard ceiling on the walk, so a pathological field cannot exhaust

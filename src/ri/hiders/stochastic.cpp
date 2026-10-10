@@ -31,9 +31,9 @@
 #include "common/portable_io.h"
 #include "compositor.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "pixelFilter.h"
-#include "random.h"
+#include "common/random.h"
 #include "sampler.h"
 #include "stochastic.h"
 
@@ -77,16 +77,16 @@ CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apert
 
     // Allocate the framebuffer for extra samples (checkpointed)
     if (CRenderer::numExtraSamples > 0) {
-        extraSampleMemory = (float *)ralloc(totalWidth * totalHeight * CRenderer::numExtraSamples * sizeof(float), CRenderer::globalMemory);
+        extraSampleMemory = (float *)ralloc(totalWidth * totalHeight * CRenderer::numExtraSamples * sizeof(float), globalArena);
     }
     else {
         extraSampleMemory = NULL;
     }
     // Allocate the pixels (checkpointed)
     cExtraSample = extraSampleMemory;
-    fb = (CPixel **)ralloc(totalHeight * sizeof(CPixel *), CRenderer::globalMemory);
+    fb = (CPixel **)ralloc(totalHeight * sizeof(CPixel *), globalArena);
     for (i = 0; i < totalHeight; i++) {
-        cPixel = fb[i] = (CPixel *)ralloc(totalWidth * sizeof(CPixel), CRenderer::globalMemory);
+        cPixel = fb[i] = (CPixel *)ralloc(totalWidth * sizeof(CPixel), globalArena);
 
         for (j = totalWidth; j > 0; j--, cPixel++, cExtraSample += CRenderer::numExtraSamples) {
             cPixel->last.extraSamples = cExtraSample;

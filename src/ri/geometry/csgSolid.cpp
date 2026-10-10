@@ -21,14 +21,14 @@
 #include <cfloat>
 #include <cmath>
 
-#include "atomic.h"
+#include "common/atomic.h"
 #include "csgCaps.h"
 #include "delayed.h"
 #include "common/diagnostics.h"
 #include "patches.h"
 #include "polygons.h"
 #include "riInterface.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
 #include "xform.h"

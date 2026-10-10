@@ -10,12 +10,11 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (20) ---
+# --- DB-001: Shading depends on the renderer core and the hiders (19) ---
 DB-001  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/shader.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/renderer.h
-DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer6getDSOEPKcS1_   # CRenderer::getDSO(char const*, char const*)
 DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
@@ -387,7 +386,7 @@ DB-015  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer16retrieveVar
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer16initDeclarationsEv   # CRenderer::initDeclarations()
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer20shutdownDeclarationsEv   # CRenderer::shutdownDeclarations()
 
-# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (131) ---
+# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (122) ---
 DB-016  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/common/colorSpace.h  ->  src/ri/render/rendererc.h
 DB-016  include  src/common/rslConstants.cpp  ->  src/ri/parse/ri.h
@@ -418,13 +417,10 @@ DB-016  include  src/ri/state/userAttributes.h  ->  src/ri/parse/variable.h
 DB-016  include  src/ri/texture/texmake.cpp  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/texture/texmake.h  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/texture/texture3d.h  ->  src/ri/render/rendererc.h
-DB-016  link     @build/src/ri/ifexpr_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/core/pl.cpp  ->  RI_S   # RI_S
 DB-016  link     src/ri/core/pl.cpp  ->  RI_T   # RI_T
 DB-016  link     src/ri/core/pl.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN11CAttributes13findParameterEPKc   # CAttributes::findParameter(char const*)
-DB-016  link     src/ri/core/pl.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-016  link     src/ri/geometry/blobby.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CORNER   # RI_CORNER
@@ -434,10 +430,6 @@ DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGINTER
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGPROPAGATECORNERS   # RI_FACEVARYINGPROPAGATECORNERS
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_HOLE   # RI_HOLE
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_INTERPOLATEBOUNDARY   # RI_INTERPOLATEBOUNDARY
-DB-016  link     src/ri/hiders/occlusion.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_BACKFACING   # RI_BACKFACING
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_BIAS   # RI_BIAS
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_BINARY   # RI_BINARY
@@ -512,12 +504,10 @@ DB-016  link     src/ri/state/options.cpp  ->  RI_USER   # RI_USER
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_BLACK   # RI_BLACK
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_CLAMP   # RI_CLAMP
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texmake.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_BLACK   # RI_BLACK
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_CLAMP   # RI_CLAMP
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_NONPERIODIC   # RI_NONPERIODIC
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/texture/texture3d.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
 
 # --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---

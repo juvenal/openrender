@@ -28,7 +28,7 @@
 #define STATS_H
 
 #include "atomic.h"
-#include "common/global.h" // The global header file
+#include "global.h" // The global header file
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CStats

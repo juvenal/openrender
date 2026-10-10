@@ -27,8 +27,8 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include "common/global.h"
-#include "common/os.h"
+#include "global.h"
+#include "os.h"
 
 #include <string.h>
 
@@ -117,5 +117,36 @@ typedef struct {
     __stack = __data.stack;                        \
     __stack->availableSize = __data.availableSize; \
     __stack->memory = __data.memory;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CArena
+// Description			:	A stack-like scratch-memory arena: a chain of
+//							CMemPage pages with nested begin/end regions
+//							(spec 023). globalArena, below, is the one
+//							process-wide instance.
+// Comments				:	constexpr-constructed, so a global CArena is
+//							constant-initialized (no static-init ordering).
+class CArena {
+    public:
+        constexpr CArena() : top(nullptr) {}
+
+        CMemPage *top; // The current page of the stack
+
+        void init() { memoryInit(top); }
+        void tini() { memoryTini(top); }
+};
+
+inline void *ralloc(int size, CArena &arena) { return ralloc(size, arena.top); }
+inline char *rstrdup(const char *string, CArena &arena) { return rstrdup(string, arena.top); }
+
+#define arenaBegin(__arena) memBegin((__arena).top)
+#define arenaEnd(__arena) memEnd((__arena).top)
+#define arenaSave(__data, __arena) memSave(__data, (__arena).top)
+#define arenaRestore(__data, __arena) memRestore(__data, (__arena).top)
+
+// The process-wide scratch arena (replaces CRenderer::globalMemory). It has a
+// single definition, in libRIBCommon; init()/tini() run where the renderer
+// and the RI front ends begin and end a session.
+extern CArena globalArena;
 
 #endif

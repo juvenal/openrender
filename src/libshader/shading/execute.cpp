@@ -35,7 +35,7 @@
 #include "common/diagnostics.h"
 #include "includes/logging.hpp"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "noise.h"
 #include "photonMap.h"
 #include "ri_config.h"

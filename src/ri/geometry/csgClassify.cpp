@@ -20,8 +20,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "atomic.h"
-#include "stats.h"
+#include "common/atomic.h"
+#include "common/stats.h"
 
 // Fixed, deterministic, axis-irrational classification ray directions: the
 // first two always vote, the third breaks a tie (research.md Decision 3)

@@ -31,10 +31,10 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "dataView.h"
-#include "fileResource.h"
+#include "common/fileResource.h"
 #include "map.h"
 #include "ray.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 #include "xform.h"
 
 #define PHOTON_LOOKUP_CACHE

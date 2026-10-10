@@ -34,7 +34,7 @@
 
 #include "common/os.h"
 #include "common/polynomial.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "objectMisc.h"
 #include "patchUtils.h"
@@ -42,7 +42,7 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "surface.h"
 
 #define transformPoints()                                                                                                                \

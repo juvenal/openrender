@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "pixelFilter.h"
 #include "raytracer.h"
 #include "renderer.h"

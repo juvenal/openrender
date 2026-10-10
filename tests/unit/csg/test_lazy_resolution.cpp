@@ -31,7 +31,7 @@
 #include "patches.h"
 #include "quadrics.h"
 #include "ray.h"
-#include "stats.h"
+#include "common/stats.h"
 
 using namespace csgtest;
 

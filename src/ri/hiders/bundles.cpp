@@ -29,7 +29,7 @@
 #include "bundles.h"
 #include "common/diagnostics.h"
 #include "shaderPl.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTraceBundle

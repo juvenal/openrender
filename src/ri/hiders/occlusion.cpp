@@ -25,7 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "occlusion.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -58,8 +58,8 @@ void COcclusionCuller::initCuller(int w, float *ma) {
         sizeRequirements += width * width;
     sizeRequirements += width * width;
 
-    // (globalMemory is checkpointed)
-    nodes = (COcclusionNode **)ralloc(sizeRequirements * sizeof(COcclusionNode *), CRenderer::globalMemory);
+    // (globalArena is checkpointed)
+    nodes = (COcclusionNode **)ralloc(sizeRequirements * sizeof(COcclusionNode *), globalArena);
     root = newNode(NULL, width, 0, sizeRequirements, 0, 0);
     maxOpaqueDepth = ma;
 }
@@ -127,8 +127,8 @@ void COcclusionCuller::initToZero() {
 // Return Value			:	-
 // Comments				:
 COcclusionCuller::COcclusionNode *COcclusionCuller::newNode(COcclusionNode *p, int w, int d, int nodeOffset, int x, int y) {
-    // (globalMemory is checkpointed)
-    COcclusionNode *cNode = (COcclusionNode *)ralloc(sizeof(COcclusionNode), CRenderer::globalMemory);
+    // (globalArena is checkpointed)
+    COcclusionNode *cNode = (COcclusionNode *)ralloc(sizeof(COcclusionNode), globalArena);
 
     cNode->parent = p;
     cNode->width = w;

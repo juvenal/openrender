@@ -23,7 +23,7 @@
 #include <cstring>
 
 #include "imager.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "rendererc.h"
 #include "shader.h"

@@ -38,12 +38,12 @@
 #include "common/global.h"
 #include "harmonics.h"
 #include "linsys.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "photonMap.h"
 #include "radiance.h"
-#include "random.h"
-#include "stats.h"
+#include "common/random.h"
+#include "common/stats.h"
 #include "texture.h"
 
 #define SINTABLE_SIZE 1000    // The size of the alpha / sin(alpha) table

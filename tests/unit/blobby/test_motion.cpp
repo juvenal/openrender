@@ -32,7 +32,7 @@
  */
 
 #include "blobbyTestUtils.h"
-#include "stats.h"
+#include "common/stats.h"
 
 using namespace blobbytest;
 

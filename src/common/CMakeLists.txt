@@ -18,6 +18,13 @@ add_library(openrendercommon_obj OBJECT
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
     logging.cpp       # the one current_log_level (spec 023)
+    # Generic infrastructure moved from src/ri/core (spec 023): libshader_shading
+    # resolves these from libRIBCommon, never from the renderer library.
+    fileResource.cpp
+    memory.cpp        # CMemPage pages + CArena / globalArena
+    random.cpp        # sampleHemisphere / sampleCosineHemisphere
+    refCounter.cpp
+    stats.cpp
     ${openrendercommon_headers}
 )
 set_target_properties(openrendercommon_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)

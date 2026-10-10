@@ -32,7 +32,7 @@
 #include "renderer.h"
 #include "reyes.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CImplicit

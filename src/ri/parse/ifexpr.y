@@ -545,7 +545,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 				{
 					$$.type			=	TYPE_STRING;
 					$$.value		=	NULL;
-					$$.stringValue	=	(char *) ralloc((int) strlen(getString($3)) + (int) strlen(getString($5)) + 2,CRenderer::globalMemory);
+					$$.stringValue	=	(char *) ralloc((int) strlen(getString($3)) + (int) strlen(getString($5)) + 2,globalArena);
 					strcpy($$.stringValue,getString($3));
 					strcat($$.stringValue,getString($5));
 				}
@@ -568,7 +568,7 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 int		CRendererContext::ifParse(const char *expr) {
 
 	// Begin a new page
-	memBegin(CRenderer::globalMemory);
+	arenaBegin(globalArena);
 
 	YY_BUFFER_STATE savedState	=	YY_CURRENT_BUFFER;		// Save the old buffer
 	YY_BUFFER_STATE	newState;
@@ -585,7 +585,7 @@ int		CRendererContext::ifParse(const char *expr) {
 	if_switch_to_buffer( savedState );						// Switch to the old buffer
 
 	// Restore the memory page
-	memEnd(CRenderer::globalMemory);
+	arenaEnd(globalArena);
 
 	return result;
 }

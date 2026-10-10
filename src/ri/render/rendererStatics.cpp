@@ -9,7 +9,7 @@
  *   with no rendering pipeline (orender-wire's ribVector, see the
  *   domain-split plan) can still link -- every file across the geometry,
  *   state and parse domains references these `extern`-style static members
- *   (CRenderer::globalMemory, CRenderer::flags, CRenderer::raytracingFlags,
+ *   (CRenderer::flags, CRenderer::raytracingFlags,
  *   and dozens more), so SOME translation unit must define them regardless
  *   of whether the actual render pipeline (beginRenderer()/beginFrame()/
  *   render()/endFrame()/endRenderer()/renderFrame(), still in renderer.cpp)
@@ -44,7 +44,7 @@
 #include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "netFileMapping.h"
 #include "noise.h"
 #include "object.h"
@@ -55,7 +55,7 @@
 #include "points.h"
 #include "polygons.h"
 #include "quadrics.h"
-#include "random.h"
+#include "common/random.h"
 #include "ray.h"
 #include "raytracer.h"
 #include "remoteChannel.h"
@@ -66,7 +66,7 @@
 #include "ri_config.h"
 #include "rib.h"
 #include "shader.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
 #include "texmake.h"
@@ -103,7 +103,6 @@ const char *colorCieSystem = "cie";
 ////////////////////////////////////////////////////////////////////
 // Global members (active between RiBegin() - RiEnd())
 ////////////////////////////////////////////////////////////////////
-CMemPage *CRenderer::globalMemory = NULL;                                    // initialized in beginRenderer, destroyed in endRenderer
 CRendererContext *CRenderer::context = NULL;                                 // initialzied in beginRenderer
 CArray<CShaderInstance *> *CRenderer::allLights = NULL;                      // initialized in beginRenderer, destroyed in endRenderer
 CShaderInstance *CRenderer::imagerShader = nullptr;                          // initialized in beginFrame

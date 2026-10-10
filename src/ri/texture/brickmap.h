@@ -31,7 +31,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "options.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "texture3d.h"
 
 // Forward

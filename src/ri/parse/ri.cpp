@@ -619,7 +619,7 @@ RiBegin(RtToken name) {
     }
 
     // Set for the CRibOut branches below; used to bootstrap
-    // CRenderer::globalMemory/declarations around the .orenderrc ribParse()
+    // globalArena/declarations around the .orenderrc ribParse()
     // call further down, since CRibOut never goes through beginRenderer().
     bool ribOutMode = FALSE;
 
@@ -720,20 +720,20 @@ RiBegin(RtToken name) {
             log_debug("Loading .orenderrc from '{}'", rcPath);
 
             // CRibOut never goes through CRenderer::beginRenderer(), so
-            // CRenderer::globalMemory/declarations are never initialized on
+            // globalArena/declarations are never initialized on
             // that path. ribParse() unconditionally touches both (via
-            // memSave() and the parameter-list machinery in pl.cpp), so
+            // arenaSave() and the parameter-list machinery in pl.cpp), so
             // bootstrap them here for CRibOut only, mirroring the pattern
             // CRibGeometryContext uses in previewContext.cpp.
             if (ribOutMode) {
                 CRenderer::initDeclarations();
-                memoryInit(CRenderer::globalMemory);
+                globalArena.init();
             }
 
             ribParse(rcPath, NULL);
 
             if (ribOutMode) {
-                memoryTini(CRenderer::globalMemory);
+                globalArena.tini();
                 CRenderer::shutdownDeclarations();
             }
 

@@ -26,9 +26,9 @@
 ////////////////////////////////////////////////////////////////////////
 #include <string.h>
 
-#include "common/global.h"
-#include "common/os.h"
-#include "common/diagnostics.h"
+#include "global.h"
+#include "os.h"
+#include "diagnostics.h"
 #include "fileResource.h"
 
 const char *filePhotonMap = "PhotonMap";

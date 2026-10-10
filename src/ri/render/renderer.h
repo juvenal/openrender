@@ -30,7 +30,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "options.h"
 #include "shadeop.h"
 
@@ -137,7 +137,6 @@ class CRenderer {
         // Some global data structures that hang around between beginRenderer and endRenderer
         //
         ////////////////////////////////////////////////////////////////////
-        static CMemPage *globalMemory;                                    // The global memory stack
         static CRendererContext *context;                                 // The renderer context (RenderMan Interface)
         static CArray<CShaderInstance *> *allLights;                      // An array of all allocated lights
         static CTrie<CNamedCoordinateSystem *> *definedCoordinateSystems; // This holds the named coordinate systems defined for this context

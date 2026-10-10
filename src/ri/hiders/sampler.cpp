@@ -19,7 +19,7 @@
 #include <random>
 
 #include "common/algebra.h" // absf()
-#include "random.h"         // sampleDisk()
+#include "common/random.h"         // sampleDisk()
 
 namespace {
     // Only needs to differ across buckets within a frame, not be cryptographic.

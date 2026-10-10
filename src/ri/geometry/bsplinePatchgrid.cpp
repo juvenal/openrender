@@ -27,11 +27,11 @@
 #include <math.h>
 
 #include "bsplinePatchgrid.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "object.h"
 #include "patchUtils.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "surfaceCrossingDispatch.h"
 
 // The inverse of the Bezier basis (float)

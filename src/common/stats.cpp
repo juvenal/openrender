@@ -26,8 +26,8 @@
 ////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 
-#include "common/os.h"
-#include "common/diagnostics.h"
+#include "os.h"
+#include "diagnostics.h"
 #include "stats.h"
 
 CStats stats;

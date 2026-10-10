@@ -17,7 +17,7 @@
 
 #include "rslBuiltins.h"
 #include "activeContext.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "noise.h"
 #include "shader.h"
 #include "shading.h"

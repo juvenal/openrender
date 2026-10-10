@@ -1,7 +1,7 @@
 #include "previewContext.h"
 #include "curves.h"
 #include "delayed.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "patches.h"
 #include "points.h"
 #include "polygons.h"
@@ -189,7 +189,7 @@ void CPreviewContext::updateBounds(const float3 &p) {
 
 PreviewSceneC *ribpreview_load(const char *ribPath) {
     CRenderer::initDeclarations();
-    memoryInit(CRenderer::globalMemory);
+    globalArena.init();
     RiBeginLite();
 
     CPreviewContext ctx;
@@ -205,7 +205,7 @@ PreviewSceneC *ribpreview_load(const char *ribPath) {
 
     PreviewScene scene = std::move(ctx.result_);
 
-    memoryTini(CRenderer::globalMemory);
+    globalArena.tini();
     CRenderer::shutdownDeclarations();
 
     // Synthesize valid clipping if no camera was set.

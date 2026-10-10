@@ -32,8 +32,8 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "depository.h"
-#include "fileResource.h"
-#include "random.h"
+#include "common/fileResource.h"
+#include "common/random.h"
 
 // Some misc classes we'll need
 class CTriangleHash;

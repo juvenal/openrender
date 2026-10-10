@@ -32,12 +32,12 @@
 #include "common/polynomial.h"
 #include "debug.h"
 #include "common/diagnostics.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
 #include "shading.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "surface.h"
 
 ///////////////////////////////////////////////////////////////////////

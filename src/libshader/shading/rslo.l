@@ -38,9 +38,9 @@ DSO													return SCRL_DSO;
 
 \#\!version[ ]+[0-9]+\.[0-9]+\.[0-9]+\n				{	int	r,b,a;	sscanf(rslotext+9,"%d.%d.%d",&r,&b,&a);	if ((r != VERSION_MAJOR) || (b != VERSION_MINOR)) rsloerror("Version mismatch");	}
 \#\!name[ ]+\"[^\"]*\"\n							{	/* Shader identity comes from the caller (parseShader), not the file body. */	}
-\"[^\"]*\"											{   rslolval.string	=	rstrdup(rslotext+1,CRenderer::globalMemory);	rslolval.string[strlen(rslolval.string)-1] = '\0'; osProcessEscapes(rslolval.string); return SCRL_TEXT_VALUE;}
-[a-zA-Z\_][a-zA-Z0-9\_]*							{	rslolval.string	=	rstrdup(rslotext,CRenderer::globalMemory); return SCRL_IDENTIFIER_VALUE; }
-\#\![a-zA-Z][a-zA-Z0-9\_]*							{	rslolval.string	=	rstrdup(rslotext,CRenderer::globalMemory); return SCRL_LABEL_VALUE; }
+\"[^\"]*\"											{   rslolval.string	=	rstrdup(rslotext+1,globalArena);	rslolval.string[strlen(rslolval.string)-1] = '\0'; osProcessEscapes(rslolval.string); return SCRL_TEXT_VALUE;}
+[a-zA-Z\_][a-zA-Z0-9\_]*							{	rslolval.string	=	rstrdup(rslotext,globalArena); return SCRL_IDENTIFIER_VALUE; }
+\#\![a-zA-Z][a-zA-Z0-9\_]*							{	rslolval.string	=	rstrdup(rslotext,globalArena); return SCRL_LABEL_VALUE; }
 (-([0-9]*\.[0-9]+)([eE][+-]?[0-9]+)?)				{	sscanf(rslotext,"%f",&rslolval.real); return SCRL_FLOAT_VALUE; }
 (-([0-9]+\.[0-9]*)([eE][+-]?[0-9]+)?)				{	sscanf(rslotext,"%f",&rslolval.real); return SCRL_FLOAT_VALUE; }
 (-([0-9]+)([eE][+-]?[0-9]+)?)						{	sscanf(rslotext,"%f",&rslolval.real); return SCRL_FLOAT_VALUE; }

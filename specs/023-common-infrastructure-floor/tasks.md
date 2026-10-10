@@ -474,51 +474,53 @@ before T027.
 
 ### Implementation
 
-- [ ] T027 [US2] Move the generic core files with `git mv src/ri/core/{refCounter.h,refCounter.cpp,fileResource.h,fileResource.cpp,memory.h,memory.cpp,stats.h,stats.cpp,random.h,random.cpp,atomic.h} src/common/`.
+- [X] T027 [US2] Move the generic core files with `git mv src/ri/core/{refCounter.h,refCounter.cpp,fileResource.h,fileResource.cpp,memory.h,memory.cpp,stats.h,stats.cpp,random.h,random.cpp,atomic.h} src/common/`.
   - Add the `.cpp` files to `src/common/CMakeLists.txt`.
   - Remove them from `ri_sources` in `src/ri/CMakeLists.txt` (`:76,94,106,107,129`) and from the
     ribOut whitelist (`:494,501`). Update the `core/` comment at `:30`.
   - Fix intra-common includes, e.g. `stats.cpp` → `"common/diagnostics.h"` and `refCounter.h` →
     `"common/atomic.h"`.
-- [ ] T028 [US2] Split `ri_config.h`: move `ZONE_INIT_SIZE`/`ZONE_BASE_SIZE`/`ZONE_INCREMENT_SIZE`
+- [X] T028 [US2] Split `ri_config.h`: move `ZONE_INIT_SIZE`/`ZONE_BASE_SIZE`/`ZONE_INCREMENT_SIZE`
   from `src/ri/core/ri_config.h` into `src/common/memory.cpp`, and drop `memory.cpp`'s
   `#include "ri_config.h"`. `VARIABLE_NAME_LENGTH` moves in Phase 5.
-- [ ] T029 [US2] Switch every includer of the moved headers to `"common/<name>.h"`:
+- [X] T029 [US2] Switch every includer of the moved headers to `"common/<name>.h"`:
   - `memory.h` (≈49), `stats.h` (≈47), `random.h` (≈22), `atomic.h` (≈10), `refCounter.h` (≈9),
     `fileResource.h` (≈8);
   - use `grep -rln '"<name>.h"\|core/<name>.h'` across `src/` and `tests/`.
 
   Watch for the system `<memory>`, which must be left alone.
-- [ ] T030 [US2] Add `CArena`, the `ralloc`/`rstrdup` `CArena&` overloads, the
+- [X] T030 [US2] Add `CArena`, the `ralloc`/`rstrdup` `CArena&` overloads, the
   `arenaBegin`/`arenaEnd`/`arenaSave`/`arenaRestore` macros and `extern CArena globalArena;` to
   `src/common/memory.h`, exactly as contracts/common-api.md §2 specifies.
   - Define `CArena globalArena;` plus `CArena::init()`/`tini()` in `src/common/memory.cpp`.
   - Remove `EXCLUDE_FROM_ALL` from T024.
-- [ ] T031 [P] [US2] Replace `CRenderer::globalMemory` in Scene Interface:
+- [X] T031 [P] [US2] Replace `CRenderer::globalMemory` in Scene Interface:
   - `src/ri/parse/{rib.y,rib.l,ifexpr.y,ifexpr.l,ri.cpp}`;
   - `ri.cpp:727/733` become `globalArena.init()`/`tini()`;
   - `memBegin(X)`→`arenaBegin(globalArena)`, `memEnd`→`arenaEnd`, `ralloc(n, X)`→`ralloc(n, globalArena)`,
     `rstrdup`, `memSave`/`memRestore`→`arenaSave`/`arenaRestore`.
-- [ ] T032 [P] [US2] Apply the same replacement to Texturing: `src/ri/texture/{texmake.h,texmake.cpp,texture.cpp}`.
-- [ ] T033 [P] [US2] Apply the same replacement to Hiders: `src/ri/hiders/{occlusion.cpp,zbuffer.cpp,stochastic.cpp}`.
-- [ ] T034 [P] [US2] Apply the same replacement to Shading.
+- [X] T032 [P] [US2] Apply the same replacement to Texturing: `src/ri/texture/{texmake.h,texmake.cpp,texture.cpp}`.
+- [X] T033 [P] [US2] Apply the same replacement to Hiders: `src/ri/hiders/{occlusion.cpp,zbuffer.cpp,stochastic.cpp}`.
+- [X] T034 [P] [US2] Apply the same replacement to Shading.
   - `src/libshader/shading/{rslo.y,rslo.l,shading.cpp}`: `shading.cpp:435` uses `globalArena.top`
     instead of `s_defaultServices->globalMemory()`.
   - Delete `virtual CMemPage *globalMemory() const = 0;` from
     `src/libshader/shading/rendererServices.h:58` and its override from
     `src/ri/render/rendererServicesImpl.h:38` (contracts/variable-lookup.md §2).
-- [ ] T035 [P] [US2] Apply the same replacement to the renderer core and consumers.
+- [X] T035 [P] [US2] Apply the same replacement to the renderer core and consumers.
   - `src/ri/render/{rendererContext.cpp,renderer.cpp,rendererMutexes.cpp(comment),init.cpp}`:
     `renderer.cpp:93/152` become `init()`/`tini()`.
   - `src/ri/core/pl.cpp`, which is still in core in this phase.
   - `src/ri/dataviewer/dataLoad.cpp:143/166` and `src/preview/libribpreview/previewContext.cpp:191/205`
     become `init()`/`tini()`.
-  - Delete `init.cpp:59`'s `#define threadMemory CRenderer::globalMemory` and write its uses out
-    against `globalArena` (FR-009).
+  - Repoint `init.cpp:59`'s `#define threadMemory CRenderer::globalMemory` to
+    `#define threadMemory globalArena.top`, with a comment saying why. **Corrected during
+    implementation**: it can't be written out, because it retargets the shared opcode/builtin
+    headers that `init.cpp` compiles outside a shading context (research R6).
   - Delete `static CMemPage *globalMemory` from `src/ri/render/renderer.h:140` and its definition
     from `rendererStatics.cpp:106`.
   - Confirm `grep -rn "globalMemory" src` returns only comments, then reword those comments.
-- [ ] T036 [US2] Build, then:
+- [X] T036 [US2] Build, then:
   - `ctest -L common`, all green, including `ShadingInfraBinding` and `StateOwnership`;
   - `ctest -L architecture`: prune the stale `globalMemory`/`renderer.h` lines, lower
     `metrics-baseline.txt` (every domain drops by its `globalMemory` references; none rises), and

@@ -29,7 +29,7 @@
 
 #include "attributes.h"
 #include "common/global.h"
-#include "refCounter.h"
+#include "common/refCounter.h"
 #include "rendererc.h"
 #include "variable.h"
 #include "xform.h"

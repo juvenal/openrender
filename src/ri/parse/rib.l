@@ -216,12 +216,12 @@ version												return RIB_VERSION;
 \[													return RIB_ARRAY_BEGIN;
 \]													return RIB_ARRAY_END;
 
-\"[^\"]*\"											{   yylval->string	=	rstrdup(ribtext+1,CRenderer::globalMemory);	yylval->string[strlen(yylval->string)-1] = '\0'; return RIB_TEXT;}
+\"[^\"]*\"											{   yylval->string	=	rstrdup(ribtext+1,globalArena);	yylval->string[strlen(yylval->string)-1] = '\0'; return RIB_TEXT;}
 [+-]?([0-9]+|([0-9]*(\.[0-9]+)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&yylval->real);*/ yylval->real = (float) atof(ribtext); return RIB_FLOAT; }
 [+-]?([0-9]+|([0-9]+(\.[0-9]*)?)([eE][+-]?[0-9]+)?)	{	/*sscanf(ribtext,"%f",&yylval->real);*/ yylval->real = (float) atof(ribtext); return RIB_FLOAT; }
 
 [\t ]												;
-#\!.*												{	yylval->string	=	rstrdup(ribtext+2,CRenderer::globalMemory);	return RIB_STRUCTURE_COMMENT;	}
+#\!.*												{	yylval->string	=	rstrdup(ribtext+2,globalArena);	return RIB_STRUCTURE_COMMENT;	}
 #.*													;
 \n													{	ribLineno++; }
 <<EOF>>												{

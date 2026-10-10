@@ -39,7 +39,7 @@
 #include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"
-#include "memory.h"
+#include "common/memory.h"
 #include "netFileMapping.h"
 #include "noise.h"
 #include "object.h"
@@ -50,7 +50,7 @@
 #include "points.h"
 #include "polygons.h"
 #include "quadrics.h"
-#include "random.h"
+#include "common/random.h"
 #include "ray.h"
 #include "raytracer.h"
 #include "remoteChannel.h"
@@ -61,7 +61,7 @@
 #include "ri_config.h"
 #include "rib.h"
 #include "shader.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
 #include "texmake.h"
@@ -90,7 +90,7 @@ void CRenderer::beginRenderer(CRendererContext *c, const char *ribFile, const ch
     stats.reset();
 
     // Init the global memory
-    memoryInit(globalMemory);
+    globalArena.init();
 
     // Create the synchronization objects
     initMutexes();
@@ -149,7 +149,7 @@ void CRenderer::endRenderer() {
     shutdownMutexes();
 
     // Turn off the memory manager
-    memoryTini(globalMemory);
+    globalArena.tini();
 
     // Check the stats for memory leaks
     stats.check();
@@ -261,7 +261,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     stats.frameStartTime = osCPUTime();
 
     // Create a checkpoint in the global memory
-    memSave(frameCheckpoint, globalMemory);
+    arenaSave(frameCheckpoint, globalArena);
 
     // Make a local copy of the options
     copyOptions(o);
@@ -422,7 +422,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     metaYBuckets = (int)ceil(yBuckets / (float)netYBuckets);
 
     // If we have servers, this array will hold the server assignment for each bucket
-    jobAssignment = (int *)ralloc(xBuckets * yBuckets * sizeof(int), CRenderer::globalMemory);
+    jobAssignment = (int *)ralloc(xBuckets * yBuckets * sizeof(int), globalArena);
 
     // Create the job assignment
     for (i = 0; i < xBuckets * yBuckets; i++)
@@ -620,7 +620,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Create a default display if none was specified in the RIB / options
     if (displays == NULL) {
         // Allocate from the frame-global memory and run the CDisplay constructor
-        void *displayMem = ralloc(sizeof(COptions::CDisplay), CRenderer::globalMemory);
+        void *displayMem = ralloc(sizeof(COptions::CDisplay), globalArena);
         COptions::CDisplay *defaultDisplay = new (displayMem) COptions::CDisplay();
 
         defaultDisplay->next = NULL;
@@ -666,8 +666,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         const float halfFilterWidth = (float)filterWidth * 0.5f;
         const float halfFilterHeight = (float)filterHeight * 0.5f;
 
-        // Allocate the pixel filter (globalMemory is checkpointed)
-        pixelFilterKernel = (float *)ralloc(filterWidth * filterHeight * sizeof(float), CRenderer::globalMemory);
+        // Allocate the pixel filter (globalArena is checkpointed)
+        pixelFilterKernel = (float *)ralloc(filterWidth * filterHeight * sizeof(float), globalArena);
 
         // Evaluate the pixel filter, ignoring the jitter as it is apperently what other renderers do as well
         float totalWeight = 0;
@@ -903,7 +903,7 @@ void CRenderer::endFrame() {
     CRenderer::userOptions = NULL;
 
     // Restore the memory to the checkpoint, effectively deallocating everything we allocated for the frame
-    memRestore(frameCheckpoint, globalMemory);
+    arenaRestore(frameCheckpoint, globalArena);
 
     // Print the stats (before we discard the memory)
     stats.frameTime = osCPUTime() - stats.frameStartTime;

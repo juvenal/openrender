@@ -2114,9 +2114,9 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	currentData.passNumber	=	1;
 
 	// The first pass
-	memBegin(CRenderer::globalMemory);
+	arenaBegin(globalArena);
 	rsloparse();
-	memEnd(CRenderer::globalMemory);
+	arenaEnd(globalArena);
 
 	if (currentData.numErrors != 0) {
 		rslo_delete_buffer( YY_CURRENT_BUFFER );
@@ -2132,9 +2132,9 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	currentData.passNumber				=	2;
 
 	// The second pass
-	memBegin(CRenderer::globalMemory);
+	arenaBegin(globalArena);
 	rsloparse();
-	memEnd(CRenderer::globalMemory);
+	arenaEnd(globalArena);
 
 	if (currentData.numErrors != 0) {
 		reset();

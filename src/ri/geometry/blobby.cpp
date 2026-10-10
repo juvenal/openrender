@@ -28,14 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "atomic.h"
+#include "common/atomic.h"
 #include "blobbyField.h"
 #include "blobbyPolygonize.h"
 #include "common/diagnostics.h"
 #include "pl.h"
 #include "polygons.h"
 #include "renderer.h"
-#include "stats.h"
+#include "common/stats.h"
 #include "variable.h"
 #include "xform.h"
 
