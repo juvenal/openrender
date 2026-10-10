@@ -262,3 +262,63 @@ The tools live in `tools/compat-consumer/`:
   own copy, so `orender`'s `log_enabled`/`log_output` settings don't reach the libraries. Spec 023
   makes only `current_log_level` single-definition (research R3). The rest is a candidate
   follow-up for the maintainer to decide on.
+
+### T019–T023: diagnostics in common (implementation)
+
+**What changed**:
+
+| Task | File(s) | Change |
+|---|---|---|
+| T019 | `src/common/diagnostics.h` | Created by `git mv` from `src/ri/parse/error.h`. `EErrorCode` kept verbatim, so mangled names are unchanged: `_Z5error10EErrorCodePKcz`, … Adds `EDiagnosticSeverity`, `CDiagnosticSink`, `installDiagnosticSink` and `diagnosticsPrintDefault` |
+| T019 | `src/common/diagnostics.cpp` (new) | A `static std::atomic` sink slot; the four reporting functions, each formatting into a single `OS_MAX_PATH_LENGTH` buffer with `vsnprintf` (as before); `diagnosticsPrintDefault` holding `RiErrorPrint`'s stream rules |
+| T020 | `src/common/logging.cpp` (new) | The only definition of `current_log_level`. `includes/logging.hpp` now declares it `extern` |
+| T021 | `src/ri/parse/error.cpp` | Keeps `translate()`, unchanged. Adds `toRIE()`, the static `CRiDiagnosticSink` (forwards to `renderMan->RiError` while `renderMan != NULL`, otherwise uses the default rules) and `riDiagnosticsAttach`/`riDiagnosticsDetach` (declared in the new `src/ri/parse/riDiagnostics.h`) |
+| T021 | `ri.cpp`, `riInterface.cpp`, `previewContext.cpp` | Attach/detach points (below). `RiErrorPrint` sets `RiLastError` as before, then calls `diagnosticsPrintDefault` |
+| T022 | 66 files | `#include "error.h"` → `#include "common/diagnostics.h"`, including the `.y` grammar files. `parse/error.h` no longer exists, and no reference to it remains |
+
+**Attach/detach design, refined while implementing**: the plan said "detach only in `RiEnd`", but
+`renderMan` also goes NULL in `~CRiInterface`'s guard, in `dataLoad.cpp` and in
+`previewContext.cpp`.
+- **Attach**: the `CRiInterface` constructor, `RiContext(handle)` and `RiArchiveEnd` after it
+  restores the outer context. Attach is idempotent.
+- **Detach**:
+  - in `~CRiInterface` when `renderMan == this`. This covers `RiEnd` and `dataLoad`, and the
+    nested-archive delete, which `RiArchiveEnd` then re-attaches. It runs after the derived
+    context's destructor, so end-of-render statistics still reach the handler;
+  - after the preview's `renderMan = nullptr`.
+- `contracts/common-api.md`, `data-model.md` and `research.md` (R3) were updated to match.
+
+**Verification**:
+- **Build**: clean under `-Werror` (no warnings).
+  - One fix in my own test: `case1RiHandler`/`case3Threads` were unused in the
+    `CROSSLIB_STATIC` build, so they are now guarded by it.
+- **`ctest -L common`: 9/9 pass**:
+  - the five `NoContext` tests (fatal ends with status 255 and its message on stderr);
+  - `CrossLibrary` (cases 0–3) and `CrossLibraryStatic` (cases 0 and 2);
+  - `StateOwnership`: all 11 symbols are defined once, in `libRIBCommon`, across 20 images,
+    including the three new test executables. `current_log_level` went from 9 definers to 1;
+  - `VariableDeclarations`.
+- **A bug in my runner, found and fixed**: `diagnostics_runner.cmake`'s `expect` macro passed a
+  quoted expression into `if()`, which CMake treats as a single string. Every check therefore
+  reported failure, although the program's output was correct. It now uses plain `if()` checks.
+  - **Negative check**: a wrapper that turns warning output into an `error` expectation is
+    rejected ("marker unexpectedly on stdout / missing from stderr").
+- **Architecture** (T023), before the prune: `violations=0 stale=94` — **84 DB-016** lines (45
+  `error.h` includes + 39 diagnostic links) and **10 DB-001** lines (4 `error`, 5 `warning`,
+  1 `info`), exactly as research R0 predicted.
+  - Exactly the 94 reported lines were deleted (0 unmatched), and the section-header counts were
+    updated:
+    - DB-016: 215 → **131**;
+    - DB-001: 30 → **20**;
+    - allowlist: 686 → **592** lines.
+  - archcheck: `RESULT PASS violations=0 stale=0`.
+  - The metric is unchanged (TOTAL 813/118), as expected: no `CRenderer::` reference moved in
+    this phase.
+- **Output comparison** (T023), `$S/023-diagcmp/diag.rib`: a RIB that triggers an unknown option,
+  an unknown attribute, a missing shader, an undeclared parameter, and a severe error from a
+  malformed `Polygon`. Baseline install vs new build:
+  - **stdout and stderr byte-identical**, at the default level and at `-x 3`;
+  - the four messages keep their `./diag.rib (N):` RI-handler prefixes;
+  - exit status 255 on both sides.
+  - (A first comparison differed only because I pointed `DISPLAYS` at the wrong build directory.)
+- **Full suite** (`nice -n 19 ctest --test-dir build -j4`): **567/567 pass** (109 s). That is Phase 2's 560 plus the 7 new diagnostics tests.

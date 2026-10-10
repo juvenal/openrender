@@ -25,10 +25,12 @@ A diagnostic is transient: created by `error`/`warning`/`fatal`/`info` and hande
 - **States**:
 
 ```text
-                 first CRiInterface ctor                  RiEnd (after renderMan = NULL)
+                 first CRiInterface ctor           ~CRiInterface of the active context
+                                                   (RiEnd, data viewer, nested archive) or
+                                                   the preview's renderMan = nullptr
  [previous P] ──(attach: saved = P, once)──▶ [RI sink] ──(detach: restore saved)──▶ [P]
-                                                 │  further ctors / RiContext / nested-archive
-                                                 │  context swaps: no-op (already attached)
+                                                 │  further ctors / RiContext / RiArchiveEnd's
+                                                 │  restore: attach again (no-op if attached)
                                                  │  report() with renderMan == NULL
                                                  └──▶ default rules (teardown window)
  P is the default sink (nullptr) or whatever a test or embedder installed before RiBegin.
@@ -36,7 +38,7 @@ A diagnostic is transient: created by `error`/`warning`/`fatal`/`info` and hande
 
 **Rules**
 - Attach and detach are idempotent and paired: the saved pointer is taken once, on the first
-  attach, and restored once, at the `RiEnd` that clears `renderMan`. Repeated `RiBegin`/`RiEnd`
+  attach, and restored once, where the active context goes away (see the diagram). Repeated `RiBegin`/`RiEnd`
   sessions and a capture sink installed before `RiBegin` therefore survive.
 - Other installers restore whatever `installDiagnosticSink` returned to them (stack discipline).
 - SEVERE on the default sink prints to stderr and exits with `-1` (status 255). Inside a context,

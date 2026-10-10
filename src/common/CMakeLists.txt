@@ -16,6 +16,8 @@ add_library(openrendercommon_obj OBJECT
     rslConstants.cpp  # RiBSplineBasis, filter functions (moved from ri.cpp for libshader)
     sobolTables.cpp   # Sobol sequence tables (moved from random.cpp for libshader)
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
+    diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
+    logging.cpp       # the one current_log_level (spec 023)
     ${openrendercommon_headers}
 )
 set_target_properties(openrendercommon_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)

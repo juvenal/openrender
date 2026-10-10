@@ -27,7 +27,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "stats.h"
 #include "xform.h"
 

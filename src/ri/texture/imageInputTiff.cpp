@@ -23,7 +23,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "imageInputTiff.h"
-#include "error.h"
+#include "common/diagnostics.h"
 
 #include <stddef.h> // ensure NULL is defined before libtiff
 #include <stdint.h>

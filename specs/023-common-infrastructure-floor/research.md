@@ -203,8 +203,14 @@ gains `CRiDiagnosticSink`.
     attached. Otherwise it saves the pointer `installDiagnosticSink` returns, exactly once. Every
     context-creation path goes through the constructor: `RiBegin` factories, `RiContext`, the
     preview, and the nested-archive path at `ri.cpp:2489`.
-  - `riDiagnosticsDetach()` runs only where `renderMan` becomes NULL, i.e. `RiEnd` **after**
-    `delete renderMan; renderMan = NULL;`. It restores the saved pointer.
+  - `riDiagnosticsDetach()` runs where `renderMan` stops pointing at a live context, and restores
+    the saved pointer.
+    - The main point is `~CRiInterface` when `renderMan == this`, covering `RiEnd`, the data
+      viewer and `RiArchiveEnd`'s nested delete. The other is the preview's explicit
+      `renderMan = nullptr`.
+    - `RiArchiveEnd` re-attaches after restoring the outer context; `RiContext` attaches.
+    - The plan first said "only in `RiEnd`". T021 refined it, because `renderMan` also becomes
+      NULL in those other three places.
   - Several contexts, `RiContext` switching and the `delete renderMan; renderMan =
     savedRenderMan;` path never save the RI sink as its own predecessor.
   - A sink installed before `RiBegin` is back after `RiEnd`. `DiagnosticsCrossLibrary` tests this

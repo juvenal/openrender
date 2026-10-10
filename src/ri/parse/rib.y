@@ -38,7 +38,7 @@
 #include "rib.h"
 #include "rendererContext.h"
 #include "renderer.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "ri_config.h"
 
 #include <math.h>

@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "common/align.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "pl.h"
 #include "renderer.h"

@@ -25,7 +25,9 @@ enum class LogLevel {
 
 inline bool _log_init_done = false;
 inline bool log_enabled = false;
-inline LogLevel current_log_level = LogLevel::INFO;
+// One definition per process, in libRIBCommon (common/logging.cpp): as an
+// inline variable every image carried its own weak copy (spec 023).
+extern LogLevel current_log_level;
 inline std::ostream *log_output = &std::clog;
 
 constexpr std::string_view level_to_string(LogLevel level) {

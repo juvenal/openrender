@@ -26,7 +26,8 @@ set_tests_properties(Common_VariableDeclarations PROPERTIES TIMEOUT 60 LABELS "c
 set(_common_images "")
 foreach(_t ribRender ribVector ribOut libshader_shading libshader_compiler libshader_runtime
            file framebuffer rgbe openexr
-           orender oshader otexmake precomp sloinfo test_common_variables)
+           orender oshader otexmake precomp sloinfo test_common_variables
+           test_common_diagnostics test_common_crosslib test_common_crosslib_static)
     list(APPEND _common_images "$<$<TARGET_EXISTS:${_t}>:$<TARGET_FILE:${_t}>>")
 endforeach()
 add_test(NAME Common_StateOwnership
@@ -38,13 +39,10 @@ add_test(NAME Common_StateOwnership
 set_tests_properties(Common_StateOwnership PROPERTIES TIMEOUT 120 LABELS "common;unit")
 
 # --- Phase 3 (US3): diagnostics ------------------------------------------------
-# EXCLUDE_FROM_ALL until T021 lands common/diagnostics.h: until then these
-# tests are red (they do not compile, and today's error() dereferences a NULL
-# RI context), while the main build stays green.
 
 # FR-002 / SC-003: no RI context at all. Links only libRIBCommon -- reporting a
 # diagnostic must not need any renderer library.
-add_executable(test_common_diagnostics EXCLUDE_FROM_ALL test_common_diagnostics.cpp)
+add_executable(test_common_diagnostics test_common_diagnostics.cpp)
 target_compile_features(test_common_diagnostics PRIVATE cxx_std_20)
 target_include_directories(test_common_diagnostics PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_common_diagnostics PRIVATE openrendercommon)
@@ -60,7 +58,7 @@ endforeach()
 # FR-008 / FR-015: one sink shared across libraries (cases 0-3), against the
 # shared libRIBRender ...
 set(_crosslib_env "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
-add_executable(test_common_crosslib EXCLUDE_FROM_ALL test_common_crosslib.cpp)
+add_executable(test_common_crosslib test_common_crosslib.cpp)
 target_compile_features(test_common_crosslib PRIVATE cxx_std_20)
 target_include_directories(test_common_crosslib PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_common_crosslib PRIVATE ribRender libshader_shading openrendercommon
@@ -72,7 +70,7 @@ set_tests_properties(Common_DiagnosticsCrossLibrary PROPERTIES
 
 # ... and linked the way the package's Static component links libRIBRender.a
 # (whole archive, as CMake/openRenderConfig.cmake.in does; cases 0 and 2).
-add_executable(test_common_crosslib_static EXCLUDE_FROM_ALL test_common_crosslib.cpp)
+add_executable(test_common_crosslib_static test_common_crosslib.cpp)
 target_compile_features(test_common_crosslib_static PRIVATE cxx_std_20)
 target_compile_definitions(test_common_crosslib_static PRIVATE CROSSLIB_STATIC)
 target_include_directories(test_common_crosslib_static PRIVATE

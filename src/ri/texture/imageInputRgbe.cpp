@@ -23,7 +23,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "imageInputRgbe.h"
-#include "error.h"
+#include "common/diagnostics.h"
 
 #include "display/rgbe/rgbe.h"
 

@@ -23,7 +23,7 @@
 
 #include "common/os.h"
 #include "ri_config.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "rendererc.h"
 #include "renderer.h"
 #include "rendererContext.h"

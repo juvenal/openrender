@@ -8,6 +8,7 @@
 #include "quadrics.h"
 #include "renderer.h"
 #include "rib.h"
+#include "riDiagnostics.h"
 #include "ribpreview_api.h"
 #include "subdivisionCreator.h"
 #include "tessellators/tessCurve.h"
@@ -199,6 +200,8 @@ PreviewSceneC *ribpreview_load(const char *ribPath) {
     renderMan = &ctx;
     ribParse(ribPath, nullptr);
     renderMan = nullptr;
+    // ctx outlives this reset, so its destructor will not detach diagnostics.
+    riDiagnosticsDetach();
 
     PreviewScene scene = std::move(ctx.result_);
 

@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "displayChannel.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "imager.h"
 #include "includes/logging.hpp"
 #include "memory.h"

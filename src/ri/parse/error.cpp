@@ -4,7 +4,9 @@
  * File: error.cpp
  *
  * Description:
- *   This file implements the functionality for error.
+ *   Routes the common diagnostics service (common/diagnostics.h) to the
+ *   active RI context's error handler: translates diagnostic codes into RI
+ *   error codes and installs the RI diagnostic sink while a context exists.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -20,15 +22,15 @@
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	error.cpp
-//  Classes				:	-
-//  Description			:	The error display functions
+//  Classes				:	CRiDiagnosticSink
+//  Description			:	Diagnostics routing into the RI error handler
 //
 ////////////////////////////////////////////////////////////////////////
 #include <stdarg.h>
 
-#include "common/os.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "ri.h"
+#include "riDiagnostics.h"
 #include "riInterface.h"
 #include "ri_config.h"
 
@@ -150,65 +152,70 @@ static int translate(EErrorCode c) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	error
-// Description			:	Generate an error message
+// Function				:	toRIE
+// Description			:	Map a diagnostic severity onto the RI severity
 // Return Value			:
 // Comments				:
-void error(EErrorCode code, const char *mes, ...) {
-    char tmp[OS_MAX_PATH_LENGTH];
-    va_list args;
-
-    va_start(args, mes);
-    vsnprintf(tmp, sizeof(tmp), mes, args);
-
-    renderMan->RiError(translate(code), RIE_ERROR, tmp);
-    va_end(args);
+static int toRIE(EDiagnosticSeverity severity) {
+    switch (severity) {
+        case DIAGNOSTIC_INFO:
+            return RIE_INFO;
+        case DIAGNOSTIC_WARNING:
+            return RIE_WARNING;
+        case DIAGNOSTIC_ERROR:
+            return RIE_ERROR;
+        case DIAGNOSTIC_SEVERE:
+        default:
+            return RIE_SEVERE;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	warning
-// Description			:	Generate a warning message
+// Class				:	CRiDiagnosticSink
+// Description			:	Forwards diagnostics to the active RI context's
+//							error handler, exactly as error()/warning()/
+//							fatal()/info() used to do themselves
+// Comments				:	renderMan is read on every report: between the
+//							context's destruction and the detach in RiEnd it
+//							is NULL, and the default rules apply instead.
+class CRiDiagnosticSink : public CDiagnosticSink {
+    public:
+        void report(EErrorCode code, EDiagnosticSeverity severity, const char *message) override {
+            if (renderMan != NULL)
+                renderMan->RiError(translate(code), toRIE(severity), message);
+            else
+                diagnosticsPrintDefault(severity, message);
+        }
+};
+
+static CRiDiagnosticSink riSink;
+static bool riSinkAttached = false;
+static CDiagnosticSink *sinkBeforeAttach = NULL;
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	riDiagnosticsAttach
+// Description			:	Route diagnostics to the RI context
 // Return Value			:
-// Comments				:
-void warning(EErrorCode code, const char *mes, ...) {
-    char tmp[OS_MAX_PATH_LENGTH];
-    va_list args;
-
-    va_start(args, mes);
-    vsnprintf(tmp, sizeof(tmp), mes, args);
-
-    renderMan->RiError(translate(code), RIE_WARNING, tmp);
-    va_end(args);
+// Comments				:	Idempotent: called from every CRiInterface
+//							constructor, it saves the previously installed
+//							sink only the first time.
+void riDiagnosticsAttach() {
+    if (riSinkAttached)
+        return;
+    sinkBeforeAttach = installDiagnosticSink(&riSink);
+    riSinkAttached = true;
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	fatal
-// Description			:	Generate a fatal message
+// Function				:	riDiagnosticsDetach
+// Description			:	Restore the sink installed before the first
+//							RI context
 // Return Value			:
-// Comments				:
-void fatal(EErrorCode code, const char *mes, ...) {
-    char tmp[OS_MAX_PATH_LENGTH];
-    va_list args;
-
-    va_start(args, mes);
-    vsnprintf(tmp, sizeof(tmp), mes, args);
-
-    renderMan->RiError(translate(code), RIE_SEVERE, tmp);
-    va_end(args);
-}
-
-///////////////////////////////////////////////////////////////////////
-// Function				:	info
-// Description			:	Generate an info message
-// Return Value			:
-// Comments				:
-void info(EErrorCode code, const char *mes, ...) {
-    char tmp[OS_MAX_PATH_LENGTH];
-    va_list args;
-
-    va_start(args, mes);
-    vsnprintf(tmp, sizeof(tmp), mes, args);
-
-    renderMan->RiError(translate(code), RIE_INFO, tmp);
-    va_end(args);
+// Comments				:	Called only where renderMan becomes NULL (RiEnd).
+void riDiagnosticsDetach() {
+    if (!riSinkAttached)
+        return;
+    installDiagnosticSink(sinkBeforeAttach);
+    sinkBeforeAttach = NULL;
+    riSinkAttached = false;
 }

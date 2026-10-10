@@ -31,7 +31,7 @@
 #include	"common/global.h"
 #include	"common/containers.h"
 #include	"renderer.h"
-#include	"error.h"
+#include	"common/diagnostics.h"
 #include	"ri_config.h"
 
 // Some forward definitions

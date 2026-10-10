@@ -57,6 +57,7 @@ class CCaptureSink : public CDiagnosticSink {
         std::string lastMessage;
 };
 
+#ifndef CROSSLIB_STATIC
 struct HandlerRecord {
         int calls = 0;
         int code = -1;
@@ -70,6 +71,7 @@ RtVoid captureHandler(RtInt code, RtInt severity, const char *message) {
     handlerRecord.severity = severity;
     handlerRecord.message = message;
 }
+#endif
 
 void case0SessionsRestoreSink() {
     CCaptureSink capture;
@@ -92,6 +94,7 @@ void case0SessionsRestoreSink() {
     CHECK(restored == &capture, "case 0: capture sink still installed after the last RiEnd");
 }
 
+#ifndef CROSSLIB_STATIC
 void case1RiHandler() {
     RiBegin(RI_NULL);
     RiErrorHandler(captureHandler);
@@ -127,6 +130,7 @@ void case1RiHandler() {
 
     RiEnd();
 }
+#endif
 
 void case2ShadingBindsCommonError(const char *shadingPath) {
     void *handle = dlopen(shadingPath, RTLD_NOW | RTLD_LOCAL);
@@ -159,6 +163,7 @@ void case2ShadingBindsCommonError(const char *shadingPath) {
     dlclose(handle);
 }
 
+#ifndef CROSSLIB_STATIC
 void case3Threads() {
     CCaptureSink a, b;
     CDiagnosticSink *previous = installDiagnosticSink(&a);
@@ -181,6 +186,7 @@ void case3Threads() {
     CHECK(total == kThreads * kReports, "case 3: %d of %d threaded reports reached a sink", total,
           kThreads * kReports);
 }
+#endif
 
 } // namespace
 

@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include "texture.h"
 #include "common/portable_io.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "imageInput.h"
 #include "memory.h"
 #include "renderer.h"

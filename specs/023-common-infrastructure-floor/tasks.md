@@ -368,7 +368,7 @@ Stage, and wait for approval before T019.
 
 ### Implementation
 
-- [ ] T019 [US3] Create the common diagnostics files (contracts/common-api.md §1).
+- [X] T019 [US3] Create the common diagnostics files (contracts/common-api.md §1).
   - `git mv src/ri/parse/error.h src/common/diagnostics.h` (keeps history), then rewrite it to the
     contract:
     - `EErrorCode` verbatim (`error.h:33-67`);
@@ -382,12 +382,12 @@ Stage, and wait for approval before T019.
       `OS_MAX_PATH_LENGTH` buffer and `vsnprintf`;
     - `diagnosticsPrintDefault` holds the stream rules copied from `ri.cpp:2350-2380`, without
       `RiLastError`.
-- [ ] T020 [US3] Make `current_log_level` a single definition (research R3).
+- [X] T020 [US3] Make `current_log_level` a single definition (research R3).
   - In `src/includes/logging.hpp:28`, change `inline LogLevel current_log_level = LogLevel::INFO;`
     to `extern LogLevel current_log_level;`.
   - New `src/common/logging.cpp` defines it with the same initial value.
   - Add `diagnostics.cpp` and `logging.cpp` to `src/common/CMakeLists.txt`.
-- [ ] T021 [US3] Scene Interface side (contracts/common-api.md §1 "Scene Interface implementation").
+- [X] T021 [US3] Scene Interface side (contracts/common-api.md §1 "Scene Interface implementation").
   - `src/ri/parse/error.cpp`:
     - keep `translate()`;
     - delete the four functions;
@@ -403,13 +403,13 @@ Stage, and wait for approval before T019.
     `test_common_crosslib` and `test_common_crosslib_static` to `Common_StateOwnership`'s `IMAGES`
     (`tests/unit/common/CMakeLists.txt`). They are left out until they build, because the script
     rejects an image that does not exist.
-- [ ] T022 [US3] Switch every includer of the old header (67 files: `grep -rln '"error.h"\|parse/error.h' src tests`)
+- [X] T022 [US3] Switch every includer of the old header (67 files: `grep -rln '"error.h"\|parse/error.h' src tests`)
   to `#include "common/diagnostics.h"`.
   - This includes the grammar sources `rib.y`, `dso.y`, `ifexpr.y`, `variable.y`, `rslo.y` and the
     `.l` files.
   - Grouped by directory, these can be done in parallel by hand; it's one sed pass plus a review.
   - Confirm `src/ri/parse/error.h` no longer exists and nothing references it.
-- [ ] T023 [US3] Build, then:
+- [X] T023 [US3] Build, then:
   - run `ctest -L common`, which must be green, including the ownership check for the new symbols;
   - run `ctest -L architecture`, prune the stale lines (the `error.h` includes and the
     `error`/`warning`/`info` link lines under DB-016 and DB-001), and re-run until green;

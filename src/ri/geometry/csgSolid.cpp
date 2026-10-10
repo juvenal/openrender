@@ -24,7 +24,7 @@
 #include "atomic.h"
 #include "csgCaps.h"
 #include "delayed.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "patches.h"
 #include "polygons.h"
 #include "riInterface.h"

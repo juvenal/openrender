@@ -33,7 +33,7 @@
 #include <cassert>
 
 #include "displayChannel.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 
 void CRenderer::makeGlobalVariable(CVariable *var) {

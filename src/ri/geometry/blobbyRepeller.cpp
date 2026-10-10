@@ -30,7 +30,7 @@
 
 #include <tiffio.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 
 ///////////////////////////////////////////////////////////////////////

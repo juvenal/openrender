@@ -42,7 +42,7 @@
  */
 #include <cassert>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "irradiance.h"
 
 void CIrradianceCache::sample(float *, const float *, const float *, const float *, const float *, CShadingContext *) {

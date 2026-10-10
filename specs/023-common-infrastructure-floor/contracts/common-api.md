@@ -56,10 +56,15 @@ void info(EErrorCode, const char *, ...);
   - `riDiagnosticsAttach()` is called from the `CRiInterface` constructor. When nothing is attached
     yet, it saves the pointer `installDiagnosticSink` returns, exactly once; otherwise it does
     nothing.
-  - `riDiagnosticsDetach()` is called from `RiEnd` after `renderMan = NULL`, and only there. It
-    restores the saved pointer.
-  - Context switches (`RiContext`, the nested `delete renderMan; renderMan = savedRenderMan;` path)
-    neither attach again nor detach.
+  - `riDiagnosticsDetach()` restores the saved pointer wherever the active context stops being
+    active (refined during T021, 2026-10-10):
+    - in `~CRiInterface` when `renderMan == this`, which covers `RiEnd`'s `delete renderMan`, the
+      data viewer's teardown and `RiArchiveEnd`'s nested delete. It runs after the derived
+      context's own destructor, so what that destructor reports still reaches its handler;
+    - after the preview's explicit `renderMan = nullptr` (`previewContext.cpp`), whose context
+      outlives that reset.
+  - Re-attach points: `RiArchiveEnd` after `renderMan = savedRenderMan`, and `RiContext(handle)`.
+    Both are idempotent.
 - `RiErrorPrint` sets `RiLastError` as today, then calls `diagnosticsPrintDefault`.
 
 ## 2. `common/memory.h` (moved from `src/ri/core/memory.h`, extended)

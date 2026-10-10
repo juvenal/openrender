@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include "pointHierarchy.h"
 #include "common/portable_io.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "random.h"
 #include "shading.h"
 

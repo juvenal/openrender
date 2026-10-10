@@ -27,7 +27,7 @@
 #include <stdio.h>
 
 #include "common/os.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "stats.h"
 
 CStats stats;

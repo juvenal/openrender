@@ -39,7 +39,7 @@
  */
 #include "curves.h"
 #include "delayed.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "object.h"
 #include "points.h"
 #include "surface.h"

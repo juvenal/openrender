@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "atomic.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////

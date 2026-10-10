@@ -23,7 +23,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "imageInput.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "imageInputPng.h"
 #include "imageInputRgbe.h"
 #include "imageInputTiff.h"

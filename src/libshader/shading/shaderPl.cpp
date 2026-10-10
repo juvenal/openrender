@@ -29,7 +29,7 @@
 #include "bundles.h"
 #include "common/algebra.h"
 #include "common/os.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 #include "rendererc.h"
 #include "shading.h"

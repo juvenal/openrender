@@ -52,7 +52,7 @@
 
 #include "bundles.h"
 #include "common/portable_io.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "irradiance.h"
 #include "memory.h"
 #include "photonMap.h"

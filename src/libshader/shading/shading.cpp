@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "bundles.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "includes/logging.hpp"
 #include "irradiance.h"
 #include "memory.h"

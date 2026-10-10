@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "common/os.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "polygons.h"
 #include "reyes.h"
 #include "riInterface.h"

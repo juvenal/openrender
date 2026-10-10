@@ -30,7 +30,7 @@
 
 #include "atomic.h"
 #include "blobbyRepeller.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////

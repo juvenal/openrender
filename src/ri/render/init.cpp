@@ -27,7 +27,7 @@
 #include <math.h>
 
 #include "common/colorSpace.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "noise.h"
 #include "random.h"

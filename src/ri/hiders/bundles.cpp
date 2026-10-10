@@ -27,7 +27,7 @@
 #include <math.h>
 
 #include "bundles.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "shaderPl.h"
 #include "stats.h"
 

@@ -27,7 +27,7 @@
 #include <math.h>
 
 #include "dlobject.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "objectMisc.h"
 #include "renderer.h"
 #include "reyes.h"

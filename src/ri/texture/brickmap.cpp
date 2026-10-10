@@ -29,7 +29,7 @@
 #include "atomic.h"
 #include "common/os.h"
 #include "common/portable_io.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "pointCloud.h"
 #include "random.h"

@@ -24,7 +24,7 @@
 //  Description			:	Point Cloud API
 //
 ////////////////////////////////////////////////////////////////////////
-#include "error.h"
+#include "common/diagnostics.h"
 #include "fileResource.h"
 #include "pointCloud.h"
 

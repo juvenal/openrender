@@ -25,7 +25,7 @@
 #ifdef HAVE_OPENEXR
 
 #include "imageInputExr.h"
-#include "error.h"
+#include "common/diagnostics.h"
 
 #include <ImfChannelList.h>
 #include <ImfFrameBuffer.h>

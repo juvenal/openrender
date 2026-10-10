@@ -32,7 +32,7 @@
 
 #include "attributes.h"
 #include "common/align.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "renderer.h"
 #include "shader.h"

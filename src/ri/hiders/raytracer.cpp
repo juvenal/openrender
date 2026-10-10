@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "pixelFilter.h"
 #include "raytracer.h"

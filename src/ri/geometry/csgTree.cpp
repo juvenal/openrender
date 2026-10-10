@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "csgDefinition.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "object.h"
 #include "xform.h"
 

@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "bsplinePatchgrid.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "patches.h"
 #include "patchgrid.h"

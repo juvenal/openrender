@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "reyes.h"
 

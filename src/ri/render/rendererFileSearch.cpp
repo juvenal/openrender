@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "netFileMapping.h"
 #include "options.h"
 #include "renderer.h"

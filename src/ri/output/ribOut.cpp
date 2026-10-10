@@ -29,7 +29,7 @@
 #include <time.h>
 
 #include "common/os.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "ri.h"
 #include "riHooks.h"
 #include "ri_config.h"

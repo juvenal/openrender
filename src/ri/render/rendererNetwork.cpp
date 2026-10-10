@@ -27,7 +27,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "netFileMapping.h"
 #include "renderer.h"

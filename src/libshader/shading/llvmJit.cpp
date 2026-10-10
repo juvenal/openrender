@@ -16,7 +16,7 @@
  */
 
 #include "llvmJit.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "logging.hpp"
 
 #include <cstdio>

@@ -24,7 +24,7 @@
 //  Description			:	Functions that deal with the actual rendering
 //
 ////////////////////////////////////////////////////////////////////////
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 #include "shading.h"
 #include "stats.h"

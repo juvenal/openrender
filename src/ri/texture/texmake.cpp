@@ -25,7 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "texmake.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "imageInput.h"
 #include "imageInputTiff.h"
 #include "memory.h"

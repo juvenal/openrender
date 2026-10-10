@@ -57,7 +57,7 @@ typedef enum {
 #include "common/global.h"
 #include "common/containers.h"
 #include "shader.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 #include "dso.h"
 #include "ri_config.h"

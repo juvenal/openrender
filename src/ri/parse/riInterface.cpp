@@ -28,12 +28,15 @@
 
 #include "common/os.h"
 #include "ri.h"
+#include "riDiagnostics.h"
 #include "riInterface.h"
 #include "ri_config.h"
 
 CRiInterface::CRiInterface() {
     errorHandler = RiErrorPrint;
     renderMan = this;
+    // Diagnostics now reach an RI context's error handler (spec 023).
+    riDiagnosticsAttach();
 }
 
 CRiInterface::~CRiInterface() {
@@ -46,8 +49,14 @@ CRiInterface::~CRiInterface() {
     // without immediately repointing renderMan elsewhere (e.g. ribpreview_load()
     // used to rely on doing this by hand), where leaving renderMan dangling at a
     // freed object would otherwise be a silent use-after-free waiting to happen.
-    if (renderMan == this)
+    // The same point hands diagnostics back to the sink that was installed
+    // before the first context (spec 023). Here the derived context's own
+    // destructor has already run, so whatever it reported (end-of-render
+    // statistics) still reached its error handler.
+    if (renderMan == this) {
         renderMan = nullptr;
+        riDiagnosticsDetach();
+    }
 }
 
 void CRiInterface::RiDeclare(const char *, const char *) {

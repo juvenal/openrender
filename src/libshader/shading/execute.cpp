@@ -32,7 +32,7 @@
 #include "bundles.h"
 #include "common/colorSpace.h"
 #include "common/global.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "includes/logging.hpp"
 #include "irradiance.h"
 #include "memory.h"

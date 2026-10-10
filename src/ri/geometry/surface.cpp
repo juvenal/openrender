@@ -31,7 +31,7 @@
 #include "common/global.h"
 #include "common/polynomial.h"
 #include "debug.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "renderer.h"
 #include "rendererContext.h"

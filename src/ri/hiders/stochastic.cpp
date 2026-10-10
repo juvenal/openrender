@@ -30,7 +30,7 @@
 
 #include "common/portable_io.h"
 #include "compositor.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "pixelFilter.h"
 #include "random.h"

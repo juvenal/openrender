@@ -28,7 +28,7 @@
 
 #include "common/polynomial.h"
 #include "crossingMath.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "memory.h"
 #include "object.h"
 #include "patches.h"

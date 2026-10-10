@@ -35,7 +35,7 @@
 #include "delayed.h"
 #include "dlobject.h"
 #include "dso.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"

@@ -38,9 +38,10 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "delayed.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "logging.hpp"
 #include "ri.h"
+#include "riDiagnostics.h"
 #include "riHooks.h"
 #include "riInterface.h"
 #include "ri_config.h"
@@ -605,6 +606,8 @@ RiContext(RtContextHandle handle) {
         return;
 
     renderMan = (CRiInterface *)handle;
+    if (renderMan != NULL)
+        riDiagnosticsAttach();
 }
 
 EXTERN(RtVoid)
@@ -2348,35 +2351,19 @@ RiErrorIgnore(RtInt code, RtInt severity, const char *) {
 
 EXTERN(RtVoid)
 RiErrorPrint(RtInt code, RtInt severity, const char *message) {
-    if (severity == RIE_SEVERE) {
-        // Severe errors must still abort
-
-        fprintf(stderr, "%s", message);
-        fflush(stderr);
-
+    // The stream rules live once, in common's diagnosticsPrintDefault(), which
+    // is also what reports with no RI context use (spec 023).
+    if (severity == RIE_SEVERE || severity == RIE_ERROR)
         RiLastError = code;
 
-        exit(-1);
-    }
-    else if (severity == RIE_ERROR) {
-        fprintf(stderr, "%s", message);
-        fflush(stderr);
-
-        RiLastError = code;
-    }
-    else if (severity == RIE_WARNING) {
-        // RIB-level issues: always print regardless of log level
-        fprintf(stdout, "%s", message);
-        fflush(stdout);
-    }
-    else {
-        // RIE_INFO — algorithm/geometry events: respect the -x log level
-        // Printed only when -x 3 (INFO) or -x 4 (DEBUG) is passed
-        if (current_log_level <= LogLevel::INFO) {
-            fprintf(stdout, "%s", message);
-            fflush(stdout);
-        }
-    }
+    if (severity == RIE_SEVERE)
+        diagnosticsPrintDefault(DIAGNOSTIC_SEVERE, message);
+    else if (severity == RIE_ERROR)
+        diagnosticsPrintDefault(DIAGNOSTIC_ERROR, message);
+    else if (severity == RIE_WARNING)
+        diagnosticsPrintDefault(DIAGNOSTIC_WARNING, message);
+    else
+        diagnosticsPrintDefault(DIAGNOSTIC_INFO, message);
 }
 
 EXTERN(RtVoid)
@@ -2488,6 +2475,9 @@ RiArchiveEnd(void) {
         if (savedRenderMan != NULL) {
             delete renderMan;
             renderMan = savedRenderMan;
+            // The nested context's destructor detached diagnostics; route them
+            // to the restored context again.
+            riDiagnosticsAttach();
         }
     }
 

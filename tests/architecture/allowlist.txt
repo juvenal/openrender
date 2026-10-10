@@ -10,34 +10,24 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (30) ---
+# --- DB-001: Shading depends on the renderer core and the hiders (20) ---
 DB-001  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/shader.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/renderer.h
-DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer6getDSOEPKcS1_   # CRenderer::getDSO(char const*, char const*)
-DB-001  link     src/libshader/shading/execute.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-001  link     src/libshader/shading/execute.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext5traceEP4CRay   # CShadingContext::trace(CRay*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
 DB-001  link     src/libshader/shading/shader.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
-DB-001  link     src/libshader/shading/shader.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-001  link     src/libshader/shading/shader.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-001  link     src/libshader/shading/shader.cpp  ->  _ZN9CRenderer11getGlobalIDEPKc   # CRenderer::getGlobalID(char const*)
-DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer13getStepFilterEPKc   # CRenderer::getStepFilter(char const*)
 DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer9getFilterEPKc   # CRenderer::getFilter(char const*)
-DB-001  link     src/libshader/shading/shading.cpp  ->  _Z4info10EErrorCodePKcz   # info(EErrorCode, char const*, ...)
-DB-001  link     src/libshader/shading/shading.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-001  link     src/libshader/shading/shading.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
@@ -397,106 +387,46 @@ DB-015  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer16retrieveVar
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer16initDeclarationsEv   # CRenderer::initDeclarations()
 DB-015  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer20shutdownDeclarationsEv   # CRenderer::shutdownDeclarations()
 
-# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (215) ---
-DB-016  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/error.h
+# --- DB-016: Infrastructure lives in Scene Interface and the renderer core (131) ---
 DB-016  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/common/colorSpace.h  ->  src/ri/render/rendererc.h
 DB-016  include  src/common/rslConstants.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/libshader/shading/execute.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/libshader/shading/llvmJit.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/libshader/shading/rendererServices.h  ->  src/ri/parse/ri.h
 DB-016  include  src/libshader/shading/rendererServices.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/libshader/shading/shader.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/libshader/shading/shader.h  ->  src/ri/parse/ri.h
 DB-016  include  src/libshader/shading/shader.h  ->  src/ri/parse/variable.h
 DB-016  include  src/libshader/shading/shader.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/parse/variable.h
 DB-016  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/rendererc.h
 DB-016  include  src/libshader/shading/shaderPl.h  ->  src/ri/parse/ri.h
-DB-016  include  src/libshader/shading/shading.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/core/fileResource.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/core/pl.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/core/pl.cpp  ->  src/ri/render/renderer.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/parse/variable.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/render/rendererc.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/state/attributes.h
 DB-016  include  src/ri/core/pl.h  ->  src/ri/state/xform.h
-DB-016  include  src/ri/core/stats.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/blobby.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/geometry/blobby.cpp  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/geometry/blobbyField.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/blobbyPolygonize.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/csgSolid.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/csgTree.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/dlobject.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/implicitSurface.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/object.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/geometry/object.cpp  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/geometry/object.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/ri/geometry/patches.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/polygons.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/geometry/subdivisionLoop.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/geometry/surface.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/bundles.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/irradiance.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/photon.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/photonMap.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/raytracer.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/hiders/reyes.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/hiders/reyes.cpp  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/hiders/stochastic.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/parse/variable.h  ->  src/ri/render/rendererc.h
-DB-016  include  src/ri/state/attributes.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/state/attributes.cpp  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/state/displayChannel.h  ->  src/ri/parse/variable.h
 DB-016  include  src/ri/state/options.h  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/state/options.h  ->  src/ri/render/rendererc.h
 DB-016  include  src/ri/state/userAttributes.h  ->  src/ri/parse/variable.h
-DB-016  include  src/ri/state/xform.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/brickmap.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/imageInput.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/imageInputExr.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/imageInputPng.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/imageInputRgbe.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/imageInputTiff.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/pointCloud.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/pointHierarchy.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/ptcapi.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/texmake.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/texture/texmake.cpp  ->  src/ri/parse/ri.h
 DB-016  include  src/ri/texture/texmake.h  ->  src/ri/parse/ri.h
-DB-016  include  src/ri/texture/texture.cpp  ->  src/ri/parse/error.h
-DB-016  include  src/ri/texture/texture3d.cpp  ->  src/ri/parse/error.h
 DB-016  include  src/ri/texture/texture3d.h  ->  src/ri/render/rendererc.h
 DB-016  link     @build/src/ri/ifexpr_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     @build/src/ri/rib_generated.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     src/ri/core/fileResource.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/core/pl.cpp  ->  RI_S   # RI_S
 DB-016  link     src/ri/core/pl.cpp  ->  RI_T   # RI_T
 DB-016  link     src/ri/core/pl.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
-DB-016  link     src/ri/core/pl.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/core/pl.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN11CAttributes13findParameterEPKc   # CAttributes::findParameter(char const*)
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/core/pl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
-DB-016  link     src/ri/core/stats.cpp  ->  _Z4info10EErrorCodePKcz   # info(EErrorCode, char const*, ...)
 DB-016  link     src/ri/geometry/blobby.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
-DB-016  link     src/ri/geometry/blobby.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/blobbyField.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/blobbyField.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/blobbyPolygonize.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/blobbyRepeller.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/csgSolid.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/csgTree.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/implicitSurface.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/object.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/patches.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/polygons.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CORNER   # RI_CORNER
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CREASE   # RI_CREASE
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_CREASEMETHOD   # RI_CREASEMETHOD
@@ -504,17 +434,7 @@ DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGINTER
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_FACEVARYINGPROPAGATECORNERS   # RI_FACEVARYINGPROPAGATECORNERS
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_HOLE   # RI_HOLE
 DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  RI_INTERPOLATEBOUNDARY   # RI_INTERPOLATEBOUNDARY
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/subdivisionCreator.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/subdivisionLoop.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/geometry/surface.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
-DB-016  link     src/ri/hiders/irradiance.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/hiders/occlusion.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
-DB-016  link     src/ri/hiders/photon.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/hiders/photonMap.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/hiders/raytracer.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/hiders/reyes.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/hiders/stochastic.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/parse/ri.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
@@ -564,8 +484,6 @@ DB-016  link     src/ri/state/attributes.cpp  ->  RI_TRANSMISSION   # RI_TRANSMI
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_TRANSMISSIONHITMODE   # RI_TRANSMISSIONHITMODE
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_USER   # RI_USER
 DB-016  link     src/ri/state/attributes.cpp  ->  RI_VISIBILITY   # RI_VISIBILITY
-DB-016  link     src/ri/state/attributes.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/state/attributes.cpp  ->  _Z7warning10EErrorCodePKcz   # warning(EErrorCode, char const*, ...)
 DB-016  link     src/ri/state/options.cpp  ->  RI_BRICKMEMORY   # RI_BRICKMEMORY
 DB-016  link     src/ri/state/options.cpp  ->  RI_BUCKETSIZE   # RI_BUCKETSIZE
 DB-016  link     src/ri/state/options.cpp  ->  RI_EMIT   # RI_EMIT
@@ -591,28 +509,16 @@ DB-016  link     src/ri/state/options.cpp  ->  RI_TEXTUREMEMORY   # RI_TEXTUREME
 DB-016  link     src/ri/state/options.cpp  ->  RI_THREADSTRIDE   # RI_THREADSTRIDE
 DB-016  link     src/ri/state/options.cpp  ->  RI_TRACE   # RI_TRACE
 DB-016  link     src/ri/state/options.cpp  ->  RI_USER   # RI_USER
-DB-016  link     src/ri/state/xform.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/brickmap.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/imageInput.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/imageInputExr.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/imageInputPng.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/imageInputRgbe.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/imageInputTiff.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/pointCloud.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
-DB-016  link     src/ri/texture/pointHierarchy.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_BLACK   # RI_BLACK
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_CLAMP   # RI_CLAMP
 DB-016  link     src/ri/texture/texmake.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texmake.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/texture/texmake.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_BLACK   # RI_BLACK
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_CLAMP   # RI_CLAMP
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_NONPERIODIC   # RI_NONPERIODIC
 DB-016  link     src/ri/texture/texture.cpp  ->  RI_PERIODIC   # RI_PERIODIC
-DB-016  link     src/ri/texture/texture.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 DB-016  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer12globalMemoryE   # CRenderer::globalMemory
 DB-016  link     src/ri/texture/texture3d.cpp  ->  _Z13parseVariableP9CVariablePKcS2_   # parseVariable(CVariable*, char const*, char const*)
-DB-016  link     src/ri/texture/texture3d.cpp  ->  _Z5error10EErrorCodePKcz   # error(EErrorCode, char const*, ...)
 
 # --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---
 DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)

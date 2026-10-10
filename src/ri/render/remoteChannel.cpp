@@ -31,7 +31,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "irradiance.h"
 #include "pointCloud.h"
 #include "remoteChannel.h"

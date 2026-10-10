@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
-#include "error.h"
+#include "common/diagnostics.h"
 #include "implicitSurface.h"
 #include "objectMisc.h"
 #include "renderer.h"

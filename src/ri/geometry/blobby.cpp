@@ -31,7 +31,7 @@
 #include "atomic.h"
 #include "blobbyField.h"
 #include "blobbyPolygonize.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "pl.h"
 #include "polygons.h"
 #include "renderer.h"

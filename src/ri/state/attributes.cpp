@@ -29,7 +29,7 @@
 
 #include "atomic.h"
 #include "attributes.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "photonMap.h"
 #include "ri.h"
 #include "ri_config.h"

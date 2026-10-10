@@ -29,7 +29,7 @@
 
 #include "brickmap.h"
 #include "dso.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "includes/logging.hpp"
 #include "irradiance.h"
 #include "netFileMapping.h"

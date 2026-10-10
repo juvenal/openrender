@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "displayChannel.h"
-#include "error.h"
+#include "common/diagnostics.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
