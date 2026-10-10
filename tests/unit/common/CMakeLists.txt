@@ -35,6 +35,7 @@ add_test(NAME Common_StateOwnership
         "-DIMAGES=${_common_images}"
         "-DCOMMON=$<TARGET_FILE:openrendercommon>"
         "-DOWNED=${CMAKE_CURRENT_SOURCE_DIR}/owned-symbols.txt"
+        "-DTOKENS_FROM=${CMAKE_SOURCE_DIR}/src/ri/parse/ri.h"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/state_ownership.cmake)
 set_tests_properties(Common_StateOwnership PROPERTIES TIMEOUT 120 LABELS "common;unit")
 
@@ -107,3 +108,23 @@ add_test(NAME Common_ShadingInfraBinding
         "-DSYMBOLS=${CMAKE_CURRENT_SOURCE_DIR}/shading-infra-symbols.txt"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/shading_infra_binding.cmake)
 set_tests_properties(Common_ShadingInfraBinding PROPERTIES TIMEOUT 60 LABELS "common;unit")
+
+# --- Phase 5 (US1): vocabulary + variables -------------------------------------
+# FR-004: ri.h (public, byte-identical), common/riVocabulary.h and
+# common/riTokens.cpp list the same RI tokens.
+add_test(NAME Common_VocabularyConsistency
+    COMMAND ${CMAKE_COMMAND}
+        "-DRI_H=${CMAKE_SOURCE_DIR}/src/ri/parse/ri.h"
+        "-DVOCABULARY_H=${CMAKE_SOURCE_DIR}/src/common/riVocabulary.h"
+        "-DTOKENS_CPP=${CMAKE_SOURCE_DIR}/src/common/riTokens.cpp"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/vocabulary_consistency.cmake)
+set_tests_properties(Common_VocabularyConsistency PROPERTIES TIMEOUT 60 LABELS "common;unit")
+# ... and a translation unit including both headers compiles and agrees.
+# EXCLUDE_FROM_ALL until T040 adds common/riVocabulary.h.
+add_executable(test_vocabulary_both_headers EXCLUDE_FROM_ALL test_vocabulary_both_headers.cpp)
+target_compile_features(test_vocabulary_both_headers PRIVATE cxx_std_20)
+target_include_directories(test_vocabulary_both_headers PRIVATE
+    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)
+target_link_libraries(test_vocabulary_both_headers PRIVATE openrendercommon)
+add_test(NAME Common_VocabularyBothHeaders COMMAND test_vocabulary_both_headers)
+set_tests_properties(Common_VocabularyBothHeaders PROPERTIES TIMEOUT 60 LABELS "common;unit")

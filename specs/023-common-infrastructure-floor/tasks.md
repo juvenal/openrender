@@ -548,7 +548,7 @@ golden) pass, and the DB-016 include and token lines become stale.
 
 ### Tests first
 
-- [ ] T037 [P] [US1] Write `Common_VocabularyConsistency`.
+- [X] T037 [P] [US1] Write `Common_VocabularyConsistency`.
   - `tests/unit/common/vocabulary_consistency.cmake` (`cmake -P`) extracts three token-name sets:
     - from `src/ri/parse/ri.h`'s `EXTERN(RtToken)` declarations;
     - from `src/common/riVocabulary.h`;

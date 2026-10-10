@@ -433,3 +433,39 @@ The tools live in `tools/compat-consumer/`:
     threshold). It is reported to the maintainer as a candidate `fix/` item and added to the
     known-intermittent-tests memory.
   - **Rerun**: the full suite passes **569/569** (133 s).
+
+## Phase 5: US1, vocabulary + variables (tests first)
+
+### T037: red (TEST-APPROVAL 5a)
+
+**New files**, all in `tests/unit/common/`:
+
+| File | Role |
+|---|---|
+| `ri_tokens.cmake` | Shared token extraction. It reads `EXTERN(RtToken) … ;` and `extern RtToken … ;` groups with comments stripped, so macros such as `RI_NULL`/`RIE_*` don't count, and `RtToken RI_X = …;` definitions |
+| `vocabulary_consistency.cmake` | `Common_VocabularyConsistency`: `ri.h`, `common/riVocabulary.h` and `common/riTokens.cpp` must list the same names |
+| `test_vocabulary_both_headers.cpp` | `Common_VocabularyBothHeaders`, `EXCLUDE_FROM_ALL` until T040. One translation unit includes both headers; the test checks token values, `RiBezierBasis` and `RiGaussianFilter` |
+
+**Extraction checked on today's tree**: `ri.h` declares 241 entries, **235 distinct**, and
+`ri.cpp` defines the same 235. Nothing is in one list but not the other.
+- `ri.h` redeclares six tokens: `RI_WORLD`, `RI_OBJECT`, `RI_RASTER`, `RI_SCREEN`, `RI_CAMERA`,
+  `RI_SHADOW`. That's legal, and the public header stays byte-identical, so the duplicate rule
+  applies only to the two common-layer files.
+
+**Ownership and binding lists**:
+- `Common_StateOwnership` gains `-DTOKENS_FROM=ri.h`, so all 235 tokens are owned symbols. That
+  makes **263 symbols** in total (27 + `parseVariable` + 235 tokens).
+- `parseVariable` is added to `owned-symbols.txt` **and** to `shading-infra-symbols.txt`, which
+  now lists all 17 infrastructure symbols (see T025).
+
+**Red evidence**:
+- The `test_vocabulary_both_headers` build fails: `'common/riVocabulary.h' file not found`. The
+  test is reported "Not Run".
+- `Common_VocabularyConsistency` fails: `VOCABULARY_H does not exist`.
+- `Common_ShadingInfraBinding` has 1 problem: `parseVariable` is not bound to `libRIBCommon`.
+- `Common_StateOwnership`: **236 of 263** symbols are not defined once. Every token and
+  `parseVariable` has **4 definers**: `libRIBRender`, `libRIBVector`, `libRIBOut` and
+  `test_common_crosslib_static`.
+  - The fourth is a static-package program that carries its own copy of every token pulled in
+    with `libRIBRender.a`, exactly the per-image copy FR-008 removes.
+- `ctest -L common`: 9 of 13 pass.

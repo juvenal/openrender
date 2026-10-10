@@ -11,7 +11,11 @@
 #           reference, not a definition.
 #
 # Usage: cmake -DIMAGES=<a;b;...> -DCOMMON=<libRIBCommon> -DOWNED=<file>
-#              [-DEXCLUDE=<a;b;...>] -P state_ownership.cmake
+#              [-DTOKENS_FROM=<ri.h>] [-DEXCLUDE=<a;b;...>] -P state_ownership.cmake
+#
+# TOKENS_FROM adds every RI_* token declared in that header (EXTERN(RtToken)
+# groups): one definition per process matters, since tokens are compared by
+# pointer in places.
 
 foreach(var IMAGES COMMON OWNED)
     if(NOT DEFINED ${var})
@@ -29,6 +33,12 @@ foreach(line IN LISTS _lines)
         list(APPEND symbols "${line}")
     endif()
 endforeach()
+if(DEFINED TOKENS_FROM)
+    include(${CMAKE_CURRENT_LIST_DIR}/ri_tokens.cmake)
+    ri_tokens_declared("${TOKENS_FROM}" _tokens)
+    list(APPEND symbols ${_tokens})
+    list(REMOVE_DUPLICATES symbols)
+endif()
 list(LENGTH symbols nsym)
 
 # --- defined symbols per image -----------------------------------------------

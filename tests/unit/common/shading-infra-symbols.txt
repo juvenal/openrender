@@ -4,7 +4,6 @@
 # "!name" = must no longer be referenced at all. Checked by
 # Common_ShadingInfraBinding (shading_infra_binding.cmake).
 #
-# parseVariable joins in Phase 5 (task T037), when the variable grammar moves.
 
 # --- diagnostics (moved in Phase 3) ---
 _Z5error10EErrorCodePKcz
@@ -26,3 +25,6 @@ _ZTI13CFileResource                             # typeinfo for CFileResource
 stats                                           # the statistics counters
 globalArena                                     # the process-wide scratch arena
 !_ZN9CRenderer12globalMemoryE                   # CRenderer::globalMemory, replaced by globalArena
+
+# --- Phase 5 (T037): variable declarations ---
+_Z13parseVariableP9CVariablePKcS2_              # parseVariable(CVariable*, char const*, char const*)
