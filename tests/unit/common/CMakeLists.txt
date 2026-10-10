@@ -36,3 +36,57 @@ add_test(NAME Common_StateOwnership
         "-DOWNED=${CMAKE_CURRENT_SOURCE_DIR}/owned-symbols.txt"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/state_ownership.cmake)
 set_tests_properties(Common_StateOwnership PROPERTIES TIMEOUT 120 LABELS "common;unit")
+
+# --- Phase 3 (US3): diagnostics ------------------------------------------------
+# EXCLUDE_FROM_ALL until T021 lands common/diagnostics.h: until then these
+# tests are red (they do not compile, and today's error() dereferences a NULL
+# RI context), while the main build stays green.
+
+# FR-002 / SC-003: no RI context at all. Links only libRIBCommon -- reporting a
+# diagnostic must not need any renderer library.
+add_executable(test_common_diagnostics EXCLUDE_FROM_ALL test_common_diagnostics.cpp)
+target_compile_features(test_common_diagnostics PRIVATE cxx_std_20)
+target_include_directories(test_common_diagnostics PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_common_diagnostics PRIVATE openrendercommon)
+foreach(_mode error warning info info_quiet fatal)
+    add_test(NAME Common_DiagnosticsNoContext_${_mode}
+        COMMAND ${CMAKE_COMMAND}
+            "-DEXE=$<TARGET_FILE:test_common_diagnostics>" -DMODE=${_mode}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics_runner.cmake)
+    set_tests_properties(Common_DiagnosticsNoContext_${_mode} PROPERTIES
+        TIMEOUT 60 LABELS "common;unit")
+endforeach()
+
+# FR-008 / FR-015: one sink shared across libraries (cases 0-3), against the
+# shared libRIBRender ...
+set(_crosslib_env "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+add_executable(test_common_crosslib EXCLUDE_FROM_ALL test_common_crosslib.cpp)
+target_compile_features(test_common_crosslib PRIVATE cxx_std_20)
+target_include_directories(test_common_crosslib PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_common_crosslib PRIVATE ribRender libshader_shading openrendercommon
+    Threads::Threads ${CMAKE_DL_LIBS})
+add_test(NAME Common_DiagnosticsCrossLibrary
+    COMMAND test_common_crosslib $<TARGET_FILE:libshader_shading>)
+set_tests_properties(Common_DiagnosticsCrossLibrary PROPERTIES
+    TIMEOUT 120 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")
+
+# ... and linked the way the package's Static component links libRIBRender.a
+# (whole archive, as CMake/openRenderConfig.cmake.in does; cases 0 and 2).
+add_executable(test_common_crosslib_static EXCLUDE_FROM_ALL test_common_crosslib.cpp)
+target_compile_features(test_common_crosslib_static PRIVATE cxx_std_20)
+target_compile_definitions(test_common_crosslib_static PRIVATE CROSSLIB_STATIC)
+target_include_directories(test_common_crosslib_static PRIVATE
+    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)
+target_link_libraries(test_common_crosslib_static PRIVATE ribRender_static ${CMAKE_DL_LIBS})
+if(APPLE)
+    target_link_options(test_common_crosslib_static PRIVATE
+        "LINKER:-force_load,$<TARGET_FILE:ribRender_static>")
+elseif(UNIX)
+    target_link_options(test_common_crosslib_static PRIVATE
+        "LINKER:--whole-archive,$<TARGET_FILE:ribRender_static>,--no-whole-archive"
+        "LINKER:--export-dynamic")
+endif()
+add_test(NAME Common_DiagnosticsCrossLibraryStatic
+    COMMAND test_common_crosslib_static $<TARGET_FILE:libshader_shading>)
+set_tests_properties(Common_DiagnosticsCrossLibraryStatic PROPERTIES
+    TIMEOUT 120 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")

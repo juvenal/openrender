@@ -224,3 +224,41 @@ The tools live in `tools/compat-consumer/`:
   - Already present before this spec: `orender-wire`'s "built for macOS 13.3, linked 13.0"
     (the Swift package targets 13.0), which now also names `libRIBCommon`; and "ignoring
     duplicate libraries" (Imath, LLVM).
+
+## Phase 3: US3, diagnostics (tests first)
+
+### T015–T018: red (TEST-APPROVAL 3a)
+
+**New files**, all in `tests/unit/common/`, registered in its `CMakeLists.txt` as
+`EXCLUDE_FROM_ALL` until T021:
+
+| File | Test |
+|---|---|
+| `test_common_diagnostics.cpp`, `diagnostics_runner.cmake` | `Common_DiagnosticsNoContext_{error,warning,info,info_quiet,fatal}`. Links **only** `openrendercommon`, so reporting must need no renderer library |
+| `test_common_crosslib.cpp` | `Common_DiagnosticsCrossLibrary`: case 0 (a capture sink survives two `RiBegin`/`RiEnd` sessions and gets reports between them), case 1 (the RI handler gets `RIE_BADTOKEN` with `RIE_ERROR`/`RIE_WARNING`/`RIE_INFO`), case 2 (`dlsym`/`dladdr`: `libshader_shading`'s `error()` is `libRIBCommon`'s and is this program's), case 3 (8 threads × 1000 reports while sinks swap) |
+| same source, built with `CROSSLIB_STATIC` | `Common_DiagnosticsCrossLibraryStatic`: `ribRender_static` linked whole-archive, as in `openRenderConfig.cmake.in`; cases 0 and 2 |
+
+`owned-symbols.txt` gains the four diagnostic functions, `installDiagnosticSink`,
+`diagnosticsPrintDefault` and `current_log_level`.
+
+**Red evidence**:
+- `cmake --build build --target <t>` fails for all three targets with
+  `fatal error: 'common/diagnostics.h' file not found`.
+- `ctest -L common`: 1 of 9 tests passes (`Common_VariableDeclarations`).
+  - The 5 `NoContext` tests fail.
+  - The 2 `CrossLibrary` tests show "Not Run" (not built).
+  - `Common_StateOwnership` fails: 7 of 11 symbols are not defined once, in `libRIBCommon`.
+    - `error`/`warning`/`fatal`/`info` have 3 definers each: `libRIB{Render,Vector,Out}`.
+    - `installDiagnosticSink` and `diagnosticsPrintDefault` are not defined anywhere yet.
+    - `current_log_level` has **9** definers, one weak `inline` copy per image that includes
+      `logging.hpp`. This confirms research R3's per-image copy concern.
+- **Today's crash**: a throwaway program (`$S/023-throwaway/today_error.cpp`, not in the tree)
+  calls today's `error()` with no RI context. It **dies with SIGSEGV (exit status 139)** before
+  printing `CONTINUED`: the NULL `renderMan` dereference that US3 removes.
+- **Deferred**: the three new test executables join `Common_StateOwnership`'s `IMAGES` at T021,
+  once they build. The script rejects missing images, so they can't be listed earlier.
+- **Observation, out of scope**: `includes/logging.hpp` also has `inline` instrumentation state
+  (`_log_init_done`, `log_enabled`, `log_output`). Like `current_log_level`, each image gets its
+  own copy, so `orender`'s `log_enabled`/`log_output` settings don't reach the libraries. Spec 023
+  makes only `current_log_level` single-definition (research R3). The rest is a candidate
+  follow-up for the maintainer to decide on.

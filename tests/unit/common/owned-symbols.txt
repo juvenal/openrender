@@ -9,3 +9,13 @@ RiBezierBasis         # common/rslConstants.cpp (data)
 RiGaussianFilter      # common/rslConstants.cpp
 RiCatmullRomFilter    # common/rslConstants.cpp
 _Z9osCPUTimev         # osCPUTime(), common/os.cpp
+
+# --- Phase 3 (US3, T018): diagnostics. The sink slot itself is a static inside
+#     common/diagnostics.cpp; its single definer is installDiagnosticSink's. ---
+_Z5error10EErrorCodePKcz                            # error(EErrorCode, char const*, ...)
+_Z7warning10EErrorCodePKcz                          # warning(EErrorCode, char const*, ...)
+_Z5fatal10EErrorCodePKcz                            # fatal(EErrorCode, char const*, ...)
+_Z4info10EErrorCodePKcz                             # info(EErrorCode, char const*, ...)
+_Z21installDiagnosticSinkP15CDiagnosticSink         # installDiagnosticSink(CDiagnosticSink*)
+_Z23diagnosticsPrintDefault19EDiagnosticSeverityPKc # diagnosticsPrintDefault(EDiagnosticSeverity, char const*)
+current_log_level                                   # includes/logging.hpp, defined in common/logging.cpp

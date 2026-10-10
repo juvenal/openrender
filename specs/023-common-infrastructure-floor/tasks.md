@@ -297,7 +297,7 @@ pass; the full suite is unchanged (SC-004).
 
 ### Tests first
 
-- [ ] T015 [P] [US3] Write the no-context diagnostics test (`EXCLUDE_FROM_ALL` until T021).
+- [X] T015 [P] [US3] Write the no-context diagnostics test (`EXCLUDE_FROM_ALL` until T021).
   - `tests/unit/common/test_common_diagnostics.cpp` takes a mode argument: `error`, `warning`,
     `info`, `info_quiet` (sets `current_log_level` to WARNING first), `fatal`. Each reports one
     diagnostic carrying a unique marker string, and the program then prints `CONTINUED` to stdout
@@ -315,7 +315,7 @@ pass; the full suite is unchanged (SC-004).
 
   - Register `Common_DiagnosticsNoContext_{error,warning,info,info_quiet,fatal}`.
   - Today an `error()` call with no context dereferences a NULL `renderMan`, so the tests are red.
-- [ ] T016 [P] [US3] Write the cross-library test, `Common_DiagnosticsCrossLibrary`
+- [X] T016 [P] [US3] Write the cross-library test, `Common_DiagnosticsCrossLibrary`
   (`tests/unit/common/test_common_crosslib.cpp`, `EXCLUDE_FROM_ALL` until T021). It links
   `ribRender libshader_shading openrendercommon`.
   - **Case 0**: install a capture sink, then run two RI sessions in a row
@@ -343,14 +343,14 @@ pass; the full suite is unchanged (SC-004).
     - Assert the two capture sinks' totals sum to 8000, with no crash.
     - On Linux, the maintainer may run this case once under `-fsanitize=thread`; this is optional
       and reported in `validation.md`.
-- [ ] T017 [P] [US3] Write `Common_DiagnosticsCrossLibraryStatic`
+- [X] T017 [P] [US3] Write `Common_DiagnosticsCrossLibraryStatic`
   (`tests/unit/common/test_common_crosslib_static.cpp`, `EXCLUDE_FROM_ALL` until T021).
   - Same cases 0 and 2, linked the way the package `Static` component links: `ribRender_static`
     with `-force_load`/`--whole-archive` (copy the logic of `openRenderConfig.cmake.in:62-78`),
     plus `openrendercommon` (shared) and `libshader_shading`.
   - Add the executable to `IMAGES` in T007's registration. It must **not** define any owned
     symbol.
-- [ ] T018 [P] [US3] Append the diagnostics symbols to `tests/unit/common/owned-symbols.txt`:
+- [X] T018 [P] [US3] Append the diagnostics symbols to `tests/unit/common/owned-symbols.txt`:
   - `_Z5error10EErrorCodePKcz`, `_Z7warning10EErrorCodePKcz`, `_Z5fatal10EErrorCodePKcz`,
     `_Z4info10EErrorCodePKcz`;
   - the mangled `installDiagnosticSink` and `diagnosticsPrintDefault`;
@@ -399,7 +399,10 @@ Stage, and wait for approval before T019.
     - call `riDiagnosticsDetach()` right after `renderMan = NULL;` (`:778`), and nowhere else;
     - in `RiErrorPrint` (`:2350`), set `RiLastError = code` for ERROR/SEVERE, then call
       `diagnosticsPrintDefault(severity mapped from RIE_*, message)`. Output bytes are unchanged.
-  - Remove `EXCLUDE_FROM_ALL` from T015–T017.
+  - Remove `EXCLUDE_FROM_ALL` from T015–T017, and add `test_common_diagnostics`,
+    `test_common_crosslib` and `test_common_crosslib_static` to `Common_StateOwnership`'s `IMAGES`
+    (`tests/unit/common/CMakeLists.txt`). They are left out until they build, because the script
+    rejects an image that does not exist.
 - [ ] T022 [US3] Switch every includer of the old header (67 files: `grep -rln '"error.h"\|parse/error.h' src tests`)
   to `#include "common/diagnostics.h"`.
   - This includes the grammar sources `rib.y`, `dso.y`, `ifexpr.y`, `variable.y`, `rslo.y` and the
