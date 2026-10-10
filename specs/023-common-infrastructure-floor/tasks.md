@@ -638,7 +638,7 @@ DB-016 line stale.
 
 ### Tests first
 
-- [ ] T046 [US1] Write `Common_VariableLookupHook` (`tests/unit/common/test_variable_lookup.cpp`,
+- [X] T046 [US1] Write `Common_VariableLookupHook` (`tests/unit/common/test_variable_lookup.cpp`,
   `EXCLUDE_FROM_ALL` until T048). It links `ribRender openrendercommon`.
   - With nothing installed, `lookupVariable("P") == nullptr`.
   - Install a fake lookup that returns a static `CVariable` for `"foo"`; `lookupVariable("foo")`
