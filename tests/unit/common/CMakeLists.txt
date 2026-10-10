@@ -88,3 +88,23 @@ add_test(NAME Common_DiagnosticsCrossLibraryStatic
     COMMAND test_common_crosslib_static $<TARGET_FILE:libshader_shading>)
 set_tests_properties(Common_DiagnosticsCrossLibraryStatic PROPERTIES
     TIMEOUT 120 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")
+
+# --- Phase 4 (US2): generic core + arena ---------------------------------------
+# FR-006: CArena semantics on a local arena. EXCLUDE_FROM_ALL until T030 adds
+# CArena to common/memory.h.
+add_executable(test_common_arena EXCLUDE_FROM_ALL test_common_arena.cpp)
+target_compile_features(test_common_arena PRIVATE cxx_std_20)
+target_include_directories(test_common_arena PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_common_arena PRIVATE openrendercommon)
+add_test(NAME Common_ArenaSemantics COMMAND test_common_arena)
+set_tests_properties(Common_ArenaSemantics PROPERTIES TIMEOUT 60 LABELS "common;unit")
+
+# SC-002: libshader_shading's infrastructure symbols come from libRIBCommon,
+# never from libRIBRender (shading-infra-symbols.txt grows with the moves).
+add_test(NAME Common_ShadingInfraBinding
+    COMMAND ${CMAKE_COMMAND}
+        "-DSHADING=$<TARGET_FILE:libshader_shading>"
+        "-DRENDERER=$<TARGET_FILE:ribRender>"
+        "-DSYMBOLS=${CMAKE_CURRENT_SOURCE_DIR}/shading-infra-symbols.txt"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/shading_infra_binding.cmake)
+set_tests_properties(Common_ShadingInfraBinding PROPERTIES TIMEOUT 60 LABELS "common;unit")

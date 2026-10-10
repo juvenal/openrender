@@ -322,3 +322,48 @@ The tools live in `tools/compat-consumer/`:
   - exit status 255 on both sides.
   - (A first comparison differed only because I pointed `DISPLAYS` at the wrong build directory.)
 - **Full suite** (`nice -n 19 ctest --test-dir build -j4`): **567/567 pass** (109 s). That is Phase 2's 560 plus the 7 new diagnostics tests.
+
+## Phase 4: US2, generic core + arena (tests first)
+
+### T024–T026: red (TEST-APPROVAL 4a)
+
+**New files**, all in `tests/unit/common/` and registered in its `CMakeLists.txt`:
+
+| File | Test |
+|---|---|
+| `test_common_arena.cpp` | `Common_ArenaSemantics`, `EXCLUDE_FROM_ALL` until T030; links only `openrendercommon`. On a local `CArena` it checks: `init()`; nested `arenaBegin`/`arenaEnd` restore page, free pointer and available size; 8-byte alignment for sizes 1–17; `rstrdup`; `arenaSave`/`arenaRestore`; page growth on an allocation larger than the first page, unwound by `arenaEnd`; `tini()` clears `top` |
+| `shading_infra_binding.cmake`, `shading-infra-symbols.txt` | `Common_ShadingInfraBinding` |
+
+**How `Common_ShadingInfraBinding` decides**:
+- **macOS**: in `nm -m libshader_shading`, every listed symbol that is undefined must read
+  `(from libRIBCommon)`. A `!`-listed symbol must not appear at all.
+- **Linux**: `readelf -d` must show `NEEDED libRIBCommon`, and `nm -D --defined-only` of
+  `libRIBRender` must define none of the listed symbols.
+
+**What the lists cover**:
+- **Phased binding list**: 16 symbols now — 3 diagnostics, 3 `memory*`, 2 sampling, 6
+  `CRefCounter`/`CFileResource` symbols (constructor, destructor and typeinfo for each), `stats`,
+  `globalArena` — plus `!CRenderer::globalMemory`.
+  - `parseVariable` joins at T037 (Phase 5), together with the grammar.
+  - The test is checked against the 29 flat imports captured in T005; all 17 infrastructure
+    symbols are covered once T037 lands.
+- **Ownership list**: `owned-symbols.txt` gains 16 Phase 4 symbols:
+  - `globalArena`, `stats`;
+  - `memoryInit`/`Tini`/`NewPage`/`DeletePage`;
+  - both sampling functions;
+  - the constructor, destructor, vtable and typeinfo of `CRefCounter` and of `CFileResource`.
+
+**Red evidence**:
+- The `test_common_arena` build fails: `fatal error: 'common/memory.h' file not found`.
+  `Common_ArenaSemantics` is reported "Not Run".
+- `Common_ShadingInfraBinding` fails with 13 problems:
+  - 12 symbols are "not bound to libRIBCommon": the 3 `memory*` functions, both sampling
+    functions, the constructors, destructors and typeinfo of `CRefCounter` and `CFileResource`,
+    and `stats`. All are "dynamically looked up", i.e. flat lookup into `libRIBRender`.
+  - `CRenderer::globalMemory` is "still referenced".
+  - `error`/`warning`/`info` already pass, since Phase 3.
+- `Common_StateOwnership` fails:
+  - `globalArena` is not defined anywhere yet;
+  - `stats` and the 4 `memory*` functions have 4 definers each;
+  - the sampling, `CRefCounter` and `CFileResource` symbols have 3 each.
+- `ctest -L common`: 8 of 11 pass. The 8 are the tests from Phases 1–3.

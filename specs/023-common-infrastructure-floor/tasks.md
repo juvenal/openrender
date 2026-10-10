@@ -441,7 +441,7 @@ ownership check is green for the 17 symbols.
 
 ### Tests first
 
-- [ ] T024 [P] [US2] Write `Common_ArenaSemantics` (`tests/unit/common/test_common_arena.cpp`,
+- [X] T024 [P] [US2] Write `Common_ArenaSemantics` (`tests/unit/common/test_common_arena.cpp`,
   `EXCLUDE_FROM_ALL` until T030), testing a local `CArena`:
   - `init()` makes `top` non-null;
   - nested `arenaBegin`/`arenaEnd` restore `top`, `memory` and `availableSize`;
@@ -450,7 +450,7 @@ ownership check is green for the 17 symbols.
   - `ralloc` is 8-byte aligned;
   - `rstrdup` copies;
   - `tini()` leaves `top == nullptr`.
-- [ ] T025 [P] [US2] Write `Common_ShadingInfraBinding` (`tests/unit/common/shading_infra_binding.cmake`,
+- [X] T025 [P] [US2] Write `Common_ShadingInfraBinding` (`tests/unit/common/shading_infra_binding.cmake`,
   `cmake -P`), following contracts/library-abi.md §3.
   - **macOS**: `nm -m` on `$<TARGET_FILE:libshader_shading>`. Each of the 17 symbols (the list
     from spec US2, mangled, kept in `tests/unit/common/shading-infra-symbols.txt`) must be defined
@@ -459,7 +459,11 @@ ownership check is green for the 17 symbols.
     `libRIBRender.so` defines none of the 17.
   - **Expected red** now for the 14 symbols not yet moved; `error`, `warning` and `info` already
     pass after Phase 3.
-- [ ] T026 [P] [US2] Append to `owned-symbols.txt`:
+  - **Phased list (2026-10-10)**: `shading-infra-symbols.txt` lists 16 symbols in Phase 4 (with
+    `globalArena` standing in for `CRenderer::globalMemory`, which is listed as `!forbidden`).
+    `parseVariable` moves with the grammar in Phase 5, so T037 appends it. Otherwise this test
+    could not be green at PAUSE 4.
+- [X] T026 [P] [US2] Append to `owned-symbols.txt`:
   - `globalArena`, `stats`;
   - `memoryInit`, `memoryTini`, `memoryNewPage`, `memoryDeletePage`;
   - `sampleHemisphere`, `sampleCosineHemisphere`;
@@ -553,7 +557,7 @@ golden) pass, and the DB-016 include and token lines become stale.
     `common/riVocabulary.h` and checks the address of one token from each. It is
     `EXCLUDE_FROM_ALL` until T039.
   - Make the ownership script also read every `RI_*` name from `ri.h`, so all tokens become owned
-    symbols; add `_Z13parseVariableP9CVariablePKcS2_` to `owned-symbols.txt`.
+    symbols; add `_Z13parseVariableP9CVariablePKcS2_` to `owned-symbols.txt` **and** to `shading-infra-symbols.txt` (see T025).
   - Red now.
 
 **Checkpoint (TEST-APPROVAL 5a)**: T037 is red. The golden test (T006) is still green. Stage, and

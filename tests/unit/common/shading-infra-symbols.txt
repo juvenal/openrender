@@ -1,0 +1,28 @@
+# Spec 023 (US2, SC-002): infrastructure symbols libshader_shading uses, which
+# must come from libRIBCommon (or be defined in libshader_shading itself),
+# never from libRIBRender. Mangled names without the macOS leading underscore.
+# "!name" = must no longer be referenced at all. Checked by
+# Common_ShadingInfraBinding (shading_infra_binding.cmake).
+#
+# parseVariable joins in Phase 5 (task T037), when the variable grammar moves.
+
+# --- diagnostics (moved in Phase 3) ---
+_Z5error10EErrorCodePKcz
+_Z7warning10EErrorCodePKcz
+_Z4info10EErrorCodePKcz
+
+# --- Phase 4: generic core + arena ---
+_Z10memoryInitRP8CMemPage                       # memoryInit(CMemPage*&)
+_Z10memoryTiniRP8CMemPage                       # memoryTini(CMemPage*&)
+_Z13memoryNewPagei                              # memoryNewPage(int)
+_Z16sampleHemispherePfPKffR6CSobolILi4EE        # sampleHemisphere(...)
+_Z22sampleCosineHemispherePfPKffR6CSobolILi4EE  # sampleCosineHemisphere(...)
+_ZN11CRefCounterC2Ev                            # CRefCounter::CRefCounter()
+_ZN11CRefCounterD2Ev                            # CRefCounter::~CRefCounter()
+_ZTI11CRefCounter                               # typeinfo for CRefCounter
+_ZN13CFileResourceC2EPKc                        # CFileResource::CFileResource(char const*)
+_ZN13CFileResourceD2Ev                          # CFileResource::~CFileResource()
+_ZTI13CFileResource                             # typeinfo for CFileResource
+stats                                           # the statistics counters
+globalArena                                     # the process-wide scratch arena
+!_ZN9CRenderer12globalMemoryE                   # CRenderer::globalMemory, replaced by globalArena
