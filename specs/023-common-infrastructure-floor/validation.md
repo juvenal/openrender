@@ -180,3 +180,47 @@ The tools live in `tools/compat-consumer/`:
   - In `-P` script mode `APPLE` is undefined, so the script now uses `CMAKE_HOST_APPLE`.
   - CMake's `REGEX REPLACE "^_"` strips *every* leading underscore (it re-anchors after each
     match), so the script now removes exactly one with `SUBSTRING`.
+
+### T008–T014: shared `libRIBCommon` (packaging only, no symbol moves)
+
+**What changed**:
+
+| Task | File(s) | Change |
+|---|---|---|
+| T008 | `src/common/CMakeLists.txt` | `openrendercommon_obj` (OBJECT, PIC) feeds **SHARED** `openrendercommon` (`libRIBCommon.1.dylib`, `@rpath` install name, `SOVERSION ${OPENRENDER_COMPAT_SOVERSION}`; `--no-undefined` on Linux) and **STATIC** `openrendercommon_static` (`libRIBCommon.a`) |
+| T009/T010 | `src/ri/CMakeLists.txt` | `openrender_reexport_common()` gives `ribRender`, `ribVector` and `ribOut` `-reexport_library` on APPLE. `ribRender_static` keeps the **shared** common; `ribVector_static`/`ribOut_static` → `openrendercommon_static` |
+| T011 | `src/libshader/{compiler,runtime}/CMakeLists.txt` | The shared libraries now `PUBLIC`-link `openrendercommon` (no embedded copy); their `_static` variants → `openrendercommon_static`. `libshader_shading` is unchanged (`PRIVATE openrendercommon`, now shared); a comment was added |
+| T012 | `CMake/openRenderConfig.cmake.in`, root `CMakeLists.txt` | Comments updated. The `-force_load` block is unchanged |
+| T013 | `src/preview/orender-wire-macos/CMakeLists.txt` | The app links `-lRIBCommon` (shared) instead of `libRIBCommon.a`, and bundles `libRIBCommon.1.dylib` plus a symlink in `Contents/Frameworks`. The self-contained bundling block needs no change: it copies only dependencies resolved *outside* the prefix |
+
+**Verification (T014)**:
+- **T009 spike**: no ld64 warning. `LC_REEXPORT_DYLIB @rpath/libRIBCommon.1.dylib` is present on `libRIB{Render,Vector,Out}.1.dylib`.
+- **Linkage** (`otool -L`): `libRIBCommon` is linked by `orender`, `libshader_shading`,
+  `libshader_compiler`, `file.dsply` and `orender-wire.app/Contents/MacOS/orender-wire`.
+  `Contents/Frameworks` holds `libRIBCommon.1.dylib`, `libRIBCommon.dylib` and the `libRIBVector`
+  pair.
+- **Tests**:
+  - `Common_StateOwnership` is **green**: all 4 seed symbols are defined once, in
+    `libRIBCommon.1.dylib`, across 17 images.
+  - `ctest -L "common|architecture"`: 23/23.
+  - Full suite: **560/560 pass** (128 s).
+- **Scratch install** (`DESTDIR=$S/023-p2`; `/usr/local` unchanged):
+  - `lib/` holds `libRIBCommon.{1.0.0,1,}.dylib` and `libRIBCommon.a`.
+  - `displays/file.dsply` links `@rpath/libRIBCommon.1.dylib` with `LC_RPATH @loader_path/../lib`.
+  - Exported targets:
+    - `openRender::RIBCommon` (SHARED) and `openRender::RIBCommon_static` (STATIC);
+    - `RIBRender_static` → `openRender::RIBCommon`;
+    - `RIBVector_static`/`RIBOut_static`/`shader_*_static` → `openRender::RIBCommon_static`;
+    - `shader_compiler`/`shader_runtime` → `openRender::RIBCommon`.
+  - `build-package.sh $S/023-p2`: `pkg-shared` and `pkg-static` both render.
+    - `pkg-static` links `libshader_shading` and the shared `libRIBCommon`, and defines **none**
+      of the seed symbols itself (one copy per process).
+    - Its TIFF is byte-identical to the baseline `pkg-static.tif`.
+  - `render-installed.sh $S/023-p2`: `camera-dof.tif` renders through the installed `file.dsply`.
+    Its size differs from the baseline (21577 vs 21611 bytes); that is expected, because
+    `camera-dof` is a multi-threaded DOF render and is not one of the byte-compared outputs.
+- **Linker warnings**:
+  - New: the deprecated `-undefined error`, now removed.
+  - Already present before this spec: `orender-wire`'s "built for macOS 13.3, linked 13.0"
+    (the Swift package targets 13.0), which now also names `libRIBCommon`; and "ignoring
+    duplicate libraries" (Imath, LLVM).

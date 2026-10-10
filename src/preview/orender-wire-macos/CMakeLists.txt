@@ -46,18 +46,22 @@ file(GLOB_RECURSE WIRE_MACOS_SOURCES
 # with no LLVM/libshader_shading dependency -- see the domain-split plan and
 # src/ri/CMakeLists.txt's ribVector section for why.
 set(LIBRIBPREVIEW_A  "${CMAKE_BINARY_DIR}/src/preview/libribpreview/libribpreview.a")
-set(LIBCOMMON_A      "${CMAKE_BINARY_DIR}/src/common/libRIBCommon.a")
 set(LIBRIBVECTOR_DYLIB_DIR  "${CMAKE_BINARY_DIR}/src/ri")
 set(LIBRIBVECTOR_VERSIONED  "libRIBVector.${OPENRENDER_COMPAT_SOVERSION}.dylib")
+# The shared libRIBCommon, bundled next to libRIBVector (which links it): the
+# app must not also embed libRIBCommon.a, or it would hold a second copy of
+# the common layer's process-wide state (spec 023, research R1).
+set(LIBCOMMON_DYLIB_DIR     "${CMAKE_BINARY_DIR}/src/common")
+set(LIBCOMMON_VERSIONED     "libRIBCommon.${OPENRENDER_COMPAT_SOVERSION}.dylib")
 
 add_custom_command(
     OUTPUT  "${WIRE_MACOS_BINARY}"
     # SPM's own incremental build tracks Swift source files, not the externally-linked
-    # libribpreview.a/libRIBCommon.a passed via raw -Xlinker flags below -- when only
+    # libribpreview.a/libRIBCommon passed via raw -Xlinker flags below -- when only
     # those C++ static libraries change (no .swift file touched), `swift build` sees "no Swift
     # sources changed" and skips relinking entirely, leaving this stale binary in place even
     # though CMake correctly re-invoked this whole custom command because its OWN DEPENDS list
-    # (LIBRIBPREVIEW_A/LIBCOMMON_A below) changed. Removing the previous output first forces
+    # (LIBRIBPREVIEW_A/the libRIBCommon dylib below) changed. Removing the previous output first forces
     # SPM to always perform the final link step, since "produce this output file" is then
     # unconditionally true regardless of what its own source-level tracking concluded.
     COMMAND "${CMAKE_COMMAND}" -E remove -f "${WIRE_MACOS_BINARY}"
@@ -66,7 +70,8 @@ add_custom_command(
             --package-path "${WIRE_MACOS_SRC_DIR}"
             --build-path    "${WIRE_MACOS_BUILD_DIR}"
             -Xlinker "${LIBRIBPREVIEW_A}"
-            -Xlinker "${LIBCOMMON_A}"
+            -Xlinker "-L${LIBCOMMON_DYLIB_DIR}"
+            -Xlinker "-lRIBCommon"
             -Xlinker "-L${LIBRIBVECTOR_DYLIB_DIR}"
             -Xlinker "-lRIBVector"
             -Xlinker "-rpath" -Xlinker "@executable_path/../Frameworks"
@@ -86,6 +91,12 @@ add_custom_command(
     COMMAND "${CMAKE_COMMAND}" -E create_symlink
             "${LIBRIBVECTOR_VERSIONED}"
             "${WIRE_MACOS_CONTENTS}/Frameworks/libRIBVector.dylib"
+    COMMAND "${CMAKE_COMMAND}" -E copy
+            "${LIBCOMMON_DYLIB_DIR}/${LIBCOMMON_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/${LIBCOMMON_VERSIONED}"
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink
+            "${LIBCOMMON_VERSIONED}"
+            "${WIRE_MACOS_CONTENTS}/Frameworks/libRIBCommon.dylib"
     COMMAND codesign --force --deep -s - "${WIRE_MACOS_APP_DIR}"
     DEPENDS ${WIRE_MACOS_SOURCES}
             "${WIRE_MACOS_SRC_DIR}/Package.swift"
@@ -93,7 +104,7 @@ add_custom_command(
             "${WIRE_MACOS_SRC_DIR}/CRibPreview/module.modulemap"
             "${WIRE_MACOS_STAGED_API_H}"
             "${LIBRIBPREVIEW_A}"
-            "${LIBCOMMON_A}"
+            "${LIBCOMMON_DYLIB_DIR}/${LIBCOMMON_VERSIONED}"
     COMMENT "Building orender-wire.app (Swift/Metal)"
     VERBATIM
 )
@@ -102,7 +113,7 @@ add_custom_target(orender-wire-macos ALL
     DEPENDS "${WIRE_MACOS_BINARY}"
 )
 
-add_dependencies(orender-wire-macos ribpreview)
+add_dependencies(orender-wire-macos ribpreview ribVector openrendercommon)
 
 add_custom_command(TARGET orender-wire-macos POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_BINARY_DIR}/orender-wire.app"

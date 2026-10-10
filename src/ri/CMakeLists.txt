@@ -1,3 +1,15 @@
+# Spec 023 (research R1): the RI shared libraries re-export libRIBCommon on
+# macOS. Binaries linked before the common layer became a shared library
+# record two-level bindings such as "_RI_P from libRIBRender.1.dylib"; dyld
+# then finds the symbol through the re-exported libRIBCommon. (On ELF the
+# DT_NEEDED entry plus global symbol lookup gives the same result.) CMake 3.19
+# has no LINK_LIBRARY:REEXPORT_LIBRARY feature, hence the raw linker option.
+function(openrender_reexport_common target)
+    if(APPLE)
+        target_link_options(${target} PRIVATE "LINKER:-reexport_library,$<TARGET_FILE:openrendercommon>")
+    endif()
+endfunction()
+
 file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h)
 
 # for flex and bison files that depend on ri/ files
@@ -225,6 +237,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
+openrender_reexport_common(ribRender)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
 endif()
@@ -249,6 +262,9 @@ endif()
 # Static library — same object files, library consumers inherit the link requirements
 add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
 set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender_static)
+# The SHARED common library, not the archive: libshader_shading (shared-only)
+# binds its infrastructure to libRIBCommon, so a static program that also
+# carried libRIBCommon.a would hold two copies of that state (spec 023, R1).
 target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
@@ -407,6 +423,7 @@ target_include_directories(ribVector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribVector PRIVATE ${openrendertiff_libs} openrendercommon)
+openrender_reexport_common(ribVector)
 if(WIN32)
     target_link_libraries(ribVector PRIVATE zlib ws2_32)
 endif()
@@ -431,7 +448,7 @@ endif()
 # Static library -- same object files, consumers inherit the link requirements.
 add_library(ribVector_static STATIC $<TARGET_OBJECTS:ribVector_obj>)
 set_target_properties(ribVector_static PROPERTIES OUTPUT_NAME RIBVector EXPORT_NAME RIBVector_static)
-target_link_libraries(ribVector_static INTERFACE ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribVector_static INTERFACE ${openrendertiff_libs} openrendercommon_static)
 if(WIN32)
     target_link_libraries(ribVector_static INTERFACE zlib ws2_32)
 endif()
@@ -530,6 +547,7 @@ target_include_directories(ribOut PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
 target_link_libraries(ribOut PRIVATE ${openrendertiff_libs} openrendercommon)
+openrender_reexport_common(ribOut)
 if(WIN32)
     target_link_libraries(ribOut PRIVATE zlib ws2_32)
 endif()
@@ -551,7 +569,7 @@ endif()
 # Static library -- same object files, consumers inherit the link requirements.
 add_library(ribOut_static STATIC $<TARGET_OBJECTS:ribOut_obj>)
 set_target_properties(ribOut_static PROPERTIES OUTPUT_NAME RIBOut EXPORT_NAME RIBOut_static)
-target_link_libraries(ribOut_static INTERFACE ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribOut_static INTERFACE ${openrendertiff_libs} openrendercommon_static)
 if(WIN32)
     target_link_libraries(ribOut_static INTERFACE zlib ws2_32)
 endif()

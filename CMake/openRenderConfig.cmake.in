@@ -11,12 +11,19 @@
 #     openRender::shader_shading  shading engine
 #     openRender::shader_runtime  .rslo/.slo loader
 #     openRender::shader_compiler RSL compiler
+#     openRender::RIBCommon       shared infrastructure (diagnostics, scratch
+#                                 arena, statistics, RI tokens, ...); the only
+#                                 image that defines that process-wide state.
+#                                 The RI libraries re-export it on macOS.
 #   Static  (available when its external dependencies are found: TIFF, PNG,
 #            Threads@OPENRENDER_CONFIG_OPENEXR_NOTE@)
 #     openRender::RIBRender_static, RIBVector_static, RIBOut_static,
-#     shader_runtime_static, shader_compiler_static, and openRender::RIBCommon
-#     (shared internal code every static archive depends on; linked
-#     automatically, exactly once)
+#     shader_runtime_static, shader_compiler_static, and
+#     openRender::RIBCommon_static (the common archive the fully static
+#     archives depend on; linked automatically, exactly once).
+#     RIBRender_static links the SHARED openRender::RIBCommon instead, because
+#     the shared-only libshader_shading binds its infrastructure there; a
+#     second, static copy in the program would split that state in two.
 #
 # The shared libraries are self-contained: they need nothing from this
 # machine's TIFF/PNG/OpenEXR/LLVM development files, so a find_package() that
@@ -59,8 +66,10 @@ else()
     include("${CMAKE_CURRENT_LIST_DIR}/openRenderStaticTargets.cmake")
     set(openRender_Static_FOUND TRUE)
 
-    # libshader_shading resolves ~28 libRIBRender symbols at load time
-    # (flat-namespace / --allow-shlib-undefined; GitHub #24). A static link
+    # libshader_shading resolves its remaining renderer-core and hider symbols
+    # (trace, bundles, getDSO/getFilter, ...) from libRIBRender at load time
+    # (flat-namespace / --allow-shlib-undefined; GitHub #24); its
+    # infrastructure now comes from the shared libRIBCommon. A static link
     # only pulls the archive members the program itself references, so those
     # symbols would be missing and the program aborts at launch
     # ("symbol not found in flat namespace '__ZTV12CTraceBundle'"). Load the

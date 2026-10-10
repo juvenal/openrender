@@ -128,9 +128,9 @@ endif()
 # Shared + static libraries
 add_library(libshader_compiler SHARED
     $<TARGET_OBJECTS:libshader_compiler_obj>)
-# BUILD_INTERFACE: the shared library already contains openrendercommon's
-# objects; only in-tree consumers keep inheriting its usage requirements.
-target_link_libraries(libshader_compiler PUBLIC $<BUILD_INTERFACE:openrendercommon>)
+# The shared libRIBCommon, not an embedded copy of the archive: one image per
+# process defines the common layer's state (spec 023, research R1).
+target_link_libraries(libshader_compiler PUBLIC openrendercommon)
 if(OPENRENDER_HAVE_LLVM)
     # BUILD_INTERFACE: LLVM is linked into the shared library itself; exported
     # consumers must not be handed LLVM component names they cannot resolve.
@@ -155,7 +155,7 @@ add_library(libshader_compiler_static STATIC
 set_target_properties(libshader_compiler_static PROPERTIES
     OUTPUT_NAME shader_compiler
     EXPORT_NAME shader_compiler_static)
-target_link_libraries(libshader_compiler_static INTERFACE openrendercommon)
+target_link_libraries(libshader_compiler_static INTERFACE openrendercommon_static)
 
 install(TARGETS libshader_compiler EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

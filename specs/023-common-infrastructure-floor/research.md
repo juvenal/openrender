@@ -82,6 +82,11 @@ longer needed: Shading may depend on common directly.
   - Spike risk: ld64 may warn when the same dylib is both linked and re-exported. The fallback is to
     pass it only through the re-export option, plus `add_dependencies`. The first foundational
     task settles this.
+  - **Spike result (T009, 2026-10-09)**: linking `openrendercommon` normally *and* adding
+    `LINKER:-reexport_library,$<TARGET_FILE:openrendercommon>` works with no ld64 warning. All three
+    RI libraries carry `LC_REEXPORT_DYLIB @rpath/libRIBCommon.1.dylib`, so no fallback is needed.
+    Spelling out `-undefined,error` on `libRIBCommon` is deprecated in current ld64 (and is its
+    default for dylibs), so only Linux passes `--no-undefined`.
 - **Linux**: the RI libraries carry `DT_NEEDED libRIBCommon.so.1`. ELF resolves symbols through the
   global scope, so existing binaries find moved functions in `libRIBCommon`.
   - Copy relocations are by name, so an executable's copy of a moved data symbol (`RI_*`, `stats`)

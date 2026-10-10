@@ -32,9 +32,9 @@ target_link_libraries(libshader_runtime_obj PRIVATE openrendercommon)
 # Shared + static libraries
 add_library(libshader_runtime SHARED
     $<TARGET_OBJECTS:libshader_runtime_obj>)
-# BUILD_INTERFACE: the shared library already contains openrendercommon's
-# objects; only in-tree consumers keep inheriting its usage requirements.
-target_link_libraries(libshader_runtime PUBLIC $<BUILD_INTERFACE:openrendercommon>)
+# The shared libRIBCommon, not an embedded copy of the archive: one image per
+# process defines the common layer's state (spec 023, research R1).
+target_link_libraries(libshader_runtime PUBLIC openrendercommon)
 target_include_directories(libshader_runtime PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 set_target_properties(libshader_runtime PROPERTIES
@@ -49,7 +49,7 @@ add_library(libshader_runtime_static STATIC
 set_target_properties(libshader_runtime_static PROPERTIES
     OUTPUT_NAME shader_runtime
     EXPORT_NAME shader_runtime_static)
-target_link_libraries(libshader_runtime_static INTERFACE openrendercommon)
+target_link_libraries(libshader_runtime_static INTERFACE openrendercommon_static)
 
 install(TARGETS libshader_runtime EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

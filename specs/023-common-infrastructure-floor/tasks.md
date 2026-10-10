@@ -209,7 +209,7 @@ Stage, and wait for approval of the test before T008.
 
 ### Implementation
 
-- [ ] T008 Restructure `src/common/CMakeLists.txt`.
+- [X] T008 Restructure `src/common/CMakeLists.txt`.
   - Build an OBJECT library `openrendercommon_obj` (PIC) with today's sources, include directories
     and dependencies.
   - Target **`openrendercommon`** becomes `SHARED`:
@@ -222,17 +222,17 @@ Stage, and wait for approval of the test before T008.
   - New target **`openrendercommon_static`**: `STATIC`, `OUTPUT_NAME RIBCommon`,
     `EXPORT_NAME RIBCommon_static`.
   - Keep any other target that links the OBJECT library's dependencies (e.g. pthread, dl) working.
-- [ ] T009 Re-export spike on `ribRender` in `src/ri/CMakeLists.txt` (research R1).
+- [X] T009 Re-export spike on `ribRender` in `src/ri/CMakeLists.txt` (research R1).
   - Add `target_link_options(ribRender PRIVATE "LINKER:-reexport_library,$<TARGET_FILE:openrendercommon>")`
     under `if(APPLE)`, and keep `openrendercommon` in `target_link_libraries`.
   - Rebuild, then check `otool -l build/src/ri/libRIBRender.1.dylib | grep -A2 LC_REEXPORT_DYLIB`.
   - If ld64 warns or fails on the duplicate, drop `openrendercommon` from `target_link_libraries`
     for APPLE and add `add_dependencies(ribRender openrendercommon)`.
   - Record the outcome in `research.md` R1 ("spike result").
-- [ ] T010 Apply T009's working form to `ribVector` and `ribOut` in `src/ri/CMakeLists.txt`.
+- [X] T010 Apply T009's working form to `ribVector` and `ribOut` in `src/ri/CMakeLists.txt`.
   - `ribRender_static` (`:252`) keeps `openrendercommon`, the shared library (research R1).
   - `ribVector_static` (`:434`) and `ribOut_static` (`:554`) switch to `openrendercommon_static`.
-- [ ] T011 [P] Make the libshader libraries link the shared library instead of embedding the archive.
+- [X] T011 [P] Make the libshader libraries link the shared library instead of embedding the archive.
   - `src/libshader/compiler/CMakeLists.txt:133` and `src/libshader/runtime/CMakeLists.txt:37`:
     replace `PUBLIC $<BUILD_INTERFACE:openrendercommon>` with `PUBLIC openrendercommon`, and
     update the comments at `:131`/`:35`.
@@ -240,7 +240,7 @@ Stage, and wait for approval of the test before T008.
   - `src/libshader/shading/CMakeLists.txt:119` keeps `PRIVATE openrendercommon`, which is now
     shared. Its `-undefined dynamic_lookup` / `--allow-shlib-undefined` stay; spec 029 removes
     them.
-- [ ] T012 [P] Install and package.
+- [X] T012 [P] Install and package.
   - In `src/common/CMakeLists.txt`, install `openrendercommon` with `EXPORT openRenderTargets`
     (LIBRARY/RUNTIME/ARCHIVE to the standard dirs) and `openrendercommon_static` with
     `EXPORT openRenderStaticTargets`.
@@ -252,7 +252,7 @@ Stage, and wait for approval of the test before T008.
     - keep the `-force_load`/`--whole-archive` block (`:62-78`) unchanged;
     - update its comment to say the infrastructure now comes from `libRIBCommon`, and only DB-001's
       renderer symbols need the whole archive.
-- [ ] T013 [P] Bundling and runtime search paths.
+- [X] T013 [P] Bundling and runtime search paths.
   - `src/preview/orender-wire-macos/CMakeLists.txt:51-90`: copy
     `libRIBCommon.${OPENRENDER_COMPAT_SOVERSION}.dylib` and its unversioned symlink into
     `Contents/Frameworks`, exactly like `libRIBVector`, and add `openrendercommon` to the bundle
@@ -264,7 +264,7 @@ Stage, and wait for approval of the test before T008.
     sibling of `lib/`.
   - Check that the `INSTALL_SELFCONTAINED` dependency-copy block (root `CMakeLists.txt:682-…`)
     doesn't need changes for an in-tree library.
-- [ ] T014 Build, then verify:
+- [X] T014 Build, then verify:
   - `otool -L` shows `libRIBCommon` on `orender`, `libRIBRender`, `libshader_shading`,
     `libshader_compiler` and a display driver;
   - `LC_REEXPORT_DYLIB` is present on all three RI libraries;

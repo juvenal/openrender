@@ -116,6 +116,9 @@ target_include_directories(libshader_shading PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/libshader/include>
 )
 
+# The shared libRIBCommon: its infrastructure symbols (diagnostics, arena,
+# stats, ref-counting, sampling, parseVariable) bind there, never to libRIBRender
+# (spec 023, US2).
 target_link_libraries(libshader_shading PRIVATE openrendercommon)
 
 if(OPENRENDER_HAVE_LLVM)

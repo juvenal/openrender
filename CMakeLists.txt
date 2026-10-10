@@ -637,8 +637,9 @@ add_subdirectory(shaders)
 # Two export sets, so an install that only ships the shared libraries (e.g. a
 # self-contained tarball with bundled runtime deps, no TIFF/PNG dev files) still
 # yields a working find_package(): openRenderTargets holds the self-contained
-# shared libraries; openRenderStaticTargets holds the static archives plus
-# openRender::RIBCommon, whose external deps the config resolves at find time
+# shared libraries (including openRender::RIBCommon); openRenderStaticTargets
+# holds the static archives plus openRender::RIBCommon_static, whose external
+# deps the config resolves at find time
 # (component "Static"). See CMake/openRenderConfig.cmake.in.
 include(CMakePackageConfigHelpers)
 set(OPENRENDER_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/openRender")
