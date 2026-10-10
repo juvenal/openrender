@@ -101,21 +101,27 @@ The tools live in `tools/compat-consumer/`:
     | US2 infrastructure (leaves in this spec) | 17 | `memoryInit`, `memoryTini`, `memoryNewPage`, `parseVariable`, `sampleHemisphere`, `sampleCosineHemisphere`, `info`, `error`, `warning`, `CRefCounter` ctor/dtor/typeinfo, `CFileResource` ctor/dtor/typeinfo, `CRenderer::globalMemory`, `stats` |
     | DB-001 remainder (specs 024/029) | 12 | `CPhotonMap::lookup`, `CTexture3d::resolve`, `CGatherBundle` ctor, `CShadingContext::trace`/`traceEx`, `CRenderer::{getGlobalID, getStepFilter, retrieveVariable, getDSO, getFilter}`, vtables for `CTraceBundle`/`CTransmissionBundle` |
 
-- **Linux**: for the maintainer to run on the Linux host, from master's `build-022`. Paste the
-  results into `tools/libshader-undef-before-linux.txt` and
-  `tools/libshader-bindings-before-linux.txt`:
+- **Linux** (run by the maintainer on master's `build-022`):
+  - `tools/023-libshader-undef-before-linux.txt` has 463 lines (`nm -D --undefined-only`). All 17
+    US2 infrastructure symbols are present as `U`, matching macOS.
+  - `tools/023-libshader-bindings-before-linux.txt` was **empty**, because the first command block
+    was wrong. It grepped for `file=`, but glibc's `LD_DEBUG=bindings` lines read
+    `binding file <obj> [0] to <lib> [0]: normal symbol \`<mangled>'`. Lazy binding also leaves
+    out functions that are never called. The corrected command, for the maintainer to re-run:
 
   ```bash
   cd /home/juvenal/Projects/Development/CLI/openrender
-  nm -D --undefined-only build-022/src/libshader/shading/libshader_shading.so.1 | c++filt \
-    > /tmp/023-libshader-undef-before-linux.txt
   SHADERS="$PWD/build-022/shaders" ORENDERHOME="$PWD/openrender" \
-  LD_DEBUG=bindings build-022/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
-    | grep 'file=.*libshader_shading' \
-    | grep -E 'error|warning|info|stats|memory|globalMemory|parseVariable|sample.*Hemisphere|CRefCounter|CFileResource' \
-    > /tmp/023-libshader-bindings-before-linux.txt
-  wc -l /tmp/023-libshader-*-before-linux.txt
+  LD_BIND_NOW=1 LD_DEBUG=bindings build-022/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
+    | grep 'binding file .*libshader_shading' \
+    | grep -E '_Z5error|_Z7warning|_Z4info|`stats|memory(Init|Tini|NewPage)|globalMemory|parseVariable|Hemisphere|CRefCounter|CFileResource' \
+    > specs/023-common-infrastructure-floor/tools/023-libshader-bindings-before-linux.txt
+  wc -l specs/023-common-infrastructure-floor/tools/023-libshader-bindings-before-linux.txt
   ```
+
+  Expect about 17 lines (more if one symbol is bound from several relocations), every one ending
+  `to …/libRIBRender.so.1 …`. After the feature, the same command must show them bound to
+  `libRIBCommon.so.1`.
 
 ### T006: golden variable-declaration table (FR-005)
 
@@ -145,3 +151,32 @@ The tools live in `tools/compat-consumer/`:
   - `ctest -L "common|architecture"`: 22/22 pass;
   - full build clean (no warnings).
 - Full suite (`nice -n 19 ctest --test-dir build -j4`): **559/559 pass** in 124 s. That is the 558 tests already on master plus `Common_VariableDeclarations`.
+
+## Phase 2: Foundational (shared `libRIBCommon`)
+
+### T007: `Common_StateOwnership`, red (TEST-APPROVAL 2a)
+
+- New files:
+  - `tests/unit/common/state_ownership.cmake`, a `cmake -P` script;
+  - `tests/unit/common/owned-symbols.txt`.
+
+  Registered in `tests/unit/common/CMakeLists.txt` with labels `common` and `unit`.
+- **Images**: 17 scanned (resolved at generate time, because `tests/` is configured before `src/`):
+  - `libRIB{Render,Vector,Out}`, `libshader_{shading,compiler,runtime}`;
+  - the display modules `file`, `framebuffer`, `rgbe`, `openexr`;
+  - `orender`, `oshader`, `otexmake`, `precomp`, `sloinfo`, `test_common_variables`;
+  - plus the `openrendercommon` output.
+- **Seed list**: `RiBezierBasis`, `RiGaussianFilter`, `RiCatmullRomFilter` (from
+  `rslConstants.cpp`) and `_Z9osCPUTimev`.
+- **Red output (expected)**:
+  - each `rslConstants` symbol has **5 definers**: `libRIBVector`, `libRIBOut`,
+    `libshader_shading`, `otexmake` and the archive;
+  - `osCPUTime` has **11**: every shared library, all four display modules, `orender` and the
+    archive.
+
+  This is the per-image copy problem FR-008 targets: every image that embeds the static archive
+  carries its own copy.
+- Two script bugs were found and fixed while making it red for the right reason:
+  - In `-P` script mode `APPLE` is undefined, so the script now uses `CMAKE_HOST_APPLE`.
+  - CMake's `REGEX REPLACE "^_"` strips *every* leading underscore (it re-anchors after each
+    match), so the script now removes exactly one with `SUBSTRING`.

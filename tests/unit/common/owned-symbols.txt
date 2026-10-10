@@ -1,0 +1,11 @@
+# Spec 023 (FR-008): symbols that must be defined exactly once per process,
+# in the shared libRIBCommon. One mangled name per line, without the macOS
+# leading underscore. Checked by Common_StateOwnership (state_ownership.cmake).
+# Later phases append the symbols they move (tasks T018, T026, T037).
+
+# --- Phase 2 seed: already in src/common today, but embedded into several
+#     images because the common archive is static (research R2) ---
+RiBezierBasis         # common/rslConstants.cpp (data)
+RiGaussianFilter      # common/rslConstants.cpp
+RiCatmullRomFilter    # common/rslConstants.cpp
+_Z9osCPUTimev         # osCPUTime(), common/os.cpp

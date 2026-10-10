@@ -139,8 +139,11 @@ is wrong: stop and report it; don't allowlist it.
   the session.
   - Add quickstart §0's Linux "before" commands to `validation.md` as a block for the maintainer
     to run on `build-022`.
-  - The maintainer pastes the results into `tools/libshader-undef-before-linux.txt` and
-    `tools/libshader-bindings-before-linux.txt`.
+  - The maintainer pastes the results into `tools/023-libshader-undef-before-linux.txt` and
+    `tools/023-libshader-bindings-before-linux.txt`.
+  - **2026-10-09**: the undefined-symbol list is in (463 lines, all 17 symbols). The bindings file
+    came back empty because the first command was wrong; `validation.md` has the corrected
+    `LD_BIND_NOW=1` command, to be re-run before Phase 7 needs it.
 - [X] T006 Write the golden variable-declaration test, `Common_VariableDeclarations` (label
   `common`, FR-005), against the **current** `src/ri/parse/variable.h`.
   - Create `tests/unit/common/CMakeLists.txt` and add `add_subdirectory(unit/common)` to
@@ -180,7 +183,7 @@ these tests, review and commit. Hand the Linux "before" block to the maintainer.
 
 ### Tests first
 
-- [ ] T007 Write the state-ownership check, `Common_StateOwnership` (research R2, contracts/library-abi.md §2).
+- [X] T007 Write the state-ownership check, `Common_StateOwnership` (research R2, contracts/library-abi.md §2).
   - Files: `tests/unit/common/state_ownership.cmake` (a `cmake -P` script) and
     `tests/unit/common/owned-symbols.txt`, one mangled symbol per line with a `#` comment.
   - The script gets `-DIMAGES=<;-list>` and `-DCOMMON=<path to libRIBCommon>` from

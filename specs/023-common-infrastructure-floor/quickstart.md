@@ -37,13 +37,16 @@ ls "$S/023-libshader-undef-before.txt"
 
 ```bash
 cd /home/juvenal/Projects/Development/CLI/openrender
+T=specs/023-common-infrastructure-floor/tools
 nm -D --undefined-only build-022/src/libshader/shading/libshader_shading.so.1 | c++filt \
-  > /tmp/023-libshader-undef-before-linux.txt
+  > $T/023-libshader-undef-before-linux.txt
+# LD_BIND_NOW: bind every symbol at load (lazy binding would omit uncalled functions)
 SHADERS="$PWD/build-022/shaders" ORENDERHOME="$PWD/openrender" \
-LD_DEBUG=bindings build-022/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
-  | grep 'file=.*libshader_shading' | grep -E 'error|warning|info|stats|memory|globalMemory|parseVariable|sample.*Hemisphere|CRefCounter|CFileResource' \
-  > /tmp/023-libshader-bindings-before-linux.txt
-wc -l /tmp/023-libshader-*-before-linux.txt
+LD_BIND_NOW=1 LD_DEBUG=bindings build-022/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
+  | grep 'binding file .*libshader_shading' \
+  | grep -E '_Z5error|_Z7warning|_Z4info|`stats|memory(Init|Tini|NewPage)|globalMemory|parseVariable|Hemisphere|CRefCounter|CFileResource' \
+  > $T/023-libshader-bindings-before-linux.txt
+wc -l $T/023-libshader-*-before-linux.txt     # expect ~463 and ~17 lines
 ```
 
 ## 1. Build and the new tests
