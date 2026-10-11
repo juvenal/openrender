@@ -103,9 +103,10 @@ set(ri_sources
 	hiders/linsys.cpp
 	geometry/object.cpp
 	state/options.cpp
+	state/variableLookup.cpp
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
-	core/pl.cpp
+	state/pl.cpp
 	geometry/points.cpp
 	texture/pointCloud.cpp
 	texture/pointHierarchy.cpp
@@ -505,6 +506,7 @@ set(ribOut_sources
     render/rendererNetwork.cpp
     render/rendererStatics.cpp
     state/displayChannel.cpp
+    state/variableLookup.cpp
     vector/rendererDeclarationsDispatchStub.cpp
     dso_generated.cpp
     rib_generated.cpp

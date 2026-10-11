@@ -12,8 +12,8 @@
 
 Geometry           76    19
 Hiders            581    87
-Infra               2     1
+Infra               0     0
 SceneInterface      6     6
 Shading             9     5
 Texturing          70    16
-TOTAL             744   117
+TOTAL             742   117

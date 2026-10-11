@@ -128,8 +128,7 @@ set_tests_properties(Common_VocabularyBothHeaders PROPERTIES TIMEOUT 60 LABELS "
 # --- Phase 6 (US1): pl in Graphics State ---------------------------------------
 # Research R8: pl.cpp resolves declared variables through a Graphics State
 # lookup hook that the renderer core installs, not through CRenderer.
-# EXCLUDE_FROM_ALL until T048: ri/state/variableLookup.h does not exist yet.
-add_executable(test_variable_lookup EXCLUDE_FROM_ALL test_variable_lookup.cpp)
+add_executable(test_variable_lookup test_variable_lookup.cpp)
 target_compile_features(test_variable_lookup PRIVATE cxx_std_20)
 target_include_directories(test_variable_lookup PRIVATE
     ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)

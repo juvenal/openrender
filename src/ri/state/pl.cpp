@@ -31,7 +31,7 @@
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "pl.h"
-#include "renderer.h"
+#include "variableLookup.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -1229,7 +1229,7 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
         int declaredParam = FALSE;
 
         // Fetch the parameter
-        cVar = CRenderer::retrieveVariable(params[i]);
+        cVar = lookupVariable(params[i]);
         if (cVar == NULL) {
 
             // This may be an inline decl., try to parse it into a temp var
@@ -1239,7 +1239,7 @@ CPl *parseParameterList(int numUniform, int numVertex, int numVarying, int numFa
                 container = tmp.container;
                 declaredParam = TRUE;
 
-                cVar = CRenderer::retrieveVariable(tmp.name);
+                cVar = lookupVariable(tmp.name);
                 if (cVar == NULL) {
                     // No match, query the shaders
                     sVar = &tmp;

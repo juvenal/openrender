@@ -652,10 +652,10 @@ before T047.
 
 ### Implementation
 
-- [ ] T047 [US1] Create `src/ri/state/variableLookup.{h,cpp}` exactly as contracts/variable-lookup.md §1
+- [X] T047 [US1] Create `src/ri/state/variableLookup.{h,cpp}` exactly as contracts/variable-lookup.md §1
   specifies, and add `variableLookup.cpp` to `ri_sources` and to the ribVector source list in
   `src/ri/CMakeLists.txt`.
-- [ ] T048 [US1] Move `pl` with `git mv src/ri/core/pl.h src/ri/core/pl.cpp src/ri/state/`.
+- [X] T048 [US1] Move `pl` with `git mv src/ri/core/pl.h src/ri/core/pl.cpp src/ri/state/`.
   - Update `src/ri/CMakeLists.txt` (`:99`, plus the ribVector list if it names `core/pl.cpp`).
   - In `pl.cpp`:
     - remove `#include "renderer.h"`;
@@ -666,10 +666,10 @@ before T047.
     `renderer.cpp`, `rendererStatics.cpp` and `preview/libribpreview/ribGeometryContext.cpp`. Follow
     each file's existing include style for state headers.
   - Remove `EXCLUDE_FROM_ALL` from T046.
-- [ ] T049 [US1] In `src/ri/render/rendererDeclarations.cpp`, call
+- [X] T049 [US1] In `src/ri/render/rendererDeclarations.cpp`, call
   `installVariableLookup(&CRenderer::retrieveVariable)` at the end of `CRenderer::initDeclarations()`
   and `installVariableLookup(nullptr)` at the start of `CRenderer::shutdownDeclarations()`.
-- [ ] T050 [US1] Build, then:
+- [X] T050 [US1] Build, then:
   - `ctest -L common`, all green;
   - `ctest -L architecture`: prune the stale `pl` lines;
   - `grep -c '^DB-016' tests/architecture/allowlist.txt` must print `0`; also delete the empty

@@ -32,6 +32,7 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
+#include "variableLookup.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CGlobalIdentifier
@@ -324,6 +325,9 @@ void CRenderer::initDeclarations() {
     defineCoordinateSystem(colorCieSystem, identityMatrix, identityMatrix, COLOR_CIE);
     defineCoordinateSystem(colorYiqSystem, identityMatrix, identityMatrix, COLOR_YIQ);
     defineCoordinateSystem(colorXyySystem, identityMatrix, identityMatrix, COLOR_XYY);
+
+    // Parameter lists (state/pl.cpp) resolve declared names through this hook
+    installVariableLookup(&CRenderer::retrieveVariable);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -333,6 +337,9 @@ void CRenderer::initDeclarations() {
 // Return Value			:
 // Comments				:
 void CRenderer::shutdownDeclarations() {
+    // The declarations are going away: stop resolving names through them
+    installVariableLookup(nullptr);
+
     // Ditch the global IDs
     assert(globalIdHash != NULL);
     globalIdHash->destroy();

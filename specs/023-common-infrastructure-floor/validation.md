@@ -538,3 +538,48 @@ The tools live in `tools/compat-consumer/`:
     `llvmEmitter.cpp`, which relinks `oshader` and recompiles every shader. The rerun on a quiescent
     build is the one recorded.
 - `git diff master -- src/ri/parse/ri.h` is empty.
+
+## Phase 6: US1, `pl` belongs to Graphics State
+
+### T046: red (TEST-APPROVAL 6a)
+
+`Common_VariableLookupHook` (`tests/unit/common/test_variable_lookup.cpp`) was registered
+`EXCLUDE_FROM_ALL`. Building it alone failed with
+`fatal error: 'ri/state/variableLookup.h' file not found`; the default build stayed green.
+
+### T047–T050: lookup hook + `pl` move (implementation)
+
+**Changes**:
+- `src/ri/state/variableLookup.{h,cpp}` as contracts/variable-lookup.md §1 specifies (a single
+  function-pointer static; `lookupVariable` returns `nullptr` when nothing is installed).
+- `variableLookup.cpp` is in `ri_sources` (so in ribRender and, through the derived list,
+  ribVector) **and in `ribOut_sources`**. The last one is beyond the task text: ribOut compiles
+  `render/rendererDeclarations.cpp`, which now calls `installVariableLookup`, so without it
+  libRIBOut would not link.
+- `git mv src/ri/core/pl.{h,cpp} src/ri/state/`. In `pl.cpp`, `#include "renderer.h"` became
+  `#include "variableLookup.h"` and the two `CRenderer::retrieveVariable(...)` calls became
+  `lookupVariable(...)`.
+- Includers of `pl.h` were not edited: all 16 use the bare `"pl.h"` form, which is their existing
+  style for state headers, and `src/ri/state` is already on every one of their include paths.
+- `rendererDeclarations.cpp`: `installVariableLookup(&CRenderer::retrieveVariable)` at the end of
+  `initDeclarations()`, `installVariableLookup(nullptr)` at the start of
+  `shutdownDeclarations()`. Declarations are set up and torn down once per session, with no
+  nesting (`beginRenderer`/`endRenderer`, the ribOut `.orenderrc` bootstrap in `RiBegin`, the
+  preview and the data viewer).
+
+**Symbols (macOS, `nm -C`)**: `state/pl.cpp.o` in both `ribRender_obj` and `ribVector_obj`
+imports only `lookupVariable(char const*)` and nothing from `CRenderer`. libRIBRender and
+libRIBVector define `installVariableLookup` and `lookupVariable`; libRIBOut defines
+`installVariableLookup`.
+
+**Results**:
+- `ctest -L common`: **14/14**, including the new `Common_VariableLookupHook`.
+- `ctest -L architecture`: the first run passed with `notbuilt=5`. Those were the 5 remaining DB-016
+  lines, all naming `src/ri/core/pl.*`, which no longer exist. They were pruned together with the
+  empty `# --- DB-016 …` section header. The re-run gives `violations=0 stale=0 notbuilt=0`.
+  - `grep -c '^DB-016' tests/architecture/allowlist.txt` prints **0**; the allowlist went from 462
+    to **457** `DB-` lines.
+  - DB-016 deletions over the spec: 84 + 9 + 117 + 5 = **215**, as predicted.
+  - Metric baseline lowered: Infra 2/1 → **0/0**, TOTAL refs 744 → **742** (distinct stays 117:
+    `retrieveVariable` is still used by Scene Interface's `rib_generated.cpp`, DB-015).
+- Full suite: **572/572** (118 s; 571 plus the new hook test).
