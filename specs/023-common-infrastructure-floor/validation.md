@@ -583,3 +583,79 @@ libRIBVector define `installVariableLookup` and `lookupVariable`; libRIBOut defi
   - Metric baseline lowered: Infra 2/1 → **0/0**, TOTAL refs 744 → **742** (distinct stays 117:
     `retrieveVariable` is still used by Scene Interface's `rib_generated.cpp`, DB-015).
 - Full suite: **572/572** (118 s; 571 plus the new hook test).
+
+## Phase 7: US4, compatibility (macOS)
+
+### T051: unchanged consumers against the new libraries
+
+- `DESTDIR=$S/023-inplace nice -n 19 cmake --install build` (over T004's in-place root) and a fresh
+  `DESTDIR=$S/023-new` install both exited 0. `/usr/local` was listed (`find -maxdepth 4`) before
+  and after: no difference.
+- `$S/023-compat/run.sh $S/023-inplace new` ran T004's **unchanged** binaries (built 2026-10-09,
+  before any source change) with no loader variables. All three exited 0, and each now also
+  resolves `libRIBCommon.1.0.0.dylib` inside `$S/023-inplace`: it is reached through the RI
+  library's `LC_REEXPORT_DYLIB`, with no change to the consumer.
+- `$S/023-compat/compare.sh $S/023-compat base new`:
+  `IDENTICAL` for `out-RIBRender` (TIFF, bytes), `out-RIBVector` and `out-RIBOut` (RIB,
+  `##CreationDate` excluded). The `libRIBVector`/`libRIBOut` warnings about `.orenderrc`
+  (`shaderformat`, `geometry` search path) are the same as in the baseline.
+- `render-installed.sh $S/023-new $S/023-render-new`: `camera-dof.tif` rendered (21651 bytes)
+  with every library resolved inside `$S/023-new`. It matches the baseline render visually; the
+  size differs as it did in Phase 2 (a multi-threaded DOF render, not a byte-compared output).
+
+### T052: re-export, source and package compatibility
+
+- `otool -l` of `libRIB{Render,Vector,Out}.1.dylib` in `$S/023-new`: each has
+  `LC_REEXPORT_DYLIB @rpath/libRIBCommon.1.dylib` and `LC_RPATH @loader_path/../lib`.
+- `git diff --quiet master -- src/ri/parse/ri.h`: exit 0.
+- `build-package.sh $S/023-new $S/023-pkg-new`: exit 0. `pkg-shared` and `pkg-static` both
+  rendered 1481-byte TIFFs, **byte-identical** to the baseline `out-RIBRender-base.tif`.
+- `build/src/preview/orender-wire-macos/orender-wire.app/Contents/Frameworks` holds
+  `libRIBCommon.1.dylib` and `libRIBCommon.dylib` (plus the `libRIBVector` pair).
+- **`dlopen` by absolute path** (`tools/compat-consumer/dlprobe.c`, no `DYLD_*` variables), base
+  and new installs, both load modes:
+
+  | Install | Mode | libRIBRender | libRIBVector / libRIBOut |
+  |---|---|---|---|
+  | base | `RTLD_NOW\|RTLD_LOCAL` | load fails: flat lookup of `CRenderer::globalMemory` | load; `error`/`parseVariable` from the library itself |
+  | base | `RTLD_LAZY\|RTLD_GLOBAL` | loads; symbols from libRIBRender | as above |
+  | new | `RTLD_NOW\|RTLD_LOCAL` | load fails: flat lookup of `vtable for CTraceBundle` | load; `error`/`parseVariable` **from libRIBCommon** |
+  | new | `RTLD_LAZY\|RTLD_GLOBAL` | loads; symbols **from libRIBCommon** | as above |
+
+  - Every library resolves `libRIBCommon` through its rpath when loaded by absolute path.
+  - The `RTLD_NOW|RTLD_LOCAL` failure of libRIBRender is **pre-existing** (#24, DB-001):
+    `libshader_shading` imports renderer symbols by flat lookup, and a library loaded
+    `RTLD_LOCAL` is not searched. The first unresolved symbol moved from an infrastructure symbol
+    (`CRenderer::globalMemory`, gone in this spec) to one of the 12 DB-001 symbols left for specs
+    024/029.
+
+### T053: shading binding (quickstart §3, SC-002)
+
+- `nm -m libshader_shading.1.dylib`, "dynamically looked up" entries: **29 → 12**. The full
+  undefined list is saved as `tools/libshader-nm-m-after-macos.txt`.
+- **Removed (17)**, exactly the US2 infrastructure group from T005: `memoryInit`, `memoryTini`,
+  `memoryNewPage`, `parseVariable`, `sampleHemisphere`, `sampleCosineHemisphere`, `info`, `error`,
+  `warning`, `CRefCounter` ctor/dtor/typeinfo, `CFileResource` ctor/dtor/typeinfo,
+  `CRenderer::globalMemory`, `stats`.
+- **Added**: none.
+- **Remaining (12)**, exactly T005's DB-001 remainder: `CPhotonMap::lookup`,
+  `CTexture3d::resolve`, `CGatherBundle` ctor, `CShadingContext::trace`/`traceEx`,
+  `CRenderer::{getGlobalID, getStepFilter, retrieveVariable, getDSO, getFilter}`, and the vtables
+  for `CTraceBundle`/`CTransmissionBundle`.
+
+### T054: suite, bindings, allowlist
+
+- **Python/Lua bindings**: they are pure-script RIB emitters (`src/python/prman.py`,
+  `src/lua/prman.lua`) that link no openRender library, and the suite has no tests for them. They
+  were exercised end to end instead:
+  - `examples/bindings/{python,lua}/colorcircles.*` wrote their RIB (1077170 bytes each,
+    byte-identical to each other).
+  - Frame 0 (display switched from `framebuffer` to `file`) was rendered with the base and the new
+    installed `orender`. Multi-threaded, the four TIFFs all differ, including python vs lua on
+    the same build from identical RIB, so the scene is not run-to-run deterministic. With `-t:1`
+    all four are **byte-identical** (167559 bytes): base = new for both bindings.
+- `grep -c '^DB-001' tests/architecture/allowlist.txt`: **18** (≤ 18).
+- Allowlist diff against master: 231 lines removed. The only `+` line is the DB-001 section's
+  count comment, `(30)` → `(18)`; no `DB-` entry was added. That comment read `(19)` after
+  Phase 5 and was corrected here.
+- Full suite (`nice -n 19 ctest --test-dir build -j4`, after a no-op rebuild): **572/572** (102 s).

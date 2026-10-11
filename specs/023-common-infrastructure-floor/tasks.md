@@ -693,7 +693,7 @@ result on macOS (SC-002).
 
 **Independent test**: quickstart §3 and §5 pass on macOS.
 
-- [ ] T051 [US4] Install the new libraries in place of the old ones, and run unchanged consumers
+- [X] T051 [US4] Install the new libraries in place of the old ones, and run unchanged consumers
   against them (spec US4 scenario 2).
   - **Install the new tree over the in-place root** that T004 created and built against:
     `DESTDIR=$S/023-inplace nice -n 19 cmake --install build`, keeping T002's `/usr/local`
@@ -704,7 +704,7 @@ result on macOS (SC-002).
     `$S/023-compat/compare.sh $S/023-compat base new`.
   - Also install fresh to `$S/023-new` (same `/usr/local` check), and run
     `render-installed.sh $S/023-new`, which must render.
-- [ ] T052 [P] [US4] Check the re-export and source compatibility.
+- [X] T052 [P] [US4] Check the re-export and source compatibility.
   - `otool -l` of all three RI libraries shows `LC_REEXPORT_DYLIB … libRIBCommon`.
   - `git diff --quiet master -- src/ri/parse/ri.h`.
   - `build-package.sh $S/023-new $S/023-pkg-new`: both the Shared and Static targets build and
@@ -715,10 +715,10 @@ result on macOS (SC-002).
       or `readelf -d … | grep RUNPATH` on Linux.
     - From a scratch program run with no loader variables, `dlopen` each library by absolute path;
       each must load and resolve `libRIBCommon`.
-- [ ] T053 [P] [US2] Check the shading binding (quickstart §3): diff the
+- [X] T053 [P] [US2] Check the shading binding (quickstart §3): diff the
   `dynamically looked up` list against `tools/libshader-nm-m-before-macos.txt` (29 entries). Only removals are
   allowed, and the removals must be exactly the infrastructure symbols.
-- [ ] T054 [US4] Run the full suite, including the python/lua binding tests. Confirm
+- [X] T054 [US4] Run the full suite, including the python/lua binding tests. Confirm
   `grep -c '^DB-001' tests/architecture/allowlist.txt` is ≤ 18, and that the allowlist diff
   against master has no added line.
 

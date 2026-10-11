@@ -10,7 +10,7 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (19) ---
+# --- DB-001: Shading depends on the renderer core and the hiders (18) ---
 DB-001  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/render/renderer.h
 DB-001  include  src/libshader/shading/shader.cpp  ->  src/ri/render/renderer.h
