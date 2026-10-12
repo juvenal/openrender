@@ -731,18 +731,18 @@ commit.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T055 [P] Write `specs/023-common-infrastructure-floor/tools/perf_ab.sh` (research R12).
+- [X] T055 [P] Write `specs/023-common-infrastructure-floor/tools/perf_ab.sh` (research R12).
   - Arguments: `<baseline-install-root> <build-dir> <rounds>`.
   - It covers the 12 RIBs `examples/rib/tests/sphere-{cfrom,ctransform,matrixops,comparisonlogic,arrayops,gather}-reyes{,-slo}.rib`.
   - Runs are serial and interleaved: baseline then new, each round, with the per-side library,
     shader and display pinning from T003.
   - It reports the median wall time per RIB and side and the ratio, and exits non-zero if any ratio
     is above 1.02.
-- [ ] T056 Run `nice -n 19 tools/perf_ab.sh $S/023-base build 7` on an idle machine and record the
+- [X] T056 Run `nice -n 19 tools/perf_ab.sh $S/023-base build 7` on an idle machine and record the
   table in `validation.md` (SC-007).
   - If a ratio is above 1.02, rerun once to rule out noise.
   - If it is still above, stop and report with per-RIB data; don't tune silently.
-- [ ] T057 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (research R14).
+- [X] T057 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (research R14).
   - Move DB-016 under `## Resolved`, with "resolved by spec 023, commit and date recorded at
     merge" for now.
   - Correct its Direction text, which says "forwarding headers for one spec".
@@ -752,18 +752,18 @@ commit.
     against master.
   - In DB-016's Resolved entry, add "Follow-up: the shared `globalArena`/`stats` become injected
     per-context state in specs 029 and 039 (constitution rule 1)."
-- [ ] T058 [P] Add a *Known gotchas* item to `CLAUDE.md` covering four rules:
+- [X] T058 [P] Add a *Known gotchas* item to `CLAUDE.md` covering four rules:
   - `libRIBCommon` is the only definer of process-wide state;
   - `ribRender_static` must link the shared `libRIBCommon`;
   - the RI libraries re-export it;
   - `ri.h` keeps duplicate token declarations, guarded by `Common_VocabularyConsistency`.
 
   Also update the Repository layout notes for `src/common`, and add `ctest -L common` to Testing.
-- [ ] T059 [P] Update the documentation.
+- [X] T059 [P] Update the documentation.
   - `DEVNOTES.md`: add a status-table entry for spec 023.
   - `INSTALL.md` and `COMPILING.txt`: the new shared `libRIBCommon`, and the Static package
     component now requiring the shared targets.
-- [ ] T060 Prepare the Linux validation package in `validation.md` (research R13), as for spec 022:
+- [X] T060 Prepare the Linux validation package in `validation.md` (research R13), as for spec 022:
   - an rsync block to `juvenal@ubuntu-2404-desktop.v2-labs.io:/home/juvenal/Projects/Development/CLI/openrender`;
   - a sha256 manifest of the changed files;
   - a command block that configures a fresh `build-023` (GCC 13, `-Werror`) and builds at
@@ -774,7 +774,7 @@ commit.
     T005 "before" files) and §5 (the in-place compat run with no loader variables, as in T051).
 
   Wait for the maintainer's results and record them. Linux green is a merge prerequisite.
-- [ ] T060a Reduced-feature builds, in scratch build directories inside the worktree, deleted
+- [X] T060a Reduced-feature builds, in scratch build directories inside the worktree, deleted
   afterwards (spec Edge Cases, "Build options"):
   - `cmake -B build-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF` and
     `cmake -B build-noexr -S . -DCMAKE_DISABLE_FIND_PACKAGE_OpenEXR=ON`;
@@ -782,7 +782,7 @@ commit.
     `nice -n 19 ctest --test-dir <dir> -L "common|architecture" --output-on-failure -j4`.
 
   Record the results in `validation.md`.
-- [ ] T061 Final pass on macOS:
+- [X] T061 Final pass on macOS:
   - `ctest -L architecture`, `ctest -L common`, and the full suite;
   - confirm the allowlist diff against master contains only deletions, and the metric diff only
     decreases.

@@ -659,3 +659,288 @@ libRIBVector define `installVariableLookup` and `lookupVariable`; libRIBOut defi
   count comment, `(30)` → `(18)`; no `DB-` entry was added. That comment read `(19)` after
   Phase 5 and was corrected here.
 - Full suite (`nice -n 19 ctest --test-dir build -j4`, after a no-op rebuild): **572/572** (102 s).
+
+## Phase 8: polish, performance, Linux
+
+### T055–T056: performance A/B (SC-007)
+
+`tools/perf_ab.sh <baseline-root> <build-dir | install-root> <rounds>` renders the 12 RIBs
+serially and interleaved (baseline, then new, per RIB per round). Each side is pinned to its own
+shaders, displays and `.orenderrc`, and only the `orender` process is timed (one perl process
+starts the clock, runs the render and stops the clock). It reports per-RIB medians and the
+new/base ratio. Optional settings: `PERF_RAW` keeps every timing, `PERF_ORENDER_ARGS` adds render
+options, and passing the baseline root twice gives an A/A run.
+
+**Preliminary run, not counted** (`-j` default threads, 2026-10-11 04:33): load average 4–7 from
+DaisyDisk, Spotlight and Finder, against T056's "idle machine". It failed: `sphere-gather-reyes`
+1.95, `-slo` 1.23, three ~55 ms scenes at 1.024–1.032. On their own, identical multithreaded
+`gather` renders took 1.6–6.8 s, because thread placement on P versus E cores dominates the
+timing. The script's first version also timed a perl and subshell start-up per render (about
+1 ms, the size of the 2 % gate on these scenes); that was fixed before the counted runs.
+
+**Method deviation (maintainer's choice, 2026-10-11)**: the counted runs render
+single-threaded (`PERF_ORENDER_ARGS=-t:1`) on both sides, and an A/A run measures the noise floor
+first. Threshold (1.02) and rounds (7) are unchanged. Load average was 2.4–4.4 throughout, from
+the desktop session.
+
+| RIB | A/A ratio | A/B run 1 | A/B rerun: base (s) | new (s) | ratio |
+|---|---|---|---|---|---|
+| sphere-cfrom-reyes | 0.971 | 0.995 | 0.076 | 0.074 | 0.982 |
+| sphere-cfrom-reyes-slo | 0.991 | 0.987 | 0.075 | 0.077 | 1.018 |
+| sphere-ctransform-reyes | 1.006 | 0.999 | 0.073 | 0.074 | 1.010 |
+| sphere-ctransform-reyes-slo | 1.003 | **1.025** | 0.075 | 0.076 | 1.003 |
+| sphere-matrixops-reyes | 0.981 | 0.989 | 0.074 | 0.075 | 1.004 |
+| sphere-matrixops-reyes-slo | 0.977 | 1.006 | 0.085 | 0.084 | 0.994 |
+| sphere-comparisonlogic-reyes | 1.013 | 0.996 | 0.073 | 0.073 | 1.009 |
+| sphere-comparisonlogic-reyes-slo | 0.976 | 1.019 | 0.080 | 0.080 | 0.998 |
+| sphere-arrayops-reyes | 0.996 | 1.011 | 0.074 | 0.075 | 1.019 |
+| sphere-arrayops-reyes-slo | 0.968 | 0.998 | 0.093 | 0.091 | 0.982 |
+| sphere-gather-reyes | 0.995 | 0.999 | 6.828 | 6.805 | 0.997 |
+| sphere-gather-reyes-slo | 1.002 | 1.001 | 6.668 | 6.765 | 1.015 |
+
+- **A/A** (`$S/023-base` against itself): PASS, ratios 0.968–1.013. Noise on the ~75 ms scenes
+  is about ±3 %, larger than the 2 % gate, so a single ratio just over 1.02 there is
+  indistinguishable from noise.
+- **A/B run 1** (`$S/023-base` against `build`): FAIL on one scene, `ctransform-reyes-slo` at 1.025
+  (a 2 ms gap; per-round pairs base/new in ms: 78.4/83.1, 80.7/77.5, 77.7/80.9, 74.3/76.1,
+  72.9/73.4, 72.1/75.1, 73.1/74.3).
+- **A/B rerun** (the one rerun T056 allows): **PASS**, every ratio ≤ 1.02; that scene is at
+  1.003. The two long `gather` scenes, where measurement noise is smallest, are at 0.997 and
+  1.015.
+
+SC-007 is met: no scene is consistently slower, and the long scenes are flat.
+
+### T057–T059: registry and documentation
+
+- `DOMAIN_BOUNDARIES.md`:
+  - **DB-016** moved under Resolved ("commit and date recorded at merge"), with its Direction
+    corrected (no forwarding headers) and the follow-up on `globalArena`/`stats` (specs 029,
+    039).
+  - **DB-001**: Evidence now lists the 12 symbols still bound flat-namespace and Size the 18
+    remaining edges (30 before), with the 29 → 12 history and the note that spec 024 no longer
+    needs a variable-parsing service.
+  - Per-entry allowlist counts against master changed only for DB-001 (30 → 18), DB-015
+    (11 → 10: `variable_generated.cpp` → `renderer.h`, now gone), DB-016 (215 → 0) and DB-019
+    (4 → 3: `llvmEmitter.cpp` → `rendererc.h`, now gone); those three entries' Size and Evidence
+    are updated. The DB-004 and DB-008 cross-references to DB-016 now say it is resolved.
+- `CLAUDE.md`: Known gotcha 22 (one definer, `ribRender_static` → shared common, the
+  re-export, duplicate token declarations in `ri.h` guarded by `Common_VocabularyConsistency`),
+  the `src/common` layout line, and `ctest -L common` under Testing.
+- `DEVNOTES.md`: a status-table row for spec 023.
+- **Deviation**: `INSTALL.md` and `COMPILING.txt` list no libraries (`COMPILING.txt` only lists
+  build dependencies), so the library documentation went where it lives,
+  `INSTALL_ARTIFACTS.md`: `libRIBCommon.dylib` in the shared table (7 libraries), the re-export,
+  the shared-common rule for `libRIBRender.a`, the 12 remaining flat imports, and both package
+  component rows (the `Static` component now needs the shared targets). `INSTALL.md` gained a
+  short paragraph naming the libraries and that requirement. `COMPILING.txt` is unchanged.
+- `ctest -L architecture` after the registry edit: **21/21**.
+
+### T060a: reduced-feature builds (macOS)
+
+Scratch trees inside the worktree, deleted afterwards; each built with
+`nice -n 19 cmake --build <dir> --config Release -j4` and tested with
+`nice -n 19 ctest --test-dir <dir> -L "common|architecture" --output-on-failure -j4`.
+
+| Tree | Configure option | Proof the option took | Build | `common|architecture` |
+|---|---|---|---|---|
+| `build-nojit` | `-DOPENRENDER_ENABLE_JIT=OFF` | cache `OPENRENDER_ENABLE_JIT:BOOL=OFF`; no `.slo` built | clean | **35/35** |
+| `build-noexr` | `-DCMAKE_DISABLE_FIND_PACKAGE_OpenEXR=ON` | no `OpenEXR_DIR` in the cache; no openexr display driver built | clean | **35/35** |
+
+No compiler warnings (`-Werror`). The only `warning:` lines are linker notes that any fresh
+tree prints and that involve no file of this spec: the Swift `orender-wire` product links at a
+13.0 deployment target against `libribpreview.a` objects built for 13.3, and `ld` ignores a
+duplicate `libImath-3_2.a`.
+
+A first attempt (discarded) lost both options to zsh's no-word-splitting of an unquoted variable
+and built the default configuration twice into misnamed directories; it was deleted and redone
+with explicit arguments.
+
+### T061: final macOS pass
+
+After a no-op rebuild of `build` (2026-10-11):
+- `ctest -L architecture`: **21/21**; `ctest -L common`: **14/14**.
+- Full suite (`nice -n 19 ctest --test-dir build -j4`): **572/572** (143 s).
+- Allowlist against master: 232 lines removed (231 entries plus the old DB-001 count
+  comment), one added, the corrected comment `(18)`. No entry added.
+- Metric baseline against master, every row down: Hiders 588/88 → 581/87, Infra 10/2 → 0/0,
+  Scene Interface 19/7 → 6/6, Shading 16/6 → 9/5, Texturing 104/17 → 70/16; TOTAL 813/118 →
+  742/117. No other row changed.
+- `tools/023-linux-manifest.sha256`: 212 files, every file this spec adds, changes or renames
+  against master (`validation.md` and `tasks.md` excluded, since they change with the Linux
+  results).
+
+### T060: Linux validation package (for the maintainer)
+
+Host `juvenal@ubuntu-2404-desktop.v2-labs.io`, checkout
+`/home/juvenal/Projects/Development/CLI/openrender`, new build directory `build-023` (Ubuntu
+24.04, GCC 13, `-Werror` is on by default). Run each block from the checkout unless it says
+otherwise. `build-022` there is the master baseline (spec 022, rebuilt with its Phase 8
+`archcheck`).
+
+**1. Baseline install, before syncing** (on Linux). `build-022` still matches master; install it
+into a staging root and check nothing lands in `/usr/local`:
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+S=$HOME/023-linux; mkdir -p "$S"
+ls -lR /usr/local > "$S/usrlocal-before.txt" 2>/dev/null
+DESTDIR="$S/023-base" cmake --install build-022 > "$S/base-install.log"
+ls -lR /usr/local > "$S/usrlocal-after-base.txt" 2>/dev/null
+diff "$S/usrlocal-before.txt" "$S/usrlocal-after-base.txt" && echo "/usr/local unchanged"
+cp -a "$S/023-base" "$S/023-inplace"
+```
+
+**2. Sync** (on the Mac, from the worktree). Spec 023 moves 18 files, so the stale copies are
+deleted on the host first; otherwise a stale `src/ri/core/memory.h` could shadow
+`src/common/memory.h`:
+
+```bash
+cd /Volumes/Projects/Development/CLI/openrender-worktrees/023-common-infrastructure-floor
+H=juvenal@ubuntu-2404-desktop.v2-labs.io; R=/home/juvenal/Projects/Development/CLI/openrender
+ssh $H "cd $R && rm -f $(git diff --name-status -M master | awk '$1 ~ /^[DR]/ {printf "%s ", $2}')"
+git ls-files -z | rsync -a --from0 --files-from=- ./ $H:$R/
+```
+
+Then on the host: `sha256sum -c specs/023-common-infrastructure-floor/tools/023-linux-manifest.sha256`
+(every file this spec adds or changes, against master; all must print `OK`), and check that
+`ls src/ri/core/` no longer lists `memory.h`, `refCounter.h`, `stats.h`, `pl.h`.
+
+**3. Build and the labelled suites** (on Linux):
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+cmake -B build-023 -S . -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF > build-023.cfg.log
+nice -n 19 cmake --build build-023 --config Release -j4 2>&1 | tee build-023.build.log | tail -3
+nice -n 19 ctest --test-dir build-023 -L architecture --output-on-failure -j4 | tail -4
+nice -n 19 ctest --test-dir build-023 -L common --output-on-failure -j4 | tail -4
+nice -n 19 ctest --test-dir build-023 -j4 2>&1 | tee build-023.ctest.log | tail -25
+```
+
+Expected: a clean `-Werror` build; `architecture` and `common` all green; the full suite shows
+only the known Linux failures from spec 022 (`LibShader_McompConsistency` #44, the four
+`TextureTile_Cache*` #46, `TextureTile_RenderByteIdentical` #45, and the noisy
+`Parity_transparency-matte-aov`, `Visual_blobby-max-union-reyes`, `Perf_sphere-gather`,
+`Visual_teapot-motion-raytrace`). `LibShader_McompConsistency` failed on
+`_ZTI13CFileResource`, which now lives in `libRIBCommon`: it may now pass, or fail on a DB-001
+symbol instead. Either is fine; please send its output.
+
+**4. Shading-library binding** (quickstart §3, SC-002; on Linux):
+
+```bash
+L=build-023/src/libshader/shading/libshader_shading.so.1
+readelf -d "$L" | grep libRIBCommon                    # expect: a NEEDED entry
+nm -D --defined-only build-023/src/ri/libRIBRender.so.1 | c++filt \
+  | grep -E ' (error|warning|info)\(|parseVariable|globalArena|globalMemory| stats$|memory(Init|Tini|NewPage)|Hemisphere|CRefCounter|CFileResource'
+                                                       # expect: nothing
+SHADERS="$PWD/build-023/shaders" ORENDERHOME="$PWD/build-023/tests/visual/_home" \
+DISPLAYS="$PWD/build-023/src/display/file" \
+LD_BIND_NOW=1 LD_DEBUG=bindings build-023/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
+  | grep 'binding file .*libshader_shading' \
+  | grep -E '_Z5error|_Z7warning|_Z4info|`stats|memory(Init|Tini|NewPage)|globalArena|parseVariable|Hemisphere|CRefCounter|CFileResource' \
+  > /tmp/023-bindings-after-linux.txt
+wc -l /tmp/023-bindings-after-linux.txt
+grep -v 'libRIBCommon.so.1' /tmp/023-bindings-after-linux.txt   # expect: nothing
+```
+
+The "before" list, `tools/023-libshader-bindings-before-linux.txt` (T005's corrected command,
+re-run on `build-022`), has 17 lines, all binding to `libRIBRender.so.1`. Afterwards the same
+symbols must bind to `libRIBCommon.so.1`, with `globalArena` in place of
+`CRenderer::globalMemory`. Please send the `wc -l` count and any line the last `grep` prints.
+
+**5. Compatibility, in place** (quickstart §5 / T051; on Linux). Consumers are built against the
+baseline from block 1, then the new tree is installed over them; no loader variables are set.
+`build.sh` gives the consumers a `DT_RPATH` (`--disable-new-dtags`) so the loader also searches the
+root for `libRIBRender`'s own dependencies, as `LC_RPATH` does on macOS:
+
+```bash
+T=$PWD/specs/023-common-infrastructure-floor/tools/compat-consumer
+"$T/build.sh" "$S/023-inplace" "$S/023-compat"
+(cd "$S/023-compat" && ./run.sh "$S/023-inplace" base)      # expect: exit=0 for all three
+DESTDIR="$S/023-inplace" cmake --install build-023 > "$S/inplace-new-install.log"
+ls -lR /usr/local > "$S/usrlocal-after-new.txt" 2>/dev/null
+diff "$S/usrlocal-before.txt" "$S/usrlocal-after-new.txt" && echo "/usr/local unchanged"
+(cd "$S/023-compat" && ./run.sh "$S/023-inplace" new)       # expect: exit=0, libs resolved inside the root
+(cd "$S/023-compat" && ./compare.sh . base new)             # expect: IDENTICAL x3
+ls "$S/023-inplace"/usr/local/lib | grep RIBCommon          # expect: libRIBCommon.so*, .a
+```
+
+Please send each block's tail, and the full output of blocks 4 and 5.
+
+### T060: Linux results (2026-10-12)
+
+The blocks were run on the host by the maintainer's Linux agent (block 1, and the build plus full
+suite of block 3), and over ssh from the Mac (block 2, the rest of block 3, and blocks 4 and 5).
+Host: Ubuntu 24.04, x86_64, cmake 3.28.3, GCC 13.3.0, bison 3.8.2, flex 2.6.4, LLVM 18.
+
+**Block 1.** `cmake --install build-022` into `~/023-linux/023-base`: exit 0, no error lines in the
+log, `/usr/local` unchanged. `023-inplace` is a `cp -a` copy: same 438 entries, `diff -r` clean.
+
+**Block 2.** The 18 moved or deleted paths were removed on the host; the rsync exited 0;
+`sha256sum -c` printed 212 `OK` and nothing else. `src/ri/core/` holds the same 7 files as the
+worktree (`map.h noise.h ray.h ri_config.h shader.h shaderPl.h shading.h`).
+
+**Block 3.** Configure and build of `build-023` (Release, `INSTALL_SELFCONTAINED=OFF`, `-Werror`):
+exit 0, **0** `warning:`/`error:` lines in the build log. `architecture`: all passed
+(`Architecture_DomainBoundaries`, `_Parsers` and `_Determinism` among them). Full suite: 573 tests,
+12 failed, of which 10 are the known Linux failures listed above:
+
+- `Visual_teapot-motion-raytrace` and `Perf_sphere-gather` (timeouts);
+- `Parity_transparency-matte-aov` and `Visual_blobby-max-union-reyes`;
+- `TextureTile_RenderByteIdentical` and the four `TextureTile_Cache*`;
+- `LibShader_McompConsistency`, which no longer fails on `_ZTI13CFileResource` (now in
+  `libRIBCommon`) but on the next unresolved flat import, `_ZTV19CTransmissionBundle`, one of the
+  12 DB-001 symbols. This is the "fail on a DB-001 symbol instead" outcome.
+
+The other two, `Common_StateOwnership` and `Common_VocabularyConsistency`, were defects in the test
+scripts, not in the build. Both were fixed and the `common` label now passes 14/14 on Linux and
+still 14/14 on macOS:
+
+1. *Copy relocations misread.* Linux executables (PIE) carry `R_X86_64_COPY` copies of library
+   data they reference (`current_log_level`, `RI_LIMITS`, `RI_STATISTICS`, `RI_NUMTHREADS`,
+   `RI_ENDOFFRAME`, `RI_PROGRESS` in `orender`; `RI_MAXERROR` in `otexmake`). `nm` lists such a copy
+   as defined (`B`), but at run time the library's references bind to it, so there is still one
+   instance. `state_ownership.cmake` already meant to skip these, but took the last field of the
+   `readelf -rW` line (the addend, `0`) as the symbol name; it now takes the field after the value.
+2. *Policy CMP0054.* A `-P` script starts at CMake's oldest policies. CMake 3.28 then reads the
+   quoted `"public"` in `vocabulary_consistency.cmake` as a variable name, so `ri.h`'s six legal
+   duplicate tokens were not exempted (`241 entries but only 235 distinct names`). CMake 4.4 on the
+   Mac no longer offers the old behaviour, which is why macOS passed. All four `-P` scripts under
+   `tests/unit/common/` now start with `cmake_policy(VERSION 3.19)`.
+
+The full suite was not rerun after these script fixes; only the `common` label was, on both
+platforms. With them, the Linux result is 563/573 with exactly the 10 known failures.
+
+**Block 4.** `libshader_shading.so.1` has `NEEDED libRIBCommon.so.1`. Under
+`LD_BIND_NOW=1 LD_DEBUG=bindings`, 17 symbols bind from `libshader_shading` (17 before), the same
+set as T005's `build-022` file with `CRenderer::globalMemory` replaced by `globalArena`, and **all
+17** now bind to `libRIBCommon.so.1` (the `grep -v` printed nothing). The `nm -D` check on
+`libRIBRender.so.1`, which should print nothing, printed 15 lines. None is a moved symbol: they are weak
+template instances that mention a moved type in their signature (`CTrie<CFileResource*>` methods,
+its vtable and typeinfo, `CDictionary<char const*, CFileResource*>` typeinfo) and the weak inline
+`posGradient(…, CHemisphereSample*, …)`. The grep pattern is too broad; the binding check is the
+real evidence.
+
+**Block 5.** The first run showed the render consumer finding no shaders or `file` display driver
+on *both* sides. `runtime_env` in `compat-consumer/common.sh` assumed the self-contained layout
+(`$prefix/shaders`, `$prefix/displays`), while the Linux install is FHS
+(`share/openRender/shaders`, `lib/openRender/displays`). `runtime_env` now detects the FHS layout;
+the macOS installs (self-contained) take the unchanged branch. Rerun from a fresh `cp -a` of
+`023-base`:
+
+- consumers built against the baseline; `run.sh base`: exit 0 for all three (TIFF 1479 bytes, RIB
+  789 bytes each);
+- `cmake --install build-023` over the root: exit 0, `/usr/local` unchanged;
+- `run.sh new`: exit 0 for all three, with every `libRIB*`/`libshader_*`, now including
+  `libRIBCommon.so.1`, resolved inside `023-inplace`, no loader variables set;
+- `compare.sh . base new`: `IDENTICAL out-RIBRender (tif, bytes)`, `IDENTICAL out-RIBVector`,
+  `IDENTICAL out-RIBOut` (RIB, `##CreationDate` excluded);
+- `023-inplace/usr/local/lib` holds `libRIBCommon.a`, `.so`, `.so.1`, `.so.1.0.0`.
+
+The RIB consumers print `Unknown option: "shaderformat"` and `Unknown searchpath option:
+"geometry"` on both sides once the installed `.orenderrc` is found; this is pre-existing and
+identical between base and new.
+
+The manifest was regenerated after the fixes (same 212 files; new hashes for the four `.cmake`
+scripts and `common.sh`) and re-verified on the host: 0 non-`OK` lines.
+
+**Verdict: Linux green.**

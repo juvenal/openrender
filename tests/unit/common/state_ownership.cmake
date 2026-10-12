@@ -17,6 +17,10 @@
 # groups): one definition per process matters, since tokens are compared by
 # pointer in places.
 
+# -P scripts start at CMake's oldest policies; without this, CMake 3.28 reads
+# quoted if() arguments such as "public" as variable names (CMP0054).
+cmake_policy(VERSION 3.19)
+
 foreach(var IMAGES COMMON OWNED)
     if(NOT DEFINED ${var})
         message(FATAL_ERROR "state_ownership: -D${var}=... is required")
@@ -66,7 +70,9 @@ foreach(image IN LISTS IMAGES)
     set(copies "")
     if(NOT CMAKE_HOST_APPLE)
         execute_process(COMMAND readelf -rW "${image}" OUTPUT_VARIABLE rel ERROR_QUIET)
-        string(REGEX MATCHALL "R_[A-Z0-9_]+_COPY[^\n]*" copylines "${rel}")
+        # "<offset> <info> R_X86_64_COPY <value> <name>[@VERSION] + <addend>":
+        # take the name after the value; the line's last field is the addend.
+        string(REGEX MATCHALL "R_[A-Z0-9_]+_COPY +[0-9a-fA-F]+ +[^ \n]+" copylines "${rel}")
         foreach(cl IN LISTS copylines)
             string(REGEX MATCH "[^ ]+$" csym "${cl}")
             string(REGEX REPLACE "@.*" "" csym "${csym}")

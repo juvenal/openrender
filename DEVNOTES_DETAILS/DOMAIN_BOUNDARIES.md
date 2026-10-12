@@ -95,33 +95,36 @@ request. Run `ctest -L architecture` locally before review.
   renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
 - **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
-  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 28
-  distinct `libRIBRender` symbols flat-namespace (58 fixups per `dyld_info -fixups`):
-  - renderer core: `CRenderer::globalMemory`, `getDSO`, `getFilter`, `getStepFilter`,
-    `getGlobalID`, `retrieveVariable`, `parseVariable`;
+  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 12
+  distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"):
+  - renderer core: `CRenderer::getDSO`, `getFilter`, `getStepFilter`, `getGlobalID`,
+    `retrieveVariable`;
   - Hiders: `CShadingContext::trace`/`traceEx`, `CGatherBundle`, `CTraceBundle`/
     `CTransmissionBundle` vtables, `CPhotonMap::lookup`;
-  - Texturing: `CTexture3d::resolve`;
-  - infrastructure: `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
-    `stats`, `error`/`info`/`warning`, `sampleHemisphere`/`sampleCosineHemisphere`.
-- **Measured by the architecture check** (spec 022, macOS): 30 edges allowlisted under DB-001.
-  - 26 link references from Shading sources: `CRenderer::getDSO`, `getFilter`, `getStepFilter`,
-    `getGlobalID`, `retrieveVariable` and `globalMemory`; `CShadingContext::trace`/`traceEx`,
-    `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`;
-    and `error`/`warning`/`info`/`parseVariable`, which are defined in Scene Interface.
+  - Texturing: `CTexture3d::resolve`.
+- **History**: before spec 023 it bound 29 symbols. The 17 infrastructure ones (`CRenderer::
+  globalMemory`, `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
+  `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
+  `sampleCosineHemisphere`, ...) now resolve from `libRIBCommon` (DB-016, Resolved). The record
+  is `specs/023-common-infrastructure-floor/tools/libshader-nm-m-{before,after}-macos.txt`.
+  `parseVariable` is defined in `libRIBCommon`, so spec 024 no longer needs a variable-parsing
+  service; it still needs `retrieveVariable` and the DSO, filter and global-ID services.
+- **Measured by the architecture check** (macOS): 18 edges allowlisted under DB-001 (30 before
+  spec 023).
+  - 14 link references from Shading sources: `CRenderer::getDSO`, `getFilter`, `getStepFilter`,
+    `getGlobalID` and `retrieveVariable`; `CShadingContext::trace`/`traceEx`, `CGatherBundle`,
+    the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`.
   - 4 includes of `src/ri/render/renderer.h` (`shader.cpp`, `shaderPl.cpp`, `executeMisc.cpp`,
     the generated `rslo` parser).
   - Not edges: `CTexture3d::resolve` is Shading → Texturing, which the table allows (a
-    load-time binding problem only). `CRefCounter`, `CFileResource`, the memory arena and
-    `stats` are defined in `src/ri/core`, i.e. infrastructure.
+    load-time binding problem only).
   - Shading's source-level coupling is registered separately: hider headers under DB-005,
-    Geometry headers under DB-006, diagnostics and vocabulary headers under DB-016, and
-    `dso.h` under DB-019.
+    Geometry headers under DB-006, and `dso.h` under DB-019.
 - **Consequences today**: `libshader_shading` cannot load without `libRIBRender` in the process; a
   static engine link must whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
   package target applies `-force_load` for this — remove that workaround once this is resolved).
-- **Direction**: move generic infrastructure (`CRefCounter`, `CFileResource`, memory arena, stats,
-  diagnostics, sampling) down into a lower shared layer; invert the remaining Hiders/Texturing/
+- **Direction**: generic infrastructure is already in `libRIBCommon` (spec 023); invert the
+  remaining Hiders/Texturing/
   renderer-core calls through interfaces Shading owns (trace/gather, photon/texture3d lookup,
   filter/variable/DSO services), implemented and registered by the higher layers. Options are
   analysed in #24.
@@ -178,7 +181,8 @@ request. Run `ctest -L architecture` locally before review.
   - 28 includes: `renderer.h` (17), `rendererContext.h` (9), `riInterface.h` (2).
   - 37 link references to `CRenderer` members.
   - Geometry's other cross-domain edges are registered elsewhere, so they are not counted
-    here: diagnostics, RI tokens and `rendererc.h` under DB-016 (41 edges); symbols defined by
+    here: diagnostics, RI tokens and `rendererc.h` were under DB-016 (41 edges, resolved by
+    spec 023); symbols defined by
     `geometryDispatch.cpp`/`geometryDispatchStub.cpp` under DB-017; Shading and Hiders
     coupling under DB-006; the data viewer under DB-025.
 - **History**: spec 021 (deferred CSG) resolves solids and procedural operands through a new
@@ -245,8 +249,8 @@ request. Run `ctest -L architecture` locally before review.
   - `options.h` includes `src/display/dsply.h` (display function pointers) and
     `src/ri/geometry/blobbyField.h`.
   - `attributes.cpp` includes `src/ri/hiders/photonMap.h` (photon-map attach/detach).
-- **Size**: 7 include edges. Graphics State's diagnostics and RI-token edges are under DB-016
-  (81 edges). `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` were unused and are removed (DB-022, Resolved).
+- **Size**: 7 include edges. Graphics State's diagnostics and RI-token edges were under DB-016
+  (81 edges, resolved by spec 023). `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` were unused and are removed (DB-022, Resolved).
 - **Direction**: state stores opaque handles only (`ShaderGroupRef` with a `bxdf` slot, `MapRef`)
   plus a scoped pattern-node table; shader-parameter logic moves to Shading; a state-owned
   vocabulary header.
@@ -350,38 +354,16 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the renderer-core rule.
 - **Tracking**: remediation spec 038 ([#43](https://github.com/juvenal/openrender/issues/43))
 - **Evidence**:
-  - The generated RIB, `ifexpr` and `variable` parsers include `renderer.h`/`rendererContext.h`
-    and call `CRenderer::locateFile` and `retrieveVariable`.
+  - The generated RIB and `ifexpr` parsers include `renderer.h`/`rendererContext.h`, and the
+    RIB parser calls `CRenderer::locateFile` and `retrieveVariable`. (The `variable` parser moved
+    to `libRIBCommon` in spec 023 and no longer includes `renderer.h`.)
   - `ri.cpp` calls `CRenderer::initDeclarations`/`shutdownDeclarations`.
   - `ri.cpp` and `ribOut.cpp` include `src/ri/render/riHooks.h`.
   - `CRiInterface`'s constructor installs itself as the global `renderMan`
     (`src/ri/parse/riInterface.cpp:36`).
-- **Size**: 11 edges (7 include, 4 link).
+- **Size**: 10 edges (6 include, 4 link); 11 before spec 023.
 - **Direction**: a Scene-owned declaration and file-search service implemented by the core;
   `riHooks.h` moves into Scene Interface; explicit active-context installation.
-
-### DB-016 — Infrastructure lives in Scene Interface and the renderer core
-
-- **Rules**: the allowed-dependency table (every domain may depend only on infrastructure for
-  shared services); infrastructure may depend on no domain.
-- **Tracking**: remediation spec 023 ([#29](https://github.com/juvenal/openrender/issues/29))
-- **Evidence**:
-  - Diagnostics (`error`/`warning`/`info`, `src/ri/parse/error.h`) are Scene Interface, used by
-    every domain.
-  - The RI token constants (`RI_*`, defined in `ri.cpp`) and the `ri.h` vocabulary are used by
-    Graphics State (74 link references), Geometry and Texturing.
-  - The renderer-core vocabulary `src/ri/render/rendererc.h` and `CVariable`/`parseVariable`
-    (`src/ri/parse/variable.h`) are used across domains.
-  - The global memory arena is a `CRenderer` static (`CRenderer::globalMemory`).
-  - Infrastructure itself reaches up: `src/ri/core` and `src/common` include `error.h`, `ri.h`,
-    `rendererc.h`, `attributes.h` and `xform.h`, and call `CAttributes::findParameter`,
-    `CRenderer::retrieveVariable`.
-- **Size**: 215 edges (75 include, 140 link) across Graphics State (81), Geometry (41), Texturing
-  (36), Hiders (18), Infra (20), Shading (14) and Scene Interface (5). Shading's link
-  references to these symbols are counted under DB-001.
-- **Direction**: move diagnostics (an installable `IDiagnosticSink`), the vocabulary headers,
-  `CVariable` and an `Arena` object into `libRIBCommon`; behavior-preserving moves with
-  forwarding headers for one spec.
 
 ### DB-017 — Link-time `*Dispatch` / `*DispatchStub` substitution pairs
 
@@ -420,10 +402,10 @@ request. Run `ctest -L architecture` locally before review.
 - **Evidence**:
   - `src/libshader/compiler/rslo.cpp:38` and the generated DSO and `rslo` parsers include
     `src/ri/parse/dso.h`.
-  - `llvmEmitter.cpp` includes `src/ri/render/rendererc.h`.
   - The compiler `dlopen`s shadeop DSOs itself (`rslo.cpp:1701`), and the JIT has no DSO shadeop
     path.
-- **Size**: 4 include edges.
+- **Size**: 3 include edges; 4 before spec 023, which moved `rendererc.h` into `src/common`
+  and so removed `llvmEmitter.cpp`'s include of it.
 - **Direction**: a standalone compiler with its own builtin and opcode tables, reading shadeop
   prototypes only through the versioned `shadeop.h`; DSO loading moves to the shadeop module
   (037); a JIT DSO call path.
@@ -554,3 +536,46 @@ request. Run `ctest -L architecture` locally before review.
     `surfaceCrossingDispatch.cpp`, `reyes.cpp` → `rendererc.h`; `irradianceDispatch.cpp` →
     `debug.h`); their edges belonged to DB-005, DB-006, DB-010, DB-016 and DB-025, whose sizes
     above are updated. The other 5 are needed and stay registered under their entries.
+
+### DB-016 — Infrastructure lives in Scene Interface and the renderer core
+
+- **Rules**: the allowed-dependency table (every domain may depend only on infrastructure for
+  shared services); infrastructure may depend on no domain.
+- **Tracking**: remediation spec 023 ([#29](https://github.com/juvenal/openrender/issues/29))
+- **Evidence**:
+  - Diagnostics (`error`/`warning`/`info`, `src/ri/parse/error.h`) are Scene Interface, used by
+    every domain.
+  - The RI token constants (`RI_*`, defined in `ri.cpp`) and the `ri.h` vocabulary are used by
+    Graphics State (74 link references), Geometry and Texturing.
+  - The renderer-core vocabulary `src/ri/render/rendererc.h` and `CVariable`/`parseVariable`
+    (`src/ri/parse/variable.h`) are used across domains.
+  - The global memory arena is a `CRenderer` static (`CRenderer::globalMemory`).
+  - Infrastructure itself reaches up: `src/ri/core` and `src/common` include `error.h`, `ri.h`,
+    `rendererc.h`, `attributes.h` and `xform.h`, and call `CAttributes::findParameter`,
+    `CRenderer::retrieveVariable`.
+- **Size**: 215 edges (75 include, 140 link) across Graphics State (81), Geometry (41), Texturing
+  (36), Hiders (18), Infra (20), Shading (14) and Scene Interface (5). Shading's link
+  references to these symbols are counted under DB-001.
+- **Direction**: move diagnostics (an installable diagnostic sink), the vocabulary headers,
+  `CVariable` and an arena object into `libRIBCommon`, as behavior-preserving moves. No
+  forwarding headers: every include and call site switches to the common headers in the same
+  spec.
+- **Resolved** by spec 023 (common infrastructure floor); commit and date recorded at merge.
+  - `libRIBCommon` is now a shared library (plus the static archive) and the only definer of
+    process-wide infrastructure state; the RI libraries re-export it, so existing consumers
+    link and run unchanged.
+  - Diagnostics: `CDiagnosticSink`/`installDiagnosticSink()` (`src/common/diagnostics.h`); Scene
+    Interface installs the RI error handler, and with no RI context `error()` prints to stderr
+    instead of dereferencing a null `renderMan`.
+  - Vocabulary: `src/common/rendererc.h`, the RI tokens in `src/common/riVocabulary.h` (defined
+    once in `riTokens.cpp`; `ri.h` is unchanged and `Common_VocabularyConsistency` keeps the
+    lists identical), `CVariable` and the `variable` grammar in `src/common`.
+  - Memory: `CArena globalArena` (`src/common/memory.h`) replaces `CRenderer::globalMemory`.
+  - `CRefCounter`, `CFileResource`, stats and the sampling helpers moved from `src/ri/core`.
+  - `pl.{h,cpp}` moved to Graphics State and reaches `CRenderer::retrieveVariable` through an
+    installed lookup hook (`src/ri/state/variableLookup.h`).
+  - All 215 DB-016 allowlist lines deleted, plus one line each under DB-015 and DB-019;
+    the Infra `CRenderer::` metric is 0. `libshader_shading`'s flat-namespace imports fell from
+    29 to 12.
+  - Follow-up: the shared `globalArena`/`stats` become injected per-context state in specs 029
+    and 039 (constitution rule 1).

@@ -24,7 +24,7 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 ---
 
-## Shared Libraries (6 dylibs)
+## Shared Libraries (7 dylibs)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
@@ -38,6 +38,9 @@ All shared libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libRIBRende
 | `libshader_compiler.dylib` | RSL shader compiler library | `/usr/local/lib/libshader_compiler.dylib` |
 | `libshader_runtime.dylib` | `.rslo`/`.slo` shader runtime loader | `/usr/local/lib/libshader_runtime.dylib` |
 | `libshader_shading.dylib` | Shading engine (JIT-callable `op_*`/`rsl_*` ops + builtins) | `/usr/local/lib/libshader_shading.dylib` |
+| `libRIBCommon.dylib` | Infrastructure every other library uses: diagnostics, the scratch arena, statistics, RI tokens, `CVariable`, math and sampling | `/usr/local/lib/libRIBCommon.dylib` |
+
+`libRIBCommon` is the only image that defines this process-wide state (one diagnostic sink, one arena, one RI token table per process). Since spec 023 it is a shared library; on macOS `libRIBRender`, `libRIBVector` and `libRIBOut` re-export it, so programs linked against an earlier install, which bound `RI_*` tokens and `error()` to those libraries, keep running unchanged. On Linux each RI library lists it in `DT_NEEDED`.
 
 ### Compatibility aliases
 
@@ -76,9 +79,9 @@ Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
 Built from the same OBJECT library as the shared variants (one compilation pass, PIC enabled).
 
-Shared internal code (`os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpace`) lives **only** in `libRIBCommon.a`. Every other archive depends on it rather than embedding its own copy, so a program linking several of them gets exactly one copy and never sees duplicate symbols, even under whole-archive linking (`-force_load`/`-all_load`/`--whole-archive`). External dependencies: libtiff/libpng/zlib, OpenEXR when enabled, pthreads/dl, and `libshader_shading` (shared) for `libRIBRender.a`. Use the CMake package (below) rather than writing the link line by hand.
+Shared internal code (diagnostics, the arena, statistics, RI tokens, `CVariable`, `os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpace`, sampling) lives **only** in `libRIBCommon`. Every other archive depends on it rather than embedding its own copy, so a program linking several of them gets exactly one copy and never sees duplicate symbols, even under whole-archive linking (`-force_load`/`-all_load`/`--whole-archive`). External dependencies: libtiff/libpng/zlib, OpenEXR when enabled, pthreads/dl, and, for `libRIBRender.a`, the shared `libshader_shading` **and the shared `libRIBCommon`**. `libshader_shading` is shared-only and binds its infrastructure to the shared `libRIBCommon`, so a static renderer program links that shared library rather than `libRIBCommon.a`; a second, static copy would split the diagnostic sink, arena and token table in two. The other archives use `libRIBCommon.a`. Use the CMake package (below) rather than writing the link line by hand.
 
-**`libRIBRender.a` must be linked whole-archive.** `libshader_shading` resolves ~28 `libRIBRender` symbols at load time (GitHub #24), and a plain static link only pulls the archive members the program itself references, so the program aborts at launch (`symbol not found in flat namespace '__ZTV12CTraceBundle'`). The CMake package applies this automatically (`-force_load` on macOS; `--whole-archive` + `--export-dynamic` on Linux, the latter not yet verified on Linux).
+**`libRIBRender.a` must be linked whole-archive.** `libshader_shading` resolves 12 renderer-core and hider symbols from `libRIBRender` at load time (GitHub #24; 29 before spec 023 moved the infrastructure ones to `libRIBCommon`), and a plain static link only pulls the archive members the program itself references, so the program aborts at launch (`symbol not found in flat namespace '__ZTV12CTraceBundle'`). The CMake package applies this automatically (`-force_load` on macOS; `--whole-archive` + `--export-dynamic` on Linux, the latter not yet verified on Linux).
 
 | Library | Description | Location |
 |---------|-------------|----------|
@@ -87,7 +90,7 @@ Shared internal code (`os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpac
 | `libRIBOut.a` | RIB text output static archive | `/usr/local/lib/libRIBOut.a` |
 | `libshader_compiler.a` | Shader compiler static archive | `/usr/local/lib/libshader_compiler.a` |
 | `libshader_runtime.a` | Shader runtime static archive | `/usr/local/lib/libshader_runtime.a` |
-| `libRIBCommon.a` | Shared internal code the archives above depend on (linked once) | `/usr/local/lib/libRIBCommon.a` |
+| `libRIBCommon.a` | Infrastructure the archives above depend on (linked once; `libRIBRender.a` uses the shared `libRIBCommon` instead) | `/usr/local/lib/libRIBCommon.a` |
 
 ### Using openRender from CMake
 
@@ -98,13 +101,13 @@ find_package(openRender 1.0 CONFIG REQUIRED)                     # shared librar
 target_link_libraries(app PRIVATE openRender::RIBRender)
 
 find_package(openRender 1.0 CONFIG REQUIRED COMPONENTS Static)   # static archives too
-target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls openRender::RIBCommon, TIFF, PNG, ...
+target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls the shared openRender::RIBCommon, TIFF, PNG, ...
 ```
 
 | Component | Targets | Needs at `find_package()` time |
 |-----------|---------|--------------------------------|
-| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler` | nothing; the shared libraries are self-contained |
-| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBCommon` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR) |
+| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler`, `RIBCommon` | nothing; the shared libraries are self-contained |
+| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBCommon_static` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR), and the shared targets: `RIBRender_static` links `shader_shading` and the shared `RIBCommon` |
 
 If the static component's dependencies aren't found, plain `find_package(openRender)` still succeeds with only the shared targets. `COMPONENTS Static` as a requirement fails and names the missing dependency. Point CMake at the install with `-DCMAKE_PREFIX_PATH=<prefix>`.
 
@@ -232,7 +235,8 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── libRIBVector.a       # static
 │   ├── libRIBOut.dylib      # shared (versioned: libRIBOut.1.dylib)
 │   ├── libRIBOut.a          # static
-│   ├── libRIBCommon.a       # static, shared internal code (static archives depend on it)
+│   ├── libRIBCommon.dylib   # shared infrastructure (versioned: libRIBCommon.1.dylib)
+│   ├── libRIBCommon.a       # static infrastructure (static archives depend on it)
 │   ├── cmake/openRender/    # CMake package (find_package(openRender))
 │   ├── libri.{dylib,a}      # compat aliases -> libRIBRender
 │   ├── libribVector.{dylib,a}  # compat aliases (case-sensitive volumes only)

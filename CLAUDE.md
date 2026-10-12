@@ -153,7 +153,8 @@ alternative to `-I` but is no longer required as a workaround.
 ├── shaders/               Default RSL shaders
 ├── specs/NNN-feature/      Spec-kit feature specs (see Dev Workflow below)
 ├── src/
-│   ├── common/             Shared utilities (algebra, math, data tables)
+│   ├── common/             Infrastructure → libRIBCommon (shared + static): algebra/math, diagnostics,
+│   │                       arena, RI vocabulary + tokens, CVariable/variable grammar, stats, sampling
 │   ├── ri/                 RenderMan interface implementation (the renderer core)
 │   ├── libshader/
 │   │   ├── compiler/        RSL compiler (formerly src/oshader) → libshader_compiler
@@ -216,6 +217,7 @@ un-projecting uses `/ dSampledx`, not `* dxdPixel`.
 ctest --test-dir build -L visual --output-on-failure   # 87+ scene visual regression, 8x8 block-avg diff metric (thresholds 20-40/255)
 ctest --test-dir build -L visual -E slow                # skip slow tests (motion-3-reyes, ~3 min)
 ctest --test-dir build -L libshader                     # compiler unit tests
+ctest --test-dir build -L common                        # libRIBCommon: sink, arena, vocabulary, state ownership
 ```
 
 **REYES shading vs. sampling trap:** `ShadingRate` controls micropolygon grid
@@ -446,6 +448,22 @@ fixed violation: the "Architecture check" section of
    `csg-nurbs-sheet-{expected,instanced}-raytrace.rib` from
    `csg-nurbs-sphere-union-raytrace.rib`'s body, header comment included.
    Check those two diffs after any regeneration.
+22. **`libRIBCommon` is the only definer of process-wide state (spec 023).**
+   Diagnostics, `globalArena`, `stats`, the RI tokens and the other
+   infrastructure live in `src/common`, built as a **shared** `libRIBCommon`
+   plus a static archive. Every library and program in one process must bind
+   them from the same shared copy: `ribRender_static` therefore links the
+   shared `openrendercommon`, never `openrendercommon_static`, because
+   `libshader_shading` is shared-only and binds to the shared library; a
+   second copy would hold a second arena and diagnostic sink
+   (`Common_StateOwnership` checks for this). The RI libraries re-export
+   `libRIBCommon` on macOS (`openrender_reexport_common()` in
+   `src/ri/CMakeLists.txt`), so programs linked when the tokens still lived
+   in `libRIBRender` keep resolving them. `ri.h` still declares every
+   `RI_*` token although `src/common/riVocabulary.h` declares them too: the
+   public header stays byte-identical, and
+   `Common_VocabularyConsistency` fails if the two lists and
+   `riTokens.cpp` drift apart. Add a token in all three.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,

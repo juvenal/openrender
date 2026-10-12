@@ -178,4 +178,6 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF
 
 With `INSTALL_SELFCONTAINED=ON` (default), documentation, shaders, and other data are installed under `CMAKE_INSTALL_PREFIX/share/doc`, `CMAKE_INSTALL_PREFIX/.../shaders`, etc. Executables go to `bin/`, libraries to `lib/`, and headers to `include/`.
 
+The libraries are `libRIBRender`, `libRIBVector` and `libRIBOut` (the RenderMan Interface), the three `libshader_*` libraries, and `libRIBCommon`, the shared infrastructure library every other one depends on. Each is installed shared and, except `libshader_shading`, static. The CMake package's optional `Static` component still needs the shared targets: the static renderer links the shared `libshader_shading` and `libRIBCommon`.
+
 See [INSTALL_ARTIFACTS.md](INSTALL_ARTIFACTS.md) for a detailed list of installed files.

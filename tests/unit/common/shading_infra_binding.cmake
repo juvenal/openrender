@@ -15,6 +15,10 @@
 # Usage: cmake -DSHADING=<libshader_shading> -DRENDERER=<libRIBRender>
 #              -DSYMBOLS=<file> -P shading_infra_binding.cmake
 
+# -P scripts start at CMake's oldest policies; without this, CMake 3.28 reads
+# quoted if() arguments such as "public" as variable names (CMP0054).
+cmake_policy(VERSION 3.19)
+
 foreach(var SHADING RENDERER SYMBOLS)
     if(NOT DEFINED ${var})
         message(FATAL_ERROR "shading_infra_binding: -D${var}=... is required")

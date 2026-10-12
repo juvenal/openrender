@@ -7,6 +7,10 @@
 # Usage: cmake -DRI_H=<ri.h> -DVOCABULARY_H=<riVocabulary.h>
 #              -DTOKENS_CPP=<riTokens.cpp> -P vocabulary_consistency.cmake
 
+# -P scripts start at CMake's oldest policies; without this, CMake 3.28 reads
+# quoted if() arguments such as "public" as variable names (CMP0054).
+cmake_policy(VERSION 3.19)
+
 foreach(var RI_H VOCABULARY_H TOKENS_CPP)
     if(NOT DEFINED ${var})
         message(FATAL_ERROR "vocabulary_consistency: -D${var}=... is required")

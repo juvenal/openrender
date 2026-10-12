@@ -30,9 +30,16 @@ shlib() {
 # runtime_env <prefix>: renderer search paths for the installed tree. Library
 # search-path variables are deliberately NOT set here (see run.sh --pinned).
 runtime_env() {
-    export DISPLAYS="$1/displays"
-    export SHADERS="$1/shaders"
-    export ORENDERHOME="$1"
+    if [ -d "$1/share/openRender/shaders" ]; then
+        # FHS layout (INSTALL_SELFCONTAINED=OFF, the Linux default)
+        export DISPLAYS="$1/lib/openRender/displays"
+        export SHADERS="$1/share/openRender/shaders"
+        export ORENDERHOME="$1/share/openRender"
+    else
+        export DISPLAYS="$1/displays"
+        export SHADERS="$1/shaders"
+        export ORENDERHOME="$1"
+    fi
 }
 
 # pin_libs <prefix>: force the loader to the install's lib directory. A

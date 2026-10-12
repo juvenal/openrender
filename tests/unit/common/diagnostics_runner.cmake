@@ -10,6 +10,10 @@
 #   info_quiet  nowhere          yes         0
 #   fatal       stderr only      no          255 (exit(-1), not a crash)
 
+# -P scripts start at CMake's oldest policies; without this, CMake 3.28 reads
+# quoted if() arguments such as "public" as variable names (CMP0054).
+cmake_policy(VERSION 3.19)
+
 foreach(var EXE MODE)
     if(NOT DEFINED ${var})
         message(FATAL_ERROR "diagnostics_runner: -D${var}=... is required")

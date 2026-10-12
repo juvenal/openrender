@@ -16,9 +16,17 @@ mkdir -p "$out"
 out="$(cd "$out" && pwd -P)"
 CXX="${CXX:-c++}"
 
+# On ELF, an executable's DT_RUNPATH (what GNU ld writes by default) only
+# serves its own DT_NEEDED entries, not those of the libraries it loads, so
+# libRIBRender's libshader_shading/libRIBCommon would be searched for in the
+# system directories instead of the root. The older DT_RPATH applies to the
+# whole dependency tree, like the Mach-O LC_RPATH this mirrors.
+rpath_flags=(-Wl,-rpath,"$prefix/lib")
+[ "$SHLIB_EXT" = so ] && rpath_flags+=(-Wl,--disable-new-dtags)
+
 for lib in RIBRender RIBVector RIBOut; do
     "$CXX" -std=c++20 -O1 -I"$prefix/include" "$here/consumer.cpp" \
-        "$(shlib "$prefix" "$lib")" -Wl,-rpath,"$prefix/lib" \
+        "$(shlib "$prefix" "$lib")" "${rpath_flags[@]}" \
         -o "$out/consumer-$lib"
     echo "built $out/consumer-$lib against $(shlib "$prefix" "$lib")"
 done
