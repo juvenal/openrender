@@ -1359,13 +1359,13 @@ add_parity_test(depthfilter-mid
 #   DepthFilter_Determinism_*: six renders at the default thread count, jitter
 #     off; z bit-identical across runs.
 macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
-    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/depth-${NAME})
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
     file(MAKE_DIRECTORY ${_scratch})
-    add_test(NAME DepthFilter_${NAME}
+    add_test(NAME ${NAME}
         COMMAND test_depth_determinism $<TARGET_FILE:orender>
             ${CMAKE_SOURCE_DIR}/${RIB} ${OUTPUT} ${RUNS} ${ARGN}
         WORKING_DIRECTORY ${_scratch})
-    set_tests_properties(DepthFilter_${NAME} PROPERTIES
+    set_tests_properties(${NAME} PROPERTIES
         TIMEOUT     360
         LABELS      "visual;regression;determinism"
         ENVIRONMENT "${VISUAL_ENV}"
@@ -1373,12 +1373,24 @@ macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
 endmacro()
 
 foreach(_mode avg mid)
-    add_depth_determinism_test(BackgroundExact_${_mode}
+    add_depth_determinism_test(DepthFilter_BackgroundExact_${_mode}
         examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
         depthfilter-determinism-${_mode}.tif 1 -t:1)
-    add_depth_determinism_test(Determinism_${_mode}
+    add_depth_determinism_test(DepthFilter_Determinism_${_mode}
         examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
         depthfilter-determinism-${_mode}.tif 6)
+endforeach()
+
+# --- Colour determinism (fix/reyes-ulp-determinism, GitHub #48): the same
+# spheres, jitter off, float RGBA; twelve renders at the default thread count
+# must be bit-identical (before the fix, about one render in eight differed). A pixel centre on a micropolygon edge shared by two grids
+# used to be counted by both (#50), and the two equal-depth fragments reached
+# the pixel in thread-dependent order: compositing them either way moved one
+# channel by a float ULP. Fixed by #50's watertight edge test.
+foreach(_variant transparent opaque)
+    add_depth_determinism_test(ColorDeterminism_${_variant}
+        examples/rib/tests/color-determinism-${_variant}-reyes.rib
+        color-determinism-${_variant}.tif 12)
 endforeach()
 
 # --- Depth accuracy (fix/raytrace-midpoint-depth, GitHub #47 and #49). Three

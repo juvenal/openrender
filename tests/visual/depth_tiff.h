@@ -1,8 +1,8 @@
 /**
  * tests/visual/depth_tiff.h
  *
- * Shared helpers for the depth-output tests (test_depth_determinism,
- * test_depth_analytic): read a 32-bit float "z" TIFF, and run orender.
+ * Shared helpers for the depth and determinism tests (test_depth_determinism,
+ * test_depth_analytic): read a 32-bit float TIFF, and run orender.
  */
 
 #ifndef DEPTH_TIFF_H
@@ -21,13 +21,17 @@
 // C_INFINITY in src/common/global.h: the renderer's "no surface" depth.
 static constexpr float RENDERER_INFINITY = 1e30f;
 
+// A 32-bit float image, channels interleaved: z holds width * height *
+// channels values (one channel for a "z" display).
 struct DepthImage {
     uint32_t width = 0;
     uint32_t height = 0;
+    uint16_t channels = 1;
     std::vector<float> z;
 };
 
-static inline bool readDepthTiff(const char *path, DepthImage &img) {
+// Reads any 32-bit float TIFF with interleaved channels.
+static inline bool readFloatTiff(const char *path, DepthImage &img) {
     TIFF *tif = TIFFOpen(path, "r");
     if (!tif) {
         fprintf(stderr, "  Cannot open TIFF: %s\n", path);
@@ -40,14 +44,18 @@ static inline bool readDepthTiff(const char *path, DepthImage &img) {
     TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &spp);
     TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bitsPerSample);
     TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleFormat);
-    if (spp != 1 || bitsPerSample != 32 || sampleFormat != SAMPLEFORMAT_IEEEFP) {
-        fprintf(stderr, "  %s is not a 32-bit float z image (spp %u, bits %u, format %u)\n",
+    uint16_t planar = PLANARCONFIG_CONTIG;
+    TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &planar);
+    if (spp < 1 || bitsPerSample != 32 || sampleFormat != SAMPLEFORMAT_IEEEFP || planar != PLANARCONFIG_CONTIG) {
+        fprintf(stderr, "  %s is not an interleaved 32-bit float image (spp %u, bits %u, format %u)\n",
                 path, spp, bitsPerSample, sampleFormat);
         TIFFClose(tif);
         return false;
     }
+    img.channels = spp;
 
-    img.z.resize((size_t)img.width * img.height);
+    const size_t rowValues = (size_t)img.width * spp;
+    img.z.resize(rowValues * img.height);
     std::vector<uint8_t> buf(TIFFScanlineSize(tif));
     for (uint32_t row = 0; row < img.height; ++row) {
         if (TIFFReadScanline(tif, buf.data(), row) < 0) {
@@ -55,9 +63,20 @@ static inline bool readDepthTiff(const char *path, DepthImage &img) {
             TIFFClose(tif);
             return false;
         }
-        memcpy(&img.z[(size_t)row * img.width], buf.data(), (size_t)img.width * sizeof(float));
+        memcpy(&img.z[(size_t)row * rowValues], buf.data(), rowValues * sizeof(float));
     }
     TIFFClose(tif);
+    return true;
+}
+
+// Reads a one-channel 32-bit float "z" TIFF.
+static inline bool readDepthTiff(const char *path, DepthImage &img) {
+    if (!readFloatTiff(path, img))
+        return false;
+    if (img.channels != 1) {
+        fprintf(stderr, "  %s has %u channels, expected one (z)\n", path, img.channels);
+        return false;
+    }
     return true;
 }
 

@@ -1,0 +1,38 @@
+##RenderMan RIB-Structure 1.0
+# Colour determinism (fix/reyes-ulp-determinism, #48): the semi-transparent spheres of
+# parity/depthfilter-avg-reyes.rib, jitter off, float colour output.
+# Every run at any thread count must produce bit-identical RGBA. A pixel centre
+# on a micropolygon edge shared by two grids used to be counted by both (#50);
+# the two equal-depth fragments reached the pixel in thread-dependent order, and
+# compositing them either way moved the colour by one float ULP. See
+# test_depth_determinism.cpp.
+version 3.03
+Hider "reyes" "jitter" [0]
+PixelSamples 4 4
+Display "color-determinism-transparent.tif" "file" "rgba" "quantize" [0 0 0 0]
+Projection "perspective" "fov" 45
+Format 320 240 1
+Translate 0 0 6
+
+WorldBegin
+  AttributeBegin
+    Color 1 0.2 0.2
+    Opacity 0.7 0.7 0.7
+    Translate 0.5 0.3 1.5
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 1 0.2
+    Opacity 0.5 0.5 0.5
+    Translate -0.4 -0.2 0
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 0.2 1
+    Opacity 0.35 0.35 0.35
+    Translate -0.1 0.1 -1.5
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+WorldEnd

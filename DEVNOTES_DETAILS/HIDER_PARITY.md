@@ -108,7 +108,9 @@ Measured at the same time (2026-10-13), and filed separately:
   surface of two-sided geometry through `CPixel::zold` (an opaque `Sides 2` sphere: reyes 6,
   raytrace 5e29). With one surface, both hiders use `clipMax` (Pixie's convention, still to be
   confirmed and documented). `Parity_depthfilter-mid`'s threshold of 500000 hides the difference.
-- **One-ULP colour variation at a few pixels ([#48](https://github.com/juvenal/openrender/issues/48)).**
+- **One-ULP colour variation at a few pixels ([#48](https://github.com/juvenal/openrender/issues/48)), resolved by the #50 fix**
+  (equal-depth duplicate fragments from a sample on a shared grid edge, composited in thread-dependent
+  order; see BUGS.md). Original measurement:
   With jitter off and float output (no dither), 1–2 pixels per frame take one of two values one
   float ULP apart, opaque or transparent, mostly on a bucket-boundary row; `-t:1` is bit-identical.
   Cause not yet known (bucket queue order, first-touch dicing/shading, or alignment-dependent

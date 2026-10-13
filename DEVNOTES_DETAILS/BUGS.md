@@ -13,10 +13,6 @@ This file tracks known defects and implementation gaps in openRender. Open items
       how the reyes coverage and midpoint analytic scenes isolate #50;
       `CoverageAnalytic_alpha-sides2-tjunction_reyes` (default dicing) is disabled until it is
       fixed in the dicer (per-edge dice rates or stitching), before spec 039.
-- [ ] **Multithreaded reyes renders vary by one float ULP at 1–2 pixels**
-      ([#48](https://github.com/juvenal/openrender/issues/48)), with jitter and dither off;
-      `-t:1` is bit-identical. Mostly on a bucket-boundary row; cause not yet known. Blocks spec
-      039's bit-identical criterion; to be root-caused before 039 (see HIDER_PARITY.md).
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
@@ -84,6 +80,16 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: multithreaded reyes renders varied by one float ULP at 1–2 pixels with jitter and dither off
+      (FIXED — GitHub #48, by the #50 fix; regression tests on branch `fix/reyes-ulp-determinism`,
+      2026-10-13). A pixel centre on a micropolygon edge shared by two grids was counted by both
+      (#50), so the pixel received two fragments at bit-identical depth; which grid's fragment
+      reached the pixel first depended on thread timing, and compositing the pair in either order
+      moved one channel by a ULP. Three of the four varying pixels lay on a bucket-boundary row.
+      `rasterEdge()` counts such a sample once, so no tie is left to order: with #50 reverted the
+      measured scenes gave 3 and 2 distinct images in 24 runs each, with it 1. Guarded by
+      `ColorDeterminism_{transparent,opaque}` (twelve multithreaded renders, bit-identical float
+      RGBA; `test_depth_determinism` now reads any float TIFF).
 - [x] Bug: the reyes and zbuffer micropolygon coverage test was not watertight at shared edges (FIXED —
       GitHub #50, branch `fix/reyes-watertight-coverage`, 2026-10-13). `checkPixel` tested each quad edge
       with `area(p, a, b)`, which subtracts from its last vertex; adjacent quads traverse a shared edge in
@@ -128,7 +134,7 @@ This file tracks known defects and implementation gaps in openRender. Open items
       most 15/16 of it, so only all-background pixels are touched). Guarded by
       `DepthFilter_BackgroundExact_{avg,mid}` (single-threaded, failed deterministically before the fix)
       and `DepthFilter_Determinism_{avg,mid}` (six multithreaded renders, bit-identical `z`),
-      `tests/visual/test_depth_determinism.cpp`. Measuring it found #47 (resolved above) and #48 (Open Issues).
+      `tests/visual/test_depth_determinism.cpp`. Measuring it found #47 and #48 (both resolved above).
 - [x] Bug: a raytraced torus rendered nothing — in the raytrace hider and in every raytraced lookup (FIXED —
       GitHub #22, branch `fix/torus-raytrace`). Two defects that masked each other:
       `src/common/polynomial.h` defined `#define cbrt(x) (... -pow(-x, 1.0 / 3.0) ...)` without parenthesizing

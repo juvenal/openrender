@@ -1,24 +1,30 @@
 /**
  * tests/visual/test_depth_determinism.cpp
  *
- * Depth-output determinism driver (fix/stochastic-depthfilter-race).
+ * Output determinism driver (fix/stochastic-depthfilter-race, GitHub #48).
  *
- * Renders one scene <runs> times and checks its 32-bit float "z" output:
+ * Renders one scene <runs> times and checks its 32-bit float output, either a
+ * one-channel "z" display or any float colour display ("quantize" [0 0 0 0]):
  *
- *   1. No pixel reads above C_INFINITY. A pixel with no visible surface must
+ *   1. For z only: no pixel reads above C_INFINITY. A pixel with no visible surface must
  *      read exactly C_INFINITY, whichever path produced it: the reyes hider
  *      writes it directly for a bucket with nothing queued, and the
  *      average/midpoint depth filters must give the same value for a bucket
  *      whose subsamples are all background (summing sixteen C_INFINITY
  *      subsamples in float used to land one rounding step above it).
- *   2. Every run is bit-identical to the first. Which buckets have objects
- *      queued depends on thread timing, so (1) failing shows up here as
- *      run-to-run differences in multi-threaded renders.
+ *   2. Every run is bit-identical to the first, every channel. Which buckets
+ *      have objects queued depends on thread timing, so (1) failing shows up
+ *      here as run-to-run differences in multi-threaded renders. For colour,
+ *      the order in which two fragments at the same depth reached a pixel
+ *      used to depend on thread timing too: a sample on a micropolygon edge
+ *      shared by two grids was counted by both (#50), and compositing the
+ *      pair in either order moved the colour by one float ULP (#48).
  *
  * Usage:
  *   test_depth_determinism <orender> <rib> <output_tif> <runs> [orender options...]
  *
- * The scene's Display must write <output_tif> as "z" in the working directory.
+ * The scene's Display must write <output_tif> as 32-bit float in the working
+ * directory.
  */
 
 #include "depth_tiff.h"
@@ -62,10 +68,10 @@ int main(int argc, char *argv[]) {
     int failures = 0;
     for (int run = 1; run <= runs; run++) {
         DepthImage img;
-        if (!renderScene(command, outputTif) || !readDepthTiff(outputTif, img))
+        if (!renderScene(command, outputTif) || !readFloatTiff(outputTif, img))
             return 1;
 
-        const int above = checkBackground(img, run);
+        const int above = (img.channels == 1) ? checkBackground(img, run) : 0;
         if (above > 0) {
             fprintf(stderr, "  FAIL run %d: %d pixel(s) above C_INFINITY\n", run, above);
             failures++;
@@ -75,9 +81,9 @@ int main(int argc, char *argv[]) {
             first = std::move(img);
             continue;
         }
-        if (img.width != first.width || img.height != first.height) {
-            fprintf(stderr, "  FAIL run %d: size %ux%u, run 1 was %ux%u\n", run, img.width, img.height,
-                    first.width, first.height);
+        if (img.width != first.width || img.height != first.height || img.channels != first.channels) {
+            fprintf(stderr, "  FAIL run %d: size %ux%ux%u, run 1 was %ux%ux%u\n", run, img.width, img.height,
+                    img.channels, first.width, first.height, first.channels);
             failures++;
             continue;
         }
@@ -85,20 +91,21 @@ int main(int argc, char *argv[]) {
         for (size_t i = 0; i < img.z.size(); i++) {
             if (memcmp(&img.z[i], &first.z[i], sizeof(float)) != 0) {
                 if (differing < 5)
-                    fprintf(stderr, "  run %d: pixel (%zu, %zu) z = %.9g, run 1 had %.9g\n", run,
-                            i % img.width, i / img.width, img.z[i], first.z[i]);
+                    fprintf(stderr, "  run %d: pixel (%zu, %zu) channel %zu = %.9g, run 1 had %.9g\n", run,
+                            (i / img.channels) % img.width, (i / img.channels) / img.width, i % img.channels,
+                            img.z[i], first.z[i]);
                 differing++;
             }
         }
         if (differing > 0) {
-            fprintf(stderr, "  FAIL run %d: %d pixel(s) differ from run 1\n", run, differing);
+            fprintf(stderr, "  FAIL run %d: %d value(s) differ from run 1\n", run, differing);
             failures++;
         }
     }
 
     if (failures > 0)
         return 1;
-    printf("  PASS: %d run(s), no pixel above C_INFINITY%s\n", runs,
+    printf("  PASS: %d run(s)%s%s\n", runs, first.channels == 1 ? ", no pixel above C_INFINITY" : "",
            runs > 1 ? ", all bit-identical to run 1" : "");
     return 0;
 }
