@@ -4,6 +4,18 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Open Issues
 
+- [ ] **Midpoint depth filter on raytrace never finds a second surface**
+      ([#47](https://github.com/juvenal/openrender/issues/47)). `resolveDepth()` (`raytracer.cpp`)
+      builds its candidate list from the continuation-ray chain, which only continues through
+      transparent hits, so `CCompositor::evaluateDepth`'s Mid mode always averages the first hit
+      with `clipMax` (≈ 5e29). Reyes finds the back surface of two-sided geometry through
+      `CPixel::zold`. The single-surface convention (`clipMax`, Pixie's choice) also needs to be
+      confirmed and documented. `Parity_depthfilter-mid` (threshold 500000) does not detect it.
+      Planned as a `fix/` branch before spec 039, which tightens parity thresholds.
+- [ ] **Multithreaded reyes renders vary by one float ULP at 1–2 pixels**
+      ([#48](https://github.com/juvenal/openrender/issues/48)), with jitter and dither off;
+      `-t:1` is bit-identical. Mostly on a bucket-boundary row; cause not yet known. Blocks spec
+      039's bit-identical criterion; to be root-caused before 039 (see HIDER_PARITY.md).
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues

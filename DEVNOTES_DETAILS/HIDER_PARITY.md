@@ -85,22 +85,33 @@ run-to-run max 8×8-block diffs: motion-3-reyes ~79/255, camera-motion-huge-reye
 their measured variance (100/100/90/110) — at the default 20 they were
 coin-flips regardless of code changes.
 
-**Depth-filter avg/mid threading race (found 2026-08, during T041 verification):**
-same-binary-vs-itself reruns of `depthfilter-avg-reyes.rib`/`depthfilter-mid-reyes.rib`
-show a small but non-zero pixel diff (~2000-4000/76800 px, edge pixels near the
-overlapping-sphere silhouettes) even with `PixelSamples`/scene held fixed. Root
-cause isolated by elimination: `Hider "reyes" "jitter" [0]` did NOT remove it
-(rules out per-thread jitter-stream drift, the mechanism above), but `-t:1`
-did — confirming a genuine multi-threaded bucket-compositing race in
-`CStochastic::rasterEnd`'s Stage-2 grid reduction (`stochastic.cpp`'s
-`switch(CRenderer::depthFilter)` block), not mere floating-point
-non-associativity. `min`/`max` (comparison-based reductions) are unaffected;
-only `avg`/`mid` (summation-based) show it, consistent with a race in the
-per-bucket `fbs`/`fb2` accumulation buffers at bucket-boundary pixels. Confirmed
-pre-existing (present in code before and unrelated to the 008-hider-parity-convergence
-T040/T041 `evaluateDepth` extraction — reproduces identically on both sides of
-that refactor). Not fixed here; tracked as a residual defect, out of scope for
-this spec.
+**Depth-filter avg/mid run-to-run differences (found 2026-08, diagnosed 2026-10-13, fixed by
+`fix/stochastic-depthfilter-race`):** same-binary reruns of `depthfilter-avg-reyes.rib` /
+`depthfilter-mid-reyes.rib` differed in 1024–4096 `z` pixels, even with `"jitter" [0]`; `-t:1` did
+not. The 2026-08 note blamed a race in `rasterEnd`'s Stage-2 reduction at bucket-boundary pixels.
+Measurement shows otherwise: `rasterEnd`'s buffers are private to the bucket, and the differing
+pixels are whole 16×16 **background** buckets, never a finite depth. A bucket with nothing queued
+takes `rasterEnd`'s `noObjects` early-out and writes `C_INFINITY` (1.00000002e30); a bucket with
+objects queued but no visible surface sums sixteen `C_INFINITY` subsamples in float and lands one
+rounding step higher (1.00000009e30). Which buckets have objects queued depends on thread timing.
+`min`/`max` never sum, so they were never affected, and colour agrees between the two paths. The
+fix clamps the avg/mid reduction at `C_INFINITY`; `DepthFilter_BackgroundExact_{avg,mid}` and
+`DepthFilter_Determinism_{avg,mid}` (`tests/visual/test_depth_determinism.cpp`) guard it.
+
+Measured at the same time (2026-10-13), and filed separately:
+
+- **Midpoint depth on raytrace never finds a second surface ([#47](https://github.com/juvenal/openrender/issues/47)).**
+  Raytrace's candidate list comes from the continuation-ray chain, which only continues through
+  transparent hits, so its midpoint `z` is always `0.5·(z + clipMax)` ≈ 5e29. Reyes finds the back
+  surface of two-sided geometry through `CPixel::zold` (an opaque `Sides 2` sphere: reyes 6,
+  raytrace 5e29). With one surface, both hiders use `clipMax` (Pixie's convention, still to be
+  confirmed and documented). `Parity_depthfilter-mid`'s threshold of 500000 hides the difference.
+- **One-ULP colour variation at a few pixels ([#48](https://github.com/juvenal/openrender/issues/48)).**
+  With jitter off and float output (no dither), 1–2 pixels per frame take one of two values one
+  float ULP apart, opaque or transparent, mostly on a bucket-boundary row; `-t:1` is bit-identical.
+  Cause not yet known (bucket queue order, first-touch dicing/shading, or alignment-dependent
+  arithmetic are the candidates). It is the last known obstacle to bit-identical multi-threaded
+  reyes output once spec 039 replaces the per-thread jitter streams and the display dither.
 
 ## Subdivision Surfaces (spec 010-full-subdivision-support)
 

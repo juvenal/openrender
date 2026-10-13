@@ -57,6 +57,13 @@ add_executable(test_hider_parity test_hider_parity.cpp)
 target_link_libraries(test_hider_parity PRIVATE TIFF::TIFF)
 target_compile_features(test_hider_parity PRIVATE cxx_std_20)
 
+# Depth-output determinism driver (fix/stochastic-depthfilter-race): renders a
+# scene several times and requires its float z output to be bit-identical across
+# runs, with no pixel above C_INFINITY. Run by add_depth_determinism_test().
+add_executable(test_depth_determinism test_depth_determinism.cpp)
+target_link_libraries(test_depth_determinism PRIVATE TIFF::TIFF)
+target_compile_features(test_depth_determinism PRIVATE cxx_std_20)
+
 # FR-011/SC-006 manual-only JIT-vs-interpreter performance comparison driver
 # (spec 011-jit-opcode-parity, research.md D4). No TIFF dependency — timing
 # only, no pixel comparison.
@@ -1336,6 +1343,39 @@ add_parity_test(depthfilter-mid
     depthfilter-mid-reyes.tif
     examples/rib/tests/parity/depthfilter-mid-raytrace.rib
     depthfilter-mid-raytrace.tif  500000)
+
+# --- Depth-filter determinism (fix/stochastic-depthfilter-race). The reyes
+# hider writes C_INFINITY directly for a bucket with nothing queued, while the
+# average/midpoint filters used to sum sixteen C_INFINITY subsamples in float
+# for a bucket that had objects queued but no visible surface, landing one
+# rounding step above it. Which buckets have objects queued depends on thread
+# timing, so multi-threaded renders differed run to run.
+#   DepthFilter_BackgroundExact_*: one single-threaded render; no z above
+#     C_INFINITY (fails deterministically without the fix).
+#   DepthFilter_Determinism_*: six renders at the default thread count, jitter
+#     off; z bit-identical across runs.
+macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/depth-${NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME DepthFilter_${NAME}
+        COMMAND test_depth_determinism $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/${RIB} ${OUTPUT} ${RUNS} ${ARGN}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DepthFilter_${NAME} PROPERTIES
+        TIMEOUT     360
+        LABELS      "visual;regression;determinism"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endmacro()
+
+foreach(_mode avg mid)
+    add_depth_determinism_test(BackgroundExact_${_mode}
+        examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
+        depthfilter-determinism-${_mode}.tif 1 -t:1)
+    add_depth_determinism_test(Determinism_${_mode}
+        examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
+        depthfilter-determinism-${_mode}.tif 6)
+endforeach()
 
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on
