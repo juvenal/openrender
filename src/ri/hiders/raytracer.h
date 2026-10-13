@@ -94,12 +94,17 @@ class CDepthCandidate {
 //							once a sample has latched. `pendingDepth` is the
 //							analogous always-on buffer feeding
 //							CCompositor::evaluateDepth (see CDepthCandidate).
+//							`depthProbe` marks a midpoint-depth ray whose
+//							chain stopped on an opaque hit: its depth waits
+//							for a depth-only probe past that hit (see
+//							CRaytracer::probeDepth).
 class CPrimaryRay : public CRay {
     public:
         CompositeAccumulator acc;
         std::vector<CBufferedNonCompSample> pendingNonComp;
         std::vector<CDepthCandidate> pendingDepth;
         bool nonCompLatched;
+        bool depthProbe;
         float *samples;     // The extra samples that need to be saved
         float x, y;         // The x,y location of the ray on the screen
         float lensU, lensV; // Correlated-table lens sample (US9), carried from
@@ -152,6 +157,7 @@ class CRaytracer : public CShadingContext {
         // Sampling functions
         void sample(int, int, int, int);
         void computeSamples(CPrimaryRay *, int);
+        void probeDepth(CPrimaryRay *, int);
         void splatSamples(CPrimaryRay *, int, int, int, int, int);
 
         CPrimaryBundle primaryBundle;

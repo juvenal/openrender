@@ -100,7 +100,9 @@ fix clamps the avg/mid reduction at `C_INFINITY`; `DepthFilter_BackgroundExact_{
 
 Measured at the same time (2026-10-13), and filed separately:
 
-- **Midpoint depth on raytrace never finds a second surface ([#47](https://github.com/juvenal/openrender/issues/47)).**
+- **Midpoint depth on raytrace never finds a second surface ([#47](https://github.com/juvenal/openrender/issues/47)), fixed on `fix/raytrace-midpoint-depth`**
+  (depth-only probe past the opaque hit, see BUGS.md).
+  Original measurement:
   Raytrace's candidate list comes from the continuation-ray chain, which only continues through
   transparent hits, so its midpoint `z` is always `0.5·(z + clipMax)` ≈ 5e29. Reyes finds the back
   surface of two-sided geometry through `CPixel::zold` (an opaque `Sides 2` sphere: reyes 6,
@@ -116,7 +118,7 @@ Measured at the same time (2026-10-13), and filed separately:
 Measured on `fix/raytrace-midpoint-depth` (2026-10-13) with `test_depth_analytic`, which checks each
 hider's `z` against exact ray-sphere depths at pixel centres instead of comparing the hiders:
 
-- **Raytrace `z` is the distance along the ray ([#49](https://github.com/juvenal/openrender/issues/49)).**
+- **Raytrace `z` is the distance along the ray ([#49](https://github.com/juvenal/openrender/issues/49)), fixed on the same branch** (camera z, `from.z + t * dir.z`).
   Raytrace matched the analytic ray length to every printed digit and reyes matched camera z, so
   every raytrace depth mode is `1/cos θ` too deep off-axis. The 500000 parity thresholds hide it.
 - **Reyes coverage is not watertight at shared micropolygon edges ([#50](https://github.com/juvenal/openrender/issues/50)).**

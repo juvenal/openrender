@@ -150,9 +150,17 @@ static void resolveNonComp(CPrimaryRay *cRay) {
 //							switch(depthFilter)) is out of scope here --
 //							raytrace has none yet, matching its pre-existing
 //							filter-only splat of this channel.
+//							`zold` floors Mid's second candidate as
+//							CPixel::zold does in reyes: the depth of the
+//							nearest surface behind the opaque hit that ended
+//							the chain (found by CRaytracer::probeDepth), or
+//							clipMax when there is none. With one surface,
+//							midpoint depth is then 0.5 * (z + clipMax),
+//							Pixie's convention: nothing behind the only
+//							surface can receive a shadow.
 // Return Value			:	-
 // Comments				:
-static void resolveDepth(CPrimaryRay *cRay) {
+static void resolveDepth(CPrimaryRay *cRay, float zold) {
     const int count = (int)cRay->pendingDepth.size();
     if (count == 0) {
         cRay->samples[4] = C_INFINITY;
@@ -175,16 +183,22 @@ static void resolveDepth(CPrimaryRay *cRay) {
 
     const DepthFilterMode mode = (CRenderer::depthFilter == DEPTH_MID) ? DepthFilterMode::Mid : DepthFilterMode::Min;
 
-    // zold mirrors reyes's zoldStart = CRenderer::clipMax (stochastic.cpp:139)
-    // -- the initial/no-lower-candidate-found state of CPixel::zold. Reyes's
-    // hierarchical z-buffer culling can subsequently lower it per pixel, but
-    // raytrace has no equivalent culling structure to lower it from, so this
-    // is raytrace's exact analog of "zold never got lowered": clipMax, not
-    // -infinity (a -infinity no-op silently drops the floor that produces
-    // reyes's own clipMax-collapsed Mid-mode output).
     cRay->samples[4] = CCompositor::evaluateDepth(zs.data(), opacities.data(), count, mode,
-                                                  CRenderer::zvisibilityThreshold, pixelHasMatte,
-                                                  CRenderer::clipMax);
+                                                  CRenderer::zvisibilityThreshold, pixelHasMatte, zold);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	cameraDepth
+// Description			:	Camera-space z of the point at parameter t along
+//							a primary ray. Primary rays are built in camera
+//							space with a normalized direction, so t itself is
+//							the distance along the ray: 1/cos too deep
+//							off-axis (GitHub #49). `from` is the lens point
+//							for a depth-of-field ray.
+// Return Value			:	The camera-space z
+// Comments				:
+static inline float cameraDepth(const CRay *cRay, float t) {
+    return cRay->from[COMP_Z] + t * cRay->dir[COMP_Z];
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -256,7 +270,7 @@ void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
         sample.color = Ci;
         sample.opacity = sOpacity;
         sample.extraSamples = scratch.data();
-        sample.z = cRay->t;
+        sample.z = cameraDepth(cRay, cRay->t);
 
         if (depth == 0) {
             CCompositor::begin(cRay->acc, cRay->samples + 5);
@@ -287,7 +301,7 @@ void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
         // resolveDepth()).
         {
             CDepthCandidate dc;
-            dc.z = cRay->t;
+            dc.z = sample.z;
             movvv(dc.opacity, sOpacity);
             cRay->pendingDepth.push_back(dc);
         }
@@ -302,7 +316,14 @@ void CPrimaryBundle::postShade(int nr, CRay **r, float **varying) {
         else {
             movvv(cRay->samples, cRay->acc.color);
             resolveNonComp(cRay);
-            resolveDepth(cRay);
+
+            // Midpoint depth needs the surface behind this opaque hit, which
+            // the chain never reaches: CRaytracer::probeDepth finds it once
+            // the bundle is done and resolves the depth then (GitHub #47).
+            if (CRenderer::depthFilter == DEPTH_MID)
+                cRay->depthProbe = true;
+            else
+                resolveDepth(cRay, CRenderer::clipMax);
         }
 
         cRay->samples[3] = (float)((cRay->acc.opacity[0] + cRay->acc.opacity[1] + cRay->acc.opacity[2]) * 0.333333333);
@@ -343,7 +364,7 @@ void CPrimaryBundle::postShade(int nr, CRay **r) {
 
             movvv(cRay->samples, cRay->acc.color);
             resolveNonComp(cRay);
-            resolveDepth(cRay);
+            resolveDepth(cRay, CRenderer::clipMax);
         }
     }
 }
@@ -638,6 +659,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             cRay->t = C_INFINITY;
             cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
             cRay->tmin = 0;
+            cRay->depthProbe = false;
         }
     }
     else {
@@ -678,6 +700,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             cRay->t = C_INFINITY;
             cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
             cRay->tmin = 0;
+            cRay->depthProbe = false;
         }
     }
 
@@ -713,7 +736,45 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     primaryBundle.depth = 0;
     trace(&primaryBundle);
 
+    if (CRenderer::depthFilter == DEPTH_MID)
+        probeDepth(rays, numShading);
+
     numRaytraceRays += numShading;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRaytracer
+// Method				:	probeDepth
+// Description			:	Resolve midpoint depth for the rays whose chain
+//							stopped on an opaque hit. Reyes floors the second
+//							candidate with CPixel::zold, the depth of the
+//							nearest surface behind the opaque one; the ray
+//							chain never continues past an opaque hit, so a
+//							depth-only probe (traced, never shaded) finds that
+//							surface here (GitHub #47).
+// Return Value			:	-
+// Comments				:	The probe is traced exactly as a continuation ray
+//							(CShadingContext::trace's transparency loop): from
+//							just past the hit to C_INFINITY, keeping the ray's
+//							origin, direction, time and visibility flags, so
+//							motion, depth of field and Sides behave as for the
+//							camera ray. Like a continuation ray, it does not
+//							re-apply user clip planes.
+void CRaytracer::probeDepth(CPrimaryRay *rays, int numShading) {
+    CPrimaryRay *cRay = rays;
+
+    for (int i = numShading; i > 0; i--, cRay++) {
+        if (!cRay->depthProbe)
+            continue;
+
+        cRay->tmin = cRay->t + C_EPSILON;
+        cRay->t = C_INFINITY;
+        trace((CRay *)cRay);
+
+        const float zold = (cRay->object != NULL) ? cameraDepth(cRay, cRay->t) : CRenderer::clipMax;
+        cRay->depthProbe = false;
+        resolveDepth(cRay, zold);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

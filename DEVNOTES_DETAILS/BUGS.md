@@ -4,21 +4,6 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Open Issues
 
-- [ ] **Midpoint depth filter on raytrace never finds a second surface**
-      ([#47](https://github.com/juvenal/openrender/issues/47)). `resolveDepth()` (`raytracer.cpp`)
-      builds its candidate list from the continuation-ray chain, which only continues through
-      transparent hits, so `CCompositor::evaluateDepth`'s Mid mode always averages the first hit
-      with `clipMax` (≈ 5e29). Reyes finds the back surface of two-sided geometry through
-      `CPixel::zold`. With one surface, both hiders keep `clipMax` (Pixie's convention, confirmed
-      2026-10-13). `Parity_depthfilter-mid` (threshold 500000) does not detect it. Being fixed on
-      `fix/raytrace-midpoint-depth`, guarded by `DepthAnalytic_mid*_raytrace`
-      (`tests/visual/test_depth_analytic.cpp`).
-- [ ] **Raytrace `z` is the distance along the ray, not camera-space depth**
-      ([#49](https://github.com/juvenal/openrender/issues/49)). `computeSamples()` normalizes each
-      primary ray's direction and `postShade()` stores `cRay->t` as the depth candidate, so every
-      depth mode reads `1/cos θ` too deep off-axis (0.9% eight pixels from the centre of a 45° view,
-      more towards the corners); reyes writes camera z. Raytraced shadow maps inherit it. Being
-      fixed with #47 on `fix/raytrace-midpoint-depth`, guarded by `DepthAnalytic_min_raytrace`.
 - [ ] **Reyes micropolygon coverage is not watertight at shared edges**
       ([#50](https://github.com/juvenal/openrender/issues/50)). `checkPixel`
       (`stochasticQuad.h`) evaluates each edge with `area()`, which subtracts from its third
@@ -101,6 +86,23 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: raytrace midpoint depth never found a second surface, and raytrace `z` was the distance along the
+      ray instead of camera-space depth (FIXED — GitHub #47 and #49, branch `fix/raytrace-midpoint-depth`,
+      2026-10-13). `resolveDepth()` (`raytracer.cpp`) builds its candidates from the continuation-ray chain,
+      which stops at the first opaque hit, so midpoint always averaged that hit with `clipMax` (≈ 5e29)
+      where reyes finds the next surface through `CPixel::zold`. Midpoint rays that stop on an opaque hit
+      now resolve their depth after `CRaytracer::probeDepth()` traces a depth-only probe (never shaded)
+      from just past the hit, traced as a continuation ray (origin, direction, time and flags kept), and
+      passes the hit depth as `zold` (`clipMax` if it misses). Other depth modes never probe. Separately,
+      `computeSamples()` normalizes the primary direction, so `cRay->t` is a distance: every raytrace depth
+      mode read `1/cos θ` too deep off-axis (0.9% eight pixels from the centre of a 45° view). Depth
+      candidates now use `from.z + t * dir.z`. With one surface, midpoint stays `0.5 * (z + clipMax)` in
+      both hiders (Pixie's convention, kept 2026-10-13). Guarded by `DepthAnalytic_{min,mid,mid-sides1}_raytrace`
+      (`tests/visual/test_depth_analytic.cpp`, exact ray-sphere depths). `Parity_depthfilter-mid` could not
+      detect #47: its three transparent spheres never reach the opaque threshold, so both hiders write
+      `clipMax`-collapsed depth everywhere and its diff is 0 before and after. In midpoint mode the probe
+      draws one `urand()` per probed ray (`trace()` sets `ray->jimp`), shifting the per-thread random
+      stream for later shading until spec 039 replaces it.
 - [x] Bug: multithreaded reyes renders with `depthfilter` `average` or `midpoint` wrote different `z` in
       empty background buckets from run to run (FIXED, branch `fix/stochastic-depthfilter-race`). A bucket
       with nothing queued takes `CStochastic::rasterEnd`'s `noObjects` early-out and writes `C_INFINITY`
@@ -113,7 +115,7 @@ This file tracks known defects and implementation gaps in openRender. Open items
       most 15/16 of it, so only all-background pixels are touched). Guarded by
       `DepthFilter_BackgroundExact_{avg,mid}` (single-threaded, failed deterministically before the fix)
       and `DepthFilter_Determinism_{avg,mid}` (six multithreaded renders, bit-identical `z`),
-      `tests/visual/test_depth_determinism.cpp`. Measuring it found #47 and #48 (Open Issues above).
+      `tests/visual/test_depth_determinism.cpp`. Measuring it found #47 (resolved above) and #48 (Open Issues).
 - [x] Bug: a raytraced torus rendered nothing — in the raytrace hider and in every raytraced lookup (FIXED —
       GitHub #22, branch `fix/torus-raytrace`). Two defects that masked each other:
       `src/common/polynomial.h` defined `#define cbrt(x) (... -pow(-x, 1.0 / 3.0) ...)` without parenthesizing
