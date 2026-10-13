@@ -1,10 +1,12 @@
 /**
  * tests/visual/test_depth_analytic.cpp
  *
- * Depth-output accuracy driver (fix/raytrace-midpoint-depth, GitHub #47, #49).
+ * Depth and coverage accuracy driver (fix/raytrace-midpoint-depth, GitHub #47,
+ * #49; fix/reyes-watertight-coverage, #50).
  *
- * Renders a scene of spheres once and checks every pixel's "z" against the
- * exact ray-sphere depths, so neither hider serves as the other's reference.
+ * Renders a scene of spheres once and checks every pixel of a one-channel
+ * float output against the exact ray-sphere intersections, so neither hider
+ * serves as the other's reference.
  * The scene must sample each pixel once at its centre (PixelSamples 1 1,
  * PixelFilter "box" 1 1, jitter off) through a perspective camera at the
  * camera-space origin looking down +z.
@@ -17,13 +19,17 @@
  *        convention: nothing behind the only surface can receive a shadow.
  *        A hider that stops at the first opaque hit never sees the second
  *        surface (#47).
+ *   alpha=<o>: the "a" output of spheres of uniform opacity o is
+ *        1 - (1 - o)^k, k being the number of surfaces the ray crosses. A
+ *        hider that counts a sample on a micropolygon edge shared by two
+ *        quads twice, or not at all, changes k at that pixel (#50).
  *
- * A pixel with no surface must read exactly C_INFINITY. Pixels whose ray
- * grazes a sphere's silhouette are skipped: tessellation moves the reyes
- * silhouette by a fraction of a pixel.
+ * A pixel with no surface must read exactly C_INFINITY (0 for alpha). Pixels
+ * whose ray grazes a sphere's silhouette are skipped: tessellation moves the
+ * reyes silhouette by a fraction of a pixel.
  *
  * Usage:
- *   test_depth_analytic <orender> <rib> <output_tif> <min|mid> <fov> <sides>
+ *   test_depth_analytic <orender> <rib> <output_tif> <min|mid|alpha=<o>> <fov> <sides>
  *                       <cx,cy,cz,r>...
  *
  * Sphere centres are in camera space. With <sides> 1 only a sphere's front
@@ -54,6 +60,11 @@ static constexpr double DEPTH_TOLERANCE = 1e-3;
 // radius, under 5.4e-4 beyond 10%.
 static constexpr double GRAZE_FRACTION = 0.1;
 
+// Absolute tolerance on alpha: bilinear interpolation of a uniform opacity
+// is exact to a few float ULPs, while one surface more or less moves alpha by
+// (1 - o)^k * o.
+static constexpr double ALPHA_TOLERANCE = 1e-5;
+
 // A test that checks too few covered pixels proves nothing.
 static constexpr int MIN_COVERED_PIXELS = 100;
 
@@ -68,7 +79,7 @@ static bool parseSphere(const char *arg, Sphere &s) {
 
 int main(int argc, char *argv[]) {
     if (argc < 8) {
-        fprintf(stderr, "Usage: %s <orender> <rib> <output_tif> <min|mid> <fov> <sides> <cx,cy,cz,r>...\n",
+        fprintf(stderr, "Usage: %s <orender> <rib> <output_tif> <min|mid|alpha=<o>> <fov> <sides> <cx,cy,cz,r>...\n",
                 argv[0]);
         return 1;
     }
@@ -78,7 +89,10 @@ int main(int argc, char *argv[]) {
     const std::string mode = argv[4];
     const double fov = atof(argv[5]);
     const int sides = atoi(argv[6]);
-    if ((mode != "min" && mode != "mid") || fov <= 0 || (sides != 1 && sides != 2)) {
+    const bool alphaMode = mode.rfind("alpha=", 0) == 0;
+    const double opacity = alphaMode ? atof(mode.c_str() + 6) : 0;
+    if ((mode != "min" && mode != "mid" && !(alphaMode && opacity > 0 && opacity < 1)) || fov <= 0 ||
+        (sides != 1 && sides != 2)) {
         fprintf(stderr, "  bad mode, fov or sides\n");
         return 1;
     }
@@ -138,9 +152,10 @@ int main(int argc, char *argv[]) {
             const float z = img.z[(size_t)py * img.width + px];
             if (surfaces.empty()) {
                 background++;
-                if (z != RENDERER_INFINITY) {
+                const float empty = alphaMode ? 0.0f : RENDERER_INFINITY;
+                if (z != empty) {
                     if (failures < 8)
-                        fprintf(stderr, "  pixel (%u, %u): z = %.9g, expected background C_INFINITY\n", px, py, z);
+                        fprintf(stderr, "  pixel (%u, %u): value %.9g, expected background %.9g\n", px, py, z, empty);
                     failures++;
                 }
                 continue;
@@ -148,11 +163,19 @@ int main(int argc, char *argv[]) {
 
             covered++;
             double expected = surfaces[0];
+            double tolerance = DEPTH_TOLERANCE * expected;
             if (mode == "mid")
                 expected = 0.5 * (surfaces[0] + (surfaces.size() > 1 ? surfaces[1] : (double)RENDERER_CLIPMAX));
-            if (!(fabs(z - expected) <= DEPTH_TOLERANCE * expected)) {
+            if (alphaMode) {
+                expected = 1 - pow(1 - opacity, (double)surfaces.size());
+                tolerance = ALPHA_TOLERANCE;
+            }
+            else if (mode == "mid") {
+                tolerance = DEPTH_TOLERANCE * expected;
+            }
+            if (!(fabs(z - expected) <= tolerance)) {
                 if (failures < 8)
-                    fprintf(stderr, "  pixel (%u, %u): z = %.9g, expected %.9g (%zu surface(s))\n", px, py, z,
+                    fprintf(stderr, "  pixel (%u, %u): value %.9g, expected %.9g (%zu surface(s))\n", px, py, z,
                             expected, surfaces.size());
                 failures++;
             }
@@ -165,9 +188,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     if (failures > 0) {
-        fprintf(stderr, "  FAIL: %d pixel(s) off the analytic depth\n", failures);
+        fprintf(stderr, "  FAIL: %d pixel(s) off the analytic %s\n", failures, alphaMode ? "alpha" : "depth");
         return 1;
     }
-    printf("  PASS: every pixel within %g of the analytic %s depth\n", DEPTH_TOLERANCE, mode.c_str());
+    printf("  PASS: every pixel matches the analytic %s\n", mode.c_str());
     return 0;
 }

@@ -13,8 +13,9 @@ This file tracks known defects and implementation gaps in openRender. Open items
       alpha 0.75, and midpoint depth collapses to the front surface) or not at all (back faces:
       the back surface goes missing). It needs a sample exactly on an edge, so it shows with
       jitter off (pixel centres on a centred sphere's diagonal meridians) and will show with spec
-      039's deterministic samples. `DepthAnalytic_mid{,-sides1}_reyes` are disabled until it is
-      fixed on its own `fix/` branch, before 039.
+      039's deterministic samples. Being fixed on `fix/reyes-watertight-coverage`, guarded by
+      `DepthAnalytic_mid{,-sides1}_reyes` (re-enabled) and `CoverageAnalytic_alpha-sides{1,2}_reyes`
+      (`test_depth_analytic`'s `alpha=<o>` mode: 1 − (1 − o)^k for k surfaces along the ray).
 - [ ] **Multithreaded reyes renders vary by one float ULP at 1–2 pixels**
       ([#48](https://github.com/juvenal/openrender/issues/48)), with jitter and dither off;
       `-t:1` is bit-identical. Mostly on a bucket-boundary row; cause not yet known. Blocks spec

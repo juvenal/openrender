@@ -1414,12 +1414,49 @@ foreach(_config min:min:2 mid:mid:2 mid-sides1:mid:1)
             DEPENDS     orender)
     endforeach()
 endforeach()
-# Reyes midpoint fails where a pixel centre lands exactly on a micropolygon
-# edge shared by two grids: the coverage test counts it twice (front faces,
-# so zold drops to the front depth) or not at all (back faces). GitHub #50,
-# fixed on its own fix/ branch; re-enable these two then.
-set_tests_properties(DepthAnalytic_mid_reyes DepthAnalytic_mid-sides1_reyes
-    PROPERTIES DISABLED TRUE)
+
+# --- Coverage accuracy (fix/reyes-watertight-coverage, GitHub #50). The same
+# three spheres, transparent (opacity 0.5, constant shader): every covered
+# pixel's alpha must be 1 - 0.5^k for the k surfaces along the ray. A sample
+# exactly on a micropolygon edge shared by two quads used to be counted by both
+# (one surface too many) or by neither (one too few); with jitter off, pixel
+# centres land on the centred sphere's diagonal meridians. The same defect made
+# DepthAnalytic_mid*_reyes read the front depth or lose the back surface.
+foreach(_sides 1 2)
+    foreach(_hider reyes raytrace)
+        set(_name alpha-sides${_sides}_${_hider})
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/coverage-${_name})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME CoverageAnalytic_${_name}
+            COMMAND test_depth_analytic $<TARGET_FILE:orender>
+                ${CMAKE_SOURCE_DIR}/examples/rib/tests/coverage-alpha-sides${_sides}-${_hider}.rib
+                coverage-alpha-sides${_sides}-${_hider}.tif alpha=0.5 45 ${_sides}
+                ${_depth_analytic_spheres}
+            WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(CoverageAnalytic_${_name} PROPERTIES
+            TIMEOUT     120
+            LABELS      "visual;regression;depth"
+            ENVIRONMENT "${VISUAL_ENV}"
+            DEPENDS     orender)
+    endforeach()
+endforeach()
+# The reyes scenes above use binary dicing, so they test the edge rule alone.
+# This one keeps default dicing: grids diced at different rates meet at
+# T-junctions whose boundary polylines overlap or leave gaps (GitHub #51).
+# Disabled until #51 is fixed on its own fix/ branch.
+set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/coverage-alpha-sides2-tjunction_reyes)
+file(MAKE_DIRECTORY ${_scratch})
+add_test(NAME CoverageAnalytic_alpha-sides2-tjunction_reyes
+    COMMAND test_depth_analytic $<TARGET_FILE:orender>
+        ${CMAKE_SOURCE_DIR}/examples/rib/tests/coverage-alpha-sides2-tjunction-reyes.rib
+        coverage-alpha-sides2-tjunction-reyes.tif alpha=0.5 45 2 ${_depth_analytic_spheres}
+    WORKING_DIRECTORY ${_scratch})
+set_tests_properties(CoverageAnalytic_alpha-sides2-tjunction_reyes PROPERTIES
+    TIMEOUT     120
+    LABELS      "visual;regression;depth"
+    ENVIRONMENT "${VISUAL_ENV}"
+    DEPENDS     orender
+    DISABLED    TRUE)
 
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on
