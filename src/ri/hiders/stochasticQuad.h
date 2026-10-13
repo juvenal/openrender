@@ -367,7 +367,9 @@ const float importance = grid->object->attributes->lodImportance;
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// This macro is used to check whether the sample is inside the quad or not
+// This macro is used to check whether the sample is inside the quad or not; rasterEdge() keeps
+// it watertight, so a sample on an edge shared by two quads lands in exactly one
+// (GitHub #50). Same test as the zbuffer hider's checkPixel.
 #if defined(STOCHASTIC_MOVING) && !defined(STOCHASTIC_FOCAL_BLUR)
 
 // Camera pure-rotation fast path: the quad stays at its static t=0 position and
@@ -377,18 +379,22 @@ const float importance = grid->object->attributes->lodImportance;
     const int camRotFast = CRenderer::cameraRotationOnly;                                                      \
     const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                           \
     const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                           \
-    float aleft, atop, aright, abottom;                                                                        \
+    float aleft, atop, aright, abottom, side;                                                                  \
                                                                                                                \
-    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                  \
+    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);                     \
+    if (side __op 0) {                                                                                         \
         continue;                                                                                              \
     }                                                                                                          \
-    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                \
+    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);                   \
+    if (side __op 0) {                                                                                         \
         continue;                                                                                              \
     }                                                                                                          \
-    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {               \
+    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side);                  \
+    if (side __op 0) {                                                                                         \
         continue;                                                                                              \
     }                                                                                                          \
-    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                 \
+    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);                    \
+    if (side __op 0) {                                                                                         \
         continue;                                                                                              \
     }                                                                                                          \
                                                                                                                \
@@ -407,18 +413,22 @@ const float importance = grid->object->attributes->lodImportance;
 #define checkPixel(__op)                                                                                             \
     const float xcent = pixel->xcent;                                                                                \
     const float ycent = pixel->ycent;                                                                                \
-    float aleft, atop, aright, abottom;                                                                              \
+    float aleft, atop, aright, abottom, side;                                                                        \
                                                                                                                      \
-    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0) {                        \
+    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);                           \
+    if (side __op 0) {                                                                                               \
         continue;                                                                                                    \
     }                                                                                                                \
-    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0) {                      \
+    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);                         \
+    if (side __op 0) {                                                                                               \
         continue;                                                                                                    \
     }                                                                                                                \
-    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) {                     \
+    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side);                        \
+    if (side __op 0) {                                                                                               \
         continue;                                                                                                    \
     }                                                                                                                \
-    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0) {                       \
+    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);                          \
+    if (side __op 0) {                                                                                               \
         continue;                                                                                                    \
     }                                                                                                                \
                                                                                                                      \

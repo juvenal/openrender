@@ -71,21 +71,28 @@ for (j = 0; j < vdiv; j++) {
             ymax = yres;
         }
 
-        // This macro is used to check whether the sample is inside the quad or not
-#define checkPixel(__op)                                                                       \
-    float aleft, atop, aright, abottom;                                                        \
-                                                                                               \
-    if ((atop = area(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y])) __op 0)    \
-        continue;                                                                              \
-    if ((aright = area(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y])) __op 0)  \
-        continue;                                                                              \
-    if ((abottom = area(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y])) __op 0) \
-        continue;                                                                              \
-    if ((aleft = area(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y])) __op 0)   \
-        continue;                                                                              \
-                                                                                               \
-    const float u = aleft / (aleft + aright);                                                  \
-    const float v = atop / (atop + abottom);                                                   \
+        // This macro is used to check whether the sample is inside the quad or not;
+        // rasterEdge() keeps it watertight, so a sample on an edge shared by two
+        // quads lands in exactly one (GitHub #50). Same test as the stochastic
+        // hider's checkPixel.
+#define checkPixel(__op)                                                                      \
+    float aleft, atop, aright, abottom, side;                                                 \
+                                                                                              \
+    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
+    if (side __op 0)                                                                          \
+        continue;                                                                             \
+    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
+    if (side __op 0)                                                                          \
+        continue;                                                                             \
+    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
+    if (side __op 0)                                                                          \
+        continue;                                                                             \
+    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
+    if (side __op 0)                                                                          \
+        continue;                                                                             \
+                                                                                              \
+    const float u = aleft / (aleft + aright);                                                 \
+    const float v = atop / (atop + abottom);                                                  \
     const float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v;
 
 #define recordPixel()                                                                                    \

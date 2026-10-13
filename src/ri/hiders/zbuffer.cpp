@@ -28,6 +28,7 @@
 
 #include "common/memory.h"
 #include "pixelFilter.h"
+#include "rasterEdge.h"
 #include "zbuffer.h"
 
 ///////////////////////////////////////////////////////////////////////

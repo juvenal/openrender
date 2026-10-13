@@ -121,7 +121,10 @@ hider's `z` against exact ray-sphere depths at pixel centres instead of comparin
 - **Raytrace `z` is the distance along the ray ([#49](https://github.com/juvenal/openrender/issues/49)), fixed on the same branch** (camera z, `from.z + t * dir.z`).
   Raytrace matched the analytic ray length to every printed digit and reyes matched camera z, so
   every raytrace depth mode is `1/cos θ` too deep off-axis. The 500000 parity thresholds hide it.
-- **Reyes coverage is not watertight at shared micropolygon edges ([#50](https://github.com/juvenal/openrender/issues/50)).**
+- **Reyes coverage is not watertight at shared micropolygon edges ([#50](https://github.com/juvenal/openrender/issues/50)), fixed on `fix/reyes-watertight-coverage`**
+  (`rasterEdge()`, shared with the zbuffer hider; see BUGS.md). The remaining reyes coverage errors
+  come from grids diced at different rates meeting at T-junctions ([#51](https://github.com/juvenal/openrender/issues/51)).
+  Original measurement:
   A sample exactly on an edge is counted by both quads or by neither, depending on orientation and
   rounding: transparent surfaces composite twice there, and midpoint depth reads the front surface
   or loses the back one. Only samples exactly on an edge are affected, which jitter-off renders hit

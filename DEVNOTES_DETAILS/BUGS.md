@@ -4,18 +4,15 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Open Issues
 
-- [ ] **Reyes micropolygon coverage is not watertight at shared edges**
-      ([#50](https://github.com/juvenal/openrender/issues/50)). `checkPixel`
-      (`stochasticQuad.h`) evaluates each edge with `area()`, which subtracts from its third
-      vertex; adjacent quads traverse a shared edge in opposite directions, so for a sample exactly
-      on it the two signs are not exact negations, and there is no tie-break rule for 0. The
-      sample is counted twice (front faces in the measured case: a 50% transparent sphere reads
-      alpha 0.75, and midpoint depth collapses to the front surface) or not at all (back faces:
-      the back surface goes missing). It needs a sample exactly on an edge, so it shows with
-      jitter off (pixel centres on a centred sphere's diagonal meridians) and will show with spec
-      039's deterministic samples. Being fixed on `fix/reyes-watertight-coverage`, guarded by
-      `DepthAnalytic_mid{,-sides1}_reyes` (re-enabled) and `CoverageAnalytic_alpha-sides{1,2}_reyes`
-      (`test_depth_analytic`'s `alpha=<o>` mode: 1 − (1 − o)^k for k surfaces along the ray).
+- [ ] **Reyes grids diced at different rates crack at T-junctions**
+      ([#51](https://github.com/juvenal/openrender/issues/51)). Each grid approximates a boundary it
+      shares with a neighbour by its own polyline; with different segment counts the polylines
+      differ, leaving overlap slivers (a sample counted twice: transparent surfaces composite twice,
+      midpoint depth reads a duplicate) and gap slivers (a surface missing). No exact tie is needed,
+      so jittered renders hit it too, rarely. `Attribute "dice" "binary" [1]` avoids it, which is
+      how the reyes coverage and midpoint analytic scenes isolate #50;
+      `CoverageAnalytic_alpha-sides2-tjunction_reyes` (default dicing) is disabled until it is
+      fixed in the dicer (per-edge dice rates or stitching), before spec 039.
 - [ ] **Multithreaded reyes renders vary by one float ULP at 1–2 pixels**
       ([#48](https://github.com/juvenal/openrender/issues/48)), with jitter and dither off;
       `-t:1` is bit-identical. Mostly on a bucket-boundary row; cause not yet known. Blocks spec
@@ -87,6 +84,21 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: the reyes and zbuffer micropolygon coverage test was not watertight at shared edges (FIXED —
+      GitHub #50, branch `fix/reyes-watertight-coverage`, 2026-10-13). `checkPixel` tested each quad edge
+      with `area(p, a, b)`, which subtracts from its last vertex; adjacent quads traverse a shared edge in
+      opposite directions, so for a sample exactly on it the two values were not exact negations, and an
+      exact 0 had no tie rule. The sample was counted by both quads (a 50% transparent sphere read alpha
+      0.75; midpoint depth collapsed to the front surface) or by neither. Both hiders' `checkPixel` now
+      call one helper, `rasterEdge()` (`src/ri/hiders/rasterEdge.h`): it evaluates every edge from its
+      endpoints in a fixed order (by y, then x), so neighbours get exact negations, and decides an exact 0
+      by the sign the area has at the sample nudged by (e, e^2), one perturbation for every edge, so a
+      sample on a shared edge or vertex lands in exactly one quad. The same value feeds u/v
+      interpolation (one area per edge, as before; interpolated values move by at most a rounding step).
+      The zbuffer hider's 0.5001011 sample offset, which only made exact hits unlikely, is kept.
+      Guarded by `DepthAnalytic_mid{,-sides1}_reyes` (re-enabled) and
+      `CoverageAnalytic_alpha-sides{1,2}_{reyes,raytrace}` (`test_depth_analytic`'s `alpha=<o>` mode),
+      whose reyes scenes use binary dicing to separate it from #51 (Open Issues above).
 - [x] Bug: raytrace midpoint depth never found a second surface, and raytrace `z` was the distance along the
       ray instead of camera-space depth (FIXED — GitHub #47 and #49, branch `fix/raytrace-midpoint-depth`,
       2026-10-13). `resolveDepth()` (`raytracer.cpp`) builds its candidates from the continuation-ray chain,

@@ -34,6 +34,7 @@
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "pixelFilter.h"
+#include "rasterEdge.h"
 #include "common/random.h"
 #include "sampler.h"
 #include "stochastic.h"
