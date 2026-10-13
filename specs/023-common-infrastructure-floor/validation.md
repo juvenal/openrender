@@ -944,3 +944,15 @@ The manifest was regenerated after the fixes (same 212 files; new hashes for the
 scripts and `common.sh`) and re-verified on the host: 0 non-`OK` lines.
 
 **Verdict: Linux green.**
+
+### T062: registry closed inside the branch (2026-10-13)
+
+T062 originally waited for the merge, to record the merge commit and post the closing comment on
+#29. At the maintainer's direction no task may depend on the merge, so:
+
+- DB-016's "commit and date recorded at merge" (written by T057, above) now reads "Resolved by
+  spec 023 (`specs/023-common-infrastructure-floor/`), 2026-10-13".
+- The registry rule (`DOMAIN_BOUNDARIES.md`, "When an entry is fully resolved…" and step 3 of
+  "Retire a fixed violation") asks for the resolving spec and the date, never the merge commit;
+  FR-012 and research R14 are amended to match.
+- #29 closes through the merge commit message (`Closes #29`), written by the maintainer.

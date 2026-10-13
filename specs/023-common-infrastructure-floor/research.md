@@ -527,7 +527,7 @@ mirrors spec 022:
 ## R14 — Registry and documentation
 
 - `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`:
-  - DB-016 moves to **Resolved** with commit and date.
+  - DB-016 moves to **Resolved** with the resolving spec and the date.
   - Its Direction text is corrected: it said "forwarding headers for one spec", which contradicts
     FR-009.
   - DB-001's Evidence and Size list only the lines that remain (≤ 18).

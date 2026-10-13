@@ -792,9 +792,13 @@ commit.
 **Checkpoint (PAUSE 8, final)**: the feature is complete and Linux is confirmed. Stage, summarize,
 and wait for review and commit; then run `/speckit-converge`.
 
-- [ ] T062 **After the maintainer merges**: in `DOMAIN_BOUNDARIES.md`, replace DB-016's "commit
-  and date recorded at merge" with the merge commit and date, and post the closing comment on #29
-  **only with the maintainer's approval**. Comments are outward-facing.
+- [X] T062 Close the registry entry inside the branch (FR-012, amended 2026-10-13: no task may
+  depend on the merge).
+  - In `DOMAIN_BOUNDARIES.md`, DB-016 reads "Resolved by spec 023 (`specs/023-common-infrastructure-floor/`),
+    2026-10-13" instead of "commit and date recorded at merge"; the registry rule now asks for the
+    resolving spec and date, never the merge commit.
+  - Issue #29 closes through the merge itself: the maintainer adds `Closes #29` to the merge commit
+    message. No comment is posted from this branch.
 
 ---
 

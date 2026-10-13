@@ -12,7 +12,7 @@ not yet comply.
   reduce it, and records the reduction in the entry's history.
 - New violations are prohibited. A violation found (not introduced) during other work is added here
   with its evidence; the finding itself does not block that work.
-- When an entry is fully resolved, move it to **Resolved** with the commit and date — don't delete it.
+- When an entry is fully resolved, move it to **Resolved** with the resolving spec (or `fix/` branch) and the date — don't delete it. Record nothing that only exists after the merge, such as the merge commit: `git log --merges` finds it from the spec number.
 - Only record what the code demonstrably shows (a symbol list, a header, a link line), not suspicion.
 
 ## Architecture check
@@ -77,7 +77,7 @@ fails as stale.
 1. Make the fix and rebuild; `ctest -L architecture` reports the now-missing edges as `STALE`.
 2. Delete exactly those lines from `allowlist.txt`.
 3. If the entry has no allowlist lines left and its finding is gone, move it under **Resolved**
-   with the commit and date.
+   with the resolving spec and the date.
 4. If `NOTE metric … < baseline` appears, lower `metrics-baseline.txt` to the reported values.
 5. Re-run `ctest -L architecture` on macOS and Linux.
 
@@ -560,7 +560,8 @@ request. Run `ctest -L architecture` locally before review.
   `CVariable` and an arena object into `libRIBCommon`, as behavior-preserving moves. No
   forwarding headers: every include and call site switches to the common headers in the same
   spec.
-- **Resolved** by spec 023 (common infrastructure floor); commit and date recorded at merge.
+- **Resolved** by spec 023 (common infrastructure floor, `specs/023-common-infrastructure-floor/`),
+  2026-10-13.
   - `libRIBCommon` is now a shared library (plus the static archive) and the only definer of
     process-wide infrastructure state; the RI libraries re-export it, so existing consumers
     link and run unchanged.
