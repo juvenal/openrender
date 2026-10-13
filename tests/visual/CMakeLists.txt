@@ -64,6 +64,10 @@ add_executable(test_depth_determinism test_depth_determinism.cpp)
 target_link_libraries(test_depth_determinism PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_determinism PRIVATE cxx_std_20)
 
+add_executable(test_depth_analytic test_depth_analytic.cpp)
+target_link_libraries(test_depth_analytic PRIVATE TIFF::TIFF)
+target_compile_features(test_depth_analytic PRIVATE cxx_std_20)
+
 # FR-011/SC-006 manual-only JIT-vs-interpreter performance comparison driver
 # (spec 011-jit-opcode-parity, research.md D4). No TIFF dependency — timing
 # only, no pixel comparison.
@@ -1376,6 +1380,46 @@ foreach(_mode avg mid)
         examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
         depthfilter-determinism-${_mode}.tif 6)
 endforeach()
+
+# --- Depth accuracy (fix/raytrace-midpoint-depth, GitHub #47 and #49). Three
+# opaque spheres, one sample at each pixel centre; test_depth_analytic checks
+# every pixel's z against the exact ray-sphere depths, so neither hider is the
+# other's reference.
+#   DepthAnalytic_min_*: the nearest surface's camera-space depth. Raytrace
+#     used to write the distance along the ray (#49).
+#   DepthAnalytic_mid_*: Sides 2, the midpoint of a sphere's front and back.
+#     Raytrace stopped at the first opaque hit and never saw the back (#47).
+#   DepthAnalytic_mid-sides1_*: Sides 1, the midpoint of the small sphere and
+#     the large one behind it, or 0.5 * (z + clipMax) with one surface (the
+#     single-surface convention both hiders keep).
+set(_depth_analytic_spheres 0,0,6,1.5 0.5,0.3,3,0.5 1.9,-1,4.5,0.6)
+foreach(_config min:min:2 mid:mid:2 mid-sides1:mid:1)
+    string(REPLACE ":" ";" _parts ${_config})
+    list(GET _parts 0 _name)
+    list(GET _parts 1 _filter)
+    list(GET _parts 2 _sides)
+    foreach(_hider reyes raytrace)
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/depth-analytic-${_name}-${_hider})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME DepthAnalytic_${_name}_${_hider}
+            COMMAND test_depth_analytic $<TARGET_FILE:orender>
+                ${CMAKE_SOURCE_DIR}/examples/rib/tests/depth-analytic-${_name}-${_hider}.rib
+                depth-analytic-${_name}-${_hider}.tif ${_filter} 45 ${_sides}
+                ${_depth_analytic_spheres}
+            WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(DepthAnalytic_${_name}_${_hider} PROPERTIES
+            TIMEOUT     120
+            LABELS      "visual;regression;depth"
+            ENVIRONMENT "${VISUAL_ENV}"
+            DEPENDS     orender)
+    endforeach()
+endforeach()
+# Reyes midpoint fails where a pixel centre lands exactly on a micropolygon
+# edge shared by two grids: the coverage test counts it twice (front faces,
+# so zold drops to the front depth) or not at all (back faces). GitHub #50,
+# fixed on its own fix/ branch; re-enable these two then.
+set_tests_properties(DepthAnalytic_mid_reyes DepthAnalytic_mid-sides1_reyes
+    PROPERTIES DISABLED TRUE)
 
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on

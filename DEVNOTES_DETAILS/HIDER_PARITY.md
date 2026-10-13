@@ -113,6 +113,20 @@ Measured at the same time (2026-10-13), and filed separately:
   arithmetic are the candidates). It is the last known obstacle to bit-identical multi-threaded
   reyes output once spec 039 replaces the per-thread jitter streams and the display dither.
 
+Measured on `fix/raytrace-midpoint-depth` (2026-10-13) with `test_depth_analytic`, which checks each
+hider's `z` against exact ray-sphere depths at pixel centres instead of comparing the hiders:
+
+- **Raytrace `z` is the distance along the ray ([#49](https://github.com/juvenal/openrender/issues/49)).**
+  Raytrace matched the analytic ray length to every printed digit and reyes matched camera z, so
+  every raytrace depth mode is `1/cos θ` too deep off-axis. The 500000 parity thresholds hide it.
+- **Reyes coverage is not watertight at shared micropolygon edges ([#50](https://github.com/juvenal/openrender/issues/50)).**
+  A sample exactly on an edge is counted by both quads or by neither, depending on orientation and
+  rounding: transparent surfaces composite twice there, and midpoint depth reads the front surface
+  or loses the back one. Only samples exactly on an edge are affected, which jitter-off renders hit
+  along a centred sphere's diagonal meridians.
+- **Reyes is accurate to its tessellation away from silhouettes:** under 5.4e-4 relative beyond 10%
+  of a radius from a sphere's silhouette, up to 2.4e-3 within 5% (`ShadingRate 1`).
+
 ## Subdivision Surfaces (spec 010-full-subdivision-support)
 
 `CSubdivMesh : CObject` / `CSubdivision : CSurface` already satisfy the

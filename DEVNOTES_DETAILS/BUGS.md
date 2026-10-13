@@ -9,9 +9,27 @@ This file tracks known defects and implementation gaps in openRender. Open items
       builds its candidate list from the continuation-ray chain, which only continues through
       transparent hits, so `CCompositor::evaluateDepth`'s Mid mode always averages the first hit
       with `clipMax` (≈ 5e29). Reyes finds the back surface of two-sided geometry through
-      `CPixel::zold`. The single-surface convention (`clipMax`, Pixie's choice) also needs to be
-      confirmed and documented. `Parity_depthfilter-mid` (threshold 500000) does not detect it.
-      Planned as a `fix/` branch before spec 039, which tightens parity thresholds.
+      `CPixel::zold`. With one surface, both hiders keep `clipMax` (Pixie's convention, confirmed
+      2026-10-13). `Parity_depthfilter-mid` (threshold 500000) does not detect it. Being fixed on
+      `fix/raytrace-midpoint-depth`, guarded by `DepthAnalytic_mid*_raytrace`
+      (`tests/visual/test_depth_analytic.cpp`).
+- [ ] **Raytrace `z` is the distance along the ray, not camera-space depth**
+      ([#49](https://github.com/juvenal/openrender/issues/49)). `computeSamples()` normalizes each
+      primary ray's direction and `postShade()` stores `cRay->t` as the depth candidate, so every
+      depth mode reads `1/cos θ` too deep off-axis (0.9% eight pixels from the centre of a 45° view,
+      more towards the corners); reyes writes camera z. Raytraced shadow maps inherit it. Being
+      fixed with #47 on `fix/raytrace-midpoint-depth`, guarded by `DepthAnalytic_min_raytrace`.
+- [ ] **Reyes micropolygon coverage is not watertight at shared edges**
+      ([#50](https://github.com/juvenal/openrender/issues/50)). `checkPixel`
+      (`stochasticQuad.h`) evaluates each edge with `area()`, which subtracts from its third
+      vertex; adjacent quads traverse a shared edge in opposite directions, so for a sample exactly
+      on it the two signs are not exact negations, and there is no tie-break rule for 0. The
+      sample is counted twice (front faces in the measured case: a 50% transparent sphere reads
+      alpha 0.75, and midpoint depth collapses to the front surface) or not at all (back faces:
+      the back surface goes missing). It needs a sample exactly on an edge, so it shows with
+      jitter off (pixel centres on a centred sphere's diagonal meridians) and will show with spec
+      039's deterministic samples. `DepthAnalytic_mid{,-sides1}_reyes` are disabled until it is
+      fixed on its own `fix/` branch, before 039.
 - [ ] **Multithreaded reyes renders vary by one float ULP at 1–2 pixels**
       ([#48](https://github.com/juvenal/openrender/issues/48)), with jitter and dither off;
       `-t:1` is bit-identical. Mostly on a bucket-boundary row; cause not yet known. Blocks spec

@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# Depth accuracy (fix/raytrace-midpoint-depth, #47, #49): three opaque
+# Sides 2 spheres, one sample at each pixel centre. Every pixel's z must be
+# the nearest surface's camera-space depth, as test_depth_analytic computes it
+# from the spheres' camera-space positions: (0, 0, 6) r 1.5, (0.5, 0.3, 3)
+# r 0.5 and (1.9, -1, 4.5) r 0.6.
+version 3.03
+Hider "raytrace" "jitter" [0]
+Option "hider" "depthfilter" "min"
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Display "depth-analytic-min-raytrace.tif" "file" "z"
+Projection "perspective" "fov" 45
+Format 160 120 1
+Translate 0 0 6
+
+WorldBegin
+  Sides 2
+  Sphere 1.5 -1.5 1.5 360
+
+  AttributeBegin
+    Translate 0.5 0.3 -3
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Translate 1.9 -1 -1.5
+    Sphere 0.6 -0.6 0.6 360
+  AttributeEnd
+WorldEnd
