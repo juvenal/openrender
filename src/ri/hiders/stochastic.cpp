@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include <algorithm>
 #include <vector>
 
 #include "common/portable_io.h"
@@ -775,11 +776,17 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
             }
 
             {
+                // A pixel whose subsamples are all background must read exactly
+                // C_INFINITY, as the noObjects early-out above writes it: summing
+                // C_INFINITY subsamples in float lands a rounding step above it, and
+                // whether a bucket has objects queued depends on thread timing. Any
+                // finite subsample keeps the average well below C_INFINITY, so the
+                // clamp touches only all-background pixels.
                 const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
                 for (int y = 0; y < yres; y++) {
                     float *cPixel = &fb2[y * xres * CRenderer::numSamples];
                     for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
-                        cPixel[4] *= normalizer;
+                        cPixel[4] = std::min(cPixel[4] * normalizer, C_INFINITY);
                     }
                 }
             }
@@ -817,11 +824,12 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
             }
 
             {
+                // Clamped at C_INFINITY as in DEPTH_AVG above.
                 const float normalizer = 1.0f / ((float)CRenderer::pixelXsamples * (float)CRenderer::pixelYsamples);
                 for (int y = 0; y < yres; y++) {
                     float *cPixel = &fb2[y * xres * CRenderer::numSamples];
                     for (i = 0; i < xres; i++, cPixel += CRenderer::numSamples) {
-                        cPixel[4] *= normalizer;
+                        cPixel[4] = std::min(cPixel[4] * normalizer, C_INFINITY);
                     }
                 }
             }

@@ -83,6 +83,19 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: multithreaded reyes renders with `depthfilter` `average` or `midpoint` wrote different `z` in
+      empty background buckets from run to run (FIXED, branch `fix/stochastic-depthfilter-race`). A bucket
+      with nothing queued takes `CStochastic::rasterEnd`'s `noObjects` early-out and writes `C_INFINITY`
+      (1.00000002e30); a bucket with objects queued but no visible surface summed sixteen `C_INFINITY`
+      subsamples in float and landed one rounding step higher (1.00000009e30). Which buckets have objects
+      queued depends on thread timing, so 1024–4096 pixels (whole buckets) changed between runs. The
+      2026-08 note in `HIDER_PARITY.md` blamed a race in the Stage-2 reduction; `rasterEnd`'s buffers
+      are private to the bucket, and measurement showed only background buckets differed. Fixed by
+      clamping the avg/mid reduction at `C_INFINITY` (a pixel with any finite subsample averages to at
+      most 15/16 of it, so only all-background pixels are touched). Guarded by
+      `DepthFilter_BackgroundExact_{avg,mid}` (single-threaded, failed deterministically before the fix)
+      and `DepthFilter_Determinism_{avg,mid}` (six multithreaded renders, bit-identical `z`),
+      `tests/visual/test_depth_determinism.cpp`. Measuring it found #47 and #48 (Open Issues above).
 - [x] Bug: a raytraced torus rendered nothing — in the raytrace hider and in every raytraced lookup (FIXED —
       GitHub #22, branch `fix/torus-raytrace`). Two defects that masked each other:
       `src/common/polynomial.h` defined `#define cbrt(x) (... -pow(-x, 1.0 / 3.0) ...)` without parenthesizing
