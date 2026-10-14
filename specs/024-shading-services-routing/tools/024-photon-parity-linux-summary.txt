@@ -1,0 +1,33 @@
+reference: /tmp/024-pp-macos-ref.tif (external)
+run 1 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 2 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 3 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 4 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 5 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 6 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 7 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 8 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 9 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 10 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 11 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 12 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 13 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 14 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 15 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 16 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 17 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 18 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 19 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 20 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 21 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 22 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 23 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 24 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 25 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 26 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 27 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 28 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 29 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+run 30 rc=0 orender_failed=0 diff=2.91 gpm=2009546
+crashes: 0 / 30
+red slo: diff=n/a gpm=absent

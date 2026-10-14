@@ -68,6 +68,25 @@ This file tracks known defects and implementation gaps in openRender. Open items
       i.e., a multi-threaded raster/hider early-out or shared-state race —
       but in `CPhotonHider` rather than `CStochastic`; unconfirmed without
       further investigation. Planned as a follow-up spec.
+- [ ] **The photon hider mishandles the no-argument `solar()` form**
+      ([#52](https://github.com/juvenal/openrender/issues/52)), under either backend.
+      `CPhotonHider::solarBegin` does nothing when it gets no direction (`L == NULL`, a `FIXME`
+      in `src/ri/hiders/photon.cpp`). It neither samples `Ps` nor sets `L` or `powerScale`, so
+      `solarEnd` then traces photons from whatever `L`, `Ps` and `powerScale` already held. No
+      shipped light shader uses this form. Found by code reading while specifying spec 024,
+      which only makes the JIT call the hooks the way the interpreter does and leaves this
+      handling unchanged (out of scope there). The fix is planned on its own `fix/` branch right
+      after spec 024 merges.
+- [ ] **Constructing a shading context with no renderer services writes through an uninitialized
+      pointer** ([#53](https://github.com/juvenal/openrender/issues/53)).
+      `CShadingContext::CShadingContext` (`src/libshader/shading/shading.cpp`, around line 434)
+      allocates `traceObjectHash` only when default services are installed and `globalArena.top` is
+      set. It then fills `SHADING_OBJECT_CACHE_SIZE` entries through it unconditionally. The
+      renderer never reaches this, because it creates contexts in `beginFrame()` after the services
+      are registered. Any standalone use of the shading library that creates a context with no
+      services does reach it. Found by code reading while planning spec 024, which does not change
+      this (its no-services test constructs no context). The fix is planned on its own `fix/` branch
+      right after spec 024 merges.
 
 ## Resolved Bugs
 
