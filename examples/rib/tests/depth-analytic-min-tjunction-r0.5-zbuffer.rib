@@ -1,0 +1,31 @@
+##RenderMan RIB-Structure 1.0
+# Grid T-junction cracks (#51) in the zbuffer hider, which dices like reyes:
+# depth-analytic-min-reyes.rib at ShadingRate 0.5. The zbuffer hider keeps
+# no transparency, so a crack shows in depth instead: where two grids diced at
+# different rates leave a gap, the pixel centre misses the front surface and
+# reads the sphere's back.
+version 3.03
+Hider "zbuffer" "jitter" [0]
+Option "hider" "depthfilter" "min"
+ShadingRate 0.5
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Display "depth-analytic-min-tjunction-r0.5-zbuffer.tif" "file" "z"
+Projection "perspective" "fov" 45
+Format 160 120 1
+Translate 0 0 6
+
+WorldBegin
+  Sides 2
+  Sphere 1.5 -1.5 1.5 360
+
+  AttributeBegin
+    Translate 0.5 0.3 -3
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Translate 1.9 -1 -1.5
+    Sphere 0.6 -0.6 0.6 360
+  AttributeEnd
+WorldEnd
