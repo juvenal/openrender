@@ -181,7 +181,9 @@ grep -rn 'hiderFlags()' src/libshader src/ri/render/rendererServicesImpl.h   # e
 ```
 
 - `Visual_photon-parity-slo` passed against the interpreter reference.
-- The test's map size line shows a non-empty `slo` map.
+- `build-024/tests/visual/photon-parity-slo/photon-parity-slo.gpm` exists and is non-zero
+  (expect 2 009 546 bytes, like the interpreter's map):
+  `wc -c build-024/tests/visual/photon-parity-slo/photon-parity-slo.gpm`
 - The hook probe test (contract [illumination-hook](contracts/illumination-hook.md)) checks all
   four forms, both backends, with the hook on and off.
 

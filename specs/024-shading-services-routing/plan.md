@@ -61,8 +61,8 @@ begin/end, not per point. The lookups run at load or bind time only.
 - no task depends on the merge;
 - builds and tests are serialized by the coordinator: `nice -n 19`, at most `-j4`.
 
-**Scale/Scope**: about 12 source files changed, 2 headers and 1 helper unit added, 3 test
-executables and 3 scenes added, plus the architecture data files and the registry.
+**Scale/Scope**: about 12 source files changed, 2 headers and 1 helper unit added, 4 test
+executables, 1 test helper header and 4 scenes added, plus the architecture data files and the registry.
 
 **Measurements** (research R1, R3, R4; quickstart §0):
 
@@ -182,7 +182,7 @@ src/ri/render/
 shaders/photonparity_view.sl, shaders/solar0_light.sl   # NEW (test shaders, built with the others)
 examples/rib/tests/photon-parity{,-slo}.rib, solar0{,-slo}.rib   # NEW; references photon-parity.tif, solar0.tif
 tests/visual/CMakeLists.txt     # four add_visual_test + .gpm cleanup fixtures
-tests/shading_parity/           # NEW: test_illumination_hook.cpp, test_services_routing.cpp, test_no_services.cpp (+ CMake)
+tests/shading_parity/           # NEW: test_illumination_hook.cpp, test_services_routing.cpp, test_service_lookup.cpp, test_no_services.cpp, recording_services.h (+ CMake)
 tests/architecture/allowlist.txt, metrics-baseline.txt
 DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
 ```
@@ -228,6 +228,7 @@ The details are in [research.md](research.md). In brief:
 | T-P2 | `ShadingParity_IlluminationHook` (probe context, R2) | the JIT makes no hook calls; no-argument `solar()` leaves `L` unset | FR-008–FR-011, SC-007 |
 | T-P3 | `Visual_solar0` / `Visual_solar0-slo` (a camera-hider scene with a no-argument `solar()` light; the `-slo` variant against the `.rslo` reference) | the JIT never sets `L` for that form | FR-019, SC-009 |
 | T-P4 | `ShadingServices_Routing` (recording wrapper and stubs, R10) | the helpers don't exist; services are null right after `RiBegin` | FR-001, FR-002, FR-005, FR-013, FR-014 |
+| T-P4b | `ShadingServices_Lookup` (stub services, `EXCLUDE_FROM_ALL` until the header exists) | `serviceLookup.h` doesn't exist, so it fails to compile | FR-001, FR-002 |
 | T-P5 | `ShadingServices_NoServices` (own process, counting sink) | written against the helper header's declared API, so it fails to build until the helpers exist; then passes only with warn-once and the category skip | FR-006, FR-014, SC-009 |
 | T-P7 | a negative emitter test: an illuminate/solar instruction with unresolvable operands | today `oshader --jit` skips it silently and exits 0 | R8 hardening (approved) |
 | T-P6 | `ctest -L architecture` after deleting the 10 lines | 10 `VIOLATION` lines until the routing lands (the lines are deleted first); any other violation means the design is wrong | FR-015, FR-016, SC-002, SC-003 |

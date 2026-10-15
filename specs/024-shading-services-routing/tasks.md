@@ -39,6 +39,7 @@ implementer hands the exact commands to the coordinator, one run at a time, and 
 it gets back. Never run them yourself. Every build is
 `nice -n 19 cmake --build build-024 --config Release -j4`, and every ctest run is
 `nice -n 19 ctest --test-dir build-024 … -j4`. Never use a higher `-j`, or `-j` with no number.
+A [RUN] line below that shows a bare `cmake --build`, `cmake -B` or `ctest` means this niced `-j4` form.
 
 **Red tests that don't compile yet**: a new test that needs an API that doesn't exist yet is added
 with `EXCLUDE_FROM_ALL`, so the main build stays green.
@@ -94,6 +95,7 @@ later phase is compared against.
     intermittent ones: `ImagerRegressionRender`, `Parity_transparency-matte-aov`,
     `Parity_depthdefault`, `ShadingParity_AmbientAccumulation`.
   - `architecture` must be green.
+  - Record that the `determinism`-labelled tests pass (SC-006).
 
 **Checkpoint (PAUSE 1)**: the baselines are recorded. Stage `validation.md`, summarize, and wait for
 review.
@@ -134,6 +136,9 @@ before the first `beginFrame()`.
     5. **Case B**: after `RiEnd()`, `defaultServices() == nullptr`.
   - **Expected red today**: A fails, because services are null until `beginFrame`. B fails, because
     they stay registered. C fails, because `beginFrame` reinstalls the real implementation.
+  - Later sessions in the same process (spec Edge Cases) are covered by design only: `RiBegin`
+    registers and `RiEnd` deregisters, and Cases A and B show both edges. Record this acceptance
+    in `validation.md`.
 
 **Checkpoint (TEST-APPROVAL 2a)**: [RUN] build, then
 `nice -n 19 ctest --test-dir build-024 -R ShadingServices_Routing --output-on-failure`. Show A, B
@@ -178,7 +183,8 @@ scenes stay green.
   - `shaders/solar0_light.sl`: copy `tools/solar0_probe.sl`, rename the shader to `solar0_light`,
     and change the header comment to "spec 024 FR-019: a light whose only construct is solar() with
     no arguments".
-- [ ] T009 [P] [US1] Add the scenes, keeping each tool file's header comment:
+- [ ] T009 [P] [US1] Add the scenes, keeping each tool file's header comment, with "research
+  candidate" reworded to "parity test scene":
   - `examples/rib/tests/photon-parity.rib`, from `tools/photon-parity-rslo.rib`, with the map and
     display renamed to `photon-parity.gpm` and `photon-parity.tif`;
   - `examples/rib/tests/photon-parity-slo.rib`, from `tools/photon-parity-slo.rib`, using
@@ -195,6 +201,8 @@ scenes stay green.
     If it isn't, stop and report; the threshold would no longer be justified.
   - **If that file is gone**: regenerate it first with
     `specs/024-shading-services-routing/tools/measure-photon-parity.sh "$PWD/build-024" 1 /tmp/024-pp-t1 -t:1`.
+    Note in `validation.md` that the reference was regenerated on the post-Phase-2 tree, so the
+    0.00 check compares against that run, not R4's original one.
   - **solar0**: `orender examples/rib/tests/solar0.rib`, copied to
     `examples/rib/tests/references/solar0.tif`.
 - [ ] T011 [US1] Register the scenes in `tests/visual/CMakeLists.txt`, next to the other `-slo`
@@ -227,9 +235,14 @@ scenes stay green.
   - **Hook on** (`CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK`):
     - the call log for each fixture must equal the contract table, and be identical for `.rslo`
       and `.slo`;
-    - the begin call must leave the tags, `numActive`/`numPassive` and `L` untouched.
+    - the begin call must leave the tags, `numActive`/`numPassive` and `L` untouched;
+    - with every tag non-zero (all points inactive), the hook is still called and the tags and
+      counts are left as the interpreter leaves them (spec Edge Case "all vertices inactive").
   - **Hook off**: no hook calls. `L`, the tags and the counts after begin must be equal across the
     backends. For `solar()`, `L == Ps` for active points.
+  - **Toggle**: on the same loaded `.slo` (no reload), run hook-on, then clear the flag and run
+    again. The second run must match the hook-off results; this checks that compiled code does not
+    cache the hook state (spec Edge Case "Hook toggled between frames").
   - Register it only `if(OPENRENDER_HAVE_LLVM)`, with label `shading_parity`, links as in T004, and
     the `OSHADER_BIN` environment.
   - **Expected red**: every JIT hook-on row (no calls are logged), and the `solar()` hook-off row
@@ -306,11 +319,14 @@ Record this in `validation.md`, stage, and wait for approval of the tests.
   - `ctest -L "shading_parity|libshader"`;
   - `ctest -L visual`;
   - the full suite, whose results must equal T002's apart from the new tests;
-  - `grep -rn 'rsl_illuminate\|rsl_solar' src` and `grep -rn 'HIDER_ILLUMINATIONHOOK\|hiderFlags()' src/libshader`,
+  - `grep -rn 'rsl_illuminate\|rsl_solar' src` and `grep -rn 'HIDER_ILLUMINATIONHOOK\|hiderFlags()\|rendererHiderFlags' src/libshader src/ri/render/rendererServicesImpl.h`,
     which must both print nothing (SC-007).
   - **Record the `Visual_photon-parity-slo` MaxBlockAvgDiff** (JIT against the interpreter
     reference). It has never been measured, because before the fix that run crashed. If it is above
     6, stop and report to the maintainer. Never edit the threshold.
+  - **Record the size of `build-024/tests/visual/photon-parity-slo/photon-parity-slo.gpm`**
+    (SC-005). It must exist and be non-zero; the interpreter's map at `-t:1` is 2 009 546 bytes
+    (research R4). An absent or empty map fails SC-005 even if the image diff passes.
 
   Record the results in `validation.md`.
 - [ ] T021 [P] [US1] Add a "Backend parity (spec 024)" section to `tests/visual/parity-thresholds.md`:
@@ -502,7 +518,9 @@ fails to compile. Record this, stage, and wait for approval.
   - **DB-012**: move it under `## Resolved` as "Resolved by spec 024
     (`specs/024-shading-services-routing/`), <date>". Its tracking line names only #30. Summarize
     the fix: one hook query for both backends; the JIT begin/end functions hand off to the hider;
-    `op_solar0_begin`; the wrappers deleted; the photon parity test.
+    `op_solar0_begin`; the wrappers deleted; the photon parity test. The 029 (#35) coupling is
+    already tracked under DB-005, so it is dropped from DB-012 without loss; say so in the
+    Resolved text.
   - **DB-018**: add to Direction the explicit ray type / hit mode in `ShaderGlobals` (spec 026,
     #32), formerly listed under DB-012.
 
@@ -521,7 +539,7 @@ fails to compile. Record this, stage, and wait for approval.
   - `DEVNOTES_DETAILS/OSHADER_UPDATES.md`: `op_solar0_begin`, the hard emitter error for unresolved
     illuminate/solar operands, and the removal of the `rsl_*` wrappers.
 - [ ] T040 [RUN] Reduced-feature build in a scratch directory inside the worktree, deleted afterwards:
-  - `cmake -B build-024-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF`;
+  - `nice -n 19 cmake -B build-024-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF`;
   - `nice -n 19 cmake --build build-024-nojit --config Release -j4`;
   - `nice -n 19 ctest --test-dir build-024-nojit -L "architecture|shading_parity|visual" -j4 --output-on-failure`.
 
@@ -542,6 +560,8 @@ fails to compile. Record this, stage, and wait for approval.
     - Record the Linux `Visual_photon-parity-slo` MaxBlockAvgDiff. The JIT-against-interpreter diff
       adds to the 2.91 cross-platform diff there, so if it is above 6, stop and report. Never edit
       the threshold.
+    - Record the size of `build-024/tests/visual/photon-parity-slo/photon-parity-slo.gpm` (SC-005):
+      it must exist and be non-zero (expect 2 009 546 bytes, as R4 measured on Linux).
   - **SC-001 on Linux**: the quickstart §0.4 commands. The `comm -12` intersection of strong-`U`
     symbols and direction-correct `libshader_shading.so.1 → libRIBRender.so.1` bindings must be
     exactly **7**, the Hiders/Texturing set. Save it as `tools/024-libshader-dynlookup-after-linux.txt`.
@@ -552,6 +572,7 @@ fails to compile. Record this, stage, and wait for approval.
   - `git diff 690dbfc -- tests/architecture/allowlist.txt` must show **only** the 10 deletions
     (plus the comment change).
   - `metrics-baseline.txt` may only show decreases.
+  - The `determinism`-labelled tests pass (SC-006).
   - Tick the checkboxes in this file.
 
 **Checkpoint (PAUSE 6, final)**: the feature is complete and Linux is confirmed. Stage, summarize,
