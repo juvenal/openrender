@@ -72,7 +72,7 @@ with `EXCLUDE_FROM_ALL`, so the main build stays green.
 **Purpose**: put the measured baselines in one place, and capture the full-suite result that every
 later phase is compared against.
 
-- [ ] T001 Create `specs/024-shading-services-routing/validation.md` with a "Baselines" section.
+- [X] T001 Create `specs/024-shading-services-routing/validation.md` with a "Baselines" section.
   Copy these from research.md, each with its source file in `tools/`:
   - **Base commit**: the worktree HEAD (`690dbfc`), and where `build-024` lives.
   - **R1**: the `.rslo` line `solar #!Label2`; the bitcode counts `op_solar_begin` 0/1 and
@@ -87,7 +87,7 @@ later phase is compared against.
     - the empty-map margin is 255.00;
     - the red `slo` run segfaults on both platforms (`tools/024-photon-parity-linux-summary.txt`).
   - **Architecture**: 18 DB-001 allowlist lines; the Shading metric is `9 5`, and TOTAL `742 117`.
-- [ ] T002 [RUN] macOS full-suite baseline on the unchanged tree:
+- [X] T002 [RUN] macOS full-suite baseline on the unchanged tree:
   `nice -n 19 cmake --build build-024 --config Release -j4`, then
   `nice -n 19 ctest --test-dir build-024 -j4 --output-on-failure`, plus
   `nice -n 19 ctest --test-dir build-024 -L architecture -j4`.
