@@ -53,7 +53,7 @@ the maintainer asked advice on and did not explicitly confirm (re-confirm at
 | D3 | `Integrator "direct"` is implemented **first**, shading **native C++ Bxdfs** (RIS-style). | answers 1 (round 3), 1 (round 4) |
 | D4 | Path tracing = `Hider "raytrace"` + `Integrator "pathtracer"`. `Hider "pathtrace"` is a registered shorthand for both (spelling: `"pathtrace"`). | answers 1 (round 2), 5 |
 | D5 | Within an attribute scope, the **last** of `Surface` / `Bxdf` wins; both are saved/restored by `AttributeBegin/End`; ribOut must keep statement order. | answer 2 (round 3) |
-| D6 | `Surface`-only objects under a non-classic integrator: **b** (Ci as emission) by default; **d** (hybrid) and **a** (error) selectable by option/attribute. Under `direct` there are no secondary bounces, so b and d render alike there. | answer 2 (round 4), extended per D6 note |
+| D6 | `Surface`-only objects under a non-classic integrator: **b** (Ci as emission) by default; **d** (hybrid) and **a** (error) selectable by option/attribute. Under `direct` there are no secondary bounces, so b and d render alike there. | answer 2 (round 4); extension to `direct` confirmed 2026-10-15 |
 | D7 | Every plug-in type is a **semver-versioned** plug-in: Bxdfs, integrators, lights, light filters, display filters, sample filters, patterns, hiders. The boundary is a **C function table** plus a C++ convenience header. | round 5 answer 1, round 7 answer 3 |
 | D8 | Built-in registries come **first** (same versioned interfaces); **run-time loading** arrives with the "RIS plug-in types" spec after 037. Applies to integrators, Bxdfs and every other plug-in type. | answers 12, 4 (round 7) |
 | D9 | `Bxdf "name"` resolution: plug-in registry → `.slo`/`.rslo` (existing `shaderformat` precedence picks between them) → `.oso`. Prefixes `"sl:name"` / `"osl:name"` force a language. `Surface` stays RSL-only and never searches plug-ins or `.oso`. | answer 8 |
@@ -65,9 +65,9 @@ the maintainer asked advice on and did not explicitly confirm (re-confirm at
 | D15 | A shader bound with `Bxdf` under any non-classic integrator gets a **bind-time error** if it calls `illuminance`, `directlighting`, `indirectdiffuse`, `indirectspecular`, `gather` or `occlusion`. `trace()` stays allowed as a query (OSL parity). Layer-4 `generateSamples`/`evaluateSamples` methods are **not** affected: they describe scattering and are one of the BSDF implementations behind the integrator. | round 8 answer 1 |
 | D16 | **Presence** of a `Bxdf` shader = weight of the `transparent()` closure inside `Ci` (OSL / Arnold / Cycles convention). `Oi` stays compositing opacity; legacy `Surface` keeps colour-`Oi` behaviour. | round 8 answer 2 |
 | D17 | **Closure storage** mirrors OSL's tree layout (component id + weight + parameter block; add and multiply nodes; arena-allocated, POD), built in-tree in 035 **without** linking OSL; the OSL backend spec adds a layout/zero-copy compatibility test against `oslclosure.h`. A flattened lobe list is the fast path for purely additive trees; a generic evaluator handles the rest. | round 8 answer 3 |
-| D18 | **Colour abstraction**: new interfaces use one `Spectrum` value type with a compile-time channel count (3 now), never `.r/.g/.b` outside conversions; at the C ABI an array + channel count in the descriptor. RSL `color` unchanged. Trade-off: closure-tree *weights* stay 3-channel to keep OSL zero-copy (D17); going spectral would change that layout. | answer 19 |
-| D19 | **Shared BRDF math library** (microfacet D/G, Fresnel, lobe sampling + pdfs, frames, MIS weights) in the Shading domain, first used by 035's built-in Bxdfs, then by RSL 2.0 and OSL closures. Classic `diffuse()`/`specular()`/`phong()` builtins are **not** rerouted (byte-identical). | **advised** (answer 17) |
-| D20 | **Shading frequency** (`grid` vs `sample`) is a named concept in the shading contract now; REYES per-sample (visibility-first deferred) shading is a separate spec after the direct-integrator milestone. Hider-native frequency stays the default. | **advised** (answer 18) |
+| D18 | **Colour abstraction**: new interfaces use one `Spectrum` value type with a compile-time channel count (3 now), never `.r/.g/.b` outside conversions; at the C ABI an array + channel count in the descriptor. RSL `color` unchanged. Exception: closure-tree *weights* stay 3-channel to keep OSL zero-copy (D17); evaluation code still uses `Spectrum`, and going spectral would change the tree layout. | answer 19; weights confirmed 2026-10-15 |
+| D19 | **Shared BRDF math library** (microfacet D/G, Fresnel, lobe sampling + pdfs, frames, MIS weights) in the Shading domain, first used by 035's built-in Bxdfs, then by RSL 2.0 and OSL closures. Classic `diffuse()`/`specular()`/`phong()` builtins are **not** rerouted (byte-identical). Written from the papers; any adapted outside code gets an LGPL-2.1 licence check. | answer 17, confirmed 2026-10-15 |
+| D20 | **Shading rate means the same in every hider**: `ShadingRate` (area in pixels, per-object attribute) = distinct shading evaluations per pixel area (0.25 ≈ 4 per pixel; 4 ≈ one per 2×2 pixels); `PixelSamples` = visibility only. No separate frequency switch. Raytrace shades camera hits on REYES-diced grids and interpolates at the hit (u,v); filter footprint = √ShadingRate pixels everywhere; secondary rays per hit. Spec 054, before 042; opt-in, default flipped in its last phase. **Open:** material-per-cell vs lighting-per-sample under Bxdf integrators. | answer 18 (round 9–10), confirmed 2026-10-15 |
 | D21 | Integrators negotiate **versioned capabilities** (required / optional / provided). | discussion, accepted |
 | D22 | Three versions move independently: **RSL language**, **closure ABI**, **renderer-services API**. | chat 2b §14, accepted with D7 |
 | D23 | **OIIO**: ≥ 3.0, vendored. Arrives as an **extra** image backend (decode + one display driver + texmake writing); the direct libtiff/libpng/OpenEXR code, the in-tree RGBE codec, the JIT-off build and the CMake 3.19 floor are removed **when OSL lands**. OIIO is linked into exactly one shared library. | answers 3, 14, round 7 answer 5 |
@@ -77,10 +77,7 @@ the maintainer asked advice on and did not explicitly confirm (re-confirm at
 | D27 | Native JIT lowering is a **deferred** spec after 033 and the GitHub #8 fix. | answer 16 |
 | D28 | No drop-offs: every hider × integrator × {`Surface`, `Bxdf`} cell either renders or fails with an explicit diagnostic. | round 2 "additional info" |
 | D29 | The OSL hands-on spike (minimum dependency set, measured footprint) runs right before the OSL backend. | answer 6 (round 3) |
-
-**Open (2026-10-15), not yet decided:**
-- **Closure weight channels (D17 vs D18):** OSL's `ClosureComponent::w` and `ClosureMul::weight` are fixed 3-channel (`Vec3`/`Color3`). Keeping OSL zero-copy fixes the tree weights at 3 channels; keeping them spectral-ready means converting at the OSL boundary. D18 currently records the first; awaiting confirmation.
-- **Principle VIII domain placement** of the new components (integrators, light service, BRDF library, closure registry, the new plug-in families, the shared OIIO wrapper, the public compiler/runtime libraries). The nine domains and the allowed-dependency table in the constitution don't name them; a new domain or a new edge is a constitution amendment.
+| D30 | **Principle VIII domain placement** (constitution amendments, each landing with the first spec that needs it): (1) a tenth domain, **Transport**, holds the integrators; it may depend on Graphics State, Geometry and Shading, and Hiders may depend on it (030). (2) The light service, BRDF math library, closure registry and the public compiler/runtime libraries live in **Shading** (no amendment). (3) Rule 4's versioned C plug-in boundary extends from the three named families to **every** plug-in type; 030/035/041 already shape their built-in interfaces that way, and the amendment lands with 051, when they become external extension points. (4) The shared OIIO wrapper is a **utility library** beside `libRIBCommon`, because Texturing and Display Outputs may not depend on each other (048). | confirmed 2026-10-15 |
 
 ---
 
@@ -222,7 +219,7 @@ struct ClosureLobe {          // flattened form
 | Strategy | Memory | Compute | Best use |
 |---|---|---|---|
 | immediate shade + light | low | possible repeated work | forward |
-| parameter buffering | medium | efficient light reuse | deferred (D20 per-sample) |
+| parameter buffering | medium | efficient light reuse | per-cell material reuse (D20, 054) |
 | retained closure trees | potentially high | flexible reuse | offline, BDPT |
 
 - **Construct once, evaluate many** (chat 2a §10.3) — ADOPT: the shader runs
@@ -608,7 +605,7 @@ Not every producer can fill every field: raster fragments have screen-space
 derivatives, ray hits have ray differentials or cones, BDPT light vertices may
 have none. 026's `ShaderGlobals` is batch/grid-shaped and carries both grid
 `du/dv` differences and `dPdx/dPdy`-style differentials, path depth, transport
-mode, ray type and the shading frequency (D20).
+mode, ray type and the shading-cell footprint (D20).
 
 ### 5.6 Exact vs approximate visibility — ADOPT
 
@@ -796,16 +793,30 @@ mapping, (progressive) photon mapping, Metropolis, light tracing.
 
 ## 8. Shading frequency, derivatives, visibility buffers
 
-### 8.1 Shading frequency — ADOPT as concept (D20, advised)
+### 8.1 Shading rate — ADOPT (D20)
 
-Chat 1 §5: "make shading frequency an explicit renderer policy rather than
-hardcoding it into the language frontend." Values: `grid` (once per
-micropolygon vertex: REYES today) and `sample` (once per visible sample:
-raytrace today). REYES with `sample` needs visibility-first deferred shading
-(§8.2) and makes `PixelSamples` supersample shading under REYES, closing most
-of the reyes/raytrace gap that `ShadingRate` vs `PixelSamples` creates.
-Remaining differences: grid vs ray-differential derivatives; displacement
-still diced at `ShadingRate`.
+Chat 1 §5 proposed an explicit shading-frequency policy (`grid` vs `sample`).
+Superseded by the maintainer's decision: `ShadingRate` itself is the control,
+with the same meaning in every hider. Measured on master (2026-10-15):
+
+| | REYES | raytrace (before 054) |
+|---|---|---|
+| shading evaluations | set by `ShadingRate` via dicing (`object.cpp:339`; stored as √area, `rendererContext.cpp:2319`) | one per camera sample; `ShadingRate` ignored |
+| filter footprint | `ShadingRate` × pixel (`shading.cpp:910–913`) | 1 pixel (`raytracer.cpp:715`) |
+| geometric resolution | `ShadingRate` | ray footprint (`HIDER_PARITY.md`) |
+
+`RiShadingInterpolation` is unimplemented (always smooth,
+`rendererContext.cpp:2323`), so samples inside a micropolygon get
+interpolated values, not one flat value.
+
+054's design: camera hits are grouped per object per bucket; the hit region
+is diced with `estimateDicing`, its vertices shaded through the grid path,
+and each hit interpolates at its (u,v). Footprint √ShadingRate pixels. Cells
+larger than a pixel (ShadingRate > 1) need no cross-pixel bookkeeping because
+the grid lives on the object. Raytrace intersection tessellation is unchanged
+(displacement detail under raytrace stays a separate, later question).
+To verify at plan: bucket-independent dicing, cost for sparsely hit objects.
+Deferred REYES per-sample shading (§8.2) becomes a performance option only.
 
 ### 8.2 Visibility buffer — ADAPT (chat 2a §7.2)
 
@@ -1039,7 +1050,7 @@ New-spec numbers (041–055) are provisional, confirmed at `specify`; the plan f
 | 026 shading-contract-v2 | §5.5, §8.1, §8.3, §11.1 |
 | 028 camera-and-motion-layer | §7.4 (`ICameraService` reserve) |
 | 029 hider-shading-separation | §5.4, §5.6 |
-| 030 hider/integrator registry | §1, §5.1–§5.3, §9, D2, D4, D8, D21, D28 |
+| 030 hider/integrator registry | §1, §5.1–§5.3, §9, D2, D4, D8, D21, D28, D30 |
 | 033 shading-system-backends | §5.4 (`IShadingService`), D25 |
 | 034 shader-networks | D9, §11.1 |
 | 035 material interface + closure model | §2, §9, D13–D19 |
@@ -1047,15 +1058,15 @@ New-spec numbers (041–055) are provisional, confirmed at `specify`; the plan f
 | 037 plugin-abi-semver | §9, D7, D22 |
 | 039 sampling-foundation | §2.6 (`Sample2D`), §4.3, §8.1 |
 | 040 gi-determinism | — (unchanged) |
-| 041 light-service | §4, D10 |
+| 041 light-service | §4, D10, D30 |
 | 042 direct-integrator (milestone) | §1.2, §5, §6, D6, D28 |
 | 043 shader-compiler-library | D12, D25 |
 | 044–047 RSL 2.0 layers 1–4 | D11–D12, §3.4 (layer 4), D15 |
-| 048 oiio-image-io | D23, §11.3 |
+| 048 oiio-image-io | D23, D30, §11.3 |
 | 049 osl-shading-backend | §11, D17 (layout test), D23–D24 |
 | 050 pathtracer-integrator | §7, D4, D6 |
-| 051 ris-plugin-types | §9, D7–D8 |
+| 051 ris-plugin-types | §9, D7–D8, D30 |
 | 052 shading-runtime-library | D25 |
 | 053 bxdf-gi | D26, §6.4 |
-| 054 reyes-per-sample-shading | §8.1–§8.2, D20 |
+| 054 shading-rate-unification | §8.1–§8.3, D20 |
 | 055 native-jit-lowering | §10, D27 |
