@@ -31,6 +31,8 @@
 #include "object.h"
 #include "ri_config.h"
 
+class CPatchLayout;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPatch
 // Description			:	Encapsulates a piece of 2D surface
@@ -44,9 +46,16 @@ class CPatch : public CObject {
         void dice(CReyes *); // Split or render this object
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 
+        void buildLayout(CReyes *, int wrapU, int wrapV); // Decide every split up front (root patch only)
+
     private:
         void splitToChildren(CReyes *, int);
+        int probe(CReyes *);                           // Probe the bound and divisions; FALSE if culled
+        void layoutNode(CReyes *, CPatchLayout *, int); // Decide this patch's layout node
+        void useLayout(CPatchLayout *, int);           // Take the decisions from a layout node
 
+        CPatchLayout *layout;         // The surface's split layout, or NULL
+        int node;                     // This patch's node in the layout
         int depth;                    // Depth of the patch
         int minDepth;                 // The minimum depth of the patch
         CSurface *object;             // The object the surface belongs to

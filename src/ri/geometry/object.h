@@ -202,6 +202,12 @@ class CSurface : public CObject {
         // for the common untrimmed case (FR-004).
         virtual bool hasTrim() const { return FALSE; }
 
+        // TRUE if the surface closes on itself across u = 0 and u = 1 (v = 0
+        // and v = 1): dicing then matches the grids on either side of that
+        // seam as it matches any other neighbours (GitHub #51)
+        virtual int wrapsU() const { return FALSE; }
+        virtual int wrapsV() const { return FALSE; }
+
         // Unsigned number of times the segment from + t*dir, t > 0, crosses
         // the undisplaced surface. A geometric query: ray-visibility flags,
         // LOD, backface culling and displacement are ignored. The default (a

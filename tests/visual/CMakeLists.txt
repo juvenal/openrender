@@ -1006,10 +1006,11 @@ add_visual_test(spherelight-slo
 
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
-# a varying conditional (`if (u > 0.05)`) that is false at the sphere's
-# leading (low-u) shading points. Reference generated from the unchanged
-# (pre-collapse) binary — see uniform_in_conditional_probe.sl for the full
-# rationale and the op_addff IR evidence this test targets.
+# a varying conditional (`if (u > 0)`, `u > 0.05` until #51 diced a grid
+# entirely below 0.05) that is false at the sphere's leading (u = 0) shading
+# points. Reference generated from the unchanged (pre-collapse) binary — see
+# uniform_in_conditional_probe.sl for the full rationale and the op_addff IR
+# evidence this test targets.
 add_visual_test(sphere-uniform-conditional-reyes
     examples/rib/tests/sphere-uniform-conditional-reyes.rib
     sphere-uniform-conditional-reyes.tif  sphere-uniform-conditional-reyes.tif)

@@ -33,6 +33,8 @@
 #include "ri_config.h"
 #include "shading.h"
 
+struct CGridSnap;
+
 // Note:
 // The low bits are spliced with the zfilter mode and used to dispatch in stochastic hider
 // high bits are used in the primitive rasterization code to modify behavior
@@ -134,6 +136,11 @@ class CReyes : public CShadingContext {
                 int stratumBounds[RASTER_MAX_TIME_STRATA][4]; // Grid-level bounds per time stratum (moving quad grids only)
                 int timeStrata;                               // Number of time strata in the stratum bounds (0 when absent)
                 unsigned char *coverage;                      // Per-quad: 0 = absent (the object's region rejects it); NULL = all present
+                int numSnaps;                                 // Boundary vertices drawn on a neighbour's boundary (GitHub #51)
+                int *snapIndex;                               // Their vertex indices
+                int *snapTermStart;                           // First term of each (numSnaps + 1 entries)
+                float *snapTerms;                             // (u, v, weight) terms: each position is a weighted sum of surface points
+                float *snapP;                                 // The positions in sample space, at shutter open then close
                 float *sizes;                                 // The size of the primitive (only makes sense for points)
                 EShadingDim dim;                              // Dimensionality (0,1 or 2)
                 float umin, umax, vmin, vmax;                 // The parametric range
@@ -254,7 +261,7 @@ class CReyes : public CShadingContext {
 
         // The following can be called from the "dice" function to insert an object into the scene
         void drawObject(CObject *);                                      // Draw an object
-        void drawGrid(CSurface *, int, int, float, float, float, float); // Draw a grid
+        void drawGrid(CSurface *, int, int, float, float, float, float, const CGridSnap * = NULL); // Draw a grid
         void drawPoints(CSurface *, int);                                // Draw points (RiPoints)
 
         // Some stats
@@ -277,6 +284,8 @@ class CReyes : public CShadingContext {
         }
 
     private:
+        void snapGrid(CRasterGrid *, int);              // Evaluate the points a grid's snapped vertices are drawn at
+        static void applySnaps(const CRasterGrid *, float *, int); // Draw a grid's snapped vertices there
         void copyPoints(int, float **, float *, int);  // Data movement (copy P only)
         void copySamples(int, float **, float *, int); // Data movement (copy the color + opacity + extra samples)
 

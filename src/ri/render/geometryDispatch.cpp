@@ -358,6 +358,7 @@ void CSurface::dice(CReyes *rasterizer) {
 
     CPatch *cSurface = new CPatch(attributes, xform, this, 0, 1, 0, 1, 0, minSplits);
     cSurface->attach();
+    cSurface->buildLayout(rasterizer, wrapsU(), wrapsV());
     cSurface->dice(rasterizer);
     cSurface->detach();
 

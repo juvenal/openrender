@@ -30,11 +30,13 @@
 #include "common/memory.h"
 #include "reyes.h"
 
+#include <algorithm>
 #include <climits>
 #include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "sampler.h"
 #include "common/stats.h"
+#include "patchLayout.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Some misc macros
@@ -692,7 +694,7 @@ void CReyes::drawObject(CObject *object) {
 // Description			:	Draw a grid
 // Return Value			:	-
 // Comments				:	Thread safe
-void CReyes::drawGrid(CSurface *object, int udiv, int vdiv, float umin, float umax, float vmin, float vmax) {
+void CReyes::drawGrid(CSurface *object, int udiv, int vdiv, float umin, float umax, float vmin, float vmax, const CGridSnap *snap) {
     // Create a grid on the surface
     CRasterGrid *nGrid;
 
@@ -705,6 +707,19 @@ void CReyes::drawGrid(CSurface *object, int udiv, int vdiv, float umin, float um
     nGrid->vmax = vmax;
     nGrid->udiv = udiv;
     nGrid->vdiv = vdiv;
+
+    // The boundary vertices drawn on a neighbouring grid's boundary
+    if (snap != NULL && !snap->index.empty()) {
+        const int n = (int)snap->index.size();
+        nGrid->numSnaps = n;
+        nGrid->snapIndex = new int[n];
+        nGrid->snapTermStart = new int[n + 1];
+        nGrid->snapTerms = new float[snap->terms.size()];
+        nGrid->snapP = new float[n * 3 * 2];
+        memcpy(nGrid->snapIndex, snap->index.data(), n * sizeof(int));
+        memcpy(nGrid->snapTermStart, snap->termStart.data(), (n + 1) * sizeof(int));
+        memcpy(nGrid->snapTerms, snap->terms.data(), snap->terms.size() * sizeof(float));
+    }
 
     // Sample the grid
     shadeGrid(nGrid, TRUE); // Just the position
@@ -737,6 +752,73 @@ void CReyes::drawPoints(CSurface *object, int numPoints) {
 
     // Dispatch the lines to the renderer
     insertGrid(nGrid, RASTER_POINT);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CReyes
+// Method				:	snapGrid
+// Description			:	Evaluate the surface points a grid's snapped
+//							boundary vertices are drawn at (GitHub #51)
+// Return Value			:	-
+// Comments				:	The points are vertices of neighbouring grids,
+//							evaluated at the same (u, v) and projected the same
+//							way, so they land bit-identically on those grids'
+//							vertices. Only undisplaced surfaces snap.
+void CReyes::snapGrid(CRasterGrid *grid, int moving) {
+    float **varying = currentShadingState->varying;
+    CSurface *object = (CSurface *)(grid->object);
+    const int n = grid->numSnaps;
+    const int numTerms = grid->snapTermStart[n];
+    const int chunk = currentShadingState->services->maxGridSize(); // The varyings hold a grid
+    float *points = new float[numTerms * 3];
+
+    for (int sample = 0; sample <= moving; sample++) {
+
+        // The surface points, at most a grid at a time
+        for (int first = 0; first < numTerms; first += chunk) {
+            const int count = std::min(chunk, numTerms - first);
+            float *u = varying[VARIABLE_U];
+            float *v = varying[VARIABLE_V];
+            float *time = varying[VARIABLE_TIME];
+            for (int t = 0; t < count; t++) {
+                u[t] = grid->snapTerms[(first + t) * 3];
+                v[t] = grid->snapTerms[(first + t) * 3 + 1];
+                time[t] = (float)sample;
+            }
+
+            displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P);
+            camera2samples(count, varying[VARIABLE_P]);
+            memcpy(points + first * 3, varying[VARIABLE_P], count * 3 * sizeof(float));
+        }
+
+        // Each position, summed in the order the terms were built, so grids
+        // sharing a vertex compute it identically
+        float *P = grid->snapP + sample * n * 3;
+        for (int i = 0; i < n; i++, P += 3) {
+            initv(P, 0);
+            for (int t = grid->snapTermStart[i]; t < grid->snapTermStart[i + 1]; t++) {
+                const float w = grid->snapTerms[t * 3 + 2];
+                P[0] += w * points[t * 3];
+                P[1] += w * points[t * 3 + 1];
+                P[2] += w * points[t * 3 + 2];
+            }
+        }
+    }
+
+    delete[] points;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CReyes
+// Method				:	applySnaps
+// Description			:	Move a grid's snapped boundary vertices onto the
+//							points snapGrid() evaluated
+// Return Value			:	-
+// Comments				:	P is projected; sample 0 is shutter open, 1 close
+void CReyes::applySnaps(const CRasterGrid *grid, float *P, int sample) {
+    const float *src = grid->snapP + sample * grid->numSnaps * 3;
+    for (int i = 0; i < grid->numSnaps; i++, src += 3)
+        movvv(P + grid->snapIndex[i] * 3, src);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -903,16 +985,16 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
         float *u;
         float *v;
         float *time;
-        double cu, cv;
         float *Oi;
 
         const int numVertices = (udiv + 1) * (vdiv + 1); // The number of vertices to shade
-        const double ustart = grid->umin;                // The minimum step sizes
-        const double ustep = (grid->umax - ustart) / (double)udiv;
-        const double vstart = grid->vmin;
-        const double vstep = (grid->vmax - vstart) / (double)vdiv;
 
         assert(numVertices <= (int)CRenderer::maxGridSize);
+
+        // Evaluate where the snapped boundary vertices are drawn, before the
+        // grid's own vertices take the varyings
+        if (Ponly && grid->numSnaps > 0)
+            snapGrid(grid, (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) && object->moving());
 
         // Shade the points in the patch
         u = varying[VARIABLE_U];
@@ -920,10 +1002,11 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
         time = varying[VARIABLE_TIME];
 
         // Shade the minimum grid
-        for (j = vdiv, cv = vstart; j >= 0; j--, cv += vstep) {
-            for (i = udiv, cu = ustart; i >= 0; i--, cu += ustep) {
-                *u++ = (float)cu;
-                *v++ = (float)cv;
+        for (j = 0; j <= vdiv; j++) {
+            const float cv = gridParam(grid->vmin, grid->vmax, vdiv, j);
+            for (i = 0; i <= udiv; i++) {
+                *u++ = gridParam(grid->umin, grid->umax, udiv, i);
+                *v++ = cv;
                 *time++ = 0;
             }
         }
@@ -964,6 +1047,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
+            applySnaps(grid, varying[VARIABLE_P], 0);
 
             // Save the vertex data
             copyPoints(numVertices, varying, grid->vertices, 0);
@@ -977,6 +1061,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
+            applySnaps(grid, varying[VARIABLE_P], 0);
 
             // Save the vertex data
             copySamples(numVertices, varying, grid->vertices, 0);
@@ -1004,10 +1089,11 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             time = varying[VARIABLE_TIME];
 
             // Shade the minimum grid
-            for (j = vdiv, cv = vstart; j >= 0; j--, cv += vstep) {
-                for (i = udiv, cu = ustart; i >= 0; i--, cu += ustep) {
-                    *u++ = (float)cu;
-                    *v++ = (float)cv;
+            for (j = 0; j <= vdiv; j++) {
+                const float cv = gridParam(grid->vmin, grid->vmax, vdiv, j);
+                for (i = 0; i <= udiv; i++) {
+                    *u++ = gridParam(grid->umin, grid->umax, udiv, i);
+                    *v++ = cv;
                     *time++ = 1;
                 }
             }
@@ -1018,6 +1104,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
+                applySnaps(grid, varying[VARIABLE_P], 1);
 
                 // Copy the vertex data
                 copyPoints(numVertices, varying, grid->vertices, 1);
@@ -1028,6 +1115,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
+                applySnaps(grid, varying[VARIABLE_P], 1);
 
                 // Copy the vertex data
                 copySamples(numVertices, varying, grid->vertices, 1);
@@ -1211,6 +1299,11 @@ CReyes::CRasterGrid *CReyes::newGrid(CSurface *object, int points, int numVertic
     grid->quadStratumBounds = NULL; // Allocated in insertGrid for moving quad grids
     grid->timeStrata = 0;
     grid->coverage = NULL; // Allocated by shadeGrid() when the object has a region
+    grid->numSnaps = 0; // Set by drawGrid() when the grid snaps its boundary
+    grid->snapIndex = NULL;
+    grid->snapTermStart = NULL;
+    grid->snapTerms = NULL;
+    grid->snapP = NULL;
 
     object->attach();
 
@@ -1253,6 +1346,12 @@ void CReyes::deleteObject(CRasterObject *dObject) {
             delete[] grid->quadStratumBounds;
         if (grid->coverage != NULL)
             delete[] grid->coverage;
+        if (grid->numSnaps > 0) {
+            delete[] grid->snapIndex;
+            delete[] grid->snapTermStart;
+            delete[] grid->snapTerms;
+            delete[] grid->snapP;
+        }
         if (grid->sizes != NULL)
             delete[] grid->sizes;
         delete grid;
