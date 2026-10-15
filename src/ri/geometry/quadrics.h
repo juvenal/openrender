@@ -33,6 +33,9 @@
 #include "pl.h"
 #include "shader.h"
 
+// TRUE if a sweep angle closes the surface on itself
+inline int isFullTurn(float angle) { return fabs(angle) >= 2 * C_PI * (1 - 1e-6); }
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSphere
 // Description			:	Encapsulates a sphere
@@ -49,6 +52,7 @@ class CSphere : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -95,6 +99,7 @@ class CDisk : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -130,6 +135,7 @@ class CCone : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -177,6 +183,7 @@ class CParaboloid : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -226,6 +233,7 @@ class CCylinder : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -273,6 +281,7 @@ class CHyperboloid : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;
@@ -321,6 +330,8 @@ class CToroid : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
+        int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
+        int wrapsV() const { return (nextData == NULL) && isFullTurn(vmax - vmin); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, CRiInterface *) const;

@@ -140,7 +140,7 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext12restoreS
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext5shadeEP8CSurfaceii11EShadingDimji   # CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveStateEv   # CShadingContext::saveState()
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
-DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffff   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float)
+DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
 # --- DB-008: Graphics State owns other domains' objects (7) ---
 DB-008  include  src/ri/state/attributes.cpp  ->  src/ri/hiders/photonMap.h

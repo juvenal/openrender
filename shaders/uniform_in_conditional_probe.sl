@@ -5,14 +5,15 @@
  * `bias = bias + 1` is uniform-classified (dst/src/literal strides all 0,
  * confirmed via the T003d LLVM-IR dump mechanism against this exact shader
  * body: `call void @op_addff(ptr %16, i32 0, ptr %18, i32 0, ptr %lit2,
- * i32 0, i32 %0, ptr %2)`) even though it sits inside `if (u > 0.05)`, a
+ * i32 0, i32 %0, ptr %2)`; the predicate was then `u > 0.05`) even though
+ * it sits inside `if (u > 0)`, a
  * genuinely varying conditional. Per contracts/op-uniform-collapse.md
  * SS2.2/SS2.3, a uniform-classified instruction must execute exactly once,
  * unconditionally -- mirroring the interpreter's
  * `if (code->uniform) { expr; ... }` arm (the "once, no tag test" case),
  * which ignores the enclosing conditional's active mask entirely.
  *
- * `u > 0.05` is chosen specifically to be FALSE at the sphere's
+ * `u > 0` is chosen specifically to be FALSE at the sphere's
  * first-diced shading points (REYES grid dicing starts at the (u=0, v=0)
  * grid corner), not true there. This is deliberate: a collapse
  * implementation that violates SS2.3's prohibition by narrowing `n` to 1
@@ -22,6 +23,13 @@
  * take the branch, silently skipping the uniform write. Had the predicate
  * been true at the leading points instead, that same bug would
  * accidentally render correctly for this scene, defeating the test.
+ *
+ * The predicate must also be TRUE somewhere in every grid, or the
+ * interpreter skips the whole `if` block for that grid and the uniform
+ * write never runs. The original `u > 0.05` broke this once a grid fitted
+ * inside u <= 0.05 (fix/reyes-tjunction-cracks, #51, dices the sphere's
+ * first grid over u in [0, 1/32]), rendering that wedge black. `u > 0`
+ * fails only at the u = 0 column, which no grid is made of alone.
  *
  * Expected image: the uniform write to `bias` executes exactly once,
  * unconditionally, regardless of `u`, so the correct render is a
@@ -43,7 +51,7 @@ surface uniform_in_conditional_probe()
 
     Oi = 1;
 
-    if (u > 0.05) {
+    if (u > 0) {
         bias = bias + 1;
     }
 

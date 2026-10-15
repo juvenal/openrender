@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# Grid T-junction cracks (#51): coverage-alpha-sides2-tjunction-reyes.rib at
+# ShadingRate 0.25. The rate changes which grids meet at different dicing
+# rates, so each rate puts the T-junctions on different pixels.
+version 3.03
+Hider "reyes" "jitter" [0]
+ShadingRate 0.25
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Display "coverage-alpha-sides2-tjunction-r0.25-reyes.tif" "file" "a" "quantize" [0 0 0 0]
+Projection "perspective" "fov" 45
+Format 160 120 1
+Translate 0 0 6
+
+WorldBegin
+  Surface "constant"
+  Opacity 0.5 0.5 0.5
+  Sides 2
+  Sphere 1.5 -1.5 1.5 360
+
+  AttributeBegin
+    Translate 0.5 0.3 -3
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Translate 1.9 -1 -1.5
+    Sphere 0.6 -0.6 0.6 360
+  AttributeEnd
+WorldEnd

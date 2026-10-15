@@ -1024,10 +1024,11 @@ add_visual_test(spherelight-slo
 
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
-# a varying conditional (`if (u > 0.05)`) that is false at the sphere's
-# leading (low-u) shading points. Reference generated from the unchanged
-# (pre-collapse) binary — see uniform_in_conditional_probe.sl for the full
-# rationale and the op_addff IR evidence this test targets.
+# a varying conditional (`if (u > 0)`, `u > 0.05` until #51 diced a grid
+# entirely below 0.05) that is false at the sphere's leading (u = 0) shading
+# points. Reference generated from the unchanged (pre-collapse) binary — see
+# uniform_in_conditional_probe.sl for the full rationale and the op_addff IR
+# evidence this test targets.
 add_visual_test(sphere-uniform-conditional-reyes
     examples/rib/tests/sphere-uniform-conditional-reyes.rib
     sphere-uniform-conditional-reyes.tif  sphere-uniform-conditional-reyes.tif)
@@ -1470,23 +1471,45 @@ foreach(_sides 1 2)
             DEPENDS     orender)
     endforeach()
 endforeach()
-# The reyes scenes above use binary dicing, so they test the edge rule alone.
-# This one keeps default dicing: grids diced at different rates meet at
-# T-junctions whose boundary polylines overlap or leave gaps (GitHub #51).
-# Disabled until #51 is fixed on its own fix/ branch.
-set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/coverage-alpha-sides2-tjunction_reyes)
-file(MAKE_DIRECTORY ${_scratch})
-add_test(NAME CoverageAnalytic_alpha-sides2-tjunction_reyes
-    COMMAND test_depth_analytic $<TARGET_FILE:orender>
-        ${CMAKE_SOURCE_DIR}/examples/rib/tests/coverage-alpha-sides2-tjunction-reyes.rib
-        coverage-alpha-sides2-tjunction-reyes.tif alpha=0.5 45 2 ${_depth_analytic_spheres}
-    WORKING_DIRECTORY ${_scratch})
-set_tests_properties(CoverageAnalytic_alpha-sides2-tjunction_reyes PROPERTIES
-    TIMEOUT     120
-    LABELS      "visual;regression;depth"
-    ENVIRONMENT "${VISUAL_ENV}"
-    DEPENDS     orender
-    DISABLED    TRUE)
+# --- Grid T-junction cracks (fix/reyes-tjunction-cracks, GitHub #51). The
+# same transparent spheres with default dicing at five shading rates: where two
+# grids diced at different rates meet, their boundary polylines differ and
+# leave overlap and gap slivers, so a pixel centre counts a surface twice or
+# misses it. The binary-dicing scenes above pass only because no pixel centre
+# falls on such a sliver; binary dicing does not close the crack. The zbuffer
+# hider dices the same way but keeps no transparency, so its scenes check
+# depth: a gap shows the sphere's back surface. Rate 1 is the scene without a
+# rate tag.
+foreach(_rate "" -r0.25 -r0.5 -r2 -r4)
+    set(_name alpha-sides2-tjunction${_rate}_reyes)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/coverage-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME CoverageAnalytic_${_name}
+        COMMAND test_depth_analytic $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/coverage-alpha-sides2-tjunction${_rate}-reyes.rib
+            coverage-alpha-sides2-tjunction${_rate}-reyes.tif alpha=0.5 45 2 ${_depth_analytic_spheres}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(CoverageAnalytic_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;depth"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+foreach(_rate -r0.5 -r2)
+    set(_name min-tjunction${_rate}_zbuffer)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/depth-analytic-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME DepthAnalytic_${_name}
+        COMMAND test_depth_analytic $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/depth-analytic-min-tjunction${_rate}-zbuffer.rib
+            depth-analytic-min-tjunction${_rate}-zbuffer.tif min 45 2 ${_depth_analytic_spheres}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DepthAnalytic_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;depth"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
 
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on

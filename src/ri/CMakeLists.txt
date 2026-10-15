@@ -138,6 +138,7 @@ set(ri_sources
 	geometry/subdivisionCreator.cpp
 	geometry/subdivisionHierarchical.cpp
 	geometry/subdivisionLoop.cpp
+	geometry/patchLayout.cpp
 	geometry/surface.cpp
 	texture/texmake.cpp
 	texture/texture.cpp

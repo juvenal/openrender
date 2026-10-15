@@ -9,10 +9,14 @@ This file tracks known defects and implementation gaps in openRender. Open items
       shares with a neighbour by its own polyline; with different segment counts the polylines
       differ, leaving overlap slivers (a sample counted twice: transparent surfaces composite twice,
       midpoint depth reads a duplicate) and gap slivers (a surface missing). No exact tie is needed,
-      so jittered renders hit it too, rarely. `Attribute "dice" "binary" [1]` avoids it, which is
-      how the reyes coverage and midpoint analytic scenes isolate #50;
-      `CoverageAnalytic_alpha-sides2-tjunction_reyes` (default dicing) is disabled until it is
-      fixed in the dicer (per-edge dice rates or stitching), before spec 039.
+      so jittered renders hit it too, rarely. The zbuffer hider dices the same way and cracks at
+      the same pixels. `Attribute "dice" "binary" [1]` does not avoid it: power-of-two counts nest
+      the parameters, but the finer grid's extra boundary vertex lies on the true surface, not on
+      the coarser grid's chord. The reyes coverage and midpoint analytic scenes use binary dicing
+      only because none of their pixel centres lands on a sliver. Being fixed on
+      `fix/reyes-tjunction-cracks`, before spec 039, and guarded by
+      `CoverageAnalytic_alpha-sides2-tjunction{,-r0.25,-r0.5,-r2,-r4}_reyes` and
+      `DepthAnalytic_min-tjunction-r{0.5,2}_zbuffer`.
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
@@ -118,7 +122,8 @@ This file tracks known defects and implementation gaps in openRender. Open items
       The zbuffer hider's 0.5001011 sample offset, which only made exact hits unlikely, is kept.
       Guarded by `DepthAnalytic_mid{,-sides1}_reyes` (re-enabled) and
       `CoverageAnalytic_alpha-sides{1,2}_{reyes,raytrace}` (`test_depth_analytic`'s `alpha=<o>` mode),
-      whose reyes scenes use binary dicing to separate it from #51 (Open Issues above).
+      whose reyes scenes use binary dicing; none of their pixel centres lands on a #51 crack (Open
+      Issues above).
 - [x] Bug: raytrace midpoint depth never found a second surface, and raytrace `z` was the distance along the
       ray instead of camera-space depth (FIXED — GitHub #47 and #49, branch `fix/raytrace-midpoint-depth`,
       2026-10-13). `resolveDepth()` (`raytracer.cpp`) builds its candidates from the continuation-ray chain,
