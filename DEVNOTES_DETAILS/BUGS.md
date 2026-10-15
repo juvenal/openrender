@@ -4,19 +4,6 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Open Issues
 
-- [ ] **Reyes grids diced at different rates crack at T-junctions**
-      ([#51](https://github.com/juvenal/openrender/issues/51)). Each grid approximates a boundary it
-      shares with a neighbour by its own polyline; with different segment counts the polylines
-      differ, leaving overlap slivers (a sample counted twice: transparent surfaces composite twice,
-      midpoint depth reads a duplicate) and gap slivers (a surface missing). No exact tie is needed,
-      so jittered renders hit it too, rarely. The zbuffer hider dices the same way and cracks at
-      the same pixels. `Attribute "dice" "binary" [1]` does not avoid it: power-of-two counts nest
-      the parameters, but the finer grid's extra boundary vertex lies on the true surface, not on
-      the coarser grid's chord. The reyes coverage and midpoint analytic scenes use binary dicing
-      only because none of their pixel centres lands on a sliver. Being fixed on
-      `fix/reyes-tjunction-cracks`, before spec 039, and guarded by
-      `CoverageAnalytic_alpha-sides2-tjunction{,-r0.25,-r0.5,-r2,-r4}_reyes` and
-      `DepthAnalytic_min-tjunction-r{0.5,2}_zbuffer`.
 - [ ] Purging tessellations for raytracing (Incomplete: no cache eviction mechanism found)
 - [ ] Efficient subdivision surface creases
 - [ ] Subdivision highly creased surface issues
@@ -84,6 +71,23 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: reyes and zbuffer grids diced at different rates cracked at T-junctions (FIXED — GitHub #51,
+      branch `fix/reyes-tjunction-cracks`, 2026-10-14). Each grid approximated a boundary it shares with
+      a neighbour by its own polyline; with different segment counts the polylines differed, leaving
+      overlap slivers (a sample counted twice) and gap slivers (a surface missing), in jittered renders
+      too. Binary dicing did not avoid it: the finer grid's extra boundary vertex lies on the true
+      surface, not on the coarser grid's chord. Each surface's split layout is now decided before any
+      of its grids is drawn (`CPatchLayout`, `src/ri/geometry/patchLayout.{h,cpp}`): `finalize()`
+      raises leaf divisions, through a worklist that runs to the fixed point, until the vertices on
+      each shared boundary nest within the grid size, and every grid snaps its boundary vertices onto
+      the polyline of the side that owns the boundary, so shared vertices are bit-identical and the
+      others slide onto the owner's chords. `gridParam()` is the one formula for grid vertex
+      parameters, and full-turn quadrics match their grids across the u = 0/1 seam. Guarded by
+      `CoverageAnalytic_alpha-sides2-tjunction{,-r0.25,-r0.5,-r2,-r4}_reyes` and
+      `DepthAnalytic_min-tjunction-r{0.5,2}_zbuffer`. Out of scope: displaced surfaces keep no
+      layout (their boundaries move with the displacement, which the snaps cannot follow), and cracks
+      between separate surfaces remain. Merge after #54: without it, `sphere-gather-reyes` self-hits
+      recurse through gather() and never finish.
 - [x] Bug: secondary rays from `gather()`, `occlusion()` and `indirectdiffuse()` re-hit their own
       convex surface (FIXED — GitHub #54, branch `fix/ray-origin-self-hit`, 2026-10-14). Each ray's
       origin is jittered across the shading footprint along `dPdu`/`dPdv`; at a reyes grid's edge those
@@ -122,8 +126,8 @@ This file tracks known defects and implementation gaps in openRender. Open items
       The zbuffer hider's 0.5001011 sample offset, which only made exact hits unlikely, is kept.
       Guarded by `DepthAnalytic_mid{,-sides1}_reyes` (re-enabled) and
       `CoverageAnalytic_alpha-sides{1,2}_{reyes,raytrace}` (`test_depth_analytic`'s `alpha=<o>` mode),
-      whose reyes scenes use binary dicing; none of their pixel centres lands on a #51 crack (Open
-      Issues above).
+      whose reyes scenes use binary dicing; none of their pixel centres lands on a #51 crack (fixed,
+      above).
 - [x] Bug: raytrace midpoint depth never found a second surface, and raytrace `z` was the distance along the
       ray instead of camera-space depth (FIXED — GitHub #47 and #49, branch `fix/raytrace-midpoint-depth`,
       2026-10-13). `resolveDepth()` (`raytracer.cpp`) builds its candidates from the continuation-ray chain,
