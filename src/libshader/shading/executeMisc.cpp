@@ -735,11 +735,12 @@ void CShadingContext::DvVector(float *dest, const float *src) {
     mulvf(tmp0, rays->dPdu, (urand() - 0.5f) * rays->sampleBase); \
     mulvf(tmp1, rays->dPdv, (urand() - 0.5f) * rays->sampleBase); \
     addvv(__from, tmp0, tmp1);                                    \
-    addvv(__from, rays->P);                                       \
     mulvf(tmp0, rays->dDdu, urand() - 0.5f);                      \
     mulvf(tmp1, rays->dDdv, urand() - 0.5f);                      \
     addvv(__dir, tmp0, tmp1);                                     \
-    addvv(__dir, rays->D);
+    addvv(__dir, rays->D);                                        \
+    keepOriginAbove(__from, rays->N, __dir);                      \
+    addvv(__from, rays->P);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext

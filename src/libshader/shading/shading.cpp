@@ -3873,7 +3873,6 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase * (urand() - 0.5f));
             mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase * (urand() - 0.5f));
             addvv(raysBase->from, tmp0, tmp1);
-            addvv(raysBase->from, raysBase->gatherP);
 
             if (lastGather->uniformDist) {
                 sampleHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
@@ -3881,6 +3880,8 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             else {
                 sampleCosineHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
             }
+            keepOriginAbove(raysBase->from, normalN, raysBase->dir);
+            addvv(raysBase->from, raysBase->gatherP);
             raysBase->index = i;
             raysBase->tmin = raysBase->bias;
             raysBase->t = raysBase->maxDist;

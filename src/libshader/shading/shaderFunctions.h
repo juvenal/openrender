@@ -1859,6 +1859,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
         mulvf(rays->dDdu, dDdu, (*du) * swidth);                            \
         mulvf(rays->dDdv, dDdv, (*dv) * twidth);                            \
         movvv(rays->P, P);                                                  \
+        movvv(rays->N, N);                                                  \
         mulvf(rays->dPdu, dPdu, (*du) * swidth);                            \
         mulvf(rays->dPdv, dPdv, (*dv) * twidth);                            \
         float largerConeAngle;                                              \
@@ -1969,6 +1970,8 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
     if (tex == NULL) {                                                      \
         rays->res = res;                                                    \
         movvv(rays->P, D);                                                  \
+        /* Ps need not lie on the shaded surface: no origin guard */        \
+        initv(rays->N, 0, 0, 0);                                            \
         mulvf(rays->dPdu, dDdu, (*du) * swidth);                            \
         mulvf(rays->dPdv, dDdv, (*dv) * twidth);                            \
         subvv(rays->D, D, L);                                               \

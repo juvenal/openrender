@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Ray-origin self-hit guard (fix/ray-origin-self-hit): a lone sphere gathers
+# and computes occlusion over the hemisphere around its normal. A convex
+# surface can not see itself, so every ray must miss and the image must be
+# black; see shaders/ray_self_hit_probe.sl.
+Hider "raytrace"
+Display "sphere-ray-self-hit-raytrace.tif" "file" "rgb"
+Format 160 120 1
+Projection "perspective" "fov" 30
+Translate 0 0 4.5
+WorldBegin
+  Attribute "visibility" "diffuse" [1]
+  Attribute "visibility" "int specular" [1]
+  Surface "ray_self_hit_probe" "samples" [64]
+  Sphere 1 -1 1 360
+WorldEnd

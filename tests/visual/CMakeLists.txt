@@ -666,6 +666,24 @@ add_visual_test(sphere-occlusion-reyes-slo
     examples/rib/tests/sphere-occlusion-reyes-slo.rib
     sphere-occlusion-reyes-slo.tif  sphere-occlusion-reyes.tif)
 
+# Ray-origin self-hits (fix/ray-origin-self-hit): a lone sphere's gather()
+# and occlusion() rays must all miss, a convex surface not seeing itself, so
+# the image is exactly black and the threshold is 0 (any self-hit saturates
+# its sample; see shaders/ray_self_hit_probe.sl). Before the fix, origins
+# jittered along a grid edge's secant dPdu started inside the sphere, and
+# occlusion() built its hemisphere on that dPdu.
+add_visual_test(sphere-ray-self-hit-reyes
+    examples/rib/tests/sphere-ray-self-hit-reyes.rib
+    sphere-ray-self-hit-reyes.tif  sphere-ray-self-hit.tif  0)
+
+add_visual_test(sphere-ray-self-hit-reyes-slo
+    examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib
+    sphere-ray-self-hit-reyes-slo.tif  sphere-ray-self-hit.tif  0)
+
+add_visual_test(sphere-ray-self-hit-raytrace
+    examples/rib/tests/sphere-ray-self-hit-raytrace.rib
+    sphere-ray-self-hit-raytrace.tif  sphere-ray-self-hit.tif  0)
+
 add_visual_test(sphere-indirectdiffuse-reyes
     examples/rib/tests/sphere-indirectdiffuse-reyes.rib
     sphere-indirectdiffuse-reyes.tif  sphere-indirectdiffuse-reyes.tif)

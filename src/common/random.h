@@ -179,6 +179,27 @@ inline void sampleDisk(float *R, Sampler &&sampler) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function             :   keepOriginAbove
+// Description          :   Remove the part of a ray-origin jitter offset that
+//                          points behind the surface, as seen from the ray
+// Comments             :   The jitter basis is a finite difference of P, a
+//                          secant at grid edges, which dips inside a convex
+//                          surface; an origin there re-hits the surface past
+//                          the bias. The offset keeps its tangent part, and
+//                          any part on the ray's side of the tangent plane.
+inline void keepOriginAbove(float *offset, const float *N, const float *dir) {
+    const float nn = N[0] * N[0] + N[1] * N[1] + N[2] * N[2];
+    const float on = offset[0] * N[0] + offset[1] * N[1] + offset[2] * N[2];
+    const float dn = dir[0] * N[0] + dir[1] * N[1] + dir[2] * N[2];
+    if (nn > 0 && on * dn < 0) {
+        const float k = on / nn;
+        offset[0] -= k * N[0];
+        offset[1] -= k * N[1];
+        offset[2] -= k * N[2];
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Thread-safe random number generators (replaces non-thread-safe rand()/random())
 // Uses a per-thread Mersenne Twister so concurrent shading threads never share state.
 ///////////////////////////////////////////////////////////////////////

@@ -288,6 +288,15 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         crossvv(Y, N, X);
     }
 
+    // Move X into the tangent plane. At a grid edge dPdu is a one-sided
+    // secant that dips under a convex surface, and the grazing directions
+    // built on it would point into the surface
+    if (dotvv(Y, Y) > 0) {
+        crossvv(X, Y, N);
+        normalizevf(X);
+        crossvv(Y, N, X);
+    }
+
     // Sample the hemisphere
     coverage = 0;
     initv(irradiance, 0);
@@ -323,9 +332,11 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 const float originJitterX = (rv[0] - 0.5f) * scratch->traceParams.sampleBase;
                 const float originJitterY = (rv[1] - 0.5f) * scratch->traceParams.sampleBase;
 
-                ray.from[COMP_X] = P[COMP_X] + originJitterX * dPdu[0] + originJitterY * dPdv[0];
-                ray.from[COMP_Y] = P[COMP_Y] + originJitterX * dPdu[1] + originJitterY * dPdv[1];
-                ray.from[COMP_Z] = P[COMP_Z] + originJitterX * dPdu[2] + originJitterY * dPdv[2];
+                ray.from[COMP_X] = originJitterX * dPdu[0] + originJitterY * dPdv[0];
+                ray.from[COMP_Y] = originJitterX * dPdu[1] + originJitterY * dPdv[1];
+                ray.from[COMP_Z] = originJitterX * dPdu[2] + originJitterY * dPdv[2];
+                keepOriginAbove(ray.from, N, ray.dir);
+                addvv(ray.from, P);
 
                 ray.flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE;
                 ray.tmin = scratch->traceParams.bias;
@@ -422,9 +433,11 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 const float originJitterX = (rv[0] - 0.5f) * scratch->traceParams.sampleBase;
                 const float originJitterY = (rv[1] - 0.5f) * scratch->traceParams.sampleBase;
 
-                ray.from[COMP_X] = P[COMP_X] + originJitterX * dPdu[0] + originJitterY * dPdv[0];
-                ray.from[COMP_Y] = P[COMP_Y] + originJitterX * dPdu[1] + originJitterY * dPdv[1];
-                ray.from[COMP_Z] = P[COMP_Z] + originJitterX * dPdu[2] + originJitterY * dPdv[2];
+                ray.from[COMP_X] = originJitterX * dPdu[0] + originJitterY * dPdv[0];
+                ray.from[COMP_Y] = originJitterX * dPdu[1] + originJitterY * dPdv[1];
+                ray.from[COMP_Z] = originJitterX * dPdu[2] + originJitterY * dPdv[2];
+                keepOriginAbove(ray.from, N, ray.dir);
+                addvv(ray.from, P);
 
                 ray.flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE;
                 ray.tmin = scratch->traceParams.bias;

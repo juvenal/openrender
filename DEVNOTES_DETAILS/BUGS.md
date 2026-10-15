@@ -80,6 +80,20 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: secondary rays from `gather()`, `occlusion()` and `indirectdiffuse()` re-hit their own
+      convex surface (FIXED — GitHub #54, branch `fix/ray-origin-self-hit`, 2026-10-14). Each ray's
+      origin is jittered across the shading footprint along `dPdu`/`dPdv`; at a reyes grid's edge those
+      are one-sided secants that dip under a convex surface, so the origin started inside it and
+      grazing rays re-hit it past the bias. Separately, `CIrradianceCache::sample` built its hemisphere
+      basis on `dPdu`, which tilted grazing directions into the surface (the raytrace hider's residual
+      hits). `keepOriginAbove()` (`common/random.h`) removes the offset's normal component when it would
+      start a ray leaving above the tangent plane below it, at every jitter site; the basis is projected
+      into the tangent plane. Ray-traced `shadow()` sets the ray's `N` to zero (the guard off, as `Ps`
+      need not lie on the surface) instead of leaving it uninitialized. Guarded by
+      `Visual_sphere-ray-self-hit-{reyes,reyes-slo,raytrace}` (a lone sphere, black reference,
+      threshold 0), which measure `gather()` and `occlusion()`; `indirectdiffuse()` shares their code.
+      Out of scope: `trace()` gets the guard but no test (its grazing mirror rays, jittered across the
+      cone, genuinely hit a lone sphere), and `shadow()` has no origin guard.
 - [x] Bug: multithreaded reyes renders varied by one float ULP at 1–2 pixels with jitter and dither off
       (FIXED — GitHub #48, by the #50 fix; regression tests on branch `fix/reyes-ulp-determinism`,
       2026-10-13). A pixel centre on a micropolygon edge shared by two grids was counted by both

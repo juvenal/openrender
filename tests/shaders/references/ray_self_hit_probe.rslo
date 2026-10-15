@@ -1,0 +1,58 @@
+#!version 1.0.0
+#!name "ray_self_hit_probe"
+surface
+#!parameters:
+uniform	float	samples	=	16
+#!variables:
+uniform	float	depth
+uniform	float	temporary_0
+uniform	vector	temporary_1
+varying	float	temporary_2
+varying	vector	Nn
+varying	vector	Chit
+varying	float	hits
+varying	float	occ
+varying	string	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+#!Init:
+	return            
+#!Code:
+	moveff  depth 0
+	rayinfo	("f=sf")  temporary_0 "depth" depth
+	vfromf  temporary_1 1
+	vuvector  Oi temporary_1
+	fgt  temporary_0 depth 0
+	vufloat  temporary_2 temporary_0
+	if temporary_2 #!Label7
+	vfromf  temporary_1 1
+	vuvector  Ci temporary_1
+#!Label7:
+	else #!Label6
+	normalize	("v=v")  Nn N
+	vfromf  temporary_1 0
+	vuvector  Chit temporary_1
+	vufloat  hits 0
+	vustring  temporary_3 "illuminance"
+	vufloat  temporary_0 1.570796327
+	vufloat  temporary_4 temporary_0
+	vufloat  temporary_5 samples
+	gatherHeader	("o=spnffsc") temporary_3 P Nn temporary_4 temporary_5 "surface:Ci" Chit
+#!Label8:
+	gather #!Label9
+	vufloat  temporary_7 0
+	comp	("f=cf")  temporary_6 Chit temporary_7
+	addff  hits hits temporary_6
+#!Label9:
+	gatherEnd #!Label8
+	vufloat  temporary_4 samples
+	occlusion	("f=pnf")  occ P Nn temporary_4
+	moveff  temporary_5 temporary_4
+	mulff  temporary_4 occ temporary_5
+	vufloat  temporary_5 0
+	vfromf  Ci hits temporary_4 temporary_5
+#!Label6:
+	endif
+	return
