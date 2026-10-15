@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- **Three markers remain, deliberately**: FR-031 (where the GI boundary falls), FR-039/SC-010 (performance budget) and SC-003 (convergence pass bar). They go to the maintainer through `/speckit-clarify`, each with a recommended answer.
+- **All markers resolved**: the clarify session of 2026-10-15 resolved the three markers in FR-031 (GI boundary), FR-039/SC-010 (performance budget) and SC-003 (convergence pass bar), and recorded seven further maintainer decisions (see the spec's Clarifications section).
 - **Implementation detail, house-style exception**: this is an infrastructure spec for a renderer, so its users are renderer authors and maintainers. As in specs 021–023, it names the project's own vocabulary: RIB options, CLI flags (`-t`, `-P`), test labels, registry entries, and the files whose behaviour is being retired, such as `correlatedSampleTable`, `ribOut.cpp` and `test_depth_determinism.cpp`. Library structure, data layout and algorithms beyond the named sampler designs are left to the plan.
 - **Success criteria**: these are measurable outcomes (bit-identity, test pass, slope, allowlist size) rather than internals, but they are necessarily stated in renderer terms.
