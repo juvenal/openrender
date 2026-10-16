@@ -9,12 +9,13 @@
  * Phase A scope (current):
  *   - RSLShading::shade()    — execute compiled shader via interpreter
  *   - RSLShading::compile()  — compile .sl source to CShader in memory
- *   Internally the library still uses CRenderer::* globals for lighting
- *   and texture access (RSLShadingState callbacks are nullptr stubs).
+ *   The library reaches the renderer only through its renderer services
+ *   (CRendererServices, installed with CShadingContext::setDefaultServices);
+ *   RSLShadingState callbacks are nullptr stubs.
  *
  * Phase B (future):
  *   - RSLShading::shadeJIT() — LLVM JIT execution path
- *   - Live RSLShadingState callbacks; no CRenderer::* coupling
+ *   - Live RSLShadingState callbacks
  */
 
 #pragma once
@@ -40,8 +41,12 @@ class RSLShading {
          * Execute a compiled shader via the interpreter.
          *
          * Phase A: state.lighting / state.texture / state.trace may be nullptr;
-         * the interpreter then falls back to CRenderer::* globals (same as the
-         * direct execute() call it wraps).
+         * the interpreter then uses the installed renderer services (same as the
+         * direct execute() call it wraps). With no services installed, a lookup
+         * of a DSO shadeop, filter, step filter, light category or variable
+         * returns "not found" (nullptr, the Gaussian filter, the Gaussian step
+         * filter, 0 and nullptr) and reports one warning per kind; a light
+         * category that cannot be resolved is skipped.
          *
          * @param shader   A prepared CProgrammableShaderInstance ready to run.
          * @param state    Shading context (varying storage, tags, callbacks).

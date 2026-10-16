@@ -194,56 +194,14 @@ CShaderInstance::~CShaderInstance() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	getToken
-// Description			:	This function implements "strsep" which is non portable
-// Return Value			:
-// Comments				:
-static char *token(char **str, const char *tok) {
-    char *cStr = *str;
-    char *oStr = cStr;
-    int n = (int)strlen(tok);
-    int i;
-
-    if (cStr == NULL)
-        return NULL;
-
-    // Walk the string
-    for (;;) {
-
-        // Did we run out of string ?
-        if (*cStr == '\0') {
-            *str = NULL;
-            break;
-        }
-
-        // Check for a delimiter
-        for (i = 0; i < n; i++) {
-            if (*cStr == tok[i])
-                break;
-        }
-
-        if (i == n)
-            cStr++;
-        else {
-            // Delimiter found, terminate
-            *cStr = '\0';
-            *str = cStr + 1;
-            break;
-        }
-    }
-
-    return oStr;
-}
-
-///////////////////////////////////////////////////////////////////////
 // Class				:	CShaderInstance
 // Method				:	CShaderInstance
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
 void CShaderInstance::createCategories() {
-    char *categoryString, *cCat, *tmp;
-    int i, numCategories;
+    char *categoryString, *tmp;
+    int numCategories;
 
     if (getParameter("__category", &categoryString, NULL, NULL) == TRUE) {
         tmp = categoryString = strdup(categoryString);
@@ -254,17 +212,12 @@ void CShaderInstance::createCategories() {
                 numCategories++;
             tmp++;
         }
-        tmp = categoryString;
 
         categories = new int[numCategories];
 
-        i = 0;
-        do {
-            cCat = token(&tmp, ",\t ");
-            if (*cCat != '\0')
-                categories[i++] = libshader::lookupGlobalID(cCat);
-        } while (tmp != NULL);
-        categories[i++] = 0; // terminate the list
+        // Skips a category that has no ID (no renderer services), so 0 is never
+        // stored before the terminator
+        libshader::parseCategories(categoryString, categories);
 
         free(categoryString);
     }

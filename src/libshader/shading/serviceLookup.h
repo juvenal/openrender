@@ -12,7 +12,8 @@
  *   context (the .rslo loader, shader instantiation, the gather lookup).
  *
  *   With no services installed, each returns the not-found value: nullptr,
- *   RiGaussianFilter, RiGaussianStepFilter, 0 and nullptr.
+ *   RiGaussianFilter, RiGaussianStepFilter, 0 and nullptr. The first lookup of
+ *   each kind reports one CODE_NOTSTARTED warning; later ones are silent.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva@v2-labs.press>
@@ -47,6 +48,13 @@ namespace libshader {
 
     // The declared variable, or nullptr
     CVariable *lookupVariable(const char *name);
+
+    // Parses a "__category" string (names separated by commas, tabs or spaces) into the
+    // IDs of its categories: appends each non-zero ID from lookupGlobalID() to `out`,
+    // terminates the list with 0 and returns how many IDs it holds. A category whose ID
+    // is 0 (no renderer services) is skipped, never stored. `out` must hold one entry
+    // more than the string has names.
+    int parseCategories(const char *categoryString, int *out);
 
 } // namespace libshader
 

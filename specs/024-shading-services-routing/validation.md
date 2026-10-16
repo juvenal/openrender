@@ -354,3 +354,22 @@ State when the work was paused (the machine was handed to another job):
   `ctest -R ShadingServices_NoServices` reports "Not Run" (executable not built). The "warning count is 0"
   half of the red cannot be shown separately, because the file does not compile until `parseCategories`
   exists; with the T034 helpers in place the count assertions are the ones that decide green.
+
+### Implementation (T034, T035) and verification (T036), 2026-10-16
+
+- **T034:** `serviceLookup.cpp`/`.h`: one `std::atomic<bool>` per kind; the first lookup of a kind made with no
+  services reports `warning(CODE_NOTSTARTED, "renderer services are not installed: %s lookup of \"%s\" returns
+  not found\n", ...)`, later ones are silent. `libshader::parseCategories(const char *, int *)` tokenizes on
+  `",\t "`, appends only non-zero IDs from `lookupGlobalID`, terminates the list with 0 and returns the count.
+  `CShaderInstance::createCategories()` in `shader.cpp` uses it, so 0 is never stored before the terminator (real
+  IDs start at 1: `numKnownGlobalIds = 1` in `initDeclarations()`); the file-local `token()` helper had no other
+  caller and was removed. `EXCLUDE_FROM_ALL` removed from `test_shading_no_services`.
+- **T035:** `RSLShading.h` and `RSLShadingState.h` no longer promise a `CRenderer::*` fallback; they describe the
+  installed renderer services and the no-services behaviour (not found, one warning per kind, an unresolved
+  category skipped).
+- **T036 results** (`nice -n 19`, `-j4`, build exit 0, no first-party warnings):
+  - `ShadingServices_NoServices`: passes (16 checks). Its run reports exactly the five warnings, one per kind,
+    each `code 11` (`CODE_NOTSTARTED`) at severity 1 (warning).
+  - `ShadingServices_Routing` and `ShadingServices_Lookup`: pass.
+  - `-L shading_parity`: 11/11.
+  - **Full suite: 609/609** (608 plus `ShadingServices_NoServices`), 102 s.

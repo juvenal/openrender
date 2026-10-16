@@ -213,7 +213,7 @@ set_tests_properties(ShadingServices_Lookup PROPERTIES
 # unresolved light category is skipped. Runs in its own process with no
 # RiBegin() and no CShadingContext (GitHub #53). ribRender only resolves
 # libshader_shading's remaining imports; the test never calls into it.
-add_executable(test_shading_no_services EXCLUDE_FROM_ALL test_no_services.cpp)
+add_executable(test_shading_no_services test_no_services.cpp)
 target_link_libraries(test_shading_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 target_include_directories(test_shading_no_services PRIVATE
     ${CMAKE_SOURCE_DIR}/src

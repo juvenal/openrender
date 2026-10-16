@@ -489,7 +489,7 @@ fails to compile. Record this, stage, and wait for approval.
 
 ### Implementation
 
-- [ ] T034 [US3] In `src/libshader/shading/serviceLookup.cpp` and `serviceLookup.h`:
+- [X] T034 [US3] In `src/libshader/shading/serviceLookup.cpp` and `serviceLookup.h`:
   - Add one `std::atomic<bool>` per kind. The first lookup of a kind made with no services reports
     `warning(CODE_NOTSTARTED, "renderer services are not installed: %s lookup of \"%s\" returns not found\n", kind, name)`.
     Later lookups of that kind are silent.
@@ -499,10 +499,10 @@ fails to compile. Record this, stage, and wait for approval.
   - Use it in `src/libshader/shading/shader.cpp`'s category loop, so 0 is never stored before the
     terminator.
   - Remove `EXCLUDE_FROM_ALL` from `test_shading_no_services`.
-- [ ] T035 [P] [US3] In `src/libshader/include/openrender/RSLShading.h` and `RSLShadingState.h`,
+- [X] T035 [P] [US3] In `src/libshader/include/openrender/RSLShading.h` and `RSLShadingState.h`,
   replace the "falls back to CRenderer::* globals" wording for these lookups with the no-services
   behaviour from contracts/renderer-services.md §"With no services installed".
-- [ ] T036 [US3] [RUN] Build, then run `ShadingServices_NoServices` (green), `-L shading_parity`
+- [X] T036 [US3] [RUN] Build, then run `ShadingServices_NoServices` (green), `-L shading_parity`
   and the full suite. Record the results in `validation.md`.
 
 **Checkpoint (PAUSE 5)**: every story is complete. Stage, summarize, and wait for review and commit.
