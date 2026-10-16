@@ -266,6 +266,10 @@ void op_illuminate_end(int *tags, int n, int *numActive, int *numPassive);
 /* op_solar_begin: mirror of SOLAR2EXPR_PRE for LLVM .slo directional light shaders.
  * Sets L = Nf * worldRadius, gates back-facing vertices. */
 void op_solar_begin(const float *Nf, int sf, const float *thetaf, int st, int *tags, int n, int *numActive, int *numPassive);
+/* op_solar0_begin: solar() with no arguments (mirror of SOLAR1EXPR_PRE). With the illumination
+ * hook active it calls solarBegin(NULL, NULL); otherwise a tagged vertex gets its tag
+ * incremented and an active one gets L = Ps. No culling, the counts do not change. */
+void op_solar0_begin(int *tags, int n, int *numActive, int *numPassive);
 /* op_solar_end: mirror of SOLAREND_PRE — saves (-normalize(L), Cl), restores tags. */
 void op_solar_end(int *tags, int n, int *numActive, int *numPassive);
 

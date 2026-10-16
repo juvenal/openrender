@@ -68,6 +68,11 @@ This file tracks known defects and implementation gaps in openRender. Open items
       i.e., a multi-threaded raster/hider early-out or shared-state race —
       but in `CPhotonHider` rather than `CStochastic`; unconfirmed without
       further investigation. Planned as a follow-up spec.
+      Another data point (spec 024): its photon-pass parity scene
+      (`examples/rib/tests/photon-parity.rib`) crashed in 4 of 30 runs at the default thread
+      count on macOS (exit code 5, no map written) and in 0 of 30 at `-t:1`; on Linux at `-t:1`
+      it crashed in 0 of 30. The spec 024 parity tests therefore render at `-t:1`. The race
+      remains open.
 - [ ] **The photon hider mishandles the no-argument `solar()` form**
       ([#52](https://github.com/juvenal/openrender/issues/52)), under either backend.
       `CPhotonHider::solarBegin` does nothing when it gets no direction (`L == NULL`, a `FIXME`

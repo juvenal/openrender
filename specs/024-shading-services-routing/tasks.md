@@ -271,14 +271,14 @@ Record this in `validation.md`, stage, and wait for approval of the tests.
 
 ### Implementation
 
-- [ ] T014 [US1] Add `bool rendererIlluminationHook() const` to `CShadingContext` in
+- [X] T014 [US1] Add `bool rendererIlluminationHook() const` to `CShadingContext` in
   `src/libshader/shading/shading.h` and `shading.cpp`. It returns
   `SVC && SVC->hasIlluminationHook()`. Delete `rendererHiderFlags()` from both files.
-- [ ] T015 [US1] In `src/libshader/shading/shaderOpcodes.h`, the six macros (`ILLUMINATE1EXPR_PRE`,
+- [X] T015 [US1] In `src/libshader/shading/shaderOpcodes.h`, the six macros (`ILLUMINATE1EXPR_PRE`,
   `ILLUMINATE3EXPR_PRE`, `ILLUMINATEEND_PRE`, `SOLAR1EXPR_PRE`, `SOLAR2EXPR_PRE`, `SOLAREND_PRE`)
   test `this->rendererIlluminationHook()` in place of
   `this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK`.
-- [ ] T016 [US1] In `src/libshader/shading/shading.cpp`, the JIT begin and end methods check
+- [X] T016 [US1] In `src/libshader/shading/shading.cpp`, the JIT begin and end methods check
   `rendererIlluminationHook()` first. When it is true, each calls the hook below and returns,
   without reading `Ns`/`costheta` and without touching the tags, the counts or `L`:
 
@@ -291,14 +291,14 @@ Record this in `validation.md`, stage, and wait for approval of the tests.
   | `jitSolarEnd` | `solarEnd()` |
 
   No null guard on `costheta` anywhere: research R4 rules it out as a new backend difference.
-- [ ] T017 [US1] Add `void jitSolar0Begin(int *tags, int n, int *numActive, int *numPassive)` to
+- [X] T017 [US1] Add `void jitSolar0Begin(int *tags, int n, int *numActive, int *numPassive)` to
   `CShadingContext` (`shading.h`/`shading.cpp`).
   - With the hook active it calls `solarBegin(nullptr, nullptr)`.
   - Otherwise it does what `SOLAR1EXPR_PRE` does: increment the tag of each tagged point, and set
     `L = Ps` for each active one, with no culling and no change to the counts.
   - Add the C-linkage `op_solar0_begin` to `src/libshader/shading/rslOps.h`/`rslOps.cpp`, forwarding
     to `activeContext()->jitSolar0Begin` (contracts/jit-op-abi.md).
-- [ ] T018 [US1] In `src/libshader/compiler/llvmEmitter.cpp`'s `illuminate`/`solar` emission:
+- [X] T018 [US1] In `src/libshader/compiler/llvmEmitter.cpp`'s `illuminate`/`solar` emission:
   - **New form**: a `solar` whose only operand is its label emits
     `op_solar0_begin(tags, numVerts, numActivePtr, numPassivePtr)`.
   - **Hard error**: any `illuminate`/`solar` instruction whose operands don't resolve to one of the
@@ -307,20 +307,20 @@ Record this in `validation.md`, stage, and wait for approval of the tests.
   - Keep `++conditionalDepth`/`--conditionalDepth` as they are.
   - The build compiles every shipped shader with `--jit`. If the new error fires on one of them in
     T020, stop and report it with the shader and the instruction; never loosen the check.
-- [ ] T019 [US1] Remove the dead code and the unused service method:
+- [X] T019 [US1] Remove the dead code and the unused service method:
   - delete the six uncalled wrappers from `src/libshader/shading/rslBuiltins.h` and
     `rslBuiltins.cpp`: `rsl_illuminate_begin_1`, `rsl_illuminate_begin_3`, `rsl_illuminate_end`,
     `rsl_solar_begin_1`, `rsl_solar_begin_2`, `rsl_solar_end`;
   - remove `hiderFlags()` from `src/libshader/shading/rendererServices.h`,
     `src/ri/render/rendererServicesImpl.h` and `tests/shading_parity/recording_services.h`
     (plan decision 5).
-- [ ] T020 [US1] [RUN] Build, then run:
+- [X] T020 [US1] [RUN] Build, then run:
   - the T-3a command (all green);
   - `ctest -L "shading_parity|libshader"`;
   - `ctest -L visual`;
   - the full suite, whose results must equal T002's apart from the new tests;
-  - `grep -rn 'rsl_illuminate\|rsl_solar' src` and `grep -rn 'HIDER_ILLUMINATIONHOOK\|hiderFlags()\|rendererHiderFlags' src/libshader src/ri/render/rendererServicesImpl.h`,
-    which must both print nothing (SC-007).
+  - `grep -rn 'rsl_illuminate\|rsl_solar' src` and `grep -rn 'HIDER_ILLUMINATIONHOOK\|hiderFlags()\|rendererHiderFlags\|callIlluminate\|callSolar' src/libshader` and `grep -n 'hiderFlags()' src/ri/render/rendererServicesImpl.h`,
+    which must all print nothing (SC-007).
   - **Record the `Visual_photon-parity-slo` MaxBlockAvgDiff** (JIT against the interpreter
     reference). It has never been measured, because before the fix that run crashed. If it is above
     6, stop and report to the maintainer. Never edit the threshold.
@@ -329,13 +329,13 @@ Record this in `validation.md`, stage, and wait for approval of the tests.
     (research R4). An absent or empty map fails SC-005 even if the image diff passes.
 
   Record the results in `validation.md`.
-- [ ] T021 [P] [US1] Add a "Backend parity (spec 024)" section to `tests/visual/parity-thresholds.md`:
+- [X] T021 [P] [US1] Add a "Backend parity (spec 024)" section to `tests/visual/parity-thresholds.md`:
   - `Visual_photon-parity` and `-slo`: threshold **6** at `-t:1`. D = 2.91 is the Linux-against-macOS
     diff (constant over 30/30 runs), and the macOS run-to-run diff at `-t:1` is 0.00. The empty-map
     margin is 255.00 (≥ 18). The scenes run single-threaded because the default thread count
     crashed 4/30 times (the `CPhotonHider` race in BUGS.md).
   - `Visual_solar0` and `-slo`: the default threshold of 20. The red diff before the fix was 201.62.
-- [ ] T022 [P] [US1] In `DEVNOTES_DETAILS/BUGS.md`, add a data point to the Open "Intermittent
+- [X] T022 [P] [US1] In `DEVNOTES_DETAILS/BUGS.md`, add a data point to the Open "Intermittent
   SIGSEGV in `CPhotonHider` photon-map construction" entry:
   - spec 024's parity scene crashed 4/30 runs at the default thread count on macOS (exit code 5, no
     map written) and 0/30 at `-t:1`;

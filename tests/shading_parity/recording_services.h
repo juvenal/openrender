@@ -56,7 +56,6 @@ class CRecordingServices final : public CRendererServices {
 
         float clipMin() const override { return inner->clipMin(); }
         float clipMax() const override { return inner->clipMax(); }
-        unsigned int hiderFlags() const override { return inner->hiderFlags(); }
         bool hasIlluminationHook() const override { return inner->hasIlluminationHook(); }
 
         const float *worldBmin() const override { return inner->worldBmin(); }
@@ -158,7 +157,6 @@ class CStubServices final : public CRendererServices {
 
         float clipMin() const override { return 0; }
         float clipMax() const override { return 0; }
-        unsigned int hiderFlags() const override { return 0; }
         bool hasIlluminationHook() const override { return false; }
 
         const float *worldBmin() const override { return nullptr; }

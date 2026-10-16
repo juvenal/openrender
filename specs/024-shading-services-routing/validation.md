@@ -202,3 +202,55 @@ spec expects:
 - label-only `solar`: the bitcode has no `op_solar0_begin`;
 - both negative cases (`illuminate __no_such_var__`, `solar __no_such_var__ 0`): the emit returns
   true, writes a `.slo`, and logs nothing.
+
+### Implementation (T014 to T019) and verification (T020 to T022), 2026-10-16
+
+- **T014:** `CShadingContext::rendererIlluminationHook()` (`SVC && SVC->hasIlluminationHook()`) replaces
+  `rendererHiderFlags()` in `shading.h`/`shading.cpp`.
+- **T015:** the six illuminate/solar macros in `shaderOpcodes.h` test `this->rendererIlluminationHook()`.
+  The file was clang-format clean before, so it was re-formatted; that re-aligns the backslashes of the
+  edited macros (94 changed lines, 6 of them real).
+- **T016:** `jitIlluminateBegin`, `jitIlluminate3Begin`, `jitSolarBegin`, `jitIlluminateEnd` and
+  `jitSolarEnd` check the hook first and return after calling it, without reading `Ns`/`costheta` and
+  without touching the tags, the counts or `L`. No null guard on `costheta`.
+- **T017:** `jitSolar0Begin` (`shading.h`/`shading.cpp`) and the C-linkage `op_solar0_begin`
+  (`rslOps.h`/`rslOps.cpp`).
+- **T018:** `llvmEmitter.cpp`: a `solar` whose only operand is its label emits `op_solar0_begin`;
+  `illuminate` with 2 or 4 operands and `solar` with 1 or 3 operands emit their begin call, and any
+  other shape, or an operand that does not resolve, fails the emit with a diagnostic naming the
+  mnemonic. The build compiles all 107 shipped shaders with `--jit` and the new error did not fire on
+  any of them.
+- **T019:** deleted the six `rsl_illuminate_*`/`rsl_solar_*` wrappers from `rslBuiltins.{h,cpp}`
+  (320 lines); removed `hiderFlags()` from `rendererServices.h`, `rendererServicesImpl.h` and
+  `recording_services.h`. Also removed the four `callIlluminateBegin/End` and `callSolarBegin/End`
+  helpers in `shading.h`: their only callers were the deleted wrappers, and SC-007 says no hook-aware
+  illumination entry point may be left without a caller (this goes one step beyond T019's list).
+- **T020 results** (`nice -n 19`, `-j4`, build exit 0):
+  - T-3a command, 8 tests: **8/8 pass**, including `Visual_photon-parity-slo`,
+    `Visual_solar0-slo`, `ShadingParity_IlluminationHook` and `LibShader_IlluminationOperands`
+    (each red before).
+  - **`Visual_photon-parity-slo`: MaxBlockAvgDiff 0.00** against the interpreter reference
+    (threshold 6). **Its map `photon-parity-slo.gpm` is 2 009 546 bytes**, equal to the interpreter's
+    map at `-t:1`, so SC-005 holds.
+  - `-L "shading_parity|libshader"`: 19/19. `-L visual`: 348/348.
+  - **Full suite: 607/607**, 113 s. 607 = the 599 of Phase 2 plus 8 new tests: 4 visual scenes, 2
+    `VisualSetup_photon-parity*-clean` fixtures, `ShadingParity_IlluminationHook` and
+    `LibShader_IlluminationOperands`. `-L determinism`: 6/6. `archcheck`: PASS, violations 0, stale 0;
+    Shading refs 9, distinct 5, TOTAL refs 749 (unchanged; this phase adds no `CRenderer::` reference).
+  - A first full run gave 605/607. `Parity_transparency-matte-aov` (known-intermittent) failed once and
+    passed on re-run in isolation. `ShaderCompilerImmutability` failed because the two new shaders had
+    no reference `.rslo`: `tests/shaders/references/photonparity_view.rslo` and `solar0_light.rslo`
+    were added (copied from the build's scratch output, the compiler's unchanged interpreter path), the
+    test then passed 105/105 with 0 missing, and the later full runs were 607/607 three times.
+    `Visual_sphere-shader-parameter-reyes` did not fail in any of these runs.
+  - **SC-007 greps:**
+    - `grep -rn 'rsl_illuminate\|rsl_solar' src`: nothing.
+    - `grep -rn 'HIDER_ILLUMINATIONHOOK\|hiderFlags()\|rendererHiderFlags\|callIlluminate\|callSolar' src/libshader`:
+      nothing.
+    - `grep -n 'hiderFlags()' src/ri/render/rendererServicesImpl.h`: nothing. (The task's own pattern
+      also listed `HIDER_ILLUMINATIONHOOK` for that file, which matches the one-line
+      `hasIlluminationHook()` implementation there, the correct place for it; tasks.md T020 now says
+      so, as quickstart §1.3 already did.)
+- **T021:** `tests/visual/parity-thresholds.md` has a "Backend parity (spec 024)" section.
+- **T022:** `DEVNOTES_DETAILS/BUGS.md`: a spec 024 data point added to the Open `CPhotonHider` SIGSEGV
+  entry.

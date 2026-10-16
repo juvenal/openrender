@@ -141,3 +141,29 @@ dependent, and the deciding factor is *what kind* of residual dominates:
 variant, confirm the scene's cross-hider residual is dominated by an RNG-
 stream mismatch (same underlying model, different draw order) rather than
 a structural divergence (D3/D4/D9) — only the former closes under Option B.
+
+## Backend parity (spec 024)
+
+These pairs compare a `.slo` (LLVM JIT) render against the `.rslo` (interpreter) reference of the
+same scene, not two hiders against each other. They are registered as `Visual_*` tests with
+`add_visual_test()` in `tests/visual/CMakeLists.txt`.
+
+| Scene | Threshold | Why |
+|---|---|---|
+| `photon-parity`, `photon-parity-slo` | **6**, rendered at `-t:1` | See below. |
+| `solar0`, `solar0-slo` | 20 (the default) | A raytrace of a light whose only construct is `solar()` with no arguments. Before the fix the JIT never set `L` for it and the diff was 201.62. |
+
+The photon scene is a photon pass (point, spot and distant lights) followed by a raytrace of the
+global map the pass wrote, so the image depends on the photons actually stored; an empty map
+renders black.
+
+- **D = 2.91.** The Linux render differs from the macOS one by a constant 2.91 (30 of 30 runs).
+  The macOS run-to-run diff at `-t:1` is 0.00. The threshold is max(1, ceil(2 x D)) = **6**.
+- **Empty-map margin.** A JIT variant that stores no photons misses the reference by 255.00,
+  which is at least 18 (3 x the threshold), so the threshold cannot hide a missing map.
+- **`-t:1`.** At the default thread count the photon pass crashed in 4 of 30 runs on macOS (the
+  `CPhotonHider` race, `DEVNOTES_DETAILS/BUGS.md`, Open), so these scenes render single-threaded.
+- **Measured with the fix:** `Visual_photon-parity-slo` against the interpreter reference gives
+  MaxBlockAvgDiff 0.00, and its map is 2 009 546 bytes, the same as the interpreter's.
+
+The numbers come from `specs/024-shading-services-routing/research.md` R4.

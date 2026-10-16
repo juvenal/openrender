@@ -1,0 +1,19 @@
+#!version 1.0.0
+#!name "solar0_light"
+light
+#!parameters:
+uniform	float	intensity	=	1
+uniform	color	lightcolor	=	1
+#!variables:
+uniform	vector	temporary_0
+uniform	vector	temporary_1
+#!Init:
+	return            
+#!Code:
+	solar #!Label2
+	vfromf  temporary_1 intensity
+	mulvv  temporary_0 temporary_1 lightcolor
+	vuvector  Cl temporary_0
+#!Label2:
+	endsolar
+	return

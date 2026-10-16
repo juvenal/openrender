@@ -1555,6 +1555,13 @@ void op_solar_begin(const float *Nf, int sf, const float *thetaf, int st, int *t
     ctx->jitSolarBegin(Nf, sf, thetaf, st, tags, n, numActive, numPassive);
 }
 
+void op_solar0_begin(int *tags, int n, int *numActive, int *numPassive) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx)
+        return;
+    ctx->jitSolar0Begin(tags, n, numActive, numPassive);
+}
+
 void op_solar_end(int *tags, int n, int *numActive, int *numPassive) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)

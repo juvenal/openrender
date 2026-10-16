@@ -538,7 +538,7 @@ CShadingContext::~CShadingContext() {
 
 #define SVC (currentShadingState->services)
 
-unsigned int CShadingContext::rendererHiderFlags() const { return SVC ? SVC->hiderFlags() : 0; }
+bool CShadingContext::rendererIlluminationHook() const { return SVC && SVC->hasIlluminationHook(); }
 const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worldBmin() : nullptr; }
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
@@ -1965,10 +1965,17 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
 // Mirrors ILLUMINATE1EXPR_PRE for the JIT light-shader path.
 // Computes L = Ps - from for each active vertex, increments tag for vertices
 // outside the illumination cone (gating them passive for the body).
+// With the illumination hook active the hider does all of it: only the hook is
+// called, and Ns, costheta, the tags, the counts and L are left alone.
 void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
+
+    if (rendererIlluminationHook()) {
+        illuminateBegin(from, nullptr, nullptr);
+        return;
+    }
 
     float *L = ss->varying[VARIABLE_L];
     const float *Ps = ss->varying[VARIABLE_PS];
@@ -2007,6 +2014,11 @@ void CShadingContext::jitIlluminate3Begin(
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
+
+    if (rendererIlluminationHook()) {
+        illuminateBegin(from, axis, angle);
+        return;
+    }
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
     float *L = ss->varying[VARIABLE_L];
@@ -2049,6 +2061,11 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
+
+    if (rendererIlluminationHook()) {
+        illuminateEnd();
+        return;
+    }
     log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
 
     CProgrammableShaderInstance *cInst =
@@ -2110,10 +2127,15 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
 // Mirrors SOLAR2EXPR_PRE for the JIT directional-light path.
 // Sets L = Nf * worldRadius for each active vertex, then gates vertices
 // where Ns·L > -costheta*|L| (back-facing relative to the light direction).
-void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float * /*thetaf*/, int /*st*/, int *tags, int n, int *numActive, int *numPassive) {
+void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf, int /*st*/, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
+
+    if (rendererIlluminationHook()) {
+        solarBegin(Nf, thetaf);
+        return;
+    }
 
     const float *bmin = rendererWorldBmin();
     const float *bmax = rendererWorldBmax();
@@ -2148,6 +2170,37 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float * /*the
 }
 
 // -----------------------------------------------------------------------
+// CShadingContext::jitSolar0Begin
+// Mirrors SOLAR1EXPR_PRE for the JIT: solar() with no arguments.
+// With the illumination hook active only solarBegin(NULL, NULL) is called.
+// Otherwise a tagged vertex gets its tag incremented and an active one gets
+// L = Ps; there is no culling and the counts do not change.
+void CShadingContext::jitSolar0Begin(int *tags, int n, int * /*numActive*/, int * /*numPassive*/) {
+    CShadingState *ss = currentShadingState;
+    if (!ss)
+        return;
+
+    if (rendererIlluminationHook()) {
+        solarBegin(nullptr, nullptr);
+        return;
+    }
+
+    const float *Ps = ss->varying[VARIABLE_PS];
+    float *L = ss->varying[VARIABLE_L];
+
+    for (int i = 0; i < n; ++i, ++tags, L += 3, Ps += 3) {
+        if (*tags) {
+            (*tags)++;
+        }
+        else {
+            L[0] = Ps[0];
+            L[1] = Ps[1];
+            L[2] = Ps[2];
+        }
+    }
+}
+
+// -----------------------------------------------------------------------
 // CShadingContext::jitSolarEnd
 // Mirrors SOLAREND_PRE for the JIT directional-light path.
 // Allocates/recycles a CShadedLight, saves -normalize(L) and Cl, restores tags.
@@ -2155,6 +2208,11 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
+
+    if (rendererIlluminationHook()) {
+        solarEnd();
+        return;
+    }
 
     CProgrammableShaderInstance *cInst =
         static_cast<CProgrammableShaderInstance *>(ss->currentShaderInstance);
