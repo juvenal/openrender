@@ -197,6 +197,10 @@ endif()
 # LibShader_McompConsistency does.
 add_executable(test_shading_service_lookup test_service_lookup.cpp)
 target_link_libraries(test_shading_service_lookup PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# These two tests reference no libRIBRender symbol, so Ubuntu's GCC (--as-needed by default)
+# drops libRIBRender from the executable's NEEDED list, and libshader_shading's remaining
+# imports (the 7 DB-001 symbols, GitHub #44) then fail to resolve at load time. Keep it.
+target_link_options(test_shading_service_lookup PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_service_lookup PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -215,6 +219,8 @@ set_tests_properties(ShadingServices_Lookup PROPERTIES
 # libshader_shading's remaining imports; the test never calls into it.
 add_executable(test_shading_no_services test_no_services.cpp)
 target_link_libraries(test_shading_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
+target_link_options(test_shading_no_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_no_services PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}

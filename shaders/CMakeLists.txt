@@ -18,11 +18,11 @@
 #
 # The .slh dependency is deliberately coarse -- every shader depends on every
 # header rather than only the ones it includes, which would mean parsing #include
-# lines out of each .sl. Only 7 of 69 shaders include anything, and a full
-# recompile of all 138 objects measures ~2s at -j8, so the precision is not worth
+# lines out of each .sl. Only 7 of 107 shaders include anything, and a full
+# recompile of all 214 objects measures ~1.4s at -j4, so the precision is not worth
 # the machinery. Correct and over-eager beats clever and stale.
 #
-# Build output is one summary line per format ("69 .rslo shaders compiled"),
+# Build output is one summary line per format ("107 .rslo shaders compiled"),
 # not three lines per shader. Each compile runs through
 # CMake/CompileShader.cmake, which hides oshader's progress lines (errors and
 # warnings still show), with an empty COMMENT so make echoes nothing per

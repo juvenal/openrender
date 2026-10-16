@@ -548,7 +548,7 @@ fails to compile. Record this, stage, and wait for approval.
 
   The `-slo` scenes must be reported disabled, and the hook and emitter tests not registered.
   Record the results in `validation.md`.
-- [ ] T041 Linux validation (research R3/R4; quickstart §0.4, §1.1). Prepare the package in
+- [X] T041 Linux validation (research R3/R4; quickstart §0.4, §1.1). Prepare the package in
   `validation.md`; the coordinator **[RUN]**s it on the Linux host.
   - **Sync**: an rsync block from the worktree to the Linux checkout, excluding `build*/`, plus a
     `sha256sum` manifest of every changed file, at
@@ -571,7 +571,7 @@ fails to compile. Record this, stage, and wait for approval.
 
   Record the results. Linux green is required before the maintainer merges; this task itself
   doesn't depend on the merge.
-- [ ] T042 [RUN] Final macOS pass: `ctest -L architecture` and the full suite.
+- [X] T042 [RUN] Final macOS pass: `ctest -L architecture` and the full suite.
   - `git diff df77ded -- tests/architecture/allowlist.txt` must show **only** the 10 deletions
     (plus the comment change).
   - `metrics-baseline.txt` may only show decreases.

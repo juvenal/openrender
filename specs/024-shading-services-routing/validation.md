@@ -424,3 +424,188 @@ Release -j4` (exit 0, 1 min 30 s, no first-party warnings), then
   repeated `touch` calls inside the same second race with the dependency check. CLAUDE.md now says ~1.4 s at
   `-j4`. The comment in `shaders/CMakeLists.txt` still quotes "69 shaders / 138 objects / ~2s at -j8"; it was
   not part of this task and was left alone.
+
+## T041: Linux validation package (prepared 2026-10-16; to be run by the coordinator)
+
+Not run yet. Base: master `c62334d`. `git diff --name-status master...HEAD` shows **77 changed files (44 added, 33
+modified) and none deleted or renamed**, so nothing has to be removed by hand on Linux. The manifest also covers the
+comment fix in `shaders/CMakeLists.txt` (staged, not yet committed when the manifest was written); that makes 78 entries.
+
+Linux checkout: `juvenal@ubuntu-2404-desktop.v2-labs.io:/home/juvenal/Projects/Development/CLI/openrender`
+(`L` below). Ubuntu 24.04, GCC 13, LLVM 18. `-Werror` is not a flag to pass: `CMakeLists.txt` puts it on
+`openrender_common_flags`, which every target links.
+
+### 1. Before the sync (on the Linux host)
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+git status --short | head        # tracked files with local edits would be overwritten by the sync below
+git log -1 --oneline             # expect master c62334d or a descendant that does not touch Shading, the JIT or tests/
+```
+
+### 2. Sync (on the Mac, from the worktree root)
+
+Only `git ls-files` output is sent: no `--delete`, and `.git`, `build*/` and untracked files are never included.
+`--checksum` makes rsync compare content, because the two checkouts' mtimes differ. Run the dry run first.
+
+```bash
+cd /Volumes/Projects/Development/CLI/openrender-worktrees/024-shading-services-routing
+L=juvenal@ubuntu-2404-desktop.v2-labs.io:/home/juvenal/Projects/Development/CLI/openrender/
+
+# dry run: lists what would be sent
+git ls-files -z | rsync -a --checksum --from0 --files-from=- --dry-run --itemize-changes ./ "$L"
+
+# the real sync
+git ls-files -z | rsync -a --checksum --from0 --files-from=- --itemize-changes ./ "$L"
+```
+
+Deleted by this branch relative to master: **none**.
+
+### 3. Verify the sync (on the Linux host)
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+sha256sum -c specs/024-shading-services-routing/tools/024-linux-manifest.sha256 | grep -v ': OK$'   # expect no output
+```
+
+The manifest is `tools/024-linux-manifest.sha256`: `sha256sum` lines (`<hash>  <path>`, paths relative to the repo
+root) for every file in `git diff --name-only master...HEAD`, plus `shaders/CMakeLists.txt`, written after the last
+edit of this file. It does not list itself. If `validation.md` or `tasks.md` is edited after this point they will
+show as mismatches until the manifest is regenerated:
+
+```bash
+# on the Mac, worktree root
+( git diff --name-only master...HEAD; git diff --cached --name-only ) | sort -u \
+  | grep -v '^specs/024-shading-services-routing/tools/024-linux-manifest.sha256$' \
+  | xargs shasum -a 256 > specs/024-shading-services-routing/tools/024-linux-manifest.sha256
+```
+
+### 4. Build (on the Linux host): a fresh `build-024`
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+rm -rf build-024
+cmake -B build-024 -S . -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF \
+      -DCMAKE_C_COMPILER=gcc-13 -DCMAKE_CXX_COMPILER=g++-13
+nice -n 19 cmake --build build-024 -j4
+```
+
+Record any warning that `-Werror` turns into an error (the spec's own files are the suspects: `serviceLookup.cpp`,
+`test_illumination_hook.cpp`, `test_no_services.cpp`, `llvmEmitter.cpp`; Clang misses some GCC 13 array-bounds and
+sign-compare cases).
+
+### 5. Tests (on the Linux host), one at a time
+
+```bash
+nice -n 19 ctest --test-dir build-024 -L architecture -j4 --output-on-failure
+nice -n 19 ctest --test-dir build-024 -L shading_parity -j4 --output-on-failure
+nice -n 19 ctest --test-dir build-024 -L libshader -j4 --output-on-failure
+nice -n 19 ctest --test-dir build-024 -R 'Visual_photon-parity|Visual_solar0' --output-on-failure
+nice -n 19 ctest --test-dir build-024 -j4 --output-on-failure
+```
+
+Expected: the full suite is 609 tests on this branch. The only failures allowed are the known Linux ones from spec
+023's T060 (`specs/023-common-infrastructure-floor/validation.md`); `LibShader_McompConsistency` (#44) still fails,
+now on `_ZTV19CTransmissionBundle`. Re-run any other failure alone before reporting it.
+
+Record from this run:
+- **`Visual_photon-parity-slo` MaxBlockAvgDiff on Linux.** The JIT-against-interpreter difference adds to the 2.91
+  cross-platform difference there, so if it is above 6, stop and report. Never edit the threshold.
+  `ctest -R 'Visual_photon-parity-slo' -V | grep MaxBlockAvgDiff`
+- **The map size** (SC-005): `wc -c build-024/tests/visual/photon-parity-slo/photon-parity-slo.gpm`. It must exist and
+  be non-zero; R4 measured 2 009 546 bytes on Linux.
+- **The `ShadingServices_*` and `ShadingParity_IlluminationHook` results**, and the ctest totals.
+
+### 6. SC-001 on Linux (import list)
+
+```bash
+cd /home/juvenal/Projects/Development/CLI/openrender
+L=build-024/src/libshader/shading/libshader_shading.so.1
+nm -D --undefined-only "$L" | awk '$1=="U"{print $2}' | sed 's/@.*//' | sort -u > /tmp/024-u.txt
+SHADERS="$PWD/build-024/shaders" ORENDERHOME="$PWD/build-024/tests/visual/_home" \
+DISPLAYS="$PWD/build-024/src/display/file" \
+LD_BIND_NOW=1 LD_DEBUG=bindings build-024/src/orender/orender examples/rib/camera-dof.rib 2>&1 \
+  | grep -E 'binding file [^ ]*libshader_shading\.so\.1 \[0\] to [^ ]*libRIBRender\.so\.1' \
+  | sed 's/.*normal symbol `//; s/'"'"'.*//' | sort -u > /tmp/024-b.txt
+comm -12 /tmp/024-u.txt /tmp/024-b.txt | c++filt | tee /tmp/024-libshader-dynlookup-after-linux.txt
+wc -l < /tmp/024-libshader-dynlookup-after-linux.txt     # expect exactly 7
+```
+
+The 7 are the Hiders and Texturing set (`CGatherBundle`, `CPhotonMap::lookup`, `CShadingContext::trace`/`traceEx`,
+`CTexture3d::resolve`, the vtables of `CTraceBundle` and `CTransmissionBundle`). Copy
+`/tmp/024-libshader-dynlookup-after-linux.txt` back as
+`specs/024-shading-services-routing/tools/024-libshader-dynlookup-after-linux.txt`.
+
+Linux green is required before the maintainer merges; this task itself does not depend on the merge.
+
+## T042: final macOS pass, 2026-10-16
+
+On the branch as committed, plus the staged comment fix in `shaders/CMakeLists.txt` (`nice -n 19`, `-j4`, build
+exit 0 with nothing to compile but the shader step):
+
+- **`ctest -L architecture`: 21/21.** `archcheck`: `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0
+  notbuilt=0`; Shading refs 0 (baseline 0), TOTAL refs 740 (baseline 740), TOTAL distinct 113 (baseline 113), so no
+  `WARNING` and no `NOTE`.
+- **`git diff df77ded -- tests/architecture/allowlist.txt`:** exactly the 10 DB-001 deletions (4 `renderer.h`
+  includes, 6 `CRenderer::` link lines) plus the section comment `(18)` to `(8)`. Nothing is added.
+- **`metrics-baseline.txt` against `df77ded`:** Shading `9 5` to `0 0`, TOTAL `742 117` to `740 113`, both
+  decreases. The Geometry (76 to 78) and Hiders (581 to 586) rows went up to the values #51 added on master, with
+  the reason in the file (maintainer-approved in Phase 4); the TOTAL is still below what it was.
+- **`-L determinism`: 6/6** (SC-006).
+- **Full suite: 608/609 on the first run, 609/609 counting the re-run.** `Parity_transparency-matte-aov`
+  (known-intermittent) failed once in the full run and passed 5 of 5 alone. `Visual_camera-dof-reyes`, the other
+  known flake, did not fail in this run.
+- The manifest `tools/024-linux-manifest.sha256` was regenerated after the edits to this file and to `tasks.md`
+  (both are manifest-covered; only these two entries changed) and verified with `shasum -a 256 -c`. T041 stays
+  unticked: the Linux run is still to be recorded.
+
+### T041 results: Linux, 2026-10-16 (run by the coordinator)
+
+Ubuntu 24.04, GCC 13.3, a fresh `build-024` (Release, `-DINSTALL_SELFCONTAINED=OFF`, `-Werror`), after an rsync of
+99 files; all 78 manifest entries were OK on Linux and a SHA-256 over all 2682 tracked files was identical on both
+sides. The host has one CPU.
+
+- **Build:** exit 0, no warnings, no errors.
+- **`-L architecture`: 21/21.** **`-R 'Visual_photon-parity|Visual_solar0'`: 6/6.**
+- **`Visual_photon-parity-slo` MaxBlockAvgDiff 2.91** (threshold 6), the same as the constant Linux-against-macOS
+  difference of R4, so the JIT variant adds nothing on top of it. **Its map is 2 009 546 bytes**, identical to the
+  interpreter's and to macOS (SC-005).
+- **SC-001 on Linux: exactly 7** import bindings, saved as `tools/024-libshader-dynlookup-after-linux.txt`: `CPhotonMap::lookup`,
+  `CTexture3d::resolve`, `CGatherBundle::CGatherBundle()`, `CShadingContext::trace`, `CShadingContext::traceEx` and the
+  vtables of `CTraceBundle` and `CTransmissionBundle`. The five `CRenderer::` symbols are gone (12 before).
+- **Full suite: 610 tests, 13 failed.** Sorted:
+  - **The known Linux failures from spec 023's T060 (8):** `Parity_transparency-matte-aov`,
+    `Visual_blobby-max-union-reyes`, `TextureTile_RenderByteIdentical`, the four `TextureTile_Cache*` tests, and
+    `LibShader_McompConsistency` (#44, still failing on `_ZTV19CTransmissionBundle`).
+  - **This spec's own (2): `ShadingServices_Lookup` and `ShadingServices_NoServices`**, which failed at load time with
+    `symbol lookup error: libshader_shading.so.1: undefined symbol: _ZTV19CTransmissionBundle`. Cause, confirmed with
+    `readelf -d`: Ubuntu's GCC links with `--as-needed`; these two tests reference no `libRIBRender` symbol, so
+    `libRIBRender` was dropped from their NEEDED list (only `libshader_shading` and `libRIBCommon` remained), and
+    `libshader_shading`'s 7 remaining DB-001 imports could not resolve. `test_shading_services_routing` keeps
+    `libRIBRender` because it calls `RiBegin`. This is the same class of problem as #44. **Fixed** (see below).
+  - **Not this spec's (3), master/#51 Linux issues:** `Visual_sphere-occlusion-reyes` and `Visual_sphere-occlusion-reyes-slo`
+    (24.58 against 20, the same in 5 of 5 runs, so deterministic) and
+    `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (1 pixel off). They come from #51 (`1c06579` re-rendered the
+    sphere-occlusion reference and added the T-junction tests), which was never validated on Linux; this branch changes
+    no hider or geometry code, and the interpreter scene and its `-slo` variant fail together (both are compared to the
+    same re-rendered reference).
+
+**The fix (macOS-verified, to be re-run on Linux):** `tests/shading_parity/CMakeLists.txt` gives
+`test_shading_service_lookup` and `test_shading_no_services`
+`target_link_options(... PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)`, commented with the reason and #44, so
+`libRIBRender` stays NEEDED. On macOS the generator expression is empty. Locally: configure and a full build exit 0,
+`-L shading_parity` 11/11 and `-L architecture` 21/21 pass.
+
+**Linux re-run after the link fix (coordinator, 2026-10-16):**
+- The re-sync sent `validation.md`, the new dynlookup file, the manifest and `tests/shading_parity/CMakeLists.txt`;
+  `sha256sum -c` of the manifest gave 0 mismatches.
+- `cmake --build build-024 --target test_shading_service_lookup test_shading_no_services` built both with no warnings.
+- `readelf -d` shows `libRIBRender.so.1`, `libshader_shading.so.1` and `libRIBCommon.so.1` in both executables'
+  NEEDED lists.
+- **`ctest -L shading_parity` on Linux: 11/11 passed**, including `ShadingServices_Lookup` and
+  `ShadingServices_NoServices`.
+
+**Linux final: 610 tests; 11 failures, all outside this spec.** The 8 known Linux failures of spec 023's T060 plus
+the 3 master/#51 failures listed above; no failure of this spec's own (the two `ShadingServices_*` failures are
+fixed). The 3 are `Visual_sphere-occlusion-reyes`, `Visual_sphere-occlusion-reyes-slo` and
+`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, to be recorded as master/#51 Linux issues. T041 is complete.

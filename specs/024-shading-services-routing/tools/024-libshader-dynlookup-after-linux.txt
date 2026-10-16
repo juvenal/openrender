@@ -1,0 +1,7 @@
+CPhotonMap::lookup(float*, float const*, int)
+CTexture3d::resolve(int, char const**, int*, int*)
+CGatherBundle::CGatherBundle()
+CShadingContext::trace(CRay*)
+CShadingContext::traceEx(CRayBundle*)
+vtable for CTraceBundle
+vtable for CTransmissionBundle
